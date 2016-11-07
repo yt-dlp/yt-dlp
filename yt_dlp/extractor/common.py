@@ -1879,11 +1879,21 @@ class InfoExtractor(object):
             'format_note': 'Quality selection URL',
         }
 
-    def _extract_m3u8_formats(self, m3u8_url, video_id, ext=None,
-                              entry_protocol='m3u8', preference=None, quality=None,
-                              m3u8_id=None, note=None, errnote=None,
-                              fatal=True, live=False, data=None, headers={},
-                              query={}):
+    def _extract_m3u8_formats(self, *args, **kwargs):
+        fmts, subs = self._extract_m3u8_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self.report_warning(bug_reports_message(
+                "Ignoring subtitle tracks found in the HLS manifest; "
+                "if any subtitle tracks are missing,"
+            ))
+        return fmts
+
+    def _extract_m3u8_formats_and_subtitles(
+            self, m3u8_url, video_id, ext=None, entry_protocol='m3u8',
+            preference=None, quality=None, m3u8_id=None, note=None,
+            errnote=None, fatal=True, live=False, data=None, headers={},
+            query={}):
+
         res = self._download_webpage_handle(
             m3u8_url, video_id,
             note=note or 'Downloading m3u8 information',
@@ -1891,29 +1901,33 @@ class InfoExtractor(object):
             fatal=fatal, data=data, headers=headers, query=query)
 
         if res is False:
-            return []
+            return [], {}
 
         m3u8_doc, urlh = res
         m3u8_url = urlh.geturl()
 
-        return self._parse_m3u8_formats(
+        return self._parse_m3u8_formats_and_subtitles(
             m3u8_doc, m3u8_url, ext=ext, entry_protocol=entry_protocol,
             preference=preference, quality=quality, m3u8_id=m3u8_id,
             note=note, errnote=errnote, fatal=fatal, live=live, data=data,
             headers=headers, query=query, video_id=video_id)
 
-    def _parse_m3u8_formats(self, m3u8_doc, m3u8_url, ext=None,
-                            entry_protocol='m3u8', preference=None, quality=None,
-                            m3u8_id=None, live=False, note=None, errnote=None,
-                            fatal=True, data=None, headers={}, query={}, video_id=None):
+    def _parse_m3u8_formats_and_subtitles(
+            self, m3u8_doc, m3u8_url, ext=None, entry_protocol='m3u8',
+            preference=None, quality=None, m3u8_id=None, live=False, note=None,
+            errnote=None, fatal=True, data=None, headers={}, query={},
+            video_id=None):
+
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
-            return []
+            return [], {}
 
         if (not self._downloader.params.get('allow_unplayable_formats')
                 and re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)):  # Apple FairPlay
-            return []
+            return [], {}
 
         formats = []
+
+        subtitles = {}
 
         format_url = lambda u: (
             u
@@ -2001,7 +2015,7 @@ class InfoExtractor(object):
                 }
                 formats.append(f)
 
-            return formats
+            return formats, subtitles
 
         groups = {}
         last_stream_inf = {}
@@ -2013,6 +2027,15 @@ class InfoExtractor(object):
             if not (media_type and group_id and name):
                 return
             groups.setdefault(group_id, []).append(media)
+            # <https://tools.ietf.org/html/rfc8216#section-4.3.4.1>
+            if media_type == 'SUBTITLES':
+                lang = media['LANGUAGE']  # XXX: normalise?
+                url = format_url(media['URI'])
+                sub_info = {
+                    'url': url,
+                    'ext': determine_ext(url),
+                }
+                subtitles.setdefault(lang, []).append(sub_info)
             if media_type not in ('VIDEO', 'AUDIO'):
                 return
             media_url = media.get('URI')
@@ -2160,7 +2183,7 @@ class InfoExtractor(object):
                         formats.append(http_f)
 
                 last_stream_inf = {}
-        return formats
+        return formats, subtitles
 
     @staticmethod
     def _xpath_ns(path, namespace=None):

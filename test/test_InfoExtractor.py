@@ -684,17 +684,19 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1920,
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
-                }]
+                }],
+                {}
             ),
         ]
 
-        for m3u8_file, m3u8_url, expected_formats in _TEST_CASES:
+        for m3u8_file, m3u8_url, expected_formats, expected_subs in _TEST_CASES:
             with io.open('./test/testdata/m3u8/%s.m3u8' % m3u8_file,
                          mode='r', encoding='utf-8') as f:
-                formats = self.ie._parse_m3u8_formats(
+                formats, subs = self.ie._parse_m3u8_formats_and_subtitles(
                     f.read(), m3u8_url, ext='mp4')
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
+                expect_value(self, subs, expected_subs, None)
 
     def test_parse_mpd_formats(self):
         _TEST_CASES = [
