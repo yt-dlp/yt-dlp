@@ -255,3 +255,37 @@ class ABCIViewIE(InfoExtractor):
             'subtitles': subtitles,
             'is_live': is_live,
         }
+
+
+class ABCIViewShowLatestEpisodeIE(InfoExtractor):
+    IE_NAME = 'abc.net.au:iview:show:latest-episode'
+    _VALID_URL = r'https?://iview\.abc\.net\.au/show/(?P<id>[^/]+)$'
+    _DATA = r'window\.__INITIAL_STATE__\s*=\s*"(.+)"\s*;'
+    _GEO_COUNTRIES = ['AU']
+
+    _TESTS = [{
+        'url': 'https://iview.abc.net.au/show/upper-middle-bogan',
+        'md5': '764e4d496957407d36fd442f3207dafc',
+        'info_dict': {
+            'id': 'CO1108V001S00',
+            'ext': 'mp4',
+            'title': "Series 1 Ep 1 I'm A Swan",
+            'description': 'md5:7b676758c1de11a30b79b4d301e8da93',
+            'series': 'Upper Middle Bogan',
+            'uploader_id': 'abc1',
+            'upload_date': '20210630',
+            'timestamp': 1625036400,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
+        webpage = self._download_webpage(url, show_id)
+        webpage_data = self._search_regex(self._DATA, webpage, 'initial state')
+        json_data = unescapeHTML(webpage_data).encode('utf-8').decode('unicode_escape')
+        video_data = self._parse_json(json_data, show_id)
+        url = video_data['route']['pageData']['_embedded']['highlightVideo']['shareUrl']
+        return self.url_result(url)
