@@ -9,6 +9,7 @@ from .common import InfoExtractor
 from ..compat import (
     compat_kwargs,
     compat_urlparse,
+    compat_getpass
 )
 from ..utils import (
     unescapeHTML,
@@ -59,6 +60,10 @@ MSO_INFO = {
         'name': 'Charter Spectrum',
         'username_field': 'IDToken1',
         'password_field': 'IDToken2',
+    },
+    'Philo': {
+        'name': 'Philo',
+        'username_field': 'ident'
     },
     'Verizon': {
         'name': 'Verizon FiOS',
@@ -1467,6 +1472,22 @@ class AdobePassIE(InfoExtractor):
                         mvpd_confirm_page, urlh = mvpd_confirm_page_res
                         if '<button class="submit" value="Resume">Resume</button>' in mvpd_confirm_page:
                             post_form(mvpd_confirm_page_res, 'Confirming Login')
+                elif mso_id == 'Philo':
+                    # Philo has very unique authentication method
+                    self._download_webpage(
+                        'https://idp.philo.com/auth/init/login_code', video_id, 'Requesting auth code', data=urlencode_postdata({
+                            'ident': username,
+                            'device': 'web',
+                            'send_confirm_link': False,
+                            'send_token': True
+                        }))
+                    philo_code = compat_getpass('Type auth code you have received [Return]: ')
+                    self._download_webpage(
+                        'https://idp.philo.com/auth/update/login_code', video_id, 'Submitting token', data=urlencode_postdata({
+                            'token': philo_code
+                        }))
+                    mvpd_confirm_page_res = self._download_webpage_handle('https://idp.philo.com/idp/submit', video_id, 'Confirming Philo Login')
+                    post_form(mvpd_confirm_page_res, 'Confirming Login')
                 elif mso_id == 'Verizon':
                     # In general, if you're connecting from a Verizon-assigned IP,
                     # you will not actually pass your credentials.
