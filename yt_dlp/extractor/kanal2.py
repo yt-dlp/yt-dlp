@@ -1,4 +1,4 @@
-# coding: ISO-8859-15
+# coding: utf-8
 from __future__ import unicode_literals
 from datetime import (
     datetime,
