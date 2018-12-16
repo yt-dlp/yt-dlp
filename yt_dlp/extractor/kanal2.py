@@ -19,7 +19,7 @@ import re
 
 
 class Kanal2IE(InfoExtractor):
-    _VALID_URL = r'(?P<base>https?:\/\/.+\.postimees\.ee)[a-zA-Z0-9\/._-]+\?[a-zA-Z0-9=&._-]*id=(?P<id>[a-zA-Z0-9_-]+)[^ ]*'
+    _VALID_URL = r'(?P<base>https?://.+\.postimees\.ee)[a-zA-Z0-9/._-]+\?[a-zA-Z0-9=&._-]*id=(?P<id>[a-zA-Z0-9_-]+)[^ ]*'
     _TESTS = [{
         # The most ordinary case
         'url': 'http://kanal2.postimees.ee/pluss/video/?id=40792',
@@ -85,8 +85,8 @@ class Kanal2IE(InfoExtractor):
         host = xmlfile.find('./playlist/video/streamItems').get('host')
 
         formats = [{
-            'protocol': re.compile('(?P<protocol>.+):\/\/[^\0]*').match(host).group('protocol') or 'rtmp',
-            'app': re.compile(((re.compile('(?P<protocol>.+):\/\/[^\0]*').match(host).group('protocol') or 'rtmp') + ':\/\/[^\0]*\/(?P<app>.+\/)')).match(host).group('app') or 'kanal2vod',
+            'protocol': re.compile('(?P<protocol>.+)://[^\0]*').match(host).group('protocol') or 'rtmp',
+            'app': re.compile(((re.compile('(?P<protocol>.+)://[^\0]*').match(host).group('protocol') or 'rtmp') + '://[^\0]*/(?P<app>.+/)')).match(host).group('app') or 'kanal2vod',
             'url': host + stream.get('streamName'),
             'play_path': 'mp4:' + stream.get('streamName'),
             'ext': 'flv',
@@ -97,12 +97,12 @@ class Kanal2IE(InfoExtractor):
         self._sort_formats(formats)
 
         # Remove stacked urls(e.g. http://test.comhttp://test2.com, removes everything before second http(kanal12 fix))
-        thumbnail = re.compile('[^\0]*(?P<realurl>https?:\/\/[^"]+)[^\0]*').match(base + xpath_text(xmlfile, './playlist/video/thumbUrl')).group('realurl')
+        thumbnail = re.compile('[^\0]*(?P<realurl>https?://[^"]+)[^\0]*').match(base + xpath_text(xmlfile, './playlist/video/thumbUrl')).group('realurl')
         average_rating = int_or_none(xpath_text(xmlfile, './playlist/video/rating/value'))
 
         webpage = self._download_webpage(url, video_id)
         if 'player-container' in webpage:
-            description = self._search_regex(r'[^\0]*<p class="full"[^>]*>([^<]*)<\/p>[^\0]*', webpage, 'description', default=None)
+            description = self._search_regex(r'[^\0]*<p class="full"[^>]*>([^<]*)</p>[^\0]*', webpage, 'description', default=None)
             if description is not None:
                 description = description.strip()
 
@@ -111,12 +111,12 @@ class Kanal2IE(InfoExtractor):
                 episode = int_or_none(epandseasonregex.group('episode'))
                 season = int_or_none(epandseasonregex.group('season'))
 
-            dateandtimeregex = re.compile('[^\0]*eetris[^\0]*<\/span>[^\0]*(?P<date>[0-9]{1,2}.[0-9]{1,2}.[0-9]{4,})[^0-9]*(?P<time>[0-9]{1,2}:[0-9]{1,2})[^\0]*').match(self._search_regex('[^\0]*(eetris[^\0]*<\/span>[^\0]*[0-9]{1,2}.[0-9]{1,2}.[0-9]{4,}[^0-9]*[0-9]{1,2}:[0-9]{1,2})[^\0]*', webpage, 'dateandtime', default=None))
+            dateandtimeregex = re.compile('[^\0]*eetris[^\0]*</span>[^\0]*(?P<date>[0-9]{1,2}.[0-9]{1,2}.[0-9]{4,})[^0-9]*(?P<time>[0-9]{1,2}:[0-9]{1,2})[^\0]*').match(self._search_regex('[^\0]*(eetris[^\0]*</span>[^\0]*[0-9]{1,2}.[0-9]{1,2}.[0-9]{4,}[^0-9]*[0-9]{1,2}:[0-9]{1,2})[^\0]*', webpage, 'dateandtime', default=None))
             if dateandtimeregex is not None:
                 date = dateandtimeregex.group('date')
                 time = dateandtimeregex.group('time')
                 timestamp = int_or_none((datetime.strptime(date + " " + time, '%d.%m.%Y %H:%M') - datetime(1970, 1, 1) + timedelta(seconds=60 * 60 * 2)).total_seconds())  # No dst support, but added the 2 default hours of estonia
-            player_url = self._search_regex('[^\0]embedSWF\("([^"]+)[^\0]', webpage, 'player_url', default=None)
+            player_url = self._search_regex('[^\0]embedSWF\\("([^"]+)[^\0]', webpage, 'player_url', default=None)
 
         else:
             description = None
@@ -126,7 +126,7 @@ class Kanal2IE(InfoExtractor):
             timestamp = None
 
         if description is None:
-            description = xpath_text(xmlfile, './playlist/video/description') or self._search_regex('[^\0]og:description" *content="(.*)\" *\/>', webpage, 'description', default=None)
+            description = xpath_text(xmlfile, './playlist/video/description') or self._search_regex('[^\0]og:description" *content="(.*)\" */>', webpage, 'description', default=None)
             if description is not None:
                 description = unescapeHTML(description).strip()
 
@@ -135,7 +135,7 @@ class Kanal2IE(InfoExtractor):
 
         title = xpath_text(xmlfile, './playlist/video/name')
         if title is None:
-            title = self._search_regex('[^\0]og:title" *content="(.*)\" *\/>', webpage, 'title', default=None) or self._search_regex('[^\0]<title>(.*)<\/title>[^\0]', webpage, 'description', default=None)
+            title = self._search_regex('[^\0]og:title" *content="(.*)\" */>', webpage, 'title', default=None) or self._search_regex('[^\0]<title>(.*)</title>[^\0]', webpage, 'description', default=None)
 
         return {
             'average_rating': average_rating,
