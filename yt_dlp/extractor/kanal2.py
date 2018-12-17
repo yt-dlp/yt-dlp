@@ -92,6 +92,8 @@ class Kanal2IE(InfoExtractor):
                 'url': stream.get('file') + '&s=' + sid,
             })
 
+        self._sort_formats(formats)
+
         return formats
 
     def get_playlist(self, video_id):
