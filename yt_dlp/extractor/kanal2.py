@@ -13,7 +13,7 @@ class Kanal2IE(InfoExtractor):
     _VALID_URL = r'(?P<base>https?://.+\.postimees\.ee)[a-zA-Z0-9/._-]+\?[a-zA-Z0-9=&._-]*id=(?P<id>[a-zA-Z0-9_-]+)[^ ]*'
     _TESTS = [
         {
-            # Standard url
+            'note': 'Test standard url (#18547)',
             'url': 'https://kanal2.postimees.ee/pluss/video/?id=40792',
             'md5': 'cecaf3e17706d725b1f23e886b67f8d3',
             'info_dict': {
@@ -27,7 +27,7 @@ class Kanal2IE(InfoExtractor):
             }
         },
         {
-            # Other url example
+            'note': 'Test preview url (#18547)',
             'url': 'http://kanal2.postimees.ee/pluss/preview?id=40744',
             'md5': 'e1dcc6e39d17a3f04749a8158db26377',
             'info_dict': {
