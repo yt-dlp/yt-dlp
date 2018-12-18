@@ -42,7 +42,7 @@ class Kanal2IE(InfoExtractor):
         },
     ]
 
-    def _real_extract(self, url):
+    def _real_extract(self, url_):
         def get_title(info):
             title = info['title']
 
@@ -101,19 +101,22 @@ class Kanal2IE(InfoExtractor):
 
             return session
 
-        video_id = self._match_id(url)
-        playlist = get_playlist(video_id)
+        def extract_info(url):
+            video_id = self._match_id(url)
+            playlist = get_playlist(video_id)
 
-        # return a dict, description from here:
-        # https://github.com/rg3/youtube-dl/blob/7f41a598b3fba1bcab2817de64a08941200aa3c8/youtube_dl/extractor/common.py#L94-L303
-        info = {
-            'id': video_id,
-            'title': get_title(playlist['info']),
-            'description': playlist['info'].get('description'),
-            'webpage_url': playlist['data'].get('url'),
-            'thumbnail': playlist['data'].get('image'),
-            'formats': get_formats(playlist, video_id),
-            'timestamp': get_timestamp(playlist['info']['subtitle']),
-        }
+            # return a dict, description from here:
+            # https://github.com/rg3/youtube-dl/blob/7f41a598b3fba1bcab2817de64a08941200aa3c8/youtube_dl/extractor/common.py#L94-L303
+            info = {
+                'id': video_id,
+                'title': get_title(playlist['info']),
+                'description': playlist['info'].get('description'),
+                'webpage_url': playlist['data'].get('url'),
+                'thumbnail': playlist['data'].get('image'),
+                'formats': get_formats(playlist, video_id),
+                'timestamp': get_timestamp(playlist['info']['subtitle']),
+            }
 
-        return info
+            return info
+
+        return extract_info(url_)
