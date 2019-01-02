@@ -9,6 +9,7 @@ from ..utils import (
     url_or_none,
 )
 
+
 class Kanal2IE(InfoExtractor):
     SUBTITLE_DATE_RE = re.compile(r'\((\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2})\)$')
 
@@ -67,7 +68,15 @@ class Kanal2IE(InfoExtractor):
         date = datetime.strptime(match, '%d.%m.%Y %H:%M')
         unixtime = time.mktime(date.timetuple())
 
-        return int(unixtime)
+        try:
+            import pytz
+            # the time is always in this timezone
+            tz = pytz.timezone('Europe/Tallinn')
+            unixtime += tz.utcoffset(date).microseconds
+        except ImportError:
+            pass
+
+        return unixtime
 
     def get_formats(self, playlist, video_id):
         formats = []
