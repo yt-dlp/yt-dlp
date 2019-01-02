@@ -70,6 +70,8 @@ class Kanal2IE(InfoExtractor):
         session = self.get_session(playlist['data']['path'], video_id)
         sid = session.get('session')
         for stream in playlist['data']['streams']:
+            if not stream.get('file'):
+                continue
             formats.append({
                 'protocol': 'm3u8',
                 'ext': 'mp4',
