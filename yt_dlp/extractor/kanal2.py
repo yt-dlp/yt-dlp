@@ -12,7 +12,7 @@ from ..utils import (
 class Kanal2IE(InfoExtractor):
     SUBTITLE_DATE_RE = re.compile(r'\((\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2})\)$')
 
-    _VALID_URL = r'(?P<base>https?://.+\.postimees\.ee)[a-zA-Z0-9/._-]+\?[a-zA-Z0-9=&._-]*id=(?P<id>[a-zA-Z0-9_-]+)[^ ]*'
+    _VALID_URL = r'https?://.+\.postimees\.ee/[^?]+\?(.*?&)?id=(?P<id>\d+)'
     _TESTS = [
         {
             'note': 'Test standard url (#18547)',
