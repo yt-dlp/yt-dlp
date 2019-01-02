@@ -81,12 +81,15 @@ class Kanal2IE(InfoExtractor):
         return formats
 
     def get_playlist(self, video_id):
-        url = 'https://kanal2.postimees.ee/player/playlist/%(video_id)s?type=episodes' % {'video_id': video_id}
+        url = 'https://kanal2.postimees.ee/player/playlist/%(video_id)s' % {'video_id': video_id}
+        query = {
+            'type': 'episodes',
+        }
         headers = {
             'X-Requested-With': 'XMLHttpRequest',
         }
 
-        return self._download_json(url, video_id, headers=headers)
+        return self._download_json(url, video_id, headers=headers, query=query)
 
     def get_session(self, path, video_id):
         url = 'https://sts.postimees.ee/session/register'
