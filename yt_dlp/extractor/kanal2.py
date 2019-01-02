@@ -22,7 +22,7 @@ class Kanal2IE(InfoExtractor):
                 'id': '40792',
                 'ext': 'mp4',
                 'title': 'Aedniku aabits / Osa 53  (05.08.2016 20:00)',
-                'thumbnail': 'https://kanal-dl.babahhcdn.com/kanal/2016/08/05/0053_HNqKsIA/img/2.jpg',
+                'thumbnail': r're:https?://.*\.jpg$',
                 'description': 'md5:53cabf3c5d73150d594747f727431248',
                 'upload_date': '20160805',
                 'timestamp': 1470416400,
