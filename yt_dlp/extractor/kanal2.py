@@ -42,81 +42,78 @@ class Kanal2IE(InfoExtractor):
         },
     ]
 
-    def _real_extract(self, url_):
-        def get_title(info):
-            title = info['title']
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        playlist = self.get_playlist(video_id)
 
-            if info['subtitle']:
-                title += ' / ' + info['subtitle']
+        # return a dict, description from here:
+        # https://github.com/rg3/youtube-dl/blob/7f41a598b3fba1bcab2817de64a08941200aa3c8/youtube_dl/extractor/common.py#L94-L303
+        info = {
+            'id': video_id,
+            'title': self.get_title(playlist['info']),
+            'description': playlist['info'].get('description'),
+            'webpage_url': playlist['data'].get('url'),
+            'thumbnail': playlist['data'].get('image'),
+            'formats': self.get_formats(playlist, video_id),
+            'timestamp': self.get_timestamp(playlist['info']['subtitle']),
+        }
 
-            return title
+        return info
 
-        def get_timestamp(subtitle):
-            # Extract timestamp from:
-            #  "subtitle": "Osa 53  (05.08.2016 20:00)",
-            match = self._search_regex(self.SUBTITLE_DATE_RE, subtitle, 'dateandtime', default=None)
-            if not match:
-                return None
+    def get_title(self, info):
+        title = info['title']
 
-            # https://stackoverflow.com/a/27914405/2314626
-            date = datetime.strptime(match, '%d.%m.%Y %H:%M')
-            unixtime = time.mktime(date.timetuple())
+        if info['subtitle']:
+            title += ' / ' + info['subtitle']
 
-            return int(unixtime)
+        return title
 
-        def get_formats(playlist, video_id):
-            formats = []
-            session = get_session(playlist['data']['path'], video_id)
-            sid = session.get('session')
-            for stream in playlist['data']['streams']:
-                formats.append({
-                    'protocol': 'm3u8',
-                    'ext': 'mp4',
-                    'url': stream.get('file') + '&s=' + sid,
-                })
+    def get_timestamp(self, subtitle):
+        # Extract timestamp from:
+        #  "subtitle": "Osa 53  (05.08.2016 20:00)",
+        match = self._search_regex(self.SUBTITLE_DATE_RE, subtitle, 'dateandtime', default=None)
+        if not match:
+            return None
 
-            self._sort_formats(formats)
+        # https://stackoverflow.com/a/27914405/2314626
+        date = datetime.strptime(match, '%d.%m.%Y %H:%M')
+        unixtime = time.mktime(date.timetuple())
 
-            return formats
+        return int(unixtime)
 
-        def get_playlist(video_id):
-            url = 'https://kanal2.postimees.ee/player/playlist/%(video_id)s?type=episodes' % {'video_id': video_id}
-            headers = {
-                'X-Requested-With': 'XMLHttpRequest',
-            }
+    def get_formats(self, playlist, video_id):
+        formats = []
+        session = self.get_session(playlist['data']['path'], video_id)
+        sid = session.get('session')
+        for stream in playlist['data']['streams']:
+            formats.append({
+                'protocol': 'm3u8',
+                'ext': 'mp4',
+                'url': stream.get('file') + '&s=' + sid,
+            })
 
-            return self._download_json(url, video_id, headers=headers)
+        self._sort_formats(formats)
 
-        def get_session(path, video_id):
-            url = 'https://sts.postimees.ee/session/register'
-            headers = {
-                'X-Original-URI': path,
-                'Accept': 'application/json',
-            }
-            session = self._download_json(url, video_id, headers=headers,
-                                          note='Creating session',
-                                          errnote='Error creating session')
-            if session['reason'] != 'OK':
-                raise ExtractorError('%s: Unable to obtain session' % self.IE_NAME)
+        return formats
 
-            return session
+    def get_playlist(self, video_id):
+        url = 'https://kanal2.postimees.ee/player/playlist/%(video_id)s?type=episodes' % {'video_id': video_id}
+        headers = {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
 
-        def extract_info(url):
-            video_id = self._match_id(url)
-            playlist = get_playlist(video_id)
+        return self._download_json(url, video_id, headers=headers)
 
-            # return a dict, description from here:
-            # https://github.com/rg3/youtube-dl/blob/7f41a598b3fba1bcab2817de64a08941200aa3c8/youtube_dl/extractor/common.py#L94-L303
-            info = {
-                'id': video_id,
-                'title': get_title(playlist['info']),
-                'description': playlist['info'].get('description'),
-                'webpage_url': playlist['data'].get('url'),
-                'thumbnail': playlist['data'].get('image'),
-                'formats': get_formats(playlist, video_id),
-                'timestamp': get_timestamp(playlist['info']['subtitle']),
-            }
+    def get_session(self, path, video_id):
+        url = 'https://sts.postimees.ee/session/register'
+        headers = {
+            'X-Original-URI': path,
+            'Accept': 'application/json',
+        }
+        session = self._download_json(url, video_id, headers=headers,
+                                      note='Creating session',
+                                      errnote='Error creating session')
+        if session['reason'] != 'OK':
+            raise ExtractorError('%s: Unable to obtain session' % self.IE_NAME)
 
-            return info
-
-        return extract_info(url_)
+        return session
