@@ -4,8 +4,10 @@ from datetime import datetime
 import re
 import time
 from .common import InfoExtractor
-from ..utils import ExtractorError
-
+from ..utils import (
+    ExtractorError,
+    url_or_none,
+)
 
 class Kanal2IE(InfoExtractor):
     SUBTITLE_DATE_RE = re.compile(r'\((\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2})\)$')
@@ -75,7 +77,7 @@ class Kanal2IE(InfoExtractor):
             formats.append({
                 'protocol': 'm3u8',
                 'ext': 'mp4',
-                'url': stream.get('file') + '&s=' + sid,
+                'url': url_or_none(stream.get('file') + '&s=' + sid),
             })
 
         self._sort_formats(formats)
