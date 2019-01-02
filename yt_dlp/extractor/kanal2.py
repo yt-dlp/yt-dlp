@@ -71,7 +71,7 @@ class Kanal2IE(InfoExtractor):
         formats = []
         session = self.get_session(playlist['data']['path'], video_id)
         sid = session.get('session')
-        for stream in playlist['data']['streams']:
+        for stream in playlist['data'].get('streams', []):
             if not stream.get('file'):
                 continue
             formats.append({
