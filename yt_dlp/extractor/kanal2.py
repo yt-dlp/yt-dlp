@@ -21,7 +21,7 @@ class Kanal2IE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Aedniku aabits / Osa 53  (05.08.2016 20:00)',
                 'thumbnail': 'https://kanal-dl.babahhcdn.com/kanal/2016/08/05/0053_HNqKsIA/img/2.jpg',
-                'description': 'Aedniku aabits" on saade, mis pakub kaasaelamist ja teadmisi nii algajatele, kui juba kogenud rohenäppudele. Kõik alates vajalikest näpunäidetest, nutikatest lahendustest, uudistoodetest kuni taimede hingeeluni ning aias kasutatava tehnikani välja.',
+                'description': 'md5:53cabf3c5d73150d594747f727431248',
                 'upload_date': '20160805',
                 'timestamp': 1470416400,
             }
