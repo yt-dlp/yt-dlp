@@ -26,20 +26,6 @@ class Kanal2IE(InfoExtractor):
                 'timestamp': 1470416400,
             }
         },
-        {
-            'note': 'Test preview url (#18547)',
-            'url': 'http://kanal2.postimees.ee/pluss/preview?id=40744',
-            'md5': 'e1dcc6e39d17a3f04749a8158db26377',
-            'info_dict': {
-                'id': '40744',
-                'ext': 'mp4',
-                'title': 'Kaunis Dila / Osa 50  (10.08.2016 19:00)',
-                'thumbnail': 'https://kanal-dl.babahhcdn.com/kanal/2018/12/05/16_300_00208_0050-Kaunis_Dila_hamdY9I/img/2.jpg',
-                'description': 'Riza ei tea, mis oht teda ja ta pere Selcuki näol varitseb. Azer kahtlustab, et Fatma elus on uus mees ja on valmis kõigeks, et ta endale tagasi võita. See tekitab aga Arzus suurt hirmu.',
-                'timestamp': 1470844800,
-                'upload_date': '20160810',
-            }
-        },
     ]
 
     def _real_extract(self, url):
