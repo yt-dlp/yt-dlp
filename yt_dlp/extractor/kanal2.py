@@ -46,8 +46,6 @@ class Kanal2IE(InfoExtractor):
         video_id = self._match_id(url)
         playlist = self.get_playlist(video_id)
 
-        # return a dict, description from here:
-        # https://github.com/rg3/youtube-dl/blob/7f41a598b3fba1bcab2817de64a08941200aa3c8/youtube_dl/extractor/common.py#L94-L303
         info = {
             'id': video_id,
             'title': self.get_title(playlist['info']),
