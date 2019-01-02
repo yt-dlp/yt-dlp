@@ -41,7 +41,7 @@ class Kanal2IE(InfoExtractor):
             'webpage_url': playlist['data'].get('url'),
             'thumbnail': playlist['data'].get('image'),
             'formats': self.get_formats(playlist, video_id),
-            'timestamp': self.get_timestamp(playlist['info']['subtitle']),
+            'timestamp': self.get_timestamp(playlist['info'].get('subtitle')),
         }
 
         return info
@@ -55,6 +55,8 @@ class Kanal2IE(InfoExtractor):
         return title
 
     def get_timestamp(self, subtitle):
+        if not subtitle:
+            return None
         # Extract timestamp from:
         #  "subtitle": "Osa 53  (05.08.2016 20:00)",
         match = self._search_regex(self.SUBTITLE_DATE_RE, subtitle, 'dateandtime', default=None)
