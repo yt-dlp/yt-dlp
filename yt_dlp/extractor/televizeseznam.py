@@ -28,6 +28,7 @@ class TelevizeSeznamIE(InfoExtractor):
         'info_dict': {
             'id': 'buh-57953890',
             'title': 'Bůh',
+            'description': 'Trenér Hrouzek je plný rozporů. Na pomoc si povolá i toho nejvyššího. Kdo to ale je? Pomůže mu vyřešit několik dilemat, která se mu v poslední době v životě nahromadila?',
             'ext': 'mp4',
         }
     }
@@ -81,5 +82,6 @@ class TelevizeSeznamIE(InfoExtractor):
         return {
             'id': video_id,
             'title': data['episode'].get('name'),
+            'description': data['episode'].get('perex'),
             'formats': formats
         }
