@@ -55,7 +55,6 @@ class TelevizeSeznamIE(InfoExtractor):
                 'url': urljoin(spl_url, v['url']),
                 'width': v['resolution'][0],
                 'height': v['resolution'][1],
-                'resolution': '%sx%s' % (v['resolution'][0], v['resolution'][1]),
                 'protocol': 'https',
                 'ext': 'mp4',
                 'subtitles': subtitles,
