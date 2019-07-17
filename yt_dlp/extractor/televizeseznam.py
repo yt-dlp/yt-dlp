@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
+from ..utils import urljoin
 
 
 class TelevizeSeznamIE(InfoExtractor):
@@ -43,7 +43,7 @@ class TelevizeSeznamIE(InfoExtractor):
             subtitles.update({
                 v['language']: {
                     'ext': 'srt',
-                    'url': compat_urlparse.urljoin(spl_url, v['urls']['srt'])
+                    'url': urljoin(spl_url, v['urls']['srt'])
                 }
             })
         return subtitles
@@ -52,7 +52,7 @@ class TelevizeSeznamIE(InfoExtractor):
         formats = []
         for r, v in play_list.items():
             formats.append({
-                'url': compat_urlparse.urljoin(spl_url, v['url']),
+                'url': urljoin(spl_url, v['url']),
                 'width': v['resolution'][0],
                 'height': v['resolution'][1],
                 'resolution': '%sx%s' % (v['resolution'][0], v['resolution'][1]),
