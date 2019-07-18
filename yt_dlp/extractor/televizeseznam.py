@@ -2,13 +2,14 @@
 from __future__ import unicode_literals
 
 import json
+import re
 
 from .common import InfoExtractor
 from ..utils import urljoin
 
 
 class TelevizeSeznamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?televizeseznam\.cz/video/.+/(?P<id>.+)'
+    _VALID_URL = r'https?://(?:www\.)?televizeseznam\.cz/(?:.+\/)(?P<display_id>.+)-(?P<id>[0-9]+)'
 
     _API_BASE = 'https://www.televizeseznam.cz'
     _GRAPHQL_URL = '%s/api/graphql' % _API_BASE
@@ -26,7 +27,8 @@ class TelevizeSeznamIE(InfoExtractor):
         'url': 'https://www.televizeseznam.cz/video/lajna/buh-57953890',
         'md5': '40c41ade1464a390a0b447e333df4239',
         'info_dict': {
-            'id': 'buh-57953890',
+            'id': '57953890',
+            'display_id': 'buh',
             'title': 'Bůh',
             'description': 'Trenér Hrouzek je plný rozporů. Na pomoc si povolá i toho nejvyššího. Kdo to ale je? Pomůže mu vyřešit několik dilemat, která se mu v poslední době v životě nahromadila?',
             'ext': 'mp4',
@@ -62,7 +64,7 @@ class TelevizeSeznamIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        display_id, video_id = re.match(self._VALID_URL, url).groups()
 
         data = self._download_json(
             self._GRAPHQL_URL, video_id, 'Downloading GraphQL result',
@@ -80,6 +82,7 @@ class TelevizeSeznamIE(InfoExtractor):
 
         return {
             'id': video_id,
+            'display_id': display_id,
             'title': data['episode'].get('name'),
             'description': data['episode'].get('perex'),
             'formats': formats
