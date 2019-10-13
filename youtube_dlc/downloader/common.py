@@ -332,7 +332,7 @@ class FileDownloader(object):
         """
 
         nooverwrites_and_exists = (
-            self.params.get('nooverwrites', False)
+            not self.params.get('overwrites', True)
             and os.path.exists(encodeFilename(filename))
         )
 

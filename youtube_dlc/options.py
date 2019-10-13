@@ -834,8 +834,16 @@ def parseOpts(overrideArguments=None):
         help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-w', '--no-overwrites',
-        action='store_true', dest='nooverwrites', default=False,
-        help='Do not overwrite files')
+        action='store_false', dest='overwrites', default=None,
+        help='Do not overwrite any files')
+    filesystem.add_option(
+        '--force-overwrites', '--yes-overwrites',
+        action='store_true', dest='overwrites',
+        help='Overwrite all video and metadata files. This option includes --no-continue')
+    filesystem.add_option(
+        '--no-force-overwrites',
+        action='store_const', dest='overwrites', const=None,
+        help='Do not overwrite the video, but overwrite related files (default)')
     filesystem.add_option(
         '-c', '--continue',
         action='store_true', dest='continue_dl', default=True,

@@ -181,7 +181,9 @@ class YoutubeDL(object):
     trim_file_name:    Limit length of filename (extension excluded).
     ignoreerrors:      Do not stop on download errors. (Default True when running youtube-dlc, but False when directly accessing YoutubeDL class)
     force_generic_extractor: Force downloader to use the generic extractor
-    nooverwrites:      Prevent overwriting files.
+    overwrites:        Overwrite all video and metadata files if True,
+                       overwrite only non-video files if None
+                       and don't overwrite any file if False
     playliststart:     Playlist item to start at.
     playlistend:       Playlist item to end at.
     playlist_items:    Specific indices of playlist to download.
@@ -685,6 +687,13 @@ class YoutubeDL(object):
             self.to_screen('[download] %s has already been downloaded' % file_name)
         except UnicodeEncodeError:
             self.to_screen('[download] The file has already been downloaded')
+
+    def report_file_delete(self, file_name):
+        """Report that existing file will be deleted."""
+        try:
+            self.to_screen('Deleting already existent file %s' % file_name)
+        except UnicodeEncodeError:
+            self.to_screen('Deleting already existent file')
 
     def prepare_filename(self, info_dict):
         """Generate the output filename."""
@@ -1898,7 +1907,7 @@ class YoutubeDL(object):
 
         if self.params.get('writedescription', False):
             descfn = replace_extension(filename, 'description', info_dict.get('ext'))
-            if self.params.get('nooverwrites', False) and os.path.exists(encodeFilename(descfn)):
+            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
                 self.to_screen('[info] Video description is already present')
             elif info_dict.get('description') is None:
                 self.report_warning('There\'s no description to write.')
@@ -1913,7 +1922,7 @@ class YoutubeDL(object):
 
         if self.params.get('writeannotations', False):
             annofn = replace_extension(filename, 'annotations.xml', info_dict.get('ext'))
-            if self.params.get('nooverwrites', False) and os.path.exists(encodeFilename(annofn)):
+            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(annofn)):
                 self.to_screen('[info] Video annotations are already present')
             elif not info_dict.get('annotations'):
                 self.report_warning('There are no annotations to write.')
@@ -1947,7 +1956,7 @@ class YoutubeDL(object):
             for sub_lang, sub_info in subtitles.items():
                 sub_format = sub_info['ext']
                 sub_filename = subtitles_filename(filename, sub_lang, sub_format, info_dict.get('ext'))
-                if self.params.get('nooverwrites', False) and os.path.exists(encodeFilename(sub_filename)):
+                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(sub_filename)):
                     self.to_screen('[info] Video subtitle %s.%s is already present' % (sub_lang, sub_format))
                 else:
                     self.to_screen('[info] Writing video subtitles to: ' + sub_filename)
@@ -2002,7 +2011,7 @@ class YoutubeDL(object):
 
         if self.params.get('writeinfojson', False):
             infofn = replace_extension(filename, 'info.json', info_dict.get('ext'))
-            if self.params.get('nooverwrites', False) and os.path.exists(encodeFilename(infofn)):
+            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
                 self.to_screen('[info] Video description metadata is already present')
             else:
                 self.to_screen('[info] Writing video description metadata as JSON to: ' + infofn)
@@ -2110,11 +2119,15 @@ class YoutubeDL(object):
                             'Requested formats are incompatible for merge and will be merged into mkv.')
                     # Ensure filename always has a correct extension for successful merge
                     filename = '%s.%s' % (filename_wo_ext, info_dict['ext'])
-                    if os.path.exists(encodeFilename(filename)):
+                    file_exists = os.path.exists(encodeFilename(filename))
+                    if not self.params.get('overwrites', False) and file_exists:
                         self.to_screen(
                             '[download] %s has already been downloaded and '
                             'merged' % filename)
                     else:
+                        if file_exists:
+                            self.report_file_delete(filename)
+                            os.remove(encodeFilename(filename))
                         for f in requested_formats:
                             new_info = dict(info_dict)
                             new_info.update(f)
@@ -2131,6 +2144,11 @@ class YoutubeDL(object):
                         # Even if there were no downloads, it is being merged only now
                         info_dict['__real_download'] = True
                 else:
+                    # Delete existing file with --yes-overwrites
+                    if self.params.get('overwrites', False):
+                        if os.path.exists(encodeFilename(filename)):
+                            self.report_file_delete(filename)
+                            os.remove(encodeFilename(filename))
                     # Just a single file
                     success, real_download = dl(filename, info_dict)
                     info_dict['__real_download'] = real_download
@@ -2661,7 +2679,7 @@ class YoutubeDL(object):
             thumb_display_id = '%s ' % t['id'] if len(thumbnails) > 1 else ''
             t['filename'] = thumb_filename = replace_extension(filename + suffix, thumb_ext, info_dict.get('ext'))
 
-            if self.params.get('nooverwrites', False) and os.path.exists(encodeFilename(thumb_filename)):
+            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
                 self.to_screen('[%s] %s: Thumbnail %sis already present' %
                                (info_dict['extractor'], info_dict['id'], thumb_display_id))
             else:

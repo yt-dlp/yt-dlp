@@ -176,6 +176,9 @@ def _real_main(argv=None):
         opts.max_sleep_interval = opts.sleep_interval
     if opts.ap_mso and opts.ap_mso not in MSO_INFO:
         parser.error('Unsupported TV Provider, use --ap-list-mso to get a list of supported TV Providers')
+    if opts.overwrites:
+        # --yes-overwrites implies --no-continue
+        opts.continue_dl = False
 
     def parse_retries(retries):
         if retries in ('inf', 'infinite'):
@@ -391,7 +394,7 @@ def _real_main(argv=None):
         'ignoreerrors': opts.ignoreerrors,
         'force_generic_extractor': opts.force_generic_extractor,
         'ratelimit': opts.ratelimit,
-        'nooverwrites': opts.nooverwrites,
+        'overwrites': opts.overwrites,
         'retries': opts.retries,
         'fragment_retries': opts.fragment_retries,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,

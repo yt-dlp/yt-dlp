@@ -47,6 +47,7 @@ offlinetest: codetest
 		--exclude test_age_restriction.py \
 		--exclude test_download.py \
 		--exclude test_iqiyi_sdk_interpreter.py \
+		--exclude test_overwrites.py \
 		--exclude test_socks.py \
 		--exclude test_subtitles.py \
 		--exclude test_write_annotations.py \
