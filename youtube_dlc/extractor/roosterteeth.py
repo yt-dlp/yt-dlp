@@ -31,6 +31,19 @@ class RoosterTeethIE(InfoExtractor):
             'episode': 'Million Dollars, But... The Game Announcement',
         },
     }, {
+        'url': 'https://roosterteeth.com/watch/rwby-bonus-25',
+        'md5': 'fe8d9d976b272c18a24fe7f1f5830084',
+        'info_dict': {
+            'id': '31',
+            'display_id': 'rwby-bonus-25',
+            'title': 'Volume 2, World of Remnant 3',
+            'description': 'md5:8d58d3270292ea11da00ea712bbfb009',
+            'episode': 'Volume 2, World of Remnant 3',
+            'channel_id': 'fab60c1c-29cb-43bc-9383-5c3538d9e246',
+            'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
+            'ext': 'mp4',
+        },
+    }, {
         'url': 'http://achievementhunter.roosterteeth.com/episode/off-topic-the-achievement-hunter-podcast-2016-i-didn-t-think-it-would-pass-31',
         'only_matching': True,
     }, {
@@ -50,7 +63,7 @@ class RoosterTeethIE(InfoExtractor):
         'url': 'https://roosterteeth.com/watch/million-dollars-but-season-2-million-dollars-but-the-game-announcement',
         'only_matching': True,
     }]
-    _EPISODE_BASE_URL = 'https://svod-be.roosterteeth.com/api/v1/episodes/'
+    _EPISODE_BASE_URL = 'https://svod-be.roosterteeth.com/api/v1/watch/'
 
     def _login(self):
         username, password = self._get_login_info()
@@ -111,7 +124,7 @@ class RoosterTeethIE(InfoExtractor):
 
         thumbnails = []
         for image in episode.get('included', {}).get('images', []):
-            if image.get('type') == 'episode_image':
+            if image.get('type') in ('episode_image', 'bonus_feature_image'):
                 img_attributes = image.get('attributes') or {}
                 for k in ('thumb', 'small', 'medium', 'large'):
                     img_url = img_attributes.get(k)
