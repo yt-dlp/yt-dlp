@@ -11,8 +11,7 @@ from ..utils import urljoin
 class TelevizeSeznamIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?televizeseznam\.cz/(?:.+\/)(?P<display_id>.+)-(?P<id>[0-9]+)'
 
-    _API_BASE = 'https://www.televizeseznam.cz'
-    _GRAPHQL_URL = '%s/api/graphql' % _API_BASE
+    _GRAPHQL_URL = 'https://www.televizeseznam.cz/api/graphql'
     _GRAPHQL_QUERY = '''query LoadEpisode($urlName : String){ episode(urlName: $urlName){ ...VideoDetailFragmentOnEpisode } }
         fragment VideoDetailFragmentOnEpisode on Episode {
             id
