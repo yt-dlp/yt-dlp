@@ -54,6 +54,7 @@ class TelevizeSeznamIE(InfoExtractor):
         formats = []
         for r, v in play_list.items():
             formats.append({
+                'format_id': r,
                 'url': urljoin(spl_url, v['url']),
                 'width': v['resolution'][0],
                 'height': v['resolution'][1],
