@@ -14,13 +14,13 @@ class TelevizeSeznamIE(InfoExtractor):
     _API_BASE = 'https://www.televizeseznam.cz'
     _GRAPHQL_URL = '%s/api/graphql' % _API_BASE
     _GRAPHQL_QUERY = '''query LoadEpisode($urlName : String){ episode(urlName: $urlName){ ...VideoDetailFragmentOnEpisode } }
-		fragment VideoDetailFragmentOnEpisode on Episode {
-			id
-			spl
-			urlName
-			name
-			perex
-		}
+        fragment VideoDetailFragmentOnEpisode on Episode {
+            id
+            spl
+            urlName
+            name
+            perex
+        }
 '''
 
     _TEST = {
