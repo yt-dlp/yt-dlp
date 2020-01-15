@@ -41,15 +41,15 @@ class TelevizeSeznamIE(InfoExtractor):
 
         subtitles = {}
         for k, v in play_list.items():
-            subtitles.update({
-                v['language']: {
-                    'ext': 'srt',
-                    'url': urljoin(spl_url, v['urls']['srt'])
-                }
-            })
+            if v.get('language'):
+                for ext in v.get('urls'):
+                    subtitles.setdefault(v['language'], []).append({
+                       'ext': ext,
+                       'url': urljoin(spl_url, v['urls'].get(ext))
+                    })
         return subtitles
 
-    def extract_formats(self, spl_url, play_list, subtitles):
+    def extract_formats(self, spl_url, play_list):
         formats = []
         for r, v in play_list.items():
             format = {
@@ -57,7 +57,6 @@ class TelevizeSeznamIE(InfoExtractor):
                 'url': urljoin(spl_url, v.get('url')),
                 'protocol': 'https',
                 'ext': 'mp4',
-                'subtitles': subtitles,
             }
             if v.get('resolution'):
                 format.update({ 'width': v['resolution'][0], 'height': v['resolution'][1] })
@@ -85,13 +84,13 @@ class TelevizeSeznamIE(InfoExtractor):
             spl_url = metadata['Location']
             metadata = self._download_json(spl_url, video_id, 'Redirected -> Downloading playlist')
         play_list = metadata['data']
-        subtitles = self.extract_subtitles(spl_url, play_list.get('subtitles'))
-        formats = self.extract_formats(spl_url, play_list['mp4'], subtitles)
+        formats = self.extract_formats(spl_url, play_list['mp4'])
 
         return {
             'id': video_id,
             'display_id': display_id,
             'title': data['episode'].get('name'),
             'description': data['episode'].get('perex'),
+            'subtitles': self.extract_subtitles(spl_url, play_list.get('subtitles')),
             'formats': formats
         }
