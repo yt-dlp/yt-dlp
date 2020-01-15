@@ -52,15 +52,18 @@ class TelevizeSeznamIE(InfoExtractor):
     def extract_formats(self, spl_url, play_list, subtitles):
         formats = []
         for r, v in play_list.items():
-            formats.append({
+            format = {
                 'format_id': r,
-                'url': urljoin(spl_url, v['url']),
-                'width': v['resolution'][0],
-                'height': v['resolution'][1],
+                'url': urljoin(spl_url, v.get('url')),
                 'protocol': 'https',
                 'ext': 'mp4',
                 'subtitles': subtitles,
-            })
+            }
+            if v.get('resolution'):
+                format.update({ 'width': v['resolution'][0], 'height': v['resolution'][1] })
+
+            formats.append(format)
+
         return formats
 
     def _real_extract(self, url):
