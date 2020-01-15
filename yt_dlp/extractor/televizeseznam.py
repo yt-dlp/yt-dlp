@@ -49,19 +49,29 @@ class TelevizeSeznamIE(InfoExtractor):
                     })
         return subtitles
 
-    def extract_formats(self, spl_url, play_list):
+    def _extract(self, ext, spl_url, play_list):
         formats = []
         for r, v in play_list.items():
             format = {
                 'format_id': r,
                 'url': urljoin(spl_url, v.get('url')),
                 'protocol': 'https',
-                'ext': 'mp4',
+                'ext': ext
             }
             if v.get('resolution'):
                 format.update({ 'width': v['resolution'][0], 'height': v['resolution'][1] })
 
             formats.append(format)
+        return formats
+
+    def extract_formats(self, spl_url, play_list):
+        formats = []
+
+        if play_list.get('http_stream') and play_list['http_stream'].get('qualities'):
+            formats.extend(self._extract(None, spl_url, play_list['http_stream']['qualities']))
+
+        if play_list.get('mp4'):
+            formats.extend(self._extract('mp4', spl_url, play_list['mp4']))
 
         return formats
 
@@ -84,7 +94,6 @@ class TelevizeSeznamIE(InfoExtractor):
             spl_url = metadata['Location']
             metadata = self._download_json(spl_url, video_id, 'Redirected -> Downloading playlist')
         play_list = metadata['data']
-        formats = self.extract_formats(spl_url, play_list['mp4'])
 
         return {
             'id': video_id,
@@ -92,5 +101,5 @@ class TelevizeSeznamIE(InfoExtractor):
             'title': data['episode'].get('name'),
             'description': data['episode'].get('perex'),
             'subtitles': self.extract_subtitles(spl_url, play_list.get('subtitles')),
-            'formats': formats
+            'formats': self.extract_formats(spl_url, play_list)
         }
