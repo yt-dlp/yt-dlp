@@ -73,6 +73,7 @@ class TelevizeSeznamIE(InfoExtractor):
         if play_list.get('mp4'):
             formats.extend(self._extract('mp4', spl_url, play_list['mp4']))
 
+        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):
