@@ -44,8 +44,8 @@ class TelevizeSeznamIE(InfoExtractor):
             if v.get('language'):
                 for ext in v.get('urls'):
                     subtitles.setdefault(v['language'], []).append({
-                       'ext': ext,
-                       'url': urljoin(spl_url, v['urls'].get(ext))
+                        'ext': ext,
+                        'url': urljoin(spl_url, v['urls'].get(ext))
                     })
         return subtitles
 
@@ -59,7 +59,7 @@ class TelevizeSeznamIE(InfoExtractor):
                 'ext': ext
             }
             if v.get('resolution'):
-                format.update({ 'width': v['resolution'][0], 'height': v['resolution'][1] })
+                format.update({'width': v['resolution'][0], 'height': v['resolution'][1]})
 
             formats.append(format)
         return formats
