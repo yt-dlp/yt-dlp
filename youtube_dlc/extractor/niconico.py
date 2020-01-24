@@ -198,6 +198,46 @@ class NiconicoIE(InfoExtractor):
         session_api_data = api_data['video']['dmcInfo']['session_api']
         session_api_endpoint = session_api_data['urls'][0]
 
+        # ping
+        self._download_json(
+            'https://nvapi.nicovideo.jp/v1/2ab0cbaa/watch', video_id,
+            query={'t': api_data['video']['dmcInfo']['tracking_id']},
+            headers={
+                'Origin': 'https://www.nicovideo.jp',
+                'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
+                'X-Frontend-Id': '6',
+                'X-Frontend-Version': '0'
+            })
+
+        # hls (encryption)
+        if 'encryption' in api_data['video']['dmcInfo']:
+            session_api_http_parameters = {
+                'parameters': {
+                    'hls_parameters': {
+                        'encryption': {
+                            'hls_encryption_v1': {
+                                'encrypted_key': api_data['video']['dmcInfo']['encryption']['hls_encryption_v1']['encrypted_key'],
+                                'key_uri': api_data['video']['dmcInfo']['encryption']['hls_encryption_v1']['key_uri']
+                            }
+                        },
+                        'transfer_preset': '',
+                        'use_ssl': yesno(session_api_endpoint['is_ssl']),
+                        'use_well_known_port': yesno(session_api_endpoint['is_well_known_port']),
+                        'segment_duration': 6000
+                    }
+                }
+            }
+        # http
+        else:
+            session_api_http_parameters = {
+                'parameters': {
+                    'http_output_download_parameters': {
+                        'use_ssl': yesno(session_api_endpoint['is_ssl']),
+                        'use_well_known_port': yesno(session_api_endpoint['is_well_known_port']),
+                    }
+                }
+            }
+
         format_id = '-'.join(map(lambda s: remove_start(s['id'], 'archive_'), [video_quality, audio_quality]))
 
         session_response = self._download_json(
@@ -236,14 +276,7 @@ class NiconicoIE(InfoExtractor):
                     'protocol': {
                         'name': 'http',
                         'parameters': {
-                            'http_parameters': {
-                                'parameters': {
-                                    'http_output_download_parameters': {
-                                        'use_ssl': yesno(session_api_endpoint['is_ssl']),
-                                        'use_well_known_port': yesno(session_api_endpoint['is_well_known_port']),
-                                    }
-                                }
-                            }
+                            'http_parameters': session_api_http_parameters
                         }
                     },
                     'recipe_id': session_api_data['recipe_id'],
@@ -257,6 +290,12 @@ class NiconicoIE(InfoExtractor):
                 }
             }).encode())
 
+        # get heartbeat info
+        heartbeat_url = session_api_endpoint['url'] + '/' + session_response['data']['session']['id'] + '?_format=json&_method=PUT'
+        heartbeat_data = json.dumps(session_response['data']).encode()
+        # interval, convert milliseconds to seconds, then halve to make a buffer.
+        heartbeat_interval = session_api_data['heartbeat_lifetime'] / 2000
+
         resolution = video_quality.get('resolution', {})
 
         return {
@@ -267,6 +306,13 @@ class NiconicoIE(InfoExtractor):
             'vbr': float_or_none(video_quality.get('bitrate'), 1000),
             'height': resolution.get('height'),
             'width': resolution.get('width'),
+            'heartbeat_url': heartbeat_url,
+            'heartbeat_data': heartbeat_data,
+            'heartbeat_interval': heartbeat_interval,
+            'http_headers': {
+                'Origin': 'https://www.nicovideo.jp',
+                'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
+            }
         }
 
     def _real_extract(self, url):
@@ -357,7 +403,7 @@ class NiconicoIE(InfoExtractor):
                 return dict_get(api_data['video'], items)
 
         # Start extracting information
-        title = get_video_info('title')
+        title = get_video_info('originalTitle')
         if not title:
             title = self._og_search_title(webpage, default=None)
         if not title:
@@ -372,7 +418,8 @@ class NiconicoIE(InfoExtractor):
         video_detail = watch_api_data.get('videoDetail', {})
 
         thumbnail = (
-            get_video_info(['thumbnail_url', 'thumbnailURL'])
+            self._html_search_regex(r'<meta property="og:image" content="([^"]+)">', webpage, 'thumbnail data', default=None)
+            or get_video_info(['thumbnail_url', 'largeThumbnailURL', 'thumbnailURL'])
             or self._html_search_meta('image', webpage, 'thumbnail', default=None)
             or video_detail.get('thumbnail'))
 
