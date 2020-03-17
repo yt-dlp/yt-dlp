@@ -687,8 +687,10 @@ class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
             entry.update({
                 'track': entry['title'],
                 'track_number': index,
-                'album': playlist_title,
-                'artist': playlist_creator})
+                'artist': playlist_creator,
+            })
+            if playlist_title:
+                entry['album'] = playlist_title
 
         return self.playlist_result(
             entries, playlist_id, playlist_title, playlist_description)
