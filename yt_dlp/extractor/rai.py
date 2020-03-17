@@ -619,13 +619,16 @@ class RaiPlayRadioBaseIE(InfoExtractor):
         for attrs in self.parse_list(webpage):
             title = attrs['data-title'].strip()
             audio_url = urljoin(url, attrs['data-mediapolis'])
-            yield {
+            entry = {
                 'url': audio_url,
                 'id': attrs['data-uniquename'].lstrip('ContentItem-'),
                 'title': title,
                 'ext': 'mp3',
-                'thumbnail': urljoin(url, attrs['data-image']),
-                'language': 'it'}
+                'language': 'it',
+            }
+            if 'data-image' in attrs:
+                entry['thumbnail'] = urljoin(url, attrs['data-image'])
+            yield entry
 
     def get_playlist(self, *args, **kwargs):
         return list(self.get_playlist_iter(*args, **kwargs))
