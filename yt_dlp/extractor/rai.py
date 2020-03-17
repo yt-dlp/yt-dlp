@@ -635,17 +635,15 @@ class RaiPlayRadioIE(RaiPlayRadioBaseIE):
     _VALID_URL = r'%s/audio/.+?-(?P<id>%s)\.html' % (
         RaiPlayRadioBaseIE._BASE, RaiBaseIE._UUID_RE)
     _TEST = {
-        'url': 'https://www.raiplayradio.it/audio/2019/07/'
-               'RADIO3---LEZIONI-DI-MUSICA-'
-               '36b099ff-4123-4443-9bf9-38e43ef5e025.html',
+        'url': 'https://www.raiplayradio.it/audio/2019/07/RADIO3---LEZIONI-DI-MUSICA-36b099ff-4123-4443-9bf9-38e43ef5e025.html',
         'info_dict': {
             'id': '36b099ff-4123-4443-9bf9-38e43ef5e025',
             'ext': 'mp3',
             'title': 'Dal "Chiaro di luna" al  "Clair de lune", '
                      'prima parte con Giovanni Bietti',
-            'thumbnail': 'https://www.raiplayradio.it/cropgd/400x400/dl/'
-                         'img/2019/07/08/1562590329054_luna.jpg',
-            'language': 'it'}}
+            'thumbnail': 'https://www.raiplayradio.it/cropgd/400x400/dl/img/2019/07/08/1562590329054_luna.jpg',
+            'language': 'it',
+    }}
 
     def _real_extract(self, url):
         audio_id = self._match_id(url)
@@ -659,14 +657,14 @@ class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
     _VALID_URL = r'%s/playlist/.+?-(?P<id>%s)\.html' % (
         RaiPlayRadioBaseIE._BASE, RaiBaseIE._UUID_RE)
     _TEST = {
-        'url': 'https://www.raiplayradio.it/playlist/2017/12/'
-               'Alice-nel-paese-delle-meraviglie-'
-               '72371d3c-d998-49f3-8860-d168cfdf4966.html',
+        'url': 'https://www.raiplayradio.it/playlist/2017/12/Alice-nel-paese-delle-meraviglie-72371d3c-d998-49f3-8860-d168cfdf4966.html',
         'info_dict': {
             'id': '72371d3c-d998-49f3-8860-d168cfdf4966',
             'title': "Alice nel paese delle meraviglie",
-            'description': "di Lewis Carrol letto da Aldo Busi"},
-        'playlist_count': 11}
+            'description': "di Lewis Carrol letto da Aldo Busi",
+        },
+        'playlist_count': 11,
+    }
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
