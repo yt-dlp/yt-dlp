@@ -618,14 +618,12 @@ class RaiPlayRadioBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, uid)
         for attrs in self.parse_list(webpage):
             title = attrs['data-title'].strip()
-            webpage = urljoin(url, attrs['data-mediapolis'])
-            audio_url = compat_str(self._request_webpage(
-                webpage, title).geturl())
+            audio_url = urljoin(url, attrs['data-mediapolis'])
             yield {
                 'url': audio_url,
                 'id': attrs['data-uniquename'].lstrip('ContentItem-'),
                 'title': title,
-                'ext': determine_ext(audio_url),
+                'ext': 'mp3',
                 'thumbnail': urljoin(url, attrs['data-image']),
                 'language': 'it'}
 
