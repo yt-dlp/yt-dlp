@@ -644,7 +644,7 @@ class RaiPlayRadioIE(RaiPlayRadioBaseIE):
             'ext': 'mp3',
             'title': 'Dal "Chiaro di luna" al  "Clair de lune", '
                      'prima parte con Giovanni Bietti',
-            'thumbnail': 'https://www.raiplayradio.it/cropgd/400x400/dl/img/2019/07/08/1562590329054_luna.jpg',
+            'thumbnail': r're:^https?://.*\.jpg$',
             'language': 'it',
     }}
 
