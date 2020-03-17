@@ -614,8 +614,8 @@ class RaiPlayRadioBaseIE(InfoExtractor):
         parser.close()
         return parser.items
 
-    def get_playlist_iter(self, url):
-        webpage = self._download_webpage(url, url)
+    def get_playlist_iter(self, url, uid):
+        webpage = self._download_webpage(url, uid)
         for attrs in self.parse_list(webpage):
             title = attrs['data-title'].strip()
             webpage = urljoin(url, attrs['data-mediapolis'])
@@ -650,9 +650,10 @@ class RaiPlayRadioIE(RaiPlayRadioBaseIE):
             'language': 'it'}}
 
     def _real_extract(self, url):
+        audio_id = self._match_id(url)
         list_url = url.replace('.html', '-list.html')
-        for entry in self.get_playlist_iter(list_url):
-            if entry['id'] == self._match_id(url):
+        for entry in self.get_playlist_iter(list_url, audio_id):
+            if entry['id'] == audio_id:
                 return entry
 
 
@@ -683,7 +684,7 @@ class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
             r'data-player-href="(.+?)"', playlist_webpage, 'href')
         list_url = urljoin(url, player_href)
 
-        entries = self.get_playlist(list_url)
+        entries = self.get_playlist(list_url, playlist_id)
         for index, entry in enumerate(entries, start=1):
             entry.update({
                 'track': entry['title'],
