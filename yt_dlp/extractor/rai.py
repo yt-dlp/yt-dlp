@@ -646,7 +646,8 @@ class RaiPlayRadioIE(RaiPlayRadioBaseIE):
                      'prima parte con Giovanni Bietti',
             'thumbnail': r're:^https?://.*\.jpg$',
             'language': 'it',
-    }}
+        }
+    }
 
     def _real_extract(self, url):
         audio_id = self._match_id(url)
