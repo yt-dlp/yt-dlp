@@ -12,7 +12,7 @@ from ..utils import (
 
 class ZoomUSIE(InfoExtractor):
     IE_NAME = 'zoom.us'
-    _VALID_URL = r'https://zoom.us/recording/play/(?P<id>.*)'
+    _VALID_URL = r'https://(.*).?zoom.us/rec(ording)?/play/(?P<id>.*)'
 
     _TESTS = [{
         'url': 'https://zoom.us/recording/play/SILVuCL4bFtRwWTtOCFQQxAsBQsJljFtm9e4Z_bvo-A8B-nzUSYZRNuPl3qW5IGK',
@@ -26,7 +26,6 @@ class ZoomUSIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        #cookie = self._get_cookies(url)['_zm_ssid']
 
         video_url = self._search_regex(r"viewMp4Url: \'(.*)\'", webpage, 'video url')
         topic = self._search_regex(r"topic: \"(.*)\",", webpage, 'video url')
