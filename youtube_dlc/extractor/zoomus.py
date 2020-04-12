@@ -4,9 +4,6 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    parse_iso8601,
-    try_get,
-    url_or_none,
 )
 
 
@@ -14,14 +11,15 @@ class ZoomUSIE(InfoExtractor):
     IE_NAME = 'zoom.us'
     _VALID_URL = r'https://(.*).?zoom.us/rec(ording)?/play/(?P<id>.*)'
 
-    _TESTS = [{
+    _TEST = {
         'url': 'https://zoom.us/recording/play/SILVuCL4bFtRwWTtOCFQQxAsBQsJljFtm9e4Z_bvo-A8B-nzUSYZRNuPl3qW5IGK',
         'info_dict': {
-            'ext': 'mp4',
-            'topic': "GAZ Transformational Tuesdays W/ Landon & Stapes",
-            'recordFileName': "Shared screen with speaker view",
+            'md5': '031a5b379f1547a8b29c5c4c837dccf2',
+            'title': "GAZ Transformational Tuesdays W/ Landon & Stapes",
+            'id': "SILVuCL4bFtRwWTtOCFQQxAsBQsJljFtm9e4Z_bvo-A8B-nzUSYZRNuPl3qW5IGK",
+            'ext': "mp4",
         }
-    }]
+    }
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -37,9 +35,8 @@ class ZoomUSIE(InfoExtractor):
             'url': video_url,
             'width': int_or_none(viewResolvtionsWidth),
             'height': int_or_none(viewResolvtionsHeight),
-            'http_headers': {'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5', 
-                             'Referer': 'https://zoom.us/',
-            }
+            'http_headers': {'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
+                             'Referer': 'https://zoom.us/'}
         })
         self._sort_formats(formats)
 
