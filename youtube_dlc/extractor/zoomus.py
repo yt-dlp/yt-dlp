@@ -3,9 +3,11 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     int_or_none,
     url_or_none,
-    parse_filesize
+    parse_filesize,
+    urlencode_postdata
 )
 
 
@@ -26,6 +28,12 @@ class ZoomUSIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
+
+        password_protected = self._search_regex(r'<form[^>]+?id="(password_form)"', webpage, 'password field', fatal=False)
+        if password_protected is not None:
+            self._verify_video_password(url, display_id, webpage)
+            webpage = self._download_webpage(url, display_id)
+
         video_url = self._search_regex(r"viewMp4Url: \'(.*)\'", webpage, 'video url')
         title = self._html_search_regex([r"topic: \"(.*)\",", r"<title>(.*) - Zoom</title>"], webpage, 'title')
         viewResolvtionsWidth = self._search_regex(r"viewResolvtionsWidth: (\d*)", webpage, 'res width', fatal=False)
@@ -49,3 +57,24 @@ class ZoomUSIE(InfoExtractor):
             'title': title,
             'formats': formats
         }
+
+    def _verify_video_password(self, url, video_id, webpage):
+        password = self._downloader.params.get('videopassword')
+        if password is None:
+            raise ExtractorError('This video is protected by a password, use the --video-password option', expected=True)
+        meetId = self._search_regex(r'<input[^>]+?id="meetId" value="([^\"]+)"', webpage, 'meetId')
+        data = urlencode_postdata({
+            'id': meetId,
+            'passwd': password,
+            'action': "viewdetailedpage",
+            'recaptcha': ""
+        })
+        validation_url = url.split("zoom.us")[0]+"zoom.us/rec/validate_meet_passwd"
+        validation_response = self._download_json(
+            validation_url, video_id,
+            note='Validating Password...',
+            errnote='Wrong password?',
+            data=data)
+
+        if validation_response['errorCode'] != 0:
+            raise ExtractorError('Login failed, %s said: %r' % (self.IE_NAME, validation_response['errorMessage']))
