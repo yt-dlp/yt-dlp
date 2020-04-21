@@ -40,13 +40,15 @@ class ZoomUSIE(InfoExtractor):
         viewResolvtionsHeight = self._search_regex(r"viewResolvtionsHeight: (\d*)", webpage, 'res height', fatal=False)
         fileSize = parse_filesize(self._search_regex(r"fileSize: \'(.+)\'", webpage, 'fileSize', fatal=False))
 
+        urlprefix = url.split("zoom.us")[0] + "zoom.us/"
+
         formats = []
         formats.append({
             'url': url_or_none(video_url),
             'width': int_or_none(viewResolvtionsWidth),
             'height': int_or_none(viewResolvtionsHeight),
             'http_headers': {'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
-                             'Referer': 'https://zoom.us/'},
+                             'Referer': urlprefix},
             'ext': "mp4",
             'filesize_approx': int_or_none(fileSize)
         })
@@ -69,7 +71,7 @@ class ZoomUSIE(InfoExtractor):
             'action': "viewdetailedpage",
             'recaptcha': ""
         })
-        validation_url = url.split("zoom.us")[0]+"zoom.us/rec/validate_meet_passwd"
+        validation_url = url.split("zoom.us")[0] + "zoom.us/rec/validate_meet_passwd"
         validation_response = self._download_json(
             validation_url, video_id,
             note='Validating Password...',
