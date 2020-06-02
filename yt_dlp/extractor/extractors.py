@@ -1229,6 +1229,7 @@ from .rtl2 import (
     RTL2YouSeriesIE,
 )
 from .rtp import RTPIE
+from .rtrfm import RTRFMIE
 from .rts import RTSIE
 from .rtve import RTVEALaCartaIE, RTVELiveIE, RTVEInfantilIE, RTVELiveIE, RTVETelevisionIE
 from .rtvnh import RTVNHIE
