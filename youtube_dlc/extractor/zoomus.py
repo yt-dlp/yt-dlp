@@ -13,7 +13,7 @@ from ..utils import (
 
 class ZoomUSIE(InfoExtractor):
     IE_NAME = 'zoom.us'
-    _VALID_URL = r'https://(?:.*).?zoom.us/rec(?:ording)?/play/(?P<id>[^?&=]{64})'
+    _VALID_URL = r'https://(?:.*).?zoom.us/rec(?:ording)?/play/(?P<id>[A-Za-z0-9\-_]+)'
 
     _TEST = {
         'url': 'https://zoom.us/recording/play/SILVuCL4bFtRwWTtOCFQQxAsBQsJljFtm9e4Z_bvo-A8B-nzUSYZRNuPl3qW5IGK',
@@ -29,7 +29,7 @@ class ZoomUSIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        password_protected = self._search_regex(r'<form[^>]+?id="(password_form)"', webpage, 'password field', fatal=False)
+        password_protected = self._search_regex(r'<form[^>]+?id="(password_form)"', webpage, 'password field', fatal=False, default=None)
         if password_protected is not None:
             self._verify_video_password(url, display_id, webpage)
             webpage = self._download_webpage(url, display_id)
