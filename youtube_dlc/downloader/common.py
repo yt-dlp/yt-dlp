@@ -380,7 +380,7 @@ class FileDownloader(object):
         timer = [None]
         heartbeat_lock = None
         download_complete = False
-        if 'heartbeat_url'in info_dict:
+        if 'heartbeat_url' in info_dict:
             heartbeat_lock = threading.Lock()
 
             heartbeat_url = info_dict['heartbeat_url']
