@@ -1,10 +1,8 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import datetime
-import functools
 import json
-import math
+import datetime
 
 from .common import InfoExtractor
 from ..compat import (
@@ -15,9 +13,9 @@ from ..utils import (
     determine_ext,
     dict_get,
     ExtractorError,
-    float_or_none,
-    InAdvancePagedList,
     int_or_none,
+    float_or_none,
+    OnDemandPagedList,
     parse_duration,
     parse_iso8601,
     remove_start,
@@ -341,7 +339,7 @@ class NiconicoIE(InfoExtractor):
                 'http://flapi.nicovideo.jp/api/getflv/' + video_id + '?as3=1',
                 video_id, 'Downloading flv info')
 
-            flv_info = compat_parse_qs(flv_info_webpage)
+            flv_info = compat_urlparse.parse_qs(flv_info_webpage)
             if 'url' not in flv_info:
                 if 'deleted' in flv_info:
                     raise ExtractorError('The video has been deleted.',
@@ -503,60 +501,45 @@ class NiconicoPlaylistIE(InfoExtractor):
         'url': 'https://www.nicovideo.jp/user/805442/mylist/27411728',
         'only_matching': True,
     }]
-    _PAGE_SIZE = 100
-
-    def _call_api(self, list_id, resource, query):
-        return self._download_json(
-            'https://nvapi.nicovideo.jp/v2/mylists/' + list_id, list_id,
-            'Downloading %s JSON metatdata' % resource, query=query,
-            headers={'X-Frontend-Id': 6})['data']['mylist']
-
-    def _parse_owner(self, item):
-        owner = item.get('owner') or {}
-        if owner:
-            return {
-                'uploader': owner.get('name'),
-                'uploader_id': owner.get('id'),
-            }
-        return {}
-
-    def _fetch_page(self, list_id, page):
-        page += 1
-        items = self._call_api(list_id, 'page %d' % page, {
-            'page': page,
-            'pageSize': self._PAGE_SIZE,
-        })['items']
-        for item in items:
-            video = item.get('video') or {}
-            video_id = video.get('id')
-            if not video_id:
-                continue
-            count = video.get('count') or {}
-            get_count = lambda x: int_or_none(count.get(x))
-            info = {
-                '_type': 'url',
-                'id': video_id,
-                'title': video.get('title'),
-                'url': 'https://www.nicovideo.jp/watch/' + video_id,
-                'description': video.get('shortDescription'),
-                'duration': int_or_none(video.get('duration')),
-                'view_count': get_count('view'),
-                'comment_count': get_count('comment'),
-                'ie_key': NiconicoIE.ie_key(),
-            }
-            info.update(self._parse_owner(video))
-            yield info
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        mylist = self._call_api(list_id, 'list', {
-            'pageSize': 1,
-        })
-        entries = InAdvancePagedList(
-            functools.partial(self._fetch_page, list_id),
-            math.ceil(mylist['totalItemCount'] / self._PAGE_SIZE),
-            self._PAGE_SIZE)
-        result = self.playlist_result(
-            entries, list_id, mylist.get('name'), mylist.get('description'))
-        result.update(self._parse_owner(mylist))
-        return result
+        webpage = self._download_webpage(url, list_id)
+
+        header = self._parse_json(self._html_search_regex(
+            r'data-common-header="([^"]+)"', webpage,
+            'webpage header'), list_id)
+        frontendId = header.get('initConfig').get('frontendId')
+        frontendVersion = header.get('initConfig').get('frontendVersion')
+
+        def get_page_data(pagenum, pagesize):
+            return self._download_json(
+                'http://nvapi.nicovideo.jp/v2/mylists/' + list_id, list_id,
+                query={'page': 1 + pagenum, 'pageSize': pagesize},
+                headers={
+                    'X-Frontend-Id': frontendId,
+                    'X-Frontend-Version': frontendVersion,
+                }).get('data').get('mylist')
+
+        data = get_page_data(0, 1)
+        title = data.get('name')
+        description = data.get('description')
+        uploader = data.get('owner').get('name')
+        uploader_id = data.get('owner').get('id')
+
+        def pagefunc(pagenum):
+            data = get_page_data(pagenum, 25)
+            return ({
+                '_type': 'url',
+                'url': 'http://www.nicovideo.jp/watch/' + item.get('watchId'),
+            } for item in data.get('items'))
+
+        return {
+            '_type': 'playlist',
+            'id': list_id,
+            'title': title,
+            'description': description,
+            'uploader': uploader,
+            'uploader_id': uploader_id,
+            'entries': OnDemandPagedList(pagefunc, 25),
+        }
