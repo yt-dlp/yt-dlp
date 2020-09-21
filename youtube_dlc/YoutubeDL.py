@@ -210,6 +210,8 @@ class YoutubeDL(object):
     download_archive:  File name of a file where all downloads are recorded.
                        Videos already present in the file are not downloaded
                        again.
+    break_on_existing: Stop the download process after attempting to download a file that's
+                       in the archive.
     cookiefile:        File name where cookies should be read from and dumped to.
     nocheckcertificate:Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
@@ -1038,8 +1040,12 @@ class YoutubeDL(object):
 
                 reason = self._match_entry(entry, incomplete=True)
                 if reason is not None:
-                    self.to_screen('[download] ' + reason)
-                    continue
+                    if reason.endswith('has already been recorded in the archive') and self.params.get('break_on_existing'):
+                        print('[download] tried downloading a file that\'s already in the archive, stopping since --break-on-existing is set.')
+                        break
+                    else:
+                        self.to_screen('[download] ' + reason)
+                        continue
 
                 entry_result = self.process_ie_result(entry,
                                                       download=download,
