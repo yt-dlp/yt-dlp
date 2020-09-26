@@ -92,10 +92,10 @@ class BandcampIE(InfoExtractor):
 
         formats = []
         trackinfo_block = self._search_regex(
-            r'trackinfo&quot;:\[\s*({.+?})\s*\],&quot;',
+            r'trackinfo(?:["\']|&quot;):\[\s*({.+?})\s*\],(?:["\']|&quot;)',
             webpage, 'track info', default='{}')
-        quoted_json = trackinfo_block.replace('&quot;', '"')
-        track_info = self._parse_json(quoted_json, title)
+        unescaped_json = unescapeHTML(trackinfo_block)
+        track_info = self._parse_json(unescaped_json, title)
         if track_info:
             file_ = track_info.get('file')
             if isinstance(file_, dict):
@@ -118,7 +118,7 @@ class BandcampIE(InfoExtractor):
 
         def extract(key):
             return self._search_regex(
-                r',&quot;%s&quot;:(&quot;)(?P<value>(?:(?!&quot;).)+)&quot;' % key,
+                r',(["\']|&quot;)%s\1:\1(?P<value>(?:(?!\1).)+)\1' % key,
                 webpage, key, default=None, group='value')
 
         artist = extract('artist')
