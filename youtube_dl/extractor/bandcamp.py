@@ -128,12 +128,12 @@ class BandcampIE(InfoExtractor):
         release_date = unified_strdate(extract('album_release_date'))
 
         download_link = self._search_regex(
-            r'freeDownloadPage\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage,
+            r'freeDownloadPage(?:["\']|&quot;):\s*(["\']|&quot;)(?P<url>(?:(?!\1).)+)\1', webpage,
             'download link', default=None, group='url')
         if download_link:
             track_id = self._search_regex(
-                r'(?ms)var TralbumData = .*?[{,]\s*id: (?P<id>\d+),?$',
-                webpage, 'track id')
+                r'\?id=(?P<id>\d+)&',
+                download_link, 'track id')
 
             download_webpage = self._download_webpage(
                 download_link, track_id, 'Downloading free downloads page')
