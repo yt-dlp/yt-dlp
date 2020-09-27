@@ -33,8 +33,11 @@ class BandcampIE(InfoExtractor):
         'info_dict': {
             'id': '1812978515',
             'ext': 'mp3',
-            'title': "youtube-dl  \"'/\\\u00e4\u21ad - youtube-dl test song \"'/\\\u00e4\u21ad",
+            'title': "youtube-dl  \\ - youtube-dl  \"'/\\\u00e4\u21ad - youtube-dl test song \"'/\\\u00e4\u21ad",
             'duration': 9.8485,
+            'uploader': 'youtube-dl  \\',
+            'timestamp': 1354224127,
+            'upload_date': '20121129',
         },
         '_skip': 'There is a limit of 200 free downloads / month for the test song'
     }, {
