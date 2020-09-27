@@ -316,10 +316,10 @@ class BandcampAlbumIE(InfoExtractor):
             if self._html_search_meta('duration', elem_content, default=None)]
 
         title = self._html_search_regex(
-            r'album_title\s*:\s*"((?:\\.|[^"\\])+?)"',
+            r'album_title\s*(?:&quot;|["\']):\s*(?:&quot;|["\'])((?:\\.|[^"\\])+?)(?:&quot;|["\'])',
             webpage, 'title', fatal=False)
         if title:
-            title = title.replace(r'\"', '"')
+            title = unescapeHTML(title)
         return {
             '_type': 'playlist',
             'uploader_id': uploader_id,
