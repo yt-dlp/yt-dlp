@@ -33,7 +33,7 @@ class BandcampIE(InfoExtractor):
         'info_dict': {
             'id': '1812978515',
             'ext': 'mp3',
-            'title': "youtube-dl  \"'/\\\u00e4\u21ad - youtube-dl  \"'/\\\u00e4\u21ad - youtube-dl test song \"'/\\\u00e4\u21ad",
+            'title': "youtube-dl  \"'/\\\u00e4\u21ad - youtube-dl test song \"'/\\\u00e4\u21ad",
             'duration': 9.8485,
             'uploader': "youtube-dl  \"'/\\\u00e4\u21ad",
             'timestamp': 1354224127,
@@ -99,7 +99,6 @@ class BandcampIE(InfoExtractor):
             webpage, 'track info', default='{}')
 
         track_info = self._parse_json(trackinfo_block, title)
-
         if track_info:
             file_ = track_info.get('file')
             if isinstance(file_, dict):
@@ -115,7 +114,7 @@ class BandcampIE(InfoExtractor):
                         'acodec': ext,
                         'abr': int_or_none(abr_str),
                     })
-            track = track_info.get('title')
+
             track_id = str_or_none(track_info.get('track_id') or track_info.get('id'))
             track_number = int_or_none(track_info.get('track_num'))
             duration = float_or_none(track_info.get('duration'))
@@ -126,6 +125,7 @@ class BandcampIE(InfoExtractor):
                 webpage, key, default=None, group='value')
             return data.replace(r'\"', '"').replace('\\\\', '\\') if data else data
 
+        track = extract('title')
         artist = extract('artist')
         album = extract('album_title')
         timestamp = unified_timestamp(
