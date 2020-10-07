@@ -39,6 +39,7 @@ from ..utils import (
     mimetype2ext,
     orderedSet,
     parse_codecs,
+    parse_count,
     parse_duration,
     remove_quotes,
     remove_start,
@@ -2450,6 +2451,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             video_duration = parse_duration(self._html_search_meta(
                 'duration', video_webpage, 'video duration'))
 
+        # Get Subscriber Count of channel
+        subscriber_count = parse_count(self._search_regex(
+            r'"text":"([\d\.]+\w?) subscribers"',
+            video_webpage,
+            'subscriber count',
+            default=None
+        ))
+
         # annotations
         video_annotations = None
         if self._downloader.params.get('writeannotations', False):
@@ -2587,6 +2596,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'album': album,
             'release_date': release_date,
             'release_year': release_year,
+            'subscriber_count': subscriber_count,
         }
 
 
