@@ -1870,28 +1870,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # check if video is only playable on youtube - if so it requires auth (cookies)
             if re.search(r'player-unavailable">', embed_webpage) is not None:
                 if ({'VISITOR_INFO1_LIVE', 'HSID', 'SSID', 'SID'} <= cookie_keys
-                    or {'VISITOR_INFO1_LIVE', '__Secure-3PSID', 'LOGIN_INFO'} <= cookie_keys):
-                        age_gate = False
-                        # Try looking directly into the video webpage
-                        ytplayer_config = self._get_ytplayer_config(video_id, video_webpage)
-                        if ytplayer_config:
-                            args = ytplayer_config['args']
-                            if args.get('url_encoded_fmt_stream_map') or args.get('hlsvp'):
-                                # Convert to the same format returned by compat_parse_qs
-                                video_info = dict((k, [v]) for k, v in args.items())
-                                add_dash_mpd(video_info)
-                            # Rental video is not rented but preview is available (e.g.
-                            # https://www.youtube.com/watch?v=yYr8q0y5Jfg,
-                            # https://github.com/ytdl-org/youtube-dl/issues/10532)
-                            if not video_info and args.get('ypc_vid'):
-                                return self.url_result(
-                                    args['ypc_vid'], YoutubeIE.ie_key(), video_id=args['ypc_vid'])
-                            if args.get('livestream') == '1' or args.get('live_playback') == 1:
-                                is_live = True
-                            if not player_response:
-                                player_response = extract_player_response(args.get('player_response'), video_id)
-                        if not video_info or self._downloader.params.get('youtube_include_dash_manifest', True):
-                            add_dash_mpd_pr(player_response)
+                        or {'VISITOR_INFO1_LIVE', '__Secure-3PSID', 'LOGIN_INFO'} <= cookie_keys):
+                    age_gate = False
+                    # Try looking directly into the video webpage
+                    ytplayer_config = self._get_ytplayer_config(video_id, video_webpage)
+                    if ytplayer_config:
+                        args = ytplayer_config['args']
+                        if args.get('url_encoded_fmt_stream_map') or args.get('hlsvp'):
+                            # Convert to the same format returned by compat_parse_qs
+                            video_info = dict((k, [v]) for k, v in args.items())
+                            add_dash_mpd(video_info)
+                        # Rental video is not rented but preview is available (e.g.
+                        # https://www.youtube.com/watch?v=yYr8q0y5Jfg,
+                        # https://github.com/ytdl-org/youtube-dl/issues/10532)
+                        if not video_info and args.get('ypc_vid'):
+                            return self.url_result(
+                                args['ypc_vid'], YoutubeIE.ie_key(), video_id=args['ypc_vid'])
+                        if args.get('livestream') == '1' or args.get('live_playback') == 1:
+                            is_live = True
+                        if not player_response:
+                            player_response = extract_player_response(args.get('player_response'), video_id)
+                    if not video_info or self._downloader.params.get('youtube_include_dash_manifest', True):
+                        add_dash_mpd_pr(player_response)
                 else:
                     raise ExtractorError('Video is age restricted and only playable on Youtube. Requires cookies!', expected=True)
             else:
