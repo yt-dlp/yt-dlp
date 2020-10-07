@@ -86,7 +86,8 @@ class IPrimaIE(InfoExtractor):
             (r'<iframe[^>]+\bsrc=["\'](?:https?:)?//(?:api\.play-backend\.iprima\.cz/prehravac/embedded|prima\.iprima\.cz/[^/]+/[^/]+)\?.*?\bid=(p\d+)',
              r'data-product="([^"]+)">',
              r'id=["\']player-(p\d+)"',
-             r'playerId\s*:\s*["\']player-(p\d+)'),
+             r'playerId\s*:\s*["\']player-(p\d+)',
+             r'\bvideos\s*=\s*["\'](p\d+)'),
             webpage, 'real id')
 
         playerpage = self._download_webpage(

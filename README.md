@@ -26,6 +26,14 @@ youtube-dlc is a fork of youtube-dl with the intention of getting features teste
   - [Adobe Pass Options:](#adobe-pass-options)
   - [Post-processing Options:](#post-processing-options)
   - [Extractor Options:](#extractor-options)
+- [CONFIGURATION](#configuration)
+    - [Authentication with `.netrc` file](#authentication-with-netrc-file)
+- [OUTPUT TEMPLATE](#output-template)
+      - [Output template and Windows batch files](#output-template-and-windows-batch-files)
+      - [Output template examples](#output-template-examples)
+- [FORMAT SELECTION](#format-selection)
+      - [Format selection examples](#format-selection-examples)
+- [VIDEO SELECTION](#video-selection-1)
 
 # INSTALLATION
 
@@ -474,3 +482,297 @@ Then simply type this
 ## Extractor Options:
     --ignore-dynamic-mpd             Do not process dynamic DASH manifests
 
+# CONFIGURATION
+
+You can configure youtube-dlc by placing any supported command line option to a configuration file. On Linux and macOS, the system wide configuration file is located at `/etc/youtube-dlc.conf` and the user wide configuration file at `~/.config/youtube-dlc/config`. On Windows, the user wide configuration file locations are `%APPDATA%\youtube-dlc\config.txt` or `C:\Users\<user name>\youtube-dlc.conf`. Note that by default configuration file may not exist so you may need to create it yourself.
+
+For example, with the following configuration file youtube-dlc will always extract the audio, not copy the mtime, use a proxy and save all videos under `Movies` directory in your home directory:
+```
+# Lines starting with # are comments
+
+# Always extract audio
+-x
+
+# Do not copy the mtime
+--no-mtime
+
+# Use this proxy
+--proxy 127.0.0.1:3128
+
+# Save all videos under Movies directory in your home directory
+-o ~/Movies/%(title)s.%(ext)s
+```
+
+Note that options in configuration file are just the same options aka switches used in regular command line calls thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
+
+You can use `--ignore-config` if you want to disable the configuration file for a particular youtube-dlc run.
+
+You can also use `--config-location` if you want to use custom configuration file for a particular youtube-dlc run.
+
+### Authentication with `.netrc` file
+
+You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every youtube-dlc execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per extractor basis. For that you will need to create a `.netrc` file in your `$HOME` and restrict permissions to read/write by only you:
+```
+touch $HOME/.netrc
+chmod a-rwx,u+rw $HOME/.netrc
+```
+After that you can add credentials for an extractor in the following format, where *extractor* is the name of the extractor in lowercase:
+```
+machine <extractor> login <login> password <password>
+```
+For example:
+```
+machine youtube login myaccount@gmail.com password my_youtube_password
+machine twitch login my_twitch_account_name password my_twitch_password
+```
+To activate authentication with the `.netrc` file you should pass `--netrc` to youtube-dlc or place it in the [configuration file](#configuration).
+
+On Windows you may also need to setup the `%HOME%` environment variable manually. For example:
+```
+set HOME=%USERPROFILE%
+```
+
+# OUTPUT TEMPLATE
+
+The `-o` option allows users to indicate a template for the output file names.
+
+**tl;dr:** [navigate me to examples](#output-template-examples).
+
+The basic usage is not to set any template arguments when downloading a single file, like in `youtube-dlc -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Allowed names along with sequence type are:
+
+ - `id` (string): Video identifier
+ - `title` (string): Video title
+ - `url` (string): Video URL
+ - `ext` (string): Video filename extension
+ - `alt_title` (string): A secondary title of the video
+ - `display_id` (string): An alternative identifier for the video
+ - `uploader` (string): Full name of the video uploader
+ - `license` (string): License name the video is licensed under
+ - `creator` (string): The creator of the video
+ - `release_date` (string): The date (YYYYMMDD) when the video was released
+ - `timestamp` (numeric): UNIX timestamp of the moment the video became available
+ - `upload_date` (string): Video upload date (YYYYMMDD)
+ - `uploader_id` (string): Nickname or id of the video uploader
+ - `channel` (string): Full name of the channel the video is uploaded on
+ - `channel_id` (string): Id of the channel
+ - `location` (string): Physical location where the video was filmed
+ - `duration` (numeric): Length of the video in seconds
+ - `view_count` (numeric): How many users have watched the video on the platform
+ - `like_count` (numeric): Number of positive ratings of the video
+ - `dislike_count` (numeric): Number of negative ratings of the video
+ - `repost_count` (numeric): Number of reposts of the video
+ - `average_rating` (numeric): Average rating give by users, the scale used depends on the webpage
+ - `comment_count` (numeric): Number of comments on the video
+ - `age_limit` (numeric): Age restriction for the video (years)
+ - `is_live` (boolean): Whether this video is a live stream or a fixed-length video
+ - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
+ - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
+ - `format` (string): A human-readable description of the format 
+ - `format_id` (string): Format code specified by `--format`
+ - `format_note` (string): Additional info about the format
+ - `width` (numeric): Width of the video
+ - `height` (numeric): Height of the video
+ - `resolution` (string): Textual description of width and height
+ - `tbr` (numeric): Average bitrate of audio and video in KBit/s
+ - `abr` (numeric): Average audio bitrate in KBit/s
+ - `acodec` (string): Name of the audio codec in use
+ - `asr` (numeric): Audio sampling rate in Hertz
+ - `vbr` (numeric): Average video bitrate in KBit/s
+ - `fps` (numeric): Frame rate
+ - `vcodec` (string): Name of the video codec in use
+ - `container` (string): Name of the container format
+ - `filesize` (numeric): The number of bytes, if known in advance
+ - `filesize_approx` (numeric): An estimate for the number of bytes
+ - `protocol` (string): The protocol that will be used for the actual download
+ - `extractor` (string): Name of the extractor
+ - `extractor_key` (string): Key name of the extractor
+ - `epoch` (numeric): Unix epoch when creating the file
+ - `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`
+ - `playlist` (string): Name or id of the playlist that contains the video
+ - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according to the total length of the playlist
+ - `playlist_id` (string): Playlist identifier
+ - `playlist_title` (string): Playlist title
+ - `playlist_uploader` (string): Full name of the playlist uploader
+ - `playlist_uploader_id` (string): Nickname or id of the playlist uploader
+
+Available for the video that belongs to some logical chapter or section:
+
+ - `chapter` (string): Name or title of the chapter the video belongs to
+ - `chapter_number` (numeric): Number of the chapter the video belongs to
+ - `chapter_id` (string): Id of the chapter the video belongs to
+
+Available for the video that is an episode of some series or programme:
+
+ - `series` (string): Title of the series or programme the video episode belongs to
+ - `season` (string): Title of the season the video episode belongs to
+ - `season_number` (numeric): Number of the season the video episode belongs to
+ - `season_id` (string): Id of the season the video episode belongs to
+ - `episode` (string): Title of the video episode
+ - `episode_number` (numeric): Number of the video episode within a season
+ - `episode_id` (string): Id of the video episode
+
+Available for the media that is a track or a part of a music album:
+
+ - `track` (string): Title of the track
+ - `track_number` (numeric): Number of the track within an album or a disc
+ - `track_id` (string): Id of the track
+ - `artist` (string): Artist(s) of the track
+ - `genre` (string): Genre(s) of the track
+ - `album` (string): Title of the album the track belongs to
+ - `album_type` (string): Type of the album
+ - `album_artist` (string): List of all artists appeared on the album
+ - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
+ - `release_year` (numeric): Year (YYYY) when the album was released
+
+Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with `NA`.
+
+For example for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `youtube-dlc test video` and id `BaW_jenozKcj`, this will result in a `youtube-dlc test video-BaW_jenozKcj.mp4` file created in the current directory.
+
+For numeric sequences you can use numeric related formatting, for example, `%(view_count)05d` will result in a string with view count padded with zeros up to 5 characters, like in `00042`.
+
+Output templates can also contain arbitrary hierarchical path, e.g. `-o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s'` which will result in downloading each video in a directory corresponding to this path template. Any missing directory will be automatically created for you.
+
+To use percent literals in an output template use `%%`. To output to stdout use `-o -`.
+
+The current default template is `%(title)s-%(id)s.%(ext)s`.
+
+In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title:
+
+#### Output template and Windows batch files
+
+If you are using an output template inside a Windows batch file then you must escape plain percent characters (`%`) by doubling, so that `-o "%(title)s-%(id)s.%(ext)s"` should become `-o "%%(title)s-%%(id)s.%%(ext)s"`. However you should not touch `%`'s that are not plain characters, e.g. environment variables for expansion should stay intact: `-o "C:\%HOMEPATH%\Desktop\%%(title)s.%%(ext)s"`.
+
+#### Output template examples
+
+Note that on Windows you may need to use double quotes instead of single.
+
+```bash
+$ youtube-dlc --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc
+youtube-dlc test video ''_ä↭𝕐.mp4    # All kinds of weird characters
+
+$ youtube-dlc --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc --restrict-filenames
+youtube-dlc_test_video_.mp4          # A simple file name
+
+# Download YouTube playlist videos in separate directory indexed by video order in a playlist
+$ youtube-dlc -o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
+
+# Download all playlists of YouTube channel/user keeping each playlist in separate directory:
+$ youtube-dlc -o '%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/user/TheLinuxFoundation/playlists
+
+# Download Udemy course keeping each chapter in separate directory under MyVideos directory in your home
+$ youtube-dlc -u user -p password -o '~/MyVideos/%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s' https://www.udemy.com/java-tutorial/
+
+# Download entire series season keeping each series and each season in separate directory under C:/MyVideos
+$ youtube-dlc -o "C:/MyVideos/%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" https://videomore.ru/kino_v_detalayah/5_sezon/367617
+
+# Stream the video being downloaded to stdout
+$ youtube-dlc -o - BaW_jenozKc
+```
+
+# FORMAT SELECTION
+
+By default youtube-dlc tries to download the best available quality, i.e. if you want the best quality you **don't need** to pass any special options, youtube-dlc will guess it for you by **default**.
+
+But sometimes you may want to download in a different format, for example when you are on a slow or intermittent connection. The key mechanism for achieving this is so-called *format selection* based on which you can explicitly specify desired format, select formats based on some criterion or criteria, setup precedence and much more.
+
+The general syntax for format selection is `--format FORMAT` or shorter `-f FORMAT` where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
+
+**tl;dr:** [navigate me to examples](#format-selection-examples).
+
+The simplest case is requesting a specific format, for example with `-f 22` you can download the format with format code equal to 22. You can get the list of available format codes for particular video using `--list-formats` or `-F`. Note that these format codes are extractor specific. 
+
+You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, `mp4`, `ogg`, `wav`, `webm` are supported) to download the best quality format of a particular file extension served as a single file, e.g. `-f webm` will download the best quality format with the `webm` extension served as a single file.
+
+You can also use special names to select particular edge case formats:
+
+ - `best`: Select the best quality format represented by a single file with video and audio.
+ - `worst`: Select the worst quality format represented by a single file with video and audio.
+ - `bestvideo`: Select the best quality video-only format (e.g. DASH video). May not be available.
+ - `worstvideo`: Select the worst quality video-only format. May not be available.
+ - `bestaudio`: Select the best quality audio only-format. May not be available.
+ - `worstaudio`: Select the worst quality audio only-format. May not be available.
+
+For example, to download the worst quality video-only format you can use `-f worstvideo`.
+
+If you want to download multiple videos and they don't have the same formats available, you can specify the order of preference using slashes. Note that slash is left-associative, i.e. formats on the left hand side are preferred, for example `-f 22/17/18` will download format 22 if it's available, otherwise it will download format 17 if it's available, otherwise it will download format 18 if it's available, otherwise it will complain that no suitable formats are available for download.
+
+If you want to download several formats of the same video use a comma as a separator, e.g. `-f 22,17,18` will download all these three formats, of course if they are available. Or a more sophisticated example combined with the precedence feature: `-f 136/137/mp4/bestvideo,140/m4a/bestaudio`.
+
+You can also filter the video formats by putting a condition in brackets, as in `-f "best[height=720]"` (or `-f "[filesize>10M]"`).
+
+The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `>=`, `=` (equals), `!=` (not equals):
+
+ - `filesize`: The number of bytes, if known in advance
+ - `width`: Width of the video, if known
+ - `height`: Height of the video, if known
+ - `tbr`: Average bitrate of audio and video in KBit/s
+ - `abr`: Average audio bitrate in KBit/s
+ - `vbr`: Average video bitrate in KBit/s
+ - `asr`: Audio sampling rate in Hertz
+ - `fps`: Frame rate
+
+Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends with), `*=` (contains) and following string meta fields:
+
+ - `ext`: File extension
+ - `acodec`: Name of the audio codec in use
+ - `vcodec`: Name of the video codec in use
+ - `container`: Name of the container format
+ - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
+ - `format_id`: A short description of the format
+
+Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain).
+
+Note that none of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the video hoster.
+
+Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height <=? 720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s.
+
+You can merge the video and audio of two formats into a single file using `-f <video-format>+<audio-format>` (requires ffmpeg or avconv installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg/avconv.
+
+Format selectors can also be grouped using parentheses, for example if you want to download the best mp4 and webm formats with a height lower than 480 you can use `-f '(mp4,webm)[height<480]'`.
+
+Since the end of April 2015 and version 2015.04.26, youtube-dlc uses `-f bestvideo+bestaudio/best` as the default format selection (see [#5447](https://github.com/ytdl-org/youtube-dl/issues/5447), [#5456](https://github.com/ytdl-org/youtube-dl/issues/5456)). If ffmpeg or avconv are installed this results in downloading `bestvideo` and `bestaudio` separately and muxing them together into a single file giving the best overall quality available. Otherwise it falls back to `best` and results in downloading the best available quality served as a single file. `best` is also needed for videos that don't come from YouTube because they don't provide the audio and video in two different files. If you want to only download some DASH formats (for example if you are not interested in getting videos with a resolution higher than 1080p), you can add `-f bestvideo[height<=?1080]+bestaudio/best` to your configuration file. Note that if you use youtube-dlc to stream to `stdout` (and most likely to pipe it to your media player then), i.e. you explicitly specify output template as `-o -`, youtube-dlc still uses `-f best` format selection in order to start content delivery immediately to your player and not to wait until `bestvideo` and `bestaudio` are downloaded and muxed.
+
+If you want to preserve the old format selection behavior (prior to youtube-dlc 2015.04.26), i.e. you want to download the best available quality media served as a single file, you should explicitly specify your choice with `-f best`. You may want to add it to the [configuration file](#configuration) in order not to type it every time you run youtube-dlc.
+
+#### Format selection examples
+
+Note that on Windows you may need to use double quotes instead of single.
+
+```bash
+# Download best mp4 format available or any other best if no mp4 available
+$ youtube-dlc -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+
+# Download best format available but no better than 480p
+$ youtube-dlc -f 'bestvideo[height<=480]+bestaudio/best[height<=480]'
+
+# Download best video only format but no bigger than 50 MB
+$ youtube-dlc -f 'best[filesize<50M]'
+
+# Download best format available via direct link over HTTP/HTTPS protocol
+$ youtube-dlc -f '(bestvideo+bestaudio/best)[protocol^=http]'
+
+# Download the best video format and the best audio format without merging them
+$ youtube-dlc -f 'bestvideo,bestaudio' -o '%(title)s.f%(format_id)s.%(ext)s'
+```
+Note that in the last example, an output template is recommended as bestvideo and bestaudio may have the same file name.
+
+
+# VIDEO SELECTION
+
+Videos can be filtered by their upload date using the options `--date`, `--datebefore` or `--dateafter`. They accept dates in two formats:
+
+ - Absolute dates: Dates in the format `YYYYMMDD`.
+ - Relative dates: Dates in the format `(now|today)[+-][0-9](day|week|month|year)(s)?`
+ 
+Examples:
+
+```bash
+# Download only the videos uploaded in the last 6 months
+$ youtube-dlc --dateafter now-6months
+
+# Download only the videos uploaded on January 1, 1970
+$ youtube-dlc --date 19700101
+
+$ # Download only the videos uploaded in the 200x decade
+$ youtube-dlc --dateafter 20000101 --datebefore 20091231
+```
