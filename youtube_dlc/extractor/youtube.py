@@ -1869,8 +1869,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             embed_webpage = self._download_webpage(url, video_id, 'Downloading embed webpage')
             # check if video is only playable on youtube - if so it requires auth (cookies)
             if re.search(r'player-unavailable">', embed_webpage) is not None:
+                '''
+                # TODO apply this patch when Support for Python 2.6(!) and above drops
                 if ({'VISITOR_INFO1_LIVE', 'HSID', 'SSID', 'SID'} <= cookie_keys
                         or {'VISITOR_INFO1_LIVE', '__Secure-3PSID', 'LOGIN_INFO'} <= cookie_keys):
+                '''
+                if (set(('VISITOR_INFO1_LIVE', 'HSID', 'SSID', 'SID')) <= set(cookie_keys)
+                        or set(('VISITOR_INFO1_LIVE', '__Secure-3PSID', 'LOGIN_INFO')) <= set(cookie_keys)):
                     age_gate = False
                     # Try looking directly into the video webpage
                     ytplayer_config = self._get_ytplayer_config(video_id, video_webpage)
