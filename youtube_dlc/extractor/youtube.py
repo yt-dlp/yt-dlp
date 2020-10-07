@@ -1861,31 +1861,60 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         embed_webpage = None
         if (self._og_search_property('restrictions:age', video_webpage, default=None) == '18+'
                 or re.search(r'player-age-gate-content">', video_webpage) is not None):
+            cookie_keys = self._get_cookies('https://www.youtube.com').keys()
             age_gate = True
             # We simulate the access to the video from www.youtube.com/v/{video_id}
             # this can be viewed without login into Youtube
             url = proto + '://www.youtube.com/embed/%s' % video_id
             embed_webpage = self._download_webpage(url, video_id, 'Downloading embed webpage')
-            data = compat_urllib_parse_urlencode({
-                'video_id': video_id,
-                'eurl': 'https://youtube.googleapis.com/v/' + video_id,
-                'sts': self._search_regex(
-                    r'"sts"\s*:\s*(\d+)', embed_webpage, 'sts', default=''),
-            })
-            video_info_url = proto + '://www.youtube.com/get_video_info?' + data
-            try:
-                video_info_webpage = self._download_webpage(
-                    video_info_url, video_id,
-                    note='Refetching age-gated info webpage',
-                    errnote='unable to download video info webpage')
-            except ExtractorError:
-                video_info_webpage = None
-            if video_info_webpage:
-                video_info = compat_parse_qs(video_info_webpage)
-                pl_response = video_info.get('player_response', [None])[0]
-                player_response = extract_player_response(pl_response, video_id)
-                add_dash_mpd(video_info)
-                view_count = extract_view_count(video_info)
+            # check if video is only playable on youtube - if so it requires auth (cookies)
+            if re.search(r'player-unavailable">', embed_webpage) is not None:
+                if ({'VISITOR_INFO1_LIVE', 'HSID', 'SSID', 'SID'} <= cookie_keys
+                    or {'VISITOR_INFO1_LIVE', '__Secure-3PSID', 'LOGIN_INFO'} <= cookie_keys):
+                        age_gate = False
+                        # Try looking directly into the video webpage
+                        ytplayer_config = self._get_ytplayer_config(video_id, video_webpage)
+                        if ytplayer_config:
+                            args = ytplayer_config['args']
+                            if args.get('url_encoded_fmt_stream_map') or args.get('hlsvp'):
+                                # Convert to the same format returned by compat_parse_qs
+                                video_info = dict((k, [v]) for k, v in args.items())
+                                add_dash_mpd(video_info)
+                            # Rental video is not rented but preview is available (e.g.
+                            # https://www.youtube.com/watch?v=yYr8q0y5Jfg,
+                            # https://github.com/ytdl-org/youtube-dl/issues/10532)
+                            if not video_info and args.get('ypc_vid'):
+                                return self.url_result(
+                                    args['ypc_vid'], YoutubeIE.ie_key(), video_id=args['ypc_vid'])
+                            if args.get('livestream') == '1' or args.get('live_playback') == 1:
+                                is_live = True
+                            if not player_response:
+                                player_response = extract_player_response(args.get('player_response'), video_id)
+                        if not video_info or self._downloader.params.get('youtube_include_dash_manifest', True):
+                            add_dash_mpd_pr(player_response)
+                else:
+                    raise ExtractorError('Video is age restricted and only playable on Youtube. Requires cookies!', expected=True)
+            else:
+                data = compat_urllib_parse_urlencode({
+                    'video_id': video_id,
+                    'eurl': 'https://youtube.googleapis.com/v/' + video_id,
+                    'sts': self._search_regex(
+                        r'"sts"\s*:\s*(\d+)', embed_webpage, 'sts', default=''),
+                })
+                video_info_url = proto + '://www.youtube.com/get_video_info?' + data
+                try:
+                    video_info_webpage = self._download_webpage(
+                        video_info_url, video_id,
+                        note='Refetching age-gated info webpage',
+                        errnote='unable to download video info webpage')
+                except ExtractorError:
+                    video_info_webpage = None
+                if video_info_webpage:
+                    video_info = compat_parse_qs(video_info_webpage)
+                    pl_response = video_info.get('player_response', [None])[0]
+                    player_response = extract_player_response(pl_response, video_id)
+                    add_dash_mpd(video_info)
+                    view_count = extract_view_count(video_info)
         else:
             age_gate = False
             # Try looking directly into the video webpage
