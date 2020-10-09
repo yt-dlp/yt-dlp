@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 from .mtv import MTVServicesInfoExtractor
 from ..utils import unified_strdate
 
+# TODO Remove - Reason: Outdated Site
+
 
 class BetIE(MTVServicesInfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?bet\.com/(?:[^/]+/)+(?P<id>.+?)\.html'
