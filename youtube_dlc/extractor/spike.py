@@ -20,8 +20,18 @@ class BellatorIE(MTVServicesInfoExtractor):
     _FEED_URL = 'http://www.bellator.com/feeds/mrss/'
     _GEO_COUNTRIES = ['US']
 
-    def _extract_mgid(self, webpage):
-        return self._extract_triforce_mgid(webpage)
+    def _extract_mgid(self, webpage, url):
+        mgid = None
+
+        if not mgid:
+            mgid = self._extract_triforce_mgid(webpage)
+
+        if not mgid:
+            mgid = self._extract_new_triforce_mgid(webpage, url)
+
+        return mgid
+
+# TODO Remove - Reason: Outdated Site
 
 
 class ParamountNetworkIE(MTVServicesInfoExtractor):
@@ -43,7 +53,7 @@ class ParamountNetworkIE(MTVServicesInfoExtractor):
     _FEED_URL = 'http://www.paramountnetwork.com/feeds/mrss/'
     _GEO_COUNTRIES = ['US']
 
-    def _extract_mgid(self, webpage):
+    def _extract_mgid(self, webpage, url):
         root_data = self._parse_json(self._search_regex(
             r'window\.__DATA__\s*=\s*({.+})',
             webpage, 'data'), None)

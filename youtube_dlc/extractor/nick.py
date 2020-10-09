@@ -245,5 +245,5 @@ class NickRuIE(MTVServicesInfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        mgid = self._extract_mgid(webpage)
+        mgid = self._extract_mgid(webpage, url)
         return self.url_result('http://media.mtvnservices.com/embed/%s' % mgid)
