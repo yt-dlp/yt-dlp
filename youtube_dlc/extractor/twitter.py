@@ -608,3 +608,11 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         info['formats'] = self._extract_pscp_m3u8_formats(
             m3u8_url, broadcast_id, m3u8_id, state, width, height)
         return info
+
+
+class TwitterShortenerIE(TwitterBaseIE):
+    IE_NAME = 'twitter:shortener'
+    _VALID_URL = r'https?://t.co/'
+
+    def _real_extract(self, url):
+        print(url)
