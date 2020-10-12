@@ -44,39 +44,25 @@ class SouthParkEsIE(SouthParkIE):
 
 class SouthParkDeIE(SouthParkIE):
     IE_NAME = 'southpark.de'
-    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:clips|alle-episoden|collections)/(?P<id>.+?)(\?|#|$))'
-    _FEED_URL = 'http://www.southpark.de/feeds/video-player/mrss/'
+    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:videoclip|collections|folgen)/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
+    # _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
 
     _TESTS = [{
-        'url': 'http://www.southpark.de/clips/uygssh/the-government-wont-respect-my-privacy#tab=featured',
-        'info_dict': {
-            'id': '85487c96-b3b9-4e39-9127-ad88583d9bf2',
-            'ext': 'mp4',
-            'title': 'South Park|The Government Won\'t Respect My Privacy',
-            'description': 'Cartman explains the benefits of "Shitter" to Stan, Kyle and Craig.',
-            'timestamp': 1380160800,
-            'upload_date': '20130926',
-        },
+        'url': 'https://www.southpark.de/videoclip/rsribv/south-park-rueckzug-zum-gummibonbon-wald',
+        'only_matching': True,
     }, {
-        # non-ASCII characters in initial URL
-        'url': 'http://www.southpark.de/alle-episoden/s18e09-hashtag-aufwärmen',
-        'info_dict': {
-            'title': 'Hashtag „Aufwärmen“',
-            'description': 'Kyle will mit seinem kleinen Bruder Ike Videospiele spielen. Als der nicht mehr mit ihm spielen will, hat Kyle Angst, dass er die Kids von heute nicht mehr versteht.',
-        },
-        'playlist_count': 3,
+        'url': 'https://www.southpark.de/folgen/jiru42/south-park-verkabelung-staffel-23-ep-9',
+        'only_matching': True,
     }, {
-        # non-ASCII characters in redirect URL
-        'url': 'http://www.southpark.de/alle-episoden/s18e09',
-        'info_dict': {
-            'title': 'Hashtag „Aufwärmen“',
-            'description': 'Kyle will mit seinem kleinen Bruder Ike Videospiele spielen. Als der nicht mehr mit ihm spielen will, hat Kyle Angst, dass er die Kids von heute nicht mehr versteht.',
-        },
-        'playlist_count': 3,
-    }, {
-        'url': 'http://www.southpark.de/collections/2476/superhero-showdown/1',
+        'url': 'https://www.southpark.de/collections/zzno5a/south-park-good-eats/7q26gp',
         'only_matching': True,
     }]
+
+    def _get_feed_url(self, uri, url=None):
+        video_id = self._id_from_uri(uri)
+        config = self._download_json(
+            'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge&ref=%s' % (uri, url), video_id)
+        return self._remove_template_parameter(config['feedWithQueryParams'])
 
 
 class SouthParkNlIE(SouthParkIE):
