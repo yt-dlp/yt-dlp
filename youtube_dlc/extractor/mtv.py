@@ -45,7 +45,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         # Remove the templates, like &device={device}
         return re.sub(r'&[^=]*?={.*?}(?=(&|$))', '', url)
 
-    def _get_feed_url(self, uri):
+    def _get_feed_url(self, uri, url=None):
         return self._FEED_URL
 
     def _get_thumbnail_url(self, uri, itemdoc):
@@ -211,9 +211,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
             data['lang'] = self._LANG
         return data
 
-    def _get_videos_info(self, uri, use_hls=True):
+    def _get_videos_info(self, uri, use_hls=True, url=None):
         video_id = self._id_from_uri(uri)
-        feed_url = self._get_feed_url(uri)
+        feed_url = self._get_feed_url(uri, url)
         info_url = update_url_query(feed_url, self._get_feed_query(uri))
         return self._get_videos_info_from_url(info_url, video_id, use_hls)
 
@@ -256,7 +256,6 @@ class MTVServicesInfoExtractor(InfoExtractor):
         return try_get(feed, lambda x: x['result']['data']['id'], compat_str)
 
     def _extract_new_triforce_mgid(self, webpage, url='', video_id=None):
-        # print(compat_urlparse.urlparse(url).netloc)
         if url == '':
             return
         domain = get_domain(url)
@@ -281,7 +280,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
         item_id = try_get(manifest, lambda x: x['manifest']['reporting']['itemId'], compat_str)
         if not item_id:
-            self.to_screen('Found no id!')
+            self.to_screen('No id found!')
             return
 
         # 'episode' can be anything. 'content' is used often as well
@@ -300,6 +299,16 @@ class MTVServicesInfoExtractor(InfoExtractor):
                 mgid = mgid[:-4]
         except RegexNotFoundError:
             mgid = None
+
+        title = self._match_id(url)
+
+        try:
+            window_data = self._parse_json(self._search_regex(
+                r'(?s)window.__DATA__ = (?P<json>{.+});', webpage,
+                'JSON Window Data', default=None, fatal=False, group='json'), title, fatal=False)
+            mgid = window_data['children'][4]['children'][0]['props']['media']['video']['config']['uri']
+        except (KeyError, IndexError, TypeError):
+            pass
 
         if mgid is None or ':' not in mgid:
             mgid = self._search_regex(
@@ -324,7 +333,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         title = url_basename(url)
         webpage = self._download_webpage(url, title)
         mgid = self._extract_mgid(webpage, url)
-        videos_info = self._get_videos_info(mgid)
+        videos_info = self._get_videos_info(mgid, url=url)
         return videos_info
 
 

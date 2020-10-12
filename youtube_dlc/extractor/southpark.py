@@ -44,8 +44,8 @@ class SouthParkEsIE(SouthParkIE):
 
 class SouthParkDeIE(SouthParkIE):
     IE_NAME = 'southpark.de'
-    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:clips|alle-episoden|collections)/(?P<id>.+?)(\?|#|$))'
-    _FEED_URL = 'http://www.southpark.de/feeds/video-player/mrss/'
+    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:clips|alle-episoden|collections|folgen)/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
+    # _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
 
     _TESTS = [{
         'url': 'http://www.southpark.de/clips/uygssh/the-government-wont-respect-my-privacy#tab=featured',
@@ -77,6 +77,12 @@ class SouthParkDeIE(SouthParkIE):
         'url': 'http://www.southpark.de/collections/2476/superhero-showdown/1',
         'only_matching': True,
     }]
+
+    def _get_feed_url(self, uri, url=None):
+        video_id = self._id_from_uri(uri)
+        config = self._download_json(
+            'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge&ref=%s' % (uri, url), video_id)
+        return self._remove_template_parameter(config['feedWithQueryParams'])
 
 
 class SouthParkNlIE(SouthParkIE):
