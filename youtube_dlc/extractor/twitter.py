@@ -616,3 +616,4 @@ class TwitterShortenerIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         print(url)
+        return self.url_result(url, 'Generic')
