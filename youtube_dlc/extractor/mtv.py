@@ -306,7 +306,11 @@ class MTVServicesInfoExtractor(InfoExtractor):
             window_data = self._parse_json(self._search_regex(
                 r'(?s)window.__DATA__ = (?P<json>{.+});', webpage,
                 'JSON Window Data', default=None, fatal=False, group='json'), title, fatal=False)
-            mgid = window_data['children'][4]['children'][0]['props']['media']['video']['config']['uri']
+            main_container = None
+            for i in range(len(window_data['children'])):
+                if window_data['children'][i]['type'] == 'MainContainer':
+                    main_container = window_data['children'][i]
+            mgid = main_container['children'][0]['props']['media']['video']['config']['uri']
         except (KeyError, IndexError, TypeError):
             pass
 
