@@ -368,6 +368,8 @@ Then simply type this
                                      before each download (maximum possible
                                      number of seconds to sleep). Must only be
                                      used along with --min-sleep-interval.
+    --sleep-subtitles                Enforce sleep interval on subtitles as well.
+
 
 ## Video Format Options:
     -f, --format FORMAT              Video format code, see the "FORMAT
