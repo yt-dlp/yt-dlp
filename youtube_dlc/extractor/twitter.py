@@ -615,5 +615,5 @@ class TwitterShortenerIE(TwitterBaseIE):
     _VALID_URL = r'https?://t.co/'
 
     def _real_extract(self, url):
-        print(url)
-        return self.url_result(url, 'Generic')
+        new_url = self._request_webpage(url, None, headers={'User-Agent': 'curl'}).geturl()
+        return self.url_result(new_url)
