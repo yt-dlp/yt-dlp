@@ -176,21 +176,11 @@ class NickDeIE(MTVServicesInfoExtractor):
         'only_matching': True,
     }]
 
-    def _extract_mrss_url(self, webpage, host):
-        return update_url_query(self._search_regex(
-            r'data-mrss=(["\'])(?P<url>http.+?)\1', webpage, 'mrss url', group='url'),
-            {'siteKey': host})
-
-    def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        video_id = mobj.group('id')
-        host = mobj.group('host')
-
-        webpage = self._download_webpage(url, video_id)
-
-        mrss_url = self._extract_mrss_url(webpage, host)
-
-        return self._get_videos_info_from_url(mrss_url, video_id)
+    def _get_feed_url(self, uri, url=None):
+        video_id = self._id_from_uri(uri)
+        config = self._download_json(
+            'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge&ref=%s' % (uri, url), video_id)
+        return self._remove_template_parameter(config['feedWithQueryParams'])
 
 
 class NickNightIE(NickDeIE):
