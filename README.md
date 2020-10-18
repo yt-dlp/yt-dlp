@@ -298,6 +298,8 @@ Then simply type this
                                      may change.
     --no-cache-dir                   Disable filesystem caching
     --rm-cache-dir                   Delete all filesystem cache files
+    --trim-file-name                 Limit the filename length (extension
+                                     excluded)
 
 ## Thumbnail images:
     --write-thumbnail                Write thumbnail image to disk
