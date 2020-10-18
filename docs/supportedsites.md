@@ -540,6 +540,7 @@
  - **natgeo:video**
  - **NationalGeographicTV**
  - **Naver**
+ - **Naver:live**
  - **NBA**
  - **NBC**
  - **NBCNews**
@@ -976,6 +977,7 @@
  - **twitter:amplify**
  - **twitter:broadcast**
  - **twitter:card**
+ - **twitter:shortener**
  - **udemy**
  - **udemy:course**
  - **UDNEmbed**: 聯合影音

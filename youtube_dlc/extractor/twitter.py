@@ -608,3 +608,21 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         info['formats'] = self._extract_pscp_m3u8_formats(
             m3u8_url, broadcast_id, m3u8_id, state, width, height)
         return info
+
+
+class TwitterShortenerIE(TwitterBaseIE):
+    IE_NAME = 'twitter:shortener'
+    _VALID_URL = r'https?://t.co/(?P<id>[^?]+)|tco:(?P<eid>[^?]+)'
+    _BASE_URL = 'https://t.co/'
+
+    def _real_extract(self, url):
+        mobj = re.match(self._VALID_URL, url)
+        eid, id = mobj.group('eid', 'id')
+        if eid:
+            id = eid
+            url = self._BASE_URL + id
+        new_url = self._request_webpage(url, id, headers={'User-Agent': 'curl'}).geturl()
+        __UNSAFE_LINK = "https://twitter.com/safety/unsafe_link_warning?unsafe_link="
+        if new_url.startswith(__UNSAFE_LINK):
+            new_url = new_url.replace(__UNSAFE_LINK, "")
+        return self.url_result(new_url)
