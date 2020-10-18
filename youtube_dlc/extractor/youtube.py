@@ -100,6 +100,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if username is None:
             if self._LOGIN_REQUIRED and self._downloader.params.get('cookiefile') is None:
                 raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
+            if self._downloader.params.get('cookiefile') and False:  # TODO remove 'and False' later - too many people using outdated cookies and open issues, remind them.
+                self.to_screen('[Cookies] Reminder - Make sure to always use up to date cookies!')
             return True
 
         login_page = self._download_webpage(
