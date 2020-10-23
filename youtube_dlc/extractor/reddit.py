@@ -38,7 +38,7 @@ class RedditIE(InfoExtractor):
             'https://v.redd.it/%s/DASHPlaylist.mpd' % video_id, video_id,
             mpd_id='dash', fatal=False))
 
-        self._sort_formats(formats)
+        self._sort_formats(formats, ('height', 'width'))
 
         return {
             'id': video_id,
