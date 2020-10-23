@@ -1268,6 +1268,7 @@ from .twitter import (
     TwitterIE,
     TwitterAmplifyIE,
     TwitterBroadcastIE,
+    TwitterShortenerIE,
 )
 from .udemy import (
     UdemyIE,
