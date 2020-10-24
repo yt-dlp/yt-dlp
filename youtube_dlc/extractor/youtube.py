@@ -582,48 +582,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             }
         },
         {
-            'url': 'https://www.youtube.com/watch?v=UxxajLWwzqY',
-            'note': 'Test generic use_cipher_signature video (#897)',
-            'info_dict': {
-                'id': 'UxxajLWwzqY',
-                'ext': 'mp4',
-                'upload_date': '20120506',
-                'title': 'Icona Pop - I Love It (feat. Charli XCX) [OFFICIAL VIDEO]',
-                'alt_title': 'I Love It (feat. Charli XCX)',
-                'description': 'md5:19a2f98d9032b9311e686ed039564f63',
-                'tags': ['Icona Pop i love it', 'sweden', 'pop music', 'big beat records', 'big beat', 'charli',
-                         'xcx', 'charli xcx', 'girls', 'hbo', 'i love it', "i don't care", 'icona', 'pop',
-                         'iconic ep', 'iconic', 'love', 'it'],
-                'duration': 180,
-                'uploader': 'Icona Pop',
-                'uploader_id': 'IconaPop',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/IconaPop',
-                'creator': 'Icona Pop',
-                'track': 'I Love It (feat. Charli XCX)',
-                'artist': 'Icona Pop',
-            }
-        },
-        {
-            'url': 'https://www.youtube.com/watch?v=07FYdnEawAQ',
-            'note': 'Test VEVO video with age protection (#956)',
-            'info_dict': {
-                'id': '07FYdnEawAQ',
-                'ext': 'mp4',
-                'upload_date': '20130703',
-                'title': 'Justin Timberlake - Tunnel Vision (Official Music Video) (Explicit)',
-                'alt_title': 'Tunnel Vision',
-                'description': 'md5:07dab3356cde4199048e4c7cd93471e1',
-                'duration': 419,
-                'uploader': 'justintimberlakeVEVO',
-                'uploader_id': 'justintimberlakeVEVO',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/justintimberlakeVEVO',
-                'creator': 'Justin Timberlake',
-                'track': 'Tunnel Vision',
-                'artist': 'Justin Timberlake',
-                'age_limit': 18,
-            }
-        },
-        {
             'url': '//www.YouTube.com/watch?v=yZIXLfi8CZQ',
             'note': 'Embed-only video (#1746)',
             'info_dict': {
@@ -680,42 +638,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'skip': 'format 141 not served anymore',
         },
-        # DASH manifest with encrypted signature
-        {
-            'url': 'https://www.youtube.com/watch?v=IB3lcPjvWLA',
-            'info_dict': {
-                'id': 'IB3lcPjvWLA',
-                'ext': 'm4a',
-                'title': 'Afrojack, Spree Wilson - The Spark (Official Music Video) ft. Spree Wilson',
-                'description': 'md5:8f5e2b82460520b619ccac1f509d43bf',
-                'duration': 244,
-                'uploader': 'AfrojackVEVO',
-                'uploader_id': 'AfrojackVEVO',
-                'upload_date': '20131011',
-            },
-            'params': {
-                'youtube_include_dash_manifest': True,
-                'format': '141/bestaudio[ext=m4a]',
-            },
-        },
-        # JS player signature function name containing $
-        {
-            'url': 'https://www.youtube.com/watch?v=nfWlot6h_JM',
-            'info_dict': {
-                'id': 'nfWlot6h_JM',
-                'ext': 'm4a',
-                'title': 'Taylor Swift - Shake It Off',
-                'description': 'md5:307195cd21ff7fa352270fe884570ef0',
-                'duration': 242,
-                'uploader': 'TaylorSwiftVEVO',
-                'uploader_id': 'TaylorSwiftVEVO',
-                'upload_date': '20140818',
-            },
-            'params': {
-                'youtube_include_dash_manifest': True,
-                'format': '141/bestaudio[ext=m4a]',
-            },
-        },
         # Controversy video
         {
             'url': 'https://www.youtube.com/watch?v=T4XJQO3qol8',
@@ -731,7 +653,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'SUBSCRIBE: http://www.youtube.com/saturninefilms\n\nEven Obama has taken a stand against freedom on this issue: http://www.huffingtonpost.com/2010/09/09/obama-gma-interview-quran_n_710282.html',
             }
         },
-        # Normal age-gate video (No vevo, embed allowed)
+        # Normal age-gate video (embed allowed)
         {
             'url': 'https://youtube.com/watch?v=HtVdAasjOgU',
             'info_dict': {
@@ -746,43 +668,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'upload_date': '20140605',
                 'age_limit': 18,
             },
-        },
-        # Age-gate video with encrypted signature
-        {
-            'url': 'https://www.youtube.com/watch?v=6kLq3WMV1nU',
-            'info_dict': {
-                'id': '6kLq3WMV1nU',
-                'ext': 'mp4',
-                'title': 'Dedication To My Ex (Miss That) (Lyric Video)',
-                'description': 'md5:33765bb339e1b47e7e72b5490139bb41',
-                'duration': 246,
-                'uploader': 'LloydVEVO',
-                'uploader_id': 'LloydVEVO',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/LloydVEVO',
-                'upload_date': '20110629',
-                'age_limit': 18,
-            },
-        },
-        # video_info is None (https://github.com/ytdl-org/youtube-dl/issues/4421)
-        # YouTube Red ad is not captured for creator
-        {
-            'url': '__2ABJjxzNo',
-            'info_dict': {
-                'id': '__2ABJjxzNo',
-                'ext': 'mp4',
-                'duration': 266,
-                'upload_date': '20100430',
-                'uploader_id': 'deadmau5',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/deadmau5',
-                'creator': 'Dada Life, deadmau5',
-                'description': 'md5:12c56784b8032162bb936a5f76d55360',
-                'uploader': 'deadmau5',
-                'title': 'Deadmau5 - Some Chords (HD)',
-                'alt_title': 'This Machine Kills Some Chords',
-            },
-            'expected_warnings': [
-                'DASH manifest missing',
-            ]
         },
         # Olympics (https://github.com/ytdl-org/youtube-dl/issues/4431)
         {

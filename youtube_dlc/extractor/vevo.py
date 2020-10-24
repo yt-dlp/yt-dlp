@@ -38,117 +38,7 @@ class VevoIE(VevoBaseIE):
            vevo:)
         (?P<id>[^&?#]+)'''
 
-    _TESTS = [{
-        'url': 'http://www.vevo.com/watch/hurts/somebody-to-die-for/GB1101300280',
-        'md5': '95ee28ee45e70130e3ab02b0f579ae23',
-        'info_dict': {
-            'id': 'GB1101300280',
-            'ext': 'mp4',
-            'title': 'Hurts - Somebody to Die For',
-            'timestamp': 1372057200,
-            'upload_date': '20130624',
-            'uploader': 'Hurts',
-            'track': 'Somebody to Die For',
-            'artist': 'Hurts',
-            'genre': 'Pop',
-        },
-        'expected_warnings': ['Unable to download SMIL file', 'Unable to download info'],
-    }, {
-        'note': 'v3 SMIL format',
-        'url': 'http://www.vevo.com/watch/cassadee-pope/i-wish-i-could-break-your-heart/USUV71302923',
-        'md5': 'f6ab09b034f8c22969020b042e5ac7fc',
-        'info_dict': {
-            'id': 'USUV71302923',
-            'ext': 'mp4',
-            'title': 'Cassadee Pope - I Wish I Could Break Your Heart',
-            'timestamp': 1392796919,
-            'upload_date': '20140219',
-            'uploader': 'Cassadee Pope',
-            'track': 'I Wish I Could Break Your Heart',
-            'artist': 'Cassadee Pope',
-            'genre': 'Country',
-        },
-        'expected_warnings': ['Unable to download SMIL file', 'Unable to download info'],
-    }, {
-        'note': 'Age-limited video',
-        'url': 'https://www.vevo.com/watch/justin-timberlake/tunnel-vision-explicit/USRV81300282',
-        'info_dict': {
-            'id': 'USRV81300282',
-            'ext': 'mp4',
-            'title': 'Justin Timberlake - Tunnel Vision (Explicit)',
-            'age_limit': 18,
-            'timestamp': 1372888800,
-            'upload_date': '20130703',
-            'uploader': 'Justin Timberlake',
-            'track': 'Tunnel Vision (Explicit)',
-            'artist': 'Justin Timberlake',
-            'genre': 'Pop',
-        },
-        'expected_warnings': ['Unable to download SMIL file', 'Unable to download info'],
-    }, {
-        'note': 'No video_info',
-        'url': 'http://www.vevo.com/watch/k-camp-1/Till-I-Die/USUV71503000',
-        'md5': '8b83cc492d72fc9cf74a02acee7dc1b0',
-        'info_dict': {
-            'id': 'USUV71503000',
-            'ext': 'mp4',
-            'title': 'K Camp ft. T.I. - Till I Die',
-            'age_limit': 18,
-            'timestamp': 1449468000,
-            'upload_date': '20151207',
-            'uploader': 'K Camp',
-            'track': 'Till I Die',
-            'artist': 'K Camp',
-            'genre': 'Hip-Hop',
-        },
-        'expected_warnings': ['Unable to download SMIL file', 'Unable to download info'],
-    }, {
-        'note': 'Featured test',
-        'url': 'https://www.vevo.com/watch/lemaitre/Wait/USUV71402190',
-        'md5': 'd28675e5e8805035d949dc5cf161071d',
-        'info_dict': {
-            'id': 'USUV71402190',
-            'ext': 'mp4',
-            'title': 'Lemaitre ft. LoLo - Wait',
-            'age_limit': 0,
-            'timestamp': 1413432000,
-            'upload_date': '20141016',
-            'uploader': 'Lemaitre',
-            'track': 'Wait',
-            'artist': 'Lemaitre',
-            'genre': 'Electronic',
-        },
-        'expected_warnings': ['Unable to download SMIL file', 'Unable to download info'],
-    }, {
-        'note': 'Only available via webpage',
-        'url': 'http://www.vevo.com/watch/GBUV71600656',
-        'md5': '67e79210613865b66a47c33baa5e37fe',
-        'info_dict': {
-            'id': 'GBUV71600656',
-            'ext': 'mp4',
-            'title': 'ABC - Viva Love',
-            'age_limit': 0,
-            'timestamp': 1461830400,
-            'upload_date': '20160428',
-            'uploader': 'ABC',
-            'track': 'Viva Love',
-            'artist': 'ABC',
-            'genre': 'Pop',
-        },
-        'expected_warnings': ['Failed to download video versions info'],
-    }, {
-        # no genres available
-        'url': 'http://www.vevo.com/watch/INS171400764',
-        'only_matching': True,
-    }, {
-        # Another case available only via the webpage; using streams/streamsV3 formats
-        # Geo-restricted to Netherlands/Germany
-        'url': 'http://www.vevo.com/watch/boostee/pop-corn-clip-officiel/FR1A91600909',
-        'only_matching': True,
-    }, {
-        'url': 'https://embed.vevo.com/?isrc=USH5V1923499&partnerId=4d61b777-8023-4191-9ede-497ed6c24647&partnerAdCode=',
-        'only_matching': True,
-    }]
+    _TESTS = []
     _VERSIONS = {
         0: 'youtube',  # only in AuthenticateVideo videoVersions
         1: 'level3',
@@ -310,34 +200,12 @@ class VevoPlaylistIE(VevoBaseIE):
     _VALID_URL = r'https?://(?:www\.)?vevo\.com/watch/(?P<kind>playlist|genre)/(?P<id>[^/?#&]+)'
 
     _TESTS = [{
-        'url': 'http://www.vevo.com/watch/playlist/dadbf4e7-b99f-4184-9670-6f0e547b6a29',
-        'info_dict': {
-            'id': 'dadbf4e7-b99f-4184-9670-6f0e547b6a29',
-            'title': 'Best-Of: Birdman',
-        },
-        'playlist_count': 10,
-    }, {
         'url': 'http://www.vevo.com/watch/genre/rock',
         'info_dict': {
             'id': 'rock',
             'title': 'Rock',
         },
         'playlist_count': 20,
-    }, {
-        'url': 'http://www.vevo.com/watch/playlist/dadbf4e7-b99f-4184-9670-6f0e547b6a29?index=0',
-        'md5': '32dcdfddddf9ec6917fc88ca26d36282',
-        'info_dict': {
-            'id': 'USCMV1100073',
-            'ext': 'mp4',
-            'title': 'Birdman - Y.U. MAD',
-            'timestamp': 1323417600,
-            'upload_date': '20111209',
-            'uploader': 'Birdman',
-            'track': 'Y.U. MAD',
-            'artist': 'Birdman',
-            'genre': 'Rap/Hip-Hop',
-        },
-        'expected_warnings': ['Unable to download SMIL file'],
     }, {
         'url': 'http://www.vevo.com/watch/genre/rock?index=0',
         'only_matching': True,

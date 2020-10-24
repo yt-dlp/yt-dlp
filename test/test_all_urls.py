@@ -33,7 +33,6 @@ class TestAllURLsMatching(unittest.TestCase):
         assertPlaylist = lambda url: self.assertMatch(url, ['youtube:playlist'])
         assertPlaylist('ECUl4u3cNGP61MdtwGTqZA0MreSaDybji8')
         assertPlaylist('UUBABnxM4Ar9ten8Mdjj1j0Q')  # 585
-        assertPlaylist('PL63F0C78739B09958')
         assertPlaylist('https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q')
         assertPlaylist('https://www.youtube.com/course?list=ECUl4u3cNGP61MdtwGTqZA0MreSaDybji8')
         assertPlaylist('https://www.youtube.com/playlist?list=PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC')
@@ -70,7 +69,7 @@ class TestAllURLsMatching(unittest.TestCase):
 
     def test_youtube_search_matching(self):
         self.assertMatch('http://www.youtube.com/results?search_query=making+mustard', ['youtube:search_url'])
-        self.assertMatch('https://www.youtube.com/results?baz=bar&search_query=youtube-dlc+test+video&filters=video&lclk=video', ['youtube:search_url'])
+        self.assertMatch('https://www.youtube.com/results?baz=bar&search_query=youtube-dl+test+video&filters=video&lclk=video', ['youtube:search_url'])
 
     def test_youtube_extract(self):
         assertExtractId = lambda url, id: self.assertEqual(YoutubeIE.extract_id(url), id)
