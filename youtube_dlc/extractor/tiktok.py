@@ -14,17 +14,17 @@ from ..utils import (
 class TikTokBaseIE(InfoExtractor):
     def _extract_aweme(self, video_data, webpage, url):
         video_info = try_get(
-            video_data, lambda x: x['videoData']['itemInfos'], dict)
+            video_data, lambda x: x['itemInfo']['itemStruct'], dict)
         author_info = try_get(
-            video_data, lambda x: x['videoData']['authorInfos'], dict)
-        share_info = try_get(video_data, lambda x: x['shareMeta'], dict)
+            video_data, lambda x: x['itemInfo']['itemStruct']['author'], dict)
+        share_info = try_get(video_data, lambda x: x['itemInfo']['shareMeta'], dict)
 
         unique_id = str_or_none(author_info.get('uniqueId'))
         timestamp = try_get(video_info, lambda x: int(x['createTime']), int)
         date = datetime.fromtimestamp(timestamp).strftime('%Y%m%d')
 
-        height = try_get(video_info, lambda x: x['video']['videoMeta']['height'], int)
-        width = try_get(video_info, lambda x: x['video']['videoMeta']['width'], int)
+        height = try_get(video_info, lambda x: x['video']['height'], int)
+        width = try_get(video_info, lambda x: x['video']['width'], int)
         thumbnails = []
         thumbnails.append({
             'url': video_info.get('thumbnail') or self._og_search_thumbnail(webpage),
@@ -34,7 +34,7 @@ class TikTokBaseIE(InfoExtractor):
 
         formats = []
         formats.append({
-            'url': try_get(video_info, lambda x: x['video']['urls'][0]),
+            'url': try_get(video_info, lambda x: x['video']['playAddr']),
             'ext': 'mp4',
             'height': height,
             'width': width
