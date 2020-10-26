@@ -36,6 +36,7 @@ youtube-dlc is a fork of youtube-dl with the intention of getting features teste
 - [VIDEO SELECTION](#video-selection-1)
 
 # INSTALLATION
+[How to update](#update)
 
 **All Platforms**  
 Preferred way using pip:  
@@ -46,16 +47,16 @@ You may want to use `python3` instead of `python`
 **UNIX** (Linux, macOS, etc.)  
 Using wget:
 
-    sudo wget https://github.com/blackjack4494/youtube-dlc/releases/latest/download/youtube-dlc -O /usr/local/bin/youtube-dlc
+    sudo wget https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc -O /usr/local/bin/youtube-dlc
     sudo chmod a+rx /usr/local/bin/youtube-dlc
 
 Using curl:
 
-    sudo curl -L https://github.com/blackjack4494/youtube-dlc/releases/latest/download/youtube-dlc -o /usr/local/bin/youtube-dlc
+    sudo curl -L https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc -o /usr/local/bin/youtube-dlc
     sudo chmod a+rx /usr/local/bin/youtube-dlc
 
 
-**Windows** users can download [youtube-dlc.exe](https://github.com/blackjack4494/youtube-dlc/releases/latest/download/youtube-dlc.exe) (**do not** put in `C:\Windows\System32`!).  
+**Windows** users can download [youtube-dlc.exe](https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc.exe) (**do not** put in `C:\Windows\System32`!).  
 
 **Compile**
 To build the Windows executable yourself (without version info!)
@@ -76,6 +77,10 @@ Then simply type this
 
     make
 
+
+# UPDATE
+**DO NOT UPDATE using `-U` !** instead download binaries again or when installed with pip use a described above when installing.  
+I will add some memorable short links to the binaries so you can download them easier.
 
 # DESCRIPTION
 **youtube-dlc** is a command-line program to download videos from YouTube.com and a few more sites. It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
