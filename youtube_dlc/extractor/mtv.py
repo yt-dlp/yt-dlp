@@ -300,7 +300,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         except RegexNotFoundError:
             mgid = None
 
-        title = self._match_id(url)
+        title = url_basename(url)
 
         try:
             window_data = self._parse_json(self._search_regex(
