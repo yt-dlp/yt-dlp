@@ -1742,6 +1742,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 add_dash_mpd_pr(pl_response)
                 return pl_response
 
+        def extract_embedded_config(embed_webpage, video_id):
+            embedded_config = self._search_regex(
+                r'setConfig\(({.*})\);',
+                embed_webpage, 'ytInitialData', default=None)
+            if embedded_config:
+                return embedded_config
+
         player_response = {}
 
         # Get video info
@@ -1755,8 +1762,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # this can be viewed without login into Youtube
             url = proto + '://www.youtube.com/embed/%s' % video_id
             embed_webpage = self._download_webpage(url, video_id, 'Downloading embed webpage')
-            # check if video is only playable on youtube - if so it requires auth (cookies)
-            if re.search(r'player-unavailable">', embed_webpage) is not None:
+            ext = extract_embedded_config(embed_webpage, video_id)
+            # playabilityStatus = re.search(r'{\\\"status\\\":\\\"(?P<playabilityStatus>[^\"]+)\\\"', ext)
+            playable_in_embed = re.search(r'{\\\"playableInEmbed\\\":(?P<playableinEmbed>[^\,]+)', ext)
+            if not playable_in_embed:
+                self.to_screen('Could not determine whether playabale in embed for video %s' % video_id)
+                playable_in_embed = ''
+            else:
+                playable_in_embed = playable_in_embed.group('playableinEmbed')
+            # check if video is only playable on youtube in other words not playable in embed - if so it requires auth (cookies)
+            # if re.search(r'player-unavailable">', embed_webpage) is not None:
+            if playable_in_embed == 'false':
                 '''
                 # TODO apply this patch when Support for Python 2.6(!) and above drops
                 if ({'VISITOR_INFO1_LIVE', 'HSID', 'SSID', 'SID'} <= cookie_keys
