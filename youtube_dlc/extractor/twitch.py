@@ -324,7 +324,7 @@ def _make_video_result(node):
     return {
         '_type': 'url_transparent',
         'ie_key': TwitchVodIE.ie_key(),
-        'id': video_id,
+        'id': 'v'+ video_id,
         'url': 'https://www.twitch.tv/videos/%s' % video_id,
         'title': node.get('title'),
         'thumbnail': node.get('previewThumbnailURL'),
