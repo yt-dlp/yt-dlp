@@ -133,6 +133,8 @@ class TikTokIE(TikTokBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
+        # If we only call once, we get a 403 when downlaoding the video.
+        webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
         webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
         json_string = self._search_regex(
             r'id=\"__NEXT_DATA__\"\s+type=\"application\/json\"\s*[^>]+>\s*(?P<json_string_ld>[^<]+)',
