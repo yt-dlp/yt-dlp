@@ -12,7 +12,8 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    def _extract_aweme(self, video_data, webpage, url):
+    def _extract_aweme(self, props_data, webpage, url):
+        video_data = try_get(props_data, lambda x: x['pageProps'], expected_type=dict)
         video_info = try_get(
             video_data, lambda x: x['itemInfo']['itemStruct'], dict)
         author_info = try_get(
@@ -32,14 +33,20 @@ class TikTokBaseIE(InfoExtractor):
             'height': height
         })
 
+        url = ''
+        if not url:
+            url = try_get(video_info, lambda x: x['video']['playAddr'])
+        if not url:
+            url = try_get(video_info, lambda x: x['video']['downloadAddr'])
         formats = []
         formats.append({
-            'url': try_get(video_info, lambda x: x['video']['playAddr']),
+            'url': url,
             'ext': 'mp4',
             'height': height,
             'width': width
         })
 
+        tracker = try_get(props_data, lambda x: x['initialProps']['$wid'])
         return {
             'comment_count': int_or_none(video_info.get('commentCount')),
             'duration': try_get(video_info, lambda x: x['video']['videoMeta']['duration'], int),
@@ -63,6 +70,7 @@ class TikTokBaseIE(InfoExtractor):
             'formats': formats,
             'http_headers': {
                 'Referer': url,
+                'Cookie': 'tt_webid=%s; tt_webid_v2=%s' % (tracker, tracker),
             }
         }
 
@@ -130,10 +138,10 @@ class TikTokIE(TikTokBaseIE):
             r'id=\"__NEXT_DATA__\"\s+type=\"application\/json\"\s*[^>]+>\s*(?P<json_string_ld>[^<]+)',
             webpage, 'json_string', group='json_string_ld')
         json_data = self._parse_json(json_string, video_id)
-        video_data = try_get(json_data, lambda x: x['props']['pageProps'], expected_type=dict)
+        props_data = try_get(json_data, lambda x: x['props'], expected_type=dict)
 
         # Chech statusCode for success
-        if video_data.get('statusCode') == 0:
-            return self._extract_aweme(video_data, webpage, url)
+        if props_data.get('pageProps').get('statusCode') == 0:
+            return self._extract_aweme(props_data, webpage, url)
 
         raise ExtractorError('Video not available', video_id=video_id)
