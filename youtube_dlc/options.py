@@ -397,7 +397,24 @@ def parseOpts(overrideArguments=None):
     video_format.add_option(
         '-f', '--format',
         action='store', dest='format', metavar='FORMAT', default=None,
-        help='Video format code, see the "FORMAT SELECTION" for all the info')
+        help='Video format code, see "FORMAT SELECTION" for more details')
+    video_format.add_option(
+        '-S', '--format-sort',
+        dest='format_sort', default=[],
+        action='callback', callback=_comma_separated_values_options_callback, type='str',
+        help='Sort the formats by the fields given, see "Sorting Formats" for more details')
+    video_format.add_option(
+        '--format-sort-force', '--S-force',
+        action='store_true', dest='format_sort_force', metavar='FORMAT', default=False,
+        help=(
+            'Force user specified sort order to have precedence over all fields, '
+            'see "Sorting Formats" for more details'))
+    video_format.add_option(
+        '--no-format-sort-force',
+        action='store_false', dest='format_sort_force', metavar='FORMAT', default=False,
+        help=(
+            'Some fields have precedence over the user specified sort order (default), '
+            'see "Sorting Formats" for more details'))
     video_format.add_option(
         '--all-formats',
         action='store_const', dest='format', const='all',

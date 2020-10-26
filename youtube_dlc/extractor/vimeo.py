@@ -181,11 +181,11 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'preference': 1,
             })
 
-        for f in formats:
-            if f.get('vcodec') == 'none':
-                f['preference'] = -50
-            elif f.get('acodec') == 'none':
-                f['preference'] = -40
+        # for f in formats:
+        #     if f.get('vcodec') == 'none':
+        #         f['preference'] = -50
+        #     elif f.get('acodec') == 'none':
+        #         f['preference'] = -40
 
         subtitles = {}
         text_tracks = config['request'].get('text_tracks')

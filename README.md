@@ -32,7 +32,10 @@ youtube-dlc is a fork of youtube-dl with the intention of getting features teste
       - [Output template and Windows batch files](#output-template-and-windows-batch-files)
       - [Output template examples](#output-template-examples)
 - [FORMAT SELECTION](#format-selection)
-      - [Format selection examples](#format-selection-examples)
+  - [Filtering Formats](#filtering-formats)
+  - [Sorting Formats](#sorting-formats)
+  - [Default Format Selection](#default-format-selection)
+  - [Format Selection examples](#format-selection-examples)
 - [VIDEO SELECTION](#video-selection-1)
 
 # INSTALLATION
@@ -385,8 +388,16 @@ I will add some memorable short links to the binaries so you can download them e
 
 
 ## Video Format Options:
-    -f, --format FORMAT              Video format code, see the "FORMAT
-                                     SELECTION" for all the info
+    -f, --format FORMAT              Video format code, see "FORMAT SELECTION"
+                                     for more details
+    -S, --format-sort SORTORDER      Sort the formats by the fields given, see
+                                     "Sorting Formats" for more details
+    --S-force, --format-sort-force   Force user specified sort order to have 
+                                     precedence over all fields, see "Sorting 
+                                     Formats" for more details
+    --no-format-sort-force           Some fields have precedence over the user
+                                     specified sort order, see "Sorting Formats"
+                                     for more details (default)
     --all-formats                    Download all available video formats
     --prefer-free-formats            Prefer free video formats unless a specific
                                      one is requested
@@ -425,8 +436,8 @@ I will add some memorable short links to the binaries so you can download them e
 
 ## Adobe Pass Options:
     --ap-mso MSO                     Adobe Pass multiple-system operator (TV
-                                     provider) identifier, use --ap-list-mso for
-                                     a list of available MSOs
+                                     provider) identifier, use --ap-list-mso
+                                     for a list of available MSOs
     --ap-username USERNAME           Multiple-system operator account login
     --ap-password PASSWORD           Multiple-system operator account password.
                                      If this option is left out, youtube-dlc
@@ -707,11 +718,16 @@ You can also use special names to select particular edge case formats:
  - `bestaudio`: Select the best quality audio only-format. May not be available.
  - `worstaudio`: Select the worst quality audio only-format. May not be available.
 
-For example, to download the worst quality video-only format you can use `-f worstvideo`.
+For example, to download the worst quality video-only format you can use `-f worstvideo`. It is however recomended to never actually use `worst` and related options. See [sorting formats](#sorting-formats) for more details.
 
-If you want to download multiple videos and they don't have the same formats available, you can specify the order of preference using slashes. Note that slash is left-associative, i.e. formats on the left hand side are preferred, for example `-f 22/17/18` will download format 22 if it's available, otherwise it will download format 17 if it's available, otherwise it will download format 18 if it's available, otherwise it will complain that no suitable formats are available for download.
+If you want to download multiple videos and they don't have the same formats available, you can specify the order of preference using slashes. Note that formats on the left hand side are preferred, for example `-f 22/17/18` will download format 22 if it's available, otherwise it will download format 17 if it's available, otherwise it will download format 18 if it's available, otherwise it will complain that no suitable formats are available for download.
 
 If you want to download several formats of the same video use a comma as a separator, e.g. `-f 22,17,18` will download all these three formats, of course if they are available. Or a more sophisticated example combined with the precedence feature: `-f 136/137/mp4/bestvideo,140/m4a/bestaudio`.
+
+You can merge the video and audio of multiple formats into a single file using `-f <format-1>+<format-2>` (requires ffmpeg or avconv installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg/avconv.
+
+
+## Filtering Formats
 
 You can also filter the video formats by putting a condition in brackets, as in `-f "best[height=720]"` (or `-f "[filesize>10M]"`).
 
@@ -741,35 +757,148 @@ Note that none of the aforementioned meta fields are guaranteed to be present si
 
 Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height <=? 720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s.
 
-You can merge the video and audio of two formats into a single file using `-f <video-format>+<audio-format>` (requires ffmpeg or avconv installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg/avconv.
-
 Format selectors can also be grouped using parentheses, for example if you want to download the best mp4 and webm formats with a height lower than 480 you can use `-f '(mp4,webm)[height<480]'`.
 
-Since the end of April 2015 and version 2015.04.26, youtube-dlc uses `-f bestvideo+bestaudio/best` as the default format selection (see [#5447](https://github.com/ytdl-org/youtube-dl/issues/5447), [#5456](https://github.com/ytdl-org/youtube-dl/issues/5456)). If ffmpeg or avconv are installed this results in downloading `bestvideo` and `bestaudio` separately and muxing them together into a single file giving the best overall quality available. Otherwise it falls back to `best` and results in downloading the best available quality served as a single file. `best` is also needed for videos that don't come from YouTube because they don't provide the audio and video in two different files. If you want to only download some DASH formats (for example if you are not interested in getting videos with a resolution higher than 1080p), you can add `-f bestvideo[height<=?1080]+bestaudio/best` to your configuration file. Note that if you use youtube-dlc to stream to `stdout` (and most likely to pipe it to your media player then), i.e. you explicitly specify output template as `-o -`, youtube-dlc still uses `-f best` format selection in order to start content delivery immediately to your player and not to wait until `bestvideo` and `bestaudio` are downloaded and muxed.
+## Sorting Formats
+
+You can change the criteria for being considered the `best` by using `-S` (`--format-sort`). The general format for this is `--format-sort field1,field2...`. The available fields are:
+
+ - `video`, `has_video`: Gives priority to formats that has a video stream
+ - `audio`, `has_audio`: Gives priority to formats that has a audio stream
+ - `extractor`, `preference`, `extractor_preference`: The format preference as given by the extractor
+ - `lang`, `language_preference`: Language preference as given by the extractor
+ - `quality`: The quality of the format. This is a metadata field available in some websites
+ - `source`, `source_preference`: Preference of the source as given by the extractor
+ - `proto`, `protocol`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8-native` > `m3u8` > `http-dash-segments` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
+ - `vcodec`, `video_codec`: Video Codec (`av01` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
+ - `acodec`, `audio_codec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac3` > `dts` > other > unknown)
+ - `codec`: Equivalent to `vcodec,acodec`
+ - `vext`, `video_ext`: Video Extension (`mp4` > `flv` > `webm` > other > unknown). If `--prefer-free-formats` is used, `webm` is prefered.
+ - `aext`, `audio_ext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other > unknown). If `--prefer-free-formats` is used, the order changes to `opus` > `ogg` > `webm` > `m4a` > `mp3` > `aac`.
+ - `ext`, `extension`: Equivalent to `vext,aext`
+ - `filesize`: Exact filesize, if know in advance. This will be unavailable for mu38 and DASH formats.
+ - `filesize_approx`: Approximate filesize calculated  the manifests
+ - `size`, `filesize_estimate`: Exact filesize if available, otherwise approximate filesize
+ - `height`: Height of video
+ - `width`: Width of video
+ - `res`, `dimension`: Video resolution, calculated as the smallest dimension.
+ - `fps`, `framerate`: Framerate of video
+ - `tbr`, `total_bitrate`: Total average bitrate in KBit/s
+ - `vbr`, `video_bitrate`: Average video bitrate in KBit/s
+ - `abr`, `audio_bitrate`: Average audio bitrate in KBit/s
+ - `br`, `bitrate`: Equivalent to using `tbr,vbr,abr`
+ - `samplerate`, `asr`: Audio sample rate in Hz
+
+All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers the smallest resolution format. Additionally, you can suffix a prefered value for the fields, seperated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
+
+The fields `has_video`, `has_audio`, `extractor_preference`, `language_preference`, `quality` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used by youtube-dlc is: `tbr,filesize,vbr,height,width,protocol,vext,abr,aext,fps,filesize_approx,source_preference,format_id`. Note that the extractors may override this default order (currently no extractor does this), but not the user-provided order.
+
+If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all repects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
+
+**Tip**: You can use the `-v -F` to see how the formats have been sorted (worst to best).
+
+## Default Format Selection
+
+Since the end of April 2015 and version 2015.04.26, youtube-dlc uses `-f bestvideo+bestaudio/best` as the default format selection (see [#5447](https://github.com/ytdl-org/youtube-dl/issues/5447), [#5456](https://github.com/ytdl-org/youtube-dl/issues/5456)). If ffmpeg or avconv are installed this results in downloading `bestvideo` and `bestaudio` separately and muxing them together into a single file giving the best overall quality available. Otherwise it falls back to `best` and results in downloading the best available quality served as a single file. `best` is also needed for videos that don't come from YouTube because they don't provide the audio and video in two different files. Note that if you use youtube-dlc to stream to `stdout` (and most likely to pipe it to your media player then), i.e. you explicitly specify output template as `-o -`, youtube-dlc still uses `-f best` format selection in order to start content delivery immediately to your player and not to wait until `bestvideo` and `bestaudio` are downloaded and muxed.
 
 If you want to preserve the old format selection behavior (prior to youtube-dlc 2015.04.26), i.e. you want to download the best available quality media served as a single file, you should explicitly specify your choice with `-f best`. You may want to add it to the [configuration file](#configuration) in order not to type it every time you run youtube-dlc.
 
-#### Format selection examples
+## Format Selection examples
 
 Note that on Windows you may need to use double quotes instead of single.
 
 ```bash
-# Download best mp4 format available or any other best if no mp4 available
-$ youtube-dlc -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+# Download the worst video available
+$ youtube-dlc -f 'worstvideo+worstaudio/worst'
 
-# Download best format available but no better than 480p
-$ youtube-dlc -f 'bestvideo[height<=480]+bestaudio/best[height<=480]'
+# Download the best video available but with the smallest resolution
+$ youtube-dlc -S '+res'
 
-# Download best video only format but no bigger than 50 MB
-$ youtube-dlc -f 'best[filesize<50M]'
+# Download the smallest video available
+$ youtube-dlc -S '+size,+bitrate'
 
-# Download best format available via direct link over HTTP/HTTPS protocol
-$ youtube-dlc -f '(bestvideo+bestaudio/best)[protocol^=http]'
 
-# Download the best video format and the best audio format without merging them
+# Download the best mp4 video available, or the best video if no mp4 available
+$ youtube-dlc -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/bestvideo+bestaudio / best'
+
+# Download the best video with the best extension
+# (For video, mp4 > webm > flv. For audio, m4a > aac > mp3 ...)
+$ youtube-dlc -S 'ext'
+
+
+# Download the best video available but no better than 480p,
+# or the worst video if there is no video under 480p
+$ youtube-dlc -f 'bestvideo[height<=480]+bestaudio/best[height<=480] / worstvideo+bestaudio/worst'
+
+# Download the best video available with the largest height but no better than 480p,
+# or the best video with the smallest resolution if there is no video under 480p
+$ youtube-dlc -S 'height:480'
+
+# Download the best video available with the largest resolution but no better than 480p,
+# or the best video with the smallest resolution if there is no video under 480p
+# Resolution is determined by using the smallest dimension.
+# So this works correctly for vertical videos as well
+$ youtube-dlc -S 'res:480'
+
+
+# Download the best video (that also has audio) but no bigger than 50 MB,
+# or the worst video (that also has audio) if there is no video under 50 MB
+$ youtube-dlc -f 'best[filesize<50M] / worst'
+
+# Download largest video (that also has audio) but no bigger than 50 MB,
+# or the smallest video (that also has audio) if there is no video under 50 MB
+$ youtube-dlc -f 'best' -S 'filesize:50M'
+
+# Download best video (that also has audio) that is closest in size to 50 MB
+$ youtube-dlc -f 'best' -S 'filesize~50M'
+
+
+# Download best video available via direct link over HTTP/HTTPS protocol,
+# or the best video available via any protocol if there is no such video
+$ youtube-dlc -f '(bestvideo+bestaudio/best)[protocol^=http][protocol!*=dash] / bestvideo+bestaudio/best'
+
+# Download best video available via the best protocol
+# (https/ftps > http/ftp > m3u8_native > m3u8 > http_dash_segments ...)
+$ youtube-dlc -S 'protocol'
+
+
+# Download the best video-only format and the best audio-only format without merging them
+# For this case, an output template should be used since
+# by default, bestvideo and bestaudio will have the same file name.
 $ youtube-dlc -f 'bestvideo,bestaudio' -o '%(title)s.f%(format_id)s.%(ext)s'
+
+
+# Download the best video with h264 codec, or the best video if there is no such video
+$ youtube-dlc -f '(bestvideo+bestaudio/best)[vcodec^=avc1] / bestvideo+bestaudio/best'
+
+# Download the best video with best codec no better than h264,
+# or the best video with worst codec if there is no such video
+$ youtube-dlc -S 'codec:h264'
+
+# Download the best video with worst codec no worse than h264,
+# or the best video with best codec if there is no such video
+$ youtube-dlc -S '+codec:h264'
+
+
+
+# More complex examples
+
+# Download the best video no better than 720p prefering framerate greater than 30,
+# or the worst video (prefering framerate greater than 30) if there is no such video
+$ youtube-dlc -f '((bestvideo[fps>30]/bestvideo)[height<=720]/(worstvideo[fps>30]/worstvideo)) + bestaudio / (best[fps>30]/best)[height<=720]/(worst[fps>30]/worst)'
+
+# Download the video with the largest resolution no better than 720p,
+# or the video with the smallest resolution available  if there is no such video,
+# prefering larger framerate for formats with the same resolution
+$ youtube-dlc -S 'res:720,fps'
+
+
+# Download the video with smallest resolution no worse than 480p,
+# or the video with the largest resolution available if there is no such video,
+# prefering better codec and then larger total bitrate for the same resolution
+$ youtube-dlc -S '+res:480,codec,br'
 ```
-Note that in the last example, an output template is recommended as bestvideo and bestaudio may have the same file name.
+
 
 
 # VIDEO SELECTION

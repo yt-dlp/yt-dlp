@@ -162,7 +162,9 @@ class YoutubeDL(object):
     dump_single_json:  Force printing the info_dict of the whole playlist
                        (or video) as a single JSON line.
     simulate:          Do not download the video files.
-    format:            Video format code. See options.py for more information.
+    format:            Video format code. see "FORMAT SELECTION" for more details.
+    format_sort:       How to sort the video formats. see "Sorting Formats" for more details.
+    format_sort_force: Force the given format_sort. see "Sorting Formats" for more details.
     outtmpl:           Template for output names.
     restrictfilenames: Do not allow "&" and spaces in file names.
     trim_file_name:    Limit length of filename (extension excluded).
@@ -2305,8 +2307,8 @@ class YoutubeDL(object):
             [f['format_id'], f['ext'], self.format_resolution(f), self._format_note(f)]
             for f in formats
             if f.get('preference') is None or f['preference'] >= -1000]
-        if len(formats) > 1:
-            table[-1][-1] += (' ' if table[-1][-1] else '') + '(best)'
+        # if len(formats) > 1:
+        #     table[-1][-1] += (' ' if table[-1][-1] else '') + '(best)'
 
         header_line = ['format code', 'extension', 'resolution', 'note']
         self.to_screen(
