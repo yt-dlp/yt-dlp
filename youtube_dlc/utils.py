@@ -60,6 +60,9 @@ from .compat import (
     compat_urllib_parse,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
+    compat_urllib_parse_urlunparse,
+    compat_urllib_parse_quote,
+    compat_urllib_parse_quote_plus,
     compat_urllib_parse_unquote_plus,
     compat_urllib_request,
     compat_urlparse,
@@ -5714,3 +5717,81 @@ def random_birthday(year_field, month_field, day_field):
         month_field: str(random_date.month),
         day_field: str(random_date.day),
     }
+
+# Templates for internet shortcut files, which are plain text files.
+DOT_URL_LINK_TEMPLATE = '''
+[InternetShortcut]
+URL=%(url)s
+'''.lstrip()
+
+DOT_WEBLOC_LINK_TEMPLATE = '''
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>URL</key>
+\t<string>%(url)s</string>
+</dict>
+</plist>
+'''.lstrip()
+
+DOT_DESKTOP_LINK_TEMPLATE = '''
+[Desktop Entry]
+Encoding=UTF-8
+Name=%(filename)s
+Type=Link
+URL=%(url)s
+Icon=text-html
+'''.lstrip()
+
+
+def iri_to_uri(iri):
+    """
+    Converts an IRI (Internationalized Resource Identifier, allowing Unicode characters) to a URI (Uniform Resource Identifier, ASCII-only).
+
+    The function doesn't add an additional layer of escaping; e.g., it doesn't escape `%3C` as `%253C`. Instead, it percent-escapes characters with an underlying UTF-8 encoding *besides* those already escaped, leaving the URI intact.
+    """
+
+    iri_parts = compat_urllib_parse_urlparse(iri)
+
+    if '[' in iri_parts.netloc:
+        raise ValueError('IPv6 URIs are not, yet, supported.')
+        # Querying `.netloc`, when there's only one bracket, also raises a ValueError.
+
+    # The `safe` argument values, that the following code uses, contain the characters that should not be percent-encoded. Everything else but letters, digits and '_.-' will be percent-encoded with an underlying UTF-8 encoding. Everything already percent-encoded will be left as is.
+
+    net_location = ''
+    if iri_parts.username:
+        net_location += compat_urllib_parse_quote(iri_parts.username, safe=r"!$%&'()*+,~")
+        if iri_parts.password is not None:
+            net_location += ':' + compat_urllib_parse_quote(iri_parts.password, safe=r"!$%&'()*+,~")
+        net_location += '@'
+
+    net_location += iri_parts.hostname.encode('idna').decode('utf-8')  # Punycode for Unicode hostnames.
+    # The 'idna' encoding produces ASCII text.
+    if iri_parts.port is not None and iri_parts.port != 80:
+        net_location += ':' + str(iri_parts.port)
+
+    return compat_urllib_parse_urlunparse(
+        (iri_parts.scheme,
+            net_location,
+
+            compat_urllib_parse_quote_plus(iri_parts.path, safe=r"!$%&'()*+,/:;=@|~"),
+
+            # Unsure about the `safe` argument, since this is a legacy way of handling parameters.
+            compat_urllib_parse_quote_plus(iri_parts.params, safe=r"!$%&'()*+,/:;=@|~"),
+
+            # Not totally sure about the `safe` argument, since the source does not explicitly mention the query URI component.
+            compat_urllib_parse_quote_plus(iri_parts.query, safe=r"!$%&'()*+,/:;=?@{|}~"),
+
+            compat_urllib_parse_quote_plus(iri_parts.fragment, safe=r"!#$%&'()*+,/:;=?@{|}~")))
+
+    # Source for `safe` arguments: https://url.spec.whatwg.org/#percent-encoded-bytes.
+
+
+def to_high_limit_path(path):
+    if sys.platform in ['win32', 'cygwin']:
+        # Work around MAX_PATH limitation on Windows. The maximum allowed length for the individual path segments may still be quite limited.
+        return r'\\?\ '.rstrip() + os.path.abspath(path)
+
+    return path

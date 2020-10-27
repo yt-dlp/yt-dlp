@@ -104,6 +104,7 @@ from youtube_dlc.utils import (
     cli_valueless_option,
     cli_bool_option,
     parse_codecs,
+    iri_to_uri,
 )
 from youtube_dlc.compat import (
     compat_chr,
@@ -1464,6 +1465,32 @@ Line 1
         self.assertEqual(get_elements_by_attribute('class', 'foo bar', html), ['nice', 'also nice'])
         self.assertEqual(get_elements_by_attribute('class', 'foo', html), [])
         self.assertEqual(get_elements_by_attribute('class', 'no-such-foo', html), [])
+
+    def test_iri_to_uri(self):
+        self.assertEqual(
+            iri_to_uri('https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&client=firefox-b'),
+            'https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&client=firefox-b')  # Same
+        self.assertEqual(
+            iri_to_uri('https://www.google.com/search?q=Käsesoßenrührlöffel'),  # German for cheese sauce stirring spoon
+            'https://www.google.com/search?q=K%C3%A4seso%C3%9Fenr%C3%BChrl%C3%B6ffel')
+        self.assertEqual(
+            iri_to_uri('https://www.google.com/search?q=lt<+gt>+eq%3D+amp%26+percent%25+hash%23+colon%3A+tilde~#trash=?&garbage=#'),
+            'https://www.google.com/search?q=lt%3C+gt%3E+eq%3D+amp%26+percent%25+hash%23+colon%3A+tilde~#trash=?&garbage=#')
+        self.assertEqual(
+            iri_to_uri('http://правозащита38.рф/category/news/'),
+            'http://xn--38-6kcaak9aj5chl4a3g.xn--p1ai/category/news/')
+        self.assertEqual(
+            iri_to_uri('http://www.правозащита38.рф/category/news/'),
+            'http://www.xn--38-6kcaak9aj5chl4a3g.xn--p1ai/category/news/')
+        self.assertEqual(
+            iri_to_uri('https://i❤.ws/emojidomain/👍👏🤝💪'),
+            'https://xn--i-7iq.ws/emojidomain/%F0%9F%91%8D%F0%9F%91%8F%F0%9F%A4%9D%F0%9F%92%AA')
+        self.assertEqual(
+            iri_to_uri('http://日本語.jp/'),
+            'http://xn--wgv71a119e.jp/')
+        self.assertEqual(
+            iri_to_uri('http://导航.中国/'),
+            'http://xn--fet810g.xn--fiqs8s/')
 
 
 if __name__ == '__main__':

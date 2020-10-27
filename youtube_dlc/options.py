@@ -830,7 +830,25 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='list_thumbnails', default=False,
         help='Simulate and list all available thumbnail formats')
 
-    postproc = optparse.OptionGroup(parser, 'Post-processing Options')
+    link = optparse.OptionGroup(parser, 'Internet Shortcut Options')
+    link.add_option(
+        '--write-link',
+        action='store_true', dest='writelink', default=False,
+        help='Write an internet shortcut file, depending on the current platform (.url/.webloc/.desktop). The URL may be cached by the OS.')
+    link.add_option(
+        '--write-url-link',
+        action='store_true', dest='writeurllink', default=False,
+        help='Write a Windows internet shortcut file (.url). Note that the OS caches the URL based on the file path.')
+    link.add_option(
+        '--write-webloc-link',
+        action='store_true', dest='writewebloclink', default=False,
+        help='Write a macOS internet shortcut file (.webloc)')
+    link.add_option(
+        '--write-desktop-link',
+        action='store_true', dest='writedesktoplink', default=False,
+        help='Write a Linux internet shortcut file (.desktop)')
+
+    postproc = optparse.OptionGroup(parser, 'Post-Processing Options')
     postproc.add_option(
         '-x', '--extract-audio',
         action='store_true', dest='extractaudio', default=False,
@@ -932,6 +950,7 @@ def parseOpts(overrideArguments=None):
     parser.add_option_group(downloader)
     parser.add_option_group(filesystem)
     parser.add_option_group(thumbnail)
+    parser.add_option_group(link)
     parser.add_option_group(verbosity)
     parser.add_option_group(workarounds)
     parser.add_option_group(video_format)

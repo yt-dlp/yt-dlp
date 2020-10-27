@@ -321,6 +321,15 @@ I will add some memorable short links to the binaries so you can download them e
     --list-thumbnails                Simulate and list all available thumbnail
                                      formats
 
+## Internet Shortcut Options:
+    --write-link                     Write an internet shortcut file, depending on 
+                                     the current platform (.url/.webloc/.desktop). 
+                                     The URL may be cached by the OS.
+    --write-url-link                 Write a Windows internet shortcut file (.url). 
+                                     Note that the OS caches the URL based on the file path.
+    --write-webloc-link              Write a macOS internet shortcut file (.webloc)
+    --write-desktop-link             Write a Linux internet shortcut file (.desktop)
+
 ## Verbosity / Simulation Options:
     -q, --quiet                      Activate quiet mode
     --no-warnings                    Ignore warnings
