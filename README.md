@@ -7,7 +7,7 @@
 
 youtube-dlc - download videos from youtube.com or other video platforms.
 
-youtube-dlc is a fork of youtube-dl with the intention of getting features tested by the community merged in the tool faster, since youtube-dl's development seems to be slowing down. (https://github.com/ytdl-org/youtube-dl/issues/26462)
+youtube-dlc is a fork of youtube-dl with the intention of getting features tested by the community merged in the tool faster, since youtube-dl's development seems to be slowing down. (https://web.archive.org/web/20201014194602/https://github.com/ytdl-org/youtube-dl/issues/26462)
 
 - [INSTALLATION](#installation)
 - [DESCRIPTION](#description)
