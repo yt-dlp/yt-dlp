@@ -84,7 +84,7 @@ from .awaan import (
 )
 from .azmedien import AZMedienIE
 from .baidu import BaiduVideoIE
-from .bandcamp import BandcampIE, BandcampAlbumTrackIE, BandcampAlbumIE, BandcampWeeklyIE
+from .bandcamp import BandcampIE, BandcampAlbumIE, BandcampWeeklyIE
 from .bbc import (
     BBCCoUkIE,
     BBCCoUkArticleIE,

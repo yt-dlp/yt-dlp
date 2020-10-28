@@ -236,15 +236,6 @@ class BandcampIE(BandcampBaseIE):
         }
 
 
-class BandcampAlbumTrackIE(BandcampIE):
-    IE_NAME = "Bandcamp:albumtrack"
-    """Hack class to force album downloads to have prefixed track numbers by default"""
-    def _real_extract(self, url):
-        data = super()._real_extract(url)
-        data['title'] = '{:02d} - {} - {}'.format(data['track_number'], data['artist'], data['track'])
-        return data
-
-
 class BandcampAlbumIE(BandcampBaseIE):
     IE_NAME = 'Bandcamp:album'
     _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?:/album/(?P<album_id>[^/?#&]+))?'
@@ -341,7 +332,7 @@ class BandcampAlbumIE(BandcampBaseIE):
         entries = [
             self.url_result(
                 compat_urlparse.urljoin(url, track['title_link']),
-                ie=BandcampAlbumTrackIE.ie_key(),
+                ie=BandcampIE.ie_key(),
                 video_title=track['title'])
             for track in tracks
             if track.get('duration')]
