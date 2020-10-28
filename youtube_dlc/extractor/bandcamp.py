@@ -66,7 +66,7 @@ class BandcampIE(BandcampBaseIE):
     IE_NAME = "Bandcamp:track"
     _VALID_URL = r'https?://[^/]+\.bandcamp\.com/track/(?P<title>[^/?#&]+)'
     _TESTS = [{
-        'url': 'http://youtube-dlc.bandcamp.com/track/youtube-dlc-test-song',
+        'url': 'http://youtube-dl.bandcamp.com/track/youtube-dl-test-song',
         'md5': 'c557841d5e50261777a6585648adf439',
         'info_dict': {
             'id': '1812978515',
