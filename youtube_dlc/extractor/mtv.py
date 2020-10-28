@@ -300,6 +300,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         except RegexNotFoundError:
             mgid = None
 
+        # TODO: ideally use self._match_id(url)
         title = url_basename(url)
 
         try:
