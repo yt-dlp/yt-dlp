@@ -17,8 +17,6 @@ class GediBaseIE(InfoExtractor):
         formats[:] = unique_formats
 
     def _real_extract(self, url):
-        u = re.match(self._VALID_URL, url)
-        self.IE_NAME = u.group('iename') if u.group('iename') else 'gedi'
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
@@ -107,9 +105,8 @@ class GediBaseIE(InfoExtractor):
 
 
 class GediIE(GediBaseIE):
-    IE_NAME = ''
     _VALID_URL = r'''(?x)https?://video\.
-                    (?P<iename>
+                    (?:
                         (?:espresso\.)?repubblica
                         |lastampa
                         |ilsecoloxix
@@ -177,37 +174,4 @@ class GediIE(GediBaseIE):
             'description': 'md5:2bce954d278248f3c950be355b7c2226',
             'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-social-play\.jpg$',
         },
-    }, {
-        'url': 'https://video.messaggeroveneto.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.ilpiccolo.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.gazzettadimantova.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.mattinopadova.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.laprovinciapavese.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.tribunatreviso.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.nuovavenezia.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.gazzettadimodena.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.lanuovaferrara.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.corrierealpi.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
-    }, {
-        'url': 'https://video.lasentinella.gelocal.it/sport/dentro-la-notizia-ferrari-cosa-succede-a-maranello/133362/134466',
-        'only_matching': True,
     }]
