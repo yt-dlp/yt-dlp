@@ -7,7 +7,6 @@ from ..utils import ExtractorError
 
 class SkyItaliaBaseIE(InfoExtractor):
     _GET_VIDEO_DATA = 'https://apid.sky.it/vdp/v1/getVideoData?token={token}&caller=sky&rendition=web&id={id}'
-    _TOKEN = 'F96WlOd8yoFmLQgiqv6fNQRvHZcsWk5jDaYnDvhbiJk'
     _RES = {
         'low': [426, 240],
         'med': [640, 360],
@@ -101,6 +100,7 @@ class SkyItaliaIE(SkyItaliaBaseIE):
         'url': 'https://video.sky.it/sport/motogp/video/motogp-gp-emilia-romagna-highlights-prove-libere-616162?itm_source=parsely-api',
         'only_matching': True,
     }]
+    _TOKEN = 'F96WlOd8yoFmLQgiqv6fNQRvHZcsWk5jDaYnDvhbiJk'
 
 
 class SkyArteItaliaIE(SkyItaliaBaseIE):
