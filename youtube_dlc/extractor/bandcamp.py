@@ -332,7 +332,7 @@ class BandcampAlbumIE(BandcampBaseIE):
         entries = [
             self.url_result(
                 compat_urlparse.urljoin(url, track['title_link']),
-                ie=BandcampIE.ie_key(),
+                ie=BandcampIE.ie_key(), video_id=track['id'],
                 video_title=track['title'])
             for track in tracks
             if track.get('duration')]

@@ -801,7 +801,7 @@ class YoutubeDL(object):
         for key, value in extra_info.items():
             info_dict.setdefault(key, value)
 
-    def extract_info(self, url, download=True, ie_key=None, extra_info={},
+    def extract_info(self, url, download=True, ie_key=None, info_dict=None, extra_info={},
                      process=True, force_generic_extractor=False):
         '''
         Returns a list with a dictionary for each video we find.
@@ -836,6 +836,11 @@ class YoutubeDL(object):
                         '_type': 'compat_list',
                         'entries': ie_result,
                     }
+                if info_dict:
+                    if info_dict.get('id'):
+                        ie_result['id'] = info_dict['id']
+                    if info_dict.get('title'):
+                        ie_result['title'] = info_dict['title']
                 self.add_default_extra_info(ie_result, ie, url)
                 if process:
                     return self.process_ie_result(ie_result, download, extra_info)
@@ -898,7 +903,7 @@ class YoutubeDL(object):
             # We have to add extra_info to the results because it may be
             # contained in a playlist
             return self.extract_info(ie_result['url'],
-                                     download,
+                                     download, info_dict=ie_result,
                                      ie_key=ie_result.get('ie_key'),
                                      extra_info=extra_info)
         elif result_type == 'url_transparent':
