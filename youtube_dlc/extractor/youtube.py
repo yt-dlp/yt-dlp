@@ -279,6 +279,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return super(YoutubeBaseInfoExtractor, self)._download_webpage_handle(
             *args, **compat_kwargs(kwargs))
 
+    def _get_yt_initial_data(self, video_id, webpage):
+        config = self._search_regex(
+            (r'window\["ytInitialData"\]\s*=\s*(.*?)(?<=});',
+             r'var\s+ytInitialData\s*=\s*(.*?)(?<=});'),
+            webpage, 'ytInitialData', default=None)
+        if config:
+            return self._parse_json(
+                uppercase_escape(config), video_id, fatal=False)
+
     def _real_initialize(self):
         if self._downloader is None:
             return
@@ -1393,15 +1402,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         )
         config = self._search_regex(
             patterns, webpage, 'ytplayer.config', default=None)
-        if config:
-            return self._parse_json(
-                uppercase_escape(config), video_id, fatal=False)
-
-    def _get_yt_initial_data(self, video_id, webpage):
-        config = self._search_regex(
-            (r'window\["ytInitialData"\]\s*=\s*(.*?)(?<=});',
-             r'var\s+ytInitialData\s*=\s*(.*?)(?<=});'),
-            webpage, 'ytInitialData', default=None)
         if config:
             return self._parse_json(
                 uppercase_escape(config), video_id, fatal=False)
@@ -2765,6 +2765,16 @@ class YoutubePlaylistIE(YoutubePlaylistBaseInfoExtractor):
 
         return zip(ids_in_page, titles_in_page)
 
+    def _extract_mix_ids_from_yt_initial(self, yt_initial):
+        ids = []
+        playlist_contents = try_get(yt_initial, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist']['contents'])
+        if type(playlist_contents) is list:
+            for item in playlist_contents:
+                videoId = try_get(item, lambda x: x['playlistPanelVideoRenderer']['videoId'])
+                if type(videoId) is str:
+                    ids.append(videoId)
+        return ids
+
     def _extract_mix(self, playlist_id):
         # The mixes are generated from a single video
         # the id of the playlist is just 'RD' + video_id
@@ -2778,6 +2788,13 @@ class YoutubePlaylistIE(YoutubePlaylistBaseInfoExtractor):
                 r'''(?xs)data-video-username=".*?".*?
                            href="/watch\?v=([0-9A-Za-z_-]{11})&amp;[^"]*?list=%s''' % re.escape(playlist_id),
                 webpage))
+
+            # if no ids in html of page, try using embedded json
+            if (len(new_ids) == 0):
+                yt_initial = self._get_yt_initial_data(playlist_id, webpage)
+                if yt_initial:
+                    new_ids = self._extract_mix_ids_from_yt_initial(yt_initial)
+
             # Fetch new pages until all the videos are repeated, it seems that
             # there are always 51 unique videos.
             new_ids = [_id for _id in new_ids if _id not in ids]
