@@ -33,11 +33,11 @@ class SkyItaliaBaseIE(InfoExtractor):
 
         formats = []
         for q, r in self._RES.items():
-            key = 'web_' + q + '_url'
+            key = 'web_%s_url' % q
             if key not in video_data:
                 continue
             formats.append({
-                'url': video_data[key],
+                'url': video_data.get(key),
                 'format_id': q,
                 'width': r[0],
                 'height': r[1]
