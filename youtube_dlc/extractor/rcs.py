@@ -104,20 +104,20 @@ class RCSIE(InfoExtractor):
     }
 
     def _get_video_src(self, video):
-        mediaFiles = video['mediaProfile']['mediaFile']
+        mediaFiles = video.get('mediaProfile').get('mediaFile')
         src = {}
         # audio
-        if video['mediaType'] == 'AUDIO':
+        if video.get('mediaType') == 'AUDIO':
             for aud in mediaFiles:
                 # todo: check
-                src['mp3'] = aud['value']
+                src['mp3'] = aud.get('value')
         # video
         else:
             for vid in mediaFiles:
-                if vid['mimeType'] == 'application/vnd.apple.mpegurl':
-                    src['m3u8'] = vid['value']
-                if vid['mimeType'] == 'video/mp4':
-                    src['mp4'] = vid['value']
+                if vid.get('mimeType') == 'application/vnd.apple.mpegurl':
+                    src['m3u8'] = vid.get('value')
+                if vid.get('mimeType') == 'video/mp4':
+                    src['mp4'] = vid.get('value')
 
         # replace host
         for t in src:
@@ -128,9 +128,10 @@ class RCSIE(InfoExtractor):
 
         # switch cdn
         if 'mp4' in src and 'm3u8' in src:
-            if '-lh.akamaihd' not in src['m3u8'] and 'akamai' in src['mp4']:
+            if ('-lh.akamaihd' not in src.get('m3u8')
+                    and 'akamai' in src.get('mp4')):
                 if 'm3u8' in src:
-                    matches = re.search(r'(?:https*:)?\/\/(?P<host>.*)\.net\/i(?P<path>.*)$', src['m3u8'])
+                    matches = re.search(r'(?:https*:)?\/\/(?P<host>.*)\.net\/i(?P<path>.*)$', src.get('m3u8'))
                     src['m3u8'] = 'https://vod.rcsobjects.it/hls/%s%s' % (
                         self._MIGRATION_MAP[matches.group('host')],
                         matches.group('path').replace(
@@ -140,11 +141,11 @@ class RCSIE(InfoExtractor):
                         )
                     )
                 if 'mp4' in src:
-                    matches = re.search(r'(?:https*:)?\/\/(?P<host>.*)\.net\/i(?P<path>.*)$', src['mp4'])
+                    matches = re.search(r'(?:https*:)?\/\/(?P<host>.*)\.net\/i(?P<path>.*)$', src.get('mp4'))
                     if matches:
                         if matches.group('host') in self._MIGRATION_MEDIA:
                             vh_stream = 'https://media2.corriereobjects.it'
-                            if src['mp4'].find('fcs.quotidiani_!'):
+                            if src.get('mp4').find('fcs.quotidiani_!'):
                                 vh_stream = 'https://media2-it.corriereobjects.it'
                             src['mp4'] = '%s%s' % (
                                 vh_stream,
@@ -163,65 +164,68 @@ class RCSIE(InfoExtractor):
                             )
 
         if 'mp3' in src:
-            src['mp3'] = src['mp3'].replace(
+            src['mp3'] = src.get('mp3').replace(
                 'media2vam-corriere-it.akamaized.net',
                 'vod.rcsobjects.it/corriere')
         if 'mp4' in src:
-            if src['mp4'].find('fcs.quotidiani_!'):
-                src['mp4'] = src['mp4'].replace('vod.rcsobjects', 'vod-it.rcsobjects')
+            if src.get('mp4').find('fcs.quotidiani_!'):
+                src['mp4'] = src.get('mp4').replace('vod.rcsobjects', 'vod-it.rcsobjects')
         if 'm3u8' in src:
-            if src['m3u8'].find('fcs.quotidiani_!'):
-                src['m3u8'] = src['m3u8'].replace('vod.rcsobjects', 'vod-it.rcsobjects')
+            if src.get('m3u8').find('fcs.quotidiani_!'):
+                src['m3u8'] = src.get('m3u8').replace('vod.rcsobjects', 'vod-it.rcsobjects')
 
-        if 'geoblocking' in video['mediaProfile']:
+        if 'geoblocking' in video.get('mediaProfile'):
             if 'm3u8' in src:
-                src['m3u8'] = src['m3u8'].replace('vod.rcsobjects', 'vod-it.rcsobjects')
+                src['m3u8'] = src.get('m3u8').replace('vod.rcsobjects', 'vod-it.rcsobjects')
             if 'mp4' in src:
-                src['mp4'] = src['mp4'].replace('vod.rcsobjects', 'vod-it.rcsobjects')
+                src['mp4'] = src.get('mp4').replace('vod.rcsobjects', 'vod-it.rcsobjects')
         if 'm3u8' in src:
-            if src['m3u8'].find('csmil') and src['m3u8'].find('vod'):
-                src['m3u8'] = src['m3u8'].replace('.csmil', '.urlset')
+            if src.get('m3u8').find('csmil') and src.get('m3u8').find('vod'):
+                src['m3u8'] = src.get('m3u8').replace('.csmil', '.urlset')
 
         return src
 
     def _create_formats(self, urls, video_id):
         formats = []
         formats = self._extract_m3u8_formats(
-            urls['m3u8'], video_id, 'mp4', entry_protocol='m3u8_native',
+            urls.get('m3u8'), video_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls', fatal=False)
 
         if not formats:
             formats.append({
                 'format_id': 'http-mp4',
-                'url': urls['mp4']
+                'url': urls.get('mp4')
             })
         self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        mobj = re.search(self._VALID_URL, url).groupdict()
+        mobj = re.search(self._VALID_URL, url)
 
-        if not mobj['cdn']:
+        if 'cdn' not in mobj.groupdict():
             raise ExtractorError('CDN not found in url: %s' % url)
 
         # for leitv/youreporter/viaggi don't use the embed page
-        if (mobj['cdn'] not in ['leitv.it', 'youreporter.it']) and (mobj['vid'] == 'video'):
-            url = 'https://video.%s/video-embed/%s' % (mobj['cdn'], video_id)
+        if ((mobj.group('cdn') not in ['leitv.it', 'youreporter.it'])
+                and (mobj.group('vid') == 'video')):
+            url = 'https://video.%s/video-embed/%s' % (mobj.group('cdn'), video_id)
 
         page = self._download_webpage(url, video_id)
 
         video_data = None
         # look for json video data url
         json = self._search_regex(
-            r'''var url\s*=\s*["']((?:https?:)?//video\.rcs\.it/fragment-includes/video-includes/.+?\.json)["'];''',
+            r'''(?x)var url\s*=\s*["']((?:https?:)?
+                //video\.rcs\.it
+                /fragment-includes/video-includes/.+?\.json)["'];''',
             page, video_id, default=None)
         if json:
             if json.startswith('//'):
                 json = 'https:%s' % json
             video_data = self._download_json(json, video_id)
 
-        # if url not found, look for json video data directly in the page
+        # if json url not found, look for json video data directly in the page
         else:
             json = self._search_regex(
                 r'[\s;]video\s*=\s*({[\s\S]+?})(?:;|,playlist=)',
@@ -241,11 +245,15 @@ class RCSIE(InfoExtractor):
         formats = self._create_formats(
             self._get_video_src(video_data), video_id)
 
+        description = (video_data.get('description')
+                       or clean_html(video_data.get('htmlDescription')))
+        uploader = video_data.get('provider') or mobj.gruop('cdn')
+
         return {
             'id': video_id,
-            'title': video_data['title'],
-            'description': video_data['description'] or clean_html(video_data['htmlDescription']),
-            'uploader': video_data['provider'] if video_data['provider'] else mobj['cdn'],
+            'title': video_data.get('title'),
+            'description': description,
+            'uploader': uploader,
             'formats': formats
         }
 
