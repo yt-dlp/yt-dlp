@@ -13,17 +13,16 @@ from ..utils import (
 
 
 class NetzkinoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?netzkino\.de/\#!/(?P<category>[^/]+)/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?netzkino\.de/\#!/[^/]+/(?P<id>[^/]+)'
 
-    _TEST = {
-        'url': 'http://www.netzkino.de/#!/scifikino/rakete-zum-mond',
+    _TESTS = [{
+        'url': 'https://www.netzkino.de/#!/scifikino/rakete-zum-mond',
         'md5': '92a3f8b76f8d7220acce5377ea5d4873',
         'info_dict': {
             'id': 'rakete-zum-mond',
             'ext': 'mp4',
-            'title': 'Rakete zum Mond (Endstation Mond, Destination Moon)',
-            'comments': 'mincount:3',
-            'description': 'md5:1eddeacc7e62d5a25a2d1a7290c64a28',
+            'title': 'Rakete zum Mond \u2013 Jules Verne',
+            'description': 'md5:f0a8024479618ddbfa450ff48ffa6c60',
             'upload_date': '20120813',
             'thumbnail': r're:https?://.*\.jpg$',
             'timestamp': 1344858571,
@@ -32,17 +31,30 @@ class NetzkinoIE(InfoExtractor):
         'params': {
             'skip_download': 'Download only works from Germany',
         }
-    }
+    }, {
+        'url': 'https://www.netzkino.de/#!/filme/dr-jekyll-mrs-hyde-2',
+        'md5': 'c7728b2dadd04ff6727814847a51ef03',
+        'info_dict': {
+            'id': 'dr-jekyll-mrs-hyde-2',
+            'ext': 'mp4',
+            'title': 'Dr. Jekyll & Mrs. Hyde 2',
+            'description': 'md5:c2e9626ebd02de0a794b95407045d186',
+            'upload_date': '20190130',
+            'thumbnail': r're:https?://.*\.jpg$',
+            'timestamp': 1548849437,
+            'age_limit': 18,
+        },
+        'params': {
+            'skip_download': 'Download only works from Germany',
+        }
+    }]
 
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
-        category_id = mobj.group('category')
         video_id = mobj.group('id')
 
-        api_url = 'http://api.netzkino.de.simplecache.net/capi-2.0a/categories/%s.json?d=www' % category_id
-        api_info = self._download_json(api_url, video_id)
-        info = next(
-            p for p in api_info['posts'] if p['slug'] == video_id)
+        api_url = 'https://api.netzkino.de.simplecache.net/capi-2.0a/movies/%s.json?d=www' % video_id
+        info = self._download_json(api_url, video_id)
         custom_fields = info['custom_fields']
 
         production_js = self._download_webpage(
@@ -67,23 +79,12 @@ class NetzkinoIE(InfoExtractor):
         } for key, tpl in templates.items()]
         self._sort_formats(formats)
 
-        comments = [{
-            'timestamp': parse_iso8601(c.get('date'), delimiter=' '),
-            'id': c['id'],
-            'author': c['name'],
-            'html': c['content'],
-            'parent': 'root' if c.get('parent', 0) == 0 else c['parent'],
-        } for c in info.get('comments', [])]
-
         return {
             'id': video_id,
             'formats': formats,
-            'comments': comments,
             'title': info['title'],
             'age_limit': int_or_none(custom_fields.get('FSK')[0]),
             'timestamp': parse_iso8601(info.get('date'), delimiter=' '),
             'description': clean_html(info.get('content')),
             'thumbnail': info.get('thumbnail'),
-            'playlist_title': api_info.get('title'),
-            'playlist_id': category_id,
         }
