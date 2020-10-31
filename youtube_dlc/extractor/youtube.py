@@ -1406,6 +1406,44 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return self._parse_json(
                 uppercase_escape(config), video_id, fatal=False)
 
+    def _get_music_metadata_from_yt_initial(self, yt_initial):
+        music_metadata = []
+        key_map = {
+            'Album': 'album',
+            'Artist': 'artist',
+            'Song': 'track'
+        }
+        contents = try_get(yt_initial, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'])
+        if type(contents) is list:
+            for content in contents:
+                music_track = {}
+                if type(content) is not dict:
+                    continue
+                videoSecondaryInfoRenderer = try_get(content, lambda x: x['videoSecondaryInfoRenderer'])
+                if type(videoSecondaryInfoRenderer) is not dict:
+                    continue
+                rows = try_get(videoSecondaryInfoRenderer, lambda x: x['metadataRowContainer']['metadataRowContainerRenderer']['rows'])
+                if type(rows) is not list:
+                    continue
+                for row in rows:
+                    metadataRowRenderer = try_get(row, lambda x: x['metadataRowRenderer'])
+                    if type(metadataRowRenderer) is not dict:
+                        continue
+                    key = try_get(metadataRowRenderer, lambda x: x['title']['simpleText'])
+                    value = try_get(metadataRowRenderer, lambda x: x['contents'][0]['simpleText']) or \
+                        try_get(metadataRowRenderer, lambda x: x['contents'][0]['runs'][0]['text'])
+                    if type(key) is not str or type(value) is not str:
+                        continue
+                    if key in key_map:
+                        if key_map[key] in music_track:
+                            # we've started on a new track
+                            music_metadata.append(music_track)
+                            music_track = {}
+                        music_track[key_map[key]] = value
+                if len(music_track.keys()):
+                    music_metadata.append(music_track)
+        return music_metadata
+
     def _get_automatic_captions(self, video_id, webpage):
         """We need the webpage for getting the captions url, pass it as an
            argument to speed up the process."""
@@ -2327,6 +2365,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         release_year = int(release_date[:4])
                 if release_year:
                     release_year = int(release_year)
+
+        yt_initial = self._get_yt_initial_data(video_id, video_webpage)
+        if yt_initial:
+            music_metadata = self._get_music_metadata_from_yt_initial(yt_initial)
+            if len(music_metadata):
+                album = music_metadata[0].get('album')
+                artist = music_metadata[0].get('artist')
+                track = music_metadata[0].get('track')
 
         m_episode = re.search(
             r'<div[^>]+id="watch7-headline"[^>]*>\s*<span[^>]*>.*?>(?P<series>[^<]+)</a></b>\s*S(?P<season>\d+)\s*•\s*E(?P<episode>\d+)</span>',
