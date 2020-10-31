@@ -18,8 +18,8 @@ title: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlc:
-- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://yt-dl.org/update on how to update. Issues with outdated version will be REJECTED.
-- Search the bugtracker for similar site feature requests: http://yt-dl.org/search-issues. DO NOT post duplicates.
+- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://github.com/blackjack4494/yt-dlc on how to update. Issues with outdated version will be REJECTED.
+- Search the bugtracker for similar site feature requests: https://github.com/blackjack4494/yt-dlc. DO NOT post duplicates.
 - Finally, put x into all relevant boxes (like this [x])
 -->
 
