@@ -57,7 +57,7 @@ jobs:
       id: sha2_file
       env:
         SHA2: ${{ hashFiles('youtube-dlc') }}
-      run: echo "::set-output name=sha2_unix::${env:SHA2}"
+      run: echo "::set-output name=sha2_unix::$SHA2"
     - name: Install dependencies for pypi
       run: |
         python -m pip install --upgrade pip
@@ -98,12 +98,12 @@ jobs:
         upload_url: ${{ needs.build_unix.outputs.upload_url }}
         asset_path: ./dist/youtube-dlc.exe
         asset_name: youtube-dlc.exe
-        asset_content_type: application/octet-stream
+        asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for youtube-dlc.exe
       id: sha2_file_win
       env:
-        SHA2: ${{ hashFiles('dist/youtube-dlc.exe') }}
-      run: echo "::set-output name=sha2_windows::${env:SHA2}"
+        SHA2_win: ${{ hashFiles('dist/youtube-dlc.exe') }}
+      run: echo "::set-output name=sha2_windows::$SHA2_win"
 
   build_windows32:
 
@@ -133,12 +133,12 @@ jobs:
         upload_url: ${{ needs.build_unix.outputs.upload_url }}
         asset_path: ./dist/youtube-dlc_x86.exe
         asset_name: youtube-dlc_x86.exe
-        asset_content_type: application/octet-stream
+        asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for youtube-dlc_x86.exe
       id: sha2_file_win32
       env:
-        SHA2: ${{ hashFiles('dist/youtube-dlc_x86.exe') }}
-      run: echo "::set-output name=sha2_windows32::${env:SHA2}"
+        SHA2_win32: ${{ hashFiles('dist/youtube-dlc_x86.exe') }}
+      run: echo "::set-output name=sha2_windows32::$SHA2_win32"
     - name: Make SHA2-256SUMS file
       env:
         SHA2_WINDOWS: ${{ needs.build_windows.outputs.sha2_windows }}
@@ -146,6 +146,18 @@ jobs:
         SHA2_UNIX: ${{ needs.build_unix.outputs.sha2_unix }}
         YTDLC_VERSION: ${{ needs.build_unix.outputs.ytdlc_version }}
       run: |
-        echo "$SHA2_WINDOWS youtube-dlc.exe" > SHA2-256SUMS
-        echo "$SHA2_WINDOWS32 youtube-dlc32.exe" > SHA2-256SUMS
-        echo "$SHA2_UNIX youtube-dlc" >> SHA2-256SUMS
+        echo "version:$YTDLC_VERSION" >> SHA2-256SUMS
+        echo "youtube-dlc.exe:$SHA2_WINDOWS" >> SHA2-256SUMS
+        echo "youtube-dlc32.exe:$SHA2_WINDOWS32" >> SHA2-256SUMS
+        echo "youtube-dlc:$SHA2_UNIX" >> SHA2-256SUMS
+
+    - name: Upload 256SUMS file
+      id: upload-sums
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build_unix.outputs.upload_url }}
+        asset_path: ./SHA2-256SUMS
+        asset_name: SHA2-256SUMS
+        asset_content_type: text/plain

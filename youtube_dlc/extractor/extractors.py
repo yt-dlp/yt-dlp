@@ -751,6 +751,7 @@ from .ninecninemedia import NineCNineMediaIE
 from .ninegag import NineGagIE
 from .ninenow import NineNowIE
 from .nintendo import NintendoIE
+from .nitter import NitterIE
 from .njpwworld import NJPWWorldIE
 from .nobelprize import NobelPrizeIE
 from .noco import NocoIE
@@ -1036,6 +1037,10 @@ from .skynewsarabia import (
 from .sky import (
     SkyNewsIE,
     SkySportsIE,
+)
+from .skyitalia import (
+    SkyArteItaliaIE,
+    SkyItaliaIE,
 )
 from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE

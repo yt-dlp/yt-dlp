@@ -801,7 +801,7 @@ class YoutubeDL(object):
         for key, value in extra_info.items():
             info_dict.setdefault(key, value)
 
-    def extract_info(self, url, download=True, ie_key=None, extra_info={},
+    def extract_info(self, url, download=True, ie_key=None, info_dict=None, extra_info={},
                      process=True, force_generic_extractor=False):
         '''
         Returns a list with a dictionary for each video we find.
@@ -836,6 +836,11 @@ class YoutubeDL(object):
                         '_type': 'compat_list',
                         'entries': ie_result,
                     }
+                if info_dict:
+                    if info_dict.get('id'):
+                        ie_result['id'] = info_dict['id']
+                    if info_dict.get('title'):
+                        ie_result['title'] = info_dict['title']
                 self.add_default_extra_info(ie_result, ie, url)
                 if process:
                     return self.process_ie_result(ie_result, download, extra_info)
@@ -898,7 +903,7 @@ class YoutubeDL(object):
             # We have to add extra_info to the results because it may be
             # contained in a playlist
             return self.extract_info(ie_result['url'],
-                                     download,
+                                     download, info_dict=ie_result,
                                      ie_key=ie_result.get('ie_key'),
                                      extra_info=extra_info)
         elif result_type == 'url_transparent':
@@ -1852,13 +1857,13 @@ class YoutubeDL(object):
                     self.report_error('Cannot write annotations file: ' + annofn)
                     return
 
-        def dl(name, info):
+        def dl(name, info, subtitle=False):
             fd = get_suitable_downloader(info, self.params)(self, self.params)
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
             if self.params.get('verbose'):
                 self.to_stdout('[debug] Invoking downloader on %r' % info.get('url'))
-            return fd.download(name, info)
+            return fd.download(name, info, subtitle)
 
         subtitles_are_requested = any([self.params.get('writesubtitles', False),
                                        self.params.get('writeautomaticsub')])
@@ -1867,7 +1872,7 @@ class YoutubeDL(object):
             # subtitles download errors are already managed as troubles in relevant IE
             # that way it will silently go on when used with unsupporting IE
             subtitles = info_dict['requested_subtitles']
-            ie = self.get_info_extractor(info_dict['extractor_key'])
+            # ie = self.get_info_extractor(info_dict['extractor_key'])
             for sub_lang, sub_info in subtitles.items():
                 sub_format = sub_info['ext']
                 sub_filename = subtitles_filename(filename, sub_lang, sub_format, info_dict.get('ext'))
@@ -1886,6 +1891,8 @@ class YoutubeDL(object):
                             return
                     else:
                         try:
+                            dl(sub_filename, sub_info, subtitle=True)
+                            '''
                             if self.params.get('sleep_interval_subtitles', False):
                                 dl(sub_filename, sub_info)
                             else:
@@ -1893,6 +1900,7 @@ class YoutubeDL(object):
                                     sub_info['url'], info_dict['id'], note=False).read()
                                 with io.open(encodeFilename(sub_filename), 'wb') as subfile:
                                     subfile.write(sub_data)
+                            '''
                         except (ExtractorError, IOError, OSError, ValueError, compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                             self.report_warning('Unable to download subtitle for "%s": %s' %
                                                 (sub_lang, error_to_compat_str(err)))

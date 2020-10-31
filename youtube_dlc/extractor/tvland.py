@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 
 from .spike import ParamountNetworkIE
 
+# TODO: Remove - Reason not used anymore - Service moved to youtube
+
 
 class TVLandIE(ParamountNetworkIE):
     IE_NAME = 'tvland.com'

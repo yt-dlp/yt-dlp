@@ -25,10 +25,48 @@ from ..utils import (
 )
 
 
-class BandcampIE(InfoExtractor):
+class BandcampBaseIE(InfoExtractor):
+    """Provide base functions for Bandcamp extractors"""
+
+    def _extract_json_from_html_data_attribute(self, webpage, suffix, video_id):
+        json_string = self._html_search_regex(
+            r' data-%s="([^"]*)' % suffix,
+            webpage, '%s json' % suffix, default='{}')
+
+        return self._parse_json(json_string, video_id)
+
+    def _parse_json_track(self, json):
+        formats = []
+        file_ = json.get('file')
+        if isinstance(file_, dict):
+            for format_id, format_url in file_.items():
+                if not url_or_none(format_url):
+                    continue
+                ext, abr_str = format_id.split('-', 1)
+                formats.append({
+                    'format_id': format_id,
+                    'url': self._proto_relative_url(format_url, 'http:'),
+                    'ext': ext,
+                    'vcodec': 'none',
+                    'acodec': ext,
+                    'abr': int_or_none(abr_str),
+                })
+
+        return {
+            'duration': float_or_none(json.get('duration')),
+            'id': str_or_none(json.get('track_id') or json.get('id')),
+            'title': json.get('title'),
+            'title_link': json.get('title_link'),
+            'number': int_or_none(json.get('track_num')),
+            'formats': formats
+        }
+
+
+class BandcampIE(BandcampBaseIE):
+    IE_NAME = "Bandcamp:track"
     _VALID_URL = r'https?://[^/]+\.bandcamp\.com/track/(?P<title>[^/?#&]+)'
     _TESTS = [{
-        'url': 'http://youtube-dlc.bandcamp.com/track/youtube-dlc-test-song',
+        'url': 'http://youtube-dl.bandcamp.com/track/youtube-dl-test-song',
         'md5': 'c557841d5e50261777a6585648adf439',
         'info_dict': {
             'id': '1812978515',
@@ -85,52 +123,32 @@ class BandcampIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
         title = mobj.group('title')
+        url_track_title = title
         webpage = self._download_webpage(url, title)
         thumbnail = self._html_search_meta('og:image', webpage, default=None)
 
-        track_id = None
-        track = None
-        track_number = None
-        duration = None
+        json_tralbum = self._extract_json_from_html_data_attribute(webpage, "tralbum", url_track_title)
+        json_embed = self._extract_json_from_html_data_attribute(webpage, "embed", url_track_title)
 
-        formats = []
-        trackinfo_block = self._html_search_regex(
-            r'trackinfo(?:["\']|&quot;):\[\s*({.+?})\s*\],(?:["\']|&quot;)',
-            webpage, 'track info', default='{}')
+        json_tracks = json_tralbum.get('trackinfo')
+        if not json_tracks:
+            raise ExtractorError('Could not extract track')
 
-        track_info = self._parse_json(trackinfo_block, title)
-        if track_info:
-            file_ = track_info.get('file')
-            if isinstance(file_, dict):
-                for format_id, format_url in file_.items():
-                    if not url_or_none(format_url):
-                        continue
-                    ext, abr_str = format_id.split('-', 1)
-                    formats.append({
-                        'format_id': format_id,
-                        'url': self._proto_relative_url(format_url, 'http:'),
-                        'ext': ext,
-                        'vcodec': 'none',
-                        'acodec': ext,
-                        'abr': int_or_none(abr_str),
-                    })
+        track = self._parse_json_track(json_tracks[0])
+        artist = json_tralbum.get('artist')
+        album_title = json_embed.get('album_title')
 
-            track_id = str_or_none(track_info.get('track_id') or track_info.get('id'))
-            track_number = int_or_none(track_info.get('track_num'))
-            duration = float_or_none(track_info.get('duration'))
+        json_album = json_tralbum.get('packages')
+        if json_album:
+            json_album = json_album[0]
+            album_publish_date = json_album.get('album_publish_date')
+            album_release_date = json_album.get('album_release_date')
+        else:
+            album_publish_date = None
+            album_release_date = json_tralbum.get('album_release_date')
 
-        def extract(key):
-            data = self._html_search_regex(
-                r',(["\']|&quot;)%s\1:\1(?P<value>(?:\\\1|((?!\1).))+)\1' % key,
-                webpage, key, default=None, group='value')
-            return data.replace(r'\"', '"').replace('\\\\', '\\') if data else data
-
-        track = extract('title')
-        artist = extract('artist')
-        album = extract('album_title')
-        timestamp = unified_timestamp(
-            extract('publish_date') or extract('album_publish_date'))
-        release_date = unified_strdate(extract('album_release_date'))
+        timestamp = unified_timestamp(json_tralbum.get('current', {}).get('publish_date') or album_publish_date)
+        release_date = unified_strdate(album_release_date)
 
         download_link = self._search_regex(
             r'freeDownloadPage(?:["\']|&quot;):\s*(["\']|&quot;)(?P<url>(?:(?!\1).)+)\1', webpage,
@@ -155,8 +173,6 @@ class BandcampIE(InfoExtractor):
             if info:
                 downloads = info.get('downloads')
                 if isinstance(downloads, dict):
-                    if not track:
-                        track = info.get('title')
                     if not artist:
                         artist = info.get('artist')
                     if not thumbnail:
@@ -190,7 +206,7 @@ class BandcampIE(InfoExtractor):
                         retry_url = url_or_none(stat.get('retry_url'))
                         if not retry_url:
                             continue
-                        formats.append({
+                        track['formats'].append({
                             'url': self._proto_relative_url(retry_url, 'http:'),
                             'ext': download_formats.get(format_id),
                             'format_id': format_id,
@@ -199,32 +215,28 @@ class BandcampIE(InfoExtractor):
                             'vcodec': 'none',
                         })
 
-        self._sort_formats(formats)
+        self._sort_formats(track['formats'])
 
-        title = '%s - %s' % (artist, track) if artist else track
-
-        if not duration:
-            duration = float_or_none(self._html_search_meta(
-                'duration', webpage, default=None))
+        title = '%s - %s' % (artist, track.get('title')) if artist else track.get('title')
 
         return {
-            'id': track_id,
-            'title': title,
-            'thumbnail': thumbnail,
-            'uploader': artist,
-            'timestamp': timestamp,
-            'release_date': release_date,
-            'duration': duration,
-            'track': track,
-            'track_number': track_number,
-            'track_id': track_id,
+            'album': album_title,
             'artist': artist,
-            'album': album,
-            'formats': formats,
+            'duration': track['duration'],
+            'formats': track['formats'],
+            'id': track['id'],
+            'release_date': release_date,
+            'thumbnail': thumbnail,
+            'timestamp': timestamp,
+            'title': title,
+            'track': track['title'],
+            'track_id': track['id'],
+            'track_number': track['number'],
+            'uploader': artist
         }
 
 
-class BandcampAlbumIE(InfoExtractor):
+class BandcampAlbumIE(BandcampBaseIE):
     IE_NAME = 'Bandcamp:album'
     _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?:/album/(?P<album_id>[^/?#&]+))?'
 
@@ -305,34 +317,32 @@ class BandcampAlbumIE(InfoExtractor):
         album_id = mobj.group('album_id')
         playlist_id = album_id or uploader_id
         webpage = self._download_webpage(url, playlist_id)
-        track_elements = re.findall(
-            r'(?s)<div[^>]*>(.*?<a[^>]+href="([^"]+?)"[^>]+itemprop="url"[^>]*>.*?)</div>', webpage)
-        if not track_elements:
-            raise ExtractorError('The page doesn\'t contain any tracks')
+
+        json_tralbum = self._extract_json_from_html_data_attribute(webpage, "tralbum", playlist_id)
+        json_embed = self._extract_json_from_html_data_attribute(webpage, "embed", playlist_id)
+
+        json_tracks = json_tralbum.get('trackinfo')
+        if not json_tracks:
+            raise ExtractorError('Could not extract album tracks')
+
+        album_title = json_embed.get('album_title')
+
         # Only tracks with duration info have songs
+        tracks = [self._parse_json_track(track) for track in json_tracks]
         entries = [
             self.url_result(
-                compat_urlparse.urljoin(url, t_path),
-                ie=BandcampIE.ie_key(),
-                video_title=self._search_regex(
-                    r'<span\b[^>]+\bitemprop=["\']name["\'][^>]*>([^<]+)',
-                    elem_content, 'track title', fatal=False))
-            for elem_content, t_path in track_elements
-            if self._html_search_meta('duration', elem_content, default=None)]
-
-        title = self._html_search_regex(
-            r'album_title\s*(?:&quot;|["\']):\s*(&quot;|["\'])(?P<album>(?:\\\1|((?!\1).))+)\1',
-            webpage, 'title', fatal=False, group='album')
-
-        if title:
-            title = title.replace(r'\"', '"')
+                compat_urlparse.urljoin(url, track['title_link']),
+                ie=BandcampIE.ie_key(), video_id=track['id'],
+                video_title=track['title'])
+            for track in tracks
+            if track.get('duration')]
 
         return {
             '_type': 'playlist',
             'uploader_id': uploader_id,
             'id': playlist_id,
-            'title': title,
-            'entries': entries,
+            'title': album_title,
+            'entries': entries
         }
 
 
