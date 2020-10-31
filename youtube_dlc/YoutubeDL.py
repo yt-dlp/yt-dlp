@@ -1857,13 +1857,13 @@ class YoutubeDL(object):
                     self.report_error('Cannot write annotations file: ' + annofn)
                     return
 
-        def dl(name, info):
+        def dl(name, info, subtitle=False):
             fd = get_suitable_downloader(info, self.params)(self, self.params)
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
             if self.params.get('verbose'):
                 self.to_stdout('[debug] Invoking downloader on %r' % info.get('url'))
-            return fd.download(name, info)
+            return fd.download(name, info, subtitle)
 
         subtitles_are_requested = any([self.params.get('writesubtitles', False),
                                        self.params.get('writeautomaticsub')])
@@ -1891,6 +1891,8 @@ class YoutubeDL(object):
                             return
                     else:
                         try:
+                            dl(sub_filename, sub_info, subtitle=True)
+                            '''
                             if self.params.get('sleep_interval_subtitles', False):
                                 dl(sub_filename, sub_info)
                             else:
@@ -1898,6 +1900,7 @@ class YoutubeDL(object):
                                     sub_info['url'], info_dict['id'], note=False).read()
                                 with io.open(encodeFilename(sub_filename), 'wb') as subfile:
                                     subfile.write(sub_data)
+                            '''
                         except (ExtractorError, IOError, OSError, ValueError, compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                             self.report_warning('Unable to download subtitle for "%s": %s' %
                                                 (sub_lang, error_to_compat_str(err)))
