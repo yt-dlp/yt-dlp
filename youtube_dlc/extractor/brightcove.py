@@ -471,12 +471,17 @@ class BrightcoveNewIE(AdobePassIE):
         title = json_data['name'].strip()
 
         formats = []
+        sources_num = len(json_data.get('sources'))
+        key_systems_present = 0
         for source in json_data.get('sources', []):
             container = source.get('container')
             ext = mimetype2ext(source.get('type'))
             src = source.get('src')
-            # https://support.brightcove.com/playback-api-video-fields-reference#key_systems_object
-            if ext == 'ism' or container == 'WVM' or source.get('key_systems'):
+            # https://apis.support.brightcove.com/playback/references/playback-api-video-fields-reference.html
+            if source.get('key_systems'):
+                key_systems_present += 1
+                continue
+            elif ext == 'ism' or container == 'WVM':
                 continue
             elif ext == 'm3u8' or container == 'M2TS':
                 if not src:
@@ -533,6 +538,10 @@ class BrightcoveNewIE(AdobePassIE):
                         'format_id': build_format_id('rtmp'),
                     })
                 formats.append(f)
+
+        if sources_num == key_systems_present:
+            raise ExtractorError('This video is DRM protected', expected=True)
+
         if not formats:
             # for sonyliv.com DRM protected videos
             s3_source_url = json_data.get('custom_fields', {}).get('s3sourceurl')
