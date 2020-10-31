@@ -369,8 +369,6 @@ class FileDownloader(object):
                 '[download] Sleeping %s seconds...' % (
                     int(sleep_interval_sub)))
             time.sleep(sleep_interval_sub)
-
-
         return self.real_download(filename, info_dict)
 
     def real_download(self, filename, info_dict):
