@@ -220,15 +220,22 @@ class VLiveIE(NaverBaseIE):
 
 class VLiveChannelIE(InfoExtractor):
     IE_NAME = 'vlive:channel'
-    _VALID_URL = r'https?://channels\.vlive\.tv/(?P<id>[0-9A-Z]+)'
-    _TEST = {
-        'url': 'http://channels.vlive.tv/FCD4B',
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?(?:channels\.vlive\.tv/|vlive\.tv/channels?/)(?P<id>[0-9A-Z]+)'
+    _TESTS = [{
+        'url': 'https://channels.vlive.tv/FCD4B',
         'info_dict': {
             'id': 'FCD4B',
             'title': 'MAMAMOO',
         },
         'playlist_mincount': 110
-    }
+    }, {
+        'url': 'https://www.vlive.tv/channel/FCD4B',
+        'info_dict': {
+            'id': 'FCD4B',
+            'title': 'MAMAMOO',
+        },
+        'playlist_mincount': 110
+    }]
     _APP_ID = '8c6cc7b45d2568fb668be6e05b6e5a3b'
 
     def _real_extract(self, url):
