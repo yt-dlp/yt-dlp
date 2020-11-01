@@ -18,10 +18,10 @@ from ..utils import (
 
 class VLiveIE(NaverBaseIE):
     IE_NAME = 'vlive'
-    _VALID_URL = r'https?://(?:(?:www|m)\.)?vlive\.tv/video/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?vlive\.tv/(?:video|post)/(?P<id>(?:\d-)?[0-9]+)'
     _NETRC_MACHINE = 'vlive'
     _TESTS = [{
-        'url': 'http://www.vlive.tv/video/1326',
+        'url': 'https://www.vlive.tv/video/1326',
         'md5': 'cc7314812855ce56de70a06a27314983',
         'info_dict': {
             'id': '1326',
@@ -31,8 +31,21 @@ class VLiveIE(NaverBaseIE):
             'view_count': int,
             'uploader_id': 'muploader_a',
         },
-    }, {
-        'url': 'http://www.vlive.tv/video/16937',
+    },
+        {
+        'url': 'https://vlive.tv/post/1-18244258',
+        'md5': 'cc7314812855ce56de70a06a27314983',
+        'info_dict': {
+            'id': '1326',
+            'ext': 'mp4',
+            'title': "[V LIVE] Girl's Day's Broadcast",
+            'creator': "Girl's Day",
+            'view_count': int,
+            'uploader_id': 'muploader_a',
+        },
+    },
+        {
+        'url': 'https://www.vlive.tv/video/16937',
         'info_dict': {
             'id': '16937',
             'ext': 'mp4',
@@ -95,24 +108,30 @@ class VLiveIE(NaverBaseIE):
             raise ExtractorError('Unable to log in', expected=True)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        # url may match on a post or a video url with a post_id potentially matching a video_id
+        working_id = self._match_id(url)
+        webpage = self._download_webpage(url, working_id)
 
         PARAMS_RE = r'window\.__PRELOADED_STATE__\s*=\s*({.*});?\s*</script>'
         PARAMS_FIELD = 'params'
 
         params = self._search_regex(
             PARAMS_RE, webpage, PARAMS_FIELD, default='', flags=re.DOTALL)
-        params = self._parse_json(params, video_id, fatal=False)
+        params = self._parse_json(params, working_id, fatal=False)
 
-        video_params = params["postDetail"]["post"].get("officialVideo")
+        video_params = try_get(params, lambda x: x["postDetail"]["post"]["officialVideo"])
         if video_params is None:
-            raise ExtractorError('Invalid key: Failed to extract video parameters.')
+            if 'post' in url:
+                raise ExtractorError('Url does not appear to be a video post.')
+            else:
+                raise ExtractorError('Failed to extract video parameters.')
 
+        video_id = working_id if 'video' in url else str(video_params["videoSeq"])
         long_video_id = video_params["vodId"]
         video_type = video_params["type"]
-        KEY_ENDPOINT = 'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/%s/inkey' % video_id
-        key_json = self._download_json(KEY_ENDPOINT, video_id,
+
+        VOD_KEY_ENDPOINT = 'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/%s/inkey' % video_id
+        key_json = self._download_json(VOD_KEY_ENDPOINT, video_id,
                                        headers={"referer": "https://www.vlive.tv"})
         key = key_json["inkey"]
 
