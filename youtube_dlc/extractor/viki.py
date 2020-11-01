@@ -308,19 +308,17 @@ class VikiIE(VikiBaseIE):
                 'url': thumbnail.get('url'),
             })
 
-        stream_ids = []
-        for f in formats:
-            s_id = f.get('stream_id')
-            if s_id is not None:
-                stream_ids.append(s_id)
+        new_video = self._download_json(
+            'https://www.viki.com/api/videos/%s' % video_id, video_id,
+            'Downloading new video JSON to get subtitles', headers={'x-viki-app-ver': '2.2.5.1428709186'}, expected_status=[200, 400, 404])
 
         subtitles = {}
-        for subtitle_lang, _ in video.get('subtitle_completions', {}).items():
-            subtitles[subtitle_lang] = [{
-                'ext': subtitles_format,
-                'url': self._prepare_call(
-                    'videos/%s/subtitles/%s.%s?stream_id=%s' % (video_id, subtitle_lang, subtitles_format, stream_ids[0])),
-            } for subtitles_format in ('srt', 'vtt')]
+        for sub in new_video.get('streamSubtitles').get('dash'):
+            subtitles[sub.get('srclang')] = [{
+                'ext': 'vtt',
+                'url': sub.get('src'),
+                'completion': sub.get('percentage'),
+            }]
 
         result = {
             'id': video_id,
