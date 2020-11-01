@@ -582,7 +582,7 @@ def parseOpts(overrideArguments=None):
             'along with --min-sleep-interval.'))
     workarounds.add_option(
         '--sleep-subtitles',
-        dest='sleep_interval_subtitles', action='store_true', default=0,
+        dest='sleep_interval_subtitles', default=0, type=int,
         help='Enforce sleep interval on subtitles as well')
 
     verbosity = optparse.OptionGroup(parser, 'Verbosity / Simulation Options')
