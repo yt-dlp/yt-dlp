@@ -2813,11 +2813,11 @@ class YoutubePlaylistIE(YoutubePlaylistBaseInfoExtractor):
 
     def _extract_mix_ids_from_yt_initial(self, yt_initial):
         ids = []
-        playlist_contents = try_get(yt_initial, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist']['contents'])
-        if type(playlist_contents) is list:
+        playlist_contents = try_get(yt_initial, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist']['contents'], list)
+        if playlist_contents:
             for item in playlist_contents:
-                videoId = try_get(item, lambda x: x['playlistPanelVideoRenderer']['videoId'])
-                if type(videoId) is str:
+                videoId = try_get(item, lambda x: x['playlistPanelVideoRenderer']['videoId'], compat_str)
+                if videoId:
                     ids.append(videoId)
         return ids
 
