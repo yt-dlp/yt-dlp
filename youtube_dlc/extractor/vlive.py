@@ -127,18 +127,12 @@ class VLiveIE(NaverBaseIE):
                 raise ExtractorError('Failed to extract video parameters.')
 
         video_id = working_id if 'video' in url else str(video_params["videoSeq"])
-        long_video_id = video_params["vodId"]
+
         video_type = video_params["type"]
-
-        VOD_KEY_ENDPOINT = 'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/%s/inkey' % video_id
-        key_json = self._download_json(VOD_KEY_ENDPOINT, video_id,
-                                       headers={"referer": "https://www.vlive.tv"})
-        key = key_json["inkey"]
-
         if video_type in ('VOD'):
             encoding_status = video_params["encodingStatus"]
             if encoding_status == 'COMPLETE':
-                return self._replay(video_id, webpage, long_video_id, key, params)
+                return self._replay(video_id, webpage, params, video_params)
             else:
                 raise ExtractorError('VOD encoding not yet complete. Please try again later.',
                                      expected=True)
@@ -193,7 +187,13 @@ class VLiveIE(NaverBaseIE):
         })
         return info
 
-    def _replay(self, video_id, webpage, long_video_id, key, params):
+    def _replay(self, video_id, webpage, params, video_params):
+        VOD_KEY_ENDPOINT = 'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/%s/inkey' % video_id
+        key_json = self._download_json(VOD_KEY_ENDPOINT, video_id,
+                                       headers={"referer": "https://www.vlive.tv"})
+        key = key_json["inkey"]
+        long_video_id = video_params["vodId"]
+
         if '' in (long_video_id, key):
             init_page = self._download_init_page(video_id)
             video_info = self._parse_json(self._search_regex(
