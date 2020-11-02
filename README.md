@@ -1,6 +1,5 @@
 [![Build Status](https://travis-ci.com/blackjack4494/yt-dlc.svg?branch=master)](https://travis-ci.com/blackjack4494/yt-dlc)
 [![PyPi](https://img.shields.io/pypi/v/youtube-dlc.svg)](https://pypi.org/project/youtube-dlc)
-[![Downloads](https://pepy.tech/badge/youtube-dlc)](https://pepy.tech/project/youtube-dlc)
 
 [![Gitter chat](https://img.shields.io/gitter/room/youtube-dlc/community)](https://gitter.im/youtube-dlc) 
 [![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://github.com/blackjack4494/youtube-dlc/blob/master/LICENSE)
