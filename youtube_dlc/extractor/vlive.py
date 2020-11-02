@@ -120,8 +120,15 @@ class VLiveIE(NaverBaseIE):
         params = self._parse_json(params, working_id, fatal=False)
 
         video_params = try_get(params, lambda x: x["postDetail"]["post"]["officialVideo"])
+
         if video_params is None:
-            if 'post' in url:
+            error_data = try_get(params, lambda x: x["postDetail"]["error"]["data"])
+            product_type = try_get(error_data,
+                                   [lambda x: x["officialVideo"]["productType"],
+                                    lambda x: x["board"]["boardType"]])
+            if product_type in ('VLIVE_PLUS', 'VLIVE+'):
+                self.raise_login_required('This video is only available for VLIVE+ subscribers')
+            elif 'post' in url:
                 raise ExtractorError('Url does not appear to be a video post.')
             else:
                 raise ExtractorError('Failed to extract video parameters.')
@@ -190,17 +197,6 @@ class VLiveIE(NaverBaseIE):
                                        headers={"referer": "https://www.vlive.tv"})
         key = key_json["inkey"]
         long_video_id = video_params["vodId"]
-
-        if '' in (long_video_id, key):
-            init_page = self._download_init_page(video_id)
-            video_info = self._parse_json(self._search_regex(
-                (r'(?s)oVideoStatus\s*=\s*({.+?})\s*</script',
-                 r'(?s)oVideoStatus\s*=\s*({.+})'), init_page, 'video info'),
-                video_id)
-            if video_info.get('status') == 'NEED_CHANNEL_PLUS':
-                self.raise_login_required(
-                    'This video is only available for CH+ subscribers')
-            long_video_id, key = video_info['vid'], video_info['inkey']
 
         return merge_dicts(
             self._get_common_fields(webpage, params),
