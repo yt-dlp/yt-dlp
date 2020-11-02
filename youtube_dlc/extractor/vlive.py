@@ -162,19 +162,16 @@ class VLiveIE(NaverBaseIE):
         }
 
     def _live(self, video_id, webpage, params):
-        init_page = self._download_init_page(video_id)
+        LIVE_INFO_ENDPOINT = 'https://www.vlive.tv/globalv-web/vam-web/old/v3/live/%s/playInfo' % video_id
+        play_info = self._download_json(LIVE_INFO_ENDPOINT, video_id,
+                                        headers={"referer": "https://www.vlive.tv"})
 
-        live_params = self._search_regex(
-            r'"liveStreamInfo"\s*:\s*(".*"),',
-            init_page, 'live stream info')
-        live_params = self._parse_json(live_params, video_id)
-        live_params = self._parse_json(live_params, video_id)
+        streams = try_get(play_info, lambda x: x["result"]["streamList"]) or []
 
         formats = []
-        for vid in live_params.get('resolutions', []):
+        for stream in streams:
             formats.extend(self._extract_m3u8_formats(
-                vid['cdnUrl'], video_id, 'mp4',
-                m3u8_id=vid.get('name'),
+                stream['serviceUrl'], video_id, 'mp4',
                 fatal=False, live=True))
         self._sort_formats(formats)
 
