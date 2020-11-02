@@ -144,8 +144,10 @@ class VLiveIE(NaverBaseIE):
                                      expected=True)
         elif video_type in ('LIVE'):
             video_status = video_params["status"]
-            if video_status == 'RESERVED':
+            if video_status in ('RESERVED'):
                 raise ExtractorError('Coming soon!', expected=True)
+            elif video_status in ('ENDED', 'END'):
+                raise ExtractorError('Uploading for replay. Please wait...', expected=True)
             else:
                 return self._live(video_id, webpage, params)
         else:
