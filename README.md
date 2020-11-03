@@ -43,6 +43,10 @@ You may want to use `python3` instead of `python`
 
     python -m pip install --upgrade youtube-dlc
 
+If you want to install the current master branch
+
+    python -m pip install git+https://github.com/blackjack4494/yt-dlc
+
 **UNIX** (Linux, macOS, etc.)  
 Using wget:
 
