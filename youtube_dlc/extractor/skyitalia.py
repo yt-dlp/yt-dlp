@@ -13,6 +13,7 @@ class SkyItaliaBaseIE(InfoExtractor):
         'high': [854, 480],
         'hd': [1280, 720]
     }
+    _GEO_BYPASS = False
 
     def _extract_video_id(self, url):
         webpage = self._download_webpage(url, 'skyitalia')
@@ -42,6 +43,9 @@ class SkyItaliaBaseIE(InfoExtractor):
                 'width': r[0],
                 'height': r[1]
             })
+
+        if not formats and video_data.get('geob') == 1:
+            self.raise_geo_restricted(countries=['IT'])
 
         self._sort_formats(formats)
         title = video_data.get('title')
