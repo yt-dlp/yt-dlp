@@ -1390,6 +1390,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # https://github.com/ytdl-org/youtube-dl/pull/7599)
             r';ytplayer\.config\s*=\s*({.+?});ytplayer',
             r';ytplayer\.config\s*=\s*({.+?});',
+            r'ytInitialPlayerResponse\s*=\s*({.+?});var meta'
         )
         config = self._search_regex(
             patterns, webpage, 'ytplayer.config', default=None)
@@ -1454,10 +1455,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._downloader.report_warning(err_msg)
             return {}
         try:
-            args = player_config['args']
-            caption_url = args.get('ttsurl')
-            if caption_url:
+            if "args" in player_config and "ttsurl" in player_config["args"]:
+                args = player_config['args']
+                caption_url = args['ttsurl']
                 timestamp = args['timestamp']
+
                 # We get the available subtitles
                 list_params = compat_urllib_parse_urlencode({
                     'type': 'list',
@@ -1513,40 +1515,50 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return captions
 
             # New captions format as of 22.06.2017
-            player_response = args.get('player_response')
-            if player_response and isinstance(player_response, compat_str):
-                player_response = self._parse_json(
-                    player_response, video_id, fatal=False)
-                if player_response:
-                    renderer = player_response['captions']['playerCaptionsTracklistRenderer']
-                    caption_tracks = renderer['captionTracks']
-                    for caption_track in caption_tracks:
-                        if 'kind' not in caption_track:
-                            # not an automatic transcription
-                            continue
-                        base_url = caption_track['baseUrl']
-                        sub_lang_list = []
-                        for lang in renderer['translationLanguages']:
-                            lang_code = lang.get('languageCode')
-                            if lang_code:
-                                sub_lang_list.append(lang_code)
-                        return make_captions(base_url, sub_lang_list)
+            if "args" in player_config:
+                player_response = player_config["args"].get('player_response')
+            else:
+                # New player system (ytInitialPlayerResponse) as of October 2020
+                player_response = player_config
 
-                    self._downloader.report_warning("Couldn't find automatic captions for %s" % video_id)
-                    return {}
-            # Some videos don't provide ttsurl but rather caption_tracks and
-            # caption_translation_languages (e.g. 20LmZk1hakA)
-            # Does not used anymore as of 22.06.2017
-            caption_tracks = args['caption_tracks']
-            caption_translation_languages = args['caption_translation_languages']
-            caption_url = compat_parse_qs(caption_tracks.split(',')[0])['u'][0]
-            sub_lang_list = []
-            for lang in caption_translation_languages.split(','):
-                lang_qs = compat_parse_qs(compat_urllib_parse_unquote_plus(lang))
-                sub_lang = lang_qs.get('lc', [None])[0]
-                if sub_lang:
-                    sub_lang_list.append(sub_lang)
-            return make_captions(caption_url, sub_lang_list)
+            if player_response:
+                if isinstance(player_response, compat_str):
+                    player_response = self._parse_json(
+                        player_response, video_id, fatal=False)
+
+                renderer = player_response['captions']['playerCaptionsTracklistRenderer']
+                caption_tracks = renderer['captionTracks']
+                for caption_track in caption_tracks:
+                    if 'kind' not in caption_track:
+                        # not an automatic transcription
+                        continue
+                    base_url = caption_track['baseUrl']
+                    sub_lang_list = []
+                    for lang in renderer['translationLanguages']:
+                        lang_code = lang.get('languageCode')
+                        if lang_code:
+                            sub_lang_list.append(lang_code)
+                    return make_captions(base_url, sub_lang_list)
+
+                self._downloader.report_warning("Couldn't find automatic captions for %s" % video_id)
+                return {}
+
+            if "args" in player_config:
+                args = player_config["args"]
+
+                # Some videos don't provide ttsurl but rather caption_tracks and
+                # caption_translation_languages (e.g. 20LmZk1hakA)
+                # Does not used anymore as of 22.06.2017
+                caption_tracks = args['caption_tracks']
+                caption_translation_languages = args['caption_translation_languages']
+                caption_url = compat_parse_qs(caption_tracks.split(',')[0])['u'][0]
+                sub_lang_list = []
+                for lang in caption_translation_languages.split(','):
+                    lang_qs = compat_parse_qs(compat_urllib_parse_unquote_plus(lang))
+                    sub_lang = lang_qs.get('lc', [None])[0]
+                    if sub_lang:
+                        sub_lang_list.append(sub_lang)
+                return make_captions(caption_url, sub_lang_list)
         # An extractor error can be raise by the download process if there are
         # no automatic captions but there are subtitles
         except (KeyError, IndexError, ExtractorError):
@@ -1822,21 +1834,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Try looking directly into the video webpage
                     ytplayer_config = self._get_ytplayer_config(video_id, video_webpage)
                     if ytplayer_config:
-                        args = ytplayer_config['args']
-                        if args.get('url_encoded_fmt_stream_map') or args.get('hlsvp'):
-                            # Convert to the same format returned by compat_parse_qs
-                            video_info = dict((k, [v]) for k, v in args.items())
-                            add_dash_mpd(video_info)
-                        # Rental video is not rented but preview is available (e.g.
-                        # https://www.youtube.com/watch?v=yYr8q0y5Jfg,
-                        # https://github.com/ytdl-org/youtube-dl/issues/10532)
-                        if not video_info and args.get('ypc_vid'):
-                            return self.url_result(
-                                args['ypc_vid'], YoutubeIE.ie_key(), video_id=args['ypc_vid'])
-                        if args.get('livestream') == '1' or args.get('live_playback') == 1:
-                            is_live = True
-                        if not player_response:
-                            player_response = extract_player_response(args.get('player_response'), video_id)
+                        args = ytplayer_config.get("args")
+                        if args is not None:
+                            if args.get('url_encoded_fmt_stream_map') or args.get('hlsvp'):
+                                # Convert to the same format returned by compat_parse_qs
+                                video_info = dict((k, [v]) for k, v in args.items())
+                                add_dash_mpd(video_info)
+                            # Rental video is not rented but preview is available (e.g.
+                            # https://www.youtube.com/watch?v=yYr8q0y5Jfg,
+                            # https://github.com/ytdl-org/youtube-dl/issues/10532)
+                            if not video_info and args.get('ypc_vid'):
+                                return self.url_result(
+                                    args['ypc_vid'], YoutubeIE.ie_key(), video_id=args['ypc_vid'])
+                            if args.get('livestream') == '1' or args.get('live_playback') == 1:
+                                is_live = True
+                            if not player_response:
+                                player_response = extract_player_response(args.get('player_response'), video_id)
+                        elif not player_response:
+                            player_response = ytplayer_config
                     if not video_info or self._downloader.params.get('youtube_include_dash_manifest', True):
                         add_dash_mpd_pr(player_response)
                 else:
@@ -1866,8 +1881,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             age_gate = False
             # Try looking directly into the video webpage
             ytplayer_config = self._get_ytplayer_config(video_id, video_webpage)
-            if ytplayer_config:
-                args = ytplayer_config['args']
+            args = ytplayer_config.get("args")
+            if args is not None:
                 if args.get('url_encoded_fmt_stream_map') or args.get('hlsvp'):
                     # Convert to the same format returned by compat_parse_qs
                     video_info = dict((k, [v]) for k, v in args.items())
@@ -1882,6 +1897,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     is_live = True
                 if not player_response:
                     player_response = extract_player_response(args.get('player_response'), video_id)
+            elif not player_response:
+                player_response = ytplayer_config
             if not video_info or self._downloader.params.get('youtube_include_dash_manifest', True):
                 add_dash_mpd_pr(player_response)
 
