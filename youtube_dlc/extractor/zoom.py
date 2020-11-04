@@ -11,8 +11,8 @@ from ..utils import (
 )
 
 
-class ZoomUSIE(InfoExtractor):
-    IE_NAME = 'zoom.us'
+class ZoomIE(InfoExtractor):
+    IE_NAME = 'zoom'
     _VALID_URL = r'https://(?:.*).?zoom.us/rec(?:ording)?/play/(?P<id>[A-Za-z0-9\-_]+)'
 
     _TEST = {
