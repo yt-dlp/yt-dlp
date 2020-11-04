@@ -202,16 +202,6 @@ class VLiveIE(NaverBaseIE):
             self._get_common_fields(webpage, params),
             self._extract_video_info(video_id, long_video_id, key))
 
-    def _download_init_page(self, video_id):
-        return self._download_webpage(
-            'https://www.vlive.tv/video/init/view',
-            video_id, note='Downloading live webpage',
-            data=urlencode_postdata({'videoSeq': video_id}),
-            headers={
-                'Referer': 'https://www.vlive.tv/video/%s' % video_id,
-                'Content-Type': 'application/x-www-form-urlencoded'
-            })
-
 
 class VLiveChannelIE(InfoExtractor):
     IE_NAME = 'vlive:channel'
