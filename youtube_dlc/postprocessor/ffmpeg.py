@@ -412,7 +412,9 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         for lang, sub_info in subtitles.items():
             sub_ext = sub_info['ext']
-            if ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
+            if sub_ext == 'json':
+                self._downloader.to_screen('[ffmpeg] JSON subtitles cannot be embedded')
+            elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
                 sub_langs.append(lang)
                 sub_filenames.append(subtitles_filename(filename, lang, sub_ext, ext))
             else:
@@ -643,13 +645,18 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                 self._downloader.to_screen(
                     '[ffmpeg] Subtitle file for %s is already in the requested format' % new_ext)
                 continue
+            elif ext == 'json':
+                self._downloader.to_screen(
+                    '[ffmpeg] You have requested to convert json subtitles into another format, '
+                    'which is currently not possible')
+                continue
             old_file = subtitles_filename(filename, lang, ext, info.get('ext'))
             sub_filenames.append(old_file)
             new_file = subtitles_filename(filename, lang, new_ext, info.get('ext'))
 
             if ext in ('dfxp', 'ttml', 'tt'):
                 self._downloader.report_warning(
-                    'You have requested to convert dfxp (TTML) subtitles into another format, '
+                    '[ffmpeg] You have requested to convert dfxp (TTML) subtitles into another format, '
                     'which results in style information loss')
 
                 dfxp_file = old_file
