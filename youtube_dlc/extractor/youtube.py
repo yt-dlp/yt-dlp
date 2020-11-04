@@ -2965,9 +2965,12 @@ class YoutubePlaylistIE(YoutubePlaylistBaseInfoExtractor):
         if video:
             return video
 
+        youtube_music_playlist_prefix = 'RDCLAK5uy_'
         if playlist_id.startswith(('RD', 'UL', 'PU')):
-            # Mixes require a custom extraction process
-            return self._extract_mix(playlist_id)
+            if not playlist_id.startswith(youtube_music_playlist_prefix):
+                # Mixes require a custom extraction process,
+                # Youtube Music playlists act like normal playlists (with randomized order)
+                return self._extract_mix(playlist_id)
 
         has_videos, playlist = self._extract_playlist(playlist_id)
         if has_videos or not video_id:
