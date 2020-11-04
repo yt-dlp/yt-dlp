@@ -119,13 +119,14 @@ class VLiveIE(NaverBaseIE):
             PARAMS_RE, webpage, PARAMS_FIELD, default='', flags=re.DOTALL)
         params = self._parse_json(params, working_id, fatal=False)
 
-        video_params = try_get(params, lambda x: x["postDetail"]["post"]["officialVideo"])
+        video_params = try_get(params, lambda x: x["postDetail"]["post"]["officialVideo"], dict)
 
         if video_params is None:
-            error_data = try_get(params, lambda x: x["postDetail"]["error"]["data"])
+            error_data = try_get(params, lambda x: x["postDetail"]["error"]["data"], dict)
             product_type = try_get(error_data,
                                    [lambda x: x["officialVideo"]["productType"],
-                                    lambda x: x["board"]["boardType"]])
+                                    lambda x: x["board"]["boardType"]],
+                                   compat_str)
             if product_type in ('VLIVE_PLUS', 'VLIVE+'):
                 self.raise_login_required('This video is only available for VLIVE+ subscribers')
             elif 'post' in url:
@@ -173,7 +174,7 @@ class VLiveIE(NaverBaseIE):
         play_info = self._download_json(LIVE_INFO_ENDPOINT, video_id,
                                         headers={"referer": "https://www.vlive.tv"})
 
-        streams = try_get(play_info, lambda x: x["result"]["streamList"]) or []
+        streams = try_get(play_info, lambda x: x["result"]["streamList"], list) or []
 
         formats = []
         for stream in streams:
