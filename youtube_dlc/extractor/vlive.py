@@ -122,15 +122,24 @@ class VLiveIE(NaverBaseIE):
         video_params = try_get(params, lambda x: x["postDetail"]["post"]["officialVideo"], dict)
 
         if video_params is None:
-            error_data = try_get(params, lambda x: x["postDetail"]["error"]["data"], dict)
+            error = try_get(params, lambda x: x["postDetail"]["error"], dict)
+            error_data = try_get(error, lambda x: x["data"], dict)
+            error_video = try_get(error_data, lambda x: x["officialVideo"], dict)
+            error_msg = try_get(error, lambda x: x["message"], compat_str)
             product_type = try_get(error_data,
                                    [lambda x: x["officialVideo"]["productType"],
                                     lambda x: x["board"]["boardType"]],
                                    compat_str)
-            if product_type in ('VLIVE_PLUS', 'VLIVE+'):
-                self.raise_login_required('This video is only available for VLIVE+ subscribers')
+
+            if error_video is not None:
+                if product_type in ('VLIVE_PLUS', 'VLIVE+'):
+                    self.raise_login_required('This video is only available with V LIVE+.')
+                elif error_msg is not None:
+                    raise ExtractorError('V LIVE reported the following error: %s' % error_msg)
+                else:
+                    raise ExtractorError('Failed to extract video parameters.')
             elif 'post' in url:
-                raise ExtractorError('Url does not appear to be a video post.')
+                raise ExtractorError('Url does not appear to be a video post.', expected=True)
             else:
                 raise ExtractorError('Failed to extract video parameters.')
 
@@ -193,11 +202,12 @@ class VLiveIE(NaverBaseIE):
         return info
 
     def _replay(self, video_id, webpage, params, video_params):
+        long_video_id = video_params["vodId"]
+
         VOD_KEY_ENDPOINT = 'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/%s/inkey' % video_id
         key_json = self._download_json(VOD_KEY_ENDPOINT, video_id,
                                        headers={"referer": "https://www.vlive.tv"})
         key = key_json["inkey"]
-        long_video_id = video_params["vodId"]
 
         return merge_dicts(
             self._get_common_fields(webpage, params),
