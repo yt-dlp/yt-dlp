@@ -36,6 +36,9 @@ class LA7IE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
+        if not url.startswith('http'):
+            url = '%s//%s' % (self.http_scheme(), url)
+
         webpage = self._download_webpage(url, video_id)
 
         player_data = self._search_regex(
