@@ -181,6 +181,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'preference': 1,
             })
 
+        # Reduntant code! This is already done in common.py
         # for f in formats:
         #     if f.get('vcodec') == 'none':
         #         f['preference'] = -50

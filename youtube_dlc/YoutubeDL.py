@@ -165,6 +165,8 @@ class YoutubeDL(object):
     format:            Video format code. see "FORMAT SELECTION" for more details.
     format_sort:       How to sort the video formats. see "Sorting Formats" for more details.
     format_sort_force: Force the given format_sort. see "Sorting Formats" for more details.
+    allow_multiple_video_streams:   Allow multiple video streams to be merged into a single file
+    allow_multiple_audio_streams:   Allow multiple audio streams to be merged into a single file
     outtmpl:           Template for output names.
     restrictfilenames: Do not allow "&" and spaces in file names.
     trim_file_name:    Limit length of filename (extension excluded).
@@ -1201,6 +1203,9 @@ class YoutubeDL(object):
         GROUP = 'GROUP'
         FormatSelector = collections.namedtuple('FormatSelector', ['type', 'selector', 'filters'])
 
+        allow_multiple_streams = {'audio': self.params.get('allow_multiple_audio_streams', True),
+                                  'video': self.params.get('allow_multiple_video_streams', True)}
+
         def _parse_filter(tokens):
             filter_parts = []
             for type, string, start, _, _ in tokens:
@@ -1299,7 +1304,7 @@ class YoutubeDL(object):
             return selectors
 
         def _build_selector_function(selector):
-            if isinstance(selector, list):
+            if isinstance(selector, list):  # ,
                 fs = [_build_selector_function(s) for s in selector]
 
                 def selector_function(ctx):
@@ -1307,9 +1312,11 @@ class YoutubeDL(object):
                         for format in f(ctx):
                             yield format
                 return selector_function
-            elif selector.type == GROUP:
+
+            elif selector.type == GROUP:  # ()
                 selector_function = _build_selector_function(selector.selector)
-            elif selector.type == PICKFIRST:
+
+            elif selector.type == PICKFIRST:  # /
                 fs = [_build_selector_function(s) for s in selector.selector]
 
                 def selector_function(ctx):
@@ -1318,68 +1325,72 @@ class YoutubeDL(object):
                         if picked_formats:
                             return picked_formats
                     return []
-            elif selector.type == SINGLE:
-                format_spec = selector.selector
 
-                def selector_function(ctx):
-                    formats = list(ctx['formats'])
-                    if not formats:
-                        return
-                    if format_spec == 'all':
-                        for f in formats:
-                            yield f
-                    elif format_spec in ['best', 'worst', None]:
-                        format_idx = 0 if format_spec == 'worst' else -1
-                        audiovideo_formats = [
-                            f for f in formats
-                            if f.get('vcodec') != 'none' and f.get('acodec') != 'none']
-                        if audiovideo_formats:
-                            yield audiovideo_formats[format_idx]
-                        # for extractors with incomplete formats (audio only (soundcloud)
-                        # or video only (imgur)) we will fallback to best/worst
-                        # {video,audio}-only format
-                        elif ctx['incomplete_formats']:
-                            yield formats[format_idx]
-                    elif format_spec == 'bestaudio':
-                        audio_formats = [
-                            f for f in formats
-                            if f.get('vcodec') == 'none']
-                        if audio_formats:
-                            yield audio_formats[-1]
-                    elif format_spec == 'worstaudio':
-                        audio_formats = [
-                            f for f in formats
-                            if f.get('vcodec') == 'none']
-                        if audio_formats:
-                            yield audio_formats[0]
-                    elif format_spec == 'bestvideo':
-                        video_formats = [
-                            f for f in formats
-                            if f.get('acodec') == 'none']
-                        if video_formats:
-                            yield video_formats[-1]
-                    elif format_spec == 'worstvideo':
-                        video_formats = [
-                            f for f in formats
-                            if f.get('acodec') == 'none']
-                        if video_formats:
-                            yield video_formats[0]
+            elif selector.type == SINGLE:  # atom
+                format_spec = selector.selector if selector.selector is not None else 'best'
+
+                if format_spec == 'all':
+                    def selector_function(ctx):
+                        formats = list(ctx['formats'])
+                        if formats:
+                            for f in formats:
+                                yield f
+
+                else:
+                    format_fallback = False
+                    format_spec_obj = re.match(r'(best|worst|b|w)(video|audio|v|a)?(\*)?$', format_spec)
+                    if format_spec_obj is not None:
+                        format_idx = 0 if format_spec_obj.group(1)[0] == 'w' else -1
+                        format_type = format_spec_obj.group(2)[0] if format_spec_obj.group(2) else False
+                        not_format_type = 'v' if format_type == 'a' else 'a'
+                        format_modified = format_spec_obj.group(3) is not None
+
+                        format_fallback = not format_type and not format_modified  # for b, w
+                        filter_f = ((lambda f: f.get(format_type + 'codec') != 'none')
+                                    if format_type and format_modified  # bv*, ba*, wv*, wa*
+                                    else (lambda f: f.get(not_format_type + 'codec') == 'none')
+                                    if format_type  # bv, ba, wv, wa
+                                    else (lambda f: f.get('vcodec') != 'none' and f.get('acodec') != 'none')
+                                    if not format_modified  # b, w
+                                    else None)  # b*, w*
                     else:
-                        extensions = ['mp4', 'flv', 'webm', '3gp', 'm4a', 'mp3', 'ogg', 'aac', 'wav']
-                        if format_spec in extensions:
-                            filter_f = lambda f: f['ext'] == format_spec
-                        else:
-                            filter_f = lambda f: f['format_id'] == format_spec
-                        matches = list(filter(filter_f, formats))
+                        format_idx = -1
+                        filter_f = ((lambda f: f.get('ext') == format_spec)
+                                    if format_spec in ['mp4', 'flv', 'webm', '3gp', 'm4a', 'mp3', 'ogg', 'aac', 'wav']  # extension
+                                    else (lambda f: f.get('format_id') == format_spec))  # id
+
+                    def selector_function(ctx):
+                        formats = list(ctx['formats'])
+                        if not formats:
+                            return
+                        matches = list(filter(filter_f, formats)) if filter_f is not None else formats
                         if matches:
-                            yield matches[-1]
-            elif selector.type == MERGE:
+                            yield matches[format_idx]
+                        elif format_fallback == 'force' or (format_fallback and ctx['incomplete_formats']):
+                            # for extractors with incomplete formats (audio only (soundcloud)
+                            # or video only (imgur)) best/worst will fallback to
+                            # best/worst {video,audio}-only format
+                            yield formats[format_idx]
+
+            elif selector.type == MERGE:        # +
                 def _merge(formats_pair):
                     format_1, format_2 = formats_pair
 
                     formats_info = []
                     formats_info.extend(format_1.get('requested_formats', (format_1,)))
                     formats_info.extend(format_2.get('requested_formats', (format_2,)))
+
+                    if not allow_multiple_streams['video'] or not allow_multiple_streams['audio']:
+                        get_no_more = {"video": False, "audio": False}
+                        for (i, fmt_info) in enumerate(formats_info):
+                            for aud_vid in ["audio", "video"]:
+                                if not allow_multiple_streams[aud_vid] and fmt_info.get(aud_vid[0] + 'codec') != 'none':
+                                    if get_no_more[aud_vid]:
+                                        formats_info.pop(i)
+                                    get_no_more[aud_vid] = True
+
+                    if len(formats_info) == 1:
+                        return formats_info[0]
 
                     video_fmts = [fmt_info for fmt_info in formats_info if fmt_info.get('vcodec') != 'none']
                     audio_fmts = [fmt_info for fmt_info in formats_info if fmt_info.get('acodec') != 'none']
@@ -1717,6 +1728,7 @@ class YoutubeDL(object):
                                  expected=True)
 
         if download:
+            self.to_screen('[info] Downloading format(s) %s' % ", ".join([f['format_id'] for f in formats_to_download]))
             if len(formats_to_download) > 1:
                 self.to_screen('[info] %s: downloading video in %s formats' % (info_dict['id'], len(formats_to_download)))
             for format in formats_to_download:
@@ -2308,7 +2320,7 @@ class YoutubeDL(object):
             for f in formats
             if f.get('preference') is None or f['preference'] >= -1000]
         # if len(formats) > 1:
-        #     table[-1][-1] += (' ' if table[-1][-1] else '') + '(best)'
+        #     table[-1][-1] += (' ' if table[-1][-1] else '') + '(best*)'
 
         header_line = ['format code', 'extension', 'resolution', 'note']
         self.to_screen(

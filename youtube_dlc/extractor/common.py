@@ -1358,7 +1358,7 @@ class InfoExtractor(object):
     class FormatSort:
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<seperator>[~:])(?P<limit>.*?))?)? *$'
 
-        default = ('hidden', 'has_video', 'has_audio', 'extractor', 'lang', 'quality',
+        default = ('hidden', 'has_video', 'extractor', 'lang', 'quality',
                    'tbr', 'filesize', 'vbr', 'height', 'width', 'protocol', 'vext',
                    'abr', 'aext', 'fps', 'filesize_approx', 'source_preference', 'format_id')
 
@@ -1378,7 +1378,7 @@ class InfoExtractor(object):
             'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
             'extractor_preference': {'priority': True, 'type': 'extractor'},
             'has_video': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'has_audio': {'priority': True, 'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
+            'has_audio': {'priority': False, 'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'language_preference': {'priority': True, 'convert': 'ignore'},
             'quality': {'priority': True, 'convert': 'float_none'},
             'filesize': {'convert': 'bytes'},

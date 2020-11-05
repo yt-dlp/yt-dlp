@@ -416,6 +416,22 @@ def parseOpts(overrideArguments=None):
             'Some fields have precedence over the user specified sort order (default), '
             'see "Sorting Formats" for more details'))
     video_format.add_option(
+        '--video-multistreams',
+        action='store_true', dest='allow_multiple_video_streams', default=True,
+        help='Allow multiple video streams to be merged into a single file (default)')
+    video_format.add_option(
+        '--no-video-multistreams',
+        action='store_false', dest='allow_multiple_video_streams',
+        help='Only one video stream is downloaded for each output file')
+    video_format.add_option(
+        '--audio-multistreams',
+        action='store_true', dest='allow_multiple_audio_streams', default=True,
+        help='Allow multiple audio streams to be merged into a single file (default)')
+    video_format.add_option(
+        '--no-audio-multistreams',
+        action='store_false', dest='allow_multiple_audio_streams',
+        help='Only one audio stream is downloaded for each output file')
+    video_format.add_option(
         '--all-formats',
         action='store_const', dest='format', const='all',
         help='Download all available video formats')
