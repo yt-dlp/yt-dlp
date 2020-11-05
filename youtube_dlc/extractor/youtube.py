@@ -2842,6 +2842,7 @@ class YoutubePlaylistIE(YoutubePlaylistBaseInfoExtractor):
         # The mixes are generated from a single video
         # the id of the playlist is just 'RD' + video_id
         ids = []
+        yt_initial = None
         last_id = playlist_id[-11:]
         for n in itertools.count(1):
             url = 'https://www.youtube.com/watch?v=%s&list=%s' % (last_id, playlist_id)
@@ -2874,6 +2875,9 @@ class YoutubePlaylistIE(YoutubePlaylistBaseInfoExtractor):
             or search_title('title long-title')
             or search_title('title'))
         title = clean_html(title_span)
+
+        if not title:
+            title = try_get(yt_initial, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist']['title'], compat_str)
 
         return self.playlist_result(url_results, playlist_id, title)
 
