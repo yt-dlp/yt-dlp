@@ -7,6 +7,7 @@
     "forcethumbnail": false, 
     "forcetitle": false, 
     "forceurl": false, 
+    "force_write_download_archive": false,
     "format": "best",
     "ignoreerrors": false, 
     "listformats": null, 

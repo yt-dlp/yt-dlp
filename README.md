@@ -353,6 +353,10 @@ I will add some memorable short links to the binaries so you can download them e
                                      playlist information in a single line.
     --print-json                     Be quiet and print the video information as
                                      JSON (video is still being downloaded).
+    --force-write-archive            Force download archive entries to be written 
+                                     as far as no errors occur, even if -s or 
+                                     another simulation switch is used.
+                                     (Same as --force-download-archive)
     --newline                        Output progress bar as new lines
     --no-progress                    Do not print progress bar
     --console-title                  Display progress in console titlebar

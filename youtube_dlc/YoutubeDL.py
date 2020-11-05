@@ -166,6 +166,8 @@ class YoutubeDL(object):
     forcejson:         Force printing info_dict as JSON.
     dump_single_json:  Force printing the info_dict of the whole playlist
                        (or video) as a single JSON line.
+    force_write_download_archive: Force writing download archive regardless of
+                       'skip_download' or 'simulate'.
     simulate:          Do not download the video files.
     format:            Video format code. see "FORMAT SELECTION" for more details.
     format_sort:       How to sort the video formats. see "Sorting Formats" for more details.
@@ -1856,8 +1858,11 @@ class YoutubeDL(object):
         # Forced printings
         self.__forced_printings(info_dict, filename, incomplete=False)
 
-        # Do nothing else if in simulate mode
         if self.params.get('simulate', False):
+            if self.params.get('force_write_download_archive', False):
+                self.record_download_archive(info_dict)
+
+            # Do nothing else if in simulate mode
             return
 
         if filename is None:
@@ -2188,7 +2193,10 @@ class YoutubeDL(object):
                 except (PostProcessingError) as err:
                     self.report_error('postprocessing: %s' % str(err))
                     return
-                self.record_download_archive(info_dict)
+                must_record_download_archive = True
+
+        if must_record_download_archive or self.params.get('force_write_download_archive', False):
+            self.record_download_archive(info_dict)
 
     def download(self, url_list):
         """Download a given list of URLs."""

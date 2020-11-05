@@ -682,8 +682,13 @@ def parseOpts(overrideArguments=None):
     verbosity.add_option(
         '--print-json',
         action='store_true', dest='print_json', default=False,
-        help='Be quiet and print the video information as JSON (video is still being downloaded).',
-    )
+        help='Be quiet and print the video information as JSON (video is still being downloaded).')
+    verbosity.add_option(
+        '--force-write-download-archive', '--force-write-archive', '--force-download-archive',
+        action='store_true', dest='force_write_download_archive', default=False,
+        help=(
+            'Force download archive entries to be written as far as no errors occur,'
+            'even if -s or another simulation switch is used.'))
     verbosity.add_option(
         '--newline',
         action='store_true', dest='progress_with_newline', default=False,
