@@ -2631,6 +2631,12 @@ class YoutubePlaylistIE(YoutubePlaylistBaseInfoExtractor):
     _VIDEO_RE_TPL = r'href="\s*/watch\?v=%s(?:&amp;(?:[^"]*?index=(?P<index>\d+))?(?:[^>]+>(?P<title>[^<]+))?)?'
     _VIDEO_RE = _VIDEO_RE_TPL % r'(?P<id>[0-9A-Za-z_-]{11})'
     IE_NAME = 'youtube:playlist'
+    _YTM_PLAYLIST_PREFIX = 'RDCLAK5uy_'
+    _YTM_CHANNEL_INFO = {
+        'uploader': 'Youtube Music',
+        'uploader_id': 'music',  # or "UC-9-kyTW8ZkZNDHQJ6FgpwQ"
+        'uploader_url': 'https://www.youtube.com/music'
+    }
     _TESTS = [{
         'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
         'info_dict': {
@@ -2940,6 +2946,8 @@ class YoutubePlaylistIE(YoutubePlaylistBaseInfoExtractor):
             'uploader_id': uploader_id,
             'uploader_url': uploader_url,
         })
+        if playlist_id.startswith(self._YTM_PLAYLIST_PREFIX):
+            playlist.update(self._YTM_CHANNEL_INFO)
 
         return has_videos, playlist
 
@@ -2970,8 +2978,10 @@ class YoutubePlaylistIE(YoutubePlaylistBaseInfoExtractor):
             return video
 
         if playlist_id.startswith(('RD', 'UL', 'PU')):
-            # Mixes require a custom extraction process
-            return self._extract_mix(playlist_id)
+            if not playlist_id.startswith(self._YTM_PLAYLIST_PREFIX):
+                # Mixes require a custom extraction process,
+                # Youtube Music playlists act like normal playlists (with randomized order)
+                return self._extract_mix(playlist_id)
 
         has_videos, playlist = self._extract_playlist(playlist_id)
         if has_videos or not video_id:
