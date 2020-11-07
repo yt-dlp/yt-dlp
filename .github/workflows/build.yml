@@ -109,7 +109,7 @@ jobs:
 
     runs-on: windows-latest
 
-    needs: build_unix
+    needs: [build_unix, build_windows]
 
     steps:
     - uses: actions/checkout@v2
@@ -146,10 +146,10 @@ jobs:
         SHA2_UNIX: ${{ needs.build_unix.outputs.sha2_unix }}
         YTDLC_VERSION: ${{ needs.build_unix.outputs.ytdlc_version }}
       run: |
-        echo "version:$YTDLC_VERSION" >> SHA2-256SUMS
-        echo "youtube-dlc.exe:$SHA2_WINDOWS" >> SHA2-256SUMS
-        echo "youtube-dlc32.exe:$SHA2_WINDOWS32" >> SHA2-256SUMS
-        echo "youtube-dlc:$SHA2_UNIX" >> SHA2-256SUMS
+        echo "version:${env:YTDLC_VERSION}" >> SHA2-256SUMS
+        echo "youtube-dlc.exe:${env:SHA2_WINDOWS}" >> SHA2-256SUMS
+        echo "youtube-dlc_x86.exe:${env:SHA2_WINDOWS32}" >> SHA2-256SUMS
+        echo "youtube-dlc:${env:SHA2_UNIX}" >> SHA2-256SUMS
 
     - name: Upload 256SUMS file
       id: upload-sums
