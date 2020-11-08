@@ -286,7 +286,7 @@ class ITVBTCCIE(InfoExtractor):
             'id': 'btcc-2019-brands-hatch-gp-race-action',
             'title': 'BTCC 2019: Brands Hatch GP race action',
         },
-        'playlist_mincount': 12,
+        'playlist_count': 12,
     }
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/1582188683001/HkiHLnNRx_default/index.html?videoId=%s'
 
