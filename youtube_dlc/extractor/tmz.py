@@ -5,95 +5,103 @@ from .common import InfoExtractor
 
 
 class TMZIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tmz\.com/videos/.*(?P<id>[^/?#]{10,10})'
-    _TESTS = [{
-        'url': 'http://www.tmz.com/videos/0_okj015ty/',
-        'md5': '4d22a51ef205b6c06395d8394f72d560',
-        'info_dict': {
-            'id': '0_okj015ty',
-            'ext': 'mp4',
-            'title': 'Kim Kardashian\'s Boobs Unlock a Mystery!',
-            'timestamp': 1394747163,
-            'uploader_id': 'batchUser',
-            'upload_date': '20140313',
-        }
-    }, {
-        'url': 'http://www.tmz.com/videos/0-cegprt2p/',
-        'info_dict': {
-            'id': '0_cegprt2p',
-            'ext': 'mp4',
-            'title': "No Charges Against Hillary Clinton? Harvey Says It Ain't Over Yet",
-            'timestamp': 1467831837,
-            'uploader_id': 'batchUser',
-            'upload_date': '20160706',
-        }
-    }, {
-        'url': 'https://www.tmz.com/videos/071119-chris-morgan-women-4590005-0-zcsejvcr/',
-        'info_dict': {
-            'id': '0_zcsejvcr',
-            'ext': 'mxf',
-            'title': "Angry Bagel Shop Guy Says He Doesn't Trust Women",
-            'timestamp': 1562889485,
-            'uploader_id': 'batchUser',
-            'upload_date': '20190711',
-        }
-    }]
+    _VALID_URL = r"https?://(?:www\.)?tmz\.com/.*"
+    _TESTS = [
+        {
+            "url": "http://www.tmz.com/videos/0-cegprt2p/",
+            "info_dict": {
+                "id": "http://www.tmz.com/videos/0-cegprt2p/",
+                "ext": "mp4",
+                "title": "No Charges Against Hillary Clinton? Harvey Says It Ain't Over Yet",
+                "description": "Harvey talks about Director Comey’s decision not to prosecute Hillary Clinton.",
+                "timestamp": 1467831837,
+                "uploader": "{'@type': 'Person', 'name': 'TMZ Staff'}",
+                "upload_date": "20160706",
+            },
+        },
+        {
+            "url": "https://www.tmz.com/videos/071119-chris-morgan-women-4590005-0-zcsejvcr/",
+            "info_dict": {
+                "id": "https://www.tmz.com/videos/071119-chris-morgan-women-4590005-0-zcsejvcr/",
+                "ext": "mp4",
+                "title": "Angry Bagel Shop Guy Says He Doesn't Trust Women",
+                "description": "The enraged man who went viral for ranting about women on dating sites before getting ragdolled in a bagel shop is defending his misogyny ... he says it's women's fault in the first place.",
+                "timestamp": 1562889485,
+                "uploader": "{'@type': 'Person', 'name': 'TMZ Staff'}",
+                "upload_date": "20190711",
+            },
+        },
+        {
+            "url": "http://www.tmz.com/2015/04/19/bobby-brown-bobbi-kristina-awake-video-concert",
+            "md5": "5429c85db8bde39a473a56ca8c4c5602",
+            "info_dict": {
+                "id": "http://www.tmz.com/2015/04/19/bobby-brown-bobbi-kristina-awake-video-concert",
+                "ext": "mp4",
+                "title": "Bobby Brown Tells Crowd ... Bobbi Kristina is Awake",
+                "description": 'Bobby Brown stunned his audience during a concert Saturday night, when he told the crowd, "Bobbi is awake.  She\'s watching me."',
+                "timestamp": 1429467813,
+                "uploader": "{'@type': 'Person', 'name': 'TMZ Staff'}",
+                "upload_date": "20150419",
+            },
+        },
+        {
+            "url": "http://www.tmz.com/2015/09/19/patti-labelle-concert-fan-stripping-kicked-out-nicki-minaj/",
+            "info_dict": {
+                "id": "http://www.tmz.com/2015/09/19/patti-labelle-concert-fan-stripping-kicked-out-nicki-minaj/",
+                "ext": "mp4",
+                "title": "Patti LaBelle -- Goes Nuclear On Stripping Fan",
+                "description": "Patti LaBelle made it known loud and clear last night ... NO "
+                "ONE gets on her stage and strips down.",
+                "timestamp": 1442683746,
+                "uploader": "{'@type': 'Person', 'name': 'TMZ Staff'}",
+                "upload_date": "20150919",
+            },
+        },
+        {
+            "url": "http://www.tmz.com/2016/01/28/adam-silver-sting-drake-blake-griffin/",
+            "info_dict": {
+                "id": "http://www.tmz.com/2016/01/28/adam-silver-sting-drake-blake-griffin/",
+                "ext": "mp4",
+                "title": "NBA's Adam Silver -- Blake Griffin's a Great Guy ... He'll Learn from This",
+                "description": "Two pretty parts of this video with NBA Commish Adam Silver.",
+                "timestamp": 1454010989,
+                "uploader": "{'@type': 'Person', 'name': 'TMZ Staff'}",
+                "upload_date": "20160128",
+            },
+        },
+        {
+            "url": "http://www.tmz.com/2016/10/27/donald-trump-star-vandal-arrested-james-otis/",
+            "info_dict": {
+                "id": "http://www.tmz.com/2016/10/27/donald-trump-star-vandal-arrested-james-otis/",
+                "ext": "mp4",
+                "title": "Trump Star Vandal -- I'm Not Afraid of Donald or the Cops!",
+                "description": "James Otis is the the guy who took a pickaxe to Donald Trump's star on the Walk of Fame, and he tells TMZ .. he's ready and willing to go to jail for the crime.",
+                "timestamp": 1477500095,
+                "uploader": "{'@type': 'Person', 'name': 'TMZ Staff'}",
+                "upload_date": "20161026",
+            },
+        },
+        {
+            "url": "https://www.tmz.com/videos/2020-10-31-103120-beverly-hills-protest-4878209/",
+            "info_dict": {
+                "id": "https://www.tmz.com/videos/2020-10-31-103120-beverly-hills-protest-4878209/",
+                "ext": "mp4",
+                "title": "Cops Use Billy Clubs Against Pro-Trump and Anti-Fascist "
+                "Demonstrators",
+                "description": "Beverly Hills may be an omen of what's coming next week, "
+                "because things got crazy on the streets and cops started "
+                "swinging their billy clubs at both Anti-Fascist and Pro-Trump "
+                "demonstrators.",
+                "timestamp": 1604182772,
+                "uploader": "{'@type': 'Person', 'name': 'TMZ Staff'}",
+                "upload_date": "20201031",
+            },
+        },
+    ]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url).replace('-', '_')
-        return self.url_result('kaltura:591531:%s' % video_id, 'Kaltura', video_id)
-
-
-class TMZArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tmz\.com/\d{4}/\d{2}/\d{2}/(?P<id>[^/]+)/?'
-    _TESTS = [{
-        'url': 'http://www.tmz.com/2015/04/19/bobby-brown-bobbi-kristina-awake-video-concert',
-        'md5': '5429c85db8bde39a473a56ca8c4c5602',
-        'info_dict': {
-            'id': '0_6snoelag',
-            'ext': 'mp4',
-            'title': 'Bobby Brown Tells Crowd ... Bobbi Kristina is Awake',
-            'timestamp': 1429467813,
-            'upload_date': '20150419',
-            'uploader_id': 'batchUser',
-        }
-    }, {
-        'url': 'http://www.tmz.com/2015/09/19/patti-labelle-concert-fan-stripping-kicked-out-nicki-minaj/',
-        'info_dict': {
-            'id': '0_jerz7s3l',
-            'ext': 'mp4',
-            'title': 'Patti LaBelle -- Goes Nuclear On Stripping Fan',
-            'timestamp': 1442683746,
-            'upload_date': '20150919',
-            'uploader_id': 'batchUser',
-        }
-    }, {
-        'url': 'http://www.tmz.com/2016/01/28/adam-silver-sting-drake-blake-griffin/',
-        'info_dict': {
-            'id': '0_ytz87kk7',
-            'ext': 'mp4',
-            'title': "NBA's Adam Silver -- Blake Griffin's a Great Guy ... He'll Learn from This",
-            'timestamp': 1454010989,
-            'upload_date': '20160128',
-            'uploader_id': 'batchUser',
-        }
-    }, {
-        'url': 'http://www.tmz.com/2016/10/27/donald-trump-star-vandal-arrested-james-otis/',
-        'info_dict': {
-            'id': '0_isigfatu',
-            'ext': 'mp4',
-            'title': "Trump Star Vandal -- I'm Not Afraid of Donald or the Cops!",
-            'timestamp': 1477500095,
-            'upload_date': '20161026',
-            'uploader_id': 'batchUser',
-        }
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        params = self._html_search_regex(r'TMZ.actions.clickLink\(([\s\S]+?)\)',
-                                         webpage, 'embedded video info').split(',')
-        new_url = params[0].strip("'\"")
-        if new_url != url:
-            return self.url_result(new_url)
+        webpage = self._download_webpage(url, url)
+        jsonld = self._search_json_ld(webpage, url)
+        if id not in jsonld:
+            jsonld["id"] = url
+        return jsonld

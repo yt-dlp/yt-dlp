@@ -1178,10 +1178,7 @@ from .thisoldhouse import ThisOldHouseIE
 from .threeqsdn import ThreeQSDNIE
 from .tiktok import TikTokIE
 from .tinypic import TinyPicIE
-from .tmz import (
-    TMZIE,
-    TMZArticleIE,
-)
+from .tmz import TMZIE
 from .tnaflix import (
     TNAFlixNetworkEmbedIE,
     TNAFlixIE,
