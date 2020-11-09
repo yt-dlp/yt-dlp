@@ -206,12 +206,12 @@ class GediEmbedsIE(GediBaseIE):
                     (?:\.gelocal)?\.it/embed/.+?/(?P<id>[\d/]+)(?:\?|\&|$)'''
     _TESTS = [{
         'url': 'https://video.huffingtonpost.it/embed/politica/cotticelli-non-so-cosa-mi-sia-successo-sto-cercando-di-capire-se-ho-avuto-un-malore/29312/29276?responsive=true&el=video971040871621586700',
-        'md5': '0391c2c83c6506581003aaf0255889c0',
+        'md5': 'f4ac23cadfea7fef89bea536583fa7ed',
         'info_dict': {
-            'id': '14772/14870',
+            'id': '29312/29276',
             'ext': 'mp4',
-            'title': 'Festival EMERGENCY, Villa: «La buona informazione aiuta la salute» (14772-14870)',
-            'description': 'md5:2bce954d278248f3c950be355b7c2226',
+            'title': 'Cotticelli: \\"Non so cosa mi sia successo. Sto cercando di capire se ho avuto un malore\\"',
+            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
             'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-social-play\.jpg$',
         },
     }]
