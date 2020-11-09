@@ -300,11 +300,12 @@ class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
     # Extract entries from page with "Load more" button
     def _entries(self, page, playlist_id):
         more_widget_html = content_html = page
+        mobj_reg = r'(?:(?:data-uix-load-more-href="[^"]+?;continuation=)|(?:"continuation":"))(?P<more>[^"]+)"'
         for page_num in itertools.count(1):
             for entry in self._process_page(content_html):
                 yield entry
 
-            mobj = re.search(r'data-uix-load-more-href="/?(?P<more>[^"]+)"', more_widget_html)
+            mobj = re.search(mobj_reg, more_widget_html)
             if not mobj:
                 break
 
@@ -315,7 +316,7 @@ class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     # Downloading page may result in intermittent 5xx HTTP error
                     # that is usually worked around with a retry
                     more = self._download_json(
-                        'https://www.youtube.com/%s' % mobj.group('more'), playlist_id,
+                        'https://www.youtube.com/browse_ajax?ctoken=%s' % mobj.group('more'), playlist_id,
                         'Downloading page #%s%s'
                         % (page_num, ' (retry #%d)' % count if count else ''),
                         transform_source=uppercase_escape,
@@ -372,7 +373,7 @@ class YoutubePlaylistBaseInfoExtractor(YoutubeEntryListBaseInfoExtractor):
 class YoutubePlaylistsBaseInfoExtractor(YoutubeEntryListBaseInfoExtractor):
     def _process_page(self, content):
         for playlist_id in orderedSet(re.findall(
-                r'<h3[^>]+class="[^"]*yt-lockup-title[^"]*"[^>]*><a[^>]+href="/?playlist\?list=([0-9A-Za-z-_]{10,})"',
+                r'"/?playlist\?list=([0-9A-Za-z-_]{10,})"',
                 content)):
             yield self.url_result(
                 'https://www.youtube.com/playlist?list=%s' % playlist_id, 'YoutubePlaylist')
