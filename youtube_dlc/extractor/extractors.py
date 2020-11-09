@@ -937,8 +937,7 @@ from .raywenderlich import (
 )
 from .rbmaradio import RBMARadioIE
 from .rcs import (
-    CorriereIE,
-    GazzettaIE,
+    RCSIE,
     RCSEmbedsIE,
     RCSVariousIE,
 )

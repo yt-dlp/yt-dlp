@@ -14,7 +14,7 @@ from ..utils import (
 )
 
 
-class RCSIE(InfoExtractor):
+class RCSBaseIE(InfoExtractor):
     _ALL_REPLACE = {
         'media2vam.corriere.it.edgesuite.net':
             'media2vam-corriere-it.akamaized.net',
@@ -237,7 +237,11 @@ class RCSIE(InfoExtractor):
                 # if no video data found try search for iframes
                 emb = RCSEmbedsIE._extract_url(page)
                 if emb:
-                    return self._real_extract(emb)
+                    return {
+                        '_type': 'url_transparent',
+                        'url': emb,
+                        'ie_key': RCSEmbedsIE.ie_key()
+                    }
 
         if not video_data:
             raise ExtractorError('Video data not found in the page')
@@ -247,7 +251,7 @@ class RCSIE(InfoExtractor):
 
         description = (video_data.get('description')
                        or clean_html(video_data.get('htmlDescription')))
-        uploader = video_data.get('provider') or mobj.gruop('cdn')
+        uploader = video_data.get('provider') or mobj.group('cdn')
 
         return {
             'id': video_id,
@@ -258,8 +262,7 @@ class RCSIE(InfoExtractor):
         }
 
 
-class RCSEmbedsIE(RCSIE):
-    IE_NAME = 'rcs:rcs'
+class RCSEmbedsIE(RCSBaseIE):
     _VALID_URL = r'''(?x)
                     https?://(?P<vid>video)\.
                     (?P<cdn>
@@ -278,6 +281,16 @@ class RCSEmbedsIE(RCSIE):
             'title': 'Sky Arte racconta Madonna nella serie "Artist to icon"',
             'description': 'md5:65b09633df9ffee57f48b39e34c9e067',
             'uploader': 'rcs.it',
+        }
+    }, {
+        'url': 'https://video.gazzanet.gazzetta.it/video-embed/gazzanet-mo05-0000260789',
+        'md5': 'a043e3fecbe4d9ed7fc5d888652a5440',
+        'info_dict': {
+            'id': 'gazzanet-mo05-0000260789',
+            'ext': 'mp4',
+            'title': 'Valentino Rossi e papà Graziano si divertono col drifting',
+            'description': 'md5:a8bf90d6adafd9815f70fc74c0fc370a',
+            'uploader': 'rcd',
         }
     }, {
         'url': 'https://video.corriere.it/video-embed/b727632a-f9d0-11ea-91b0-38d50a849abb?player',
@@ -324,17 +337,17 @@ class RCSEmbedsIE(RCSIE):
         return urls[0] if urls else None
 
 
-class CorriereIE(RCSIE):
-    IE_NAME = 'rcs:corriere'
+class RCSIE(RCSBaseIE):
     _VALID_URL = r'''(?x)https?://(?P<vid>video|viaggi)\.
                     (?P<cdn>
                     (?:
-                        corrieredelmezzogiorno\.|
-                        corrieredelveneto\.|
-                        corrieredibologna\.|
-                        corrierefiorentino\.
-                    )?
-                    corriere\.it)/.+?/(?P<id>[^/]+)(?=\?|/$|$)'''
+                        corrieredelmezzogiorno\.
+                        |corrieredelveneto\.
+                        |corrieredibologna\.
+                        |corrierefiorentino\.
+                    )?corriere\.it
+                    |(?:gazzanet\.)?gazzetta\.it)
+                    /(?!video-embed/).+?/(?P<id>[^/\?]+)(?=\?|/$|$)'''
     _TESTS = [{
         'url': 'https://video.corriere.it/sport/formula-1/vettel-guida-ferrari-sf90-mugello-suo-fianco-c-elecrerc-bendato-video-esilarante/b727632a-f9d0-11ea-91b0-38d50a849abb',
         'md5': '0f4ededc202b0f00b6e509d831e2dcda',
@@ -356,18 +369,6 @@ class CorriereIE(RCSIE):
             'uploader': 'DOVE Viaggi',
         }
     }, {
-        'url': 'https://video.corriere.it/video-embed/b727632a-f9d0-11ea-91b0-38d50a849abb?player',
-        'match_only': True
-    }, {
-        'url': 'https://video.corriere.it/video-360/metro-copenaghen-tutta-italiana/a248a7f0-e2db-11e9-9830-af2de6b1f945',
-        'match_only': True
-    }]
-
-
-class GazzettaIE(RCSIE):
-    IE_NAME = 'rcs:gazzetta'
-    _VALID_URL = r'https?://(?P<vid>video)\.(?P<cdn>(?:gazzanet\.)?gazzetta\.it)/.+?/(?P<id>[^/]+?)(?:$|\?)'
-    _TESTS = [{
         'url': 'https://video.gazzetta.it/video-motogp-catalogna-cadute-dovizioso-vale-rossi/49612410-00ca-11eb-bcd8-30d4253e0140?vclk=Videobar',
         'md5': 'eedc1b5defd18e67383afef51ff7bdf9',
         'info_dict': {
@@ -378,16 +379,12 @@ class GazzettaIE(RCSIE):
             'uploader': 'AMorici',
         }
     }, {
-        'url': 'https://video.gazzetta.it/video-embed/49612410-00ca-11eb-bcd8-30d4253e0140',
-        'match_only': True
-    }, {
-        'url': 'https://video.gazzanet.gazzetta.it/video-embed/gazzanet-mo05-0000260789',
+        'url': 'https://video.corriere.it/video-360/metro-copenaghen-tutta-italiana/a248a7f0-e2db-11e9-9830-af2de6b1f945',
         'match_only': True
     }]
 
 
-class RCSVariousIE(RCSIE):
-    IE_NAME = 'rcs:various'
+class RCSVariousIE(RCSBaseIE):
     _VALID_URL = r'''(?x)https?://www\.
                     (?P<cdn>
                         leitv\.it|
