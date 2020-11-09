@@ -170,16 +170,6 @@ class GediIE(GediBaseIE):
             'description': 'md5:9907d65b53765681fa3a0b3122617c1f',
             'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-social-play\.jpg$',
         },
-    }, {
-        'url': 'https://video.espresso.repubblica.it/embed/tutti-i-video/01-ted-villa/14772/14870&width=640&height=360',
-        'md5': '0391c2c83c6506581003aaf0255889c0',
-        'info_dict': {
-            'id': '14772/14870',
-            'ext': 'mp4',
-            'title': 'Festival EMERGENCY, Villa: «La buona informazione aiuta la salute» (14772-14870)',
-            'description': 'md5:2bce954d278248f3c950be355b7c2226',
-            'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-social-play\.jpg$',
-        },
     }]
 
 
@@ -212,6 +202,16 @@ class GediEmbedsIE(GediBaseIE):
             'ext': 'mp4',
             'title': 'Cotticelli: \\"Non so cosa mi sia successo. Sto cercando di capire se ho avuto un malore\\"',
             'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-social-play\.jpg$',
+        },
+    }, {
+        'url': 'https://video.espresso.repubblica.it/embed/tutti-i-video/01-ted-villa/14772/14870&width=640&height=360',
+        'md5': '0391c2c83c6506581003aaf0255889c0',
+        'info_dict': {
+            'id': '14772/14870',
+            'ext': 'mp4',
+            'title': 'Festival EMERGENCY, Villa: «La buona informazione aiuta la salute» (14772-14870)',
+            'description': 'md5:2bce954d278248f3c950be355b7c2226',
             'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-social-play\.jpg$',
         },
     }]
