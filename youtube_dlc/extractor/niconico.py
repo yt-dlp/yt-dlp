@@ -290,7 +290,7 @@ class NiconicoIE(InfoExtractor):
 
         # get heartbeat info
         heartbeat_url = session_api_endpoint['url'] + '/' + session_response['data']['session']['id'] + '?_format=json&_method=PUT'
-        heartbeat_data = json.dumps(session_response['data']).encode()
+        heartbeat_data = json.dumps(session_response['data'])
         # interval, convert milliseconds to seconds, then halve to make a buffer.
         heartbeat_interval = session_api_data['heartbeat_lifetime'] / 2000
 

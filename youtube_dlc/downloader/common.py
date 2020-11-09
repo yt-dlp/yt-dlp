@@ -390,9 +390,9 @@ class FileDownloader(object):
 
             def heartbeat():
                 try:
-                    compat_urllib_request.urlopen(url=heartbeat_url, data=heartbeat_data)
+                    compat_urllib_request.urlopen(url=heartbeat_url, data=heartbeat_data.encode())
                 except Exception:
-                    self.to_screen("[download] Heartbeat failed")
+                    self.to_screen('[download] Heartbeat failed')
 
                 with heartbeat_lock:
                     if not download_complete:
