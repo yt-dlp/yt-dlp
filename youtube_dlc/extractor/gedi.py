@@ -5,6 +5,11 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
+from ..utils import (
+    base_url,
+    url_basename,
+    urljoin,
+)
 
 
 class GediBaseIE(InfoExtractor):
@@ -109,6 +114,7 @@ class GediIE(GediBaseIE):
                     (?:
                         (?:espresso\.)?repubblica
                         |lastampa
+                        |huffingtonpost
                         |ilsecoloxix
                         |iltirreno
                         |messaggeroveneto
@@ -175,3 +181,86 @@ class GediIE(GediBaseIE):
             'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-social-play\.jpg$',
         },
     }]
+
+
+class GediEmbedsIE(GediBaseIE):
+    _VALID_URL = r'''(?x)https?://video\.
+                    (?:
+                        (?:espresso\.)?repubblica
+                        |lastampa
+                        |huffingtonpost
+                        |ilsecoloxix
+                        |iltirreno
+                        |messaggeroveneto
+                        |ilpiccolo
+                        |gazzettadimantova
+                        |mattinopadova
+                        |laprovinciapavese
+                        |tribunatreviso
+                        |nuovavenezia
+                        |gazzettadimodena
+                        |lanuovaferrara
+                        |corrierealpi
+                        |lasentinella
+                    )
+                    (?:\.gelocal)?\.it/embed/.+?/(?P<id>[\d/]+)(?:\?|\&|$)'''
+    _TESTS = [{
+        'url': 'https://video.huffingtonpost.it/embed/politica/cotticelli-non-so-cosa-mi-sia-successo-sto-cercando-di-capire-se-ho-avuto-un-malore/29312/29276?responsive=true&el=video971040871621586700',
+        'md5': '0391c2c83c6506581003aaf0255889c0',
+        'info_dict': {
+            'id': '14772/14870',
+            'ext': 'mp4',
+            'title': 'Festival EMERGENCY, Villa: «La buona informazione aiuta la salute» (14772-14870)',
+            'description': 'md5:2bce954d278248f3c950be355b7c2226',
+            'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?-thumb-social-play\.jpg$',
+        },
+    }]
+
+    @staticmethod
+    def _sanitize_urls(urls):
+        # add protocol if missing
+        for i, e in enumerate(urls):
+            if e.startswith('//'):
+                urls[i] = 'https:%s' % e
+        # clean iframes urls
+        for i, e in enumerate(urls):
+            urls[i] = urljoin(base_url(e), url_basename(e))
+        return urls
+
+    @staticmethod
+    def _extract_urls(webpage):
+        entries = [
+            mobj.group('url')
+            for mobj in re.finditer(r'''(?x)
+            (?:
+                data-frame-src=|
+                <iframe[^\n]+src=
+            )
+            (["'])
+                (?P<url>https?://video\.
+                    (?:
+                        (?:espresso\.)?repubblica
+                        |lastampa
+                        |huffingtonpost
+                        |ilsecoloxix
+                        |iltirreno
+                        |messaggeroveneto
+                        |ilpiccolo
+                        |gazzettadimantova
+                        |mattinopadova
+                        |laprovinciapavese
+                        |tribunatreviso
+                        |nuovavenezia
+                        |gazzettadimodena
+                        |lanuovaferrara
+                        |corrierealpi
+                        |lasentinella
+                    )
+                    (?:\.gelocal)?\.it/embed/.+?)
+            \1''', webpage)]
+        return GediEmbedsIE._sanitize_urls(entries)
+
+    @staticmethod
+    def _extract_url(webpage):
+        urls = GediEmbedsIE._extract_urls(webpage)
+        return urls[0] if urls else None
