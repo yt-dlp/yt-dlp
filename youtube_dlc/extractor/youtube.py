@@ -328,7 +328,7 @@ class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         return entries, try_get(c, lambda x: x["continuation"])
 
-    def _entries(self, page, playlist_id, n=1):
+    def _entries(self, page, playlist_id, max_pages=None):
         seen = []
 
         yt_conf = {}
@@ -340,8 +340,7 @@ class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         data_json = self._parse_json(self._search_regex(self._INITIAL_DATA_RE, page, 'ytInitialData'), None)
 
-        # for page_num in itertools.count(1):
-        for page_num in range(n):
+        for page_num in range(1, max_pages + 1) if max_pages is not None else itertools.count(1):
             entries, continuation = self._find_entries_in_json(data_json)
             processed = self._process_entries(entries, seen)
 
@@ -366,7 +365,7 @@ class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     data_json = self._download_json(
                         'https://www.youtube.com%s' % continuation_url,
                         playlist_id,
-                        'Downloading page #%s%s' % (page_num, ' (retry #%d)' % count if count else ''),
+                        'Downloading continuation page #%s%s' % (page_num, ' (retry #%d)' % count if count else ''),
 
                         transform_source=uppercase_escape,
                         query={
@@ -3418,41 +3417,11 @@ class YoutubeSearchURLIE(YoutubePlaylistBaseInfoExtractor):
             c["continuation"] = obj["nextContinuationData"]
             return
 
-    def extract_videos_from_page_impl(self, page, ids_in_page, titles_in_page):
-        search_response = self._parse_json(self._search_regex(self._SEARCH_DATA, page, 'ytInitialData'), None)
-
-        result_items = self._find_videos_in_json(search_response)
-
-        for renderer in result_items:
-            video_id = try_get(renderer, lambda x: x['videoId'])
-            video_title = try_get(renderer, lambda x: x['title']['runs'][0]['text']) or try_get(renderer, lambda x: x['title']['simpleText'])
-
-            if video_id is None or video_title is None:
-                # we do not have a videoRenderer or title extraction broke
-                continue
-
-            video_title = video_title.strip()
-
-            try:
-                idx = ids_in_page.index(video_id)
-                if video_title and not titles_in_page[idx]:
-                    titles_in_page[idx] = video_title
-            except ValueError:
-                ids_in_page.append(video_id)
-                titles_in_page.append(video_title)
-
-    def extract_videos_from_page(self, page):
-        ids_in_page = []
-        titles_in_page = []
-        self.extract_videos_from_page_impl(page, ids_in_page, titles_in_page)
-        return zip(ids_in_page, titles_in_page)
-
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
         query = compat_urllib_parse_unquote_plus(mobj.group('query'))
         webpage = self._download_webpage(url, query)
-        # data_json = self._process_initial_data(webpage)
-        return self.playlist_result(self._entries(webpage, query, n=5), playlist_title=query)
+        return self.playlist_result(self._entries(webpage, query, max_pages=0), playlist_title=query)
 
 
 class YoutubeShowIE(YoutubePlaylistsBaseInfoExtractor):
