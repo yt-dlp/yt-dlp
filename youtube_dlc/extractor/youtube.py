@@ -327,7 +327,7 @@ class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         return entries, try_get(c, lambda x: x["continuation"])
 
-    def _entries(self, page, playlist_id):
+    def _entries(self, page, playlist_id, n=1):
         seen = []
 
         yt_conf = {}
@@ -339,7 +339,8 @@ class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         data_json = self._parse_json(self._search_regex(self._INITIAL_DATA_RE, page, 'ytInitialData'), None)
 
-        for page_num in itertools.count(1):
+        # for page_num in itertools.count(1):
+        for page_num in range(n):
             entries, continuation = self._find_entries_in_json(data_json)
             processed = self._process_entries(entries, seen)
 
@@ -3447,8 +3448,8 @@ class YoutubeSearchURLIE(YoutubePlaylistBaseInfoExtractor):
         mobj = re.match(self._VALID_URL, url)
         query = compat_urllib_parse_unquote_plus(mobj.group('query'))
         webpage = self._download_webpage(url, query)
-        data_json = self._process_initial_data(webpage)
-        return self.playlist_result(self._process_data(data_json), playlist_title=query)
+        # data_json = self._process_initial_data(webpage)
+        return self.playlist_result(self._entries(webpage, query, n=5), playlist_title=query)
 
 
 class YoutubeShowIE(YoutubePlaylistsBaseInfoExtractor):
