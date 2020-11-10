@@ -13,7 +13,7 @@ from ..utils import (
 
 class ZoomIE(InfoExtractor):
     IE_NAME = 'zoom'
-    _VALID_URL = r'https://(?:.*).?zoom.us/rec(?:ording)?/play/(?P<id>[A-Za-z0-9\-_]+)'
+    _VALID_URL = r'https://(?:.*).?zoom.us/rec(?:ording)?/(play|share)/(?P<id>[A-Za-z0-9\-_.]+)'
 
     _TEST = {
         'url': 'https://zoom.us/recording/play/SILVuCL4bFtRwWTtOCFQQxAsBQsJljFtm9e4Z_bvo-A8B-nzUSYZRNuPl3qW5IGK',

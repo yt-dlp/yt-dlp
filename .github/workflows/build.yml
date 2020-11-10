@@ -82,7 +82,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-          python-version: '3.x'
+          python-version: '3.8'
     - name: Install Requirements
       run: pip install pyinstaller
     - name: Bump version
@@ -116,7 +116,7 @@ jobs:
     - name: Set up Python 3.5.4 32-Bit
       uses: actions/setup-python@v2
       with:
-          python-version: '3.5.4'
+          python-version: '3.4.4'
           architecture: 'x86'
     - name: Install Requirements for 32 Bit
       run: pip install pyinstaller==3.5

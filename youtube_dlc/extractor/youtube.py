@@ -299,6 +299,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
 
 class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
+
     def _find_entries_in_json(self, extracted):
         entries = []
         c = {}
@@ -366,6 +367,7 @@ class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
                         'https://www.youtube.com%s' % continuation_url,
                         playlist_id,
                         'Downloading page #%s%s' % (page_num, ' (retry #%d)' % count if count else ''),
+
                         transform_source=uppercase_escape,
                         query={
                             'key': try_get(yt_conf, lambda x: x['INNERTUBE_API_KEY'])
@@ -428,6 +430,7 @@ class YoutubePlaylistsBaseInfoExtractor(YoutubeEntryListBaseInfoExtractor):
 
     def _process_entries(self, entries, seen):
         for playlist_id in orderedSet(try_get(r, lambda x: x['playlistId']) for r in entries):
+
             yield self.url_result(
                 'https://www.youtube.com/playlist?list=%s' % playlist_id, 'YoutubePlaylist')
 
