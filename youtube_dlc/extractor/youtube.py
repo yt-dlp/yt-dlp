@@ -3421,7 +3421,7 @@ class YoutubeSearchURLIE(YoutubePlaylistBaseInfoExtractor):
         mobj = re.match(self._VALID_URL, url)
         query = compat_urllib_parse_unquote_plus(mobj.group('query'))
         webpage = self._download_webpage(url, query)
-        return self.playlist_result(self._entries(webpage, query, max_pages=0), playlist_title=query)
+        return self.playlist_result(self._entries(webpage, query, max_pages=5), playlist_title=query)
 
 
 class YoutubeShowIE(YoutubePlaylistsBaseInfoExtractor):
