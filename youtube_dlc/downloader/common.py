@@ -364,8 +364,10 @@ class FileDownloader(object):
                         else '%.2f' % sleep_interval))
                 time.sleep(sleep_interval)
         else:
-            if self.params.get('sleep_interval_subtitles') > 0:
+            sleep_interval_sub = 0
+            if type(self.params.get('sleep_interval_subtitles')) is int:
                 sleep_interval_sub = self.params.get('sleep_interval_subtitles')
+            if sleep_interval_sub > 0:
                 self.to_screen(
                     '[download] Sleeping %s seconds...' % (
                         sleep_interval_sub))
