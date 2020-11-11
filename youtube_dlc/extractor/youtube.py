@@ -371,10 +371,10 @@ class YoutubeEntryListBaseInfoExtractor(YoutubeBaseInfoExtractor):
                         query={
                             'key': try_get(yt_conf, lambda x: x['INNERTUBE_API_KEY'])
                         },
-                        data=bytes(json.dumps({
+                        data= str(json.dumps({
                             'context': try_get(yt_conf, lambda x: x['INNERTUBE_CONTEXT']),
                             'continuation': continuation_token
-                        }), encoding='utf-8'),
+                        })).encode(encoding='UTF-8',errors='strict'),
                         headers={
                             'Content-Type': 'application/json'
                         }
