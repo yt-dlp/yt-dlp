@@ -151,7 +151,7 @@ class InstagramIE(InfoExtractor):
                 description = try_get(
                     media, lambda x: x['edge_media_to_caption']['edges'][0]['node']['text'],
                     compat_str) or media.get('caption')
-                thumbnail = media.get('display_src')
+                thumbnail = media.get('display_src') or media.get('thumbnail_src')
                 timestamp = int_or_none(media.get('taken_at_timestamp') or media.get('date'))
                 uploader = media.get('owner', {}).get('full_name')
                 uploader_id = media.get('owner', {}).get('username')
