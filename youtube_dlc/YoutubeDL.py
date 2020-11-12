@@ -830,10 +830,10 @@ class YoutubeDL(object):
             try:
                 try:
                     temp_id = ie.extract_id(url) if callable(getattr(ie, 'extract_id', None)) else ie._match_id(url)
-                except AssertionError:
+                except (AssertionError, IndexError):
                     temp_id = None
                 if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': ie_key}):
-                    self.to_screen("[download] [%s] %s has already been recorded in archive" % (
+                    self.to_screen("[%s] %s: has already been recorded in archive" % (
                                    ie_key, temp_id))
                     break
 
