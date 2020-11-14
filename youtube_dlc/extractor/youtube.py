@@ -3343,7 +3343,7 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubePlaylistBaseInfoExtractor):
             # changing the index location of videos and token.
             # So we search through all entries till we find them.
             for index, isr in enumerate(slr_contents):
-                if len(isr_contents) == 0:
+                if not isr_contents:
                     isr_contents = try_get(
                         slr_contents,
                         (lambda x: x[index]['itemSectionRenderer']['contents']),
@@ -3360,7 +3360,7 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubePlaylistBaseInfoExtractor):
                         lambda x: x[index]['continuationItemRenderer']['continuationEndpoint']['continuationCommand'][
                             'token'],
                         compat_str)
-                if continuation_token is not None and isr_contents != []:
+                if continuation_token is not None and isr_contents:
                     break
 
             if not isr_contents:
