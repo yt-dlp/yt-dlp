@@ -186,7 +186,7 @@ class FranceTVIE(InfoExtractor):
             'id': video_id,
             'title': self._live_title(title) if is_live else title,
             'description': clean_html(info['synopsis']),
-            'thumbnail': compat_urlparse.urljoin('http://pluzz.francetv.fr', info['image']),
+            'thumbnail': compat_urlparse.urljoin('https://sivideo.webservices.francetelevisions.fr', info['image']),
             'duration': int_or_none(info.get('real_duration')) or parse_duration(info['duree']),
             'timestamp': int_or_none(info['diffusion']['timestamp']),
             'is_live': is_live,
