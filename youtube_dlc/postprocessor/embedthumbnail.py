@@ -94,7 +94,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             thumbnail_filename = 'cover.jpg'
 
             options = [
-                '-c', 'copy', '-attach', thumbnail_filename, '-metadata:s:t', 'mimetype=image/jpeg']
+                '-c', 'copy', '-map', '0',
+                '-attach', thumbnail_filename, '-metadata:s:t', 'mimetype=image/jpeg']
 
             self._downloader.to_screen('[ffmpeg] Adding thumbnail to "%s"' % filename)
 
@@ -140,6 +141,6 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 os.remove(encodeFilename(filename))
                 os.rename(encodeFilename(temp_filename), encodeFilename(filename))
         else:
-            raise EmbedThumbnailPPError('Only mp3 and m4a/mp4 are supported for thumbnail embedding for now.')
+            raise EmbedThumbnailPPError('Only mp3, mkv, m4a and mp4 are supported for thumbnail embedding for now.')
 
         return [], info
