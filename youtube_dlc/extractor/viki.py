@@ -308,17 +308,26 @@ class VikiIE(VikiBaseIE):
                 'url': thumbnail.get('url'),
             })
 
-        new_video = self._download_json(
-            'https://www.viki.com/api/videos/%s' % video_id, video_id,
-            'Downloading new video JSON to get subtitles', headers={'x-viki-app-ver': '2.2.5.1428709186'}, expected_status=[200, 400, 404])
-
         subtitles = {}
-        for sub in new_video.get('streamSubtitles').get('dash'):
-            subtitles[sub.get('srclang')] = [{
-                'ext': 'vtt',
-                'url': sub.get('src'),
-                'completion': sub.get('percentage'),
-            }]
+        try:
+            # New way to fetch subtitles
+            new_video = self._download_json(
+                'https://www.viki.com/api/videos/%s' % video_id, video_id,
+                'Downloading new video JSON to get subtitles', headers={'x-viki-app-ver': '2.2.5.1428709186'}, expected_status=[200, 400, 404])
+            for sub in new_video.get('streamSubtitles').get('dash'):
+                subtitles[sub.get('srclang')] = [{
+                    'ext': 'vtt',
+                    'url': sub.get('src'),
+                    'completion': sub.get('percentage'),
+                }]
+        except AttributeError:
+            # fall-back to the old way if there isn't a streamSubtitles attribute
+            for subtitle_lang, _ in video.get('subtitle_completions', {}).items():
+                subtitles[subtitle_lang] = [{
+                    'ext': subtitles_format,
+                    'url': self._prepare_call(
+                        'videos/%s/subtitles/%s.%s' % (video_id, subtitle_lang, subtitles_format)),
+                } for subtitles_format in ('srt', 'vtt')]
 
         result = {
             'id': video_id,
