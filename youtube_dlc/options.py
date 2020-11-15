@@ -946,6 +946,31 @@ def parseOpts(overrideArguments=None):
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help='Convert the subtitles to other format (currently supported: srt|ass|vtt|lrc)')
 
+    extractor = optparse.OptionGroup(parser, 'SponSkrub Options (SponsorBlock)')
+    extractor.add_option(
+        '--sponskrub',
+        action='store_true', dest='sponskrub', default=None,
+        help='Use sponskrub to mark sponsored sections with the data available in SponsorBlock API (Youtube only)')
+    extractor.add_option(
+        '--no-sponskrub',
+        action='store_false', dest='sponskrub',
+        help=optparse.SUPPRESS_HELP)
+    extractor.add_option(
+        '--sponskrub-cut', default=False,
+        action='store_true', dest='sponskrub_cut',
+        help='Cut out the sponsor sections instead of simply marking them')
+    extractor.add_option(
+        '--sponskrub-force', default=False,
+        action='store_true', dest='sponskrub_force',
+        help='Run sponskrub even if the video was already downloaded')
+    extractor.add_option(
+        '--sponskrub-location', metavar='PATH',
+        dest='sponskrub_path', default='',
+        help='Location of the sponskrub binary; either the path to the binary or its containing directory.')
+    extractor.add_option(
+        '--sponskrub-args', dest='sponskrub_args',
+        help='Give these arguments to sponskrub')
+
     extractor = optparse.OptionGroup(parser, 'Extractor Options')
     extractor.add_option(
         '--allow-dynamic-mpd',

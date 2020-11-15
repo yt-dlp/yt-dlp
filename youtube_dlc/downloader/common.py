@@ -351,7 +351,7 @@ class FileDownloader(object):
                     'status': 'finished',
                     'total_bytes': os.path.getsize(encodeFilename(filename)),
                 })
-                return True
+                return True, False
 
         if subtitle is False:
             min_sleep_interval = self.params.get('sleep_interval')
@@ -372,7 +372,7 @@ class FileDownloader(object):
                     '[download] Sleeping %s seconds...' % (
                         sleep_interval_sub))
                 time.sleep(sleep_interval_sub)
-        return self.real_download(filename, info_dict)
+        return self.real_download(filename, info_dict), True
 
     def real_download(self, filename, info_dict):
         """Real download process. Redefine in subclasses."""

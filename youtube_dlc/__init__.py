@@ -310,6 +310,17 @@ def _real_main(argv=None):
     # contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})
+    # This should be below all ffmpeg PP because it may cut parts out from the video
+    # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
+    if opts.sponskrub is not False:
+        postprocessors.append({
+            'key': 'SponSkrub',
+            'path': opts.sponskrub_path,
+            'args': opts.sponskrub_args,
+            'cut': opts.sponskrub_cut,
+            'force': opts.sponskrub_force,
+            'ignoreerror': opts.sponskrub is None,
+        })
     # Please keep ExecAfterDownload towards the bottom as it allows the user to modify the final file in any way.
     # So if the user is able to remove the file before your postprocessor runs it might cause a few problems.
     if opts.exec_cmd:

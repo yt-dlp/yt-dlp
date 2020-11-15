@@ -523,6 +523,19 @@ I will add some memorable short links to the binaries so you can download them e
     --convert-subs FORMAT            Convert the subtitles to other format
                                      (currently supported: srt|ass|vtt|lrc)
 
+## SponSkrub Options (SponsorBlock)
+    --sponskrub                      Use sponskrub to mark sponsored sections
+                                     with the data available in SponsorBlock API
+                                     (Youtube only)
+    --sponskrub-cut                  Cut out the sponsor sections instead of
+                                     simply marking them
+    --sponskrub-force                Run sponskrub even if the video was
+                                     already downloaded. Use with caution
+    --sponskrub-location             Location of the sponskrub binary;
+                                     either the path to the binary or its
+                                     containing directory
+    --sponskrub-args                 Give these arguments to sponskrub
+
 ## Extractor Options:
     --ignore-dynamic-mpd             Do not process dynamic DASH manifests
 
