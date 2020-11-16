@@ -345,6 +345,10 @@ def parseOpts(overrideArguments=None):
         dest='download_archive',
         help='Download only videos not listed in the archive file. Record the IDs of all downloaded videos in it.')
     selection.add_option(
+        '--break-on-existing',
+        action='store_true', dest='break_on_existing', default=False,
+        help="Stop the download process after attempting to download a file that's in the archive.")
+    selection.add_option(
         '--include-ads',
         dest='include_ads', action='store_true',
         help='Download advertisements as well (experimental)')

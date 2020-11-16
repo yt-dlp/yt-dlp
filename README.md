@@ -217,6 +217,8 @@ I will add some memorable short links to the binaries so you can download them e
     --download-archive FILE          Download only videos not listed in the
                                      archive file. Record the IDs of all
                                      downloaded videos in it.
+    --break-on-existing              Stop the download process after attempting
+                                     to download a file that's in the archive.
     --include-ads                    Download advertisements as well
                                      (experimental)
 
