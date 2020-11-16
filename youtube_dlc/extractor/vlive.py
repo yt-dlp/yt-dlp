@@ -300,13 +300,34 @@ class VLiveChannelIE(InfoExtractor):
 
             for video in videos:
                 video_id = video.get('videoSeq')
-                if not video_id:
+                video_type = video.get('videoType')
+
+                if not video_id or not video_type:
                     continue
                 video_id = compat_str(video_id)
-                entries.append(
-                    self.url_result(
-                        'http://www.vlive.tv/video/%s' % video_id,
-                        ie=VLiveIE.ie_key(), video_id=video_id))
+
+                if video_type in ('PLAYLIST'):
+                    playlist_videos = try_get(
+                        video,
+                        lambda x: x['videoPlaylist']['videoList'], list)
+                    if not playlist_videos:
+                        continue
+
+                    for playlist_video in playlist_videos:
+                        playlist_video_id = playlist_video.get('videoSeq')
+                        if not playlist_video_id:
+                            continue
+                        playlist_video_id = compat_str(playlist_video_id)
+
+                        entries.append(
+                            self.url_result(
+                                'http://www.vlive.tv/video/%s' % playlist_video_id,
+                                ie=VLiveIE.ie_key(), video_id=playlist_video_id))
+                else:
+                    entries.append(
+                        self.url_result(
+                            'http://www.vlive.tv/video/%s' % video_id,
+                            ie=VLiveIE.ie_key(), video_id=video_id))
 
         return self.playlist_result(
             entries, channel_code, channel_name)
