@@ -1456,9 +1456,10 @@ class InfoExtractor(object):
         try:
             self._request_webpage(url, video_id, 'Checking %s URL' % item, headers=headers)
             return True
-        except ExtractorError:
+        except ExtractorError as e:
             self.to_screen(
-                '%s: %s URL is invalid, skipping' % (video_id, item))
+                '%s: %s URL is invalid, skipping: %s'
+                % (video_id, item, error_to_compat_str(e.cause)))
             return False
 
     def http_scheme(self):

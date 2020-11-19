@@ -91,6 +91,7 @@ from .piksel import PikselIE
 from .videa import VideaIE
 from .twentymin import TwentyMinutenIE
 from .ustream import UstreamIE
+from .arte import ArteTVEmbedIE
 from .videopress import VideoPressIE
 from .rutube import RutubeIE
 from .limelight import LimelightBaseIE
@@ -2760,11 +2761,9 @@ class GenericIE(InfoExtractor):
             return self.url_result(ustream_url, UstreamIE.ie_key())
 
         # Look for embedded arte.tv player
-        mobj = re.search(
-            r'<(?:script|iframe) [^>]*?src="(?P<url>http://www\.arte\.tv/(?:playerv2/embed|arte_vp/index)[^"]+)"',
-            webpage)
-        if mobj is not None:
-            return self.url_result(mobj.group('url'), 'ArteTVEmbed')
+        arte_urls = ArteTVEmbedIE._extract_urls(webpage)
+        if arte_urls:
+            return self.playlist_from_matches(arte_urls, video_id, video_title)
 
         # Look for embedded francetv player
         mobj = re.search(

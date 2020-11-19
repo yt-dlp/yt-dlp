@@ -83,6 +83,29 @@ class NDRIE(NDRBaseIE):
             'skip_download': True,
         },
     }, {
+        # with subtitles
+        'url': 'https://www.ndr.de/fernsehen/sendungen/extra_3/extra-3-Satiremagazin-mit-Christian-Ehring,sendung1091858.html',
+        'info_dict': {
+            'id': 'extra18674',
+            'display_id': 'extra-3-Satiremagazin-mit-Christian-Ehring',
+            'ext': 'mp4',
+            'title': 'Extra 3 vom 11.11.2020 mit Christian Ehring',
+            'description': 'md5:42ee53990a715eaaf4dc7f13a3bd56c6',
+            'uploader': 'ndrtv',
+            'upload_date': '20201113',
+            'duration': 1749,
+            'subtitles': {
+                'de': [{
+                    'ext': 'ttml',
+                    'url': r're:^https://www\.ndr\.de.+',
+                }],
+            },
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'expected_warnings': ['Unable to download f4m manifest'],
+    }, {
         'url': 'https://www.ndr.de/Fettes-Brot-Ferris-MC-und-Thees-Uhlmann-live-on-stage,festivalsommer116.html',
         'only_matching': True,
     }]
@@ -242,6 +265,20 @@ class NDREmbedBaseIE(InfoExtractor):
                 'preference': quality_key(thumbnail.get('quality')),
             })
 
+        subtitles = {}
+        tracks = config.get('tracks')
+        if tracks and isinstance(tracks, list):
+            for track in tracks:
+                if not isinstance(track, dict):
+                    continue
+                track_url = urljoin(url, track.get('src'))
+                if not track_url:
+                    continue
+                subtitles.setdefault(track.get('srclang') or 'de', []).append({
+                    'url': track_url,
+                    'ext': 'ttml',
+                })
+
         return {
             'id': video_id,
             'title': title,
@@ -251,6 +288,7 @@ class NDREmbedBaseIE(InfoExtractor):
             'duration': duration,
             'thumbnails': thumbnails,
             'formats': formats,
+            'subtitles': subtitles,
         }
 
 
