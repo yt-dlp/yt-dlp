@@ -119,6 +119,7 @@ from .expressen import ExpressenIE
 from .zype import ZypeIE
 from .odnoklassniki import OdnoklassnikiIE
 from .kinja import KinjaEmbedIE
+from .bitchute import BitChuteIE
 
 
 class GenericIE(InfoExtractor):
@@ -3212,6 +3213,11 @@ class GenericIE(InfoExtractor):
         if zype_urls:
             return self.playlist_from_matches(
                 zype_urls, video_id, video_title, ie=ZypeIE.ie_key())
+
+        bitchute_urls = BitChuteIE._extract_urls(webpage)
+        if bitchute_urls:
+            return self.playlist_from_matches(
+                bitchute_urls, video_id, video_title, ie=BitChuteIE.ie_key())
 
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
