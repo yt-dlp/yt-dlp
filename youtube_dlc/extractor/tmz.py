@@ -1,7 +1,13 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
+
 from .common import InfoExtractor
+from ..utils import (
+    ExtractorError,
+    get_element_by_attribute,
+)
 
 
 class TMZIE(InfoExtractor):
@@ -97,11 +103,55 @@ class TMZIE(InfoExtractor):
                 "upload_date": "20201031",
             },
         },
+        {
+            "url": "https://www.tmz.com/2020/11/05/gervonta-davis-car-crash-hit-and-run-police/",
+            "info_dict": {
+                "id": "Dddb6IGe-ws",
+                "ext": "mp4",
+                "title": "SICK LAMBO GERVONTA DAVIS IN HIS NEW RIDE RIGHT AFTER KO AFTER LEO  EsNews Boxing",
+                "uploader": "ESNEWS",
+                "description": "md5:49675bc58883ccf80474b8aa701e1064",
+                "upload_date": "20201101",
+                "uploader_id": "ESNEWS",
+            },
+        },
+        {
+            "url": "https://www.tmz.com/2020/11/19/conor-mcgregor-dustin-poirier-contract-fight-ufc-257-fight-island/",
+            "info_dict": {
+                "id": "1329450007125225473",
+                "ext": "mp4",
+                "title": "TheMacLife - BREAKING: Conor McGregor (@thenotoriousmma) has signed his bout agreement for his rematch with Dustin Poirier for January 23.",
+                "uploader": "TheMacLife",
+                "description": "md5:56e6009bbc3d12498e10d08a8e1f1c69",
+                "upload_date": "20201119",
+                "uploader_id": "Maclifeofficial",
+                "timestamp": 1605800556,
+            },
+        },
     ]
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, url)
         jsonld = self._search_json_ld(webpage, url)
+        if not jsonld or "url" not in jsonld:
+            # try to extract from YouTube Player API
+            # see https://developers.google.com/youtube/iframe_api_reference#Video_Queueing_Functions
+            match_obj = re.search(r'\.cueVideoById\(\s*(?P<quote>[\'"])(?P<id>.*?)(?P=quote)', webpage)
+            if match_obj:
+                res = self.url_result(match_obj.group("id"))
+                return res
+            # try to extract from twitter
+            blockquote_el = get_element_by_attribute("class", "twitter-tweet", webpage)
+            if blockquote_el:
+                matches = re.findall(
+                    r'<a[^>]+href=\s*(?P<quote>[\'"])(?P<link>.*?)(?P=quote)',
+                    blockquote_el)
+                if matches:
+                    for _, match in matches:
+                        if "/status/" in match:
+                            res = self.url_result(match)
+                            return res
+            raise ExtractorError("No video found!")
         if id not in jsonld:
             jsonld["id"] = url
         return jsonld
