@@ -35,6 +35,9 @@ class TestAllURLsMatching(unittest.TestCase):
         assertPlaylist('ECUl4u3cNGP61MdtwGTqZA0MreSaDybji8')
         assertPlaylist('UUBABnxM4Ar9ten8Mdjj1j0Q')  # 585
         assertPlaylist('PL63F0C78739B09958')
+        assertTab('https://www.youtube.com/AsapSCIENCE')
+        assertTab('https://www.youtube.com/embedded')
+        assertTab('https://www.youtube.com/feed')  # Own channel's home page
         assertTab('https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q')
         assertPlaylist('https://www.youtube.com/course?list=ECUl4u3cNGP61MdtwGTqZA0MreSaDybji8')
         assertTab('https://www.youtube.com/playlist?list=PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC')
@@ -47,7 +50,7 @@ class TestAllURLsMatching(unittest.TestCase):
         self.assertTrue(YoutubeIE.suitable('PLtS2H6bU1M'))
         self.assertFalse(YoutubeIE.suitable('https://www.youtube.com/watch?v=AV6J6_AeFEQ&playnext=1&list=PL4023E734DA416012'))  # 668
         self.assertMatch('http://youtu.be/BaW_jenozKc', ['youtube'])
-        self.assertMatch('http://www.youtube.com/v/BaW_jenozKc', ['youtube'])
+        # self.assertMatch('http://www.youtube.com/v/BaW_jenozKc', ['youtube'])  # /v/ is no longer valid
         self.assertMatch('https://youtube.googleapis.com/v/BaW_jenozKc', ['youtube'])
         self.assertMatch('http://www.cleanvideosearch.com/media/action/yt/watch?videoId=8v_4O44sfjM', ['youtube'])
 
