@@ -72,7 +72,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     # If True it will raise an error if no login info is provided
     _LOGIN_REQUIRED = False
 
-    _PLAYLIST_ID_RE = r'(?:(?:PL|LL|EC|UU|FL|RD|UL|TL|PU|OLAK5uy_)[0-9A-Za-z-_]{10,}|RDMM|LL|WL)'
+    _PLAYLIST_ID_RE = r'(?:(?:PL|LL|EC|UU|FL|RD|UL|TL|PU|OLAK5uy_)[0-9A-Za-z-_]{10,})'
 
     _YOUTUBE_CLIENT_HEADERS = {
         'x-youtube-client-name': '1',
@@ -2532,7 +2532,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
 class YoutubeTabIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube.com tab'
-    # (?x)^ will cause warning in LiveIE. So I cant split this into multiple lines using '''
     _VALID_URL = (
         r'https?://(?:\w+\.)?(?:youtube(?:kids)?\.com|invidio\.us)/'
         r'(?:(?!(%s)([/#?]|$))|'
@@ -2778,11 +2777,11 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/c/CommanderVideoHq/live',
         'only_matching': True,
     },
-    # TODO
-    # {
-    #     'url': 'https://www.youtube.com/TheYoungTurks/live',
-    #     'only_matching': True,
-    # }
+        # TODO
+        # {
+        #     'url': 'https://www.youtube.com/TheYoungTurks/live',
+        #     'only_matching': True,
+        # }
     ]
 
     def _extract_channel_id(self, webpage):
@@ -3461,9 +3460,8 @@ class YoutubeSearchDateIE(YoutubeSearchIE):
 class YoutubeSearchURLIE(InfoExtractor):
     IE_DESC = 'YouTube.com search URLs'
     IE_NAME = 'youtube:search_url'
-    _PARAM_REGEX = r''
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/results/?(?:\?|\?[^#]*?&)(?:sp=(?P<param1>[^&#]+)&(?:[^#]*&)?)?(?:q|search_query)=(?P<query>[^#&]+)(?:[^#]*?&sp=(?P<param2>[^#&]+))?'
-    _MAX_RESULTS = 100
+    # _MAX_RESULTS = 100
     _TESTS = [{
         'url': 'https://www.youtube.com/results?baz=bar&search_query=youtube-dl+test+video&filters=video&lclk=video',
         'playlist_mincount': 5,
@@ -3480,9 +3478,9 @@ class YoutubeSearchURLIE(InfoExtractor):
         query = compat_urllib_parse_unquote_plus(mobj.group('query'))
         IE = YoutubeSearchIE(self._downloader)
         IE._SEARCH_PARAMS = mobj.group('param1') or mobj.group('param2')
-        self._downloader.to_screen(IE._SEARCH_PARAMS)
-        IE._MAX_RESULTS = self._MAX_RESULTS
-        return IE._get_n_results(query, self._MAX_RESULTS)
+        if hasattr(self, '_MAX_RESULTS'):
+            IE._MAX_RESULTS = self._MAX_RESULTS
+        return IE._get_n_results(query, IE._MAX_RESULTS)
 
 
 class YoutubeFeedsInfoExtractor(YoutubeTabIE):
@@ -3491,9 +3489,8 @@ class YoutubeFeedsInfoExtractor(YoutubeTabIE):
     Subclasses must define the _FEED_NAME and _PLAYLIST_TITLE properties.
     """
     _LOGIN_REQUIRED = True
-    _TESTS = []
-    
     # _MAX_PAGES = 5
+    _TESTS = []
 
     @property
     def IE_NAME(self):
@@ -3531,10 +3528,10 @@ class YoutubeFeedsInfoExtractor(YoutubeTabIE):
         raise ExtractorError('Unable to recognize feed page')
 
 
-class YoutubeWatchLaterIE(YoutubeFeedsInfoExtractor):
+class YoutubeWatchLaterIE(InfoExtractor):
+    IE_NAME = 'youtube:watchlater'
     IE_DESC = 'Youtube watch later list, ":ytwatchlater" or "WL" for short (requires authentication)'
-    _VALID_URL = r'https?://(?:www\.)?youtube\.com/feed/watch_later|:ytwatchlater'
-    _FEED_NAME = 'watchlater'
+    _VALID_URL = r'https?://(?:www\.)?youtube\.com/feed/watch_later|:ytwatchlater|WL'
 
     _TESTS = [{
         'url': 'https://www.youtube.com/feed/watch_later',
@@ -3545,13 +3542,14 @@ class YoutubeWatchLaterIE(YoutubeFeedsInfoExtractor):
     }]
 
     def _real_extract(self, url):
-        return self.url_result('WL', ie=YoutubePlaylistIE.ie_key())
+        return self.url_result(
+            'https://www.youtube.com/playlist?list=WL', ie=YoutubeTabIE.ie_key())
 
 
-class YoutubeFavouritesIE(YoutubeFeedsInfoExtractor):
+class YoutubeFavouritesIE(InfoExtractor):
+    IE_NAME = 'youtube:favourites'
     IE_DESC = 'YouTube.com liked videos, ":ytfav" or "LL" for short (requires authentication)'
-    _VALID_URL = r':ytfav(?:ou?rite)s?'
-    _FEED_NAME = 'favourites'
+    _VALID_URL = r':ytfav(?:ou?rite)?s?|LL'
 
     _TESTS = [{
         'url': ':ytfav',
@@ -3559,7 +3557,8 @@ class YoutubeFavouritesIE(YoutubeFeedsInfoExtractor):
     }]
 
     def _real_extract(self, url):
-        return self.url_result('LL', ie=YoutubePlaylistIE.ie_key())
+        return self.url_result(
+            'https://www.youtube.com/playlist?list=LL', ie=YoutubeTabIE.ie_key())
 
 
 class YoutubeRecommendedIE(YoutubeFeedsInfoExtractor):
