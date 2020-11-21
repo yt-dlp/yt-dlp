@@ -922,7 +922,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
     }]
     _PAGE_SIZE = 100
 
-    def _fetch_page(self, album_id, authorizaion, hashed_pass, page):
+    def _fetch_page(self, album_id, authorization, hashed_pass, page):
         api_page = page + 1
         query = {
             'fields': 'link,uri',
@@ -934,7 +934,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         videos = self._download_json(
             'https://api.vimeo.com/albums/%s/videos' % album_id,
             album_id, 'Downloading page %d' % api_page, query=query, headers={
-                'Authorization': 'jwt ' + authorizaion,
+                'Authorization': 'jwt ' + authorization,
             })['data']
         for video in videos:
             link = video.get('link')

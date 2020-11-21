@@ -109,7 +109,9 @@ class HttpFD(FileDownloader):
                 try:
                     ctx.data = self.ydl.urlopen(request)
                 except (compat_urllib_error.URLError, ) as err:
-                    if isinstance(err.reason, socket.timeout):
+                    # reason may not be available, e.g. for urllib2.HTTPError on python 2.6
+                    reason = getattr(err, 'reason', None)
+                    if isinstance(reason, socket.timeout):
                         raise RetryDownload(err)
                     raise err
                 # When trying to resume, Content-Range HTTP header of response has to be checked

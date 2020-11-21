@@ -649,7 +649,7 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
 
 class SoundcloudPagedPlaylistBaseIE(SoundcloudIE):
     def _extract_playlist(self, base_url, playlist_id, playlist_title):
-        # Per the SoundCloud documentation, the maximum limit for a linked partioning query is 200.
+        # Per the SoundCloud documentation, the maximum limit for a linked partitioning query is 200.
         # https://developers.soundcloud.com/blog/offset-pagination-deprecated
         COMMON_QUERY = {
             'limit': 200,

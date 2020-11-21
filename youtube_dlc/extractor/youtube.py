@@ -306,6 +306,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         },
     }
 
+    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
+
     def _call_api(self, ep, query, video_id):
         data = self._DEFAULT_API_DATA.copy()
         data.update(query)
@@ -322,8 +324,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_yt_initial_data(self, video_id, webpage):
         return self._parse_json(
             self._search_regex(
-                r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;',
-                webpage, 'yt initial data'),
+                (r'%s\s*\n' % self._YT_INITIAL_DATA_RE,
+                 self._YT_INITIAL_DATA_RE), webpage, 'yt initial data'),
             video_id)
 
 
@@ -1084,6 +1086,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'upload_date': '20170613',
                 'uploader_id': 'ElevageOrVert',
                 'uploader': 'ElevageOrVert',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            # with '};' inside yt initial data (see https://github.com/ytdl-org/youtube-dl/issues/27093)
+            'url': 'https://www.youtube.com/watch?v=CHqg6qOn4no',
+            'info_dict': {
+                'id': 'CHqg6qOn4no',
+                'ext': 'mp4',
+                'title': 'Part 77   Sort a list of simple types in c#',
+                'description': 'md5:b8746fa52e10cdbf47997903f13b20dc',
+                'upload_date': '20130831',
+                'uploader_id': 'kudvenkat',
+                'uploader': 'kudvenkat',
             },
             'params': {
                 'skip_download': True,
@@ -2139,6 +2157,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 error_message = extract_unavailable_message()
                 if not error_message:
+                    reason_list = try_get(
+                        player_response,
+                        lambda x: x['playabilityStatus']['errorScreen']['playerErrorMessageRenderer']['subreason']['runs'],
+                        list) or []
+                    for reason in reason_list:
+                        if not isinstance(reason, dict):
+                            continue
+                        reason_text = try_get(reason, lambda x: x['text'], compat_str)
+                        if reason_text:
+                            if not error_message:
+                                error_message = ''
+                            error_message += reason_text
+                    if error_message:
+                        error_message = clean_html(error_message)
+                if not error_message:
                     error_message = clean_html(try_get(
                         player_response, lambda x: x['playabilityStatus']['reason'],
                         compat_str))
@@ -2319,8 +2352,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         def _extract_count(count_name):
             return str_to_int(self._search_regex(
-                r'-%s-button[^>]+><span[^>]+class="yt-uix-button-content"[^>]*>([\d,]+)</span>'
-                % re.escape(count_name),
+                (r'-%s-button[^>]+><span[^>]+class="yt-uix-button-content"[^>]*>([\d,]+)</span>' % re.escape(count_name),
+                 r'["\']label["\']\s*:\s*["\']([\d,.]+)\s+%ss["\']' % re.escape(count_name)),
                 video_webpage, count_name, default=None))
 
         like_count = _extract_count('like')
@@ -2613,13 +2646,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 138,
     }, {
-        'url': 'https://invidio.us/channel/UC23qupoDRn9YOAVzeoxjOQA',
+        'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
         'only_matching': True,
     }, {
-        'url': 'https://www.youtubekids.com/channel/UCyu8StPfZWapR6rfW_JgqcA',
+        'url': 'https://www.youtubekids.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
         'only_matching': True,
     }, {
-        'url': 'https://music.youtube.com/channel/UCT-K0qO8z6NzWrywqefBPBQ',
+        'url': 'https://music.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
         'only_matching': True,
     }, {
         'note': 'Playlist with deleted videos (#651). As a bonus, the video #51 is also twice in this list.',
@@ -2666,7 +2699,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 11,
     }, {
-        'url': 'https://invidio.us/playlist?list=PLDIoUOhQQPlXr63I_vwF9GD8sAKh77dWU',
+        'url': 'https://invidio.us/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
         'only_matching': True,
     }, {
         # Playlist URL that does not actually serve a playlist
@@ -2698,14 +2731,59 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/watch?v=MuAGGZNfUkU&list=RDMM',
         'only_matching': True,
-    }]
-
-    @classmethod
-    def suitable(cls, url):
-        IGNORE = (YoutubeLiveIE,)
-        return (
-            False if any(ie.suitable(url) for ie in IGNORE)
-            else super(YoutubeTabIE, cls).suitable(url))
+    }, {
+        'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
+        'info_dict': {
+            'id': '9Auq9mYxFEE',
+            'ext': 'mp4',
+            'title': 'Watch Sky News live',
+            'uploader': 'Sky News',
+            'uploader_id': 'skynews',
+            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/skynews',
+            'upload_date': '20191102',
+            'description': 'md5:78de4e1c2359d0ea3ed829678e38b662',
+            'categories': ['News & Politics'],
+            'tags': list,
+            'like_count': int,
+            'dislike_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.youtube.com/user/TheYoungTurks/live',
+        'info_dict': {
+            'id': 'a48o2S1cPoo',
+            'ext': 'mp4',
+            'title': 'The Young Turks - Live Main Show',
+            'uploader': 'The Young Turks',
+            'uploader_id': 'TheYoungTurks',
+            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/TheYoungTurks',
+            'upload_date': '20150715',
+            'license': 'Standard YouTube License',
+            'description': 'md5:438179573adcdff3c97ebb1ee632b891',
+            'categories': ['News & Politics'],
+            'tags': ['Cenk Uygur (TV Program Creator)', 'The Young Turks (Award-Winning Work)', 'Talk Show (TV Genre)'],
+            'like_count': int,
+            'dislike_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/channel/UC1yBKRuGpC1tSM73A0ZjYjQ/live',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/c/CommanderVideoHq/live',
+        'only_matching': True,
+    },
+    # TODO
+    # {
+    #     'url': 'https://www.youtube.com/TheYoungTurks/live',
+    #     'only_matching': True,
+    # }
+    ]
 
     def _extract_channel_id(self, webpage):
         channel_id = self._html_search_meta(
@@ -3147,7 +3225,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self.to_screen('Downloading playlist %s - add --no-playlist to just download video %s' % (playlist_id, video_id))
         webpage = self._download_webpage(url, item_id)
         identity_token = self._search_regex(
-            r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
+            r'\bID_TOKEN["\']\s*:\s/l*["\'](.+?)["\']', webpage,
             'identity token', default=None)
         data = self._extract_yt_initial_data(item_id, webpage)
         tabs = try_get(
@@ -3158,7 +3236,11 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
         if playlist:
             return self._extract_from_playlist(item_id, data, playlist)
-        # Fallback to video extraction if no playlist alike page is recognized
+        # Fallback to video extraction if no playlist alike page is recognized.
+        # First check for the current video then try the v attribute of URL query.
+        video_id = try_get(
+            data, lambda x: x['currentVideoEndpoint']['watchEndpoint']['videoId'],
+            compat_str) or video_id
         if video_id:
             return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
         # Failed to recognize
@@ -3277,58 +3359,6 @@ class YoutubeYtUserIE(InfoExtractor):
         return self.url_result(
             'https://www.youtube.com/user/%s' % user_id,
             ie=YoutubeTabIE.ie_key(), video_id=user_id)
-
-
-class YoutubeLiveIE(YoutubeBaseInfoExtractor):
-    IE_DESC = 'YouTube.com live streams'
-    _VALID_URL = r'(?P<base_url>%s)/live' % YoutubeTabIE._VALID_URL
-    IE_NAME = 'youtube:live'
-
-    _TESTS = [{
-        'url': 'https://www.youtube.com/user/TheYoungTurks/live',
-        'info_dict': {
-            'id': 'a48o2S1cPoo',
-            'ext': 'mp4',
-            'title': 'The Young Turks - Live Main Show',
-            'uploader': 'The Young Turks',
-            'uploader_id': 'TheYoungTurks',
-            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/TheYoungTurks',
-            'upload_date': '20150715',
-            'license': 'Standard YouTube License',
-            'description': 'md5:438179573adcdff3c97ebb1ee632b891',
-            'categories': ['News & Politics'],
-            'tags': ['Cenk Uygur (TV Program Creator)', 'The Young Turks (Award-Winning Work)', 'Talk Show (TV Genre)'],
-            'like_count': int,
-            'dislike_count': int,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://www.youtube.com/channel/UC1yBKRuGpC1tSM73A0ZjYjQ/live',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/c/CommanderVideoHq/live',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/TheYoungTurks/live',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        channel_id = mobj.group('id')
-        base_url = mobj.group('base_url')
-        webpage = self._download_webpage(url, channel_id, fatal=False)
-        if webpage:
-            page_type = self._og_search_property(
-                'type', webpage, 'page type', default='')
-            video_id = self._html_search_meta(
-                'videoId', webpage, 'video id', default=None)
-            if page_type.startswith('video') and video_id and re.match(
-                    r'^[0-9A-Za-z_-]{11}$', video_id):
-                return self.url_result(video_id, YoutubeIE.ie_key())
-        return self.url_result(base_url)
 
 
 class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):

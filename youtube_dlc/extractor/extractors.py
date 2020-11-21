@@ -36,6 +36,7 @@ from .afreecatv import AfreecaTVIE
 from .airmozilla import AirMozillaIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
+from .amara import AmaraIE
 from .alura import (
     AluraIE,
     AluraCourseIE
@@ -1507,7 +1508,6 @@ from .youtube import (
     YoutubeIE,
     YoutubeFavouritesIE,
     YoutubeHistoryIE,
-    YoutubeLiveIE,
     YoutubeTabIE,
     YoutubePlaylistIE,
     YoutubeRecommendedIE,
