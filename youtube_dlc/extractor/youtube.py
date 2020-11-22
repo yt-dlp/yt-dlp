@@ -3212,6 +3212,15 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
             compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
+        is_home = re.match(r'(?P<pre>%s)(?P<post>/?(?![^#?]).*$)' % self._VALID_URL, url)
+        if is_home:
+            self._downloader.to_screen('%s\n%s' % (is_home, is_home.group('not_channel')))
+        if is_home is not None and is_home.group('not_channel') is None:
+            self._downloader.report_warning(
+                'A channel/user page was given. All the channel\'s videos will be downloaded. '
+                'To download only the videos in the home page, add a "/home" to the URL')
+            url = '%s/videos%s' % (is_home.group('pre'), is_home.group('post') or '')
+
         # Handle both video/playlist URLs
         qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
         video_id = qs.get('v', [None])[0]
