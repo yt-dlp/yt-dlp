@@ -64,7 +64,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'course|embed|watch|w|results|storefront|'
+        r'course|embed|playlist|watch|w|results|storefront|'
         r'shared|index|account|reporthistory|t/terms|about|upload|signin|logout|'
         r'feed/(watch_later|history|subscriptions|library|trending|recommended)')
 
@@ -2532,12 +2532,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
 class YoutubeTabIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube.com tab'
-    _VALID_URL = (
-        r'https?://(?:\w+\.)?(?:youtube(?:kids)?\.com|invidio\.us)/'
-        r'(?:(?!(%s)([/#?]|$))|'
-        r'(?:channel|c|user)/|'
-        r'(?:playlist|watch)\?.*?\blist=)'
-        r'(?P<id>[^/?#&]+)') % YoutubeBaseInfoExtractor._RESERVED_NAMES
+    _VALID_URL = (r'''(?x)
+        https?://(?:\w+\.)?(?:youtube(?:kids)?\.com|invidio\.us)/(?:
+            (?!(%s)([/#?]|$))|channel/|c/|user/|
+            (?P<not_channel>playlist|watch)/?\?.*?\blist=)
+        (?P<id>[^/?#&]+)''') % YoutubeBaseInfoExtractor._RESERVED_NAMES
     IE_NAME = 'youtube:tab'
 
     _TESTS = [{
