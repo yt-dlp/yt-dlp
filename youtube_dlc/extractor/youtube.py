@@ -3457,10 +3457,10 @@ class YoutubeSearchDateIE(YoutubeSearchIE):
     _SEARCH_PARAMS = 'CAI%3D'
 
 
-class YoutubeSearchURLIE(InfoExtractor):
+class YoutubeSearchURLIE(YoutubeSearchIE):
     IE_DESC = 'YouTube.com search URLs'
-    IE_NAME = 'youtube:search_url'
-    _VALID_URL = r'https?://(?:www\.)?youtube\.com/results/?(?:\?|\?[^#]*?&)(?:sp=(?P<param1>[^&#]+)&(?:[^#]*&)?)?(?:q|search_query)=(?P<query>[^#&]+)(?:[^#]*?&sp=(?P<param2>[^#&]+))?'
+    IE_NAME = YoutubeSearchIE.IE_NAME + '_url'
+    _VALID_URL = r'https?://(?:www\.)?youtube\.com/results\?(.*?&)?(?:search_query|q)=(?:[^&]+)(?:[&]|$)'
     # _MAX_RESULTS = 100
     _TESTS = [{
         'url': 'https://www.youtube.com/results?baz=bar&search_query=youtube-dl+test+video&filters=video&lclk=video',
@@ -3473,14 +3473,15 @@ class YoutubeSearchURLIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    @classmethod
+    def _make_valid_url(cls):
+        return cls._VALID_URL
+
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        query = compat_urllib_parse_unquote_plus(mobj.group('query'))
-        IE = YoutubeSearchIE(self._downloader)
-        IE._SEARCH_PARAMS = mobj.group('param1') or mobj.group('param2')
-        if hasattr(self, '_MAX_RESULTS'):
-            IE._MAX_RESULTS = self._MAX_RESULTS
-        return IE._get_n_results(query, IE._MAX_RESULTS)
+        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        query = (qs.get('search_query') or qs.get('q'))[0]
+        self._SEARCH_PARAMS = qs.get('sp', ('',))[0]
+        return self._get_n_results(query, self._MAX_RESULTS)
 
 
 class YoutubeFeedsInfoExtractor(YoutubeTabIE):
