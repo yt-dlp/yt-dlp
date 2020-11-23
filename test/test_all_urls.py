@@ -64,9 +64,10 @@ class TestAllURLsMatching(unittest.TestCase):
     #     self.assertMatch('http://www.youtube.com/NASAgovVideo/videos', ['youtube:tab'])
 
     def test_youtube_feeds(self):
-        self.assertMatch('https://www.youtube.com/feed/watch_later', ['youtube:watchlater'])
-        self.assertMatch('https://www.youtube.com/feed/subscriptions', ['youtube:subscriptions'])
-        self.assertMatch('https://www.youtube.com/feed/recommended', ['youtube:recommended'])
+        self.assertMatch('https://www.youtube.com/feed/library', ['youtube:tab'])
+        self.assertMatch('https://www.youtube.com/feed/history', ['youtube:tab'])
+        self.assertMatch('https://www.youtube.com/feed/watch_later', ['youtube:tab'])
+        self.assertMatch('https://www.youtube.com/feed/subscriptions', ['youtube:tab'])
 
     # def test_youtube_search_matching(self):
     #     self.assertMatch('http://www.youtube.com/results?search_query=making+mustard', ['youtube:search_url'])
