@@ -1153,7 +1153,7 @@
  - **YourPorn**
  - **YourUpload**
  - **youtube**: YouTube.com
- - **youtube:favorites**: YouTube.com liked videos, ":ytfav" or "LL" for short (requires authentication)
+ - **youtube:favorites**: YouTube.com liked videos, ":ytfav" for short (requires authentication)
  - **youtube:history**: Youtube watch history, ":ythistory" for short (requires authentication)
  - **youtube:playlist**: YouTube.com playlists
  - **youtube:recommended**: YouTube.com recommended videos, ":ytrec" for short (requires authentication)
@@ -1162,7 +1162,7 @@
  - **youtube:search_url**: YouTube.com search URLs
  - **youtube:subscriptions**: YouTube.com subscriptions feed, ":ytsubs" for short (requires authentication)
  - **youtube:tab**: YouTube.com tab
- - **youtube:watchlater**: Youtube watch later list, ":ytwatchlater" or "WL" for short (requires authentication)
+ - **youtube:watchlater**: Youtube watch later list, ":ytwatchlater" for short (requires authentication)
  - **YoutubeYtUser**: YouTube.com user videos, URL or "ytuser" keyword
  - **Zapiks**
  - **Zaq1**
