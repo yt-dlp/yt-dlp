@@ -64,7 +64,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'course|embed|playlist|watch|w|results|storefront|'
+        r'course|embed|channel|c|user|playlist|watch|w|results|storefront|'
         r'shared|index|account|reporthistory|t/terms|about|upload|signin|logout|'
         r'feed/(watch_later|history|subscriptions|library|trending|recommended)')
 
@@ -3066,7 +3066,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if parent_renderer:
             for entry in extract_entries(parent_renderer):
                 yield entry
-
         continuation = continuation_list[0]
 
         headers = {
@@ -3213,8 +3212,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         url = compat_urlparse.urlunparse(
             compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
         is_home = re.match(r'(?P<pre>%s)(?P<post>/?(?![^#?]).*$)' % self._VALID_URL, url)
-        if is_home:
-            self._downloader.to_screen('%s\n%s' % (is_home, is_home.group('not_channel')))
         if is_home is not None and is_home.group('not_channel') is None:
             self._downloader.report_warning(
                 'A channel/user page was given. All the channel\'s videos will be downloaded. '
@@ -3232,7 +3229,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self.to_screen('Downloading playlist %s - add --no-playlist to just download video %s' % (playlist_id, video_id))
         webpage = self._download_webpage(url, item_id)
         identity_token = self._search_regex(
-            r'\bID_TOKEN["\']\s*:\s/l*["\'](.+?)["\']', webpage,
+            r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
             'identity token', default=None)
         data = self._extract_yt_initial_data(item_id, webpage)
         tabs = try_get(
