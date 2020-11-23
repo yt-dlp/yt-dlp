@@ -110,6 +110,7 @@
  - **Bloomberg**
  - **BokeCC**
  - **BostonGlobe**
+ - **Box**
  - **Bpb**: Bundeszentrale für politische Bildung
  - **BR**: Bayerischer Rundfunk
  - **BravoTV**
@@ -157,6 +158,7 @@
  - **Chilloutzone**
  - **chirbit**
  - **chirbit:profile**
+ - **cielotv.it**
  - **Cinchcast**
  - **Cinemax**
  - **CiscoLiveSearch**
@@ -618,6 +620,7 @@
  - **Nuvid**
  - **NYTimes**
  - **NYTimesArticle**
+ - **NYTimesCooking**
  - **NZZ**
  - **ocw.mit.edu**
  - **OdaTV**
@@ -670,6 +673,8 @@
  - **PicartoVod**
  - **Piksel**
  - **Pinkbike**
+ - **Pinterest**
+ - **PinterestCollection**
  - **Pladform**
  - **Platzi**
  - **PlatziCourse**
@@ -766,6 +771,7 @@
  - **RTVNH**
  - **RTVS**
  - **RUHD**
+ - **RumbleEmbed**
  - **rutube**: Rutube videos
  - **rutube:channel**: Rutube channels
  - **rutube:embed**: Rutube embedded videos
@@ -943,6 +949,7 @@
  - **TV2DKBornholmPlay**
  - **TV4**: tv4.se and tv4play.se
  - **TV5MondePlus**: TV5MONDE+
+ - **tv8.it**
  - **TVA**
  - **TVANouvelles**
  - **TVANouvellesArticle**
