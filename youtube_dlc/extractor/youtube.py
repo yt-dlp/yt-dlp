@@ -3244,6 +3244,21 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self._playlist_entries(playlist), playlist_id=playlist_id,
             playlist_title=title)
 
+    def _extract_alerts(self, data):
+        for alert_dict in try_get(data, lambda x: x['alerts'], list) or []:
+            for renderer in alert_dict:
+                alert = alert_dict[renderer]
+                alert_type = alert.get('type')
+                if not alert_type:
+                    continue
+                message = try_get(alert, lambda x: x['text']['simpleText'], compat_str)
+                if message:
+                    yield alert_type, message
+                for run in try_get(alert, lambda x: x['text']['runs'], list) or []:
+                    message = try_get(run, lambda x: x['text'], compat_str)
+                    if message:
+                        yield alert_type, message
+
     def _real_extract(self, url):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
@@ -3269,6 +3284,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
             'identity token', default=None)
         data = self._extract_yt_initial_data(item_id, webpage)
+        for alert_type, alert_message in self._extract_alerts(data):
+            self._downloader.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
         if tabs:
