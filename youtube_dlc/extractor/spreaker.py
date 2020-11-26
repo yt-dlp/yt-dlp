@@ -126,7 +126,7 @@ class SpreakerPageIE(InfoExtractor):
 class SpreakerShowIE(InfoExtractor):
     _VALID_URL = r'https?://api\.spreaker\.com/show/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://www.spreaker.com/show/3-ninjas-podcast',
+        'url': 'https://api.spreaker.com/show/4652058',
         'info_dict': {
             'id': '4652058',
         },
