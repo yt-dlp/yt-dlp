@@ -3269,7 +3269,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
                 return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
             self.to_screen('Downloading playlist %s - add --no-playlist to just download video %s' % (playlist_id, video_id))
-            
+
         webpage = self._download_webpage(url, item_id)
         identity_token = self._search_regex(
             r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
