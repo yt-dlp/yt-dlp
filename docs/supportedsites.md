@@ -477,6 +477,7 @@
  - **massengeschmack.tv**
  - **MatchTV**
  - **MDR**: MDR.DE and KiKA
+ - **MedalTV**
  - **media.ccc.de**
  - **media.ccc.de:lists**
  - **Medialaan**
@@ -846,6 +847,10 @@
  - **Sport5**
  - **SportBox**
  - **SportDeutschland**
+ - **Spreaker**
+ - **SpreakerPage**
+ - **SpreakerShow**
+ - **SpreakerShowPage**
  - **SpringboardPlatform**
  - **Sprout**
  - **sr:mediathek**: Saarländischer Rundfunk
@@ -1064,7 +1069,7 @@
  - **vk:wallpost**
  - **vlive**
  - **vlive:channel**
- - **vlive:playlist**
+ - **vlive:post**
  - **Vodlocker**
  - **VODPl**
  - **VODPlatform**

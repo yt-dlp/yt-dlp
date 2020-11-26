@@ -9,6 +9,7 @@ from ..compat import (
     compat_urllib_parse_unquote,
 )
 from ..utils import (
+    determine_ext,
     ExtractorError,
     int_or_none,
     js_to_json,
@@ -16,17 +17,269 @@ from ..utils import (
     parse_age_limit,
     parse_duration,
     try_get,
+    url_or_none,
 )
 
 
 class NRKBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['NO']
 
-    _api_host = None
+
+class NRKIE(NRKBaseIE):
+    _VALID_URL = r'''(?x)
+                        (?:
+                            nrk:|
+                            https?://
+                                (?:
+                                    (?:www\.)?nrk\.no/video/(?:PS\*|[^_]+_)|
+                                    v8[-.]psapi\.nrk\.no/mediaelement/
+                                )
+                            )
+                            (?P<id>[^?\#&]+)
+                        '''
+
+    _TESTS = [{
+        # video
+        'url': 'http://www.nrk.no/video/PS*150533',
+        'md5': '706f34cdf1322577589e369e522b50ef',
+        'info_dict': {
+            'id': '150533',
+            'ext': 'mp4',
+            'title': 'Dompap og andre fugler i Piip-Show',
+            'description': 'md5:d9261ba34c43b61c812cb6b0269a5c8f',
+            'duration': 262,
+        }
+    }, {
+        # audio
+        'url': 'http://www.nrk.no/video/PS*154915',
+        # MD5 is unstable
+        'info_dict': {
+            'id': '154915',
+            'ext': 'flv',
+            'title': 'Slik høres internett ut når du er blind',
+            'description': 'md5:a621f5cc1bd75c8d5104cb048c6b8568',
+            'duration': 20,
+        }
+    }, {
+        'url': 'nrk:ecc1b952-96dc-4a98-81b9-5296dc7a98d9',
+        'only_matching': True,
+    }, {
+        'url': 'nrk:clip/7707d5a3-ebe7-434a-87d5-a3ebe7a34a70',
+        'only_matching': True,
+    }, {
+        'url': 'https://v8-psapi.nrk.no/mediaelement/ecc1b952-96dc-4a98-81b9-5296dc7a98d9',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.nrk.no/video/dompap-og-andre-fugler-i-piip-show_150533',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.nrk.no/video/humor/kommentatorboksen-reiser-til-sjos_d1fda11f-a4ad-437a-a374-0398bc84e999',
+        'only_matching': True,
+    }]
+
+    def _extract_from_playback(self, video_id):
+        manifest = self._download_json(
+            'http://psapi.nrk.no/playback/manifest/%s' % video_id,
+            video_id, 'Downloading manifest JSON')
+
+        playable = manifest['playable']
+
+        formats = []
+        for asset in playable['assets']:
+            if not isinstance(asset, dict):
+                continue
+            if asset.get('encrypted'):
+                continue
+            format_url = url_or_none(asset.get('url'))
+            if not format_url:
+                continue
+            if asset.get('format') == 'HLS' or determine_ext(format_url) == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(
+                    format_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                    m3u8_id='hls', fatal=False))
+        self._sort_formats(formats)
+
+        data = self._download_json(
+            'http://psapi.nrk.no/playback/metadata/%s' % video_id,
+            video_id, 'Downloading metadata JSON')
+
+        preplay = data['preplay']
+        titles = preplay['titles']
+        title = titles['title']
+        alt_title = titles.get('subtitle')
+
+        description = preplay.get('description')
+        duration = parse_duration(playable.get('duration')) or parse_duration(data.get('duration'))
+
+        thumbnails = []
+        for image in try_get(
+                preplay, lambda x: x['poster']['images'], list) or []:
+            if not isinstance(image, dict):
+                continue
+            image_url = url_or_none(image.get('url'))
+            if not image_url:
+                continue
+            thumbnails.append({
+                'url': image_url,
+                'width': int_or_none(image.get('pixelWidth')),
+                'height': int_or_none(image.get('pixelHeight')),
+            })
+
+        return {
+            'id': video_id,
+            'title': title,
+            'alt_title': alt_title,
+            'description': description,
+            'duration': duration,
+            'thumbnails': thumbnails,
+            'formats': formats,
+        }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        return self._extract_from_playback(video_id)
 
+
+class NRKTVIE(NRKBaseIE):
+    IE_DESC = 'NRK TV and NRK Radio'
+    _EPISODE_RE = r'(?P<id>[a-zA-Z]{4}\d{8})'
+    _VALID_URL = r'''(?x)
+                        https?://
+                            (?:tv|radio)\.nrk(?:super)?\.no/
+                            (?:serie(?:/[^/]+){1,2}|program)/
+                            (?![Ee]pisodes)%s
+                            (?:/\d{2}-\d{2}-\d{4})?
+                            (?:\#del=(?P<part_id>\d+))?
+                    ''' % _EPISODE_RE
+    _API_HOSTS = ('psapi-ne.nrk.no', 'psapi-we.nrk.no')
+    _TESTS = [{
+        'url': 'https://tv.nrk.no/program/MDDP12000117',
+        'md5': '8270824df46ec629b66aeaa5796b36fb',
+        'info_dict': {
+            'id': 'MDDP12000117AA',
+            'ext': 'mp4',
+            'title': 'Alarm Trolltunga',
+            'description': 'md5:46923a6e6510eefcce23d5ef2a58f2ce',
+            'duration': 2223,
+            'age_limit': 6,
+        },
+    }, {
+        'url': 'https://tv.nrk.no/serie/20-spoersmaal-tv/MUHH48000314/23-05-2014',
+        'md5': '9a167e54d04671eb6317a37b7bc8a280',
+        'info_dict': {
+            'id': 'MUHH48000314AA',
+            'ext': 'mp4',
+            'title': '20 spørsmål 23.05.2014',
+            'description': 'md5:bdea103bc35494c143c6a9acdd84887a',
+            'duration': 1741,
+            'series': '20 spørsmål',
+            'episode': '23.05.2014',
+        },
+        'skip': 'NoProgramRights',
+    }, {
+        'url': 'https://tv.nrk.no/program/mdfp15000514',
+        'info_dict': {
+            'id': 'MDFP15000514CA',
+            'ext': 'mp4',
+            'title': 'Grunnlovsjubiléet - Stor ståhei for ingenting 24.05.2014',
+            'description': 'md5:89290c5ccde1b3a24bb8050ab67fe1db',
+            'duration': 4605,
+            'series': 'Kunnskapskanalen',
+            'episode': '24.05.2014',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # single playlist video
+        'url': 'https://tv.nrk.no/serie/tour-de-ski/MSPO40010515/06-01-2015#del=2',
+        'info_dict': {
+            'id': 'MSPO40010515-part2',
+            'ext': 'flv',
+            'title': 'Tour de Ski: Sprint fri teknikk, kvinner og menn 06.01.2015 (del 2:2)',
+            'description': 'md5:238b67b97a4ac7d7b4bf0edf8cc57d26',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'expected_warnings': ['Video is geo restricted'],
+        'skip': 'particular part is not supported currently',
+    }, {
+        'url': 'https://tv.nrk.no/serie/tour-de-ski/MSPO40010515/06-01-2015',
+        'playlist': [{
+            'info_dict': {
+                'id': 'MSPO40010515AH',
+                'ext': 'mp4',
+                'title': 'Sprint fri teknikk, kvinner og menn 06.01.2015 (Part 1)',
+                'description': 'md5:1f97a41f05a9486ee00c56f35f82993d',
+                'duration': 772,
+                'series': 'Tour de Ski',
+                'episode': '06.01.2015',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }, {
+            'info_dict': {
+                'id': 'MSPO40010515BH',
+                'ext': 'mp4',
+                'title': 'Sprint fri teknikk, kvinner og menn 06.01.2015 (Part 2)',
+                'description': 'md5:1f97a41f05a9486ee00c56f35f82993d',
+                'duration': 6175,
+                'series': 'Tour de Ski',
+                'episode': '06.01.2015',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }],
+        'info_dict': {
+            'id': 'MSPO40010515',
+            'title': 'Sprint fri teknikk, kvinner og menn 06.01.2015',
+            'description': 'md5:1f97a41f05a9486ee00c56f35f82993d',
+        },
+        'expected_warnings': ['Video is geo restricted'],
+    }, {
+        'url': 'https://tv.nrk.no/serie/anno/KMTE50001317/sesong-3/episode-13',
+        'info_dict': {
+            'id': 'KMTE50001317AA',
+            'ext': 'mp4',
+            'title': 'Anno 13:30',
+            'description': 'md5:11d9613661a8dbe6f9bef54e3a4cbbfa',
+            'duration': 2340,
+            'series': 'Anno',
+            'episode': '13:30',
+            'season_number': 3,
+            'episode_number': 13,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://tv.nrk.no/serie/nytt-paa-nytt/MUHH46000317/27-01-2017',
+        'info_dict': {
+            'id': 'MUHH46000317AA',
+            'ext': 'mp4',
+            'title': 'Nytt på Nytt 27.01.2017',
+            'description': 'md5:5358d6388fba0ea6f0b6d11c48b9eb4b',
+            'duration': 1796,
+            'series': 'Nytt på nytt',
+            'episode': '27.01.2017',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://radio.nrk.no/serie/dagsnytt/NPUB21019315/12-07-2015#',
+        'only_matching': True,
+    }, {
+        'url': 'https://tv.nrk.no/serie/lindmo/2018/MUHU11006318/avspiller',
+        'only_matching': True,
+    }]
+
+    _api_host = None
+
+    def _extract_from_mediaelement(self, video_id):
         api_hosts = (self._api_host, ) if self._api_host else self._API_HOSTS
 
         for api_host in api_hosts:
@@ -195,190 +448,9 @@ class NRKBaseIE(InfoExtractor):
 
         return self.playlist_result(entries, video_id, title, description)
 
-
-class NRKIE(NRKBaseIE):
-    _VALID_URL = r'''(?x)
-                        (?:
-                            nrk:|
-                            https?://
-                                (?:
-                                    (?:www\.)?nrk\.no/video/PS\*|
-                                    v8[-.]psapi\.nrk\.no/mediaelement/
-                                )
-                            )
-                            (?P<id>[^?#&]+)
-                        '''
-    _API_HOSTS = ('psapi.nrk.no', 'v8-psapi.nrk.no')
-    _TESTS = [{
-        # video
-        'url': 'http://www.nrk.no/video/PS*150533',
-        'md5': '706f34cdf1322577589e369e522b50ef',
-        'info_dict': {
-            'id': '150533',
-            'ext': 'mp4',
-            'title': 'Dompap og andre fugler i Piip-Show',
-            'description': 'md5:d9261ba34c43b61c812cb6b0269a5c8f',
-            'duration': 262,
-        }
-    }, {
-        # audio
-        'url': 'http://www.nrk.no/video/PS*154915',
-        # MD5 is unstable
-        'info_dict': {
-            'id': '154915',
-            'ext': 'flv',
-            'title': 'Slik høres internett ut når du er blind',
-            'description': 'md5:a621f5cc1bd75c8d5104cb048c6b8568',
-            'duration': 20,
-        }
-    }, {
-        'url': 'nrk:ecc1b952-96dc-4a98-81b9-5296dc7a98d9',
-        'only_matching': True,
-    }, {
-        'url': 'nrk:clip/7707d5a3-ebe7-434a-87d5-a3ebe7a34a70',
-        'only_matching': True,
-    }, {
-        'url': 'https://v8-psapi.nrk.no/mediaelement/ecc1b952-96dc-4a98-81b9-5296dc7a98d9',
-        'only_matching': True,
-    }]
-
-
-class NRKTVIE(NRKBaseIE):
-    IE_DESC = 'NRK TV and NRK Radio'
-    _EPISODE_RE = r'(?P<id>[a-zA-Z]{4}\d{8})'
-    _VALID_URL = r'''(?x)
-                        https?://
-                            (?:tv|radio)\.nrk(?:super)?\.no/
-                            (?:serie(?:/[^/]+){1,2}|program)/
-                            (?![Ee]pisodes)%s
-                            (?:/\d{2}-\d{2}-\d{4})?
-                            (?:\#del=(?P<part_id>\d+))?
-                    ''' % _EPISODE_RE
-    _API_HOSTS = ('psapi-ne.nrk.no', 'psapi-we.nrk.no')
-    _TESTS = [{
-        'url': 'https://tv.nrk.no/program/MDDP12000117',
-        'md5': '8270824df46ec629b66aeaa5796b36fb',
-        'info_dict': {
-            'id': 'MDDP12000117AA',
-            'ext': 'mp4',
-            'title': 'Alarm Trolltunga',
-            'description': 'md5:46923a6e6510eefcce23d5ef2a58f2ce',
-            'duration': 2223,
-            'age_limit': 6,
-        },
-    }, {
-        'url': 'https://tv.nrk.no/serie/20-spoersmaal-tv/MUHH48000314/23-05-2014',
-        'md5': '9a167e54d04671eb6317a37b7bc8a280',
-        'info_dict': {
-            'id': 'MUHH48000314AA',
-            'ext': 'mp4',
-            'title': '20 spørsmål 23.05.2014',
-            'description': 'md5:bdea103bc35494c143c6a9acdd84887a',
-            'duration': 1741,
-            'series': '20 spørsmål',
-            'episode': '23.05.2014',
-        },
-        'skip': 'NoProgramRights',
-    }, {
-        'url': 'https://tv.nrk.no/program/mdfp15000514',
-        'info_dict': {
-            'id': 'MDFP15000514CA',
-            'ext': 'mp4',
-            'title': 'Grunnlovsjubiléet - Stor ståhei for ingenting 24.05.2014',
-            'description': 'md5:89290c5ccde1b3a24bb8050ab67fe1db',
-            'duration': 4605,
-            'series': 'Kunnskapskanalen',
-            'episode': '24.05.2014',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # single playlist video
-        'url': 'https://tv.nrk.no/serie/tour-de-ski/MSPO40010515/06-01-2015#del=2',
-        'info_dict': {
-            'id': 'MSPO40010515-part2',
-            'ext': 'flv',
-            'title': 'Tour de Ski: Sprint fri teknikk, kvinner og menn 06.01.2015 (del 2:2)',
-            'description': 'md5:238b67b97a4ac7d7b4bf0edf8cc57d26',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'expected_warnings': ['Video is geo restricted'],
-        'skip': 'particular part is not supported currently',
-    }, {
-        'url': 'https://tv.nrk.no/serie/tour-de-ski/MSPO40010515/06-01-2015',
-        'playlist': [{
-            'info_dict': {
-                'id': 'MSPO40010515AH',
-                'ext': 'mp4',
-                'title': 'Sprint fri teknikk, kvinner og menn 06.01.2015 (Part 1)',
-                'description': 'md5:1f97a41f05a9486ee00c56f35f82993d',
-                'duration': 772,
-                'series': 'Tour de Ski',
-                'episode': '06.01.2015',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        }, {
-            'info_dict': {
-                'id': 'MSPO40010515BH',
-                'ext': 'mp4',
-                'title': 'Sprint fri teknikk, kvinner og menn 06.01.2015 (Part 2)',
-                'description': 'md5:1f97a41f05a9486ee00c56f35f82993d',
-                'duration': 6175,
-                'series': 'Tour de Ski',
-                'episode': '06.01.2015',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        }],
-        'info_dict': {
-            'id': 'MSPO40010515',
-            'title': 'Sprint fri teknikk, kvinner og menn 06.01.2015',
-            'description': 'md5:1f97a41f05a9486ee00c56f35f82993d',
-        },
-        'expected_warnings': ['Video is geo restricted'],
-    }, {
-        'url': 'https://tv.nrk.no/serie/anno/KMTE50001317/sesong-3/episode-13',
-        'info_dict': {
-            'id': 'KMTE50001317AA',
-            'ext': 'mp4',
-            'title': 'Anno 13:30',
-            'description': 'md5:11d9613661a8dbe6f9bef54e3a4cbbfa',
-            'duration': 2340,
-            'series': 'Anno',
-            'episode': '13:30',
-            'season_number': 3,
-            'episode_number': 13,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://tv.nrk.no/serie/nytt-paa-nytt/MUHH46000317/27-01-2017',
-        'info_dict': {
-            'id': 'MUHH46000317AA',
-            'ext': 'mp4',
-            'title': 'Nytt på Nytt 27.01.2017',
-            'description': 'md5:5358d6388fba0ea6f0b6d11c48b9eb4b',
-            'duration': 1796,
-            'series': 'Nytt på nytt',
-            'episode': '27.01.2017',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://radio.nrk.no/serie/dagsnytt/NPUB21019315/12-07-2015#',
-        'only_matching': True,
-    }, {
-        'url': 'https://tv.nrk.no/serie/lindmo/2018/MUHU11006318/avspiller',
-        'only_matching': True,
-    }]
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self._extract_from_mediaelement(video_id)
 
 
 class NRKTVEpisodeIE(InfoExtractor):

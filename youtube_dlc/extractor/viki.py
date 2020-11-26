@@ -21,6 +21,7 @@ from ..utils import (
     parse_age_limit,
     parse_iso8601,
     sanitized_Request,
+    std_headers,
 )
 
 
@@ -227,8 +228,10 @@ class VikiIE(VikiBaseIE):
 
         resp = self._download_json(
             'https://www.viki.com/api/videos/' + video_id,
-            video_id, 'Downloading video JSON',
-            headers={'x-viki-app-ver': '4.0.57'})
+            video_id, 'Downloading video JSON', headers={
+                'x-client-user-agent': std_headers['User-Agent'],
+                'x-viki-app-ver': '4.0.57',
+            })
         video = resp['video']
 
         self._check_errors(video)

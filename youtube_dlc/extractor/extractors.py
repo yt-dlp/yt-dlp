@@ -620,6 +620,7 @@ from .markiza import (
 from .massengeschmacktv import MassengeschmackTVIE
 from .matchtv import MatchTVIE
 from .mdr import MDRIE
+from .medaltv import MedalTVIE
 from .mediaset import MediasetIE
 from .mediasite import (
     MediasiteIE,
@@ -1102,6 +1103,12 @@ from .stitcher import StitcherIE
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
 from .sportdeutschland import SportDeutschlandIE
+from .spreaker import (
+    SpreakerIE,
+    SpreakerPageIE,
+    SpreakerShowIE,
+    SpreakerShowPageIE,
+)
 from .springboardplatform import SpringboardPlatformIE
 from .sprout import SproutIE
 from .srgssr import (
@@ -1395,8 +1402,8 @@ from .vk import (
 )
 from .vlive import (
     VLiveIE,
+    VLivePostIE,
     VLiveChannelIE,
-    VLivePlaylistIE
 )
 from .vodlocker import VodlockerIE
 from .vodpl import VODPlIE
