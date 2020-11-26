@@ -64,7 +64,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'course|embed|channel|c|user|playlist|watch|w|results|storefront|'
+        r'course|embed|channel|c|user|playlist|watch|w|results|storefront|oops|'
         r'shared|index|account|reporthistory|t/terms|about|upload|signin|logout|'
         r'feed/(watch_later|history|subscriptions|library|trending|recommended)')
 
@@ -3257,7 +3257,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         video_id = qs.get('v', [None])[0]
         playlist_id = qs.get('list', [None])[0]
 
-        if is_home.group('not_channel').startswith('watch') and not video_id:
+        if is_home.group('not_channel') is not None and is_home.group('not_channel').startswith('watch') and not video_id:
             if playlist_id:
                 self._downloader.report_warning('%s is not a valid Youtube URL. Trying to download playlist %s' % (url, playlist_id))
                 url = 'https://www.youtube.com/playlist?list=%s' % playlist_id
