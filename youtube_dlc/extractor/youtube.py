@@ -3256,11 +3256,20 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
         video_id = qs.get('v', [None])[0]
         playlist_id = qs.get('list', [None])[0]
+
+        if is_home.group('not_channel').startswith('watch') and not video_id:
+            if playlist_id:
+                self._downloader.report_warning('%s is not a valid Youtube URL. Trying to download playlist %s' % (url, playlist_id))
+                url = 'https://www.youtube.com/playlist?list=%s' % playlist_id
+                # return self.url_result(playlist_id, ie=YoutubePlaylistIE.ie_key())
+            else:
+                raise ExtractorError('Unable to recognize tab page')
         if video_id and playlist_id:
             if self._downloader.params.get('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
                 return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
             self.to_screen('Downloading playlist %s - add --no-playlist to just download video %s' % (playlist_id, video_id))
+            
         webpage = self._download_webpage(url, item_id)
         identity_token = self._search_regex(
             r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
