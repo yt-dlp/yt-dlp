@@ -104,6 +104,7 @@
  - **BIQLE**
  - **BitChute**
  - **BitChuteChannel**
+ - **bitwave.tv**
  - **BleacherReport**
  - **BleacherReportCMS**
  - **blinkx**

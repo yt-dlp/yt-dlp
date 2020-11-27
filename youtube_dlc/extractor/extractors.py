@@ -116,6 +116,10 @@ from .bitchute import (
     BitChuteIE,
     BitChuteChannelIE,
 )
+from .bitwave import (
+    BitwaveReplayIE,
+    BitwaveStreamIE,
+)
 from .biqle import BIQLEIE
 from .bleacherreport import (
     BleacherReportIE,
