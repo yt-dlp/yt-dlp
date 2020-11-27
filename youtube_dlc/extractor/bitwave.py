@@ -6,6 +6,10 @@ from .common import InfoExtractor
 class BitwaveReplayIE(InfoExtractor):
     IE_NAME = 'bitwave:replay'
     _VALID_URL = r'https?://(?:www\.)?bitwave\.tv/(?P<user>\w+)/replay/(?P<id>\w+)/?$'
+    _TEST = {
+        'url': 'https://bitwave.tv/RhythmicCarnage/replay/z4P6eq5L7WDrM85UCrVr',
+        'only_matching': True
+    }
 
     def _real_extract(self, url):
         replay_id = self._match_id(url)
@@ -29,6 +33,10 @@ class BitwaveReplayIE(InfoExtractor):
 class BitwaveStreamIE(InfoExtractor):
     IE_NAME = 'bitwave:stream'
     _VALID_URL = r'https?://(?:www\.)?bitwave\.tv/(?P<id>\w+)/?$'
+    _TEST = {
+        'url': 'https://bitwave.tv/doomtube',
+        'only_matching': True
+    }
 
     def _real_extract(self, url):
         username = self._match_id(url)
