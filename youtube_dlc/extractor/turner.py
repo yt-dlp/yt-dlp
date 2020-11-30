@@ -56,9 +56,9 @@ class TurnerBaseIE(AdobePassIE):
         content_id = xpath_text(video_data, 'contentId') or video_id
         # rtmp_src = xpath_text(video_data, 'akamai/src')
         # if rtmp_src:
-        #     splited_rtmp_src = rtmp_src.split(',')
-        #     if len(splited_rtmp_src) == 2:
-        #         rtmp_src = splited_rtmp_src[1]
+        #     split_rtmp_src = rtmp_src.split(',')
+        #     if len(split_rtmp_src) == 2:
+        #         rtmp_src = split_rtmp_src[1]
         # aifp = xpath_text(video_data, 'akamai/aifp', default='')
 
         urls = []

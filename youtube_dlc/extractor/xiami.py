@@ -54,17 +54,17 @@ class XiamiBaseIE(InfoExtractor):
     def _decrypt(origin):
         n = int(origin[0])
         origin = origin[1:]
-        short_lenth = len(origin) // n
-        long_num = len(origin) - short_lenth * n
+        short_length = len(origin) // n
+        long_num = len(origin) - short_length * n
         l = tuple()
         for i in range(0, n):
-            length = short_lenth
+            length = short_length
             if i < long_num:
                 length += 1
             l += (origin[0:length], )
             origin = origin[length:]
         ans = ''
-        for i in range(0, short_lenth + 1):
+        for i in range(0, short_length + 1):
             for j in range(0, n):
                 if len(l[j]) > i:
                     ans += l[j][i]

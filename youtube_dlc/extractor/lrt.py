@@ -5,28 +5,26 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
-    int_or_none,
-    parse_duration,
-    remove_end,
+    clean_html,
+    merge_dicts,
 )
 
 
 class LRTIE(InfoExtractor):
     IE_NAME = 'lrt.lt'
-    _VALID_URL = r'https?://(?:www\.)?lrt\.lt/mediateka/irasas/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?lrt\.lt(?P<path>/mediateka/irasas/(?P<id>[0-9]+))'
     _TESTS = [{
         # m3u8 download
-        'url': 'http://www.lrt.lt/mediateka/irasas/54391/',
-        'md5': 'fe44cf7e4ab3198055f2c598fc175cb0',
+        'url': 'https://www.lrt.lt/mediateka/irasas/2000127261/greita-ir-gardu-sicilijos-ikvepta-klasikiniu-makaronu-su-baklazanais-vakariene',
+        'md5': '85cb2bb530f31d91a9c65b479516ade4',
         'info_dict': {
-            'id': '54391',
+            'id': '2000127261',
             'ext': 'mp4',
-            'title': 'Septynios Kauno dienos',
-            'description': 'md5:24d84534c7dc76581e59f5689462411a',
-            'duration': 1783,
-            'view_count': int,
-            'like_count': int,
+            'title': 'Greita ir gardu: Sicilijos įkvėpta klasikinių makaronų su baklažanais vakarienė',
+            'description': 'md5:ad7d985f51b0dc1489ba2d76d7ed47fa',
+            'duration': 3035,
+            'timestamp': 1604079000,
+            'upload_date': '20201030',
         },
     }, {
         # direct mp3 download
@@ -43,52 +41,35 @@ class LRTIE(InfoExtractor):
         },
     }]
 
+    def _extract_js_var(self, webpage, var_name, default):
+        return self._search_regex(
+            r'%s\s*=\s*(["\'])((?:(?!\1).)+)\1' % var_name,
+            webpage, var_name.replace('_', ' '), default, group=2)
+
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        path, video_id = re.match(self._VALID_URL, url).groups()
         webpage = self._download_webpage(url, video_id)
 
-        title = remove_end(self._og_search_title(webpage), ' - LRT')
+        media_url = self._extract_js_var(webpage, 'main_url', path)
+        media = self._download_json(self._extract_js_var(
+            webpage, 'media_info_url',
+            'https://www.lrt.lt/servisai/stream_url/vod/media_info/'),
+            video_id, query={'url': media_url})
+        jw_data = self._parse_jwplayer_data(
+            media['playlist_item'], video_id, base_url=url)
 
-        formats = []
-        for _, file_url in re.findall(
-                r'file\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage):
-            ext = determine_ext(file_url)
-            if ext not in ('m3u8', 'mp3'):
+        json_ld_data = self._search_json_ld(webpage, video_id)
+
+        tags = []
+        for tag in (media.get('tags') or []):
+            tag_name = tag.get('name')
+            if not tag_name:
                 continue
-            # mp3 served as m3u8 produces stuttered media file
-            if ext == 'm3u8' and '.mp3' in file_url:
-                continue
-            if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    file_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    fatal=False))
-            elif ext == 'mp3':
-                formats.append({
-                    'url': file_url,
-                    'vcodec': 'none',
-                })
-        self._sort_formats(formats)
+            tags.append(tag_name)
 
-        thumbnail = self._og_search_thumbnail(webpage)
-        description = self._og_search_description(webpage)
-        duration = parse_duration(self._search_regex(
-            r'var\s+record_len\s*=\s*(["\'])(?P<duration>[0-9]+:[0-9]+:[0-9]+)\1',
-            webpage, 'duration', default=None, group='duration'))
-
-        view_count = int_or_none(self._html_search_regex(
-            r'<div[^>]+class=(["\']).*?record-desc-seen.*?\1[^>]*>(?P<count>.+?)</div>',
-            webpage, 'view count', fatal=False, group='count'))
-        like_count = int_or_none(self._search_regex(
-            r'<span[^>]+id=(["\'])flikesCount.*?\1>(?P<count>\d+)<',
-            webpage, 'like count', fatal=False, group='count'))
-
-        return {
-            'id': video_id,
-            'title': title,
-            'formats': formats,
-            'thumbnail': thumbnail,
-            'description': description,
-            'duration': duration,
-            'view_count': view_count,
-            'like_count': like_count,
+        clean_info = {
+            'description': clean_html(media.get('content')),
+            'tags': tags,
         }
+
+        return merge_dicts(clean_info, jw_data, json_ld_data)

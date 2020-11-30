@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
 
 from .common import InfoExtractor
 from ..utils import smuggle_url
@@ -38,7 +39,7 @@ class CNBCIE(InfoExtractor):
 
 
 class CNBCVideoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?cnbc\.com/video/(?:[^/]+/)+(?P<id>[^./?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?cnbc\.com(?P<path>/video/(?:[^/]+/)+(?P<id>[^./?#&]+)\.html)'
     _TEST = {
         'url': 'https://www.cnbc.com/video/2018/07/19/trump-i-dont-necessarily-agree-with-raising-rates.html',
         'info_dict': {
@@ -56,11 +57,15 @@ class CNBCVideoIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        video_id = self._search_regex(
-            r'content_id["\']\s*:\s*["\'](\d+)', webpage, display_id,
-            'video id')
+        path, display_id = re.match(self._VALID_URL, url).groups()
+        video_id = self._download_json(
+            'https://webql-redesign.cnbcfm.com/graphql', display_id, query={
+                'query': '''{
+  page(path: "%s") {
+    vcpsId
+  }
+}''' % path,
+            })['data']['page']['vcpsId']
         return self.url_result(
-            'http://video.cnbc.com/gallery/?video=%s' % video_id,
+            'http://video.cnbc.com/gallery/?video=%d' % video_id,
             CNBCIE.ie_key())

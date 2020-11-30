@@ -289,7 +289,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
         return mgid
 
-    def _extract_mgid(self, webpage, url, data_zone=None):
+    def _extract_mgid(self, webpage, url, title=None, data_zone=None):
         try:
             # the url can be http://media.mtvnservices.com/fb/{mgid}.swf
             # or http://media.mtvnservices.com/{mgid}
@@ -300,7 +300,8 @@ class MTVServicesInfoExtractor(InfoExtractor):
         except RegexNotFoundError:
             mgid = None
 
-        title = self._match_id(url)
+        if not title:
+            title = url_basename(url)
 
         try:
             window_data = self._parse_json(self._search_regex(
@@ -336,7 +337,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
     def _real_extract(self, url):
         title = url_basename(url)
         webpage = self._download_webpage(url, title)
-        mgid = self._extract_mgid(webpage, url)
+        mgid = self._extract_mgid(webpage, url, title=title)
         videos_info = self._get_videos_info(mgid, url=url)
         return videos_info
 
@@ -401,6 +402,18 @@ class MTVIE(MTVServicesInfoExtractor):
         'url': 'http://www.mtv.com/episodes/g8xu7q/teen-mom-2-breaking-the-wall-season-7-ep-713',
         'only_matching': True,
     }]
+
+    @staticmethod
+    def extract_child_with_type(parent, t):
+        children = parent['children']
+        return next(c for c in children if c.get('type') == t)
+
+    def _extract_mgid(self, webpage):
+        data = self._parse_json(self._search_regex(
+            r'__DATA__\s*=\s*({.+?});', webpage, 'data'), None)
+        main_container = self.extract_child_with_type(data, 'MainContainer')
+        video_player = self.extract_child_with_type(main_container, 'VideoPlayer')
+        return video_player['props']['media']['video']['config']['uri']
 
 
 class MTVJapanIE(MTVServicesInfoExtractor):

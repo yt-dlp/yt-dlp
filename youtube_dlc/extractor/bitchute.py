@@ -36,6 +36,14 @@ class BitChuteIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    @staticmethod
+    def _extract_urls(webpage):
+        return [
+            mobj.group('url')
+            for mobj in re.finditer(
+                r'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>%s)' % BitChuteIE._VALID_URL,
+                webpage)]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 

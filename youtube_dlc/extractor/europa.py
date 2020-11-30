@@ -60,7 +60,7 @@ class EuropaIE(InfoExtractor):
 
         title = get_item('title', preferred_langs) or video_id
         description = get_item('description', preferred_langs)
-        thumbnmail = xpath_text(playlist, './info/thumburl', 'thumbnail')
+        thumbnail = xpath_text(playlist, './info/thumburl', 'thumbnail')
         upload_date = unified_strdate(xpath_text(playlist, './info/date', 'upload date'))
         duration = parse_duration(xpath_text(playlist, './info/duration', 'duration'))
         view_count = int_or_none(xpath_text(playlist, './info/views', 'views'))
@@ -85,7 +85,7 @@ class EuropaIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'description': description,
-            'thumbnail': thumbnmail,
+            'thumbnail': thumbnail,
             'upload_date': upload_date,
             'duration': duration,
             'view_count': view_count,

@@ -1,10 +1,16 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
-from ..utils import merge_dicts
+from ..utils import (
+    clean_html,
+    dict_get,
+    float_or_none,
+    int_or_none,
+    merge_dicts,
+    parse_duration,
+    try_get,
+)
 
 
 class MallTVIE(InfoExtractor):
@@ -17,7 +23,7 @@ class MallTVIE(InfoExtractor):
             'display_id': '18-miliard-pro-neziskovky-opravdu-jsou-sportovci-nebo-clovek-v-tisni-pijavice',
             'ext': 'mp4',
             'title': '18 miliard pro neziskovky. Opravdu jsou sportovci nebo Člověk v tísni pijavice?',
-            'description': 'md5:25fc0ec42a72ba602b602c683fa29deb',
+            'description': 'md5:db7d5744a4bd4043d9d98324aa72ab35',
             'duration': 216,
             'timestamp': 1538870400,
             'upload_date': '20181007',
@@ -37,20 +43,46 @@ class MallTVIE(InfoExtractor):
         webpage = self._download_webpage(
             url, display_id, headers=self.geo_verification_headers())
 
-        SOURCE_RE = r'(<source[^>]+\bsrc=(?:(["\'])(?:(?!\2).)+|[^\s]+)/(?P<id>[\da-z]+)/index)\b'
+        video = self._parse_json(self._search_regex(
+            r'videoObject\s*=\s*JSON\.parse\(JSON\.stringify\(({.+?})\)\);',
+            webpage, 'video object'), display_id)
+        video_source = video['VideoSource']
         video_id = self._search_regex(
-            SOURCE_RE, webpage, 'video id', group='id')
+            r'/([\da-z]+)/index\b', video_source, 'video id')
 
-        media = self._parse_html5_media_entries(
-            url, re.sub(SOURCE_RE, r'\1.m3u8', webpage), video_id,
-            m3u8_id='hls', m3u8_entry_protocol='m3u8_native')[0]
+        formats = self._extract_m3u8_formats(
+            video_source + '.m3u8', video_id, 'mp4', 'm3u8_native')
+        self._sort_formats(formats)
+
+        subtitles = {}
+        for s in (video.get('Subtitles') or {}):
+            s_url = s.get('Url')
+            if not s_url:
+                continue
+            subtitles.setdefault(s.get('Language') or 'cz', []).append({
+                'url': s_url,
+            })
+
+        entity_counts = video.get('EntityCounts') or {}
+
+        def get_count(k):
+            v = entity_counts.get(k + 's') or {}
+            return int_or_none(dict_get(v, ('Count', 'StrCount')))
 
         info = self._search_json_ld(webpage, video_id, default={})
 
-        return merge_dicts(media, info, {
+        return merge_dicts({
             'id': video_id,
             'display_id': display_id,
-            'title': self._og_search_title(webpage, default=None) or display_id,
-            'description': self._og_search_description(webpage, default=None),
-            'thumbnail': self._og_search_thumbnail(webpage, default=None),
-        })
+            'title': video.get('Title'),
+            'description': clean_html(video.get('Description')),
+            'thumbnail': video.get('ThumbnailUrl'),
+            'formats': formats,
+            'subtitles': subtitles,
+            'duration': int_or_none(video.get('DurationSeconds')) or parse_duration(video.get('Duration')),
+            'view_count': get_count('View'),
+            'like_count': get_count('Like'),
+            'dislike_count': get_count('Dislike'),
+            'average_rating': float_or_none(try_get(video, lambda x: x['EntityRating']['AvarageRate'])),
+            'comment_count': get_count('Comment'),
+        }, info)

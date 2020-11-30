@@ -150,7 +150,7 @@ class IqiyiSDKInterpreter(object):
             elif function in other_functions:
                 other_functions[function]()
             else:
-                raise ExtractorError('Unknown funcion %s' % function)
+                raise ExtractorError('Unknown function %s' % function)
 
         return sdk.target
 

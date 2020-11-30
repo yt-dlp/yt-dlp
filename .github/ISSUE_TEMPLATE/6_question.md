@@ -21,8 +21,8 @@ assignees: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dl:
-- Look through the README (http://yt-dl.org/readme) and FAQ (http://yt-dl.org/faq) for similar questions
-- Search the bugtracker for similar questions: http://yt-dl.org/search-issues
+- Look through the README (https://github.com/blackjack4494/yt-dlc) and FAQ (https://github.com/blackjack4494/yt-dlc) for similar questions
+- Search the bugtracker for similar questions: https://github.com/blackjack4494/yt-dlc
 - Finally, put x into all relevant boxes (like this [x])
 -->
 
@@ -34,7 +34,7 @@ Carefully read and work through this check list in order to prevent the most com
 ## Question
 
 <!--
-Ask your question in an arbitrary form. Please make sure it's worded well enough to be understood, see https://github.com/ytdl-org/youtube-dl#is-the-description-of-the-issue-itself-sufficient.
+Ask your question in an arbitrary form. Please make sure it's worded well enough to be understood, see https://github.com/blackjack4494/yt-dlc.
 -->
 
 WRITE QUESTION HERE

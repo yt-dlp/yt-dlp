@@ -39,22 +39,6 @@ class XTubeIE(InfoExtractor):
             'age_limit': 18,
         }
     }, {
-        # FLV videos with duplicated formats
-        'url': 'http://www.xtube.com/video-watch/A-Super-Run-Part-1-YT-9299752',
-        'md5': 'a406963eb349dd43692ec54631efd88b',
-        'info_dict': {
-            'id': '9299752',
-            'display_id': 'A-Super-Run-Part-1-YT',
-            'ext': 'flv',
-            'title': 'A Super Run - Part 1 (YT)',
-            'description': 'md5:4cc3af1aa1b0413289babc88f0d4f616',
-            'uploader': 'tshirtguy59',
-            'duration': 579,
-            'view_count': int,
-            'comment_count': int,
-            'age_limit': 18,
-        },
-    }, {
         # new URL schema
         'url': 'http://www.xtube.com/video-watch/strange-erotica-625837',
         'only_matching': True,
@@ -90,7 +74,7 @@ class XTubeIE(InfoExtractor):
         title, thumbnail, duration = [None] * 3
 
         config = self._parse_json(self._search_regex(
-            r'playerConf\s*=\s*({.+?})\s*,\s*\n', webpage, 'config',
+            r'playerConf\s*=\s*({.+?})\s*,\s*(?:\n|loaderConf)', webpage, 'config',
             default='{}'), video_id, transform_source=js_to_json, fatal=False)
         if config:
             config = config.get('mainRoll')

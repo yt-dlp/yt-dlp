@@ -210,6 +210,8 @@ class YoutubeDL(object):
     download_archive:  File name of a file where all downloads are recorded.
                        Videos already present in the file are not downloaded
                        again.
+    break_on_existing: Stop the download process after attempting to download a file that's
+                       in the archive.
     cookiefile:        File name where cookies should be read from and dumped to.
     nocheckcertificate:Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
@@ -801,7 +803,7 @@ class YoutubeDL(object):
         for key, value in extra_info.items():
             info_dict.setdefault(key, value)
 
-    def extract_info(self, url, download=True, ie_key=None, extra_info={},
+    def extract_info(self, url, download=True, ie_key=None, info_dict=None, extra_info={},
                      process=True, force_generic_extractor=False):
         '''
         Returns a list with a dictionary for each video we find.
@@ -821,26 +823,30 @@ class YoutubeDL(object):
             if not ie.suitable(url):
                 continue
 
-            ie = self.get_info_extractor(ie.ie_key())
+            ie_key = ie.ie_key()
+            ie = self.get_info_extractor(ie_key)
             if not ie.working():
                 self.report_warning('The program functionality for this site has been marked as broken, '
                                     'and will probably not work.')
 
             try:
-                ie_result = ie.extract(url)
-                if ie_result is None:  # Finished already (backwards compatibility; listformats and friends should be moved here)
-                    break
-                if isinstance(ie_result, list):
-                    # Backwards compatibility: old IE result format
-                    ie_result = {
-                        '_type': 'compat_list',
-                        'entries': ie_result,
-                    }
-                self.add_default_extra_info(ie_result, ie, url)
-                if process:
-                    return self.process_ie_result(ie_result, download, extra_info)
-                else:
-                    return ie_result
+                temp_id = ie.extract_id(url) if callable(getattr(ie, 'extract_id', None)) else ie._match_id(url)
+            except (AssertionError, IndexError, AttributeError):
+                temp_id = None
+            if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': ie_key}):
+                self.to_screen("[%s] %s: has already been recorded in archive" % (
+                               ie_key, temp_id))
+                break
+
+            return self.__extract_info(url, ie, download, extra_info, process, info_dict)
+
+        else:
+            self.report_error('no suitable InfoExtractor for URL %s' % url)
+
+    def __handle_extraction_exceptions(func):
+        def wrapper(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
             except GeoRestrictedError as e:
                 msg = e.msg
                 if e.countries:
@@ -848,20 +854,38 @@ class YoutubeDL(object):
                         map(ISO3166Utils.short2full, e.countries))
                 msg += '\nYou might want to use a VPN or a proxy server (with --proxy) to workaround.'
                 self.report_error(msg)
-                break
             except ExtractorError as e:  # An error we somewhat expected
                 self.report_error(compat_str(e), e.format_traceback())
-                break
             except MaxDownloadsReached:
                 raise
             except Exception as e:
                 if self.params.get('ignoreerrors', False):
                     self.report_error(error_to_compat_str(e), tb=encode_compat_str(traceback.format_exc()))
-                    break
                 else:
                     raise
+        return wrapper
+
+    @__handle_extraction_exceptions
+    def __extract_info(self, url, ie, download, extra_info, process, info_dict):
+        ie_result = ie.extract(url)
+        if ie_result is None:  # Finished already (backwards compatibility; listformats and friends should be moved here)
+            return
+        if isinstance(ie_result, list):
+            # Backwards compatibility: old IE result format
+            ie_result = {
+                '_type': 'compat_list',
+                'entries': ie_result,
+            }
+        if info_dict:
+            if info_dict.get('id'):
+                ie_result['id'] = info_dict['id']
+            if info_dict.get('title'):
+                ie_result['title'] = info_dict['title']
+        self.add_default_extra_info(ie_result, ie, url)
+        if process:
+            return self.process_ie_result(ie_result, download, extra_info)
         else:
-            self.report_error('no suitable InfoExtractor for URL %s' % url)
+            return ie_result
 
     def add_default_extra_info(self, ie_result, ie, url):
         self.add_extra_info(ie_result, {
@@ -898,7 +922,7 @@ class YoutubeDL(object):
             # We have to add extra_info to the results because it may be
             # contained in a playlist
             return self.extract_info(ie_result['url'],
-                                     download,
+                                     download, info_dict=ie_result,
                                      ie_key=ie_result.get('ie_key'),
                                      extra_info=extra_info)
         elif result_type == 'url_transparent':
@@ -1033,12 +1057,15 @@ class YoutubeDL(object):
 
                 reason = self._match_entry(entry, incomplete=True)
                 if reason is not None:
-                    self.to_screen('[download] ' + reason)
-                    continue
+                    if reason.endswith('has already been recorded in the archive') and self.params.get('break_on_existing'):
+                        print('[download] tried downloading a file that\'s already in the archive, stopping since --break-on-existing is set.')
+                        break
+                    else:
+                        self.to_screen('[download] ' + reason)
+                        continue
 
-                entry_result = self.process_ie_result(entry,
-                                                      download=download,
-                                                      extra_info=extra)
+                entry_result = self.__process_iterable_entry(entry, download, extra)
+                # TODO: skip failed (empty) entries?
                 playlist_results.append(entry_result)
             ie_result['entries'] = playlist_results
             self.to_screen('[download] Finished downloading playlist: %s' % playlist)
@@ -1066,6 +1093,11 @@ class YoutubeDL(object):
             return ie_result
         else:
             raise Exception('Invalid result type: %s' % result_type)
+
+    @__handle_extraction_exceptions
+    def __process_iterable_entry(self, entry, download, extra_info):
+        return self.process_ie_result(
+            entry, download=download, extra_info=extra_info)
 
     def _build_format_filter(self, filter_spec):
         " Returns a function to filter the formats according to the filter_spec "
@@ -1852,13 +1884,13 @@ class YoutubeDL(object):
                     self.report_error('Cannot write annotations file: ' + annofn)
                     return
 
-        def dl(name, info):
+        def dl(name, info, subtitle=False):
             fd = get_suitable_downloader(info, self.params)(self, self.params)
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
             if self.params.get('verbose'):
                 self.to_stdout('[debug] Invoking downloader on %r' % info.get('url'))
-            return fd.download(name, info)
+            return fd.download(name, info, subtitle)
 
         subtitles_are_requested = any([self.params.get('writesubtitles', False),
                                        self.params.get('writeautomaticsub')])
@@ -1867,7 +1899,7 @@ class YoutubeDL(object):
             # subtitles download errors are already managed as troubles in relevant IE
             # that way it will silently go on when used with unsupporting IE
             subtitles = info_dict['requested_subtitles']
-            ie = self.get_info_extractor(info_dict['extractor_key'])
+            # ie = self.get_info_extractor(info_dict['extractor_key'])
             for sub_lang, sub_info in subtitles.items():
                 sub_format = sub_info['ext']
                 sub_filename = subtitles_filename(filename, sub_lang, sub_format, info_dict.get('ext'))
@@ -1886,6 +1918,8 @@ class YoutubeDL(object):
                             return
                     else:
                         try:
+                            dl(sub_filename, sub_info, subtitle=True)
+                            '''
                             if self.params.get('sleep_interval_subtitles', False):
                                 dl(sub_filename, sub_info)
                             else:
@@ -1893,6 +1927,7 @@ class YoutubeDL(object):
                                     sub_info['url'], info_dict['id'], note=False).read()
                                 with io.open(encodeFilename(sub_filename), 'wb') as subfile:
                                     subfile.write(sub_data)
+                            '''
                         except (ExtractorError, IOError, OSError, ValueError, compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                             self.report_warning('Unable to download subtitle for "%s": %s' %
                                                 (sub_lang, error_to_compat_str(err)))

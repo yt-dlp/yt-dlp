@@ -8,8 +8,8 @@ from ..utils import int_or_none
 
 class TwentyThreeVideoIE(InfoExtractor):
     IE_NAME = '23video'
-    _VALID_URL = r'https?://video\.(?P<domain>twentythree\.net|23video\.com|filmweb\.no)/v\.ihtml/player\.html\?(?P<query>.*?\bphoto(?:_|%5f)id=(?P<id>\d+).*)'
-    _TEST = {
+    _VALID_URL = r'https?://(?P<domain>[^.]+\.(?:twentythree\.net|23video\.com|filmweb\.no))/v\.ihtml/player\.html\?(?P<query>.*?\bphoto(?:_|%5f)id=(?P<id>\d+).*)'
+    _TESTS = [{
         'url': 'https://video.twentythree.net/v.ihtml/player.html?showDescriptions=0&source=site&photo%5fid=20448876&autoPlay=1',
         'md5': '75fcf216303eb1dae9920d651f85ced4',
         'info_dict': {
@@ -21,11 +21,14 @@ class TwentyThreeVideoIE(InfoExtractor):
             'uploader_id': '12258964',
             'uploader': 'Rasmus Bysted',
         }
-    }
+    }, {
+        'url': 'https://bonnier-publications-danmark.23video.com/v.ihtml/player.html?token=f0dc46476e06e13afd5a1f84a29e31e8&source=embed&photo%5fid=36137620',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         domain, query, photo_id = re.match(self._VALID_URL, url).groups()
-        base_url = 'https://video.%s' % domain
+        base_url = 'https://%s' % domain
         photo_data = self._download_json(
             base_url + '/api/photo/list?' + query, photo_id, query={
                 'format': 'json',

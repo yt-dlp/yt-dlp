@@ -82,7 +82,10 @@ class YoutubeLiveChatReplayFD(FragmentFD):
                         offset = int(replay_chat_item_action['videoOffsetTimeMsec'])
                     processed_fragment.extend(
                         json.dumps(action, ensure_ascii=False).encode('utf-8') + b'\n')
-                continuation_id = live_chat_continuation['continuations'][0]['liveChatReplayContinuationData']['continuation']
+                try:
+                    continuation_id = live_chat_continuation['continuations'][0]['liveChatReplayContinuationData']['continuation']
+                except KeyError:
+                    continuation_id = None
 
             self._append_fragment(ctx, processed_fragment)
 

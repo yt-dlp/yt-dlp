@@ -64,7 +64,7 @@ class KUSIIE(InfoExtractor):
         duration = float_or_none(xpath_text(doc, 'DURATION'), scale=1000)
         description = xpath_text(doc, 'ABSTRACT')
         thumbnail = xpath_text(doc, './THUMBNAILIMAGE/FILENAME')
-        createtion_time = timeconvert(xpath_text(doc, 'rfc822creationdate'))
+        creation_time = timeconvert(xpath_text(doc, 'rfc822creationdate'))
 
         quality_options = doc.find('{http://search.yahoo.com/mrss/}group').findall('{http://search.yahoo.com/mrss/}content')
         formats = []
@@ -84,5 +84,5 @@ class KUSIIE(InfoExtractor):
             'duration': duration,
             'formats': formats,
             'thumbnail': thumbnail,
-            'timestamp': createtion_time,
+            'timestamp': creation_time,
         }

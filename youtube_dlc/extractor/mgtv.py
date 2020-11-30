@@ -17,9 +17,8 @@ from ..utils import (
 
 
 class MGTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?mgtv\.com/(v|b)/(?:[^/]+/)*(?P<id>\d+)\.html'
+    _VALID_URL = r'https?://(?:w(?:ww)?\.)?mgtv\.com/(v|b)/(?:[^/]+/)*(?P<id>\d+)\.html'
     IE_DESC = '芒果TV'
-    _GEO_COUNTRIES = ['CN']
 
     _TESTS = [{
         'url': 'http://www.mgtv.com/v/1/290525/f/3116640.html',
@@ -34,14 +33,18 @@ class MGTVIE(InfoExtractor):
     }, {
         'url': 'http://www.mgtv.com/b/301817/3826653.html',
         'only_matching': True,
+    }, {
+        'url': 'https://w.mgtv.com/b/301817/3826653.html',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        tk2 = base64.urlsafe_b64encode(b'did=%s|pno=1030|ver=0.3.0301|clit=%d' % (compat_str(uuid.uuid4()).encode(), time.time()))[::-1]
         try:
             api_data = self._download_json(
                 'https://pcweb.api.mgtv.com/player/video', video_id, query={
-                    'tk2': base64.urlsafe_b64encode(b'did=%s|pno=1030|ver=0.3.0301|clit=%d' % (compat_str(uuid.uuid4()).encode(), time.time()))[::-1],
+                    'tk2': tk2,
                     'video_id': video_id,
                 }, headers=self.geo_verification_headers())['data']
         except ExtractorError as e:
@@ -56,6 +59,7 @@ class MGTVIE(InfoExtractor):
         stream_data = self._download_json(
             'https://pcweb.api.mgtv.com/player/getSource', video_id, query={
                 'pm2': api_data['atc']['pm2'],
+                'tk2': tk2,
                 'video_id': video_id,
             }, headers=self.geo_verification_headers())['data']
         stream_domain = stream_data['stream_domain'][0]

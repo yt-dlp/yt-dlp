@@ -981,7 +981,7 @@ class BBCIE(BBCCoUkIE):
         group_id = self._search_regex(
             r'<div[^>]+\bclass=["\']video["\'][^>]+\bdata-pid=["\'](%s)' % self._ID_REGEX,
             webpage, 'group id', default=None)
-        if playlist_id:
+        if group_id:
             return self.url_result(
                 'https://www.bbc.co.uk/programmes/%s' % group_id,
                 ie=BBCCoUkIE.ie_key())
@@ -1092,10 +1092,26 @@ class BBCIE(BBCCoUkIE):
             self._search_regex(
                 r'(?s)bbcthreeConfig\s*=\s*({.+?})\s*;\s*<', webpage,
                 'bbcthree config', default='{}'),
-            playlist_id, transform_source=js_to_json, fatal=False)
-        if bbc3_config:
+            playlist_id, transform_source=js_to_json, fatal=False) or {}
+        payload = bbc3_config.get('payload') or {}
+        if payload:
+            clip = payload.get('currentClip') or {}
+            clip_vpid = clip.get('vpid')
+            clip_title = clip.get('title')
+            if clip_vpid and clip_title:
+                formats, subtitles = self._download_media_selector(clip_vpid)
+                self._sort_formats(formats)
+                return {
+                    'id': clip_vpid,
+                    'title': clip_title,
+                    'thumbnail': dict_get(clip, ('poster', 'imageUrl')),
+                    'description': clip.get('description'),
+                    'duration': parse_duration(clip.get('duration')),
+                    'formats': formats,
+                    'subtitles': subtitles,
+                }
             bbc3_playlist = try_get(
-                bbc3_config, lambda x: x['payload']['content']['bbcMedia']['playlist'],
+                payload, lambda x: x['content']['bbcMedia']['playlist'],
                 dict)
             if bbc3_playlist:
                 playlist_title = bbc3_playlist.get('title') or playlist_title
@@ -1117,6 +1133,39 @@ class BBCIE(BBCCoUkIE):
                     })
                 return self.playlist_result(
                     entries, playlist_id, playlist_title, playlist_description)
+
+        initial_data = self._parse_json(self._search_regex(
+            r'window\.__INITIAL_DATA__\s*=\s*({.+?});', webpage,
+            'preload state', default='{}'), playlist_id, fatal=False)
+        if initial_data:
+            def parse_media(media):
+                if not media:
+                    return
+                for item in (try_get(media, lambda x: x['media']['items'], list) or []):
+                    item_id = item.get('id')
+                    item_title = item.get('title')
+                    if not (item_id and item_title):
+                        continue
+                    formats, subtitles = self._download_media_selector(item_id)
+                    self._sort_formats(formats)
+                    entries.append({
+                        'id': item_id,
+                        'title': item_title,
+                        'thumbnail': item.get('holdingImageUrl'),
+                        'formats': formats,
+                        'subtitles': subtitles,
+                    })
+            for resp in (initial_data.get('data') or {}).values():
+                name = resp.get('name')
+                if name == 'media-experience':
+                    parse_media(try_get(resp, lambda x: x['data']['initialItem']['mediaItem'], dict))
+                elif name == 'article':
+                    for block in (try_get(resp, lambda x: x['data']['blocks'], list) or []):
+                        if block.get('type') != 'media':
+                            continue
+                        parse_media(block.get('model'))
+            return self.playlist_result(
+                entries, playlist_id, playlist_title, playlist_description)
 
         def extract_all(pattern):
             return list(filter(None, map(
