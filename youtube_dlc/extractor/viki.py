@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import base64
 import hashlib
 import hmac
 import itertools
@@ -9,6 +10,10 @@ import re
 import time
 
 from .common import InfoExtractor
+from ..compat import (
+    compat_parse_qs,
+    compat_urllib_parse_urlparse,
+)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -16,6 +21,7 @@ from ..utils import (
     parse_age_limit,
     parse_iso8601,
     sanitized_Request,
+    std_headers,
 )
 
 
@@ -166,19 +172,20 @@ class VikiIE(VikiBaseIE):
     }, {
         # episode
         'url': 'http://www.viki.com/videos/44699v-boys-over-flowers-episode-1',
-        'md5': '5fa476a902e902783ac7a4d615cdbc7a',
+        'md5': '94e0e34fd58f169f40c184f232356cfe',
         'info_dict': {
             'id': '44699v',
             'ext': 'mp4',
             'title': 'Boys Over Flowers - Episode 1',
             'description': 'md5:b89cf50038b480b88b5b3c93589a9076',
-            'duration': 4204,
+            'duration': 4172,
             'timestamp': 1270496524,
             'upload_date': '20100405',
             'uploader': 'group8',
             'like_count': int,
             'age_limit': 13,
-        }
+        },
+        'expected_warnings': ['Unknown MIME type image/jpeg in DASH manifest'],
     }, {
         # youtube external
         'url': 'http://www.viki.com/videos/50562v-poor-nastya-complete-episode-1',
@@ -195,14 +202,15 @@ class VikiIE(VikiBaseIE):
             'uploader_id': 'ad14065n',
             'like_count': int,
             'age_limit': 13,
-        }
+        },
+        'skip': 'Page not found!',
     }, {
         'url': 'http://www.viki.com/player/44699v',
         'only_matching': True,
     }, {
         # non-English description
         'url': 'http://www.viki.com/videos/158036v-love-in-magic',
-        'md5': '1713ae35df5a521b31f6dc40730e7c9c',
+        'md5': 'adf9e321a0ae5d0aace349efaaff7691',
         'info_dict': {
             'id': '158036v',
             'ext': 'mp4',
@@ -218,71 +226,13 @@ class VikiIE(VikiBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        video = self._call_api(
-            'videos/%s.json' % video_id, video_id, 'Downloading video JSON')
-
-        streams = self._call_api(
-            'videos/%s/streams.json' % video_id, video_id,
-            'Downloading video streams JSON')
-
-        formats = []
-        for format_id, stream_dict in streams.items():
-            height = int_or_none(self._search_regex(
-                r'^(\d+)[pP]$', format_id, 'height', default=None))
-            for protocol, format_dict in stream_dict.items():
-                # rtmps URLs does not seem to work
-                if protocol == 'rtmps':
-                    continue
-                format_url = format_dict.get('url')
-                format_drms = format_dict.get('drms')
-                format_stream_id = format_dict.get('id')
-                if format_id == 'm3u8':
-                    m3u8_formats = self._extract_m3u8_formats(
-                        format_url, video_id, 'mp4',
-                        entry_protocol='m3u8_native',
-                        m3u8_id='m3u8-%s' % protocol, fatal=False)
-                    # Despite CODECS metadata in m3u8 all video-only formats
-                    # are actually video+audio
-                    for f in m3u8_formats:
-                        if f.get('acodec') == 'none' and f.get('vcodec') != 'none':
-                            f['acodec'] = None
-                    formats.extend(m3u8_formats)
-                elif format_id == 'mpd':
-                    mpd_formats = self._extract_mpd_formats(
-                        format_url, video_id,
-                        mpd_id='mpd-%s' % protocol, fatal=False)
-                    formats.extend(mpd_formats)
-                elif format_id == 'mpd':
-
-                    formats.extend(mpd_formats)
-                elif format_url.startswith('rtmp'):
-                    mobj = re.search(
-                        r'^(?P<url>rtmp://[^/]+/(?P<app>.+?))/(?P<playpath>mp4:.+)$',
-                        format_url)
-                    if not mobj:
-                        continue
-                    formats.append({
-                        'format_id': 'rtmp-%s' % format_id,
-                        'ext': 'flv',
-                        'url': mobj.group('url'),
-                        'play_path': mobj.group('playpath'),
-                        'app': mobj.group('app'),
-                        'page_url': url,
-                        'drms': format_drms,
-                        'stream_id': format_stream_id,
-                    })
-                else:
-                    urlh = self._request_webpage(
-                        HEADRequest(format_url), video_id, 'Checking file size', fatal=False)
-                    formats.append({
-                        'url': format_url,
-                        'format_id': '%s-%s' % (format_id, protocol),
-                        'height': height,
-                        'drms': format_drms,
-                        'stream_id': format_stream_id,
-                        'filesize': int_or_none(urlh.headers.get('Content-Length')),
-                    })
-        self._sort_formats(formats)
+        resp = self._download_json(
+            'https://www.viki.com/api/videos/' + video_id,
+            video_id, 'Downloading video JSON', headers={
+                'x-client-user-agent': std_headers['User-Agent'],
+                'x-viki-app-ver': '4.0.57',
+            })
+        video = resp['video']
 
         self._check_errors(video)
 
@@ -342,12 +292,84 @@ class VikiIE(VikiBaseIE):
             'subtitles': subtitles,
         }
 
-        if 'external' in streams:
-            result.update({
-                '_type': 'url_transparent',
-                'url': streams['external']['url'],
-            })
-            return result
+        formats = []
+
+        def add_format(format_id, format_dict, protocol='http'):
+            # rtmps URLs does not seem to work
+            if protocol == 'rtmps':
+                return
+            format_url = format_dict.get('url')
+            if not format_url:
+                return
+            format_drms = format_dict.get('drms')
+            format_stream_id = format_dict.get('id')
+            qs = compat_parse_qs(compat_urllib_parse_urlparse(format_url).query)
+            stream = qs.get('stream', [None])[0]
+            if stream:
+                format_url = base64.b64decode(stream).decode()
+            if format_id in ('m3u8', 'hls'):
+                m3u8_formats = self._extract_m3u8_formats(
+                    format_url, video_id, 'mp4',
+                    entry_protocol='m3u8_native',
+                    m3u8_id='m3u8-%s' % protocol, fatal=False)
+                # Despite CODECS metadata in m3u8 all video-only formats
+                # are actually video+audio
+                for f in m3u8_formats:
+                    if '_drm/index_' in f['url']:
+                        continue
+                    if f.get('acodec') == 'none' and f.get('vcodec') != 'none':
+                        f['acodec'] = None
+                    formats.append(f)
+            elif format_id in ('mpd', 'dash'):
+                formats.extend(self._extract_mpd_formats(
+                    format_url, video_id, 'mpd-%s' % protocol, fatal=False))
+            elif format_url.startswith('rtmp'):
+                mobj = re.search(
+                    r'^(?P<url>rtmp://[^/]+/(?P<app>.+?))/(?P<playpath>mp4:.+)$',
+                    format_url)
+                if not mobj:
+                    return
+                formats.append({
+                    'format_id': 'rtmp-%s' % format_id,
+                    'ext': 'flv',
+                    'url': mobj.group('url'),
+                    'play_path': mobj.group('playpath'),
+                    'app': mobj.group('app'),
+                    'page_url': url,
+                    'drms': format_drms,
+                    'stream_id': format_stream_id,
+                })
+            else:
+                urlh = self._request_webpage(
+                    HEADRequest(format_url), video_id, 'Checking file size', fatal=False)
+                formats.append({
+                    'url': format_url,
+                    'format_id': '%s-%s' % (format_id, protocol),
+                    'height': int_or_none(self._search_regex(
+                        r'^(\d+)[pP]$', format_id, 'height', default=None)),
+                    'drms': format_drms,
+                    'stream_id': format_stream_id,
+                    'filesize': int_or_none(urlh.headers.get('Content-Length')),
+                })
+
+        for format_id, format_dict in (resp.get('streams') or {}).items():
+            add_format(format_id, format_dict)
+        if not formats:
+            streams = self._call_api(
+                'videos/%s/streams.json' % video_id, video_id,
+                'Downloading video streams JSON')
+
+            if 'external' in streams:
+                result.update({
+                    '_type': 'url_transparent',
+                    'url': streams['external']['url'],
+                })
+                return result
+
+            for format_id, stream_dict in streams.items():
+                for protocol, format_dict in stream_dict.items():
+                    add_format(format_id, format_dict, protocol)
+        self._sort_formats(formats)
 
         result['formats'] = formats
         return result

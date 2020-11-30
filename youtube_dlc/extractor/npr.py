@@ -33,7 +33,7 @@ class NprIE(InfoExtractor):
             },
         }],
     }, {
-        # mutlimedia, not media title
+        # multimedia, not media title
         'url': 'https://www.npr.org/2017/06/19/533198237/tigers-jaw-tiny-desk-concert',
         'info_dict': {
             'id': '533198237',

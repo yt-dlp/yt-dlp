@@ -2460,7 +2460,7 @@ class XAttrMetadataError(YoutubeDLError):
 
         # Parsing code and msg
         if (self.code in (errno.ENOSPC, errno.EDQUOT)
-                or 'No space left' in self.msg or 'Disk quota excedded' in self.msg):
+                or 'No space left' in self.msg or 'Disk quota exceeded' in self.msg):
             self.reason = 'NO_SPACE'
         elif self.code == errno.E2BIG or 'Argument list too long' in self.msg:
             self.reason = 'VALUE_TOO_LONG'
@@ -4085,7 +4085,7 @@ def js_to_json(code):
         v = m.group(0)
         if v in ('true', 'false', 'null'):
             return v
-        elif v.startswith('/*') or v.startswith('//') or v == ',':
+        elif v.startswith('/*') or v.startswith('//') or v.startswith('!') or v == ',':
             return ""
 
         if v[0] in ("'", '"'):
@@ -4095,12 +4095,12 @@ def js_to_json(code):
                 '\\\n': '',
                 '\\x': '\\u00',
             }.get(m.group(0), m.group(0)), v[1:-1])
-
-        for regex, base in INTEGER_TABLE:
-            im = re.match(regex, v)
-            if im:
-                i = int(im.group(1), base)
-                return '"%d":' % i if v.endswith(':') else '%d' % i
+        else:
+            for regex, base in INTEGER_TABLE:
+                im = re.match(regex, v)
+                if im:
+                    i = int(im.group(1), base)
+                    return '"%d":' % i if v.endswith(':') else '%d' % i
 
         return '"%s"' % v
 
@@ -4110,7 +4110,8 @@ def js_to_json(code):
         {comment}|,(?={skip}[\]}}])|
         (?:(?<![0-9])[eE]|[a-df-zA-DF-Z_])[.a-zA-Z_0-9]*|
         \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{skip}:)?|
-        [0-9]+(?={skip}:)
+        [0-9]+(?={skip}:)|
+        !+
         '''.format(comment=COMMENT_RE, skip=SKIP_RE), fix_kv, code)
 
 
@@ -4214,10 +4215,10 @@ def parse_codecs(codecs_str):
     # http://tools.ietf.org/html/rfc6381
     if not codecs_str:
         return {}
-    splited_codecs = list(filter(None, map(
+    split_codecs = list(filter(None, map(
         lambda str: str.strip(), codecs_str.strip().strip(',').split(','))))
     vcodec, acodec = None, None
-    for full_codec in splited_codecs:
+    for full_codec in split_codecs:
         codec = full_codec.split('.')[0]
         if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av01', 'theora'):
             if not vcodec:
@@ -4228,10 +4229,10 @@ def parse_codecs(codecs_str):
         else:
             write_string('WARNING: Unknown codec %s\n' % full_codec, sys.stderr)
     if not vcodec and not acodec:
-        if len(splited_codecs) == 2:
+        if len(split_codecs) == 2:
             return {
-                'vcodec': splited_codecs[0],
-                'acodec': splited_codecs[1],
+                'vcodec': split_codecs[0],
+                'acodec': split_codecs[1],
             }
     else:
         return {
@@ -5470,7 +5471,7 @@ def encode_base_n(num, n, table=None):
 
 def decode_packed_codes(code):
     mobj = re.search(PACKED_CODES_RE, code)
-    obfucasted_code, base, count, symbols = mobj.groups()
+    obfuscated_code, base, count, symbols = mobj.groups()
     base = int(base)
     count = int(count)
     symbols = symbols.split('|')
@@ -5483,7 +5484,7 @@ def decode_packed_codes(code):
 
     return re.sub(
         r'\b(\w+)\b', lambda mobj: symbol_table[mobj.group(0)],
-        obfucasted_code)
+        obfuscated_code)
 
 
 def caesar(s, alphabet, shift):

@@ -5,7 +5,6 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     int_or_none,
     js_to_json,
     orderedSet,
@@ -34,7 +33,7 @@ class XTubeIE(InfoExtractor):
             'title': 'strange erotica',
             'description': 'contains:an ET kind of thing',
             'uploader': 'greenshowers',
-            'duration': 449,
+            'duration': 450,
             'view_count': int,
             'comment_count': int,
             'age_limit': 18,
@@ -74,24 +73,16 @@ class XTubeIE(InfoExtractor):
 
         title, thumbnail, duration = [None] * 3
 
-        json_config_string = self._search_regex(
-            r'playerConf=({.+?}),loaderConf',
-            webpage, 'config', default=None)
-        if not json_config_string:
-            raise ExtractorError("Could not extract video player data")
-
-        json_config_string = json_config_string.replace("!0", "true").replace("!1", "false")
-
-        config = self._parse_json(json_config_string, video_id, transform_source=js_to_json, fatal=False)
-        if not config:
-            raise ExtractorError("Could not extract video player data")
-
-        config = config.get('mainRoll')
-        if isinstance(config, dict):
-            title = config.get('title')
-            thumbnail = config.get('poster')
-            duration = int_or_none(config.get('duration'))
-            sources = config.get('sources') or config.get('format')
+        config = self._parse_json(self._search_regex(
+            r'playerConf\s*=\s*({.+?})\s*,\s*(?:\n|loaderConf)', webpage, 'config',
+            default='{}'), video_id, transform_source=js_to_json, fatal=False)
+        if config:
+            config = config.get('mainRoll')
+            if isinstance(config, dict):
+                title = config.get('title')
+                thumbnail = config.get('poster')
+                duration = int_or_none(config.get('duration'))
+                sources = config.get('sources') or config.get('format')
 
         if not isinstance(sources, dict):
             sources = self._parse_json(self._search_regex(

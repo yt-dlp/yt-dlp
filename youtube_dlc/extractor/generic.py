@@ -91,6 +91,7 @@ from .piksel import PikselIE
 from .videa import VideaIE
 from .twentymin import TwentyMinutenIE
 from .ustream import UstreamIE
+from .arte import ArteTVEmbedIE
 from .videopress import VideoPressIE
 from .rutube import RutubeIE
 from .limelight import LimelightBaseIE
@@ -119,6 +120,7 @@ from .expressen import ExpressenIE
 from .zype import ZypeIE
 from .odnoklassniki import OdnoklassnikiIE
 from .kinja import KinjaEmbedIE
+from .bitchute import BitChuteIE
 
 
 class GenericIE(InfoExtractor):
@@ -841,7 +843,7 @@ class GenericIE(InfoExtractor):
                 'skip_download': True,
             }
         },
-        # MTVSercices embed
+        # MTVServices embed
         {
             'url': 'http://www.vulture.com/2016/06/new-key-peele-sketches-released.html',
             'md5': 'ca1aef97695ef2c1d6973256a57e5252',
@@ -2760,11 +2762,9 @@ class GenericIE(InfoExtractor):
             return self.url_result(ustream_url, UstreamIE.ie_key())
 
         # Look for embedded arte.tv player
-        mobj = re.search(
-            r'<(?:script|iframe) [^>]*?src="(?P<url>http://www\.arte\.tv/(?:playerv2/embed|arte_vp/index)[^"]+)"',
-            webpage)
-        if mobj is not None:
-            return self.url_result(mobj.group('url'), 'ArteTVEmbed')
+        arte_urls = ArteTVEmbedIE._extract_urls(webpage)
+        if arte_urls:
+            return self.playlist_from_matches(arte_urls, video_id, video_title)
 
         # Look for embedded francetv player
         mobj = re.search(
@@ -3212,6 +3212,11 @@ class GenericIE(InfoExtractor):
         if zype_urls:
             return self.playlist_from_matches(
                 zype_urls, video_id, video_title, ie=ZypeIE.ie_key())
+
+        bitchute_urls = BitChuteIE._extract_urls(webpage)
+        if bitchute_urls:
+            return self.playlist_from_matches(
+                bitchute_urls, video_id, video_title, ie=BitChuteIE.ie_key())
 
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')

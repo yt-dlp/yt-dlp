@@ -221,3 +221,41 @@ class NYTimesArticleIE(NYTimesBaseIE):
              r'NYTD\.FlexTypes\.push\s*\(\s*({.+})\s*\)\s*;'),
             webpage, 'podcast data')
         return self._extract_podcast_from_json(podcast_data, page_id, webpage)
+
+
+class NYTimesCookingIE(NYTimesBaseIE):
+    _VALID_URL = r'https?://cooking\.nytimes\.com/(?:guid|recip)es/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://cooking.nytimes.com/recipes/1017817-cranberry-curd-tart',
+        'md5': 'dab81fa2eaeb3f9ed47498bdcfcdc1d3',
+        'info_dict': {
+            'id': '100000004756089',
+            'ext': 'mov',
+            'timestamp': 1479383008,
+            'uploader': 'By SHAW LASH, ADAM SAEWITZ and JAMES HERRON',
+            'title': 'Cranberry Tart',
+            'upload_date': '20161117',
+            'description': 'If you are a fan of lemon curd or the classic French tarte au citron, you will love this cranberry version.',
+        },
+    }, {
+        'url': 'https://cooking.nytimes.com/guides/13-how-to-cook-a-turkey',
+        'md5': '4b2e8c70530a89b8d905a2b572316eb8',
+        'info_dict': {
+            'id': '100000003951728',
+            'ext': 'mov',
+            'timestamp': 1445509539,
+            'description': 'Turkey guide',
+            'upload_date': '20151022',
+            'title': 'Turkey',
+        }
+    }]
+
+    def _real_extract(self, url):
+        page_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, page_id)
+
+        video_id = self._search_regex(
+            r'data-video-id=["\'](\d+)', webpage, 'video id')
+
+        return self._extract_video_from_id(video_id)

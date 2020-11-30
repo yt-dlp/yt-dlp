@@ -44,7 +44,7 @@ class SouthParkEsIE(SouthParkIE):
 
 class SouthParkDeIE(SouthParkIE):
     IE_NAME = 'southpark.de'
-    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:videoclip|collections|folgen)/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
+    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:(en/(videoclip|collections|episodes))|(videoclip|collections|folgen))/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
     # _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
 
     _TESTS = [{
