@@ -126,16 +126,23 @@ class InstagramIE(InfoExtractor):
          uploader_id, like_count, comment_count, comments, height,
          width) = [None] * 11
 
-        shared_data = self._parse_json(
-            self._search_regex(
-                r'window\._sharedData\s*=\s*({.+?});',
-                webpage, 'shared data', default='{}'),
-            video_id, fatal=False)
+        shared_data = try_get(webpage,
+                              (lambda x: self._parse_json(
+                                  self._search_regex(
+                                      r'window\.__additionalDataLoaded\(\'/(?:p|tv)/(?:[^/?#&]+)/\',({.+?})\);',
+                                      x, 'additional data', default='{}'),
+                                  video_id, fatal=False),
+                               lambda x: self._parse_json(
+                                  self._search_regex(
+                                      r'window\._sharedData\s*=\s*({.+?});',
+                                      x, 'shared data', default='{}'),
+                                  video_id, fatal=False)['entry_data']['PostPage'][0]),
+                              None)
         if shared_data:
             media = try_get(
                 shared_data,
-                (lambda x: x['entry_data']['PostPage'][0]['graphql']['shortcode_media'],
-                 lambda x: x['entry_data']['PostPage'][0]['media']),
+                (lambda x: x['graphql']['shortcode_media'],
+                 lambda x: x['media']),
                 dict)
             if media:
                 video_url = media.get('video_url')
@@ -144,7 +151,7 @@ class InstagramIE(InfoExtractor):
                 description = try_get(
                     media, lambda x: x['edge_media_to_caption']['edges'][0]['node']['text'],
                     compat_str) or media.get('caption')
-                thumbnail = media.get('display_src')
+                thumbnail = media.get('display_src') or media.get('thumbnail_src')
                 timestamp = int_or_none(media.get('taken_at_timestamp') or media.get('date'))
                 uploader = media.get('owner', {}).get('full_name')
                 uploader_id = media.get('owner', {}).get('username')
