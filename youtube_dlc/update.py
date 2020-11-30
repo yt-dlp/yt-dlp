@@ -37,9 +37,25 @@ def update_self(to_screen, verbose, opener):
     JSON_URL = UPDATE_URL + 'versions.json'
     UPDATES_RSA_KEY = (0x9d60ee4d8f805312fdb15a62f87b95bd66177b91df176765d13514a0f1754bcd2057295c5b6f1d35daa6742c3ffc9a82d3e118861c207995a8031e151d863c9927e304576bc80692bc8e094896fcf11b66f3e29e04e3a71e9a11558558acea1840aec37fc396fb6b65dc81a1c4144e03bd1c011de62e3f1357b327d08426fe93, 65537)
 
+    def sha256sum():
+        h = hashlib.sha256()
+        b = bytearray(128 * 1024)
+        mv = memoryview(b)
+        with open(os.path.realpath(sys.executable), 'rb', buffering=0) as f:
+            for n in iter(lambda: f.readinto(mv), 0):
+                h.update(mv[:n])
+        return h.hexdigest()
+
+    to_screen('Current Build Hash %s' % sha256sum())
+
     if not isinstance(globals().get('__loader__'), zipimporter) and not hasattr(sys, 'frozen'):
         to_screen('It looks like you installed youtube-dlc with a package manager, pip, setup.py or a tarball. Please use that to update.')
         return
+
+    # compiled file.exe can find itself by
+    # to_screen(os.path.basename(sys.executable))
+    # and path to py or exe
+    # to_screen(os.path.realpath(sys.executable))
 
     # Check if there is a new version
     try:
@@ -48,6 +64,7 @@ def update_self(to_screen, verbose, opener):
         if verbose:
             to_screen(encode_compat_str(traceback.format_exc()))
         to_screen('ERROR: can\'t find the current version. Please try again later.')
+        to_screen('Visit https://github.com/blackjack4494/yt-dlc/releases/latest')
         return
     if newversion == __version__:
         to_screen('youtube-dlc is up-to-date (' + __version__ + ')')
@@ -61,6 +78,7 @@ def update_self(to_screen, verbose, opener):
         if verbose:
             to_screen(encode_compat_str(traceback.format_exc()))
         to_screen('ERROR: can\'t obtain versions info. Please try again later.')
+        to_screen('Visit https://github.com/blackjack4494/yt-dlc/releases/latest')
         return
     if 'signature' not in versions_info:
         to_screen('ERROR: the versions file is not signed or corrupted. Aborting.')
@@ -109,6 +127,7 @@ def update_self(to_screen, verbose, opener):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
+            to_screen('Visit https://github.com/blackjack4494/yt-dlc/releases/latest')
             return
 
         newcontent_hash = hashlib.sha256(newcontent).hexdigest()
@@ -155,6 +174,7 @@ start /b "" cmd /c del "%%~f0"&exit /b"
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
+            to_screen('Visit https://github.com/blackjack4494/yt-dlc/releases/latest')
             return
 
         newcontent_hash = hashlib.sha256(newcontent).hexdigest()

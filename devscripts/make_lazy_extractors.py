@@ -61,7 +61,7 @@ def build_lazy_ie(ie, name):
     return s
 
 
-# find the correct sorting and add the required base classes so that sublcasses
+# find the correct sorting and add the required base classes so that subclasses
 # can be correctly created
 classes = _ALL_CLASSES[:-1]
 ordered_cls = []

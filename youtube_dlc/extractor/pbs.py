@@ -477,7 +477,7 @@ class PBSIE(InfoExtractor):
             if media_id:
                 return media_id, presumptive_id, upload_date, description
 
-            # Fronline video embedded via flp
+            # Frontline video embedded via flp
             video_id = self._search_regex(
                 r'videoid\s*:\s*"([\d+a-z]{7,})"', webpage, 'videoid', default=None)
             if video_id:

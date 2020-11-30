@@ -275,7 +275,7 @@ class AfreecaTVIE(InfoExtractor):
         video_element = video_xml.findall(compat_xpath('./track/video'))[-1]
         if video_element is None or video_element.text is None:
             raise ExtractorError(
-                'Video %s video does not exist' % video_id, expected=True)
+                'Video %s does not exist' % video_id, expected=True)
 
         video_url = video_element.text.strip()
 

@@ -18,11 +18,11 @@ title: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlc:
-- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://yt-dl.org/update on how to update. Issues with outdated version will be REJECTED.
+- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://github.com/blackjack4494/yt-dlc on how to update. Issues with outdated version will be REJECTED.
 - Make sure that all provided video/audio/playlist URLs (if any) are alive and playable in a browser.
-- Make sure that all URLs and arguments with special characters are properly quoted or escaped as explained in http://yt-dl.org/escape.
-- Search the bugtracker for similar issues: http://yt-dl.org/search-issues. DO NOT post duplicates.
-- Read bugs section in FAQ: http://yt-dl.org/reporting
+- Make sure that all URLs and arguments with special characters are properly quoted or escaped as explained in https://github.com/blackjack4494/yt-dlc.
+- Search the bugtracker for similar issues: https://github.com/blackjack4494/yt-dlc. DO NOT post duplicates.
+- Read bugs section in FAQ: https://github.com/blackjack4494/yt-dlc
 - Finally, put x into all relevant boxes (like this [x])
 -->
 

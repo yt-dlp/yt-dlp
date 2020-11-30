@@ -937,6 +937,28 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(d['x'], 1)
         self.assertEqual(d['y'], 'a')
 
+        # Just drop ! prefix for now though this results in a wrong value
+        on = js_to_json('''{
+            a: !0,
+            b: !1,
+            c: !!0,
+            d: !!42.42,
+            e: !!![],
+            f: !"abc",
+            g: !"",
+            !42: 42
+        }''')
+        self.assertEqual(json.loads(on), {
+            'a': 0,
+            'b': 1,
+            'c': 0,
+            'd': 42.42,
+            'e': [],
+            'f': "abc",
+            'g': "",
+            '42': 42
+        })
+
         on = js_to_json('["abc", "def",]')
         self.assertEqual(json.loads(on), ['abc', 'def'])
 
@@ -993,6 +1015,12 @@ class TestUtil(unittest.TestCase):
 
         on = js_to_json('{42:4.2e1}')
         self.assertEqual(json.loads(on), {'42': 42.0})
+
+        on = js_to_json('{ "0x40": "0x40" }')
+        self.assertEqual(json.loads(on), {'0x40': '0x40'})
+
+        on = js_to_json('{ "040": "040" }')
+        self.assertEqual(json.loads(on), {'040': '040'})
 
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')

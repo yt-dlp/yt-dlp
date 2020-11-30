@@ -12,6 +12,7 @@ from ..utils import (
     parse_duration,
     remove_end,
     try_get,
+    urljoin,
 )
 
 
@@ -93,6 +94,14 @@ class MailRuIE(InfoExtractor):
         {
             'url': 'https://my.mail.ru//list//sinyutin10/video/_myvideo/4.html',
             'only_matching': True,
+        },
+        {
+            'url': 'https://my.mail.ru/mail/cloud-strife/video/embed/Games/2009',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://videoapi.my.mail.ru/videos/embed/mail/cloud-strife/Games/2009.html',
+            'only_matching': True,
         }
     ]
 
@@ -110,7 +119,7 @@ class MailRuIE(InfoExtractor):
             webpage = self._download_webpage(url, video_id)
             page_config = self._parse_json(self._search_regex([
                 r'(?s)<script[^>]+class="sp-video__page-config"[^>]*>(.+?)</script>',
-                r'(?s)"video":\s*(\{.+?\}),'],
+                r'(?s)"video":\s*({.+?}),'],
                 webpage, 'page config', default='{}'), video_id, fatal=False)
             if page_config:
                 meta_url = page_config.get('metaUrl') or page_config.get('video', {}).get('metaUrl') or page_config.get('metadataUrl')
@@ -121,7 +130,7 @@ class MailRuIE(InfoExtractor):
 
         # fix meta_url if missing the host address
         if re.match(r'^\/\+\/', meta_url):
-            meta_url = 'https://my.mail.ru' + meta_url
+            meta_url = urljoin('https://my.mail.ru', meta_url)
 
         if meta_url:
             video_data = self._download_json(

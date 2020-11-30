@@ -16,6 +16,7 @@ from ..utils import (
     GeoRestrictedError,
     int_or_none,
     parse_duration,
+    remove_start,
     strip_or_none,
     try_get,
     unified_strdate,
@@ -30,7 +31,6 @@ class RaiBaseIE(InfoExtractor):
     _UUID_RE = r'[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
     _GEO_COUNTRIES = ['IT']
     _GEO_BYPASS = False
-    _BASE_URL = 'https://www.raiplay.it'
 
     def _extract_relinker_info(self, relinker_url, video_id):
         if not re.match(r'https?://', relinker_url):
@@ -68,7 +68,7 @@ class RaiBaseIE(InfoExtractor):
 
             # This does not imply geo restriction (e.g.
             # http://www.raisport.rai.it/dl/raiSport/media/rassegna-stampa-04a9f4bd-b563-40cf-82a6-aad3529cb4a9.html)
-            if media_url == 'http://download.rai.it/video_no_available.mp4':
+            if '/video_no_available.mp4' in media_url:
                 continue
 
             ext = determine_ext(media_url)
@@ -123,7 +123,7 @@ class RaiBaseIE(InfoExtractor):
 
 
 class RaiPlayIE(RaiBaseIE):
-    _VALID_URL = r'(?P<url>(?P<base>https?://(?:www\.)?raiplay\.it/.+?-)(?P<id>%s)(?P<ext>\.(?:html|json)))' % RaiBaseIE._UUID_RE
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>%s))\.(?:html|json)' % RaiBaseIE._UUID_RE
     _TESTS = [{
         'url': 'http://www.raiplay.it/video/2014/04/Report-del-07042014-cb27157f-9dd0-4aee-b788-b1f67643a391.html',
         'md5': '8970abf8caf8aef4696e7b1f2adfc696',
@@ -131,11 +131,13 @@ class RaiPlayIE(RaiBaseIE):
             'id': 'cb27157f-9dd0-4aee-b788-b1f67643a391',
             'ext': 'mp4',
             'title': 'Report del 07/04/2014',
-            'alt_title': 'St 2013/14 - Espresso nel caffè - 07/04/2014 ',
+            'alt_title': 'St 2013/14 - Espresso nel caffè - 07/04/2014',
             'description': 'md5:d730c168a58f4bb35600fc2f881ec04e',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Rai Gulp',
             'duration': 6160,
+            'series': 'Report',
+            'season': '2013/14',
         },
         'params': {
             'skip_download': True,
@@ -146,11 +148,10 @@ class RaiPlayIE(RaiBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        url, base, video_id, ext = mobj.group('url', 'base', 'id', 'ext')
+        base, video_id = re.match(self._VALID_URL, url).groups()
 
         media = self._download_json(
-            '%s%s.json' % (base, video_id), video_id, 'Downloading video JSON')
+            base + '.json', video_id, 'Downloading video JSON')
 
         title = media['name']
         video = media['video']
@@ -159,34 +160,39 @@ class RaiPlayIE(RaiBaseIE):
         self._sort_formats(relinker_info['formats'])
 
         thumbnails = []
-        if 'images' in media:
-            for _, value in media.get('images').items():
-                if value:
-                    thumbnails.append({
-                        'url': urljoin(RaiBaseIE._BASE_URL, value.replace('[RESOLUTION]', '600x400'))
-                    })
+        for _, value in media.get('images', {}).items():
+            if value:
+                thumbnails.append({
+                    'url': urljoin(url, value),
+                })
 
-        timestamp = unified_timestamp(try_get(
-            media, lambda x: x['availabilities'][0]['start'], compat_str))
+        date_published = media.get('date_published')
+        time_published = media.get('time_published')
+        if date_published and time_published:
+            date_published += ' ' + time_published
 
         subtitles = self._extract_subtitles(url, video.get('subtitles'))
 
+        program_info = media.get('program_info') or {}
+        season = media.get('season')
+
         info = {
-            'id': video_id,
+            'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
+            'display_id': video_id,
             'title': self._live_title(title) if relinker_info.get(
                 'is_live') else title,
-            'alt_title': media.get('subtitle'),
+            'alt_title': strip_or_none(media.get('subtitle')),
             'description': media.get('description'),
             'uploader': strip_or_none(media.get('channel')),
-            'creator': strip_or_none(media.get('editor')),
+            'creator': strip_or_none(media.get('editor') or None),
             'duration': parse_duration(video.get('duration')),
-            'timestamp': timestamp,
+            'timestamp': unified_timestamp(date_published),
             'thumbnails': thumbnails,
-            'series': try_get(
-                media, lambda x: x['isPartOf']['name'], compat_str),
-            'season_number': int_or_none(try_get(
-                media, lambda x: x['isPartOf']['numeroStagioni'])),
-            'season': media.get('stagione') or None,
+            'series': program_info.get('name'),
+            'season_number': int_or_none(season),
+            'season': season if (season and not season.isdigit()) else None,
+            'episode': media.get('episode_title'),
+            'episode_number': int_or_none(media.get('episode')),
             'subtitles': subtitles,
         }
 
@@ -194,9 +200,9 @@ class RaiPlayIE(RaiBaseIE):
         return info
 
 
-class RaiPlayLiveIE(RaiBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+)'
-    _TEST = {
+class RaiPlayLiveIE(RaiPlayIE):
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))'
+    _TESTS = [{
         'url': 'http://www.raiplay.it/dirette/rainews24',
         'info_dict': {
             'id': 'd784ad40-e0ae-4a69-aa76-37519d238a9c',
@@ -211,40 +217,11 @@ class RaiPlayLiveIE(RaiBaseIE):
         'params': {
             'skip_download': True,
         },
-    }
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-
-        media = self._download_json(
-            '%s.json' % urljoin(RaiBaseIE._BASE_URL, 'dirette/' + display_id),
-            display_id, 'Downloading channel JSON')
-
-        title = media['name']
-        video = media['video']
-        video_id = media['id'].replace('ContentItem-', '')
-
-        relinker_info = self._extract_relinker_info(video['content_url'], video_id)
-        self._sort_formats(relinker_info['formats'])
-
-        info = {
-            'id': video_id,
-            'display_id': display_id,
-            'title': self._live_title(title) if relinker_info.get(
-                'is_live') else title,
-            'alt_title': media.get('subtitle'),
-            'description': media.get('description'),
-            'uploader': strip_or_none(media.get('channel')),
-            'creator': strip_or_none(media.get('editor')),
-            'duration': parse_duration(video.get('duration')),
-        }
-
-        info.update(relinker_info)
-        return info
+    }]
 
 
 class RaiPlayPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'http://www.raiplay.it/programmi/nondirloalmiocapo/',
         'info_dict': {
@@ -256,29 +233,34 @@ class RaiPlayPlaylistIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
+        base, playlist_id = re.match(self._VALID_URL, url).groups()
 
-        media = self._download_json(
-            '%s.json' % urljoin(RaiBaseIE._BASE_URL, 'programmi/' + playlist_id),
-            playlist_id, 'Downloading program JSON')
-
-        title = media['name']
-        description = media['program_info']['description']
-
-        content_sets = [s['id'] for b in media['blocks'] for s in b['sets']]
+        program = self._download_json(
+            base + '.json', playlist_id, 'Downloading program JSON')
 
         entries = []
-        for cs in content_sets:
-            medias = self._download_json(
-                '%s/%s.json' % (urljoin(RaiBaseIE._BASE_URL, 'programmi/' + playlist_id), cs),
-                cs, 'Downloading content set JSON')
-            for m in medias['items']:
-                video_url = urljoin(url, m['path_id'])
-                entries.append(self.url_result(
-                    video_url, ie=RaiPlayIE.ie_key(),
-                    video_id=RaiPlayIE._match_id(video_url)))
+        for b in (program.get('blocks') or []):
+            for s in (b.get('sets') or []):
+                s_id = s.get('id')
+                if not s_id:
+                    continue
+                medias = self._download_json(
+                    '%s/%s.json' % (base, s_id), s_id,
+                    'Downloading content set JSON', fatal=False)
+                if not medias:
+                    continue
+                for m in (medias.get('items') or []):
+                    path_id = m.get('path_id')
+                    if not path_id:
+                        continue
+                    video_url = urljoin(url, path_id)
+                    entries.append(self.url_result(
+                        video_url, ie=RaiPlayIE.ie_key(),
+                        video_id=RaiPlayIE._match_id(video_url)))
 
-        return self.playlist_result(entries, playlist_id, title, description)
+        return self.playlist_result(
+            entries, playlist_id, program.get('name'),
+            try_get(program, lambda x: x['program_info']['description']))
 
 
 class RaiIE(RaiBaseIE):
@@ -294,7 +276,8 @@ class RaiIE(RaiBaseIE):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 1758,
             'upload_date': '20140612',
-        }
+        },
+        'skip': 'This content is available only in Italy',
     }, {
         # with ContentItem in many metas
         'url': 'http://www.rainews.it/dl/rainews/media/Weekend-al-cinema-da-Hollywood-arriva-il-thriller-di-Tate-Taylor-La-ragazza-del-treno-1632c009-c843-4836-bb65-80c33084a64b.html',
@@ -440,7 +423,7 @@ class RaiIE(RaiBaseIE):
             except ExtractorError:
                 pass
 
-        relinker_url = self._search_regex(
+        relinker_url = self._proto_relative_url(self._search_regex(
             r'''(?x)
                 (?:
                     var\s+videoURL|
@@ -452,7 +435,7 @@ class RaiIE(RaiBaseIE):
                     //mediapolis(?:vod)?\.rai\.it/relinker/relinkerServlet\.htm\?
                     (?:(?!\1).)*\bcont=(?:(?!\1).)+)\1
             ''',
-            webpage, 'relinker URL', group='url')
+            webpage, 'relinker URL', group='url'))
 
         relinker_info = self._extract_relinker_info(
             urljoin(url, relinker_url), video_id)

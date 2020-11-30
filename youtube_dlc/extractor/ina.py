@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class InaIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ina\.fr/(?:video|audio)/(?P<id>[A-Z0-9_]+)'
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?ina\.fr/(?:video|audio)/(?P<id>[A-Z0-9_]+)'
     _TESTS = [{
         'url': 'http://www.ina.fr/video/I12055569/francois-hollande-je-crois-que-c-est-clair-video.html',
         'md5': 'a667021bf2b41f8dc6049479d9bb38a3',
@@ -30,6 +30,9 @@ class InaIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.ina.fr/video/P16173408-video.html',
+        'only_matching': True,
+    }, {
+        'url': 'http://m.ina.fr/video/I12055569',
         'only_matching': True,
     }]
 

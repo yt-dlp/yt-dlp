@@ -115,8 +115,10 @@ class CurlFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--location', '-o', tmpfilename]
-        for key, val in info_dict['http_headers'].items():
-            cmd += ['--header', '%s: %s' % (key, val)]
+        if info_dict.get('http_headers') is not None:
+            for key, val in info_dict['http_headers'].items():
+                cmd += ['--header', '%s: %s' % (key, val)]
+
         cmd += self._bool_option('--continue-at', 'continuedl', '-', '0')
         cmd += self._valueless_option('--silent', 'noprogress')
         cmd += self._valueless_option('--verbose', 'verbose')
@@ -150,8 +152,9 @@ class AxelFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-o', tmpfilename]
-        for key, val in info_dict['http_headers'].items():
-            cmd += ['-H', '%s: %s' % (key, val)]
+        if info_dict.get('http_headers') is not None:
+            for key, val in info_dict['http_headers'].items():
+                cmd += ['-H', '%s: %s' % (key, val)]
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
@@ -162,8 +165,9 @@ class WgetFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies']
-        for key, val in info_dict['http_headers'].items():
-            cmd += ['--header', '%s: %s' % (key, val)]
+        if info_dict.get('http_headers') is not None:
+            for key, val in info_dict['http_headers'].items():
+                cmd += ['--header', '%s: %s' % (key, val)]
         cmd += self._option('--limit-rate', 'ratelimit')
         retry = self._option('--tries', 'retries')
         if len(retry) == 2:
@@ -189,8 +193,9 @@ class Aria2cFD(ExternalFD):
         if dn:
             cmd += ['--dir', dn]
         cmd += ['--out', os.path.basename(tmpfilename)]
-        for key, val in info_dict['http_headers'].items():
-            cmd += ['--header', '%s: %s' % (key, val)]
+        if info_dict.get('http_headers') is not None:
+            for key, val in info_dict['http_headers'].items():
+                cmd += ['--header', '%s: %s' % (key, val)]
         cmd += self._option('--interface', 'source_address')
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
@@ -206,8 +211,10 @@ class HttpieFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]
-        for key, val in info_dict['http_headers'].items():
-            cmd += ['%s:%s' % (key, val)]
+
+        if info_dict.get('http_headers') is not None:
+            for key, val in info_dict['http_headers'].items():
+                cmd += ['%s:%s' % (key, val)]
         return cmd
 
 
@@ -253,7 +260,7 @@ class FFmpegFD(ExternalFD):
         # if end_time:
         #     args += ['-t', compat_str(end_time - start_time)]
 
-        if info_dict['http_headers'] and re.match(r'^https?://', url):
+        if info_dict.get('http_headers') is not None and re.match(r'^https?://', url):
             # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
             # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
             headers = handle_youtubedl_headers(info_dict['http_headers'])

@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import unicode_literals
 
 import random
@@ -5,10 +6,7 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -17,33 +15,32 @@ from ..utils import (
     parse_filesize,
     str_or_none,
     try_get,
-    unescapeHTML,
     update_url_query,
     unified_strdate,
     unified_timestamp,
     url_or_none,
+    urljoin,
 )
 
 
 class BandcampIE(InfoExtractor):
-    _VALID_URL = r'https?://[^/]+\.bandcamp\.com/track/(?P<title>[^/?#&]+)'
+    _VALID_URL = r'https?://[^/]+\.bandcamp\.com/track/(?P<id>[^/?#&]+)'
     _TESTS = [{
-        'url': 'http://youtube-dlc.bandcamp.com/track/youtube-dlc-test-song',
+        'url': 'http://youtube-dl.bandcamp.com/track/youtube-dl-test-song',
         'md5': 'c557841d5e50261777a6585648adf439',
         'info_dict': {
             'id': '1812978515',
             'ext': 'mp3',
-            'title': "youtube-dl  \"'/\\\u00e4\u21ad - youtube-dl  \"'/\\\u00e4\u21ad - youtube-dl test song \"'/\\\u00e4\u21ad",
+            'title': "youtube-dl  \"'/\\ä↭ - youtube-dl  \"'/\\ä↭ - youtube-dl test song \"'/\\ä↭",
             'duration': 9.8485,
-            'uploader': "youtube-dl  \"'/\\\u00e4\u21ad",
-            'timestamp': 1354224127,
+            'uploader': 'youtube-dl  "\'/\\ä↭',
             'upload_date': '20121129',
+            'timestamp': 1354224127,
         },
         '_skip': 'There is a limit of 200 free downloads / month for the test song'
     }, {
         # free download
         'url': 'http://benprunty.bandcamp.com/track/lanius-battle',
-        'md5': '5d92af55811e47f38962a54c30b07ef0',
         'info_dict': {
             'id': '2650410135',
             'ext': 'aiff',
@@ -82,11 +79,16 @@ class BandcampIE(InfoExtractor):
         },
     }]
 
+    def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
+        return self._parse_json(self._html_search_regex(
+            r'data-%s=(["\'])({.+?})\1' % attr, webpage,
+            attr + ' data', group=2), video_id, fatal=fatal)
+
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        title = mobj.group('title')
+        title = self._match_id(url)
         webpage = self._download_webpage(url, title)
-        thumbnail = self._html_search_meta('og:image', webpage, default=None)
+        tralbum = self._extract_data_attr(webpage, title)
+        thumbnail = self._og_search_thumbnail(webpage)
 
         track_id = None
         track = None
@@ -94,11 +96,7 @@ class BandcampIE(InfoExtractor):
         duration = None
 
         formats = []
-        trackinfo_block = self._html_search_regex(
-            r'trackinfo(?:["\']|&quot;):\[\s*({.+?})\s*\],(?:["\']|&quot;)',
-            webpage, 'track info', default='{}')
-
-        track_info = self._parse_json(trackinfo_block, title)
+        track_info = try_get(tralbum, lambda x: x['trackinfo'][0], dict)
         if track_info:
             file_ = track_info.get('file')
             if isinstance(file_, dict):
@@ -114,40 +112,26 @@ class BandcampIE(InfoExtractor):
                         'acodec': ext,
                         'abr': int_or_none(abr_str),
                     })
-
-            track_id = str_or_none(track_info.get('track_id') or track_info.get('id'))
+            track = track_info.get('title')
+            track_id = str_or_none(
+                track_info.get('track_id') or track_info.get('id'))
             track_number = int_or_none(track_info.get('track_num'))
             duration = float_or_none(track_info.get('duration'))
 
-        def extract(key):
-            data = self._html_search_regex(
-                r',(["\']|&quot;)%s\1:\1(?P<value>(?:\\\1|((?!\1).))+)\1' % key,
-                webpage, key, default=None, group='value')
-            return data.replace(r'\"', '"').replace('\\\\', '\\') if data else data
-
-        track = extract('title')
-        artist = extract('artist')
-        album = extract('album_title')
+        embed = self._extract_data_attr(webpage, title, 'embed', False)
+        current = tralbum.get('current') or {}
+        artist = embed.get('artist') or current.get('artist') or tralbum.get('artist')
         timestamp = unified_timestamp(
-            extract('publish_date') or extract('album_publish_date'))
-        release_date = unified_strdate(extract('album_release_date'))
+            current.get('publish_date') or tralbum.get('album_publish_date'))
 
-        download_link = self._search_regex(
-            r'freeDownloadPage(?:["\']|&quot;):\s*(["\']|&quot;)(?P<url>(?:(?!\1).)+)\1', webpage,
-            'download link', default=None, group='url')
+        download_link = tralbum.get('freeDownloadPage')
         if download_link:
-            track_id = self._search_regex(
-                r'\?id=(?P<id>\d+)&',
-                download_link, 'track id')
+            track_id = compat_str(tralbum['id'])
 
             download_webpage = self._download_webpage(
                 download_link, track_id, 'Downloading free downloads page')
 
-            blob = self._parse_json(
-                self._search_regex(
-                    r'data-blob=(["\'])(?P<blob>{.+?})\1', download_webpage,
-                    'blob', group='blob'),
-                track_id, transform_source=unescapeHTML)
+            blob = self._extract_data_attr(download_webpage, track_id, 'blob')
 
             info = try_get(
                 blob, (lambda x: x['digital_items'][0],
@@ -213,20 +197,20 @@ class BandcampIE(InfoExtractor):
             'thumbnail': thumbnail,
             'uploader': artist,
             'timestamp': timestamp,
-            'release_date': release_date,
+            'release_date': unified_strdate(tralbum.get('album_release_date')),
             'duration': duration,
             'track': track,
             'track_number': track_number,
             'track_id': track_id,
             'artist': artist,
-            'album': album,
+            'album': embed.get('album_title'),
             'formats': formats,
         }
 
 
-class BandcampAlbumIE(InfoExtractor):
+class BandcampAlbumIE(BandcampIE):
     IE_NAME = 'Bandcamp:album'
-    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?:/album/(?P<album_id>[^/?#&]+))?'
+    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?:/album/(?P<id>[^/?#&]+))?'
 
     _TESTS = [{
         'url': 'http://blazo.bandcamp.com/album/jazz-format-mixtape-vol-1',
@@ -236,7 +220,10 @@ class BandcampAlbumIE(InfoExtractor):
                 'info_dict': {
                     'id': '1353101989',
                     'ext': 'mp3',
-                    'title': 'Intro',
+                    'title': 'Blazo - Intro',
+                    'timestamp': 1311756226,
+                    'upload_date': '20110727',
+                    'uploader': 'Blazo',
                 }
             },
             {
@@ -244,7 +231,10 @@ class BandcampAlbumIE(InfoExtractor):
                 'info_dict': {
                     'id': '38097443',
                     'ext': 'mp3',
-                    'title': 'Kero One - Keep It Alive (Blazo remix)',
+                    'title': 'Blazo - Kero One - Keep It Alive (Blazo remix)',
+                    'timestamp': 1311757238,
+                    'upload_date': '20110727',
+                    'uploader': 'Blazo',
                 }
             },
         ],
@@ -280,6 +270,7 @@ class BandcampAlbumIE(InfoExtractor):
             'title': '"Entropy" EP',
             'uploader_id': 'jstrecords',
             'id': 'entropy-ep',
+            'description': 'md5:0ff22959c943622972596062f2f366a5',
         },
         'playlist_mincount': 3,
     }, {
@@ -289,6 +280,7 @@ class BandcampAlbumIE(InfoExtractor):
             'id': 'we-are-the-plague',
             'title': 'WE ARE THE PLAGUE',
             'uploader_id': 'insulters',
+            'description': 'md5:b3cf845ee41b2b1141dc7bde9237255f',
         },
         'playlist_count': 2,
     }]
@@ -300,43 +292,34 @@ class BandcampAlbumIE(InfoExtractor):
                 else super(BandcampAlbumIE, cls).suitable(url))
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        uploader_id = mobj.group('subdomain')
-        album_id = mobj.group('album_id')
+        uploader_id, album_id = re.match(self._VALID_URL, url).groups()
         playlist_id = album_id or uploader_id
         webpage = self._download_webpage(url, playlist_id)
-        track_elements = re.findall(
-            r'(?s)<div[^>]*>(.*?<a[^>]+href="([^"]+?)"[^>]+itemprop="url"[^>]*>.*?)</div>', webpage)
-        if not track_elements:
+        tralbum = self._extract_data_attr(webpage, playlist_id)
+        track_info = tralbum.get('trackinfo')
+        if not track_info:
             raise ExtractorError('The page doesn\'t contain any tracks')
         # Only tracks with duration info have songs
         entries = [
             self.url_result(
-                compat_urlparse.urljoin(url, t_path),
-                ie=BandcampIE.ie_key(),
-                video_title=self._search_regex(
-                    r'<span\b[^>]+\bitemprop=["\']name["\'][^>]*>([^<]+)',
-                    elem_content, 'track title', fatal=False))
-            for elem_content, t_path in track_elements
-            if self._html_search_meta('duration', elem_content, default=None)]
+                urljoin(url, t['title_link']), BandcampIE.ie_key(),
+                str_or_none(t.get('track_id') or t.get('id')), t.get('title'))
+            for t in track_info
+            if t.get('duration')]
 
-        title = self._html_search_regex(
-            r'album_title\s*(?:&quot;|["\']):\s*(&quot;|["\'])(?P<album>(?:\\\1|((?!\1).))+)\1',
-            webpage, 'title', fatal=False, group='album')
-
-        if title:
-            title = title.replace(r'\"', '"')
+        current = tralbum.get('current') or {}
 
         return {
             '_type': 'playlist',
             'uploader_id': uploader_id,
             'id': playlist_id,
-            'title': title,
+            'title': current.get('title'),
+            'description': current.get('about'),
             'entries': entries,
         }
 
 
-class BandcampWeeklyIE(InfoExtractor):
+class BandcampWeeklyIE(BandcampIE):
     IE_NAME = 'Bandcamp:weekly'
     _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
     _TESTS = [{
@@ -351,29 +334,23 @@ class BandcampWeeklyIE(InfoExtractor):
             'release_date': '20170404',
             'series': 'Bandcamp Weekly',
             'episode': 'Magic Moments',
-            'episode_number': 208,
             'episode_id': '224',
-        }
+        },
+        'params': {
+            'format': 'opus-lo',
+        },
     }, {
         'url': 'https://bandcamp.com/?blah/blah@&show=228',
         'only_matching': True
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        show_id = self._match_id(url)
+        webpage = self._download_webpage(url, show_id)
 
-        blob = self._parse_json(
-            self._search_regex(
-                r'data-blob=(["\'])(?P<blob>{.+?})\1', webpage,
-                'blob', group='blob'),
-            video_id, transform_source=unescapeHTML)
+        blob = self._extract_data_attr(webpage, show_id, 'blob')
 
-        show = blob['bcw_show']
-
-        # This is desired because any invalid show id redirects to `bandcamp.com`
-        # which happens to expose the latest Bandcamp Weekly episode.
-        show_id = int_or_none(show.get('show_id')) or int_or_none(video_id)
+        show = blob['bcw_data'][show_id]
 
         formats = []
         for format_id, format_url in show['audio_stream'].items():
@@ -398,20 +375,8 @@ class BandcampWeeklyIE(InfoExtractor):
         if subtitle:
             title += ' - %s' % subtitle
 
-        episode_number = None
-        seq = blob.get('bcw_seq')
-
-        if seq and isinstance(seq, list):
-            try:
-                episode_number = next(
-                    int_or_none(e.get('episode_number'))
-                    for e in seq
-                    if isinstance(e, dict) and int_or_none(e.get('id')) == show_id)
-            except StopIteration:
-                pass
-
         return {
-            'id': video_id,
+            'id': show_id,
             'title': title,
             'description': show.get('desc') or show.get('short_desc'),
             'duration': float_or_none(show.get('audio_duration')),
@@ -419,7 +384,6 @@ class BandcampWeeklyIE(InfoExtractor):
             'release_date': unified_strdate(show.get('published_date')),
             'series': 'Bandcamp Weekly',
             'episode': show.get('subtitle'),
-            'episode_number': episode_number,
-            'episode_id': compat_str(video_id),
+            'episode_id': show_id,
             'formats': formats
         }

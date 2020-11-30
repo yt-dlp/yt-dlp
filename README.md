@@ -1,15 +1,15 @@
-[![Build Status](https://travis-ci.com/blackjack4494/youtube-dlc.svg?branch=master)](https://travis-ci.com/blackjack4494/youtube-dlc)
+[![Build Status](https://travis-ci.com/blackjack4494/yt-dlc.svg?branch=master)](https://travis-ci.com/blackjack4494/yt-dlc)
 [![PyPi](https://img.shields.io/pypi/v/youtube-dlc.svg)](https://pypi.org/project/youtube-dlc)
-[![Downloads](https://pepy.tech/badge/youtube-dlc)](https://pepy.tech/project/youtube-dlc)
 
 [![Gitter chat](https://img.shields.io/gitter/room/youtube-dlc/community)](https://gitter.im/youtube-dlc) 
-[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://github.com/blackjack4494/youtube-dlc/blob/master/LICENSE)
+[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://github.com/blackjack4494/yt-dlc/blob/master/LICENSE)
 
 youtube-dlc - download videos from youtube.com or other video platforms.
 
-youtube-dlc is a fork of youtube-dl with the intention of getting features tested by the community merged in the tool faster, since youtube-dl's development seems to be slowing down. (https://github.com/ytdl-org/youtube-dl/issues/26462)
+youtube-dlc is a fork of youtube-dl with the intention of getting features tested by the community merged in the tool faster, since youtube-dl's development seems to be slowing down. (https://web.archive.org/web/20201014194602/https://github.com/ytdl-org/youtube-dl/issues/26462)
 
 - [INSTALLATION](#installation)
+- [UPDATE](#update)
 - [DESCRIPTION](#description)
 - [OPTIONS](#options)
   - [Network Options:](#network-options)
@@ -43,6 +43,10 @@ Preferred way using pip:
 You may want to use `python3` instead of `python`
 
     python -m pip install --upgrade youtube-dlc
+
+If you want to install the current master branch
+
+    python -m pip install git+https://github.com/blackjack4494/yt-dlc
 
 **UNIX** (Linux, macOS, etc.)  
 Using wget:
@@ -213,6 +217,8 @@ I will add some memorable short links to the binaries so you can download them e
     --download-archive FILE          Download only videos not listed in the
                                      archive file. Record the IDs of all
                                      downloaded videos in it.
+    --break-on-existing              Stop the download process after attempting
+                                     to download a file that's in the archive.
     --include-ads                    Download advertisements as well
                                      (experimental)
 

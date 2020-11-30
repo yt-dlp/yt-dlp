@@ -19,7 +19,7 @@ from ..utils import (
 
 
 class UstreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ustream\.tv/(?P<type>recorded|embed|embed/recorded)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:ustream\.tv|video\.ibm\.com)/(?P<type>recorded|embed|embed/recorded)/(?P<id>\d+)'
     IE_NAME = 'ustream'
     _TESTS = [{
         'url': 'http://www.ustream.tv/recorded/20274954',
@@ -67,12 +67,15 @@ class UstreamIE(InfoExtractor):
         'params': {
             'skip_download': True,  # m3u8 download
         },
+    }, {
+        'url': 'https://video.ibm.com/embed/recorded/128240221?&autoplay=true&controls=true&volume=100',
+        'only_matching': True,
     }]
 
     @staticmethod
     def _extract_url(webpage):
         mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>http://www\.ustream\.tv/embed/.+?)\1', webpage)
+            r'<iframe[^>]+?src=(["\'])(?P<url>http://(?:www\.)?(?:ustream\.tv|video\.ibm\.com)/embed/.+?)\1', webpage)
         if mobj is not None:
             return mobj.group('url')
 

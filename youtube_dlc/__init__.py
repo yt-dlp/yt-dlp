@@ -405,6 +405,7 @@ def _real_main(argv=None):
         'youtube_print_sig_code': opts.youtube_print_sig_code,
         'age_limit': opts.age_limit,
         'download_archive': download_archive_fn,
+        'break_on_existing': opts.break_on_existing,
         'cookiefile': opts.cookiefile,
         'nocheckcertificate': opts.no_check_certificate,
         'prefer_insecure': opts.prefer_insecure,

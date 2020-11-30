@@ -2,7 +2,11 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import unified_timestamp
+from ..utils import (
+    dict_get,
+    int_or_none,
+    unified_timestamp,
+)
 
 
 class URPlayIE(InfoExtractor):
@@ -15,8 +19,8 @@ class URPlayIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'UR Samtiden - Livet, universum och rymdens märkliga musik : Om vetenskap, kritiskt tänkande och motstånd',
             'description': 'md5:5344508a52aa78c1ced6c1b8b9e44e9a',
-            'timestamp': 1513512768,
-            'upload_date': '20171217',
+            'timestamp': 1513292400,
+            'upload_date': '20171214',
         },
     }, {
         'url': 'https://urskola.se/Produkter/190031-Tripp-Trapp-Trad-Sovkudde',
@@ -25,7 +29,7 @@ class URPlayIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Tripp, Trapp, Träd : Sovkudde',
             'description': 'md5:b86bffdae04a7e9379d1d7e5947df1d1',
-            'timestamp': 1440093600,
+            'timestamp': 1440086400,
             'upload_date': '20150820',
         },
     }, {
@@ -35,37 +39,65 @@ class URPlayIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
+        url = url.replace('skola.se/Produkter', 'play.se/program')
         webpage = self._download_webpage(url, video_id)
-        urplayer_data = self._parse_json(self._search_regex(
-            r'urPlayer\.init\(({.+?})\);', webpage, 'urplayer data'), video_id)
-        host = self._download_json('http://streaming-loadbalancer.ur.se/loadbalancer.json', video_id)['redirect']
+        urplayer_data = self._parse_json(self._html_search_regex(
+            r'data-react-class="components/Player/Player"[^>]+data-react-props="({.+?})"',
+            webpage, 'urplayer data'), video_id)['currentProduct']
+        episode = urplayer_data['title']
 
+        host = self._download_json('http://streaming-loadbalancer.ur.se/loadbalancer.json', video_id)['redirect']
         formats = []
-        for quality_attr, quality, preference in (('', 'sd', 0), ('_hd', 'hd', 1)):
-            file_http = urplayer_data.get('file_http' + quality_attr) or urplayer_data.get('file_http_sub' + quality_attr)
+        urplayer_streams = urplayer_data.get('streamingInfo', {})
+
+        for k, v in urplayer_streams.get('raw', {}).items():
+            if not (k in ('sd', 'hd') and isinstance(v, dict)):
+                continue
+            file_http = v.get('location')
             if file_http:
                 formats.extend(self._extract_wowza_formats(
-                    'http://%s/%splaylist.m3u8' % (host, file_http), video_id, skip_protocols=['rtmp', 'rtsp']))
+                    'http://%s/%splaylist.m3u8' % (host, file_http),
+                    video_id, skip_protocols=['f4m', 'rtmp', 'rtsp']))
         self._sort_formats(formats)
 
         subtitles = {}
-        for subtitle in urplayer_data.get('subtitles', []):
-            subtitle_url = subtitle.get('file')
-            kind = subtitle.get('kind')
-            if not subtitle_url or (kind and kind != 'captions'):
-                continue
-            subtitles.setdefault(subtitle.get('label', 'Svenska'), []).append({
-                'url': subtitle_url,
+        subs = urplayer_streams.get("sweComplete", {}).get("tt", {}).get("location")
+        if subs:
+            subtitles.setdefault('Svenska', []).append({
+                'url': subs,
             })
+
+        image = urplayer_data.get('image') or {}
+        thumbnails = []
+        for k, v in image.items():
+            t = {
+                'id': k,
+                'url': v,
+            }
+            wh = k.split('x')
+            if len(wh) == 2:
+                t.update({
+                    'width': int_or_none(wh[0]),
+                    'height': int_or_none(wh[1]),
+                })
+            thumbnails.append(t)
+
+        series = urplayer_data.get('series') or {}
+        series_title = dict_get(series, ('seriesTitle', 'title')) or dict_get(urplayer_data, ('seriesTitle', 'mainTitle'))
 
         return {
             'id': video_id,
-            'title': urplayer_data['title'],
-            'description': self._og_search_description(webpage),
-            'thumbnail': urplayer_data.get('image'),
-            'timestamp': unified_timestamp(self._html_search_meta(('uploadDate', 'schema:uploadDate'), webpage, 'timestamp')),
-            'series': urplayer_data.get('series_title'),
             'subtitles': subtitles,
+            'title': '%s : %s' % (series_title, episode) if series_title else episode,
+            'description': urplayer_data.get('description'),
+            'thumbnails': thumbnails,
+            'timestamp': unified_timestamp(urplayer_data.get('publishedAt')),
+            'series': series_title,
             'formats': formats,
+            'duration': int_or_none(urplayer_data.get('duration')),
+            'categories': urplayer_data.get('categories'),
+            'tags': urplayer_data.get('keywords'),
+            'season': series.get('label'),
+            'episode': episode,
+            'episode_number': int_or_none(urplayer_data.get('episodeNumber')),
         }
