@@ -359,7 +359,7 @@ class FFmpegVideoRemuxerPP(FFmpegPostProcessor):
         if information['ext'] == self._preferedformat:
             self._downloader.to_screen('[ffmpeg] Not remuxing video file %s - already is in target format %s' % (path, self._preferedformat))
             return [], information
-        options = ['-c', 'copy']
+        options = ['-c', 'copy', '-map', '0']
         prefix, sep, ext = path.rpartition('.')
         outpath = prefix + sep + self._preferedformat
         self._downloader.to_screen('[' + 'ffmpeg' + '] Remuxing video from %s to %s, Destination: ' % (information['ext'], self._preferedformat) + outpath)
@@ -428,8 +428,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         input_files = [filename] + sub_filenames
 
         opts = [
-            '-map', '0',
-            '-c', 'copy',
+            '-c', 'copy', '-map', '0',
             # Don't copy the existing subtitles, we may be running the
             # postprocessor a second time
             '-map', '-0:s',
@@ -579,7 +578,7 @@ class FFmpegFixupStretchedPP(FFmpegPostProcessor):
         filename = info['filepath']
         temp_filename = prepend_extension(filename, 'temp')
 
-        options = ['-c', 'copy', '-aspect', '%f' % stretched_ratio]
+        options = ['-c', 'copy', '-map', '0', '-aspect', '%f' % stretched_ratio]
         self._downloader.to_screen('[ffmpeg] Fixing aspect ratio in "%s"' % filename)
         self.run_ffmpeg(filename, temp_filename, options)
 
@@ -597,7 +596,7 @@ class FFmpegFixupM4aPP(FFmpegPostProcessor):
         filename = info['filepath']
         temp_filename = prepend_extension(filename, 'temp')
 
-        options = ['-c', 'copy', '-f', 'mp4']
+        options = ['-c', 'copy', '-map', '0', '-f', 'mp4']
         self._downloader.to_screen('[ffmpeg] Correcting container in "%s"' % filename)
         self.run_ffmpeg(filename, temp_filename, options)
 
@@ -613,7 +612,7 @@ class FFmpegFixupM3u8PP(FFmpegPostProcessor):
         if self.get_audio_codec(filename) == 'aac':
             temp_filename = prepend_extension(filename, 'temp')
 
-            options = ['-c', 'copy', '-f', 'mp4', '-bsf:a', 'aac_adtstoasc']
+            options = ['-c', 'copy', '-map', '0', '-f', 'mp4', '-bsf:a', 'aac_adtstoasc']
             self._downloader.to_screen('[ffmpeg] Fixing malformed AAC bitstream in "%s"' % filename)
             self.run_ffmpeg(filename, temp_filename, options)
 
