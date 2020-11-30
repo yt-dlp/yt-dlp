@@ -20,6 +20,7 @@ from ..utils import (
     merge_dicts,
     parse_duration,
     smuggle_url,
+    try_get,
     url_or_none,
     xpath_with_ns,
     xpath_element,
@@ -280,12 +281,12 @@ class ITVIE(InfoExtractor):
 class ITVBTCCIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?itv\.com/btcc/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TEST = {
-        'url': 'http://www.itv.com/btcc/races/btcc-2018-all-the-action-from-brands-hatch',
+        'url': 'https://www.itv.com/btcc/articles/btcc-2019-brands-hatch-gp-race-action',
         'info_dict': {
-            'id': 'btcc-2018-all-the-action-from-brands-hatch',
-            'title': 'BTCC 2018: All the action from Brands Hatch',
+            'id': 'btcc-2019-brands-hatch-gp-race-action',
+            'title': 'BTCC 2019: Brands Hatch GP race action',
         },
-        'playlist_mincount': 9,
+        'playlist_count': 12,
     }
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/1582188683001/HkiHLnNRx_default/index.html?videoId=%s'
 
@@ -293,6 +294,16 @@ class ITVBTCCIE(InfoExtractor):
         playlist_id = self._match_id(url)
 
         webpage = self._download_webpage(url, playlist_id)
+
+        json_map = try_get(self._parse_json(self._html_search_regex(
+            '(?s)<script[^>]+id=[\'"]__NEXT_DATA__[^>]*>([^<]+)</script>', webpage, 'json_map'), playlist_id),
+            lambda x: x['props']['pageProps']['article']['body']['content']) or []
+
+        # Discard empty objects
+        video_ids = []
+        for video in json_map:
+            if video['data'].get('id'):
+                video_ids.append(video['data']['id'])
 
         entries = [
             self.url_result(
@@ -305,7 +316,7 @@ class ITVBTCCIE(InfoExtractor):
                     'referrer': url,
                 }),
                 ie=BrightcoveNewIE.ie_key(), video_id=video_id)
-            for video_id in re.findall(r'data-video-id=["\'](\d+)', webpage)]
+            for video_id in video_ids]
 
         title = self._og_search_title(webpage, fatal=False)
 
