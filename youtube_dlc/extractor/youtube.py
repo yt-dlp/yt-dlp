@@ -3469,10 +3469,33 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
                 list)
             if not slr_contents:
                 break
-            isr_contents = try_get(
-                slr_contents,
-                lambda x: x[0]['itemSectionRenderer']['contents'],
-                list)
+
+            isr_contents = []
+            continuation_token = None
+            # Youtube sometimes adds promoted content to searches,
+            # changing the index location of videos and token.
+            # So we search through all entries till we find them.
+            for index, isr in enumerate(slr_contents):
+                if not isr_contents:
+                    isr_contents = try_get(
+                        slr_contents,
+                        (lambda x: x[index]['itemSectionRenderer']['contents']),
+                        list)
+                    for content in isr_contents:
+                        if content.get('videoRenderer') is not None:
+                            break
+                    else:
+                        isr_contents = []
+
+                if continuation_token is None:
+                    continuation_token = try_get(
+                        slr_contents,
+                        lambda x: x[index]['continuationItemRenderer']['continuationEndpoint']['continuationCommand'][
+                            'token'],
+                        compat_str)
+                if continuation_token is not None and isr_contents:
+                    break
+
             if not isr_contents:
                 break
             for content in isr_contents:
@@ -3506,13 +3529,9 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
                 }
                 if total == n:
                     return
-            token = try_get(
-                slr_contents,
-                lambda x: x[1]['continuationItemRenderer']['continuationEndpoint']['continuationCommand']['token'],
-                compat_str)
-            if not token:
+            if not continuation_token:
                 break
-            data['continuation'] = token
+            data['continuation'] = continuation_token
 
     def _get_n_results(self, query, n):
         """Get a specified number of results for a query"""
