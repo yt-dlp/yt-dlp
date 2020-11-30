@@ -86,7 +86,7 @@ class TagesschauPlayerIE(InfoExtractor):
         #     return self._extract_via_api(kind, video_id)
 
         # JSON api does not provide some audio formats (e.g. ogg) thus
-        # extractiong audio via webpage
+        # extracting audio via webpage
 
         webpage = self._download_webpage(url, video_id)
 

@@ -403,6 +403,18 @@ class MTVIE(MTVServicesInfoExtractor):
         'only_matching': True,
     }]
 
+    @staticmethod
+    def extract_child_with_type(parent, t):
+        children = parent['children']
+        return next(c for c in children if c.get('type') == t)
+
+    def _extract_mgid(self, webpage):
+        data = self._parse_json(self._search_regex(
+            r'__DATA__\s*=\s*({.+?});', webpage, 'data'), None)
+        main_container = self.extract_child_with_type(data, 'MainContainer')
+        video_player = self.extract_child_with_type(main_container, 'VideoPlayer')
+        return video_player['props']['media']['video']['config']['uri']
+
 
 class MTVJapanIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtvjapan'

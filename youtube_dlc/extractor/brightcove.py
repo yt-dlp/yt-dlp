@@ -147,7 +147,7 @@ class BrightcoveLegacyIE(InfoExtractor):
     ]
 
     @classmethod
-    def _build_brighcove_url(cls, object_str):
+    def _build_brightcove_url(cls, object_str):
         """
         Build a Brightcove url from a xml string containing
         <object class="BrightcoveExperience">{params}</object>
@@ -217,7 +217,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         return cls._make_brightcove_url(params)
 
     @classmethod
-    def _build_brighcove_url_from_js(cls, object_js):
+    def _build_brightcove_url_from_js(cls, object_js):
         # The layout of JS is as follows:
         # customBC.createVideo = function (width, height, playerID, playerKey, videoPlayer, VideoRandomID) {
         #   // build Brightcove <object /> XML
@@ -272,12 +272,12 @@ class BrightcoveLegacyIE(InfoExtractor):
             ).+?>\s*</object>''',
             webpage)
         if matches:
-            return list(filter(None, [cls._build_brighcove_url(m) for m in matches]))
+            return list(filter(None, [cls._build_brightcove_url(m) for m in matches]))
 
         matches = re.findall(r'(customBC\.createVideo\(.+?\);)', webpage)
         if matches:
             return list(filter(None, [
-                cls._build_brighcove_url_from_js(custom_bc)
+                cls._build_brightcove_url_from_js(custom_bc)
                 for custom_bc in matches]))
         return [src for _, src in re.findall(
             r'<iframe[^>]+src=([\'"])((?:https?:)?//link\.brightcove\.com/services/player/(?!\1).+)\1', webpage)]

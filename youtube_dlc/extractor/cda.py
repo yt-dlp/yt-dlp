@@ -5,10 +5,16 @@ import codecs
 import re
 
 from .common import InfoExtractor
+from ..compat import (
+    compat_chr,
+    compat_ord,
+    compat_urllib_parse_unquote,
+)
 from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    merge_dicts,
     multipart_encode,
     parse_duration,
     random_birthday,
@@ -107,8 +113,9 @@ class CDAIE(InfoExtractor):
             r'Odsłony:(?:\s|&nbsp;)*([0-9]+)', webpage,
             'view_count', default=None)
         average_rating = self._search_regex(
-            r'<(?:span|meta)[^>]+itemprop=(["\'])ratingValue\1[^>]*>(?P<rating_value>[0-9.]+)',
-            webpage, 'rating', fatal=False, group='rating_value')
+            (r'<(?:span|meta)[^>]+itemprop=(["\'])ratingValue\1[^>]*>(?P<rating_value>[0-9.]+)',
+             r'<span[^>]+\bclass=["\']rating["\'][^>]*>(?P<rating_value>[0-9.]+)'), webpage, 'rating', fatal=False,
+            group='rating_value')
 
         info_dict = {
             'id': video_id,
@@ -122,6 +129,24 @@ class CDAIE(InfoExtractor):
             'duration': None,
             'age_limit': 18 if need_confirm_age else 0,
         }
+
+        # Source: https://www.cda.pl/js/player.js?t=1606154898
+        def decrypt_file(a):
+            for p in ('_XDDD', '_CDA', '_ADC', '_CXD', '_QWE', '_Q5', '_IKSDE'):
+                a = a.replace(p, '')
+            a = compat_urllib_parse_unquote(a)
+            b = []
+            for c in a:
+                f = compat_ord(c)
+                b.append(compat_chr(33 + (f + 14) % 94) if 33 <= f and 126 >= f else compat_chr(f))
+            a = ''.join(b)
+            a = a.replace('.cda.mp4', '')
+            for p in ('.2cda.pl', '.3cda.pl'):
+                a = a.replace(p, '.cda.pl')
+            if '/upstream' in a:
+                a = a.replace('/upstream', '.mp4/upstream')
+                return 'https://' + a
+            return 'https://' + a + '.mp4'
 
         def extract_format(page, version):
             json_str = self._html_search_regex(
@@ -141,6 +166,8 @@ class CDAIE(InfoExtractor):
                 video['file'] = codecs.decode(video['file'], 'rot_13')
                 if video['file'].endswith('adc.mp4'):
                     video['file'] = video['file'].replace('adc.mp4', '.mp4')
+            elif not video['file'].startswith('http'):
+                video['file'] = decrypt_file(video['file'])
             f = {
                 'url': video['file'],
             }
@@ -179,4 +206,6 @@ class CDAIE(InfoExtractor):
 
         self._sort_formats(formats)
 
-        return info_dict
+        info = self._search_json_ld(webpage, video_id, default={})
+
+        return merge_dicts(info_dict, info)

@@ -54,7 +54,7 @@ class InfoQIE(BokeCCBaseIE):
 
     def _extract_rtmp_video(self, webpage):
         # The server URL is hardcoded
-        video_url = 'rtmpe://video.infoq.com/cfx/st/'
+        video_url = 'rtmpe://videof.infoq.com/cfx/st/'
 
         # Extract video URL
         encoded_id = self._search_regex(
@@ -86,17 +86,18 @@ class InfoQIE(BokeCCBaseIE):
         return [{
             'format_id': 'http_video',
             'url': http_video_url,
+            'http_headers': {'Referer': 'https://www.infoq.com/'},
         }]
 
     def _extract_http_audio(self, webpage, video_id):
-        fields = self._hidden_inputs(webpage)
+        fields = self._form_hidden_inputs('mp3Form', webpage)
         http_audio_url = fields.get('filename')
         if not http_audio_url:
             return []
 
         # base URL is found in the Location header in the response returned by
         # GET https://www.infoq.com/mp3download.action?filename=... when logged in.
-        http_audio_url = compat_urlparse.urljoin('http://res.infoq.com/downloads/mp3downloads/', http_audio_url)
+        http_audio_url = compat_urlparse.urljoin('http://ress.infoq.com/downloads/mp3downloads/', http_audio_url)
         http_audio_url = update_url_query(http_audio_url, self._extract_cf_auth(webpage))
 
         # audio file seem to be missing some times even if there is a download link
