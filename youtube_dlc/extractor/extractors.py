@@ -1071,10 +1071,6 @@ from .sky import (
     SkyNewsIE,
     SkySportsIE,
 )
-from .skyitalia import (
-    SkyArteItaliaIE,
-    SkyItaliaIE,
-)
 from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
