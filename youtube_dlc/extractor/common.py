@@ -2615,20 +2615,20 @@ class InfoExtractor(object):
         hls_host = hosts.get('hls')
         if hls_host:
             m3u8_url = re.sub(r'(https?://)[^/]+', r'\1' + hls_host, m3u8_url)
-        formats.extend(self._extract_m3u8_formats(
+        m3u8_formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4', 'm3u8_native',
-            m3u8_id='hls', fatal=False))
+            m3u8_id='hls', fatal=False)
+        formats.extend(m3u8_formats)
 
         http_host = hosts.get('http')
-        if http_host and 'hdnea=' not in manifest_url:
-            REPL_REGEX = r'https://[^/]+/i/([^,]+),([^/]+),([^/]+).csmil/.+'
+        if http_host and m3u8_formats and 'hdnea=' not in m3u8_url:
+            REPL_REGEX = r'https?://[^/]+/i/([^,]+),([^/]+),([^/]+)\.csmil/.+'
             qualities = re.match(REPL_REGEX, m3u8_url).group(2).split(',')
             qualities_length = len(qualities)
-            if len(formats) in (qualities_length, qualities_length + 1, qualities_length * 2, qualities_length * 2 + 1):
+            if len(m3u8_formats) in (qualities_length, qualities_length + 1):
                 i = 0
-                http_formats = []
-                for f in formats:
-                    if f['protocol'] == 'm3u8_native' and f['vcodec'] != 'none':
+                for f in m3u8_formats:
+                    if f['vcodec'] != 'none':
                         for protocol in ('http', 'https'):
                             http_f = f.copy()
                             del http_f['manifest_url']
@@ -2639,9 +2639,8 @@ class InfoExtractor(object):
                                 'url': http_url,
                                 'protocol': protocol,
                             })
-                            http_formats.append(http_f)
+                            formats.append(http_f)
                         i += 1
-                formats.extend(http_formats)
 
         return formats
 
