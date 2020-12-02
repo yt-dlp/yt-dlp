@@ -506,7 +506,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '396': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
         '397': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
     }
-    _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
+    _SUBTITLE_FORMATS = ('srv1', 'srv2', 'srv3', 'ttml', 'vtt')  # TODO 'json3' raising issues with automatic captions
 
     _GEO_BYPASS = False
 
