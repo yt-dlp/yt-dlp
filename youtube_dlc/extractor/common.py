@@ -2624,7 +2624,7 @@ class InfoExtractor(object):
             REPL_REGEX = r'https://[^/]+/i/([^,]+),([^/]+),([^/]+).csmil/.+'
             qualities = re.match(REPL_REGEX, m3u8_url).group(2).split(',')
             qualities_length = len(qualities)
-            if len(formats) in (qualities_length + 1, qualities_length * 2 + 1):
+            if len(formats) in (qualities_length, qualities_length + 1, qualities_length * 2, qualities_length * 2 + 1):
                 i = 0
                 http_formats = []
                 for f in formats:
@@ -2633,7 +2633,7 @@ class InfoExtractor(object):
                             http_f = f.copy()
                             del http_f['manifest_url']
                             http_url = re.sub(
-                                REPL_REGEX, protocol + r'://%s/\1%s\3' % (http_host, qualities[i]), f['url'])
+                                REPL_REGEX, protocol + r'://%s/\g<1>%s\3' % (http_host, qualities[i]), f['url'])
                             http_f.update({
                                 'format_id': http_f['format_id'].replace('hls-', protocol + '-'),
                                 'url': http_url,
