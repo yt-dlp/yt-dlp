@@ -358,6 +358,7 @@ def _real_main(argv=None):
         'allow_multiple_video_streams': opts.allow_multiple_video_streams,
         'allow_multiple_audio_streams': opts.allow_multiple_audio_streams,
         'listformats': opts.listformats,
+        'listformats_table': opts.listformats_table,
         'outtmpl': outtmpl,
         'autonumber_size': opts.autonumber_size,
         'autonumber_start': opts.autonumber_start,

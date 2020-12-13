@@ -420,6 +420,7 @@ I will add some memorable short links to the binaries so you can download them e
                                      one is requested
     -F, --list-formats               List all available formats of requested
                                      videos
+    --list-formats-as-table          Present the output of -F in a more tabular form
     --youtube-skip-dash-manifest     Do not download the DASH manifests and
                                      related data on YouTube videos
     --youtube-skip-hls-manifest      Do not download the HLS manifests and
