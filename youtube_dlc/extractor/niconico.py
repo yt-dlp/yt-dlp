@@ -6,6 +6,7 @@ import json
 import datetime
 
 from .common import InfoExtractor
+from ..postprocessor.ffmpeg import FFmpegPostProcessor
 from ..compat import (
     compat_parse_qs,
     compat_urllib_parse_urlparse,
@@ -332,13 +333,13 @@ class NiconicoIE(InfoExtractor):
             'url': '%s:%s/%s/%s' % (protocol, video_id, video_quality['id'], audio_quality['id']),
             'format_id': format_id,
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
-            'abr': float_or_none(audio_quality.get('bitrate'), 1000) or float_or_none(adict.get('br')),
+            'vcodec': vdict.get('codec'),
+            'acodec': adict.get('codec'),
             'vbr': float_or_none(video_quality.get('bitrate'), 1000) or float_or_none(vdict.get('br')),
+            'abr': float_or_none(audio_quality.get('bitrate'), 1000) or float_or_none(adict.get('br')),
             'height': int_or_none(resolution.get('height', vdict.get('res'))),
             'width': int_or_none(resolution.get('width')),
             'quality': -2 if 'low' in format_id else -1,  # Default quality value is -1
-            'vcodec': vdict.get('codec'),
-            'acodec': adict.get('codec'),
             'protocol': protocol,
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
@@ -358,6 +359,9 @@ class NiconicoIE(InfoExtractor):
         api_data = self._parse_json(self._html_search_regex(
             'data-api-data="([^"]+)"', webpage,
             'API data', default='{}'), video_id)
+
+        def get_video_info_web(items):
+            return dict_get(api_data['video'], items)
 
         # Get video info
         video_info_xml = self._download_xml(
@@ -405,30 +409,67 @@ class NiconicoIE(InfoExtractor):
         video_real_url = try_get(api_data, lambda x: x['video']['smileInfo']['url'])
         is_economy = video_real_url.endswith('low')
 
-        extension = get_video_info_xml('movie_type')
-        if not extension:
-            extension = determine_ext(video_real_url)
+        if is_economy:
+            self.report_warning('Site is currently in economy mode! You will only have access to lower quality streams')
 
-        # Economy mode movie is not source movie.
-        # Similarly, if movie file size is unstable, old server movie is not source movie.
-        if not is_economy and int(get_video_info_xml('size_high')) > 1:
+        # Invoking ffprobe to determine resolution
+        pp = FFmpegPostProcessor(self._downloader)
+        cookies = self._get_cookies('https://nicovideo.jp').output(header='', sep='; path=/; domain=nicovideo.jp;\n')
+
+        self.to_screen('%s: %s' % (video_id, 'Checking smile format with ffprobe'))
+
+        metadata = pp.get_metadata_object(video_real_url, ['-cookies', cookies])
+
+        v_stream, a_stream = (
+            (metadata['streams'][0], metadata['streams'][1])
+            if metadata['streams'][0]['codec_type'] == 'video'
+            else (metadata['streams'][1], metadata['streams'][0])
+        )
+
+        # Community restricted videos seem to have issues with the thumb API not returning anything at all
+        filesize = int(
+            (get_video_info_xml('size_high') if not is_economy else get_video_info_xml('size_low'))
+            or metadata['format']['size']
+        )
+
+        extension = (
+            get_video_info_xml('movie_type')
+            or 'mp4' if 'mp4' in metadata['format']['format_name'] else metadata['format']['format_name']
+            or determine_ext(video_real_url)
+        )
+
+        timestamp = (
+            parse_iso8601(get_video_info_web('first_retrieve'))
+            or unified_timestamp(get_video_info_web('postedDateTime'))
+        )
+
+        # According to compconf and my personal research, smile videos from pre-2017 are always better quality than their DMC counterparts
+        smile_threshold_timestamp = parse_iso8601('2016-12-08T00:00:00+09:00')
+
+        # If movie file size is unstable, old server movie is not source movie.
+        if int(get_video_info_xml('size_high')) > 1:
             formats.append({
                 'url': video_real_url,
-                'format_id': 'smile',
-                'format_note': 'Source movie file in old server (SMILEVIDEO)',
-                'preference': -2,  # I think demand for source movie is not high.
-                'source_preference': 0,
+                'format_id': 'smile' if not is_economy else 'smile_low',
+                'format_note': 'SMILEVIDEO source' if not is_economy else 'SMILEVIDEO low quality',
                 'ext': extension,
-                'filesize': int_or_none(get_video_info_xml('size_high'))
+                'container': extension,
+                'vcodec': v_stream['codec_name'],
+                'acodec': a_stream['codec_name'],
+                'tbr': int(metadata['format'].get('bit_rate', None)) / 1000,
+                'vbr': int_or_none(v_stream.get('bit_rate', None), scale=1000),
+                'abr': int_or_none(a_stream.get('bit_rate', None), scale=1000),
+                'height': int(v_stream['height']),
+                'width': int(v_stream['width']),
+                'source_preference': 5 if not is_economy else -2,
+                'quality': 5 if timestamp < smile_threshold_timestamp and not is_economy else None,
+                'filesize': filesize
             })
 
         if len(formats) == 0:
             raise ExtractorError('Unable to find video info.')
 
         self._sort_formats(formats)
-
-        def get_video_info_web(items):
-            return dict_get(api_data['video'], items)
 
         # Start extracting information
         title = get_video_info_web('originalTitle')
@@ -453,8 +494,6 @@ class NiconicoIE(InfoExtractor):
 
         description = get_video_info_web('description')
 
-        timestamp = (parse_iso8601(get_video_info_web('first_retrieve'))
-                     or unified_timestamp(get_video_info_web('postedDateTime')))
         if not timestamp:
             match = self._html_search_meta('datePublished', webpage, 'date published', default=None)
             if match:
