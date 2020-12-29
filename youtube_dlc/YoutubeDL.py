@@ -252,6 +252,9 @@ class YoutubeDL(object):
                                youtube_dlc/postprocessor/__init__.py for a list.
                        as well as any further keyword arguments for the
                        postprocessor.
+    post_hooks:        A list of functions that get called as the final step
+                       for each video file, after all postprocessors have been
+                       called. The filename will be passed as the only argument.
     progress_hooks:    A list of functions that get called on download
                        progress, with a dictionary with the entries
                        * status: One of "downloading", "error", or "finished".
@@ -369,6 +372,7 @@ class YoutubeDL(object):
         self._ies = []
         self._ies_instances = {}
         self._pps = []
+        self._post_hooks = []
         self._progress_hooks = []
         self._download_retcode = 0
         self._num_downloads = 0
@@ -472,6 +476,9 @@ class YoutubeDL(object):
             pp = pp_class(self, **compat_kwargs(pp_def))
             self.add_post_processor(pp)
 
+        for ph in self.params.get('post_hooks', []):
+            self.add_post_hook(ph)
+
         for ph in self.params.get('progress_hooks', []):
             self.add_progress_hook(ph)
 
@@ -523,6 +530,10 @@ class YoutubeDL(object):
         """Add a PostProcessor object to the end of the chain."""
         self._pps.append(pp)
         pp.set_downloader(self)
+
+    def add_post_hook(self, ph):
+        """Add the post hook"""
+        self._post_hooks.append(ph)
 
     def add_progress_hook(self, ph):
         """Add the progress hook (currently only for the file downloader)"""
@@ -2198,6 +2209,12 @@ class YoutubeDL(object):
                     self.post_process(filename, info_dict)
                 except (PostProcessingError) as err:
                     self.report_error('postprocessing: %s' % str(err))
+                    return
+                try:
+                    for ph in self._post_hooks:
+                        ph(filename)
+                except Exception as err:
+                    self.report_error('post hooks: %s' % str(err))
                     return
                 must_record_download_archive = True
 

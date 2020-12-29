@@ -50,7 +50,8 @@ offlinetest: codetest
 		--exclude test_subtitles.py \
 		--exclude test_write_annotations.py \
 		--exclude test_youtube_lists.py \
-		--exclude test_youtube_signature.py
+		--exclude test_youtube_signature.py \
+		--exclude test_post_hooks.py
 
 tar: youtube-dlc.tar.gz
 

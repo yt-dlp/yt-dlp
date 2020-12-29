@@ -1,7 +1,7 @@
 @echo off
 
 rem Keep this list in sync with the `offlinetest` target in Makefile
-set DOWNLOAD_TESTS="age_restriction^|download^|iqiyi_sdk_interpreter^|socks^|subtitles^|write_annotations^|youtube_lists^|youtube_signature"
+set DOWNLOAD_TESTS="age_restriction^|download^|iqiyi_sdk_interpreter^|socks^|subtitles^|write_annotations^|youtube_lists^|youtube_signature^|post_hooks"
 
 if "%YTDL_TEST_SET%" == "core" (
     set test_set="-I test_("%DOWNLOAD_TESTS%")\.py"
