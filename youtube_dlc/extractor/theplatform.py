@@ -234,6 +234,9 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
+        self._initialize_geo_bypass({
+            'countries': smuggled_data.get('geo_countries'),
+        })
 
         mobj = re.match(self._VALID_URL, url)
         provider_id = mobj.group('provider_id')

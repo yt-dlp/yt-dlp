@@ -23,7 +23,7 @@ class MediasetIE(ThePlatformBaseIE):
                         https?://
                             (?:(?:www|static3)\.)?mediasetplay\.mediaset\.it/
                             (?:
-                                (?:video|on-demand)/(?:[^/]+/)+[^/]+_|
+                                (?:video|on-demand|movie)/(?:[^/]+/)+[^/]+_|
                                 player/index\.html\?.*?\bprogramGuid=
                             )
                     )(?P<id>[0-9A-Z]{16,})
@@ -87,6 +87,9 @@ class MediasetIE(ThePlatformBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.mediasetplay.mediaset.it/video/grandefratellovip/benedetta-una-doccia-gelata_F309344401044C135',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.mediasetplay.mediaset.it/movie/herculeslaleggendahainizio/hercules-la-leggenda-ha-inizio_F305927501000102',
         'only_matching': True,
     }]
 

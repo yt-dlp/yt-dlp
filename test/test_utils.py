@@ -555,6 +555,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(url_or_none('http$://foo.de'), None)
         self.assertEqual(url_or_none('http://foo.de'), 'http://foo.de')
         self.assertEqual(url_or_none('//foo.de'), '//foo.de')
+        self.assertEqual(url_or_none('s3://foo.de'), None)
+        self.assertEqual(url_or_none('rtmpte://foo.de'), 'rtmpte://foo.de')
+        self.assertEqual(url_or_none('mms://foo.de'), 'mms://foo.de')
+        self.assertEqual(url_or_none('rtspu://foo.de'), 'rtspu://foo.de')
+        self.assertEqual(url_or_none('ftps://foo.de'), 'ftps://foo.de')
 
     def test_parse_age_limit(self):
         self.assertEqual(parse_age_limit(None), None)

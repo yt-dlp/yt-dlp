@@ -33,6 +33,19 @@ class TubiTvIE(InfoExtractor):
     }, {
         'url': 'http://tubitv.com/movies/383676/tracker',
         'only_matching': True,
+    }, {
+        'url': 'https://tubitv.com/movies/560057/penitentiary?start=true',
+        'info_dict': {
+            'id': '560057',
+            'ext': 'mp4',
+            'title': 'Penitentiary',
+            'description': 'md5:8d2fc793a93cc1575ff426fdcb8dd3f9',
+            'uploader_id': 'd8fed30d4f24fcb22ec294421b9defc2',
+            'release_year': 1979,
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _login(self):
@@ -93,4 +106,5 @@ class TubiTvIE(InfoExtractor):
             'description': video_data.get('description'),
             'duration': int_or_none(video_data.get('duration')),
             'uploader_id': video_data.get('publisher_id'),
+            'release_year': int_or_none(video_data.get('year')),
         }

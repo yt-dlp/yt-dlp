@@ -337,8 +337,8 @@ class InfoExtractor(object):
     object, each element of which is a valid dictionary by this specification.
 
     Additionally, playlists can have "id", "title", "description", "uploader",
-    "uploader_id", "uploader_url" attributes with the same semantics as videos
-    (see above).
+    "uploader_id", "uploader_url", "duration" attributes with the same semantics
+    as videos (see above).
 
 
     _type "multi_video" indicates that there are multiple videos that
@@ -1238,8 +1238,16 @@ class InfoExtractor(object):
             'ViewAction': 'view',
         }
 
+        def extract_interaction_type(e):
+            interaction_type = e.get('interactionType')
+            if isinstance(interaction_type, dict):
+                interaction_type = interaction_type.get('@type')
+            return str_or_none(interaction_type)
+
         def extract_interaction_statistic(e):
             interaction_statistic = e.get('interactionStatistic')
+            if isinstance(interaction_statistic, dict):
+                interaction_statistic = [interaction_statistic]
             if not isinstance(interaction_statistic, list):
                 return
             for is_e in interaction_statistic:
@@ -1247,8 +1255,8 @@ class InfoExtractor(object):
                     continue
                 if is_e.get('@type') != 'InteractionCounter':
                     continue
-                interaction_type = is_e.get('interactionType')
-                if not isinstance(interaction_type, compat_str):
+                interaction_type = extract_interaction_type(is_e)
+                if not interaction_type:
                     continue
                 # For interaction count some sites provide string instead of
                 # an integer (as per spec) with non digit characters (e.g. ",")
@@ -2704,16 +2712,18 @@ class InfoExtractor(object):
         # amp-video and amp-audio are very similar to their HTML5 counterparts
         # so we wll include them right here (see
         # https://www.ampproject.org/docs/reference/components/amp-video)
-        media_tags = [(media_tag, media_type, '')
-                      for media_tag, media_type
-                      in re.findall(r'(?s)(<(?:amp-)?(video|audio)[^>]*/>)', webpage)]
+        # For dl8-* tags see https://delight-vr.com/documentation/dl8-video/
+        _MEDIA_TAG_NAME_RE = r'(?:(?:amp|dl8(?:-live)?)-)?(video|audio)'
+        media_tags = [(media_tag, media_tag_name, media_type, '')
+                      for media_tag, media_tag_name, media_type
+                      in re.findall(r'(?s)(<(%s)[^>]*/>)' % _MEDIA_TAG_NAME_RE, webpage)]
         media_tags.extend(re.findall(
             # We only allow video|audio followed by a whitespace or '>'.
             # Allowing more characters may end up in significant slow down (see
             # https://github.com/ytdl-org/youtube-dl/issues/11979, example URL:
             # http://www.porntrex.com/maps/videositemap.xml).
-            r'(?s)(<(?P<tag>(?:amp-)?(?:video|audio))(?:\s+[^>]*)?>)(.*?)</(?P=tag)>', webpage))
-        for media_tag, media_type, media_content in media_tags:
+            r'(?s)(<(?P<tag>%s)(?:\s+[^>]*)?>)(.*?)</(?P=tag)>' % _MEDIA_TAG_NAME_RE, webpage))
+        for media_tag, _, media_type, media_content in media_tags:
             media_info = {
                 'formats': [],
                 'subtitles': {},
@@ -2786,6 +2796,13 @@ class InfoExtractor(object):
         return entries
 
     def _extract_akamai_formats(self, manifest_url, video_id, hosts={}):
+        signed = 'hdnea=' in manifest_url
+        if not signed:
+            # https://learn.akamai.com/en-us/webhelp/media-services-on-demand/stream-packaging-user-guide/GUID-BE6C0F73-1E06-483B-B0EA-57984B91B7F9.html
+            manifest_url = re.sub(
+                r'(?:b=[\d,-]+|(?:__a__|attributes)=off|__b__=\d+)&?',
+                '', manifest_url).strip('?')
+
         formats = []
 
         hdcore_sign = 'hdcore=3.7.0'
@@ -2805,33 +2822,32 @@ class InfoExtractor(object):
         hls_host = hosts.get('hls')
         if hls_host:
             m3u8_url = re.sub(r'(https?://)[^/]+', r'\1' + hls_host, m3u8_url)
-        formats.extend(self._extract_m3u8_formats(
+        m3u8_formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4', 'm3u8_native',
-            m3u8_id='hls', fatal=False))
+            m3u8_id='hls', fatal=False)
+        formats.extend(m3u8_formats)
 
         http_host = hosts.get('http')
-        if http_host and 'hdnea=' not in manifest_url:
-            REPL_REGEX = r'https://[^/]+/i/([^,]+),([^/]+),([^/]+).csmil/.+'
+        if http_host and m3u8_formats and not signed:
+            REPL_REGEX = r'https?://[^/]+/i/([^,]+),([^/]+),([^/]+)\.csmil/.+'
             qualities = re.match(REPL_REGEX, m3u8_url).group(2).split(',')
             qualities_length = len(qualities)
-            if len(formats) in (qualities_length + 1, qualities_length * 2 + 1):
+            if len(m3u8_formats) in (qualities_length, qualities_length + 1):
                 i = 0
-                http_formats = []
-                for f in formats:
-                    if f['protocol'] == 'm3u8_native' and f['vcodec'] != 'none':
+                for f in m3u8_formats:
+                    if f['vcodec'] != 'none':
                         for protocol in ('http', 'https'):
                             http_f = f.copy()
                             del http_f['manifest_url']
                             http_url = re.sub(
-                                REPL_REGEX, protocol + r'://%s/\1%s\3' % (http_host, qualities[i]), f['url'])
+                                REPL_REGEX, protocol + r'://%s/\g<1>%s\3' % (http_host, qualities[i]), f['url'])
                             http_f.update({
                                 'format_id': http_f['format_id'].replace('hls-', protocol + '-'),
                                 'url': http_url,
                                 'protocol': protocol,
                             })
-                            http_formats.append(http_f)
+                            formats.append(http_f)
                         i += 1
-                formats.extend(http_formats)
 
         return formats
 

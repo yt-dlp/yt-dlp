@@ -85,7 +85,13 @@ class ZypeIE(InfoExtractor):
         else:
             m3u8_url = self._search_regex(
                 r'(["\'])(?P<url>(?:(?!\1).)+\.m3u8(?:(?!\1).)*)\1',
-                body, 'm3u8 url', group='url')
+                body, 'm3u8 url', group='url', default=None)
+            if not m3u8_url:
+                source = self._parse_json(self._search_regex(
+                    r'(?s)sources\s*:\s*\[\s*({.+?})\s*\]', body,
+                    'source'), video_id, js_to_json)
+                if source.get('integration') == 'verizon-media':
+                    m3u8_url = 'https://content.uplynk.com/%s.m3u8' % source['id']
             formats = self._extract_m3u8_formats(
                 m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
             text_tracks = self._search_regex(

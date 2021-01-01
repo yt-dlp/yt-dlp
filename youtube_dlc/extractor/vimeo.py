@@ -1120,6 +1120,12 @@ class VHXEmbedIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vhx:embed'
     _VALID_URL = r'https?://embed\.vhx\.tv/videos/(?P<id>\d+)'
 
+    @staticmethod
+    def _extract_url(webpage):
+        mobj = re.search(
+            r'<iframe[^>]+src="(https?://embed\.vhx\.tv/videos/\d+[^"]*)"', webpage)
+        return unescapeHTML(mobj.group(1)) if mobj else None
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
@@ -1128,5 +1134,6 @@ class VHXEmbedIE(VimeoBaseInfoExtractor):
             'ott data'), video_id, js_to_json)['config_url']
         config = self._download_json(config_url, video_id)
         info = self._parse_config(config, video_id)
+        info['id'] = video_id
         self._vimeo_sort_formats(info['formats'])
         return info

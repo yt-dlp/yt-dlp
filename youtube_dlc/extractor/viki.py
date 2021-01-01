@@ -63,14 +63,14 @@ class VikiBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, note, timestamp=None, post_data=None):
         resp = self._download_json(
-            self._prepare_call(path, timestamp, post_data), video_id, note, headers={'x-viki-app-ver': '2.2.5.1428709186'}, expected_status=[200, 400, 404])
+            self._prepare_call(path, timestamp, post_data), video_id, note)
 
         error = resp.get('error')
         if error:
             if error == 'invalid timestamp':
                 resp = self._download_json(
                     self._prepare_call(path, int(resp['current_timestamp']), post_data),
-                    video_id, '%s (retry)' % note, headers={'x-viki-app-ver': '2.2.5.1428709186'}, expected_status=[200, 400, 404])
+                    video_id, '%s (retry)' % note)
                 error = resp.get('error')
             if error:
                 self._raise_error(resp['error'])
@@ -263,7 +263,7 @@ class VikiIE(VikiBaseIE):
             # New way to fetch subtitles
             new_video = self._download_json(
                 'https://www.viki.com/api/videos/%s' % video_id, video_id,
-                'Downloading new video JSON to get subtitles', headers={'x-viki-app-ver': '2.2.5.1428709186'}, expected_status=[200, 400, 404])
+                'Downloading new video JSON to get subtitles', fatal=False)
             for sub in new_video.get('streamSubtitles').get('dash'):
                 subtitles[sub.get('srclang')] = [{
                     'ext': 'vtt',

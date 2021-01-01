@@ -6,6 +6,7 @@ import re
 from .adobepass import AdobePassIE
 from ..compat import compat_str
 from ..utils import (
+    fix_xml_ampersands,
     xpath_text,
     int_or_none,
     determine_ext,
@@ -49,8 +50,13 @@ class TurnerBaseIE(AdobePassIE):
             self._AKAMAI_SPE_TOKEN_CACHE[secure_path] = token
         return video_url + '?hdnea=' + token
 
-    def _extract_cvp_info(self, data_src, video_id, path_data={}, ap_data={}):
-        video_data = self._download_xml(data_src, video_id)
+    def _extract_cvp_info(self, data_src, video_id, path_data={}, ap_data={}, fatal=False):
+        video_data = self._download_xml(
+            data_src, video_id,
+            transform_source=lambda s: fix_xml_ampersands(s).strip(),
+            fatal=fatal)
+        if not video_data:
+            return {}
         video_id = video_data.attrib['id']
         title = xpath_text(video_data, 'headline', fatal=True)
         content_id = xpath_text(video_data, 'contentId') or video_id
@@ -63,12 +69,14 @@ class TurnerBaseIE(AdobePassIE):
 
         urls = []
         formats = []
+        thumbnails = []
+        subtitles = {}
         rex = re.compile(
             r'(?P<width>[0-9]+)x(?P<height>[0-9]+)(?:_(?P<bitrate>[0-9]+))?')
         # Possible formats locations: files/file, files/groupFiles/files
         # and maybe others
         for video_file in video_data.findall('.//file'):
-            video_url = video_file.text.strip()
+            video_url = url_or_none(video_file.text.strip())
             if not video_url:
                 continue
             ext = determine_ext(video_url)
@@ -108,9 +116,28 @@ class TurnerBaseIE(AdobePassIE):
                 continue
             urls.append(video_url)
             format_id = video_file.get('bitrate')
-            if ext == 'smil':
+            if ext in ('scc', 'srt', 'vtt'):
+                subtitles.setdefault('en', []).append({
+                    'ext': ext,
+                    'url': video_url,
+                })
+            elif ext == 'png':
+                thumbnails.append({
+                    'id': format_id,
+                    'url': video_url,
+                })
+            elif ext == 'smil':
                 formats.extend(self._extract_smil_formats(
                     video_url, video_id, fatal=False))
+            elif re.match(r'https?://[^/]+\.akamaihd\.net/[iz]/', video_url):
+                formats.extend(self._extract_akamai_formats(
+                    video_url, video_id, {
+                        'hds': path_data.get('f4m', {}).get('host'),
+                        # nba.cdn.turner.com, ht.cdn.turner.com, ht2.cdn.turner.com
+                        # ht3.cdn.turner.com, i.cdn.turner.com, s.cdn.turner.com
+                        # ssl.cdn.turner.com
+                        'http': 'pmd.cdn.turner.com',
+                    }))
             elif ext == 'm3u8':
                 m3u8_formats = self._extract_m3u8_formats(
                     video_url, video_id, 'mp4',
@@ -129,7 +156,7 @@ class TurnerBaseIE(AdobePassIE):
                     'url': video_url,
                     'ext': ext,
                 }
-                mobj = rex.search(format_id + video_url)
+                mobj = rex.search(video_url)
                 if mobj:
                     f.update({
                         'width': int(mobj.group('width')),
@@ -152,7 +179,6 @@ class TurnerBaseIE(AdobePassIE):
                 formats.append(f)
         self._sort_formats(formats)
 
-        subtitles = {}
         for source in video_data.findall('closedCaptions/source'):
             for track in source.findall('track'):
                 track_url = url_or_none(track.get('url'))
@@ -168,12 +194,12 @@ class TurnerBaseIE(AdobePassIE):
                     }.get(source.get('format'))
                 })
 
-        thumbnails = [{
-            'id': image.get('cut'),
+        thumbnails.extend({
+            'id': image.get('cut') or image.get('name'),
             'url': image.text,
             'width': int_or_none(image.get('width')),
             'height': int_or_none(image.get('height')),
-        } for image in video_data.findall('images/image')]
+        } for image in video_data.findall('images/image'))
 
         is_live = xpath_text(video_data, 'isLive') == 'true'
 

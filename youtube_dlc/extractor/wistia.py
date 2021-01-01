@@ -5,79 +5,34 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
+    try_get,
     unescapeHTML,
 )
 
 
-class WistiaIE(InfoExtractor):
-    _VALID_URL = r'(?:wistia:|https?://(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/)(?P<id>[a-z0-9]{10})'
+class WistiaBaseIE(InfoExtractor):
+    _VALID_ID_REGEX = r'(?P<id>[a-z0-9]{10})'
+    _VALID_URL_BASE = r'https?://(?:fast\.)?wistia\.(?:net|com)/embed/'
     _EMBED_BASE_URL = 'http://fast.wistia.com/embed/'
 
-    _TESTS = [{
-        'url': 'http://fast.wistia.net/embed/iframe/sh7fpupwlt',
-        'md5': 'cafeb56ec0c53c18c97405eecb3133df',
-        'info_dict': {
-            'id': 'sh7fpupwlt',
-            'ext': 'mov',
-            'title': 'Being Resourceful',
-            'description': 'a Clients From Hell Video Series video from worldwidewebhosting',
-            'upload_date': '20131204',
-            'timestamp': 1386185018,
-            'duration': 117,
-        },
-    }, {
-        'url': 'wistia:sh7fpupwlt',
-        'only_matching': True,
-    }, {
-        # with hls video
-        'url': 'wistia:807fafadvk',
-        'only_matching': True,
-    }, {
-        'url': 'http://fast.wistia.com/embed/iframe/sh7fpupwlt',
-        'only_matching': True,
-    }, {
-        'url': 'http://fast.wistia.net/embed/medias/sh7fpupwlt.json',
-        'only_matching': True,
-    }]
-
-    # https://wistia.com/support/embed-and-share/video-on-your-website
-    @staticmethod
-    def _extract_url(webpage):
-        urls = WistiaIE._extract_urls(webpage)
-        return urls[0] if urls else None
-
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        for match in re.finditer(
-                r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})', webpage):
-            urls.append(unescapeHTML(match.group('url')))
-        for match in re.finditer(
-                r'''(?sx)
-                    <div[^>]+class=(["'])(?:(?!\1).)*?\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
-                ''', webpage):
-            urls.append('wistia:%s' % match.group('id'))
-        for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})', webpage):
-            urls.append('wistia:%s' % match.group('id'))
-        return urls
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        data_json = self._download_json(
-            self._EMBED_BASE_URL + 'medias/%s.json' % video_id, video_id,
-            # Some videos require this.
-            headers={
-                'Referer': url if url.startswith('http') else self._EMBED_BASE_URL + 'iframe/' + video_id,
+    def _download_embed_config(self, config_type, config_id, referer):
+        base_url = self._EMBED_BASE_URL + '%ss/%s' % (config_type, config_id)
+        embed_config = self._download_json(
+            base_url + '.json', config_id, headers={
+                'Referer': referer if referer.startswith('http') else base_url,  # Some videos require this.
             })
 
-        if data_json.get('error'):
+        if isinstance(embed_config, dict) and embed_config.get('error'):
             raise ExtractorError(
                 'Error while getting the playlist', expected=True)
 
-        data = data_json['media']
+        return embed_config
+
+    def _extract_media(self, embed_config):
+        data = embed_config['media']
+        video_id = data['hashedId']
         title = data['name']
 
         formats = []
@@ -160,3 +115,85 @@ class WistiaIE(InfoExtractor):
             'timestamp': int_or_none(data.get('createdAt')),
             'subtitles': subtitles,
         }
+
+
+class WistiaIE(WistiaBaseIE):
+    _VALID_URL = r'(?:wistia:|%s(?:iframe|medias)/)%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
+
+    _TESTS = [{
+        # with hls video
+        'url': 'wistia:807fafadvk',
+        'md5': 'daff0f3687a41d9a71b40e0e8c2610fe',
+        'info_dict': {
+            'id': '807fafadvk',
+            'ext': 'mp4',
+            'title': 'Drip Brennan Dunn Workshop',
+            'description': 'a JV Webinars video',
+            'upload_date': '20160518',
+            'timestamp': 1463607249,
+            'duration': 4987.11,
+        },
+    }, {
+        'url': 'wistia:sh7fpupwlt',
+        'only_matching': True,
+    }, {
+        'url': 'http://fast.wistia.net/embed/iframe/sh7fpupwlt',
+        'only_matching': True,
+    }, {
+        'url': 'http://fast.wistia.com/embed/iframe/sh7fpupwlt',
+        'only_matching': True,
+    }, {
+        'url': 'http://fast.wistia.net/embed/medias/sh7fpupwlt.json',
+        'only_matching': True,
+    }]
+
+    # https://wistia.com/support/embed-and-share/video-on-your-website
+    @staticmethod
+    def _extract_url(webpage):
+        urls = WistiaIE._extract_urls(webpage)
+        return urls[0] if urls else None
+
+    @staticmethod
+    def _extract_urls(webpage):
+        urls = []
+        for match in re.finditer(
+                r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})', webpage):
+            urls.append(unescapeHTML(match.group('url')))
+        for match in re.finditer(
+                r'''(?sx)
+                    <div[^>]+class=(["'])(?:(?!\1).)*?\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
+                ''', webpage):
+            urls.append('wistia:%s' % match.group('id'))
+        for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})', webpage):
+            urls.append('wistia:%s' % match.group('id'))
+        return urls
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        embed_config = self._download_embed_config('media', video_id, url)
+        return self._extract_media(embed_config)
+
+
+class WistiaPlaylistIE(WistiaBaseIE):
+    _VALID_URL = r'%splaylists/%s' % (WistiaIE._VALID_URL_BASE, WistiaIE._VALID_ID_REGEX)
+
+    _TEST = {
+        'url': 'https://fast.wistia.net/embed/playlists/aodt9etokc',
+        'info_dict': {
+            'id': 'aodt9etokc',
+        },
+        'playlist_count': 3,
+    }
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        playlist = self._download_embed_config('playlist', playlist_id, url)
+
+        entries = []
+        for media in (try_get(playlist, lambda x: x[0]['medias']) or []):
+            embed_config = media.get('embed_config')
+            if not embed_config:
+                continue
+            entries.append(self._extract_media(embed_config))
+
+        return self.playlist_result(entries, playlist_id)

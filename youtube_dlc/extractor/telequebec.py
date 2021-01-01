@@ -12,24 +12,15 @@ from ..utils import (
 
 
 class TeleQuebecBaseIE(InfoExtractor):
+    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
+
     @staticmethod
-    def _result(url, ie_key):
+    def _brightcove_result(brightcove_id, player_id, account_id='6150020952001'):
         return {
             '_type': 'url_transparent',
-            'url': smuggle_url(url, {'geo_countries': ['CA']}),
-            'ie_key': ie_key,
+            'url': smuggle_url(TeleQuebecBaseIE.BRIGHTCOVE_URL_TEMPLATE % (account_id, player_id, brightcove_id), {'geo_countries': ['CA']}),
+            'ie_key': 'BrightcoveNew',
         }
-
-    @staticmethod
-    def _limelight_result(media_id):
-        return TeleQuebecBaseIE._result(
-            'limelight:media:' + media_id, 'LimelightMedia')
-
-    @staticmethod
-    def _brightcove_result(brightcove_id):
-        return TeleQuebecBaseIE._result(
-            'http://players.brightcove.net/6150020952001/default_default/index.html?videoId=%s'
-            % brightcove_id, 'BrightcoveNew')
 
 
 class TeleQuebecIE(TeleQuebecBaseIE):
@@ -44,14 +35,18 @@ class TeleQuebecIE(TeleQuebecBaseIE):
         # available till 01.01.2023
         'url': 'http://zonevideo.telequebec.tv/media/37578/un-petit-choc-et-puis-repart/un-chef-a-la-cabane',
         'info_dict': {
-            'id': '577116881b4b439084e6b1cf4ef8b1b3',
+            'id': '6155972771001',
             'ext': 'mp4',
             'title': 'Un petit choc et puis repart!',
-            'description': 'md5:067bc84bd6afecad85e69d1000730907',
+            'description': 'md5:b04a7e6b3f74e32d7b294cffe8658374',
+            'timestamp': 1589262469,
+            'uploader_id': '6150020952001',
+            'upload_date': '20200512',
         },
         'params': {
-            'skip_download': True,
+            'format': 'bestvideo',
         },
+        'add_ie': ['BrightcoveNew'],
     }, {
         'url': 'https://zonevideo.telequebec.tv/media/55267/le-soleil/passe-partout',
         'info_dict': {
@@ -65,7 +60,6 @@ class TeleQuebecIE(TeleQuebecBaseIE):
         },
         'params': {
             'format': 'bestvideo',
-            'skip_download': True,
         },
         'add_ie': ['BrightcoveNew'],
     }, {
@@ -79,25 +73,20 @@ class TeleQuebecIE(TeleQuebecBaseIE):
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
-
-        media_data = self._download_json(
-            'https://mnmedias.api.telequebec.tv/api/v2/media/' + media_id,
+        media = self._download_json(
+            'https://mnmedias.api.telequebec.tv/api/v3/media/' + media_id,
             media_id)['media']
-
-        source_id = media_data['streamInfo']['sourceId']
-        source = (try_get(
-            media_data, lambda x: x['streamInfo']['source'],
-            compat_str) or 'limelight').lower()
-        if source == 'brightcove':
-            info = self._brightcove_result(source_id)
-        else:
-            info = self._limelight_result(source_id)
+        source_id = next(source_info['sourceId'] for source_info in media['streamInfos'] if source_info.get('source') == 'Brightcove')
+        info = self._brightcove_result(source_id, '22gPKdt7f')
+        product = media.get('product') or {}
+        season = product.get('season') or {}
         info.update({
-            'title': media_data.get('title'),
-            'description': try_get(
-                media_data, lambda x: x['descriptions'][0]['text'], compat_str),
-            'duration': int_or_none(
-                media_data.get('durationInMilliseconds'), 1000),
+            'description': try_get(media, lambda x: x['descriptions'][-1]['text'], compat_str),
+            'series': try_get(season, lambda x: x['serie']['titre']),
+            'season': season.get('name'),
+            'season_number': int_or_none(season.get('seasonNo')),
+            'episode': product.get('titre'),
+            'episode_number': int_or_none(product.get('episodeNo')),
         })
         return info
 
@@ -148,7 +137,7 @@ class TeleQuebecSquatIE(InfoExtractor):
         }
 
 
-class TeleQuebecEmissionIE(TeleQuebecBaseIE):
+class TeleQuebecEmissionIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
@@ -160,15 +149,16 @@ class TeleQuebecEmissionIE(TeleQuebecBaseIE):
     _TESTS = [{
         'url': 'http://lindicemcsween.telequebec.tv/emissions/100430013/des-soins-esthetiques-a-377-d-interets-annuels-ca-vous-tente',
         'info_dict': {
-            'id': '66648a6aef914fe3badda25e81a4d50a',
+            'id': '6154476028001',
             'ext': 'mp4',
-            'title': "Des soins esthétiques à 377 % d'intérêts annuels, ça vous tente?",
-            'description': 'md5:369e0d55d0083f1fc9b71ffb640ea014',
-            'upload_date': '20171024',
-            'timestamp': 1508862118,
+            'title': 'Des soins esthétiques à 377 % d’intérêts annuels, ça vous tente?',
+            'description': 'md5:cb4d378e073fae6cce1f87c00f84ae9f',
+            'upload_date': '20200505',
+            'timestamp': 1588713424,
+            'uploader_id': '6150020952001',
         },
         'params': {
-            'skip_download': True,
+            'format': 'bestvideo',
         },
     }, {
         'url': 'http://bancpublic.telequebec.tv/emissions/emission-49/31986/jeunes-meres-sous-pression',
@@ -187,26 +177,26 @@ class TeleQuebecEmissionIE(TeleQuebecBaseIE):
         webpage = self._download_webpage(url, display_id)
 
         media_id = self._search_regex(
-            r'mediaUID\s*:\s*["\'][Ll]imelight_(?P<id>[a-z0-9]{32})', webpage,
-            'limelight id')
+            r'mediaId\s*:\s*(?P<id>\d+)', webpage, 'media id')
 
-        info = self._limelight_result(media_id)
-        info.update({
-            'title': self._og_search_title(webpage, default=None),
-            'description': self._og_search_description(webpage, default=None),
-        })
-        return info
+        return self.url_result(
+            'http://zonevideo.telequebec.tv/media/' + media_id,
+            TeleQuebecIE.ie_key())
 
 
-class TeleQuebecLiveIE(InfoExtractor):
+class TeleQuebecLiveIE(TeleQuebecBaseIE):
     _VALID_URL = r'https?://zonevideo\.telequebec\.tv/(?P<id>endirect)'
     _TEST = {
         'url': 'http://zonevideo.telequebec.tv/endirect/',
         'info_dict': {
-            'id': 'endirect',
+            'id': '6159095684001',
             'ext': 'mp4',
-            'title': 're:^Télé-Québec - En direct [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'title': 're:^Télé-Québec [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'is_live': True,
+            'description': 'Canal principal de Télé-Québec',
+            'uploader_id': '6150020952001',
+            'timestamp': 1590439901,
+            'upload_date': '20200525',
         },
         'params': {
             'skip_download': True,
@@ -214,25 +204,49 @@ class TeleQuebecLiveIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        return self._brightcove_result('6159095684001', 'skCsmi2Uw')
 
-        m3u8_url = None
-        webpage = self._download_webpage(
-            'https://player.telequebec.tv/Tq_VideoPlayer.js', video_id,
-            fatal=False)
-        if webpage:
-            m3u8_url = self._search_regex(
-                r'm3U8Url\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage,
-                'm3u8 url', default=None, group='url')
-        if not m3u8_url:
-            m3u8_url = 'https://teleqmmd.mmdlive.lldns.net/teleqmmd/f386e3b206814e1f8c8c1c71c0f8e748/manifest.m3u8'
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
-        return {
-            'id': video_id,
-            'title': self._live_title('Télé-Québec - En direct'),
-            'is_live': True,
-            'formats': formats,
-        }
+class TeleQuebecVideoIE(TeleQuebecBaseIE):
+    _VALID_URL = r'https?://video\.telequebec\.tv/player(?:-live)?/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://video.telequebec.tv/player/31110/stream',
+        'info_dict': {
+            'id': '6202570652001',
+            'ext': 'mp4',
+            'title': 'Le coût du véhicule le plus vendu au Canada / Tous les frais liés à la procréation assistée',
+            'description': 'md5:685a7e4c450ba777c60adb6e71e41526',
+            'upload_date': '20201019',
+            'timestamp': 1603115930,
+            'uploader_id': '6101674910001',
+        },
+        'params': {
+            'format': 'bestvideo',
+        },
+    }, {
+        'url': 'https://video.telequebec.tv/player-live/28527',
+        'only_matching': True,
+    }]
+
+    def _call_api(self, path, video_id):
+        return self._download_json(
+            'http://beacon.playback.api.brightcove.com/telequebec/api/assets/' + path,
+            video_id, query={'device_layout': 'web', 'device_type': 'web'})['data']
+
+    def _real_extract(self, url):
+        asset_id = self._match_id(url)
+        asset = self._call_api(asset_id, asset_id)['asset']
+        stream = self._call_api(
+            asset_id + '/streams/' + asset['streams'][0]['id'], asset_id)['stream']
+        stream_url = stream['url']
+        account_id = try_get(
+            stream, lambda x: x['video_provider_details']['account_id']) or '6101674910001'
+        info = self._brightcove_result(stream_url, 'default', account_id)
+        info.update({
+            'description': asset.get('long_description') or asset.get('short_description'),
+            'series': asset.get('series_original_name'),
+            'season_number': int_or_none(asset.get('season_number')),
+            'episode': asset.get('original_name'),
+            'episode_number': int_or_none(asset.get('episode_number')),
+        })
+        return info

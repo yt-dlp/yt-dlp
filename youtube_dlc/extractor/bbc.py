@@ -49,21 +49,16 @@ class BBCCoUkIE(InfoExtractor):
     _LOGIN_URL = 'https://account.bbc.com/signin'
     _NETRC_MACHINE = 'bbc'
 
-    _MEDIASELECTOR_URLS = [
+    _MEDIA_SELECTOR_URL_TEMPL = 'https://open.live.bbc.co.uk/mediaselector/6/select/version/2.0/mediaset/%s/vpid/%s'
+    _MEDIA_SETS = [
         # Provides HQ HLS streams with even better quality that pc mediaset but fails
         # with geolocation in some cases when it's even not geo restricted at all (e.g.
         # http://www.bbc.co.uk/programmes/b06bp7lf). Also may fail with selectionunavailable.
-        'http://open.live.bbc.co.uk/mediaselector/5/select/version/2.0/mediaset/iptv-all/vpid/%s',
-        'http://open.live.bbc.co.uk/mediaselector/5/select/version/2.0/mediaset/pc/vpid/%s',
+        'iptv-all',
+        'pc',
     ]
 
-    _MEDIASELECTION_NS = 'http://bbc.co.uk/2008/mp/mediaselection'
     _EMP_PLAYLIST_NS = 'http://bbc.co.uk/2008/emp/playlist'
-
-    _NAMESPACES = (
-        _MEDIASELECTION_NS,
-        _EMP_PLAYLIST_NS,
-    )
 
     _TESTS = [
         {
@@ -261,8 +256,6 @@ class BBCCoUkIE(InfoExtractor):
             'only_matching': True,
         }]
 
-    _USP_RE = r'/([^/]+?)\.ism(?:\.hlsv2\.ism)?/[^/]+\.m3u8'
-
     def _login(self):
         username, password = self._get_login_info()
         if username is None:
@@ -307,22 +300,14 @@ class BBCCoUkIE(InfoExtractor):
     def _extract_items(self, playlist):
         return playlist.findall('./{%s}item' % self._EMP_PLAYLIST_NS)
 
-    def _findall_ns(self, element, xpath):
-        elements = []
-        for ns in self._NAMESPACES:
-            elements.extend(element.findall(xpath % ns))
-        return elements
-
     def _extract_medias(self, media_selection):
-        error = media_selection.find('./{%s}error' % self._MEDIASELECTION_NS)
-        if error is None:
-            media_selection.find('./{%s}error' % self._EMP_PLAYLIST_NS)
-        if error is not None:
-            raise BBCCoUkIE.MediaSelectionError(error.get('id'))
-        return self._findall_ns(media_selection, './{%s}media')
+        error = media_selection.get('result')
+        if error:
+            raise BBCCoUkIE.MediaSelectionError(error)
+        return media_selection.get('media') or []
 
     def _extract_connections(self, media):
-        return self._findall_ns(media, './{%s}connection')
+        return media.get('connection') or []
 
     def _get_subtitles(self, media, programme_id):
         subtitles = {}
@@ -334,13 +319,13 @@ class BBCCoUkIE(InfoExtractor):
                 cc_url, programme_id, 'Downloading captions', fatal=False)
             if not isinstance(captions, compat_etree_Element):
                 continue
-            lang = captions.get('{http://www.w3.org/XML/1998/namespace}lang', 'en')
-            subtitles[lang] = [
+            subtitles['en'] = [
                 {
                     'url': connection.get('href'),
                     'ext': 'ttml',
                 },
             ]
+            break
         return subtitles
 
     def _raise_extractor_error(self, media_selection_error):
@@ -350,10 +335,10 @@ class BBCCoUkIE(InfoExtractor):
 
     def _download_media_selector(self, programme_id):
         last_exception = None
-        for mediaselector_url in self._MEDIASELECTOR_URLS:
+        for media_set in self._MEDIA_SETS:
             try:
                 return self._download_media_selector_url(
-                    mediaselector_url % programme_id, programme_id)
+                    self._MEDIA_SELECTOR_URL_TEMPL % (media_set, programme_id), programme_id)
             except BBCCoUkIE.MediaSelectionError as e:
                 if e.id in ('notukerror', 'geolocation', 'selectionunavailable'):
                     last_exception = e
@@ -362,8 +347,8 @@ class BBCCoUkIE(InfoExtractor):
         self._raise_extractor_error(last_exception)
 
     def _download_media_selector_url(self, url, programme_id=None):
-        media_selection = self._download_xml(
-            url, programme_id, 'Downloading media selection XML',
+        media_selection = self._download_json(
+            url, programme_id, 'Downloading media selection JSON',
             expected_status=(403, 404))
         return self._process_media_selector(media_selection, programme_id)
 
@@ -377,7 +362,6 @@ class BBCCoUkIE(InfoExtractor):
             if kind in ('video', 'audio'):
                 bitrate = int_or_none(media.get('bitrate'))
                 encoding = media.get('encoding')
-                service = media.get('service')
                 width = int_or_none(media.get('width'))
                 height = int_or_none(media.get('height'))
                 file_size = int_or_none(media.get('media_file_size'))
@@ -392,8 +376,6 @@ class BBCCoUkIE(InfoExtractor):
                     supplier = connection.get('supplier')
                     transfer_format = connection.get('transferFormat')
                     format_id = supplier or conn_kind or protocol
-                    if service:
-                        format_id = '%s_%s' % (service, format_id)
                     # ASX playlist
                     if supplier == 'asx':
                         for i, ref in enumerate(self._extract_asx_playlist(connection, programme_id)):
@@ -408,20 +390,11 @@ class BBCCoUkIE(InfoExtractor):
                         formats.extend(self._extract_m3u8_formats(
                             href, programme_id, ext='mp4', entry_protocol='m3u8_native',
                             m3u8_id=format_id, fatal=False))
-                        if re.search(self._USP_RE, href):
-                            usp_formats = self._extract_m3u8_formats(
-                                re.sub(self._USP_RE, r'/\1.ism/\1.m3u8', href),
-                                programme_id, ext='mp4', entry_protocol='m3u8_native',
-                                m3u8_id=format_id, fatal=False)
-                            for f in usp_formats:
-                                if f.get('height') and f['height'] > 720:
-                                    continue
-                                formats.append(f)
                     elif transfer_format == 'hds':
                         formats.extend(self._extract_f4m_formats(
                             href, programme_id, f4m_id=format_id, fatal=False))
                     else:
-                        if not service and not supplier and bitrate:
+                        if not supplier and bitrate:
                             format_id += '-%d' % bitrate
                         fmt = {
                             'format_id': format_id,
@@ -554,7 +527,7 @@ class BBCCoUkIE(InfoExtractor):
         webpage = self._download_webpage(url, group_id, 'Downloading video page')
 
         error = self._search_regex(
-            r'<div\b[^>]+\bclass=["\']smp__message delta["\'][^>]*>([^<]+)<',
+            r'<div\b[^>]+\bclass=["\'](?:smp|playout)__message delta["\'][^>]*>\s*([^<]+?)\s*<',
             webpage, 'error', default=None)
         if error:
             raise ExtractorError(error, expected=True)
@@ -607,16 +580,9 @@ class BBCIE(BBCCoUkIE):
     IE_DESC = 'BBC'
     _VALID_URL = r'https?://(?:www\.)?bbc\.(?:com|co\.uk)/(?:[^/]+/)+(?P<id>[^/#?]+)'
 
-    _MEDIASELECTOR_URLS = [
-        # Provides HQ HLS streams but fails with geolocation in some cases when it's
-        # even not geo restricted at all
-        'http://open.live.bbc.co.uk/mediaselector/5/select/version/2.0/mediaset/iptv-all/vpid/%s',
-        # Provides more formats, namely direct mp4 links, but fails on some videos with
-        # notukerror for non UK (?) users (e.g.
-        # http://www.bbc.com/travel/story/20150625-sri-lankas-spicy-secret)
-        'http://open.live.bbc.co.uk/mediaselector/4/mtis/stream/%s',
-        # Provides fewer formats, but works everywhere for everybody (hopefully)
-        'http://open.live.bbc.co.uk/mediaselector/5/select/version/2.0/mediaset/journalism-pc/vpid/%s',
+    _MEDIA_SETS = [
+        'mobile-tablet-main',
+        'pc',
     ]
 
     _TESTS = [{

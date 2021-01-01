@@ -2,12 +2,16 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
+from ..compat import (
+    compat_str,
+    compat_urlparse,
+)
 from ..utils import (
     determine_ext,
     int_or_none,
     parse_duration,
     parse_iso8601,
+    url_or_none,
     xpath_text,
 )
 
@@ -15,6 +19,8 @@ from ..utils import (
 class MDRIE(InfoExtractor):
     IE_DESC = 'MDR.DE and KiKA'
     _VALID_URL = r'https?://(?:www\.)?(?:mdr|kika)\.de/(?:.*)/[a-z-]+-?(?P<id>\d+)(?:_.+?)?\.html'
+
+    _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
         # MDR regularly deletes its videos
@@ -67,6 +73,22 @@ class MDRIE(InfoExtractor):
             'uploader': 'MITTELDEUTSCHER RUNDFUNK',
         },
     }, {
+        # empty bitrateVideo and bitrateAudio
+        'url': 'https://www.kika.de/filme/sendung128372_zc-572e3f45_zs-1d9fb70e.html',
+        'info_dict': {
+            'id': '128372',
+            'ext': 'mp4',
+            'title': 'Der kleine Wichtel kehrt zurück',
+            'description': 'md5:f77fafdff90f7aa1e9dca14f662c052a',
+            'duration': 4876,
+            'timestamp': 1607823300,
+            'upload_date': '20201213',
+            'uploader': 'ZDF',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
         'url': 'http://www.kika.de/baumhaus/sendungen/video19636_zc-fea7f8a0_zs-4bf89c60.html',
         'only_matching': True,
     }, {
@@ -91,10 +113,13 @@ class MDRIE(InfoExtractor):
 
         title = xpath_text(doc, ['./title', './broadcast/broadcastName'], 'title', fatal=True)
 
+        type_ = xpath_text(doc, './type', default=None)
+
         formats = []
         processed_urls = []
         for asset in doc.findall('./assets/asset'):
             for source in (
+                    'download',
                     'progressiveDownload',
                     'dynamicHttpStreamingRedirector',
                     'adaptiveHttpStreamingRedirector'):
@@ -102,63 +127,49 @@ class MDRIE(InfoExtractor):
                 if url_el is None:
                     continue
 
-                video_url = url_el.text
-                if video_url in processed_urls:
+                video_url = url_or_none(url_el.text)
+                if not video_url or video_url in processed_urls:
                     continue
 
                 processed_urls.append(video_url)
 
-                vbr = int_or_none(xpath_text(asset, './bitrateVideo', 'vbr'), 1000)
-                abr = int_or_none(xpath_text(asset, './bitrateAudio', 'abr'), 1000)
-
-                ext = determine_ext(url_el.text)
+                ext = determine_ext(video_url)
                 if ext == 'm3u8':
-                    url_formats = self._extract_m3u8_formats(
+                    formats.extend(self._extract_m3u8_formats(
                         video_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                        preference=0, m3u8_id='HLS', fatal=False)
+                        preference=0, m3u8_id='HLS', fatal=False))
                 elif ext == 'f4m':
-                    url_formats = self._extract_f4m_formats(
+                    formats.extend(self._extract_f4m_formats(
                         video_url + '?hdcore=3.7.0&plugin=aasp-3.7.0.39.44', video_id,
-                        preference=0, f4m_id='HDS', fatal=False)
+                        preference=0, f4m_id='HDS', fatal=False))
                 else:
                     media_type = xpath_text(asset, './mediaType', 'media type', default='MP4')
                     vbr = int_or_none(xpath_text(asset, './bitrateVideo', 'vbr'), 1000)
                     abr = int_or_none(xpath_text(asset, './bitrateAudio', 'abr'), 1000)
                     filesize = int_or_none(xpath_text(asset, './fileSize', 'file size'))
 
+                    format_id = [media_type]
+                    if vbr or abr:
+                        format_id.append(compat_str(vbr or abr))
+
                     f = {
                         'url': video_url,
-                        'format_id': '%s-%d' % (media_type, vbr or abr),
+                        'format_id': '-'.join(format_id),
                         'filesize': filesize,
                         'abr': abr,
-                        'preference': 1,
+                        'vbr': vbr,
                     }
 
                     if vbr:
-                        width = int_or_none(xpath_text(asset, './frameWidth', 'width'))
-                        height = int_or_none(xpath_text(asset, './frameHeight', 'height'))
                         f.update({
-                            'vbr': vbr,
-                            'width': width,
-                            'height': height,
+                            'width': int_or_none(xpath_text(asset, './frameWidth', 'width')),
+                            'height': int_or_none(xpath_text(asset, './frameHeight', 'height')),
                         })
 
-                    url_formats = [f]
+                    if type_ == 'audio':
+                        f['vcodec'] = 'none'
 
-                if not url_formats:
-                    continue
-
-                if not vbr:
-                    for f in url_formats:
-                        abr = f.get('tbr') or abr
-                        if 'tbr' in f:
-                            del f['tbr']
-                        f.update({
-                            'abr': abr,
-                            'vcodec': 'none',
-                        })
-
-                formats.extend(url_formats)
+                    formats.append(f)
 
         self._sort_formats(formats)
 

@@ -8,11 +8,15 @@ from .common import InfoExtractor
 from ..compat import (
     compat_b64decode,
     compat_HTTPError,
+    compat_str,
 )
 from ..utils import (
+    clean_html,
     ExtractorError,
-    orderedSet,
-    unescapeHTML,
+    js_to_json,
+    parse_duration,
+    try_get,
+    unified_timestamp,
     urlencode_postdata,
     urljoin,
 )
@@ -28,11 +32,15 @@ class LinuxAcademyIE(InfoExtractor):
                         )
                     '''
     _TESTS = [{
-        'url': 'https://linuxacademy.com/cp/courses/lesson/course/1498/lesson/2/module/154',
+        'url': 'https://linuxacademy.com/cp/courses/lesson/course/7971/lesson/2/module/675',
         'info_dict': {
-            'id': '1498-2',
+            'id': '7971-2',
             'ext': 'mp4',
-            'title': "Introduction to the Practitioner's Brief",
+            'title': 'What Is Data Science',
+            'description': 'md5:c574a3c20607144fb36cb65bdde76c99',
+            'timestamp': 1607387907,
+            'upload_date': '20201208',
+            'duration': 304,
         },
         'params': {
             'skip_download': True,
@@ -46,7 +54,8 @@ class LinuxAcademyIE(InfoExtractor):
         'info_dict': {
             'id': '154',
             'title': 'AWS Certified Cloud Practitioner',
-            'description': 'md5:039db7e60e4aac9cf43630e0a75fa834',
+            'description': 'md5:a68a299ca9bb98d41cca5abc4d4ce22c',
+            'duration': 28835,
         },
         'playlist_count': 41,
         'skip': 'Requires Linux Academy account credentials',
@@ -74,6 +83,7 @@ class LinuxAcademyIE(InfoExtractor):
             self._AUTHORIZE_URL, None, 'Downloading authorize page', query={
                 'client_id': self._CLIENT_ID,
                 'response_type': 'token id_token',
+                'response_mode': 'web_message',
                 'redirect_uri': self._ORIGIN_URL,
                 'scope': 'openid email user_impersonation profile',
                 'audience': self._ORIGIN_URL,
@@ -129,7 +139,13 @@ class LinuxAcademyIE(InfoExtractor):
 
         access_token = self._search_regex(
             r'access_token=([^=&]+)', urlh.geturl(),
-            'access token')
+            'access token', default=None)
+        if not access_token:
+            access_token = self._parse_json(
+                self._search_regex(
+                    r'authorizationResponse\s*=\s*({.+?})\s*;', callback_page,
+                    'authorization response'), None,
+                transform_source=js_to_json)['response']['access_token']
 
         self._download_webpage(
             'https://linuxacademy.com/cp/login/tokenValidateLogin/token/%s'
@@ -144,30 +160,84 @@ class LinuxAcademyIE(InfoExtractor):
 
         # course path
         if course_id:
-            entries = [
-                self.url_result(
-                    urljoin(url, lesson_url), ie=LinuxAcademyIE.ie_key())
-                for lesson_url in orderedSet(re.findall(
-                    r'<a[^>]+\bhref=["\'](/cp/courses/lesson/course/\d+/lesson/\d+/module/\d+)',
-                    webpage))]
-            title = unescapeHTML(self._html_search_regex(
-                (r'class=["\']course-title["\'][^>]*>(?P<value>[^<]+)',
-                 r'var\s+title\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1'),
-                webpage, 'title', default=None, group='value'))
-            description = unescapeHTML(self._html_search_regex(
-                r'var\s+description\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
-                webpage, 'description', default=None, group='value'))
-            return self.playlist_result(entries, course_id, title, description)
+            module = self._parse_json(
+                self._search_regex(
+                    r'window\.module\s*=\s*({.+?})\s*;', webpage, 'module'),
+                item_id)
+            entries = []
+            chapter_number = None
+            chapter = None
+            chapter_id = None
+            for item in module['items']:
+                if not isinstance(item, dict):
+                    continue
+
+                def type_field(key):
+                    return (try_get(item, lambda x: x['type'][key], compat_str) or '').lower()
+                type_fields = (type_field('name'), type_field('slug'))
+                # Move to next module section
+                if 'section' in type_fields:
+                    chapter = item.get('course_name')
+                    chapter_id = item.get('course_module')
+                    chapter_number = 1 if not chapter_number else chapter_number + 1
+                    continue
+                # Skip non-lessons
+                if 'lesson' not in type_fields:
+                    continue
+                lesson_url = urljoin(url, item.get('url'))
+                if not lesson_url:
+                    continue
+                title = item.get('title') or item.get('lesson_name')
+                description = item.get('md_desc') or clean_html(item.get('description')) or clean_html(item.get('text'))
+                entries.append({
+                    '_type': 'url_transparent',
+                    'url': lesson_url,
+                    'ie_key': LinuxAcademyIE.ie_key(),
+                    'title': title,
+                    'description': description,
+                    'timestamp': unified_timestamp(item.get('date')) or unified_timestamp(item.get('created_on')),
+                    'duration': parse_duration(item.get('duration')),
+                    'chapter': chapter,
+                    'chapter_id': chapter_id,
+                    'chapter_number': chapter_number,
+                })
+            return {
+                '_type': 'playlist',
+                'entries': entries,
+                'id': course_id,
+                'title': module.get('title'),
+                'description': module.get('md_desc') or clean_html(module.get('desc')),
+                'duration': parse_duration(module.get('duration')),
+            }
 
         # single video path
-        info = self._extract_jwplayer_data(
-            webpage, item_id, require_title=False, m3u8_id='hls',)
-        title = self._search_regex(
-            (r'>Lecture\s*:\s*(?P<value>[^<]+)',
-             r'lessonName\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1'), webpage,
-            'title', group='value')
-        info.update({
+        m3u8_url = self._parse_json(
+            self._search_regex(
+                r'player\.playlist\s*=\s*(\[.+?\])\s*;', webpage, 'playlist'),
+            item_id)[0]['file']
+        formats = self._extract_m3u8_formats(
+            m3u8_url, item_id, 'mp4', entry_protocol='m3u8_native',
+            m3u8_id='hls')
+        self._sort_formats(formats)
+        info = {
             'id': item_id,
-            'title': title,
-        })
+            'formats': formats,
+        }
+        lesson = self._parse_json(
+            self._search_regex(
+                (r'window\.lesson\s*=\s*({.+?})\s*;',
+                 r'player\.lesson\s*=\s*({.+?})\s*;'),
+                webpage, 'lesson', default='{}'), item_id, fatal=False)
+        if lesson:
+            info.update({
+                'title': lesson.get('lesson_name'),
+                'description': lesson.get('md_desc') or clean_html(lesson.get('desc')),
+                'timestamp': unified_timestamp(lesson.get('date')) or unified_timestamp(lesson.get('created_on')),
+                'duration': parse_duration(lesson.get('duration')),
+            })
+        if not info.get('title'):
+            info['title'] = self._search_regex(
+                (r'>Lecture\s*:\s*(?P<value>[^<]+)',
+                 r'lessonName\s*=\s*(["\'])(?P<value>(?:(?!\1).)+)\1'), webpage,
+                'title', group='value')
         return info

@@ -11,7 +11,47 @@ from ..utils import (
 
 
 class CBSLocalIE(AnvatoIE):
-    _VALID_URL = r'https?://[a-z]+\.cbslocal\.com/(?:\d+/\d+/\d+|video)/(?P<id>[0-9a-z-]+)'
+    _VALID_URL_BASE = r'https?://[a-z]+\.cbslocal\.com/'
+    _VALID_URL = _VALID_URL_BASE + r'video/(?P<id>\d+)'
+
+    _TESTS = [{
+        'url': 'http://newyork.cbslocal.com/video/3580809-a-very-blue-anniversary/',
+        'info_dict': {
+            'id': '3580809',
+            'ext': 'mp4',
+            'title': 'A Very Blue Anniversary',
+            'description': 'CBS2’s Cindy Hsu has more.',
+            'thumbnail': 're:^https?://.*',
+            'timestamp': int,
+            'upload_date': r're:^\d{8}$',
+            'uploader': 'CBS',
+            'subtitles': {
+                'en': 'mincount:5',
+            },
+            'categories': [
+                'Stations\\Spoken Word\\WCBSTV',
+                'Syndication\\AOL',
+                'Syndication\\MSN',
+                'Syndication\\NDN',
+                'Syndication\\Yahoo',
+                'Content\\News',
+                'Content\\News\\Local News',
+            ],
+            'tags': ['CBS 2 News Weekends', 'Cindy Hsu', 'Blue Man Group'],
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+        mcp_id = self._match_id(url)
+        return self.url_result(
+            'anvato:anvato_cbslocal_app_web_prod_547f3e49241ef0e5d30c79b2efbca5d92c698f67:' + mcp_id, 'Anvato', mcp_id)
+
+
+class CBSLocalArticleIE(AnvatoIE):
+    _VALID_URL = CBSLocalIE._VALID_URL_BASE + r'\d+/\d+/\d+/(?P<id>[0-9a-z-]+)'
 
     _TESTS = [{
         # Anvato backend
@@ -51,31 +91,6 @@ class CBSLocalIE(AnvatoIE):
         'params': {
             # m3u8 download
             'skip_download': True,
-        },
-    }, {
-        'url': 'http://newyork.cbslocal.com/video/3580809-a-very-blue-anniversary/',
-        'info_dict': {
-            'id': '3580809',
-            'ext': 'mp4',
-            'title': 'A Very Blue Anniversary',
-            'description': 'CBS2’s Cindy Hsu has more.',
-            'thumbnail': 're:^https?://.*',
-            'timestamp': int,
-            'upload_date': r're:^\d{8}$',
-            'uploader': 'CBS',
-            'subtitles': {
-                'en': 'mincount:5',
-            },
-            'categories': [
-                'Stations\\Spoken Word\\WCBSTV',
-                'Syndication\\AOL',
-                'Syndication\\MSN',
-                'Syndication\\NDN',
-                'Syndication\\Yahoo',
-                'Content\\News',
-                'Content\\News\\Local News',
-            ],
-            'tags': ['CBS 2 News Weekends', 'Cindy Hsu', 'Blue Man Group'],
         },
     }]
 

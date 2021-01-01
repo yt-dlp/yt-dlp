@@ -38,13 +38,17 @@ class GoIE(AdobePassIE):
         'disneynow': {
             'brand': '011',
             'resource_id': 'Disney',
-        }
+        },
+        'fxnow.fxnetworks': {
+            'brand': '025',
+            'requestor_id': 'dtci',
+        },
     }
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
                             (?:(?P<sub_domain>%s)\.)?go|
-                            (?P<sub_domain_2>abc|freeform|disneynow)
+                            (?P<sub_domain_2>abc|freeform|disneynow|fxnow\.fxnetworks)
                         )\.com/
                         (?:
                             (?:[^/]+/)*(?P<id>[Vv][Dd][Kk][Aa]\w+)|
@@ -93,6 +97,19 @@ class GoIE(AdobePassIE):
             'title': 'The Bet',
             'description': 'md5:c66de8ba2e92c6c5c113c3ade84ab404',
             'age_limit': 14,
+        },
+        'params': {
+            'geo_bypass_ip_block': '3.244.239.0/24',
+            # m3u8 download
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://fxnow.fxnetworks.com/shows/better-things/video/vdka12782841',
+        'info_dict': {
+            'id': 'VDKA12782841',
+            'ext': 'mp4',
+            'title': 'First Look: Better Things - Season 2',
+            'description': 'md5:fa73584a95761c605d9d54904e35b407',
         },
         'params': {
             'geo_bypass_ip_block': '3.244.239.0/24',

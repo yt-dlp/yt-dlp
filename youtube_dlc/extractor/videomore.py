@@ -4,30 +4,50 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
-from ..utils import (
-    int_or_none,
-    orderedSet,
-    parse_duration,
-    str_or_none,
-    unified_strdate,
-    url_or_none,
-    xpath_element,
-    xpath_text,
+from ..compat import (
+    compat_parse_qs,
+    compat_str,
+    compat_urllib_parse_urlparse,
 )
+from ..utils import (
+    ExtractorError,
+    int_or_none,
+)
+
+
+class VideomoreBaseIE(InfoExtractor):
+    _API_BASE_URL = 'https://more.tv/api/v3/web/'
+    _VALID_URL_BASE = r'https?://(?:videomore\.ru|more\.tv)/'
+
+    def _download_page_data(self, display_id):
+        return self._download_json(
+            self._API_BASE_URL + 'PageData', display_id, query={
+                'url': '/' + display_id,
+            })['attributes']['response']['data']
+
+    def _track_url_result(self, track):
+        track_vod = track['trackVod']
+        video_url = track_vod.get('playerLink') or track_vod['link']
+        return self.url_result(
+            video_url, VideomoreIE.ie_key(), track_vod.get('hubId'))
 
 
 class VideomoreIE(InfoExtractor):
     IE_NAME = 'videomore'
     _VALID_URL = r'''(?x)
                     videomore:(?P<sid>\d+)$|
-                    https?://(?:player\.)?videomore\.ru/
+                    https?://
                         (?:
+                            videomore\.ru/
                             (?:
                                 embed|
                                 [^/]+/[^/]+
                             )/|
-                            [^/]*\?.*?\btrack_id=
+                            (?:
+                                (?:player\.)?videomore\.ru|
+                                siren\.more\.tv/player
+                            )/[^/]*\?.*?\btrack_id=|
+                            odysseus\.more.tv/player/(?P<partner_id>\d+)/
                         )
                         (?P<id>\d+)
                         (?:[/?#&]|\.(?:xml|json)|$)
@@ -47,18 +67,19 @@ class VideomoreIE(InfoExtractor):
             'comment_count': int,
             'age_limit': 16,
         },
+        'skip': 'The video is not available for viewing.',
     }, {
         'url': 'http://videomore.ru/embed/259974',
         'info_dict': {
             'id': '259974',
-            'ext': 'flv',
+            'ext': 'mp4',
             'title': 'Молодежка 2 сезон 40 серия',
             'series': 'Молодежка',
+            'season': '2 сезон',
             'episode': '40 серия',
             'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 2809,
+            'duration': 2789,
             'view_count': int,
-            'comment_count': int,
             'age_limit': 16,
         },
         'params': {
@@ -79,6 +100,7 @@ class VideomoreIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'The video is not available for viewing.',
     }, {
         'url': 'http://videomore.ru/elki_3?track_id=364623',
         'only_matching': True,
@@ -100,7 +122,14 @@ class VideomoreIE(InfoExtractor):
     }, {
         'url': 'https://player.videomore.ru/?partner_id=97&track_id=736234&autoplay=0&userToken=',
         'only_matching': True,
+    }, {
+        'url': 'https://odysseus.more.tv/player/1788/352317',
+        'only_matching': True,
+    }, {
+        'url': 'https://siren.more.tv/player/config?track_id=352317&partner_id=1788&user_token=',
+        'only_matching': True,
     }]
+    _GEO_BYPASS = False
 
     @staticmethod
     def _extract_url(webpage):
@@ -118,46 +147,73 @@ class VideomoreIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
         video_id = mobj.group('sid') or mobj.group('id')
+        partner_id = mobj.group('partner_id') or compat_parse_qs(compat_urllib_parse_urlparse(url).query).get('partner_id', [None])[0] or '97'
 
-        video = self._download_xml(
-            'http://videomore.ru/video/tracks/%s.xml' % video_id,
-            video_id, 'Downloading video XML')
+        item = self._download_json(
+            'https://siren.more.tv/player/config', video_id, query={
+                'partner_id': partner_id,
+                'track_id': video_id,
+            })['data']['playlist']['items'][0]
 
-        item = xpath_element(video, './/playlist/item', fatal=True)
+        title = item.get('title')
+        series = item.get('project_name')
+        season = item.get('season_name')
+        episode = item.get('episode_name')
+        if not title:
+            title = []
+            for v in (series, season, episode):
+                if v:
+                    title.append(v)
+            title = ' '.join(title)
 
-        title = xpath_text(
-            item, ('./title', './episode_name'), 'title', fatal=True)
+        streams = item.get('streams') or []
+        for protocol in ('DASH', 'HLS'):
+            stream_url = item.get(protocol.lower() + '_url')
+            if stream_url:
+                streams.append({'protocol': protocol, 'url': stream_url})
 
-        video_url = xpath_text(item, './video_url', 'video url', fatal=True)
-        formats = self._extract_f4m_formats(video_url, video_id, f4m_id='hds')
+        formats = []
+        for stream in streams:
+            stream_url = stream.get('url')
+            if not stream_url:
+                continue
+            protocol = stream.get('protocol')
+            if protocol == 'DASH':
+                formats.extend(self._extract_mpd_formats(
+                    stream_url, video_id, mpd_id='dash', fatal=False))
+            elif protocol == 'HLS':
+                formats.extend(self._extract_m3u8_formats(
+                    stream_url, video_id, 'mp4', 'm3u8_native',
+                    m3u8_id='hls', fatal=False))
+            elif protocol == 'MSS':
+                formats.extend(self._extract_ism_formats(
+                    stream_url, video_id, ism_id='mss', fatal=False))
+
+        if not formats:
+            error = item.get('error')
+            if error:
+                if error in ('Данное видео недоступно для просмотра на территории этой страны', 'Данное видео доступно для просмотра только на территории России'):
+                    self.raise_geo_restricted(countries=['RU'])
+                raise ExtractorError(error, expected=True)
         self._sort_formats(formats)
-
-        thumbnail = xpath_text(item, './thumbnail_url')
-        duration = int_or_none(xpath_text(item, './duration'))
-        view_count = int_or_none(xpath_text(item, './views'))
-        comment_count = int_or_none(xpath_text(item, './count_comments'))
-        age_limit = int_or_none(xpath_text(item, './min_age'))
-
-        series = xpath_text(item, './project_name')
-        episode = xpath_text(item, './episode_name')
 
         return {
             'id': video_id,
             'title': title,
             'series': series,
+            'season': season,
             'episode': episode,
-            'thumbnail': thumbnail,
-            'duration': duration,
-            'view_count': view_count,
-            'comment_count': comment_count,
-            'age_limit': age_limit,
+            'thumbnail': item.get('thumbnail_url'),
+            'duration': int_or_none(item.get('duration')),
+            'view_count': int_or_none(item.get('views')),
+            'age_limit': int_or_none(item.get('min_age')),
             'formats': formats,
         }
 
 
-class VideomoreVideoIE(InfoExtractor):
+class VideomoreVideoIE(VideomoreBaseIE):
     IE_NAME = 'videomore:video'
-    _VALID_URL = r'https?://videomore\.ru/(?:(?:[^/]+/){2})?(?P<id>[^/?#&]+)(?:/*|[?#&].*?)$'
+    _VALID_URL = VideomoreBaseIE._VALID_URL_BASE + r'(?P<id>(?:(?:[^/]+/){2})?[^/?#&]+)(?:/*|[?#&].*?)$'
     _TESTS = [{
         # single video with og:video:iframe
         'url': 'http://videomore.ru/elki_3',
@@ -174,10 +230,25 @@ class VideomoreVideoIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'Requires logging in',
     }, {
         # season single series with og:video:iframe
         'url': 'http://videomore.ru/poslednii_ment/1_sezon/14_seriya',
-        'only_matching': True,
+        'info_dict': {
+            'id': '352317',
+            'ext': 'mp4',
+            'title': 'Последний мент 1 сезон 14 серия',
+            'series': 'Последний мент',
+            'season': '1 сезон',
+            'episode': '14 серия',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 2464,
+            'age_limit': 16,
+            'view_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
     }, {
         'url': 'http://videomore.ru/sejchas_v_seti/serii_221-240/226_vypusk',
         'only_matching': True,
@@ -197,8 +268,12 @@ class VideomoreVideoIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'redirects to https://more.tv/'
     }, {
         'url': 'https://videomore.ru/molodezhka/6_sezon/29_seriya?utm_so',
+        'only_matching': True,
+    }, {
+        'url': 'https://more.tv/poslednii_ment/1_sezon/14_seriya',
         'only_matching': True,
     }]
 
@@ -208,37 +283,24 @@ class VideomoreVideoIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, display_id)
-
-        video_url = self._og_search_property(
-            'video:iframe', webpage, 'video url', default=None)
-
-        if not video_url:
-            video_id = self._search_regex(
-                (r'config\s*:\s*["\']https?://videomore\.ru/video/tracks/(\d+)\.xml',
-                 r'track-id=["\'](\d+)',
-                 r'xcnt_product_id\s*=\s*(\d+)'), webpage, 'video id')
-            video_url = 'videomore:%s' % video_id
-        else:
-            video_id = None
-
-        return self.url_result(
-            video_url, ie=VideomoreIE.ie_key(), video_id=video_id)
+        return self._track_url_result(self._download_page_data(display_id))
 
 
-class VideomoreSeasonIE(InfoExtractor):
+class VideomoreSeasonIE(VideomoreBaseIE):
     IE_NAME = 'videomore:season'
-    _VALID_URL = r'https?://videomore\.ru/(?!embed)(?P<id>[^/]+/[^/?#&]+)(?:/*|[?#&].*?)$'
+    _VALID_URL = VideomoreBaseIE._VALID_URL_BASE + r'(?!embed)(?P<id>[^/]+/[^/?#&]+)(?:/*|[?#&].*?)$'
     _TESTS = [{
-        'url': 'http://videomore.ru/molodezhka/sezon_promo',
+        'url': 'http://videomore.ru/molodezhka/film_o_filme',
         'info_dict': {
-            'id': 'molodezhka/sezon_promo',
-            'title': 'Молодежка Промо',
+            'id': 'molodezhka/film_o_filme',
+            'title': 'Фильм о фильме',
         },
-        'playlist_mincount': 12,
+        'playlist_mincount': 3,
     }, {
         'url': 'http://videomore.ru/molodezhka/sezon_promo?utm_so',
+        'only_matching': True,
+    }, {
+        'url': 'https://more.tv/molodezhka/film_o_filme',
         'only_matching': True,
     }]
 
@@ -249,59 +311,12 @@ class VideomoreSeasonIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, display_id)
-
-        title = self._og_search_title(webpage)
-
-        data = self._parse_json(
-            self._html_search_regex(
-                r'\bclass=["\']seasons-tracks["\'][^>]+\bdata-custom-data=(["\'])(?P<value>{.+?})\1',
-                webpage, 'data', default='{}', group='value'),
-            display_id, fatal=False)
-
+        season = self._download_page_data(display_id)
+        season_id = compat_str(season['id'])
+        tracks = self._download_json(
+            self._API_BASE_URL + 'seasons/%s/tracks' % season_id,
+            season_id)['data']
         entries = []
-
-        if data:
-            episodes = data.get('episodes')
-            if isinstance(episodes, list):
-                for ep in episodes:
-                    if not isinstance(ep, dict):
-                        continue
-                    ep_id = int_or_none(ep.get('id'))
-                    ep_url = url_or_none(ep.get('url'))
-                    if ep_id:
-                        e = {
-                            'url': 'videomore:%s' % ep_id,
-                            'id': compat_str(ep_id),
-                        }
-                    elif ep_url:
-                        e = {'url': ep_url}
-                    else:
-                        continue
-                    e.update({
-                        '_type': 'url',
-                        'ie_key': VideomoreIE.ie_key(),
-                        'title': str_or_none(ep.get('title')),
-                        'thumbnail': url_or_none(ep.get('image')),
-                        'duration': parse_duration(ep.get('duration')),
-                        'episode_number': int_or_none(ep.get('number')),
-                        'upload_date': unified_strdate(ep.get('date')),
-                    })
-                    entries.append(e)
-
-        if not entries:
-            entries = [
-                self.url_result(
-                    'videomore:%s' % video_id, ie=VideomoreIE.ie_key(),
-                    video_id=video_id)
-                for video_id in orderedSet(re.findall(
-                    r':(?:id|key)=["\'](\d+)["\']', webpage))]
-
-        if not entries:
-            entries = [
-                self.url_result(item) for item in re.findall(
-                    r'<a[^>]+href="((?:https?:)?//videomore\.ru/%s/[^/]+)"[^>]+class="widget-item-desc"'
-                    % display_id, webpage)]
-
-        return self.playlist_result(entries, display_id, title)
+        for track in tracks:
+            entries.append(self._track_url_result(track))
+        return self.playlist_result(entries, display_id, season.get('title'))
