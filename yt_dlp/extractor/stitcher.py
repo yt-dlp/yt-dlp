@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     clean_html,
+    clean_podcast_url,
     ExtractorError,
     int_or_none,
     str_or_none,
@@ -43,7 +44,7 @@ class StitcherBaseIE(InfoExtractor):
             'title': episode['title'].strip(),
             'description': self._extract_description(episode),
             'duration': int_or_none(episode.get('duration')),
-            'url': audio_url,
+            'url': clean_podcast_url(audio_url),
             'vcodec': 'none',
             'timestamp': int_or_none(episode.get('date_published')),
             'season_number': int_or_none(episode.get('season')),
