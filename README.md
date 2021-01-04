@@ -97,14 +97,16 @@ I will add some memorable short links to the binaries so you can download them e
 # OPTIONS
     -h, --help                       Print this help text and exit
     --version                        Print program version and exit
-    -U, --update                     Update this program to latest version. Make
+    -U, --update                     (Doesn't work since there is no release) 
+                                     Update this program to latest version. Make
                                      sure that you have sufficient permissions
                                      (run with sudo if needed)
+                                     
     -i, --ignore-errors              Continue on download errors, for example to
                                      skip unavailable videos in a playlist
-    --abort-on-error                 Abort downloading of further videos (in the
-                                     playlist or the command line) if an error
-                                     occurs
+                                     (Same as --no-abort-on-error)
+    --abort-on-error                 Abort downloading of further videos if an 
+                                     error occurs (Same as --no-ignore-errors)
     --dump-user-agent                Display the current browser identification
     --list-extractors                List all supported extractors
     --extractor-descriptions         Output descriptions of all supported
@@ -113,24 +115,26 @@ I will add some memorable short links to the binaries so you can download them e
                                      extractor
     --default-search PREFIX          Use this prefix for unqualified URLs. For
                                      example "gvsearch2:" downloads two videos
-                                     from google videos for youtube-dlc "large
+                                     from google videos for youtube-dl "large
                                      apple". Use the value "auto" to let
-                                     youtube-dlc guess ("auto_warning" to emit a
+                                     youtube-dl guess ("auto_warning" to emit a
                                      warning when guessing). "error" just throws
                                      an error. The default value "fixup_error"
                                      repairs broken URLs, but emits an error if
                                      this is not possible instead of searching.
-    --ignore-config                  Do not read configuration files. When given
+    --ignore-config, --no-config     Do not read configuration files. When given
                                      in the global configuration file
-                                     /etc/youtube-dlc.conf: Do not read the user
+                                     /etc/youtube-dl.conf: Do not read the user
                                      configuration in ~/.config/youtube-
-                                     dlc/config (%APPDATA%/youtube-
-                                     dlc/config.txt on Windows)
+                                     dl/config (%APPDATA%/youtube-dl/config.txt
+                                     on Windows)
     --config-location PATH           Location of the configuration file; either
                                      the path to the config or its containing
                                      directory.
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them.
+    --flat-videos                    Do not resolve the video urls
+    --no-flat-playlist               Extract the videos of a playlist
     --mark-watched                   Mark videos watched (YouTube only)
     --no-mark-watched                Do not mark videos watched (YouTube only)
     --no-color                       Do not emit color codes in output
@@ -183,11 +187,15 @@ I will add some memorable short links to the binaries so you can download them e
                                      SIZE (e.g. 50k or 44.6m)
     --max-filesize SIZE              Do not download any videos larger than SIZE
                                      (e.g. 50k or 44.6m)
-    --date DATE                      Download only videos uploaded in this date
+    --date DATE                      Download only videos uploaded in this date.
+                                     The date can be "YYYYMMDD" or in the format
+                                     "(now|today)[+-][0-9](day|week|month|year)(s)?"
     --datebefore DATE                Download only videos uploaded on or before
-                                     this date (i.e. inclusive)
+                                     this date (i.e. inclusive). The date formats  
+                                     accepted is the same as --date
     --dateafter DATE                 Download only videos uploaded on or after
-                                     this date (i.e. inclusive)
+                                     this date (i.e. inclusive). The date formats  
+                                     accepted is the same as --date
     --min-views COUNT                Do not download any videos with less than
                                      COUNT views
     --max-views COUNT                Do not download any videos with more than
@@ -211,6 +219,7 @@ I will add some memorable short links to the binaries so you can download them e
                                      service), but who also have a description,
                                      use --match-filter "like_count > 100 &
                                      dislike_count <? 50 & description" .
+    --no-match-filter FILTER         Do not use generic video filter (default)
     --no-playlist                    Download only the video, if the URL refers
                                      to a video and a playlist.
     --yes-playlist                   Download the playlist, if the URL refers to
@@ -220,10 +229,11 @@ I will add some memorable short links to the binaries so you can download them e
     --download-archive FILE          Download only videos not listed in the
                                      archive file. Record the IDs of all
                                      downloaded videos in it.
+    --no-download-archive            Do not use archive file (default)
     --break-on-existing              Stop the download process after attempting
                                      to download a file that's in the archive.
-    --include-ads                    Download advertisements as well
-                                     (experimental)
+    --include-ads                    Download advertisements as well (experimental)
+    --no-include-ads                 Do not download advertisements (default)
 
 ## Download Options:
     -r, --limit-rate RATE            Maximum download rate in bytes per second
@@ -233,25 +243,28 @@ I will add some memorable short links to the binaries so you can download them e
     --fragment-retries RETRIES       Number of retries for a fragment (default
                                      is 10), or "infinite" (DASH, hlsnative and
                                      ISM)
-    --skip-unavailable-fragments     Skip unavailable fragments (DASH, hlsnative
-                                     and ISM)
-    --abort-on-unavailable-fragment  Abort downloading when some fragment is not
-                                     available
+    --skip-unavailable-fragments     Skip unavailable fragments for DASH,
+                                     hlsnative and ISM (default)
+                                     (Same as --no-abort-on-unavailable-fragment)
+    --abort-on-unavailable-fragment  Abort downloading if a fragment is unavailable
+                                     (Same as --no-skip-unavailable-fragments)
     --keep-fragments                 Keep downloaded fragments on disk after
-                                     downloading is finished; fragments are
-                                     erased by default
+                                     downloading is finished
+    --no-keep-fragments              Delete downloaded fragments after downloading
+                                     is finished (default)
     --buffer-size SIZE               Size of download buffer (e.g. 1024 or 16K)
                                      (default is 1024)
+    --resize-buffer                  The buffer size is automatically resized from 
+                                     an initial value of --buffer-size (default)
     --no-resize-buffer               Do not automatically adjust the buffer
-                                     size. By default, the buffer size is
-                                     automatically resized from an initial value
-                                     of SIZE.
+                                     size
     --http-chunk-size SIZE           Size of a chunk for chunk-based HTTP
                                      downloading (e.g. 10485760 or 10M) (default
                                      is disabled). May be useful for bypassing
                                      bandwidth throttling imposed by a webserver
                                      (experimental)
     --playlist-reverse               Download playlist videos in reverse order
+    --no-playlist-reverse            Download playlist videos in default order
     --playlist-random                Download playlist videos in random order
     --xattr-set-filesize             Set file xattribute ytdl.filesize with
                                      expected file size
@@ -274,7 +287,6 @@ I will add some memorable short links to the binaries so you can download them e
                                      stdin), one URL per line. Lines starting
                                      with '#', ';' or ']' are considered as
                                      comments and ignored.
-    --id                             Use only video ID in file name
     -o, --output TEMPLATE            Output filename template, see the "OUTPUT
                                      TEMPLATE" for all the info
     --autonumber-start NUMBER        Specify the start value for %(autonumber)s
@@ -282,31 +294,39 @@ I will add some memorable short links to the binaries so you can download them e
     --restrict-filenames             Restrict filenames to only ASCII
                                      characters, and avoid "&" and spaces in
                                      filenames
+    --no-restrict-filenames          Allow Unicode characters, "&" and spaces
+                                     in filenames (default)
     -w, --no-overwrites              Do not overwrite files
-    -c, --continue                   Force resume of partially downloaded files.
-                                     By default, youtube-dlc will resume
-                                     downloads if possible.
+    -c, --continue                   Resume partially downloaded files (default)
     --no-continue                    Do not resume partially downloaded files
                                      (restart from beginning)
+    --part                           Use .part files instead of writing directly 
+                                     into output file (default)
     --no-part                        Do not use .part files - write directly
                                      into output file
+    --mtime                          Use the Last-modified header to set the 
+                                     file modification time
     --no-mtime                       Do not use the Last-modified header to set
                                      the file modification time
     --write-description              Write video description to a .description
                                      file
+    --no-write-description           Do not write video description (default)
     --write-info-json                Write video metadata to a .info.json file
+    --no-write-info-json             Do not write video metadata (default)
     --write-annotations              Write video annotations to a
                                      .annotations.xml file
+    --no-write-annotations           Do not write video annotations (default)
     --load-info-json FILE            JSON file containing the video information
                                      (created with the "--write-info-json"
                                      option)
     --cookies FILE                   File to read cookies from and dump cookie
                                      jar in
-    --cache-dir DIR                  Location in the filesystem where youtube-
-                                     dlc can store some downloaded information
+    --no-cookies                     Do not read/dump cookies (default)
+    --cache-dir DIR                  Location in the filesystem where youtube-dl
+                                     can store some downloaded information
                                      permanently. By default
-                                     $XDG_CACHE_HOME/youtube-dlc or
-                                     ~/.cache/youtube-dlc . At the moment, only
+                                     $XDG_CACHE_HOME/youtube-dl or
+                                     ~/.cache/youtube-dl . At the moment, only
                                      YouTube player files (for videos with
                                      obfuscated signatures) are cached, but that
                                      may change.
@@ -317,6 +337,7 @@ I will add some memorable short links to the binaries so you can download them e
 
 ## Thumbnail images:
     --write-thumbnail                Write thumbnail image to disk
+    --no-write-thumbnail             Do not write thumbnail image to disk
     --write-all-thumbnails           Write all thumbnail image formats to disk
     --list-thumbnails                Simulate and list all available thumbnail
                                      formats
@@ -325,10 +346,10 @@ I will add some memorable short links to the binaries so you can download them e
     --write-link                     Write an internet shortcut file, depending on 
                                      the current platform (.url/.webloc/.desktop). 
                                      The URL may be cached by the OS.
-    --write-url-link                 Write a Windows internet shortcut file (.url). 
-                                     Note that the OS caches the URL based on the file path.
-    --write-webloc-link              Write a macOS internet shortcut file (.webloc)
-    --write-desktop-link             Write a Linux internet shortcut file (.desktop)
+    --write-url-link                 Write a Windows .url internet shortcut file. 
+                                     (The OS caches the URL based on the file path)
+    --write-webloc-link              Write a .webloc macOS internet shortcut file
+    --write-desktop-link             Write a .desktop Linux internet shortcut file
 
 ## Verbosity / Simulation Options:
     -q, --quiet                      Activate quiet mode
@@ -367,10 +388,9 @@ I will add some memorable short links to the binaries so you can download them e
                                      files in the current directory to debug
                                      problems
     --print-traffic                  Display sent and read HTTP traffic
-    -C, --call-home                  Contact the youtube-dlc server for
-                                     debugging
-    --no-call-home                   Do NOT contact the youtube-dlc server for
-                                     debugging
+    -C, --call-home                  Contact the youtube-dlc server for debugging
+    --no-call-home                   Do not contact the youtube-dlc server for
+                                     debugging (default)
 
 ## Workarounds:
     --encoding ENCODING              Force the specified encoding (experimental)
@@ -411,20 +431,34 @@ I will add some memorable short links to the binaries so you can download them e
     --no-format-sort-force           Some fields have precedence over the user
                                      specified sort order, see "Sorting Formats"
                                      for more details (default)
-    --video-multistreams             Allow multiple video streams to be merged into a single file (default)
-    --no-video-multistreams          Only one video stream is downloaded for each output file
-    --audio-multistreams             Allow multiple audio streams to be merged into a single file (default)
-    --no-audio-multistreams          Only one audio stream is downloaded for each output file
+    --video-multistreams             Allow multiple video streams to be merged into
+                                     a single file (default)
+    --no-video-multistreams          Only one video stream is downloaded for each
+                                     output file
+    --audio-multistreams             Allow multiple audio streams to be merged into
+                                     a single file (default)
+    --no-audio-multistreams          Only one audio stream is downloaded for each
+                                     output file
     --all-formats                    Download all available video formats
     --prefer-free-formats            Prefer free video formats unless a specific
                                      one is requested
     -F, --list-formats               List all available formats of requested
                                      videos
     --list-formats-as-table          Present the output of -F in a more tabular form
+    --list-formats-old               Present the output of -F in older form (default)
+                                     (Same as --no-list-formats-as-table)
     --youtube-skip-dash-manifest     Do not download the DASH manifests and
                                      related data on YouTube videos
+                                     (Same as --no-youtube-include-dash-manifest)
+    --youtube-include-dash-manifest  Download the DASH manifests and related data 
+                                     on YouTube videos (default)
+                                     (Same as --no-youtube-skip-dash-manifest)
     --youtube-skip-hls-manifest      Do not download the HLS manifests and
                                      related data on YouTube videos
+                                     (Same as --no-youtube-include-hls-manifest)
+    --youtube-include-hls-manifest   Download the HLS manifests and related data 
+                                     on YouTube videos (default)
+                                     (Same as --no-youtube-skip-hls-manifest)
     --merge-output-format FORMAT     If a merge is required (e.g.
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
@@ -432,8 +466,11 @@ I will add some memorable short links to the binaries so you can download them e
 
 ## Subtitle Options:
     --write-sub                      Write subtitle file
+    --no-write-sub                   Do not write subtitle file (default)
     --write-auto-sub                 Write automatically generated subtitle file
                                      (YouTube only)
+    --no-write-auto-sub              Do not write automatically generated
+                                     subtitle file (default)
     --all-subs                       Download all the available subtitles of the
                                      video
     --list-subs                      List all available subtitles for the video
@@ -483,15 +520,19 @@ I will add some memorable short links to the binaries so you can download them e
                                      necessary (currently supported:
                                      mp4|flv|ogg|webm|mkv|avi)
     --postprocessor-args ARGS        Give these arguments to the postprocessor
-    -k, --keep-video                 Keep the video file on disk after the post-
-                                     processing; the video is erased by default
-    --no-post-overwrites             Do not overwrite post-processed files; the
-                                     post-processed files are overwritten by
-                                     default
+    -k, --keep-video                 Keep the intermediate video file on disk 
+                                     after post-processing
+    --no-keep-video                  Delete the intermediate video file after 
+                                     post-processing (default)
+    --post-overwrites                Overwrite post-processed files (default)
+    --no-post-overwrites             Do not overwrite post-processed files
     --embed-subs                     Embed subtitles in the video (only for mp4,
                                      webm and mkv videos)
+    --no-embed-subs                  Do not embed subtitles in the video (default)
     --embed-thumbnail                Embed thumbnail in the audio as cover art
+    --no-embed-thumbnail             Do not embed thumbnail (default)
     --add-metadata                   Write metadata to the video file
+    --no-add-metadata                Do not write metadata (default)
     --metadata-from-title FORMAT     Parse additional metadata like song title /
                                      artist from the video title. The format
                                      syntax is the same as --output. Regular
@@ -510,9 +551,10 @@ I will add some memorable short links to the binaries so you can download them e
                                      default; fix file if we can, warn
                                      otherwise)
     --prefer-avconv                  Prefer avconv over ffmpeg for running the
-                                     postprocessors
+                                     postprocessors (Same as --no-prefer-ffmpeg)
     --prefer-ffmpeg                  Prefer ffmpeg over avconv for running the
                                      postprocessors (default)
+                                     (Same as --no-prefer-avconv)
     --ffmpeg-location PATH           Location of the ffmpeg/avconv binary;
                                      either the path to the binary or its
                                      containing directory.
@@ -524,13 +566,18 @@ I will add some memorable short links to the binaries so you can download them e
                                      (currently supported: srt|ass|vtt|lrc)
 
 ## SponSkrub Options (SponsorBlock)
-    --sponskrub                      Use sponskrub to mark sponsored sections
-                                     with the data available in SponsorBlock API
-                                     (Youtube only)
+    --sponskrub                      Use sponskrub to mark sponsored sections with
+                                     the data available in SponsorBlock API. This
+                                     is enabled by default if the sponskrub binary
+                                     exists (Youtube only)
     --sponskrub-cut                  Cut out the sponsor sections instead of
                                      simply marking them
-    --sponskrub-force                Run sponskrub even if the video was
-                                     already downloaded. Use with caution
+    --no-sponskrub-cut               Simply mark the sponsor sections, not cut
+                                     them out (default)
+    --sponskrub-force                Allow cutting out the sponsor sections even
+                                     if the video was already downloaded.
+    --no-sponskrub-force             Do not cut out the sponsor sections if the
+                                     video was already downloaded (default)
     --sponskrub-location             Location of the sponskrub binary;
                                      either the path to the binary or its
                                      containing directory
@@ -538,6 +585,9 @@ I will add some memorable short links to the binaries so you can download them e
 
 ## Extractor Options:
     --ignore-dynamic-mpd             Do not process dynamic DASH manifests
+                                     (Same as --no-allow-dynamic-mpd)
+    --allow-dynamic-mpd              Process dynamic DASH manifests (default)
+                                     (Same as --no-ignore-dynamic-mpd)
 
 # CONFIGURATION
 
