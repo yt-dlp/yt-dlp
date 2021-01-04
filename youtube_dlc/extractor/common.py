@@ -1367,8 +1367,8 @@ class InfoExtractor(object):
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<seperator>[~:])(?P<limit>.*?))?)? *$'
 
         default = ('hidden', 'has_video', 'extractor', 'lang', 'quality',
-                   'tbr', 'filesize', 'vbr', 'height', 'width', 'protocol', 'vext',
-                   'abr', 'aext', 'fps', 'filesize_approx', 'source_preference', 'format_id')
+                   'res', 'fps', 'codec', 'size', 'br', 'asr',
+                   'proto', 'ext', 'has_audio', 'source', 'format_id')
 
         settings = {
             'vcodec': {'type': 'ordered', 'regex': True,
@@ -1378,7 +1378,7 @@ class InfoExtractor(object):
             'protocol': {'type': 'ordered', 'regex': True,
                          'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.+', 'm3u8', '.*dash', '', 'mms|rtsp', 'none', 'f4']},
             'vext': {'type': 'ordered', 'field': 'video_ext',
-                     'order': ('mp4', 'flv', 'webm', '', 'none'),  # Why is flv prefered over webm???
+                     'order': ('mp4', 'webm', 'flv', '', 'none'),
                      'order_free': ('webm', 'mp4', 'flv', '', 'none')},
             'aext': {'type': 'ordered', 'field': 'audio_ext',
                      'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
@@ -1386,7 +1386,7 @@ class InfoExtractor(object):
             'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
             'extractor_preference': {'priority': True, 'type': 'extractor'},
             'has_video': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'has_audio': {'priority': False, 'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
+            'has_audio': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'language_preference': {'priority': True, 'convert': 'ignore'},
             'quality': {'priority': True, 'convert': 'float_none'},
             'filesize': {'convert': 'bytes'},

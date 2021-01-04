@@ -169,7 +169,7 @@ I will add some memorable short links to the binaries so you can download them e
                                      
     -i, --ignore-errors              Continue on download errors, for example to
                                      skip unavailable videos in a playlist
-                                     (Same as --no-abort-on-error)
+                                     (default) (Same as --no-abort-on-error)
     --abort-on-error                 Abort downloading of further videos if an 
                                      error occurs (Same as --no-ignore-errors)
     --dump-user-agent                Display the current browser identification
@@ -498,20 +498,21 @@ I will add some memorable short links to the binaries so you can download them e
                                      specified sort order, see "Sorting Formats"
                                      for more details (default)
     --video-multistreams             Allow multiple video streams to be merged into
-                                     a single file (default)
+                                     a single file
     --no-video-multistreams          Only one video stream is downloaded for each
-                                     output file
+                                     output file (default)
     --audio-multistreams             Allow multiple audio streams to be merged into
-                                     a single file (default)
+                                     a single file
     --no-audio-multistreams          Only one audio stream is downloaded for each
-                                     output file
+                                     output file (default)
     --all-formats                    Download all available video formats
     --prefer-free-formats            Prefer free video formats unless a specific
                                      one is requested
     -F, --list-formats               List all available formats of requested
                                      videos
-    --list-formats-as-table          Present the output of -F in a more tabular form
-    --list-formats-old               Present the output of -F in older form (default)
+    --list-formats-as-table          Present the output of -F in a more tabular
+                                     form (default)
+    --list-formats-old               Present the output of -F in older form
                                      (Same as --no-list-formats-as-table)
     --youtube-skip-dash-manifest     Do not download the DASH manifests and
                                      related data on YouTube videos
@@ -807,7 +808,7 @@ Output templates can also contain arbitrary hierarchical path, e.g. `-o '%(playl
 
 To use percent literals in an output template use `%%`. To output to stdout use `-o -`.
 
-The current default template is `%(title)s-%(id)s.%(ext)s`.
+The current default template is `%(title)s [%(id)s].%(ext)s`.
 
 In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title:
 
@@ -845,7 +846,7 @@ $ youtube-dlc -o - BaW_jenozKc
 # FORMAT SELECTION
 
 By default, youtube-dlc tries to download the best available quality if you **don't** pass any options.
-This is generally equivalent to using `-f bestvideo+bestaudio/best`. However, if ffmpeg and avconv are unavailable, or if you use youtube-dlc to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
+This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg and avconv are unavailable, or if you use youtube-dlc to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
 
 The general syntax for format selection is `--f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
 
@@ -948,7 +949,7 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
 
 Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a prefered value for the fields, seperated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
-The fields `has_video`, `extractor`, `lang`, `quality` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used by youtube-dlc is: `tbr,filesize,vbr,height,width,protocol,vext,abr,aext,fps,filesize_approx,source_preference,format_id`. Note that the extractors may override this default order, but not the user-provided order.
+The fields `has_video`, `extractor`, `lang`, `quality` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used by youtube-dlc is: `res,fps,codec,size,br,asr,proto,ext,has_audio,source,format_id`. Note that the extractors may override this default order, but not the user-provided order.
 
 If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all repects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
 

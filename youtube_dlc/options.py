@@ -143,12 +143,12 @@ def parseOpts(overrideArguments=None):
         help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
     general.add_option(
         '-i', '--ignore-errors', '--no-abort-on-error',
-        action='store_true', dest='ignoreerrors', default=False,
-        help='Continue on download errors, for example to skip unavailable videos in a playlist')
+        action='store_true', dest='ignoreerrors', default=True,
+        help='Continue on download errors, for example to skip unavailable videos in a playlist (default)')
     general.add_option(
         '--abort-on-error', '--no-ignore-errors',
         action='store_false', dest='ignoreerrors',
-        help='Abort downloading of further videos if an error occurs (default)')
+        help='Abort downloading of further videos if an error occurs')
     general.add_option(
         '--dump-user-agent',
         action='store_true', dest='dump_user_agent', default=False,
@@ -438,20 +438,20 @@ def parseOpts(overrideArguments=None):
             'see "Sorting Formats" for more details'))
     video_format.add_option(
         '--video-multistreams',
-        action='store_true', dest='allow_multiple_video_streams', default=True,
-        help='Allow multiple video streams to be merged into a single file (default)')
+        action='store_true', dest='allow_multiple_video_streams', default=False,
+        help='Allow multiple video streams to be merged into a single file')
     video_format.add_option(
         '--no-video-multistreams',
         action='store_false', dest='allow_multiple_video_streams',
-        help='Only one video stream is downloaded for each output file')
+        help='Only one video stream is downloaded for each output file (default)')
     video_format.add_option(
         '--audio-multistreams',
-        action='store_true', dest='allow_multiple_audio_streams', default=True,
-        help='Allow multiple audio streams to be merged into a single file (default)')
+        action='store_true', dest='allow_multiple_audio_streams', default=False,
+        help='Allow multiple audio streams to be merged into a single file')
     video_format.add_option(
         '--no-audio-multistreams',
         action='store_false', dest='allow_multiple_audio_streams',
-        help='Only one audio stream is downloaded for each output file')
+        help='Only one audio stream is downloaded for each output file (default)')
     video_format.add_option(
         '--all-formats',
         action='store_const', dest='format', const='all',
@@ -466,8 +466,8 @@ def parseOpts(overrideArguments=None):
         help='List all available formats of requested videos')
     video_format.add_option(
         '--list-formats-as-table',
-        action='store_true', dest='listformats_table', default=False,
-        help='Present the output of -F in a more tabular form')
+        action='store_true', dest='listformats_table', default=True,
+        help='Present the output of -F in a more tabular form (default)')
     video_format.add_option(
         '--list-formats-old', '--no-list-formats-as-table',
         action='store_false', dest='listformats_table',

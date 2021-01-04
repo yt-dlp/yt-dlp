@@ -178,7 +178,7 @@ class YoutubeDL(object):
     outtmpl:           Template for output names.
     restrictfilenames: Do not allow "&" and spaces in file names.
     trim_file_name:    Limit length of filename (extension excluded).
-    ignoreerrors:      Do not stop on download errors.
+    ignoreerrors:      Do not stop on download errors. (Default False when running youtube-dlc, but True when directly accessing YoutubeDL class)
     force_generic_extractor: Force downloader to use the generic extractor
     nooverwrites:      Prevent overwriting files.
     playliststart:     Playlist item to start at.
@@ -1185,23 +1185,20 @@ class YoutubeDL(object):
             merger = FFmpegMergerPP(self)
             return merger.available and merger.can_merge()
 
-        def prefer_best():
-            if self.params.get('simulate', False):
-                return False
-            if not download:
-                return False
-            if self.params.get('outtmpl', DEFAULT_OUTTMPL) == '-':
-                return True
-            if info_dict.get('is_live'):
-                return True
-            if not can_merge():
-                return True
-            return False
+        prefer_best = (
+            not self.params.get('simulate', False)
+            and download
+            and (
+                not can_merge()
+                or info_dict.get('is_live')
+                or self.params.get('outtmpl', DEFAULT_OUTTMPL) == '-'))
 
-        req_format_list = ['bestvideo+bestaudio', 'best']
-        if prefer_best():
-            req_format_list.reverse()
-        return '/'.join(req_format_list)
+        return (
+            'best/bestvideo+bestaudio'
+            if prefer_best
+            else 'bestvideo*+bestaudio/best'
+            if self.params.get('allow_multiple_audio_streams', False)
+            else 'bestvideo+bestaudio/best')
 
     def build_format_selector(self, format_spec):
         def syntax_error(note, start):
@@ -1216,8 +1213,8 @@ class YoutubeDL(object):
         GROUP = 'GROUP'
         FormatSelector = collections.namedtuple('FormatSelector', ['type', 'selector', 'filters'])
 
-        allow_multiple_streams = {'audio': self.params.get('allow_multiple_audio_streams', True),
-                                  'video': self.params.get('allow_multiple_video_streams', True)}
+        allow_multiple_streams = {'audio': self.params.get('allow_multiple_audio_streams', False),
+                                  'video': self.params.get('allow_multiple_video_streams', False)}
 
         def _parse_filter(tokens):
             filter_parts = []
