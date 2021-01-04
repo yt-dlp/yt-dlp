@@ -1,0 +1,18 @@
+{
+	"folders":
+	[
+		{
+			"path": "./youtube_dlc",
+			"folder_exclude_patterns": ["__pycache__"],
+		},
+		{
+			"path": "./youtube_dl",
+			"folder_exclude_patterns": ["__pycache__"],
+		},
+		{
+			"path": ".",
+			"name": "root-folder",
+			"folder_exclude_patterns": ["youtube_dl","youtube_dlc",".github"],
+		},
+	]
+}

@@ -1,3 +1,91 @@
+This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which is inturn a fork of [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+
+<!--
+[![](https://img.shields.io/badge/Fork-2020.10.19.01-brightgreen?style=for-the-badge&logo=GitHub)](https://github.com/pukkandan/youtube-dl)
+[![](https://img.shields.io/badge/youtube--dl-2020.09.20-blue?style=for-the-badge&logo=GitHub)](https://github.com/ytdl-org/youtube-dl)
+-->
+
+- [CHANGES FROM YOUTUBE-DLC](#changes)
+- [ABOUT THIS FORK](#about-this-fork)
+- [INSTALLATION](#installation)
+- [YOUTUBE-DLC](#youtube-dlc)
+- [DESCRIPTION](#description)
+- [OPTIONS](#options)
+    * [Network Options](#network-options)
+    * [Geo Restriction](#geo-restriction)
+    * [Video Selection](#video-selection)
+    * [Download Options](#download-options)
+    * [Filesystem Options](#filesystem-options)
+    * [Thumbnail images](#thumbnail-images)
+    * [Internet Shortcut Options](#internet-shortcut-options)
+    * [Verbosity / Simulation Options](#verbosity--simulation-options)
+    * [Workarounds](#workarounds)
+    * [Video Format Options](#video-format-options)
+    * [Subtitle Options](#subtitle-options)
+    * [Authentication Options](#authentication-options)
+    * [Adobe Pass Options](#adobe-pass-options)
+    * [Post-processing Options](#post-processing-options)
+    * [SponSkrub Options (SponsorBlock)](#sponskrub-options-sponsorblock)
+    * [Extractor Options](#extractor-options)
+- [CONFIGURATION](#configuration)
+    * [Authentication with .netrc file](#authentication-with-netrc-file)
+- [OUTPUT TEMPLATE](#output-template)
+    * [Output template and Windows batch files](#output-template-and-windows-batch-files)
+    * [Output template examples](#output-template-examples)
+- [FORMAT SELECTION](#format-selection)
+    * [Filtering Formats](#filtering-formats)
+    * [Sorting Formats](#sorting-formats)
+    * [Format Selection examples](#format-selection-examples)
+- [VIDEO SELECTION](#video-selection-1)
+- [MORE](#more)
+
+
+# CHANGES
+See [Commits](https://github.com/pukkandan/yt-dlc/commits) for more details
+
+### 2021.01.05
+* **Format Sort:** Added `--format-sort` (`-S`), `--format-sort-force` (`--S-force`) - See [Sorting Formats](#sorting-formats) for details
+* **Format Selection:** See [Format Selection](#format-selection) for details
+    * New format selectors: `best*`, `worst*`, `bestvideo*`, `bestaudio*`, `worstvideo*`, `worstaudio*`
+    * Changed video format sorting to show video only files and video+audio files together.
+    * Added `--video-multistreams`, `--no-video-multistreams`, `--audio-multistreams`, `--no-audio-multistreams`
+    * Added `b`,`w`,`v`,`a` as alias for `best`, `worst`, `video` and `audio` respectively
+* **Shortcut Options:** Added `--write-link`, `--write-url-link`, `--write-webloc-link`, `--write-desktop-link` by @h-h-h-h - See [Internet Shortcut Options](#internet-shortcut-options) for details
+* **Sponskrub integration:** Added `--sponskrub`, `--sponskrub-cut`, `--sponskrub-force`, `--sponskrub-location`, `--sponskrub-args` - See [SponSkrub Options](#sponskrub-options-sponsorblock) for details
+* Added `--force-download-archive` (`--force-write-archive`) by by h-h-h-h
+* Added `--list-formats-as-table`,  `--list-formats-old`
+* **Negative Options:** Makes it possible to negate boolean options by adding a `no-` to the switch
+    * Added `--no-ignore-dynamic-mpd`, `--no-allow-dynamic-mpd`, `--allow-dynamic-mpd`, `--youtube-include-hls-manifest`, `--no-youtube-include-hls-manifest`, `--no-youtube-skip-hls-manifest`, `--no-download`, `--no-download-archive`, `--resize-buffer`, `--part`, `--mtime`, `--no-keep-fragments`, `--no-cookies`, `--no-write-annotations`, `--no-write-info-json`, `--no-write-description`, `--no-write-thumbnail`, `--youtube-include-dash-manifest`, `--post-overwrites`, `--no-keep-video`, `--no-embed-subs`, `--no-embed-thumbnail`, `--no-add-metadata`, `--no-include-ads`, `--no-write-sub`, `--no-write-auto-sub`, `--no-playlist-reverse`, `--no-restrict-filenames`, `--youtube-include-dash-manifest`, `--no-format-sort-force`, `--flat-videos`, `--no-list-formats-as-table`, `--no-sponskrub`, `--no-sponskrub-cut`, `--no-sponskrub-force`
+    * Renamed: `--write-subs`, --no-write-subs`, `--no-write-auto-subs, `--write-auto-subs`. Note that these can still be used without the ending "s"
+* Relaxed validation for format filters so that any arbitrary field can be used
+* Fix for embedding thumbnail in mp3 by @pauldubois98
+* Make Twitch Video ID output from Playlist and VOD extractor same. This is only a temporary fix
+* **Merge [youtube-dl](https://github.com/ytdl-org/youtube-dl):** Upto [2020.01.03](https://github.com/ytdl-org/youtube-dl/commit/8e953dcbb10a1a42f4e12e4e132657cb0100a1f8) - See [blackjack4494/yt-dlc#280](https://github.com/blackjack4494/yt-dlc/pull/280) for details
+* Cleaned up the fork for public use
+
+
+# ABOUT THIS FORK
+
+WIP
+
+
+# INSTALLATION
+
+WIP
+
+<!--
+I don't plan on making any releases. If anyone wants to create and maintain releases for this fork, please contact me.
+
+You can clone / [download](https://github.com/pukkandan/youtube-dl/archive/master.zip) this repository and run it with `python youtube_dl/__main__.py <args>`. Alternatively, you can install the fork using `pip install --upgrade https://github.com/pukkandan/youtube-dl/archive/master.zip` and run it with `python -m youtube_dl <args>`.
+
+In order to update, simply repeat the process.
+-->
+
+
+
+
+# YOUTUBE-DLC
+
 [![Build Status](https://travis-ci.com/blackjack4494/yt-dlc.svg?branch=master)](https://travis-ci.com/blackjack4494/yt-dlc)
 [![PyPi](https://img.shields.io/pypi/v/youtube-dlc.svg)](https://pypi.org/project/youtube-dlc)
 
@@ -8,36 +96,8 @@ youtube-dlc - download videos from youtube.com or other video platforms.
 
 youtube-dlc is a fork of youtube-dl with the intention of getting features tested by the community merged in the tool faster, since youtube-dl's development seems to be slowing down. (https://web.archive.org/web/20201014194602/https://github.com/ytdl-org/youtube-dl/issues/26462)
 
-- [INSTALLATION](#installation)
-- [UPDATE](#update)
-- [DESCRIPTION](#description)
-- [OPTIONS](#options)
-  - [Network Options:](#network-options)
-  - [Geo Restriction:](#geo-restriction)
-  - [Video Selection:](#video-selection)
-  - [Download Options:](#download-options)
-  - [Filesystem Options:](#filesystem-options)
-  - [Thumbnail images:](#thumbnail-images)
-  - [Verbosity / Simulation Options:](#verbosity--simulation-options)
-  - [Workarounds:](#workarounds)
-  - [Video Format Options:](#video-format-options)
-  - [Subtitle Options:](#subtitle-options)
-  - [Authentication Options:](#authentication-options)
-  - [Adobe Pass Options:](#adobe-pass-options)
-  - [Post-processing Options:](#post-processing-options)
-  - [Extractor Options:](#extractor-options)
-- [CONFIGURATION](#configuration)
-    - [Authentication with `.netrc` file](#authentication-with-netrc-file)
-- [OUTPUT TEMPLATE](#output-template)
-      - [Output template and Windows batch files](#output-template-and-windows-batch-files)
-      - [Output template examples](#output-template-examples)
-- [FORMAT SELECTION](#format-selection)
-  - [Filtering Formats](#filtering-formats)
-  - [Sorting Formats](#sorting-formats)
-  - [Format Selection examples](#format-selection-examples)
-- [VIDEO SELECTION](#video-selection-1)
 
-# INSTALLATION
+## INSTALLATION
 [How to update](#update)
 
 **All Platforms**  
@@ -84,7 +144,7 @@ Then simply type this
     make
 
 
-# UPDATE
+## UPDATE
 **DO NOT UPDATE using `-U` !** instead download binaries again or when installed with pip use a described above when installing.  
 I will add some memorable short links to the binaries so you can download them easier.
 

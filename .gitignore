@@ -62,3 +62,5 @@ venv/
 .vscode
 
 cookies.txt
+
+*.sublime-workspace
