@@ -34,7 +34,6 @@ youtube-dlc is a fork of youtube-dl with the intention of getting features teste
 - [FORMAT SELECTION](#format-selection)
   - [Filtering Formats](#filtering-formats)
   - [Sorting Formats](#sorting-formats)
-  - [Default Format Selection](#default-format-selection)
   - [Format Selection examples](#format-selection-examples)
 - [VIDEO SELECTION](#video-selection-1)
 
@@ -89,12 +88,18 @@ Then simply type this
 **DO NOT UPDATE using `-U` !** instead download binaries again or when installed with pip use a described above when installing.  
 I will add some memorable short links to the binaries so you can download them easier.
 
+
+
+
+
 # DESCRIPTION
 **youtube-dlc** is a command-line program to download videos from YouTube.com and a few more sites. It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
 
     youtube-dlc [OPTIONS] URL [URL...]
 
 # OPTIONS
+`Ctrl+F` is your friend :D
+
     -h, --help                       Print this help text and exit
     --version                        Print program version and exit
     -U, --update                     (Doesn't work since there is no release) 
@@ -341,6 +346,7 @@ I will add some memorable short links to the binaries so you can download them e
     --write-all-thumbnails           Write all thumbnail image formats to disk
     --list-thumbnails                Simulate and list all available thumbnail
                                      formats
+
 
 ## Internet Shortcut Options:
     --write-link                     Write an internet shortcut file, depending on 
@@ -778,11 +784,10 @@ $ youtube-dlc -o - BaW_jenozKc
 
 # FORMAT SELECTION
 
-By default youtube-dlc tries to download the best available quality, i.e. if you want the best quality you **don't need** to pass any special options, youtube-dlc will guess it for you by **default**.
+By default, youtube-dlc tries to download the best available quality if you **don't** pass any options.
+This is generally equivalent to using `-f bestvideo+bestaudio/best`. However, if ffmpeg and avconv are unavailable, or if you use youtube-dlc to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
 
-But sometimes you may want to download in a different format, for example when you are on a slow or intermittent connection. The key mechanism for achieving this is so-called *format selection* based on which you can explicitly specify desired format, select formats based on some criterion or criteria, setup precedence and much more.
-
-The general syntax for format selection is `--format FORMAT` or shorter `-f FORMAT` where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
+The general syntax for format selection is `--f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
 
 **tl;dr:** [navigate me to examples](#format-selection-examples).
 
@@ -810,7 +815,7 @@ You can also use special names to select particular edge case formats:
  - `ba*`, `bestaudio*`: Select the best quality format that contains audio. It may also contain video. Equivalent to `best*[acodec!=none]`
  - `wa*`, `worstaudio*`: Select the worst quality format that contains audio. It may also contain video. Equivalent to `worst*[acodec!=none]`
 
-For example, to download the worst quality video-only format you can use `-f worstvideo`. It is however recomended to never actually use `worst` and related options. See [sorting formats](#sorting-formats) for more details.
+For example, to download the worst quality video-only format you can use `-f worstvideo`. It is however recomended to never actually use `worst` and related options. When your format selector is `worst`, the format which is worst in all respects is selected. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps` instead of `-f worst`. See [sorting formats](#sorting-formats) for more details.
 
 If you want to download multiple videos and they don't have the same formats available, you can specify the order of preference using slashes. Note that formats on the left hand side are preferred, for example `-f 22/17/18` will download format 22 if it's available, otherwise it will download format 17 if it's available, otherwise it will download format 18 if it's available, otherwise it will complain that no suitable formats are available for download.
 
@@ -880,19 +885,13 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
  - `br`, `bitrate`: Equivalent to using `tbr,vbr,abr`
  - `samplerate`, `asr`: Audio sample rate in Hz
 
-All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers the smallest resolution format. Additionally, you can suffix a prefered value for the fields, seperated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
+Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a prefered value for the fields, seperated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
-The fields `has_video`, `extractor_preference`, `language_preference`, `quality` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used by youtube-dlc is: `tbr,filesize,vbr,height,width,protocol,vext,abr,aext,fps,filesize_approx,source_preference,format_id`. Note that the extractors may override this default order (currently no extractor does this), but not the user-provided order.
+The fields `has_video`, `extractor`, `lang`, `quality` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used by youtube-dlc is: `tbr,filesize,vbr,height,width,protocol,vext,abr,aext,fps,filesize_approx,source_preference,format_id`. Note that the extractors may override this default order, but not the user-provided order.
 
 If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all repects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
 
 **Tip**: You can use the `-v -F` to see how the formats have been sorted (worst to best).
-
-## Default Format Selection
-
-Since the end of April 2015 and version 2015.04.26, youtube-dlc uses `-f bestvideo+bestaudio/best` as the default format selection (see [#5447](https://github.com/ytdl-org/youtube-dl/issues/5447), [#5456](https://github.com/ytdl-org/youtube-dl/issues/5456)). If ffmpeg or avconv are installed this results in downloading `bestvideo` and `bestaudio` separately and muxing them together into a single file giving the best overall quality available. Otherwise it falls back to `best` and results in downloading the best available quality served as a single file. `best` is also needed for videos that don't come from YouTube because they don't provide the audio and video in two different files. Note that if you use youtube-dlc to stream to `stdout` (and most likely to pipe it to your media player then), i.e. you explicitly specify output template as `-o -`, youtube-dlc still uses `-f best` format selection in order to start content delivery immediately to your player and not to wait until `bestvideo` and `bestaudio` are downloaded and muxed.
-
-If you want to preserve the old format selection behavior (prior to youtube-dlc 2015.04.26), i.e. you want to download the best available quality media served as a single file, you should explicitly specify your choice with `-f best`. You may want to add it to the [configuration file](#configuration) in order not to type it every time you run youtube-dlc.
 
 ## Format Selection examples
 
@@ -1012,22 +1011,7 @@ $ youtube-dlc -S '+res:480,codec,br'
 
 
 
-# VIDEO SELECTION
 
-Videos can be filtered by their upload date using the options `--date`, `--datebefore` or `--dateafter`. They accept dates in two formats:
 
- - Absolute dates: Dates in the format `YYYYMMDD`.
- - Relative dates: Dates in the format `(now|today)[+-][0-9](day|week|month|year)(s)?`
- 
-Examples:
-
-```bash
-# Download only the videos uploaded in the last 6 months
-$ youtube-dlc --dateafter now-6months
-
-# Download only the videos uploaded on January 1, 1970
-$ youtube-dlc --date 19700101
-
-$ # Download only the videos uploaded in the 200x decade
-$ youtube-dlc --dateafter 20000101 --datebefore 20091231
-```
+# MORE
+For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl)
