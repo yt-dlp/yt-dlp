@@ -37,6 +37,7 @@ class VevoIE(VevoBaseIE):
            https?://embed\.vevo\.com/.*?[?&]isrc=|
            vevo:)
         (?P<id>[^&?#]+)'''
+    _EMBED_REGEX = r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:cache\.)?vevo\.com/.+?)\1'
 
     _TESTS = []
     _VERSIONS = {

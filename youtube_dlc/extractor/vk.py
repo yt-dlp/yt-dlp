@@ -78,6 +78,7 @@ class VKBaseIE(InfoExtractor):
 class VKIE(VKBaseIE):
     IE_NAME = 'vk'
     IE_DESC = 'VK'
+    _EMBED_REGEX = r'<iframe[^>]+?src=(["\'])(?P<url>https?://vk\.com/video_ext\.php.+?)\1'
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
@@ -93,6 +94,7 @@ class VKIE(VKBaseIE):
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>[\da-f]+))?
                         )
                     '''
+
     _TESTS = [
         {
             'url': 'http://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',

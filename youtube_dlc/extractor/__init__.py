@@ -1,21 +1,5 @@
 from __future__ import unicode_literals
 
-try:
-    from .lazy_extractors import *
-    from .lazy_extractors import _ALL_CLASSES
-    _LAZY_LOADER = True
-except ImportError:
-    _LAZY_LOADER = False
-    from .extractors import *
-
-    _ALL_CLASSES = [
-        klass
-        for name, klass in globals().items()
-        if name.endswith('IE') and name != 'GenericIE'
-    ]
-    _ALL_CLASSES.append(GenericIE)
-
-
 def gen_extractor_classes():
     """ Return a list of supported extractors.
     The order does matter; the first extractor matched is the one handling the URL.
@@ -44,3 +28,20 @@ def list_extractors(age_limit):
 def get_info_extractor(ie_name):
     """Returns the info extractor class with the given ie_name"""
     return globals()[ie_name + 'IE']
+
+
+# Having the imports at the bottom allows GenericIE to have access to the functions above
+try:
+    from .lazy_extractors import *
+    from .lazy_extractors import _ALL_CLASSES
+    _LAZY_LOADER = True
+except ImportError:
+    _LAZY_LOADER = False
+    from .extractors import *
+
+    _ALL_CLASSES = [
+        klass
+        for name, klass in globals().items()
+        if name.endswith('IE') and name != 'GenericIE'
+    ]
+    _ALL_CLASSES.append(GenericIE)

@@ -27,6 +27,8 @@ from .brightcove import BrightcoveNewIE
 class YahooIE(InfoExtractor):
     IE_DESC = 'Yahoo screen and movies'
     _VALID_URL = r'(?P<url>https?://(?:(?P<country>[a-zA-Z]{2}(?:-[a-zA-Z]{2})?|malaysia)\.)?(?:[\da-zA-Z_-]+\.)?yahoo\.com/(?:[^/]+/)*(?P<id>[^?&#]*-[0-9]+(?:-[a-z]+)?)\.html)'
+    _EMBED_REGEX = r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:screen|movies)\.yahoo\.com/.+?\.html\?format=embed)\1'
+
     _TESTS = [{
         'url': 'http://screen.yahoo.com/julian-smith-travis-legg-watch-214727115.html',
         'info_dict': {

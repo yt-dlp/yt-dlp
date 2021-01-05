@@ -168,6 +168,20 @@ class WistiaIE(WistiaBaseIE):
             urls.append('wistia:%s' % match.group('id'))
         return urls
 
+    @staticmethod
+    def _extract_embeds(genIE, ie, webpage, video_id, video_title, video_uploader, source_url):
+        if TeachableIE._extract_url(webpage, source_url):
+            return
+        urls = ie._extract_urls(webpage)
+        if urls:
+            playlist = genIE.playlist_from_matches(urls, video_id, video_title, ie=ie.ie_key())
+            for entry in playlist['entries']:
+                entry.update({
+                    '_type': 'url_transparent',
+                    'uploader': video_uploader,
+                })
+            return playlist
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         embed_config = self._download_embed_config('media', video_id, url)
@@ -197,3 +211,6 @@ class WistiaPlaylistIE(WistiaBaseIE):
             entries.append(self._extract_media(embed_config))
 
         return self.playlist_result(entries, playlist_id)
+
+
+from .teachable import TeachableIE

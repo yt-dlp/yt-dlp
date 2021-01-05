@@ -62,6 +62,13 @@ class LimelightBaseIE(InfoExtractor):
                 LimelightMediaIE.ie_key(), video_id))
         return entries
 
+    @staticmethod
+    def _extract_embeds(ie, webpage, url, video_id, video_title, video_description):
+        urls = ie._extract_urls(webpage, url)
+        if urls:
+            return ie.playlist_result(
+                urls, video_id, video_title, video_description)
+
     def _call_playlist_service(self, item_id, method, fatal=True, referer=None):
         headers = {}
         if referer:

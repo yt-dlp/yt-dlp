@@ -16,6 +16,7 @@ import email.header
 import errno
 import functools
 import gzip
+from inspect import getargspec
 import io
 import itertools
 import json
@@ -5832,6 +5833,17 @@ def format_field(obj, field, template='%s', ignore=(None, ''), default='', func=
     if func and val not in ignore:
         val = func(val)
     return template % val if val not in ignore else default
+
+
+def call_func_with_accepted_args(fn, **kwargs):
+    args = {}
+    spec = getargspec(fn)
+    if spec.keywords is not None:
+        return fn(**kwargs)
+    for arg_name in spec.args:
+        if arg_name in kwargs:
+            args[arg_name] = kwargs[arg_name]
+    return fn(**args)
 
 
 def clean_podcast_url(url):

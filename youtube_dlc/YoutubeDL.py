@@ -1084,8 +1084,8 @@ class YoutubeDL(object):
                     'playlist_uploader_id': ie_result.get('uploader_id'),
                     'playlist_index': playlistitems[i - 1] if playlistitems else i + playliststart,
                     'extractor': ie_result['extractor'],
-                    'webpage_url': ie_result['webpage_url'],
-                    'webpage_url_basename': url_basename(ie_result['webpage_url']),
+                    'webpage_url': ie_result.get('webpage_url'),
+                    'webpage_url_basename': url_basename(ie_result['webpage_url']) if ie_result.get('webpage_url') else None,
                     'extractor_key': ie_result['extractor_key'],
                 }
 

@@ -359,6 +359,13 @@ class AnvatoIE(InfoExtractor):
                 video_id=video))
         return entries
 
+    @staticmethod
+    def _extract_embed(ie, webpage, video_id, video_title, video_description):
+        urls = ie._extract_urls(ie, webpage, video_id)
+        if urls:
+            return ie.playlist_result(
+                urls, video_id, video_title, video_description)
+
     def _extract_anvato_videos(self, webpage, video_id):
         anvplayer_data = self._parse_json(
             self._html_search_regex(

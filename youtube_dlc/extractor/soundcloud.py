@@ -26,6 +26,7 @@ from ..utils import (
     mimetype2ext,
     str_or_none,
     try_get,
+    unescapeHTML,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -47,6 +48,12 @@ class SoundcloudEmbedIE(InfoExtractor):
         return [m.group('url') for m in re.finditer(
             r'<iframe[^>]+src=(["\'])(?P<url>(?:https?://)?(?:w\.)?soundcloud\.com/player.+?)\1',
             webpage)]
+
+    @staticmethod
+    def _extract_embeds(genIE, ie, webpage, video_id, video_title):
+        urls = ie._extract_urls(webpage)
+        if urls:
+            return genIE.playlist_from_matches(urls, video_id, video_title, ie=ie.ie_key(), getter=unescapeHTML)
 
     def _real_extract(self, url):
         query = compat_urlparse.parse_qs(
