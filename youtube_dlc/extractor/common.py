@@ -1372,7 +1372,7 @@ class InfoExtractor(object):
 
         settings = {
             'vcodec': {'type': 'ordered', 'regex': True,
-                       'order': ['av01', 'vp9', '(h265|he?vc?)', '(h264|avc)', 'vp8', '(mp4v|h263)', 'theora', '', None, 'none']},
+                       'order': ['vp9', '(h265|he?vc?)', '(h264|avc)', 'vp8', '(mp4v|h263)', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
                        'order': ['opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e?a?c-?3', 'dts', '', None, 'none']},
             'protocol': {'type': 'ordered', 'regex': True,
