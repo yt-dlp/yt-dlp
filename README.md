@@ -741,6 +741,7 @@ The basic usage is not to set any template arguments when downloading a single f
  - `channel_id` (string): Id of the channel
  - `location` (string): Physical location where the video was filmed
  - `duration` (numeric): Length of the video in seconds
+ - `duration_string` (string): Length of the video (HH-mm-ss)
  - `view_count` (numeric): How many users have watched the video on the platform
  - `like_count` (numeric): Number of positive ratings of the video
  - `dislike_count` (numeric): Number of negative ratings of the video

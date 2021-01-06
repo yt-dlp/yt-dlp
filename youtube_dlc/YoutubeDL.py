@@ -908,6 +908,10 @@ class YoutubeDL(object):
         self.add_extra_info(ie_result, {
             'extractor': ie.IE_NAME,
             'webpage_url': url,
+            'duration_string': (
+                formatSeconds(ie_result['duration'], '-')
+                if ie_result.get('duration', None) is not None
+                else None),
             'webpage_url_basename': url_basename(url),
             'extractor_key': ie.ie_key(),
         })

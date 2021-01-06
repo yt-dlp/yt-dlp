@@ -2285,11 +2285,11 @@ def decodeOption(optval):
     return optval
 
 
-def formatSeconds(secs):
+def formatSeconds(secs, delim=':'):
     if secs > 3600:
-        return '%d:%02d:%02d' % (secs // 3600, (secs % 3600) // 60, secs % 60)
+        return '%d%s%02d%s%02d' % (secs // 3600, delim, (secs % 3600) // 60, delim, secs % 60)
     elif secs > 60:
-        return '%d:%02d' % (secs // 60, secs % 60)
+        return '%d%s%02d' % (secs // 60, delim, secs % 60)
     else:
         return '%d' % secs
 
