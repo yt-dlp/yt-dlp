@@ -4156,6 +4156,8 @@ def is_outdated_version(version, limit, assume_new=True):
 
 def ytdl_is_updateable():
     """ Returns if youtube-dlc can be updated with -U """
+    return False
+
     from zipimport import zipimporter
 
     return isinstance(globals().get('__loader__'), zipimporter) or hasattr(sys, 'frozen')
