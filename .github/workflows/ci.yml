@@ -9,7 +9,8 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         # TODO: python 2.6
-        python-version: [2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, pypy-2.7, pypy-3.6, pypy-3.7]
+        # 3.3, 3.4 are not running
+        python-version: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9, pypy-2.7, pypy-3.6, pypy-3.7]
         python-impl: [cpython]
         ytdl-test-set: [core, download]
         run-tests-ext: [sh]
