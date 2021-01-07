@@ -2323,8 +2323,8 @@ def bug_reports_message():
     if ytdl_is_updateable():
         update_cmd = 'type  youtube-dlc -U  to update'
     else:
-        update_cmd = 'see  https://github.com/blackjack4494/yt-dlc  on how to update'
-    msg = '; please report this issue on https://github.com/blackjack4494/yt-dlc .'
+        update_cmd = 'see  https://github.com/pukkandan/yt-dlc  on how to update'
+    msg = '; please report this issue on https://github.com/pukkandan/yt-dlc .'
     msg += ' Make sure you are using the latest version; %s.' % update_cmd
     msg += ' Be sure to call youtube-dlc with the --verbose flag and include its complete output.'
     return msg
@@ -5734,6 +5734,7 @@ def random_birthday(year_field, month_field, day_field):
         day_field: str(random_date.day),
     }
 
+
 # Templates for internet shortcut files, which are plain text files.
 DOT_URL_LINK_TEMPLATE = '''
 [InternetShortcut]
@@ -5811,6 +5812,7 @@ def to_high_limit_path(path):
         return r'\\?\ '.rstrip() + os.path.abspath(path)
 
     return path
+
 
 def format_field(obj, field, template='%s', ignore=(None, ''), default='', func=None):
     val = obj.get(field, default)

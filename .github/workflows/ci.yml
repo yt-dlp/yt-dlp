@@ -1,0 +1,74 @@
+name: CI
+on: [push]
+jobs:
+  tests:
+    name: Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        # TODO: python 2.6
+        python-version: [2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, pypy-2.7, pypy-3.6, pypy-3.7]
+        python-impl: [cpython]
+        ytdl-test-set: [core, download]
+        run-tests-ext: [sh]
+        include:
+        # python 3.2 is only available on windows via setup-python
+        - os: windows-latest
+          python-version: 3.2
+          python-impl: cpython
+          ytdl-test-set: core
+          run-tests-ext: bat
+        - os: windows-latest
+          python-version: 3.2
+          python-impl: cpython
+          ytdl-test-set: download
+          run-tests-ext: bat
+        # jython
+        - os: ubuntu-latest
+          python-impl: jython
+          ytdl-test-set: core
+          run-tests-ext: sh
+        - os: ubuntu-latest
+          python-impl: jython
+          ytdl-test-set: download
+          run-tests-ext: sh
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      if: ${{ matrix.python-impl == 'cpython' }}
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Set up Java 8
+      if: ${{ matrix.python-impl == 'jython' }}
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+    - name: Install Jython
+      if: ${{ matrix.python-impl == 'jython' }}
+      run: |
+        wget http://search.maven.org/remotecontent?filepath=org/python/jython-installer/2.7.1/jython-installer-2.7.1.jar -O jython-installer.jar
+        java -jar jython-installer.jar -s -d "$HOME/jython"
+        echo "$HOME/jython/bin" >> $GITHUB_PATH
+    - name: Install nose
+      run: pip install nose
+    - name: Run tests
+      continue-on-error: ${{ matrix.ytdl-test-set == 'download' || matrix.python-impl == 'jython' }}
+      env:
+        YTDL_TEST_SET: ${{ matrix.ytdl-test-set }}
+      run: ./devscripts/run_tests.${{ matrix.run-tests-ext }}
+  flake8:
+    name: Linter
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install flake8
+      run: pip install flake8
+    - name: Run flake8
+      run: flake8 .

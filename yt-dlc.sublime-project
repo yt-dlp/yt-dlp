@@ -12,7 +12,7 @@
 		{
 			"path": ".",
 			"name": "root-folder",
-			"folder_exclude_patterns": ["youtube_dl","youtube_dlc",".github"],
+			"folder_exclude_patterns": ["youtube_dl", "youtube_dlc", ".git", "build", "dist", "zip"],
 		},
 	]
 }

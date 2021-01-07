@@ -3342,7 +3342,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if is_home is not None and is_home.group('not_channel') is None and item_id != 'feed':
             self._downloader.report_warning(
                 'A channel/user page was given. All the channel\'s videos will be downloaded. '
-                'To download only the videos in the home page, add a "/home" to the URL')
+                'To download only the videos in the home page, add a "/featured" to the URL')
             url = '%s/videos%s' % (is_home.group('pre'), is_home.group('post') or '')
 
         # Handle both video/playlist URLs
@@ -3464,6 +3464,7 @@ class YoutubePlaylistIE(InfoExtractor):
 
 
 class YoutubeYtBeIE(InfoExtractor):
+    IE_DESC = 'youtu.be'
     _VALID_URL = r'https?://youtu\.be/(?P<id>[0-9A-Za-z_-]{11})/*?.*?\blist=(?P<playlist_id>%(playlist_id)s)' % {'playlist_id': YoutubeBaseInfoExtractor._PLAYLIST_ID_RE}
     _TESTS = [{
         'url': 'https://youtu.be/yeWKywCrFtk?list=PL2qgrgXsNUG5ig9cat4ohreBjYLAPC0J5',
@@ -3503,6 +3504,7 @@ class YoutubeYtBeIE(InfoExtractor):
 
 
 class YoutubeYtUserIE(InfoExtractor):
+    IE_DESC = 'YouTube.com user videos, URL or "ytuser" keyword'
     _VALID_URL = r'ytuser:(?P<id>.+)'
     _TESTS = [{
         'url': 'ytuser:phihag',
@@ -3647,12 +3649,12 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
 class YoutubeSearchDateIE(YoutubeSearchIE):
     IE_NAME = YoutubeSearchIE.IE_NAME + ':date'
     _SEARCH_KEY = 'ytsearchdate'
-    IE_DESC = 'YouTube.com searches, newest videos first'
+    IE_DESC = 'YouTube.com searches, newest videos first, "ytsearchdate" keyword'
     _SEARCH_PARAMS = 'CAI%3D'
 
 
 class YoutubeSearchURLIE(YoutubeSearchIE):
-    IE_DESC = 'YouTube.com search URLs'
+    IE_DESC = 'YouTube.com searches, "ytsearch" keyword'
     IE_NAME = YoutubeSearchIE.IE_NAME + '_url'
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/results\?(.*?&)?(?:search_query|q)=(?:[^&]+)(?:[&]|$)'
     # _MAX_RESULTS = 100

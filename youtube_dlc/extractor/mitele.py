@@ -1,6 +1,5 @@
 # coding: utf-8
 from __future__ import unicode_literals
-import json
 
 from .telecinco import TelecincoIE
 from ..utils import (

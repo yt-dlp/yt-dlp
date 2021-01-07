@@ -1,16 +1,18 @@
+[![Build Status](https://github.com/pukkandan/yt-dlc/workflows/CI/badge.svg)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3ACI)
+[![Release Version](https://img.shields.io/badge/Release-2021.01.07-brightgreen)](https://github.com/pukkandan/yt-dlc/releases/latest)
+[![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlc/blob/master/LICENSE)
+
+youtube-dlc - download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
+
 This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which is inturn a fork of [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
-<!--
-[![](https://img.shields.io/badge/Fork-2020.10.19.01-brightgreen?style=for-the-badge&logo=GitHub)](https://github.com/pukkandan/youtube-dl)
-[![](https://img.shields.io/badge/youtube--dl-2020.09.20-blue?style=for-the-badge&logo=GitHub)](https://github.com/ytdl-org/youtube-dl)
--->
-
-- [CHANGES FROM YOUTUBE-DLC](#changes)
-- [ABOUT THIS FORK](#about-this-fork)
-- [INSTALLATION](#installation)
-- [YOUTUBE-DLC](#youtube-dlc)
-- [DESCRIPTION](#description)
-- [OPTIONS](#options)
+* [CHANGES FROM YOUTUBE-DLC](#changes)
+* [INSTALLATION](#installation)
+    * [UPDATE](#update)
+    * [COMPILE](#compile)
+* [YOUTUBE-DLC](#youtube-dlc)
+* [DESCRIPTION](#description)
+* [OPTIONS](#options)
     * [Network Options](#network-options)
     * [Geo Restriction](#geo-restriction)
     * [Video Selection](#video-selection)
@@ -27,23 +29,23 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
     * [Post-processing Options](#post-processing-options)
     * [SponSkrub Options (SponsorBlock)](#sponskrub-options-sponsorblock)
     * [Extractor Options](#extractor-options)
-- [CONFIGURATION](#configuration)
+* [CONFIGURATION](#configuration)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
-- [OUTPUT TEMPLATE](#output-template)
+* [OUTPUT TEMPLATE](#output-template)
     * [Output template and Windows batch files](#output-template-and-windows-batch-files)
     * [Output template examples](#output-template-examples)
-- [FORMAT SELECTION](#format-selection)
+* [FORMAT SELECTION](#format-selection)
     * [Filtering Formats](#filtering-formats)
     * [Sorting Formats](#sorting-formats)
     * [Format Selection examples](#format-selection-examples)
-- [VIDEO SELECTION](#video-selection-1)
-- [MORE](#more)
+* [VIDEO SELECTION](#video-selection-1)
+* [MORE](#more)
 
 
 # CHANGES
 See [commits](https://github.com/pukkandan/yt-dlc/commits) for more details
 
-### 2021.01.05.01
+### 2021.01.05
 * **Format Sort:** Added `--format-sort` (`-S`), `--format-sort-force` (`--S-force`) - See [Sorting Formats](#sorting-formats) for details
 * **Format Selection:** See [Format Selection](#format-selection) for details
     * New format selectors: `best*`, `worst*`, `bestvideo*`, `bestaudio*`, `worstvideo*`, `worstaudio*`
@@ -63,7 +65,7 @@ See [commits](https://github.com/pukkandan/yt-dlc/commits) for more details
 * **Merge youtube-dl:** Upto [2020.01.03](https://github.com/ytdl-org/youtube-dl/commit/8e953dcbb10a1a42f4e12e4e132657cb0100a1f8) - See [blackjack4494/yt-dlc#280](https://github.com/blackjack4494/yt-dlc/pull/280) for details
 * Cleaned up the fork for public use
 
-### 2021.01.05.02
+### 2021.01.05-2
 * **Changed defaults:**
     * Enabled `--ignore`
     * Disabled `--video-multistreams` and `--audio-multistreams`
@@ -73,68 +75,26 @@ See [commits](https://github.com/pukkandan/yt-dlc/commits) for more details
     * Changed default output template to `%(title)s [%(id)s].%(ext)s`
     * Enabled `--list-formats-as-table`
 
-
-# ABOUT THIS FORK
-
-WIP
-
+### 2021.01.07
+* Removed priority of `av01` codec in `-S` since most devices don't support it yet
+* Added `duration_string` to be used in `--output`
+* Created First Release
 
 # INSTALLATION
 
-WIP
-
-<!--
-I don't plan on making any releases. If anyone wants to create and maintain releases for this fork, please contact me.
-
-You can clone / [download](https://github.com/pukkandan/youtube-dl/archive/master.zip) this repository and run it with `python youtube_dl/__main__.py <args>`. Alternatively, you can install the fork using `pip install --upgrade https://github.com/pukkandan/youtube-dl/archive/master.zip` and run it with `python -m youtube_dl <args>`.
-
-In order to update, simply repeat the process.
--->
-
-
-
-
-# YOUTUBE-DLC
-
-[![Build Status](https://travis-ci.com/blackjack4494/yt-dlc.svg?branch=master)](https://travis-ci.com/blackjack4494/yt-dlc)
-[![PyPi](https://img.shields.io/pypi/v/youtube-dlc.svg)](https://pypi.org/project/youtube-dlc)
-
-[![Gitter chat](https://img.shields.io/gitter/room/youtube-dlc/community)](https://gitter.im/youtube-dlc) 
-[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://github.com/blackjack4494/yt-dlc/blob/master/LICENSE)
-
-youtube-dlc - download videos from youtube.com or other video platforms.
-
-youtube-dlc is a fork of youtube-dl with the intention of getting features tested by the community merged in the tool faster, since youtube-dl's development seems to be slowing down. (https://web.archive.org/web/20201014194602/https://github.com/ytdl-org/youtube-dl/issues/26462)
-
-
-### INSTALLATION
-[How to update](#update)
-
-**All Platforms**  
-Preferred way using pip:  
-You may want to use `python3` instead of `python`
-
-    python -m pip install --upgrade youtube-dlc
+To use the latest version, simply download and run the [latest release](https://github.com/pukkandan/yt-dlc/releases/latest).
+Currently, there is no support for any package managers.
 
 If you want to install the current master branch
 
-    python -m pip install git+https://github.com/blackjack4494/yt-dlc
+    python -m pip install git+https://github.com/pukkandan/yt-dlc
 
-**UNIX** (Linux, macOS, etc.)  
-Using wget:
+### UPDATE
+**DO NOT UPDATE using `-U` !** instead download binaries again
 
-    sudo wget https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc -O /usr/local/bin/youtube-dlc
-    sudo chmod a+rx /usr/local/bin/youtube-dlc
+### COMPILE
 
-Using curl:
-
-    sudo curl -L https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc -o /usr/local/bin/youtube-dlc
-    sudo chmod a+rx /usr/local/bin/youtube-dlc
-
-
-**Windows** users can download [youtube-dlc.exe](https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc.exe) (**do not** put in `C:\Windows\System32`!).  
-
-**Compile**
+**For Windows**:
 To build the Windows executable yourself (without version info!)
 
     python -m pip install --upgrade pyinstaller
@@ -146,7 +106,7 @@ There will be a `youtube-dlc.exe` in `/dist`
 New way to build Windows is to use `python pyinst.py` (please use python3 64Bit)  
 For 32Bit Version use a 32Bit Version of python (3 preferred here as well) and run `python pyinst32.py`  
 
-For Unix:
+**For Unix**:
 You will need the required build tools  
 python, make (GNU), pandoc, zip, nosetests  
 Then simply type this
@@ -154,29 +114,22 @@ Then simply type this
     make
 
 
-### UPDATE
-**DO NOT UPDATE using `-U` !** instead download binaries again or when installed with pip use a described above when installing.  
-I will add some memorable short links to the binaries so you can download them easier.
-
-
-
-
-
 # DESCRIPTION
 **youtube-dlc** is a command-line program to download videos from YouTube.com and a few more sites. It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
 
     youtube-dlc [OPTIONS] URL [URL...]
 
+
 # OPTIONS
 `Ctrl+F` is your friend :D
+<!-- Autogenerated -->
 
+## General Options:
     -h, --help                       Print this help text and exit
     --version                        Print program version and exit
-    -U, --update                     (Doesn't work since there is no release) 
-                                     Update this program to latest version. Make
-                                     sure that you have sufficient permissions
-                                     (run with sudo if needed)
-                                     
+    -U, --update                     [BROKEN] Update this program to latest
+                                     version. Make sure that you have sufficient
+                                     permissions (run with sudo if needed)
     -i, --ignore-errors              Continue on download errors, for example to
                                      skip unavailable videos in a playlist
                                      (default) (Same as --no-abort-on-error)
@@ -211,7 +164,7 @@ I will add some memorable short links to the binaries so you can download them e
     --flat-videos                    Do not resolve the video urls
     --no-flat-playlist               Extract the videos of a playlist
     --mark-watched                   Mark videos watched (YouTube only)
-    --no-mark-watched                Do not mark videos watched (YouTube only)
+    --no-mark-watched                Do not mark videos watched
     --no-color                       Do not emit color codes in output
 
 ## Network Options:
@@ -266,11 +219,11 @@ I will add some memorable short links to the binaries so you can download them e
                                      The date can be "YYYYMMDD" or in the format
                                      "(now|today)[+-][0-9](day|week|month|year)(s)?"
     --datebefore DATE                Download only videos uploaded on or before
-                                     this date (i.e. inclusive). The date formats  
-                                     accepted is the same as --date
+                                     this date. The date formats accepted is the
+                                     same as --date
     --dateafter DATE                 Download only videos uploaded on or after
-                                     this date (i.e. inclusive). The date formats  
-                                     accepted is the same as --date
+                                     this date. The date formats accepted is the
+                                     same as --date
     --min-views COUNT                Do not download any videos with less than
                                      COUNT views
     --max-views COUNT                Do not download any videos with more than
@@ -294,7 +247,7 @@ I will add some memorable short links to the binaries so you can download them e
                                      service), but who also have a description,
                                      use --match-filter "like_count > 100 &
                                      dislike_count <? 50 & description" .
-    --no-match-filter FILTER         Do not use generic video filter (default)
+    --no-match-filter                Do not use generic video filter (default)
     --no-playlist                    Download only the video, if the URL refers
                                      to a video and a playlist.
     --yes-playlist                   Download the playlist, if the URL refers to
@@ -304,10 +257,11 @@ I will add some memorable short links to the binaries so you can download them e
     --download-archive FILE          Download only videos not listed in the
                                      archive file. Record the IDs of all
                                      downloaded videos in it.
-    --no-download-archive            Do not use archive file (default)
     --break-on-existing              Stop the download process after attempting
                                      to download a file that's in the archive.
-    --include-ads                    Download advertisements as well (experimental)
+    --no-download-archive            Do not use archive file (default)
+    --include-ads                    Download advertisements as well
+                                     (experimental)
     --no-include-ads                 Do not download advertisements (default)
 
 ## Download Options:
@@ -325,14 +279,14 @@ I will add some memorable short links to the binaries so you can download them e
                                      (Same as --no-skip-unavailable-fragments)
     --keep-fragments                 Keep downloaded fragments on disk after
                                      downloading is finished
-    --no-keep-fragments              Delete downloaded fragments after downloading
-                                     is finished (default)
+    --no-keep-fragments              Delete downloaded fragments after
+                                     downloading is finished (default)
     --buffer-size SIZE               Size of download buffer (e.g. 1024 or 16K)
                                      (default is 1024)
-    --resize-buffer                  The buffer size is automatically resized from 
-                                     an initial value of --buffer-size (default)
-    --no-resize-buffer               Do not automatically adjust the buffer
-                                     size
+    --resize-buffer                  The buffer size is automatically resized
+                                     from an initial value of --buffer-size
+                                     (default)
+    --no-resize-buffer               Do not automatically adjust the buffer size
     --http-chunk-size SIZE           Size of a chunk for chunk-based HTTP
                                      downloading (e.g. 10485760 or 10M) (default
                                      is disabled). May be useful for bypassing
@@ -340,6 +294,7 @@ I will add some memorable short links to the binaries so you can download them e
                                      (experimental)
     --playlist-reverse               Download playlist videos in reverse order
     --no-playlist-reverse            Download playlist videos in default order
+                                     (default)
     --playlist-random                Download playlist videos in random order
     --xattr-set-filesize             Set file xattribute ytdl.filesize with
                                      expected file size
@@ -363,24 +318,24 @@ I will add some memorable short links to the binaries so you can download them e
                                      with '#', ';' or ']' are considered as
                                      comments and ignored.
     -o, --output TEMPLATE            Output filename template, see the "OUTPUT
-                                     TEMPLATE" for all the info
+                                     TEMPLATE" for details
     --autonumber-start NUMBER        Specify the start value for %(autonumber)s
                                      (default is 1)
     --restrict-filenames             Restrict filenames to only ASCII
                                      characters, and avoid "&" and spaces in
                                      filenames
-    --no-restrict-filenames          Allow Unicode characters, "&" and spaces
-                                     in filenames (default)
+    --no-restrict-filenames          Allow Unicode characters, "&" and spaces in
+                                     filenames (default)
     -w, --no-overwrites              Do not overwrite files
     -c, --continue                   Resume partially downloaded files (default)
-    --no-continue                    Do not resume partially downloaded files
-                                     (restart from beginning)
-    --part                           Use .part files instead of writing directly 
+    --no-continue                    Restart download of partially downloaded
+                                     files from beginning
+    --part                           Use .part files instead of writing directly
                                      into output file (default)
     --no-part                        Do not use .part files - write directly
                                      into output file
-    --mtime                          Use the Last-modified header to set the 
-                                     file modification time
+    --mtime                          Use the Last-modified header to set the
+                                     file modification time (default)
     --no-mtime                       Do not use the Last-modified header to set
                                      the file modification time
     --write-description              Write video description to a .description
@@ -407,16 +362,16 @@ I will add some memorable short links to the binaries so you can download them e
                                      may change.
     --no-cache-dir                   Disable filesystem caching
     --rm-cache-dir                   Delete all filesystem cache files
-    --trim-file-name                 Limit the filename length (extension
+    --trim-file-name LENGTH          Limit the filename length (extension
                                      excluded)
 
-## Thumbnail images:
+## Thumbnail Images:
     --write-thumbnail                Write thumbnail image to disk
     --no-write-thumbnail             Do not write thumbnail image to disk
+                                     (default)
     --write-all-thumbnails           Write all thumbnail image formats to disk
     --list-thumbnails                Simulate and list all available thumbnail
                                      formats
-
 
 ## Internet Shortcut Options:
     --write-link                     Write an internet shortcut file, depending on 
@@ -493,8 +448,7 @@ I will add some memorable short links to the binaries so you can download them e
                                      before each download (maximum possible
                                      number of seconds to sleep). Must only be
                                      used along with --min-sleep-interval.
-    --sleep-subtitles                Enforce sleep interval on subtitles as well.
-
+    --sleep-subtitles SECONDS        Enforce sleep interval on subtitles as well
 
 ## Video Format Options:
     -f, --format FORMAT              Video format code, see "FORMAT SELECTION"
@@ -505,16 +459,16 @@ I will add some memorable short links to the binaries so you can download them e
                                      precedence over all fields, see "Sorting 
                                      Formats" for more details
     --no-format-sort-force           Some fields have precedence over the user
-                                     specified sort order, see "Sorting Formats"
-                                     for more details (default)
-    --video-multistreams             Allow multiple video streams to be merged into
-                                     a single file
-    --no-video-multistreams          Only one video stream is downloaded for each
-                                     output file (default)
-    --audio-multistreams             Allow multiple audio streams to be merged into
-                                     a single file
-    --no-audio-multistreams          Only one audio stream is downloaded for each
-                                     output file (default)
+                                     specified sort order (default), see
+                                     "Sorting Formats" for more details
+    --video-multistreams             Allow multiple video streams to be merged
+                                     into a single file
+    --no-video-multistreams          Only one video stream is downloaded for
+                                     each output file (default)
+    --audio-multistreams             Allow multiple audio streams to be merged
+                                     into a single file
+    --no-audio-multistreams          Only one audio stream is downloaded for
+                                     each output file (default)
     --all-formats                    Download all available video formats
     --prefer-free-formats            Prefer free video formats unless a specific
                                      one is requested
@@ -522,31 +476,31 @@ I will add some memorable short links to the binaries so you can download them e
                                      videos
     --list-formats-as-table          Present the output of -F in a more tabular
                                      form (default)
-    --list-formats-old               Present the output of -F in older form
                                      (Same as --no-list-formats-as-table)
-    --youtube-skip-dash-manifest     Do not download the DASH manifests and
-                                     related data on YouTube videos
-                                     (Same as --no-youtube-include-dash-manifest)
+    --list-formats-old               Present the output of -F in the old form
     --youtube-include-dash-manifest  Download the DASH manifests and related data 
                                      on YouTube videos (default)
                                      (Same as --no-youtube-skip-dash-manifest)
-    --youtube-skip-hls-manifest      Do not download the HLS manifests and
+    --youtube-skip-dash-manifest     Do not download the DASH manifests and
                                      related data on YouTube videos
-                                     (Same as --no-youtube-include-hls-manifest)
+                                     (Same as --no-youtube-include-dash-manifest)
     --youtube-include-hls-manifest   Download the HLS manifests and related data 
                                      on YouTube videos (default)
                                      (Same as --no-youtube-skip-hls-manifest)
+    --youtube-skip-hls-manifest      Do not download the HLS manifests and
+                                     related data on YouTube videos
+                                     (Same as --no-youtube-include-hls-manifest)
     --merge-output-format FORMAT     If a merge is required (e.g.
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
                                      webm, flv. Ignored if no merge is required
 
 ## Subtitle Options:
-    --write-sub                      Write subtitle file
-    --no-write-sub                   Do not write subtitle file (default)
-    --write-auto-sub                 Write automatically generated subtitle file
+    --write-subs                     Write subtitle file
+    --no-write-subs                  Do not write subtitle file (default)
+    --write-auto-subs                Write automatically generated subtitle file
                                      (YouTube only)
-    --no-write-auto-sub              Do not write automatically generated
+    --no-write-auto-subs             Do not write automatically generated
                                      subtitle file (default)
     --all-subs                       Download all the available subtitles of the
                                      video
@@ -577,7 +531,7 @@ I will add some memorable short links to the binaries so you can download them e
     --ap-list-mso                    List all supported multiple-system
                                      operators
 
-## Post-processing Options:
+## Post-Processing Options:
     -x, --extract-audio              Convert video files to audio-only files
                                      (requires ffmpeg or avconv and ffprobe or
                                      avprobe)
@@ -589,23 +543,23 @@ I will add some memorable short links to the binaries so you can download them e
                                      a value between 0 (better) and 9 (worse)
                                      for VBR or a specific bitrate like 128K
                                      (default 5)
-    --remux-video FORMAT             Remux the video to another container format
-                                     if necessary (currently supported: mp4|mkv,
-                                     target container format must support video
-                                     / audio encoding, remuxing may fail)
-    --recode-video FORMAT            Encode the video to another format if
-                                     necessary (currently supported:
-                                     mp4|flv|ogg|webm|mkv|avi)
+    --remux-video FORMAT             Remux the video into another container if
+                                     necessary (currently supported: mp4|mkv).
+                                     If target container does not support the
+                                     video/audio codec, remuxing will fail
+    --recode-video FORMAT            Re-encode the video into another format if
+                                     re-encoding is necessary (currently
+                                     supported: mp4|flv|ogg|webm|mkv|avi)
     --postprocessor-args ARGS        Give these arguments to the postprocessor
-    -k, --keep-video                 Keep the intermediate video file on disk 
+    -k, --keep-video                 Keep the intermediate video file on disk
                                      after post-processing
-    --no-keep-video                  Delete the intermediate video file after 
+    --no-keep-video                  Delete the intermediate video file after
                                      post-processing (default)
     --post-overwrites                Overwrite post-processed files (default)
     --no-post-overwrites             Do not overwrite post-processed files
     --embed-subs                     Embed subtitles in the video (only for mp4,
                                      webm and mkv videos)
-    --no-embed-subs                  Do not embed subtitles in the video (default)
+    --no-embed-subs                  Do not embed subtitles (default)
     --embed-thumbnail                Embed thumbnail in the audio as cover art
     --no-embed-thumbnail             Do not embed thumbnail (default)
     --add-metadata                   Write metadata to the video file
@@ -642,23 +596,24 @@ I will add some memorable short links to the binaries so you can download them e
     --convert-subs FORMAT            Convert the subtitles to other format
                                      (currently supported: srt|ass|vtt|lrc)
 
-## SponSkrub Options (SponsorBlock)
-    --sponskrub                      Use sponskrub to mark sponsored sections with
-                                     the data available in SponsorBlock API. This
-                                     is enabled by default if the sponskrub binary
-                                     exists (Youtube only)
+## [SponSkrub](https://github.com/faissaloo/SponSkrub) Options ([SponsorBlock](https://sponsor.ajay.app)):
+    --sponskrub                      Use sponskrub to mark sponsored sections
+                                     with the data available in SponsorBlock
+                                     API. This is enabled by default if the
+                                     sponskrub binary exists (Youtube only)
+    --no-sponskrub                   Do not use sponskrub
     --sponskrub-cut                  Cut out the sponsor sections instead of
                                      simply marking them
     --no-sponskrub-cut               Simply mark the sponsor sections, not cut
                                      them out (default)
-    --sponskrub-force                Allow cutting out the sponsor sections even
-                                     if the video was already downloaded.
+    --sponskrub-force                Run sponskrub even if the video was already
+                                     downloaded
     --no-sponskrub-force             Do not cut out the sponsor sections if the
                                      video was already downloaded (default)
-    --sponskrub-location             Location of the sponskrub binary;
-                                     either the path to the binary or its
-                                     containing directory
-    --sponskrub-args                 Give these arguments to sponskrub
+    --sponskrub-location PATH        Location of the sponskrub binary; either
+                                     the path to the binary or its containing
+                                     directory.
+    --sponskrub-args None            Give these arguments to sponskrub
 
 ## Extractor Options:
     --ignore-dynamic-mpd             Do not process dynamic DASH manifests
@@ -871,19 +826,14 @@ You can also use special names to select particular edge case formats:
 
  - `b*`, `best*`: Select the best quality format irrespective of whether it contains video or audio.
  - `w*`, `worst*`: Select the worst quality format irrespective of whether it contains video or audio.
-
  - `b`, `best`: Select the best quality format that contains both video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
  - `w`, `worst`: Select the worst quality format that contains both video and audio. Equivalent to `worst*[vcodec!=none][acodec!=none]`
-
  - `bv`, `bestvideo`: Select the best quality video-only format. Equivalent to `best*[acodec=none]`
  - `wv`, `worstvideo`: Select the worst quality video-only format. Equivalent to `worst*[acodec=none]`
-
  - `bv*`, `bestvideo*`: Select the best quality format that contains video. It may also contain audio. Equivalent to `best*[vcodec!=none]`
  - `wv*`, `worstvideo*`: Select the worst quality format that contains video. It may also contain audio. Equivalent to `worst*[vcodec!=none]`
-
  - `ba`, `bestaudio`: Select the best quality audio-only format. Equivalent to `best*[vcodec=none]`
  - `wa`, `worstaudio`: Select the worst quality audio-only format. Equivalent to `worst*[vcodec=none]`
-
  - `ba*`, `bestaudio*`: Select the best quality format that contains audio. It may also contain video. Equivalent to `best*[acodec!=none]`
  - `wa*`, `worstaudio*`: Select the worst quality format that contains audio. It may also contain video. Equivalent to `worst*[acodec!=none]`
 
@@ -942,7 +892,7 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
  - `vcodec`, `video_codec`: Video Codec (`vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
  - `acodec`, `audio_codec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac3` > `dts` > other > unknown)
  - `codec`: Equivalent to `vcodec,acodec`
- - `vext`, `video_ext`: Video Extension (`mp4` > `flv` > `webm` > other > unknown). If `--prefer-free-formats` is used, `webm` is prefered.
+ - `vext`, `video_ext`: Video Extension (`mp4` > `webm` > `flv` > other > unknown). If `--prefer-free-formats` is used, `webm` is prefered.
  - `aext`, `audio_ext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other > unknown). If `--prefer-free-formats` is used, the order changes to `opus` > `ogg` > `webm` > `m4a` > `mp3` > `aac`.
  - `ext`, `extension`: Equivalent to `vext,aext`
  - `filesize`: Exact filesize, if know in advance. This will be unavailable for mu38 and DASH formats.

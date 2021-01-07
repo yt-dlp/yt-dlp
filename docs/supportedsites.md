@@ -44,6 +44,7 @@
  - **AlphaPorno**
  - **Alura**
  - **AluraCourse**
+ - **Amara**
  - **AMCNetworks**
  - **AmericasTestKitchen**
  - **anderetijden**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
@@ -62,6 +63,7 @@
  - **ARD:mediathek**
  - **ARDBetaMediathek**
  - **Arkena**
+ - **arte.sky.it**
  - **ArteTV**
  - **ArteTVEmbed**
  - **ArteTVPlaylist**
@@ -108,7 +110,8 @@
  - **BIQLE**
  - **BitChute**
  - **BitChuteChannel**
- - **bitwave.tv**
+ - **bitwave:replay**
+ - **bitwave:stream**
  - **BleacherReport**
  - **BleacherReportCMS**
  - **blinkx**
@@ -330,6 +333,8 @@
  - **Gaskrank**
  - **Gazeta**
  - **GDCVault**
+ - **Gedi**
+ - **GediEmbeds**
  - **generic**: Generic downloader that works on some sites
  - **Gfycat**
  - **GiantBomb**
@@ -693,6 +698,7 @@
  - **Platzi**
  - **PlatziCourse**
  - **play.fm**
+ - **player.sky.it**
  - **PlayPlusTV**
  - **PlaysTV**
  - **Playtvak**: Playtvak.cz, iDNES.cz and Lidovky.cz
@@ -749,6 +755,9 @@
  - **RayWenderlich**
  - **RayWenderlichCourse**
  - **RBMARadio**
+ - **RCS**
+ - **RCSEmbeds**
+ - **RCSVarious**
  - **RDS**: RDS.ca
  - **RedBull**
  - **RedBullEmbed**
@@ -934,11 +943,10 @@
  - **ThisAmericanLife**
  - **ThisAV**
  - **ThisOldHouse**
+ - **ThisVid**
  - **TikTok**
- - **TikTokUser** (Currently broken)
  - **tinypic**: tinypic.com videos
  - **TMZ**
- - **TMZArticle**
  - **TNAFlix**
  - **TNAFlixNetworkEmbed**
  - **toggle**
@@ -1045,6 +1053,8 @@
  - **Viddler**
  - **Videa**
  - **video.google:search**: Google Video search
+ - **video.sky.it**
+ - **video.sky.it:live**
  - **VideoDetective**
  - **videofy.me**
  - **videomore**
@@ -1183,9 +1193,9 @@
  - **youtube:history**: Youtube watch history, ":ythistory" for short (requires authentication)
  - **youtube:playlist**: YouTube.com playlists
  - **youtube:recommended**: YouTube.com recommended videos, ":ytrec" for short (requires authentication)
- - **youtube:search**: YouTube.com searches, "ytsearch" keyword
+ - **youtube:search**: YouTube.com searches
  - **youtube:search:date**: YouTube.com searches, newest videos first, "ytsearchdate" keyword
- - **youtube:search_url**: YouTube.com search URLs
+ - **youtube:search_url**: YouTube.com searches, "ytsearch" keyword
  - **youtube:subscriptions**: YouTube.com subscriptions feed, ":ytsubs" for short (requires authentication)
  - **youtube:tab**: YouTube.com tab
  - **youtube:watchlater**: Youtube watch later list, ":ytwatchlater" for short (requires authentication)
@@ -1197,4 +1207,5 @@
  - **ZDF-3sat**
  - **ZDFChannel**
  - **zingmp3**: mp3.zing.vn
+ - **zoom**
  - **Zype**

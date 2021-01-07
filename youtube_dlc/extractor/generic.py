@@ -20,12 +20,14 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     HEADRequest,
+    int_or_none,
     is_html,
     js_to_json,
     KNOWN_EXTENSIONS,
     merge_dicts,
     mimetype2ext,
     orderedSet,
+    parse_duration,
     sanitized_Request,
     smuggle_url,
     unescapeHTML,
@@ -35,6 +37,7 @@ from ..utils import (
     url_or_none,
     xpath_attr,
     xpath_text,
+    xpath_with_ns,
 )
 from .commonprotocols import RtmpIE
 from .brightcove import (

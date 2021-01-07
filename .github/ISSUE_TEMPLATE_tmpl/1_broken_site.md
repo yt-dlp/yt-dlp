@@ -1,7 +1,10 @@
 ---
 name: Broken site support
 about: Report broken or misfunctioning site
-title: ''
+title: "[Broken]"
+labels: Broken
+assignees: ''
+
 ---
 
 <!--
@@ -18,11 +21,11 @@ title: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlc:
-- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://github.com/blackjack4494/yt-dlc on how to update. Issues with outdated version will be REJECTED.
+- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://github.com/pukkandan/yt-dlc on how to update. Issues with outdated version will be REJECTED.
 - Make sure that all provided video/audio/playlist URLs (if any) are alive and playable in a browser.
-- Make sure that all URLs and arguments with special characters are properly quoted or escaped as explained in https://github.com/blackjack4494/yt-dlc.
-- Search the bugtracker for similar issues: https://github.com/blackjack4494/yt-dlc. DO NOT post duplicates.
-- Finally, put x into all relevant boxes (like this [x])
+- Make sure that all URLs and arguments with special characters are properly quoted or escaped as explained in https://github.com/pukkandan/yt-dlc.
+- Search the bugtracker for similar issues: https://github.com/pukkandan/yt-dlc. DO NOT post duplicates.
+- Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
 - [ ] I'm reporting a broken site support
@@ -50,7 +53,11 @@ Add the `-v` flag to your command line you run youtube-dlc with (`youtube-dlc -v
 
 ```
 PASTE VERBOSE LOG HERE
+
 ```
+<!--
+Do not remove the above ```
+-->
 
 
 ## Description

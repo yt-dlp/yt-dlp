@@ -140,7 +140,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '-U', '--update',
         action='store_true', dest='update_self',
-        help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
+        help='[BROKEN] Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
     general.add_option(
         '-i', '--ignore-errors', '--no-abort-on-error',
         action='store_true', dest='ignoreerrors', default=True,
@@ -300,15 +300,22 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--date',
         metavar='DATE', dest='date', default=None,
-        help='Download only videos uploaded in this date')
+        help=(
+            'Download only videos uploaded in this date.'
+            'The date can be "YYYYMMDD" or in the format'
+            '"(now|today)[+-][0-9](day|week|month|year)(s)?"'))
     selection.add_option(
         '--datebefore',
         metavar='DATE', dest='datebefore', default=None,
-        help='Download only videos uploaded on or before this date (i.e. inclusive)')
+        help=(
+            'Download only videos uploaded on or before this date. '
+            'The date formats accepted is the same as --date'))
     selection.add_option(
         '--dateafter',
         metavar='DATE', dest='dateafter', default=None,
-        help='Download only videos uploaded on or after this date (i.e. inclusive)')
+        help=(
+            'Download only videos uploaded on or after this date. '
+            'The date formats accepted is the same as --date'))
     selection.add_option(
         '--min-views',
         metavar='COUNT', dest='min_views', default=None, type=int,
@@ -420,7 +427,7 @@ def parseOpts(overrideArguments=None):
         action='store', dest='format', metavar='FORMAT', default=None,
         help='Video format code, see "FORMAT SELECTION" for more details')
     video_format.add_option(
-        '-S', '--format-sort',
+        '-S', '--format-sort', metavar='SORTORDER',
         dest='format_sort', default=[],
         action='callback', callback=_comma_separated_values_options_callback, type='str',
         help='Sort the formats by the fields given, see "Sorting Formats" for more details')
@@ -545,13 +552,13 @@ def parseOpts(overrideArguments=None):
         dest='fragment_retries', metavar='RETRIES', default=10,
         help='Number of retries for a fragment (default is %default), or "infinite" (DASH, hlsnative and ISM)')
     downloader.add_option(
-        '--skip-unavailable-fragments','--no-abort-on-unavailable-fragment',
+        '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
         action='store_true', dest='skip_unavailable_fragments', default=True,
         help='Skip unavailable fragments for DASH, hlsnative and ISM (default)')
     downloader.add_option(
         '--abort-on-unavailable-fragment', '--no-skip-unavailable-fragments',
         action='store_false', dest='skip_unavailable_fragments',
-        help='Abort downloading when some fragment is not available')
+        help='Abort downloading when some fragment is unavailable')
     downloader.add_option(
         '--keep-fragments',
         action='store_true', dest='keep_fragments', default=False,
@@ -588,7 +595,7 @@ def parseOpts(overrideArguments=None):
         help='Download playlist videos in reverse order')
     downloader.add_option(
         '--no-playlist-reverse',
-        action='store_false', dest='playlist_reverse', 
+        action='store_false', dest='playlist_reverse',
         help='Download playlist videos in default order (default)')
     downloader.add_option(
         '--playlist-random',
@@ -617,7 +624,7 @@ def parseOpts(overrideArguments=None):
         dest='external_downloader', metavar='COMMAND',
         help=(
             'Use the specified external downloader. '
-            'Currently supports %s' % ','.join(list_external_downloaders()) ))
+            'Currently supports %s' % ','.join(list_external_downloaders())))
     downloader.add_option(
         '--external-downloader-args',
         dest='external_downloader_args', metavar='ARGS',
@@ -670,7 +677,7 @@ def parseOpts(overrideArguments=None):
             '(maximum possible number of seconds to sleep). Must only be used '
             'along with --min-sleep-interval.'))
     workarounds.add_option(
-        '--sleep-subtitles',
+        '--sleep-subtitles', metavar='SECONDS',
         dest='sleep_interval_subtitles', default=0, type=int,
         help='Enforce sleep interval on subtitles as well')
 
@@ -731,14 +738,14 @@ def parseOpts(overrideArguments=None):
         '-J', '--dump-single-json',
         action='store_true', dest='dump_single_json', default=False,
         help=(
-            'Simulate, quiet but print JSON information for each command-line argument.'
+            'Simulate, quiet but print JSON information for each command-line argument. '
             'If the URL refers to a playlist, dump the whole playlist information in a single line.'))
     verbosity.add_option(
         '--print-json',
         action='store_true', dest='print_json', default=False,
         help='Be quiet and print the video information as JSON (video is still being downloaded).')
     verbosity.add_option(
-        '--force-write-download-archive', '--force-write-archive', '--force-download-archive',
+        '--force-write-archive', '--force-write-download-archive', '--force-download-archive',
         action='store_true', dest='force_write_download_archive', default=False,
         help=(
             'Force download archive entries to be written as far as no errors occur,'
@@ -900,7 +907,8 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='rm_cachedir',
         help='Delete all filesystem cache files')
     filesystem.add_option(
-        '--trim-file-name', dest='trim_file_name', default=0, type=int,
+        '--trim-file-name', metavar='LENGTH',
+        dest='trim_file_name', default=0, type=int,
         help='Limit the filename length (extension excluded)')
 
     thumbnail = optparse.OptionGroup(parser, 'Thumbnail Images')
@@ -955,7 +963,7 @@ def parseOpts(overrideArguments=None):
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
         help=(
-            'Remux the video into another container if necessary (currently supported: mp4|mkv). ' 
+            'Remux the video into another container if necessary (currently supported: mp4|mkv). '
             'If target container does not support the video/audio codec, remuxing will fail'))
     postproc.add_option(
         '--recode-video',
@@ -1048,39 +1056,39 @@ def parseOpts(overrideArguments=None):
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help='Convert the subtitles to other format (currently supported: srt|ass|vtt|lrc)')
 
-    extractor = optparse.OptionGroup(parser, 'SponSkrub Options (SponsorBlock)')
-    extractor.add_option(
+    sponskrub = optparse.OptionGroup(parser, 'SponSkrub Options (SponsorBlock)')
+    sponskrub.add_option(
         '--sponskrub',
         action='store_true', dest='sponskrub', default=None,
         help=(
             'Use sponskrub to mark sponsored sections with the data available in SponsorBlock API. '
             'This is enabled by default if the sponskrub binary exists (Youtube only)'))
-    extractor.add_option(
+    sponskrub.add_option(
         '--no-sponskrub',
         action='store_false', dest='sponskrub',
         help='Do not use sponskrub')
-    extractor.add_option(
+    sponskrub.add_option(
         '--sponskrub-cut', default=False,
         action='store_true', dest='sponskrub_cut',
         help='Cut out the sponsor sections instead of simply marking them')
-    extractor.add_option(
+    sponskrub.add_option(
         '--no-sponskrub-cut',
         action='store_false', dest='sponskrub_cut',
         help='Simply mark the sponsor sections, not cut them out (default)')
-    extractor.add_option(
+    sponskrub.add_option(
         '--sponskrub-force', default=False,
         action='store_true', dest='sponskrub_force',
         help='Run sponskrub even if the video was already downloaded')
-    extractor.add_option(
+    sponskrub.add_option(
         '--no-sponskrub-force',
         action='store_true', dest='sponskrub_force',
         help='Do not cut out the sponsor sections if the video was already downloaded (default)')
-    extractor.add_option(
+    sponskrub.add_option(
         '--sponskrub-location', metavar='PATH',
         dest='sponskrub_path', default='',
         help='Location of the sponskrub binary; either the path to the binary or its containing directory.')
-    extractor.add_option(
-        '--sponskrub-args', dest='sponskrub_args',
+    sponskrub.add_option(
+        '--sponskrub-args', dest='sponskrub_args', metavar='ARGS',
         help='Give these arguments to sponskrub')
 
     extractor = optparse.OptionGroup(parser, 'Extractor Options')
@@ -1108,6 +1116,7 @@ def parseOpts(overrideArguments=None):
     parser.add_option_group(authentication)
     parser.add_option_group(adobe_pass)
     parser.add_option_group(postproc)
+    parser.add_option_group(sponskrub)
     parser.add_option_group(extractor)
 
     if overrideArguments is not None:

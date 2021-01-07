@@ -47,6 +47,7 @@ class WDRIE(InfoExtractor):
         media_resource = metadata['mediaResource']
 
         formats = []
+        subtitles = {}
 
         # check if the metadata contains a direct URL to a file
         for kind, media in media_resource.items():
@@ -93,7 +94,6 @@ class WDRIE(InfoExtractor):
 
         self._sort_formats(formats)
 
-        subtitles = {}
         caption_url = media_resource.get('captionURL')
         if caption_url:
             subtitles['de'] = [{
