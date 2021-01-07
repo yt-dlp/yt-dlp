@@ -72,6 +72,13 @@ class VLiveIE(VLiveBaseIE):
         # works only with gcc=KR
         'url': 'https://www.vlive.tv/video/225019',
         'only_matching': True,
+    }, {
+        'url': 'https://www.vlive.tv/video/223906',
+        'info_dict': {
+            'id': '58',
+            'title': 'RUN BTS!'
+        },
+        'playlist_mincount': 120
     }]
 
     def _real_initialize(self):
@@ -105,10 +112,12 @@ class VLiveIE(VLiveBaseIE):
         if not is_logged_in():
             raise ExtractorError('Unable to log in', expected=True)
 
-    def _call_api(self, path_template, video_id, fields=None):
+    def _call_api(self, path_template, video_id, fields=None, limit=None):
         query = {'appId': self._APP_ID, 'gcc': 'KR'}
         if fields:
             query['fields'] = fields
+        if limit:
+            query['limit'] = limit
         try:
             return self._download_json(
                 'https://www.vlive.tv/globalv-web/vam-web/' + path_template % video_id, video_id,
@@ -124,10 +133,34 @@ class VLiveIE(VLiveBaseIE):
 
         post = self._call_api(
             'post/v1.0/officialVideoPost-%s', video_id,
-            'author{nickname},channel{channelCode,channelName},officialVideo{commentCount,exposeStatus,likeCount,playCount,playTime,status,title,type,vodId}')
+            'author{nickname},channel{channelCode,channelName},officialVideo{commentCount,exposeStatus,likeCount,playCount,playTime,status,title,type,vodId},playlist{playlistSeq,totalCount,name}')
 
-        video = post['officialVideo']
+        playlist = post.get('playlist')
+        if not playlist or self._downloader.params.get('noplaylist'):
+            if playlist:
+                self.to_screen(
+                    'Downloading just video %s because of --no-playlist'
+                    % video_id)
 
+            video = post['officialVideo']
+            return self._get_vlive_info(post, video, video_id)
+        else:
+            playlist_name = playlist.get('name')
+            playlist_id = str_or_none(playlist.get('playlistSeq'))
+            playlist_count = str_or_none(playlist.get('totalCount'))
+
+            playlist = self._call_api(
+                'playlist/v1.0/playlist-%s/posts', playlist_id, 'data', limit=playlist_count)
+
+            entries = []
+            for video_data in playlist['data']:
+                video = video_data.get('officialVideo')
+                video_id = str_or_none(video.get('videoSeq'))
+                entries.append(self._get_vlive_info(video_data, video, video_id))
+
+            return self.playlist_result(entries, playlist_id, playlist_name)
+
+    def _get_vlive_info(self, post, video, video_id):
         def get_common_fields():
             channel = post.get('channel') or {}
             return {
@@ -323,22 +356,17 @@ class VLiveChannelIE(VLiveBaseIE):
                 video_id = compat_str(video_id)
 
                 if video_type in ('PLAYLIST'):
-                    playlist_videos = try_get(
+                    first_video_id = try_get(
                         video,
-                        lambda x: x['videoPlaylist']['videoList'], list)
-                    if not playlist_videos:
+                        lambda x: x['videoPlaylist']['videoList'][0]['videoSeq'], int)
+
+                    if not first_video_id:
                         continue
 
-                    for playlist_video in playlist_videos:
-                        playlist_video_id = playlist_video.get('videoSeq')
-                        if not playlist_video_id:
-                            continue
-                        playlist_video_id = compat_str(playlist_video_id)
-
-                        entries.append(
-                            self.url_result(
-                                'http://www.vlive.tv/video/%s' % playlist_video_id,
-                                ie=VLiveIE.ie_key(), video_id=playlist_video_id))
+                    entries.append(
+                        self.url_result(
+                            'http://www.vlive.tv/video/%s' % first_video_id,
+                            ie=VLiveIE.ie_key(), video_id=first_video_id))
                 else:
                     entries.append(
                         self.url_result(
