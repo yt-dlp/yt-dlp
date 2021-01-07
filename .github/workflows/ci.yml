@@ -1,4 +1,4 @@
-name: CI
+name: Full Test
 on: [push]
 jobs:
   tests:
@@ -60,16 +60,4 @@ jobs:
       env:
         YTDL_TEST_SET: ${{ matrix.ytdl-test-set }}
       run: ./devscripts/run_tests.${{ matrix.run-tests-ext }}
-  flake8:
-    name: Linter
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: Install flake8
-      run: pip install flake8
-    - name: Run flake8
-      run: flake8 .
+  # flake8 has been moved to quick-test

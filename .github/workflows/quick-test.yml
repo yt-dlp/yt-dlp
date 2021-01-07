@@ -1,0 +1,31 @@
+name: Core Test
+on: [push]
+jobs:
+  tests:
+    name: Core Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install nose
+      run: pip install nose
+    - name: Run tests
+      env:
+        YTDL_TEST_SET: core
+      run: ./devscripts/run_tests.sh
+  flake8:
+    name: Linter
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install flake8
+      run: pip install flake8
+    - name: Run flake8
+      run: flake8 .
