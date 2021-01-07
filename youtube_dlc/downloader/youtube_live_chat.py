@@ -61,7 +61,7 @@ class YoutubeLiveChatReplayFD(FragmentFD):
             else:
                 url = ('https://www.youtube.com/live_chat_replay/get_live_chat_replay'
                        + '?continuation={}'.format(continuation_id)
-                       + '&playerOffsetMs={}'.format(offset - 5000)
+                       + '&playerOffsetMs={}'.format(max(offset - 5000, 0))
                        + '&hidden=false'
                        + '&pbj=1')
                 success, raw_fragment = dl_fragment(url)
