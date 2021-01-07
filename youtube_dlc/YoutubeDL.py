@@ -1194,14 +1194,14 @@ class YoutubeDL(object):
             and download
             and (
                 not can_merge()
-                or info_dict.get('is_live')
+                or info_dict.get('is_live', False)
                 or self.params.get('outtmpl', DEFAULT_OUTTMPL) == '-'))
 
         return (
             'best/bestvideo+bestaudio'
             if prefer_best
             else 'bestvideo*+bestaudio/best'
-            if self.params.get('allow_multiple_audio_streams', False)
+            if not self.params.get('allow_multiple_audio_streams', False)
             else 'bestvideo+bestaudio/best')
 
     def build_format_selector(self, format_spec):
