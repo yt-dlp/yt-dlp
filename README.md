@@ -550,7 +550,18 @@ Then simply type this
     --recode-video FORMAT            Re-encode the video into another format if
                                      re-encoding is necessary (currently
                                      supported: mp4|flv|ogg|webm|mkv|avi)
-    --postprocessor-args ARGS        Give these arguments to the postprocessor
+    --postprocessor-args NAME:ARGS   Give these arguments to the postprocessors.
+                                     Specify the postprocessor name and the
+                                     arguments separated by a colon ':' to give
+                                     the argument to only the specified
+                                     postprocessor. Supported names are
+                                     ExtractAudio, VideoRemuxer, VideoConvertor,
+                                     EmbedSubtitle, Metadata, Merger,
+                                     FixupStretched, FixupM4a, FixupM3u8,
+                                     SubtitlesConvertor, SponSkrub and Default.
+                                     You can use this option multiple times to
+                                     give different arguments to different
+                                     postprocessors
     -k, --keep-video                 Keep the intermediate video file on disk
                                      after post-processing
     --no-keep-video                  Delete the intermediate video file after

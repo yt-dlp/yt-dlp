@@ -22,7 +22,7 @@ class SponSkrubPP(PostProcessor):
         self.force = force
         self.cutout = cut
         self.args = ['-chapter'] if not cut else []
-        self.args += self._def_args if args is None else compat_shlex_split(args)
+        self.args += self._configuration_args(self._def_args) if args is None else compat_shlex_split(args)
         self.path = self.get_exe(path)
 
         if not ignoreerror and self.path is None:
@@ -43,7 +43,7 @@ class SponSkrubPP(PostProcessor):
             return [], information
 
         if information['extractor_key'].lower() != 'youtube':
-            self._downloader.to_screen('[sponskrub] Skipping sponskrub since it is not a YouTube video')
+            self.to_screen('Skipping sponskrub since it is not a YouTube video')
             return [], information
         if self.cutout and not self.force and not information.get('__real_download', False):
             self._downloader.to_screen(
@@ -51,7 +51,7 @@ class SponSkrubPP(PostProcessor):
                 'Use --sponskrub-force to run sponskrub anyway')
             return [], information
 
-        self._downloader.to_screen('[sponskrub] Trying to %s sponsor sections' % ('remove' if self.cutout else 'mark'))
+        self.to_screen('Trying to %s sponsor sections' % ('remove' if self.cutout else 'mark'))
         if self.cutout:
             self._downloader.to_screen('WARNING: Cutting out sponsor segments will cause the subtitles to go out of sync.')
             if not information.get('__real_download', False):
@@ -76,11 +76,11 @@ class SponSkrubPP(PostProcessor):
         if p.returncode == 0:
             os.remove(filename)
             os.rename(temp_filename, filename)
-            self._downloader.to_screen('[sponskrub] Sponsor sections have been %s' % ('removed' if self.cutout else 'marked'))
-        elif p.returncode != 3:  # error code 3 means there was no info about the video
+            self.to_screen('Sponsor sections have been %s' % ('removed' if self.cutout else 'marked'))
+        elif p.returncode == 3:
+            self.to_screen('No segments in the SponsorBlock database')
+        else:
             stderr = stderr.decode('utf-8', 'replace')
             msg = stderr.strip().split('\n')[-1]
             raise PostProcessingError(msg if msg else 'sponskrub failed with error code %s!' % p.returncode)
-        else:
-            self._downloader.to_screen('[sponskrub] No segments in the SponsorBlock database')
         return [], information

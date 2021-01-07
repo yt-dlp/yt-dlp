@@ -11,6 +11,8 @@ from ..utils import (
 
 
 class ExecAfterDownloadPP(PostProcessor):
+    PP_NAME = 'Exec'
+
     def __init__(self, downloader, exec_cmd):
         super(ExecAfterDownloadPP, self).__init__(downloader)
         self.exec_cmd = exec_cmd
@@ -22,7 +24,7 @@ class ExecAfterDownloadPP(PostProcessor):
 
         cmd = cmd.replace('{}', compat_shlex_quote(information['filepath']))
 
-        self._downloader.to_screen('[exec] Executing command: %s' % cmd)
+        self.to_screen('Executing command: %s' % cmd)
         retCode = subprocess.call(encodeArgument(cmd), shell=True)
         if retCode != 0:
             raise PostProcessingError(

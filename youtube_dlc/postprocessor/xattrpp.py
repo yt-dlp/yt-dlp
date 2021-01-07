@@ -11,7 +11,6 @@ from ..utils import (
 
 
 class XAttrMetadataPP(PostProcessor):
-
     #
     # More info about extended attributes for media:
     #   http://freedesktop.org/wiki/CommonExtendedAttributes/
@@ -27,7 +26,7 @@ class XAttrMetadataPP(PostProcessor):
         """ Set extended attributes on downloaded file (if xattr support is found). """
 
         # Write the metadata to the file's xattrs
-        self._downloader.to_screen('[metadata] Writing metadata to file\'s xattrs')
+        self.to_screen('Writing metadata to file\'s xattrs')
 
         filename = info['filepath']
 

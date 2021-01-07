@@ -331,9 +331,23 @@ def _real_main(argv=None):
     external_downloader_args = None
     if opts.external_downloader_args:
         external_downloader_args = compat_shlex_split(opts.external_downloader_args)
-    postprocessor_args = None
-    if opts.postprocessor_args:
-        postprocessor_args = compat_shlex_split(opts.postprocessor_args)
+
+    postprocessor_args = {}
+    if opts.postprocessor_args is not None:
+        for string in opts.postprocessor_args:
+            mobj = re.match(r'(?P<pp>\w+):(?P<args>.*)$', string)
+            if mobj is None:
+                if 'sponskrub' not in postprocessor_args:  # for backward compatibility
+                    postprocessor_args['sponskrub'] = []
+                    if opts.verbose:
+                        write_string('[debug] Adding postprocessor args from command line option sponskrub:\n')
+                pp_name, pp_args = 'default', string
+            else:
+                pp_name, pp_args = mobj.group('pp').lower(), mobj.group('args')
+            if opts.verbose:
+                write_string('[debug] Adding postprocessor args from command line option %s:%s\n' % (pp_name, pp_args))
+            postprocessor_args[pp_name] = compat_shlex_split(pp_args)
+
     match_filter = (
         None if opts.match_filter is None
         else match_filter_func(opts.match_filter))

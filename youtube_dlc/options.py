@@ -970,9 +970,14 @@ def parseOpts(overrideArguments=None):
         metavar='FORMAT', dest='recodevideo', default=None,
         help='Re-encode the video into another format if re-encoding is necessary (currently supported: mp4|flv|ogg|webm|mkv|avi)')
     postproc.add_option(
-        '--postprocessor-args',
-        dest='postprocessor_args', metavar='ARGS',
-        help='Give these arguments to the postprocessor')
+        '--postprocessor-args', metavar='NAME:ARGS',
+        dest='postprocessor_args', action='append',
+        help=(
+            'Give these arguments to the postprocessors. '
+            "Specify the postprocessor name and the arguments separated by a colon ':' "
+            'to give the argument to only the specified postprocessor. Supported names are '
+            'ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor, SponSkrub and Default'
+            '. You can use this option multiple times to give different arguments to different postprocessors'))
     postproc.add_option(
         '-k', '--keep-video',
         action='store_true', dest='keepvideo', default=False,
@@ -1089,7 +1094,7 @@ def parseOpts(overrideArguments=None):
         help='Location of the sponskrub binary; either the path to the binary or its containing directory.')
     sponskrub.add_option(
         '--sponskrub-args', dest='sponskrub_args', metavar='ARGS',
-        help='Give these arguments to sponskrub')
+        help=optparse.SUPPRESS_HELP)
 
     extractor = optparse.OptionGroup(parser, 'Extractor Options')
     extractor.add_option(

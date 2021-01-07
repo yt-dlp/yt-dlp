@@ -33,6 +33,11 @@ class PostProcessor(object):
 
     def __init__(self, downloader=None):
         self._downloader = downloader
+        if not hasattr(self, 'PP_NAME'):
+            self.PP_NAME = self.__class__.__name__[:-2]
+
+    def to_screen(self, text, *args, **kwargs):
+        return self._downloader.to_screen('[%s] %s' % (self.PP_NAME, text), *args, **kwargs)
 
     def set_downloader(self, downloader):
         """Sets the downloader for this PP."""
@@ -62,7 +67,10 @@ class PostProcessor(object):
             self._downloader.report_warning(errnote)
 
     def _configuration_args(self, default=[]):
-        return cli_configuration_args(self._downloader.params, 'postprocessor_args', default)
+        args = self._downloader.params.get('postprocessor_args', {})
+        if isinstance(args, list):  # for backward compatibility
+            args = {'default': args, 'sponskrub': []}
+        return cli_configuration_args(args, self.PP_NAME.lower(), args.get('default', []))
 
 
 class AudioConversionError(PostProcessingError):
