@@ -57,8 +57,8 @@ class TestCompat(unittest.TestCase):
 
     def test_compat_urllib_parse_quote(self):
         self.assertEqual(compat_urllib_parse_quote('abc def'), 'abc%20def')
-        self.assertEqual(compat_urllib_parse_quote('/~user/abc+def'), '/%7Euser/abc%2Bdef')
-        self.assertEqual(compat_urllib_parse_quote('/~user/abc+def', safe='/~+'), '/~user/abc+def')
+        self.assertEqual(compat_urllib_parse_quote('/user/abc+def'), '/user/abc%2Bdef')
+        self.assertEqual(compat_urllib_parse_quote('/user/abc+def', safe='+'), '%2Fuser%2Fabc+def')
         self.assertEqual(compat_urllib_parse_quote(''), '')
         self.assertEqual(compat_urllib_parse_quote('%'), '%25')
         self.assertEqual(compat_urllib_parse_quote('%', safe='%'), '%')
@@ -74,7 +74,7 @@ class TestCompat(unittest.TestCase):
 
     def test_compat_urllib_parse_quote_plus(self):
         self.assertEqual(compat_urllib_parse_quote_plus('abc def'), 'abc+def')
-        self.assertEqual(compat_urllib_parse_quote_plus('~/abc def'), '%7E%2Fabc+def')
+        self.assertEqual(compat_urllib_parse_quote_plus('/abc def'), '%2Fabc+def')
 
     def test_compat_urllib_parse_unquote(self):
         self.assertEqual(compat_urllib_parse_unquote('abc%20def'), 'abc def')
