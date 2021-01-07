@@ -96,7 +96,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             os.rename(encodeFilename(old_thumbnail_filename), encodeFilename(thumbnail_filename))
 
             options = [
-                '-c', 'copy', '-map', '0',
+                '-c', 'copy', '-map', '0', '-dn',
                 '-attach', thumbnail_filename, '-metadata:s:t', 'mimetype=image/jpeg']
 
             self._downloader.to_screen('[ffmpeg] Adding thumbnail to "%s"' % filename)
