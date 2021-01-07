@@ -116,7 +116,76 @@ class AnvatoIE(InfoExtractor):
         'anvato_scripps_app_ios_prod_409c41960c60b308db43c3cc1da79cab9f1c3d93': 'WPxj5GraLTkYCyj3M7RozLqIycjrXOEcDGFMIJPn',
         'EZqvRyKBJLrgpClDPDF8I7Xpdp40Vx73': '4OxGd2dEakylntVKjKF0UK9PDPYB6A9W',
         'M2v78QkpleXm9hPp9jUXI63x5vA6BogR': 'ka6K32k7ZALmpINkjJUGUo0OE42Md1BQ',
-        'nbcu_nbcd_desktop_web_prod_93d8ead38ce2024f8f544b78306fbd15895ae5e6_secure': 'NNemUkySjxLyPTKvZRiGntBIjEyK8uqicjMakIaQ'
+        'nbcu_nbcd_desktop_web_prod_93d8ead38ce2024f8f544b78306fbd15895ae5e6_secure': 'NNemUkySjxLyPTKvZRiGntBIjEyK8uqicjMakIaQ',
+        'X8POa4zPPaKVZHqmWjuEzfP31b1QM9VN': 'Dn5vOY9ooDw7VSl9qztjZI5o0g08mA0z',
+        'M2v78QkBMpNJlSPp9diX5F2PBmBy6Bog': 'ka6K32kyo7nDZfNkjQCGWf1lpApXMd1B',
+        'bvJ0dQpav07l0hG5JgfVLF2dv1vARwpP': 'BzoQW24GrJZoJfmNodiJKSPeB9B8NOxj',
+        'lxQMLg2XZKuEZaWgsqubBxV9INZ6bryY': 'Vm2Mx6noKds9jB71h6urazwlTG3m9x8l',
+        '04EnjvXeoSmkbJ9ckPs7oY0mcxv7PlyN': 'aXERQP9LMfQVlEDsgGs6eEA1SWznAQ8P',
+        'mQbO2ge6BFRWVPYCYpU06YvNt80XLvAX': 'E2BV1NGmasN5v7eujECVPJgwflnLPm2A',
+        'g43oeBzJrCml7o6fa5fRL1ErCdeD8z4K': 'RX34mZ6zVH4Nr6whbxIGLv9WSbxEKo8V',
+        'VQrDJoP7mtdBzkxhXbSPwGB1coeElk4x': 'j2VejQx0VFKQepAF7dI0mJLKtOVJE18z',
+        'WxA5NzLRjCrmq0NUgaU5pdMDuZO7RJ4w': 'lyY5ADLKaIOLEgAsGQCveEMAcqnx3rY9',
+        'M4lpMXB71ie0PjMCjdFzVXq0SeRVqz49': 'n2zVkOqaLIv3GbLfBjcwW51LcveWOZ2e',
+        'dyDZGEqN8u8nkJZcJns0oxYmtP7KbGAn': 'VXOEqQW9BtEVLajfZQSLEqxgS5B7qn2D',
+        'E7QNjrVY5u5mGvgu67IoDgV1CjEND8QR': 'rz8AaDmdKIkLmPNhB5ILPJnjS5PnlL8d',
+        'a4zrqjoKlfzg0dwHEWtP31VqcLBpjm4g': 'LY9J16gwETdGWa3hjBu5o0RzuoQDjqXQ',
+        'dQP5BZroMsMVLO1hbmT5r2Enu86GjxA6': '7XR3oOdbPF6x3PRFLDCq9RkgsRjAo48V',
+        'M4lKNBO1NFe0PjMCj1tzVXq0SeRVqzA9': 'n2zoRqGLRUv3GbLfBmTwW51LcveWOZYe',
+        'nAZ7MZdpGCGg1pqFEbsoJOz2C60mv143': 'dYJgdqA9aT4yojETqGi7yNgoFADxqmXP',
+        '3y1MERYgOuE9NzbFgwhV6Wv2F0YKvbyz': '081xpZDQgC4VadLTavhWQxrku56DAgXV',
+        'bmQvmEXr5HWklBMCZOcpE2Z3HBYwqGyl': 'zxXPbVNyMiMAZldhr9FkOmA0fl4aKr2v',
+        'wA7oDNYldfr6050Hwxi52lPZiVlB86Ap': 'ZYK16aA7ni0d3l3c34uwpxD7CbReMm8Q',
+        'g43MbKMWmFml7o7sJoSRkXxZiXRvJ3QK': 'RX3oBJonvs4Nr6rUWBCGn3matRGqJPXV',
+        'mA9VdlqpLS0raGaSDvtoqNrBTzb8XY4q': '0XN4OjBD3fnW7r7IbmtJB4AyfOmlrE2r',
+        'mAajOwgkGt17oGoFmEuklMP9H0GnW54d': 'lXbBLPGyzikNGeGujAuAJGjZiwLRxyXR',
+        'vy8vjJ9kbUwrRqRu59Cj5dWZfzYErlAb': 'K8l7gpwaGcBpnAnCLNCmPZRdin3eaQX0',
+        'xQMWBpR8oHEZaWaSMGUb0avOHjLVYn4Y': 'm2MrN4vEaf9jB7BFy5Srb40jTrN67AYl',
+        'xyKEmVO3miRr6D6UVkt7oB8jtD6aJEAv': 'g2ddDebqDfqdgKgswyUKwGjbTWwzq923',
+        '7Qk0wa2D9FjKapacoJF27aLvUDKkLGA0': 'b2kgBEkephJaMkMTL7s1PLe4Ua6WyP2P',
+        '3QLg6nqmNTJ5VvVTo7f508LPidz1xwyY': 'g2L1GgpraipmAOAUqmIbBnPxHOmw4MYa',
+        '3y1B7zZjXTE9NZNSzZSVNPZaTNLjo6Qz': '081b5G6wzH4VagaURmcWbN5mT4JGEe2V',
+        'lAqnwvkw6SG6D8DSqmUg6DRLUp0w3G4x': 'O2pbP0xPDFNJjpjIEvcdryOJtpkVM4X5',
+        'awA7xd1N0Hr6050Hw2c52lPZiVlB864p': 'GZYKpn4aoT0d3l3c3PiwpxD7CbReMmXQ',
+        'jQVqPLl9YHL1WGWtR1HDgWBGT63qRNyV': '6X03ne6vrU4oWyWUN7tQVoajikxJR3Ye',
+        'GQRMR8mL7uZK797t7xH3eNzPIP5dOny1': 'm2vqPWGd4U31zWzSyasDRAoMT1PKRp8o',
+        'zydq9RdmRhXLkNkfNoTJlMzaF0lWekQB': '3X7LnvE7vH5nkEkSqLiey793Un7dLB8e',
+        'VQrDzwkB2IdBzjzu9MHPbEYkSB50gR4x': 'j2VebLzoKUKQeEesmVh0gM1eIp9jKz8z',
+        'mAa2wMamBs17oGoFmktklMP9H0GnW54d': 'lXbgP74xZTkNGeGujVUAJGjZiwLRxy8R',
+        '7yjB6ZLG6sW8R6RF2xcan1KGfJ5dNoyd': 'wXQkPorvPHZ45N5t4Jf6qwg5Tp4xvw29',
+        'a4zPpNeWGuzg0m0iX3tPeanGSkRKWXQg': 'LY9oa3QAyHdGW9Wu3Ri5JGeEik7l1N8Q',
+        'k2rneA2M38k25cXDwwSknTJlxPxQLZ6M': '61lyA2aEVDzklfdwmmh31saPxQx2VRjp',
+        'bK9Zk4OvPnvxduLgxvi8VUeojnjA02eV': 'o5jANYjbeMb4nfBaQvcLAt1jzLzYx6ze',
+        '5VD6EydM3R9orHmNMGInGCJwbxbQvGRw': 'w3zjmX7g4vnxzCxElvUEOiewkokXprkZ',
+        '70X35QbVYVYNPUmP9YfbzI06YqYQk2R1': 'vG4Aj2BMjMjoztB7zeFOnCVPJpJ8lMOa',
+        '26qYwQVG9p1Bks2GgBckjfDJOXOAMgG1': 'r4ev9X0mv5zqJc0yk5IBDcQOwZw8mnwQ',
+        'rvVKpA56MBXWlSxMw3cobT5pdkd4Dm7q': '1J7ZkY53pZ645c93owcLZuveE7E8B3rL',
+        'qN1zdy1zlYL23IWZGWtDvfV6WeWQWkJo': 'qN1zdy1zlYL23IWZGWtDvfV6WeWQWkJo',
+        'jdKqRGF16dKsBviMDae7IGDl7oTjEbVV': 'Q09l7vhlNxPFErIOK6BVCe7KnwUW5DVV',
+        '3QLkogW1OUJ5VvPsrDH56DY2u7lgZWyY': 'g2LRE1V9espmAOPhE4ubj4ZdUA57yDXa',
+        'wyJvWbXGBSdbkEzhv0CW8meou82aqRy8': 'M2wolPvyBIpQGkbT4juedD4ruzQGdK2y',
+        '7QkdZrzEkFjKap6IYDU2PB0oCNZORmA0': 'b2kN1l96qhJaMkPs9dt1lpjBfwqZoA8P',
+        'pvA05113MHG1w3JTYxc6DVlRCjErVz4O': 'gQXeAbblBUnDJ7vujbHvbRd1cxlz3AXO',
+        'mA9blJDZwT0raG1cvkuoeVjLC7ZWd54q': '0XN9jRPwMHnW7rvumgfJZOD9CJgVkWYr',
+        '5QwRN5qKJTvGKlDTmnf7xwNZcjRmvEy9': 'R2GP6LWBJU1QlnytwGt0B9pytWwAdDYy',
+        'eyn5rPPbkfw2KYxH32fG1q58CbLJzM40': 'p2gyqooZnS56JWeiDgfmOy1VugOQEBXn',
+        '3BABn3b5RfPJGDwilbHe7l82uBoR05Am': '7OYZG7KMVhbPdKJS3xcWEN3AuDlLNmXj',
+        'xA5zNGXD3HrmqMlF6OS5pdMDuZO7RJ4w': 'yY5DAm6r1IOLE3BCVMFveEMAcqnx3r29',
+        'g43PgW3JZfml7o6fDEURL1ErCdeD8zyK': 'RX3aQn1zrS4Nr6whDgCGLv9WSbxEKo2V',
+        'lAqp8WbGgiG6D8LTKJcg3O72CDdre1Qx': 'O2pnm6473HNJjpKuVosd3vVeh975yrX5',
+        'wyJbYEDxKSdbkJ6S6RhW8meou82aqRy8': 'M2wPm7EgRSpQGlAh70CedD4ruzQGdKYy',
+        'M4lgW28nLCe0PVdtaXszVXq0SeRVqzA9': 'n2zmJvg4jHv3G0ETNgiwW51LcveWOZ8e',
+        '5Qw3OVvp9FvGKlDTmOC7xwNZcjRmvEQ9': 'R2GzDdml9F1Qlnytw9s0B9pytWwAdD8y',
+        'vy8a98X7zCwrRqbHrLUjYzwDiK2b70Qb': 'K8lVwzyjZiBpnAaSGeUmnAgxuGOBxmY0',
+        'g4eGjJLLoiqRD3Pf9oT5O03LuNbLRDQp': '6XqD59zzpfN4EwQuaGt67qNpSyRBlnYy',
+        'g43OPp9boIml7o6fDOIRL1ErCdeD8z4K': 'RX33alNB4s4Nr6whDPUGLv9WSbxEKoXV',
+        'xA2ng9OkBcGKzDbTkKsJlx7dUK8R3dA5': 'z2aPnJvzBfObkwGC3vFaPxeBhxoMqZ8K',
+        'xyKEgBajZuRr6DEC0Kt7XpD1cnNW9gAv': 'g2ddlEBvRsqdgKaI4jUK9PrgfMexGZ23',
+        'BAogww51jIMa2JnH1BcYpXM5F658RNAL': 'rYWDmm0KptlkGv4FGJFMdZmjs9RDE6XR',
+        'BAokpg62VtMa2JnH1mHYpXM5F658RNAL': 'rYWryDnlNslkGv4FG4HMdZmjs9RDE62R',
+        'a4z1Px5e2hzg0m0iMMCPeanGSkRKWXAg': 'LY9eorNQGUdGW9WuKKf5JGeEik7l1NYQ',
+        'kAx69R58kF9nY5YcdecJdl2pFXP53WyX': 'gXyRxELpbfPvLeLSaRil0mp6UEzbZJ8L',
+        'BAoY13nwViMa2J2uo2cY6BlETgmdwryL': 'rYWwKzJmNFlkGvGtNoUM9bzwIJVzB1YR',
     }
 
     _MCP_TO_ACCESS_KEY_TABLE = {
@@ -189,19 +258,17 @@ class AnvatoIE(InfoExtractor):
 
         video_data_url += '&X-Anvato-Adst-Auth=' + base64.b64encode(auth_secret).decode('ascii')
         anvrid = md5_text(time.time() * 1000 * random.random())[:30]
-        payload = {
-            'api': {
-                'anvrid': anvrid,
-                'anvstk': md5_text('%s|%s|%d|%s' % (
-                    access_key, anvrid, server_time,
-                    self._ANVACK_TABLE.get(access_key, self._API_KEY))),
-                'anvts': server_time,
-            },
+        api = {
+            'anvrid': anvrid,
+            'anvts': server_time,
         }
+        api['anvstk'] = md5_text('%s|%s|%d|%s' % (
+            access_key, anvrid, server_time,
+            self._ANVACK_TABLE.get(access_key, self._API_KEY)))
 
         return self._download_json(
             video_data_url, video_id, transform_source=strip_jsonp,
-            data=json.dumps(payload).encode('utf-8'))
+            data=json.dumps({'api': api}).encode('utf-8'))
 
     def _get_anvato_videos(self, access_key, video_id):
         video_data = self._get_video_json(access_key, video_id)
@@ -259,7 +326,7 @@ class AnvatoIE(InfoExtractor):
             'description': video_data.get('def_description'),
             'tags': video_data.get('def_tags', '').split(','),
             'categories': video_data.get('categories'),
-            'thumbnail': video_data.get('thumbnail'),
+            'thumbnail': video_data.get('src_image_url') or video_data.get('thumbnail'),
             'timestamp': int_or_none(video_data.get(
                 'ts_published') or video_data.get('ts_added')),
             'uploader': video_data.get('mcp_id'),

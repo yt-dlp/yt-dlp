@@ -7,6 +7,8 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     float_or_none,
+    try_get,
+    unescapeHTML,
     url_or_none,
 )
 
@@ -55,10 +57,12 @@ class RedditRIE(InfoExtractor):
             'id': 'zv89llsvexdz',
             'ext': 'mp4',
             'title': 'That small heart attack.',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:4',
             'timestamp': 1501941939,
             'upload_date': '20170805',
             'uploader': 'Antw87',
+            'duration': 12,
             'like_count': int,
             'dislike_count': int,
             'comment_count': int,
@@ -116,13 +120,40 @@ class RedditRIE(InfoExtractor):
         else:
             age_limit = None
 
+        thumbnails = []
+
+        def add_thumbnail(src):
+            if not isinstance(src, dict):
+                return
+            thumbnail_url = url_or_none(src.get('url'))
+            if not thumbnail_url:
+                return
+            thumbnails.append({
+                'url': unescapeHTML(thumbnail_url),
+                'width': int_or_none(src.get('width')),
+                'height': int_or_none(src.get('height')),
+            })
+
+        for image in try_get(data, lambda x: x['preview']['images']) or []:
+            if not isinstance(image, dict):
+                continue
+            add_thumbnail(image.get('source'))
+            resolutions = image.get('resolutions')
+            if isinstance(resolutions, list):
+                for resolution in resolutions:
+                    add_thumbnail(resolution)
+
         return {
             '_type': 'url_transparent',
             'url': video_url,
             'title': data.get('title'),
-            'thumbnail': url_or_none(data.get('thumbnail')),
+            'thumbnails': thumbnails,
             'timestamp': float_or_none(data.get('created_utc')),
             'uploader': data.get('author'),
+            'duration': int_or_none(try_get(
+                data,
+                (lambda x: x['media']['reddit_video']['duration'],
+                 lambda x: x['secure_media']['reddit_video']['duration']))),
             'like_count': int_or_none(data.get('ups')),
             'dislike_count': int_or_none(data.get('downs')),
             'comment_count': int_or_none(data.get('num_comments')),

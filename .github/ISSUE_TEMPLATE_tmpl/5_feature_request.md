@@ -1,8 +1,10 @@
 ---
 name: Feature request
 about: Request a new functionality unrelated to any particular site or extractor
-title: ''
-labels: 'request'
+title: "[Feature Request]"
+labels: Request
+assignees: ''
+
 ---
 
 <!--
@@ -19,9 +21,9 @@ labels: 'request'
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlc:
-- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://github.com/blackjack4494/yt-dlc on how to update. Issues with outdated version will be REJECTED.
-- Search the bugtracker for similar feature requests: https://github.com/blackjack4494/yt-dlc. DO NOT post duplicates.
-- Finally, put x into all relevant boxes (like this [x])
+- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://github.com/pukkandan/yt-dlc on how to update. Issues with outdated version will be REJECTED.
+- Search the bugtracker for similar feature requests: https://github.com/pukkandan/yt-dlc. DO NOT post duplicates.
+- Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
 - [ ] I'm reporting a feature request

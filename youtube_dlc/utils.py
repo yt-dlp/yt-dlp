@@ -60,6 +60,9 @@ from .compat import (
     compat_urllib_parse,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
+    compat_urllib_parse_urlunparse,
+    compat_urllib_parse_quote,
+    compat_urllib_parse_quote_plus,
     compat_urllib_parse_unquote_plus,
     compat_urllib_request,
     compat_urlparse,
@@ -2282,11 +2285,11 @@ def decodeOption(optval):
     return optval
 
 
-def formatSeconds(secs):
+def formatSeconds(secs, delim=':'):
     if secs > 3600:
-        return '%d:%02d:%02d' % (secs // 3600, (secs % 3600) // 60, secs % 60)
+        return '%d%s%02d%s%02d' % (secs // 3600, delim, (secs % 3600) // 60, delim, secs % 60)
     elif secs > 60:
-        return '%d:%02d' % (secs // 60, secs % 60)
+        return '%d%s%02d' % (secs // 60, delim, secs % 60)
     else:
         return '%d' % secs
 
@@ -2320,8 +2323,8 @@ def bug_reports_message():
     if ytdl_is_updateable():
         update_cmd = 'type  youtube-dlc -U  to update'
     else:
-        update_cmd = 'see  https://github.com/blackjack4494/yt-dlc  on how to update'
-    msg = '; please report this issue on https://github.com/blackjack4494/yt-dlc .'
+        update_cmd = 'see  https://github.com/pukkandan/yt-dlc  on how to update'
+    msg = '; please report this issue on https://github.com/pukkandan/yt-dlc .'
     msg += ' Make sure you are using the latest version; %s.' % update_cmd
     msg += ' Be sure to call youtube-dlc with the --verbose flag and include its complete output.'
     return msg
@@ -3647,7 +3650,7 @@ def url_or_none(url):
     if not url or not isinstance(url, compat_str):
         return None
     url = url.strip()
-    return url if re.match(r'^(?:[a-zA-Z][\da-zA-Z.+-]*:)?//', url) else None
+    return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
 def parse_duration(s):
@@ -4125,7 +4128,7 @@ def qualities(quality_ids):
     return q
 
 
-DEFAULT_OUTTMPL = '%(title)s-%(id)s.%(ext)s'
+DEFAULT_OUTTMPL = '%(title)s [%(id)s].%(ext)s'
 
 
 def limit_length(s, length):
@@ -4153,6 +4156,8 @@ def is_outdated_version(version, limit, assume_new=True):
 
 def ytdl_is_updateable():
     """ Returns if youtube-dlc can be updated with -U """
+    return False
+
     from zipimport import zipimporter
 
     return isinstance(globals().get('__loader__'), zipimporter) or hasattr(sys, 'frozen')
@@ -4312,11 +4317,25 @@ def determine_protocol(info_dict):
     return compat_urllib_parse_urlparse(url).scheme
 
 
-def render_table(header_row, data):
+def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
     """ Render a list of rows, each as a list of values """
+
+    def get_max_lens(table):
+        return [max(len(compat_str(v)) for v in col) for col in zip(*table)]
+
+    def filter_using_list(row, filterArray):
+        return [col for (take, col) in zip(filterArray, row) if take]
+
+    if hideEmpty:
+        max_lens = get_max_lens(data)
+        header_row = filter_using_list(header_row, max_lens)
+        data = [filter_using_list(row, max_lens) for row in data]
+
     table = [header_row] + data
-    max_lens = [max(len(compat_str(v)) for v in col) for col in zip(*table)]
-    format_str = ' '.join('%-' + compat_str(ml + 1) + 's' for ml in max_lens[:-1]) + '%s'
+    max_lens = get_max_lens(table)
+    if delim:
+        table = [header_row] + [['-' * ml for ml in max_lens]] + data
+    format_str = ' '.join('%-' + compat_str(ml + extraGap) + 's' for ml in max_lens[:-1]) + ' %s'
     return '\n'.join(format_str % tuple(row) for row in table)
 
 
@@ -5714,3 +5733,89 @@ def random_birthday(year_field, month_field, day_field):
         month_field: str(random_date.month),
         day_field: str(random_date.day),
     }
+
+
+# Templates for internet shortcut files, which are plain text files.
+DOT_URL_LINK_TEMPLATE = '''
+[InternetShortcut]
+URL=%(url)s
+'''.lstrip()
+
+DOT_WEBLOC_LINK_TEMPLATE = '''
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>URL</key>
+\t<string>%(url)s</string>
+</dict>
+</plist>
+'''.lstrip()
+
+DOT_DESKTOP_LINK_TEMPLATE = '''
+[Desktop Entry]
+Encoding=UTF-8
+Name=%(filename)s
+Type=Link
+URL=%(url)s
+Icon=text-html
+'''.lstrip()
+
+
+def iri_to_uri(iri):
+    """
+    Converts an IRI (Internationalized Resource Identifier, allowing Unicode characters) to a URI (Uniform Resource Identifier, ASCII-only).
+
+    The function doesn't add an additional layer of escaping; e.g., it doesn't escape `%3C` as `%253C`. Instead, it percent-escapes characters with an underlying UTF-8 encoding *besides* those already escaped, leaving the URI intact.
+    """
+
+    iri_parts = compat_urllib_parse_urlparse(iri)
+
+    if '[' in iri_parts.netloc:
+        raise ValueError('IPv6 URIs are not, yet, supported.')
+        # Querying `.netloc`, when there's only one bracket, also raises a ValueError.
+
+    # The `safe` argument values, that the following code uses, contain the characters that should not be percent-encoded. Everything else but letters, digits and '_.-' will be percent-encoded with an underlying UTF-8 encoding. Everything already percent-encoded will be left as is.
+
+    net_location = ''
+    if iri_parts.username:
+        net_location += compat_urllib_parse_quote(iri_parts.username, safe=r"!$%&'()*+,~")
+        if iri_parts.password is not None:
+            net_location += ':' + compat_urllib_parse_quote(iri_parts.password, safe=r"!$%&'()*+,~")
+        net_location += '@'
+
+    net_location += iri_parts.hostname.encode('idna').decode('utf-8')  # Punycode for Unicode hostnames.
+    # The 'idna' encoding produces ASCII text.
+    if iri_parts.port is not None and iri_parts.port != 80:
+        net_location += ':' + str(iri_parts.port)
+
+    return compat_urllib_parse_urlunparse(
+        (iri_parts.scheme,
+            net_location,
+
+            compat_urllib_parse_quote_plus(iri_parts.path, safe=r"!$%&'()*+,/:;=@|~"),
+
+            # Unsure about the `safe` argument, since this is a legacy way of handling parameters.
+            compat_urllib_parse_quote_plus(iri_parts.params, safe=r"!$%&'()*+,/:;=@|~"),
+
+            # Not totally sure about the `safe` argument, since the source does not explicitly mention the query URI component.
+            compat_urllib_parse_quote_plus(iri_parts.query, safe=r"!$%&'()*+,/:;=?@{|}~"),
+
+            compat_urllib_parse_quote_plus(iri_parts.fragment, safe=r"!#$%&'()*+,/:;=?@{|}~")))
+
+    # Source for `safe` arguments: https://url.spec.whatwg.org/#percent-encoded-bytes.
+
+
+def to_high_limit_path(path):
+    if sys.platform in ['win32', 'cygwin']:
+        # Work around MAX_PATH limitation on Windows. The maximum allowed length for the individual path segments may still be quite limited.
+        return r'\\?\ '.rstrip() + os.path.abspath(path)
+
+    return path
+
+
+def format_field(obj, field, template='%s', ignore=(None, ''), default='', func=None):
+    val = obj.get(field, default)
+    if func and val not in ignore:
+        val = func(val)
+    return template % val if val not in ignore else default

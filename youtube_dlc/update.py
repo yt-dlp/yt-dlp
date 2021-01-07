@@ -32,6 +32,8 @@ def rsa_verify(message, signature, key):
 def update_self(to_screen, verbose, opener):
     """Update the program file with the latest version from the repository"""
 
+    return to_screen('Update is currently broken.\nVisit  https://github.com/pukkandan/yt-dlc/releases/latest  to get the latest version')
+
     UPDATE_URL = 'https://blackjack4494.github.io//update/'
     VERSION_URL = UPDATE_URL + 'LATEST_VERSION'
     JSON_URL = UPDATE_URL + 'versions.json'

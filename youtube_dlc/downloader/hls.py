@@ -42,11 +42,13 @@ class HlsFD(FragmentFD):
             # no segments will definitely be appended to the end of the playlist.
             # r'#EXT-X-PLAYLIST-TYPE:EVENT',  # media segments may be appended to the end of
             #                                 # event media playlists [4]
+            r'#EXT-X-MAP:',  # media initialization [5]
 
             # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.4
             # 2. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.2
             # 3. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.3.2
             # 4. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.3.5
+            # 5. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.5
         )
         check_results = [not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES]
         is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest

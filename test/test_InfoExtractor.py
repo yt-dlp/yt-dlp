@@ -98,6 +98,55 @@ class TestInfoExtractor(unittest.TestCase):
         self.assertRaises(RegexNotFoundError, ie._html_search_meta, 'z', html, None, fatal=True)
         self.assertRaises(RegexNotFoundError, ie._html_search_meta, ('z', 'x'), html, None, fatal=True)
 
+    def test_search_json_ld_realworld(self):
+        # https://github.com/ytdl-org/youtube-dl/issues/23306
+        expect_dict(
+            self,
+            self.ie._search_json_ld(r'''<script type="application/ld+json">
+{
+"@context": "http://schema.org/",
+"@type": "VideoObject",
+"name": "1 On 1 With Kleio",
+"url": "https://www.eporner.com/hd-porn/xN49A1cT3eB/1-On-1-With-Kleio/",
+"duration": "PT0H12M23S",
+"thumbnailUrl": ["https://static-eu-cdn.eporner.com/thumbs/static4/7/78/780/780814/9_360.jpg", "https://imggen.eporner.com/780814/1920/1080/9.jpg"],
+"contentUrl": "https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4",
+"embedUrl": "https://www.eporner.com/embed/xN49A1cT3eB/1-On-1-With-Kleio/",
+"image": "https://static-eu-cdn.eporner.com/thumbs/static4/7/78/780/780814/9_360.jpg",
+"width": "1920",
+"height": "1080",
+"encodingFormat": "mp4",
+"bitrate": "6617kbps",
+"isFamilyFriendly": "False",
+"description": "Kleio Valentien",
+"uploadDate": "2015-12-05T21:24:35+01:00",
+"interactionStatistic": {
+"@type": "InteractionCounter",
+"interactionType": { "@type": "http://schema.org/WatchAction" },
+"userInteractionCount": 1120958
+}, "aggregateRating": {
+"@type": "AggregateRating",
+"ratingValue": "88",
+"ratingCount": "630",
+"bestRating": "100",
+"worstRating": "0"
+}, "actor": [{
+"@type": "Person",
+"name": "Kleio Valentien",
+"url": "https://www.eporner.com/pornstar/kleio-valentien/"
+}]}
+</script>''', None),
+            {
+                'title': '1 On 1 With Kleio',
+                'description': 'Kleio Valentien',
+                'url': 'https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4',
+                'timestamp': 1449347075,
+                'duration': 743.0,
+                'view_count': 1120958,
+                'width': 1920,
+                'height': 1080,
+            })
+
     def test_download_json(self):
         uri = encode_data_uri(b'{"foo": "blah"}', 'application/json')
         self.assertEqual(self.ie._download_json(uri, None), {'foo': 'blah'})
@@ -108,6 +157,18 @@ class TestInfoExtractor(unittest.TestCase):
         self.assertEqual(self.ie._download_json(uri, None, fatal=False), None)
 
     def test_parse_html5_media_entries(self):
+        # inline video tag
+        expect_dict(
+            self,
+            self.ie._parse_html5_media_entries(
+                'https://127.0.0.1/video.html',
+                r'<html><video src="/vid.mp4" /></html>', None)[0],
+            {
+                'formats': [{
+                    'url': 'https://127.0.0.1/vid.mp4',
+                }],
+            })
+
         # from https://www.r18.com/
         # with kpbs in label
         expect_dict(

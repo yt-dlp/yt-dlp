@@ -12,7 +12,8 @@ from ..utils import (
 
 
 class VVVVIDIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?vvvvid\.it/(?:#!)?(?:show|anime|film|series)/(?P<show_id>\d+)/[^/]+/(?P<season_id>\d+)/(?P<id>[0-9]+)'
+    _VALID_URL_BASE = r'https?://(?:www\.)?vvvvid\.it/(?:#!)?(?:show|anime|film|series)/'
+    _VALID_URL = r'%s(?P<show_id>\d+)/[^/]+/(?P<season_id>\d+)/(?P<id>[0-9]+)' % _VALID_URL_BASE
     _TESTS = [{
         # video_type == 'video/vvvvid'
         'url': 'https://www.vvvvid.it/#!show/434/perche-dovrei-guardarlo-di-dario-moccia/437/489048/ping-pong',
@@ -21,6 +22,15 @@ class VVVVIDIE(InfoExtractor):
             'id': '489048',
             'ext': 'mp4',
             'title': 'Ping Pong',
+            'duration': 239,
+            'series': '"Perché dovrei guardarlo?" di Dario Moccia',
+            'season_id': '437',
+            'episode': 'Ping Pong',
+            'episode_number': 1,
+            'episode_id': '3334',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
         },
         'params': {
             'skip_download': True,
@@ -37,6 +47,9 @@ class VVVVIDIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.vvvvid.it/show/434/perche-dovrei-guardarlo-di-dario-moccia/437/489048',
+        'only_matching': True
     }]
     _conn_id = None
 
@@ -45,20 +58,35 @@ class VVVVIDIE(InfoExtractor):
             'https://www.vvvvid.it/user/login',
             None, headers=self.geo_verification_headers())['data']['conn_id']
 
-    def _real_extract(self, url):
-        show_id, season_id, video_id = re.match(self._VALID_URL, url).groups()
+    def _download_info(self, show_id, path, video_id, fatal=True):
         response = self._download_json(
-            'https://www.vvvvid.it/vvvvid/ondemand/%s/season/%s' % (show_id, season_id),
+            'https://www.vvvvid.it/vvvvid/ondemand/%s/%s' % (show_id, path),
             video_id, headers=self.geo_verification_headers(), query={
                 'conn_id': self._conn_id,
-            })
-        if response['result'] == 'error':
+            }, fatal=fatal)
+        if not (response or fatal):
+            return
+        if response.get('result') == 'error':
             raise ExtractorError('%s said: %s' % (
                 self.IE_NAME, response['message']), expected=True)
+        return response['data']
+
+    def _extract_common_video_info(self, video_data):
+        return {
+            'thumbnail': video_data.get('thumbnail'),
+            'episode_id': str_or_none(video_data.get('id')),
+        }
+
+    def _real_extract(self, url):
+        show_id, season_id, video_id = re.match(self._VALID_URL, url).groups()
+
+        response = self._download_info(
+            show_id, 'season/%s' % season_id, video_id)
 
         vid = int(video_id)
         video_data = list(filter(
-            lambda episode: episode.get('video_id') == vid, response['data']))[0]
+            lambda episode: episode.get('video_id') == vid, response))[0]
+        title = video_data['title']
         formats = []
 
         # vvvvid embed_info decryption algorithm is reverse engineered from function $ds(h) at vvvvid.js
@@ -115,6 +143,17 @@ class VVVVIDIE(InfoExtractor):
 
             return d
 
+        info = {}
+
+        def metadata_from_url(r_url):
+            if not info and r_url:
+                mobj = re.search(r'_(?:S(\d+))?Ep(\d+)', r_url)
+                if mobj:
+                    info['episode_number'] = int(mobj.group(2))
+                    season_number = mobj.group(1)
+                    if season_number:
+                        info['season_number'] = int(season_number)
+
         for quality in ('_sd', ''):
             embed_code = video_data.get('embed_info' + quality)
             if not embed_code:
@@ -122,7 +161,6 @@ class VVVVIDIE(InfoExtractor):
             embed_code = ds(embed_code)
             video_type = video_data.get('video_type')
             if video_type in ('video/rcs', 'video/kenc'):
-                embed_code = re.sub(r'https?://([^/]+)/z/', r'https://\1/i/', embed_code).replace('/manifest.f4m', '/master.m3u8')
                 if video_type == 'video/kenc':
                     kenc = self._download_json(
                         'https://www.vvvvid.it/kenc', video_id, query={
@@ -133,26 +171,75 @@ class VVVVIDIE(InfoExtractor):
                     kenc_message = kenc.get('message')
                     if kenc_message:
                         embed_code += '?' + ds(kenc_message)
-                formats.extend(self._extract_m3u8_formats(
-                    embed_code, video_id, 'mp4',
-                    m3u8_id='hls', fatal=False))
+                formats.extend(self._extract_akamai_formats(embed_code, video_id))
             else:
                 formats.extend(self._extract_wowza_formats(
                     'http://sb.top-ix.org/videomg/_definst_/mp4:%s/playlist.m3u8' % embed_code, video_id))
+            metadata_from_url(embed_code)
+
         self._sort_formats(formats)
 
-        return {
+        metadata_from_url(video_data.get('thumbnail'))
+        info.update(self._extract_common_video_info(video_data))
+        info.update({
             'id': video_id,
-            'title': video_data['title'],
+            'title': title,
             'formats': formats,
-            'thumbnail': video_data.get('thumbnail'),
             'duration': int_or_none(video_data.get('length')),
             'series': video_data.get('show_title'),
             'season_id': season_id,
-            'season_number': video_data.get('season_number'),
-            'episode_id': str_or_none(video_data.get('id')),
-            'episode_number': int_or_none(video_data.get('number')),
-            'episode_title': video_data['title'],
+            'episode': title,
             'view_count': int_or_none(video_data.get('views')),
             'like_count': int_or_none(video_data.get('video_likes')),
-        }
+            'repost_count': int_or_none(video_data.get('video_shares')),
+        })
+        return info
+
+
+class VVVVIDShowIE(VVVVIDIE):
+    _VALID_URL = r'(?P<base_url>%s(?P<id>\d+)(?:/(?P<show_title>[^/?&#]+))?)/?(?:[?#&]|$)' % VVVVIDIE._VALID_URL_BASE
+    _TESTS = [{
+        'url': 'https://www.vvvvid.it/show/156/psyco-pass',
+        'info_dict': {
+            'id': '156',
+            'title': 'Psycho-Pass',
+            'description': 'md5:94d572c0bd85894b193b8aebc9a3a806',
+        },
+        'playlist_count': 46,
+    }, {
+        'url': 'https://www.vvvvid.it/show/156',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        base_url, show_id, show_title = re.match(self._VALID_URL, url).groups()
+
+        seasons = self._download_info(
+            show_id, 'seasons/', show_title)
+
+        show_info = self._download_info(
+            show_id, 'info/', show_title, fatal=False)
+
+        entries = []
+        for season in (seasons or []):
+            episodes = season.get('episodes') or []
+            for episode in episodes:
+                if episode.get('playable') is False:
+                    continue
+                season_id = str_or_none(episode.get('season_id'))
+                video_id = str_or_none(episode.get('video_id'))
+                if not (season_id and video_id):
+                    continue
+                info = self._extract_common_video_info(episode)
+                info.update({
+                    '_type': 'url',
+                    'ie_key': VVVVIDIE.ie_key(),
+                    'url': '/'.join([base_url, season_id, video_id]),
+                    'title': episode.get('title'),
+                    'description': episode.get('description'),
+                    'season_id': season_id,
+                })
+                entries.append(info)
+
+        return self.playlist_result(
+            entries, show_id, show_info.get('title'), show_info.get('description'))

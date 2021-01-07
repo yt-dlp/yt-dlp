@@ -23,7 +23,7 @@ assignees: ''
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dl:
 - Look through the README (https://github.com/blackjack4494/yt-dlc) and FAQ (https://github.com/blackjack4494/yt-dlc) for similar questions
 - Search the bugtracker for similar questions: https://github.com/blackjack4494/yt-dlc
-- Finally, put x into all relevant boxes (like this [x])
+- Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
 - [ ] I'm asking a question

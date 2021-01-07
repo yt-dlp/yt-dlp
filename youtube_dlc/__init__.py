@@ -8,6 +8,7 @@ __license__ = 'Public Domain'
 import codecs
 import io
 import os
+import re
 import random
 import sys
 
@@ -41,6 +42,7 @@ from .downloader import (
     FileDownloader,
 )
 from .extractor import gen_extractors, list_extractors
+from .extractor.common import InfoExtractor
 from .extractor.adobepass import MSO_INFO
 from .YoutubeDL import YoutubeDL
 
@@ -245,6 +247,9 @@ def _real_main(argv=None):
         parser.error('Cannot download a video and extract audio into the same'
                      ' file! Use "{0}.%(ext)s" instead of "{0}" as the output'
                      ' template'.format(outtmpl))
+    for f in opts.format_sort:
+        if re.match(InfoExtractor.FormatSort.regex, f) is None:
+            parser.error('invalid format sort string "%s" specified' % f)
 
     any_getting = opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration or opts.dumpjson or opts.dump_single_json
     any_printing = opts.print_json
@@ -305,6 +310,17 @@ def _real_main(argv=None):
     # contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})
+    # This should be below all ffmpeg PP because it may cut parts out from the video
+    # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
+    if opts.sponskrub is not False:
+        postprocessors.append({
+            'key': 'SponSkrub',
+            'path': opts.sponskrub_path,
+            'args': opts.sponskrub_args,
+            'cut': opts.sponskrub_cut,
+            'force': opts.sponskrub_force,
+            'ignoreerror': opts.sponskrub is None,
+        })
     # Please keep ExecAfterDownload towards the bottom as it allows the user to modify the final file in any way.
     # So if the user is able to remove the file before your postprocessor runs it might cause a few problems.
     if opts.exec_cmd:
@@ -344,10 +360,16 @@ def _real_main(argv=None):
         'forceformat': opts.getformat,
         'forcejson': opts.dumpjson or opts.print_json,
         'dump_single_json': opts.dump_single_json,
+        'force_write_download_archive': opts.force_write_download_archive,
         'simulate': opts.simulate or any_getting,
         'skip_download': opts.skip_download,
         'format': opts.format,
+        'format_sort': opts.format_sort,
+        'format_sort_force': opts.format_sort_force,
+        'allow_multiple_video_streams': opts.allow_multiple_video_streams,
+        'allow_multiple_audio_streams': opts.allow_multiple_audio_streams,
         'listformats': opts.listformats,
+        'listformats_table': opts.listformats_table,
         'outtmpl': outtmpl,
         'autonumber_size': opts.autonumber_size,
         'autonumber_start': opts.autonumber_start,
@@ -380,6 +402,10 @@ def _real_main(argv=None):
         'writeinfojson': opts.writeinfojson,
         'writethumbnail': opts.writethumbnail,
         'write_all_thumbnails': opts.write_all_thumbnails,
+        'writelink': opts.writelink,
+        'writeurllink': opts.writeurllink,
+        'writewebloclink': opts.writewebloclink,
+        'writedesktoplink': opts.writedesktoplink,
         'writesubtitles': opts.writesubtitles,
         'writeautomaticsub': opts.writeautomaticsub,
         'allsubtitles': opts.allsubtitles,

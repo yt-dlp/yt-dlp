@@ -6,14 +6,24 @@ from ..compat import compat_urllib_parse_urlparse
 from ..utils import (
     determine_ext,
     ExtractorError,
+    find_xpath_attr,
     int_or_none,
+    unified_strdate,
+    url_or_none,
     xpath_attr,
     xpath_text,
 )
 
 
 class RuutuIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(?:ruutu|supla)\.fi/(?:video|supla)/(?P<id>\d+)'
+    _VALID_URL = r'''(?x)
+                    https?://
+                        (?:
+                            (?:www\.)?(?:ruutu|supla)\.fi/(?:video|supla|audio)/|
+                            static\.nelonenmedia\.fi/player/misc/embed_player\.html\?.*?\bnid=
+                        )
+                        (?P<id>\d+)
+                    '''
     _TESTS = [
         {
             'url': 'http://www.ruutu.fi/video/2058907',
@@ -71,15 +81,53 @@ class RuutuIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'age_limit': 0,
             },
-            'expected_warnings': ['HTTP Error 502: Bad Gateway'],
-        }
+            'expected_warnings': [
+                'HTTP Error 502: Bad Gateway',
+                'Failed to download m3u8 information',
+            ],
+        },
+        {
+            'url': 'http://www.supla.fi/audio/2231370',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://static.nelonenmedia.fi/player/misc/embed_player.html?nid=3618790',
+            'only_matching': True,
+        },
+        {
+            # episode
+            'url': 'https://www.ruutu.fi/video/3401964',
+            'info_dict': {
+                'id': '3401964',
+                'ext': 'mp4',
+                'title': 'Temptation Island Suomi - Kausi 5 - Jakso 17',
+                'description': 'md5:87cf01d5e1e88adf0c8a2937d2bd42ba',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'duration': 2582,
+                'age_limit': 12,
+                'upload_date': '20190508',
+                'series': 'Temptation Island Suomi',
+                'season_number': 5,
+                'episode_number': 17,
+                'categories': ['Reality ja tositapahtumat', 'Kotimaiset suosikit', 'Romantiikka ja parisuhde'],
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            # premium
+            'url': 'https://www.ruutu.fi/video/3618715',
+            'only_matching': True,
+        },
     ]
+    _API_BASE = 'https://gatling.nelonenmedia.fi'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         video_xml = self._download_xml(
-            'https://gatling.nelonenmedia.fi/media-xml-cache', video_id,
+            '%s/media-xml-cache' % self._API_BASE, video_id,
             query={'id': video_id})
 
         formats = []
@@ -96,9 +144,18 @@ class RuutuIE(InfoExtractor):
                         continue
                     processed_urls.append(video_url)
                     ext = determine_ext(video_url)
+                    auth_video_url = url_or_none(self._download_webpage(
+                        '%s/auth/access/v2' % self._API_BASE, video_id,
+                        note='Downloading authenticated %s stream URL' % ext,
+                        fatal=False, query={'stream': video_url}))
+                    if auth_video_url:
+                        processed_urls.append(auth_video_url)
+                        video_url = auth_video_url
                     if ext == 'm3u8':
                         formats.extend(self._extract_m3u8_formats(
-                            video_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+                            video_url, video_id, 'mp4',
+                            entry_protocol='m3u8_native', m3u8_id='hls',
+                            fatal=False))
                     elif ext == 'f4m':
                         formats.extend(self._extract_f4m_formats(
                             video_url, video_id, f4m_id='hds', fatal=False))
@@ -136,18 +193,35 @@ class RuutuIE(InfoExtractor):
 
         extract_formats(video_xml.find('./Clip'))
 
-        drm = xpath_text(video_xml, './Clip/DRM', default=None)
-        if not formats and drm:
-            raise ExtractorError('This video is DRM protected.', expected=True)
+        def pv(name):
+            node = find_xpath_attr(
+                video_xml, './Clip/PassthroughVariables/variable', 'name', name)
+            if node is not None:
+                return node.get('value')
+
+        if not formats:
+            drm = xpath_text(video_xml, './Clip/DRM', default=None)
+            if drm:
+                raise ExtractorError('This video is DRM protected.', expected=True)
+            ns_st_cds = pv('ns_st_cds')
+            if ns_st_cds != 'free':
+                raise ExtractorError('This video is %s.' % ns_st_cds, expected=True)
 
         self._sort_formats(formats)
+
+        themes = pv('themes')
 
         return {
             'id': video_id,
             'title': xpath_attr(video_xml, './/Behavior/Program', 'program_name', 'title', fatal=True),
             'description': xpath_attr(video_xml, './/Behavior/Program', 'description', 'description'),
             'thumbnail': xpath_attr(video_xml, './/Behavior/Startpicture', 'href', 'thumbnail'),
-            'duration': int_or_none(xpath_text(video_xml, './/Runtime', 'duration')),
+            'duration': int_or_none(xpath_text(video_xml, './/Runtime', 'duration')) or int_or_none(pv('runtime')),
             'age_limit': int_or_none(xpath_text(video_xml, './/AgeLimit', 'age limit')),
+            'upload_date': unified_strdate(pv('date_start')),
+            'series': pv('series_name'),
+            'season_number': int_or_none(pv('season_number')),
+            'episode_number': int_or_none(pv('episode_number')),
+            'categories': themes.split(',') if themes else [],
             'formats': formats,
         }

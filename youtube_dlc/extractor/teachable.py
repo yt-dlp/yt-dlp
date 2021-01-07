@@ -140,7 +140,7 @@ class TeachableIE(TeachableBaseIE):
     @staticmethod
     def _is_teachable(webpage):
         return 'teachableTracker.linker:autoLink' in webpage and re.search(
-            r'<link[^>]+href=["\']https?://process\.fs\.teachablecdn\.com',
+            r'<link[^>]+href=["\']https?://(?:process\.fs|assets)\.teachablecdn\.com',
             webpage)
 
     @staticmethod
@@ -269,7 +269,7 @@ class TeachableCourseIE(TeachableBaseIE):
                 r'(?s)(?P<li><li[^>]+class=(["\'])(?:(?!\2).)*?section-item[^>]+>.+?</li>)',
                 webpage):
             li = mobj.group('li')
-            if 'fa-youtube-play' not in li:
+            if 'fa-youtube-play' not in li and not re.search(r'\d{1,2}:\d{2}', li):
                 continue
             lecture_url = self._search_regex(
                 r'<a[^>]+href=(["\'])(?P<url>(?:(?!\1).)+)\1', li,

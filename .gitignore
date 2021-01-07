@@ -8,6 +8,7 @@ py2exe.log
 *.kate-swp
 build/
 dist/
+zip/
 MANIFEST
 README.txt
 youtube-dl.1
@@ -46,6 +47,7 @@ updates_key.pem
 *.part
 *.ytdl
 *.swp
+*.spec
 test/local_parameters.json
 .tox
 youtube-dl.zsh
@@ -62,3 +64,5 @@ venv/
 .vscode
 
 cookies.txt
+
+*.sublime-workspace

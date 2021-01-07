@@ -21,20 +21,20 @@ assignees: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlc:
-- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is 2020.10.31. If it's not, see https://github.com/blackjack4494/yt-dlc on how to update. Issues with outdated version will be REJECTED.
-- Search the bugtracker for similar site feature requests: https://github.com/blackjack4494/yt-dlc. DO NOT post duplicates.
-- Finally, put x into all relevant boxes (like this [x])
+- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is 2021.01.07. If it's not, see https://github.com/pukkandan/yt-dlc on how to update. Issues with outdated version will be REJECTED.
+- Search the bugtracker for similar site feature requests: https://github.com/pukkandan/yt-dlc. DO NOT post duplicates.
+- Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
 - [ ] I'm reporting a site feature request
-- [ ] I've verified that I'm running youtube-dlc version **2020.10.31**
+- [ ] I've verified that I'm running youtube-dlc version **2021.01.07**
 - [ ] I've searched the bugtracker for similar site feature requests including closed ones
 
 
 ## Description
 
 <!--
-Provide an explanation of your site feature request in an arbitrary form. Please make sure the description is worded well enough to be understood, see https://github.com/ytdl-org/youtube-dlc#is-the-description-of-the-issue-itself-sufficient. Provide any additional information, suggested solution and as much context and examples as possible.
+Provide an explanation of your site feature request in an arbitrary form. Please make sure the description is worded well enough to be understood, see https://github.com/ytdl-org/youtube-dl#is-the-description-of-the-issue-itself-sufficient. Provide any additional information, suggested solution and as much context and examples as possible.
 -->
 
 WRITE DESCRIPTION HERE

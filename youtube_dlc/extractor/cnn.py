@@ -96,7 +96,10 @@ class CNNIE(TurnerBaseIE):
             config['data_src'] % path, page_title, {
                 'default': {
                     'media_src': config['media_src'],
-                }
+                },
+                'f4m': {
+                    'host': 'cnn-vh.akamaihd.net',
+                },
             })
 
 

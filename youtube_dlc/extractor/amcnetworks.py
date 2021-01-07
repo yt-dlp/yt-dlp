@@ -1,6 +1,8 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
+
 from .theplatform import ThePlatformIE
 from ..utils import (
     int_or_none,
@@ -11,25 +13,22 @@ from ..utils import (
 
 
 class AMCNetworksIE(ThePlatformIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:amc|bbcamerica|ifc|(?:we|sundance)tv)\.com/(?:movies|shows(?:/[^/]+)+)/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?P<site>amc|bbcamerica|ifc|(?:we|sundance)tv)\.com/(?P<id>(?:movies|shows(?:/[^/]+)+)/[^/?#&]+)'
     _TESTS = [{
-        'url': 'http://www.ifc.com/shows/maron/season-04/episode-01/step-1',
-        'md5': '',
+        'url': 'https://www.bbcamerica.com/shows/the-graham-norton-show/videos/tina-feys-adorable-airline-themed-family-dinner--51631',
         'info_dict': {
-            'id': 's3MX01Nl4vPH',
+            'id': '4Lq1dzOnZGt0',
             'ext': 'mp4',
-            'title': 'Maron - Season 4 - Step 1',
-            'description': 'In denial about his current situation, Marc is reluctantly convinced by his friends to enter rehab. Starring Marc Maron and Constance Zimmer.',
-            'age_limit': 17,
-            'upload_date': '20160505',
-            'timestamp': 1462468831,
+            'title': "The Graham Norton Show - Season 28 - Tina Fey's Adorable Airline-Themed Family Dinner",
+            'description': "It turns out child stewardesses are very generous with the wine! All-new episodes of 'The Graham Norton Show' premiere Fridays at 11/10c on BBC America.",
+            'upload_date': '20201120',
+            'timestamp': 1605904350,
             'uploader': 'AMCN',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
         },
-        'skip': 'Requires TV provider accounts',
     }, {
         'url': 'http://www.bbcamerica.com/shows/the-hunt/full-episodes/season-1/episode-01-the-hardest-challenge',
         'only_matching': True,
@@ -55,32 +54,34 @@ class AMCNetworksIE(ThePlatformIE):
         'url': 'https://www.sundancetv.com/shows/riviera/full-episodes/season-1/episode-01-episode-1',
         'only_matching': True,
     }]
+    _REQUESTOR_ID_MAP = {
+        'amc': 'AMC',
+        'bbcamerica': 'BBCA',
+        'ifc': 'IFC',
+        'sundancetv': 'SUNDANCE',
+        'wetv': 'WETV',
+    }
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        site, display_id = re.match(self._VALID_URL, url).groups()
+        requestor_id = self._REQUESTOR_ID_MAP[site]
+        properties = self._download_json(
+            'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/%s/url/%s' % (requestor_id.lower(), display_id),
+            display_id)['data']['properties']
         query = {
             'mbr': 'true',
             'manifest': 'm3u',
         }
-        media_url = self._search_regex(
-            r'window\.platformLinkURL\s*=\s*[\'"]([^\'"]+)',
-            webpage, 'media url')
-        theplatform_metadata = self._download_theplatform_metadata(self._search_regex(
-            r'link\.theplatform\.com/s/([^?]+)',
-            media_url, 'theplatform_path'), display_id)
+        tp_path = 'M_UwQC/media/' + properties['videoPid']
+        media_url = 'https://link.theplatform.com/s/' + tp_path
+        theplatform_metadata = self._download_theplatform_metadata(tp_path, display_id)
         info = self._parse_theplatform_metadata(theplatform_metadata)
         video_id = theplatform_metadata['pid']
         title = theplatform_metadata['title']
         rating = try_get(
             theplatform_metadata, lambda x: x['ratings'][0]['rating'])
-        auth_required = self._search_regex(
-            r'window\.authRequired\s*=\s*(true|false);',
-            webpage, 'auth required')
-        if auth_required == 'true':
-            requestor_id = self._search_regex(
-                r'window\.requestor_id\s*=\s*[\'"]([^\'"]+)',
-                webpage, 'requestor id')
+        video_category = properties.get('videoCategory')
+        if video_category and video_category.endswith('-Auth'):
             resource = self._get_mvpd_resource(
                 requestor_id, title, video_id, rating)
             query['auth'] = self._extract_mvpd_auth(

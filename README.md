@@ -1,68 +1,100 @@
-[![Build Status](https://travis-ci.com/blackjack4494/yt-dlc.svg?branch=master)](https://travis-ci.com/blackjack4494/yt-dlc)
-[![PyPi](https://img.shields.io/pypi/v/youtube-dlc.svg)](https://pypi.org/project/youtube-dlc)
+[![Build Status](https://github.com/pukkandan/yt-dlc/workflows/CI/badge.svg)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3ACI)
+[![Release Version](https://img.shields.io/badge/Release-2021.01.07-brightgreen)](https://github.com/pukkandan/yt-dlc/releases/latest)
+[![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlc/blob/master/LICENSE)
 
-[![Gitter chat](https://img.shields.io/gitter/room/youtube-dlc/community)](https://gitter.im/youtube-dlc) 
-[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://github.com/blackjack4494/yt-dlc/blob/master/LICENSE)
+youtube-dlc - download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
 
-youtube-dlc - download videos from youtube.com or other video platforms.
+This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which is inturn a fork of [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
-youtube-dlc is a fork of youtube-dl with the intention of getting features tested by the community merged in the tool faster, since youtube-dl's development seems to be slowing down. (https://web.archive.org/web/20201014194602/https://github.com/ytdl-org/youtube-dl/issues/26462)
+* [CHANGES FROM YOUTUBE-DLC](#changes)
+* [INSTALLATION](#installation)
+    * [UPDATE](#update)
+    * [COMPILE](#compile)
+* [YOUTUBE-DLC](#youtube-dlc)
+* [DESCRIPTION](#description)
+* [OPTIONS](#options)
+    * [Network Options](#network-options)
+    * [Geo Restriction](#geo-restriction)
+    * [Video Selection](#video-selection)
+    * [Download Options](#download-options)
+    * [Filesystem Options](#filesystem-options)
+    * [Thumbnail images](#thumbnail-images)
+    * [Internet Shortcut Options](#internet-shortcut-options)
+    * [Verbosity / Simulation Options](#verbosity--simulation-options)
+    * [Workarounds](#workarounds)
+    * [Video Format Options](#video-format-options)
+    * [Subtitle Options](#subtitle-options)
+    * [Authentication Options](#authentication-options)
+    * [Adobe Pass Options](#adobe-pass-options)
+    * [Post-processing Options](#post-processing-options)
+    * [SponSkrub Options (SponsorBlock)](#sponskrub-options-sponsorblock)
+    * [Extractor Options](#extractor-options)
+* [CONFIGURATION](#configuration)
+    * [Authentication with .netrc file](#authentication-with-netrc-file)
+* [OUTPUT TEMPLATE](#output-template)
+    * [Output template and Windows batch files](#output-template-and-windows-batch-files)
+    * [Output template examples](#output-template-examples)
+* [FORMAT SELECTION](#format-selection)
+    * [Filtering Formats](#filtering-formats)
+    * [Sorting Formats](#sorting-formats)
+    * [Format Selection examples](#format-selection-examples)
+* [VIDEO SELECTION](#video-selection-1)
+* [MORE](#more)
 
-- [INSTALLATION](#installation)
-- [UPDATE](#update)
-- [DESCRIPTION](#description)
-- [OPTIONS](#options)
-  - [Network Options:](#network-options)
-  - [Geo Restriction:](#geo-restriction)
-  - [Video Selection:](#video-selection)
-  - [Download Options:](#download-options)
-  - [Filesystem Options:](#filesystem-options)
-  - [Thumbnail images:](#thumbnail-images)
-  - [Verbosity / Simulation Options:](#verbosity--simulation-options)
-  - [Workarounds:](#workarounds)
-  - [Video Format Options:](#video-format-options)
-  - [Subtitle Options:](#subtitle-options)
-  - [Authentication Options:](#authentication-options)
-  - [Adobe Pass Options:](#adobe-pass-options)
-  - [Post-processing Options:](#post-processing-options)
-  - [Extractor Options:](#extractor-options)
-- [CONFIGURATION](#configuration)
-    - [Authentication with `.netrc` file](#authentication-with-netrc-file)
-- [OUTPUT TEMPLATE](#output-template)
-      - [Output template and Windows batch files](#output-template-and-windows-batch-files)
-      - [Output template examples](#output-template-examples)
-- [FORMAT SELECTION](#format-selection)
-      - [Format selection examples](#format-selection-examples)
-- [VIDEO SELECTION](#video-selection-1)
+
+# CHANGES
+See [commits](https://github.com/pukkandan/yt-dlc/commits) for more details
+
+### 2021.01.05
+* **Format Sort:** Added `--format-sort` (`-S`), `--format-sort-force` (`--S-force`) - See [Sorting Formats](#sorting-formats) for details
+* **Format Selection:** See [Format Selection](#format-selection) for details
+    * New format selectors: `best*`, `worst*`, `bestvideo*`, `bestaudio*`, `worstvideo*`, `worstaudio*`
+    * Changed video format sorting to show video only files and video+audio files together.
+    * Added `--video-multistreams`, `--no-video-multistreams`, `--audio-multistreams`, `--no-audio-multistreams`
+    * Added `b`,`w`,`v`,`a` as alias for `best`, `worst`, `video` and `audio` respectively
+* **Shortcut Options:** Added `--write-link`, `--write-url-link`, `--write-webloc-link`, `--write-desktop-link` by @h-h-h-h - See [Internet Shortcut Options](#internet-shortcut-options) for details
+* **Sponskrub integration:** Added `--sponskrub`, `--sponskrub-cut`, `--sponskrub-force`, `--sponskrub-location`, `--sponskrub-args` - See [SponSkrub Options](#sponskrub-options-sponsorblock) for details
+* Added `--force-download-archive` (`--force-write-archive`) by by h-h-h-h
+* Added `--list-formats-as-table`,  `--list-formats-old`
+* **Negative Options:** Makes it possible to negate boolean options by adding a `no-` to the switch
+    * Added `--no-ignore-dynamic-mpd`, `--no-allow-dynamic-mpd`, `--allow-dynamic-mpd`, `--youtube-include-hls-manifest`, `--no-youtube-include-hls-manifest`, `--no-youtube-skip-hls-manifest`, `--no-download`, `--no-download-archive`, `--resize-buffer`, `--part`, `--mtime`, `--no-keep-fragments`, `--no-cookies`, `--no-write-annotations`, `--no-write-info-json`, `--no-write-description`, `--no-write-thumbnail`, `--youtube-include-dash-manifest`, `--post-overwrites`, `--no-keep-video`, `--no-embed-subs`, `--no-embed-thumbnail`, `--no-add-metadata`, `--no-include-ads`, `--no-write-sub`, `--no-write-auto-sub`, `--no-playlist-reverse`, `--no-restrict-filenames`, `--youtube-include-dash-manifest`, `--no-format-sort-force`, `--flat-videos`, `--no-list-formats-as-table`, `--no-sponskrub`, `--no-sponskrub-cut`, `--no-sponskrub-force`
+    * Renamed: `--write-subs`, --no-write-subs`, `--no-write-auto-subs, `--write-auto-subs`. Note that these can still be used without the ending "s"
+* Relaxed validation for format filters so that any arbitrary field can be used
+* Fix for embedding thumbnail in mp3 by @pauldubois98
+* Make Twitch Video ID output from Playlist and VOD extractor same. This is only a temporary fix
+* **Merge youtube-dl:** Upto [2020.01.03](https://github.com/ytdl-org/youtube-dl/commit/8e953dcbb10a1a42f4e12e4e132657cb0100a1f8) - See [blackjack4494/yt-dlc#280](https://github.com/blackjack4494/yt-dlc/pull/280) for details
+* Cleaned up the fork for public use
+
+### 2021.01.05-2
+* **Changed defaults:**
+    * Enabled `--ignore`
+    * Disabled `--video-multistreams` and `--audio-multistreams`
+    * Changed default format selection to `bv*+ba/b` when `--audio-multistreams` is disabled
+    * Changed default format sort order to `res,fps,codec,size,br,asr,proto,ext,has_audio,source,format_id`
+    * Changed `webm` to be more preferable than `flv` in format sorting
+    * Changed default output template to `%(title)s [%(id)s].%(ext)s`
+    * Enabled `--list-formats-as-table`
+
+### 2021.01.07
+* Removed priority of `av01` codec in `-S` since most devices don't support it yet
+* Added `duration_string` to be used in `--output`
+* Created First Release
 
 # INSTALLATION
-[How to update](#update)
 
-**All Platforms**  
-Preferred way using pip:  
-You may want to use `python3` instead of `python`
-
-    python -m pip install --upgrade youtube-dlc
+To use the latest version, simply download and run the [latest release](https://github.com/pukkandan/yt-dlc/releases/latest).
+Currently, there is no support for any package managers.
 
 If you want to install the current master branch
 
-    python -m pip install git+https://github.com/blackjack4494/yt-dlc
+    python -m pip install git+https://github.com/pukkandan/yt-dlc
 
-**UNIX** (Linux, macOS, etc.)  
-Using wget:
+### UPDATE
+**DO NOT UPDATE using `-U` !** instead download binaries again
 
-    sudo wget https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc -O /usr/local/bin/youtube-dlc
-    sudo chmod a+rx /usr/local/bin/youtube-dlc
+### COMPILE
 
-Using curl:
-
-    sudo curl -L https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc -o /usr/local/bin/youtube-dlc
-    sudo chmod a+rx /usr/local/bin/youtube-dlc
-
-
-**Windows** users can download [youtube-dlc.exe](https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc.exe) (**do not** put in `C:\Windows\System32`!).  
-
-**Compile**
+**For Windows**:
 To build the Windows executable yourself (without version info!)
 
     python -m pip install --upgrade pyinstaller
@@ -74,7 +106,7 @@ There will be a `youtube-dlc.exe` in `/dist`
 New way to build Windows is to use `python pyinst.py` (please use python3 64Bit)  
 For 32Bit Version use a 32Bit Version of python (3 preferred here as well) and run `python pyinst32.py`  
 
-For Unix:
+**For Unix**:
 You will need the required build tools  
 python, make (GNU), pandoc, zip, nosetests  
 Then simply type this
@@ -82,26 +114,27 @@ Then simply type this
     make
 
 
-# UPDATE
-**DO NOT UPDATE using `-U` !** instead download binaries again or when installed with pip use a described above when installing.  
-I will add some memorable short links to the binaries so you can download them easier.
-
 # DESCRIPTION
 **youtube-dlc** is a command-line program to download videos from YouTube.com and a few more sites. It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
 
     youtube-dlc [OPTIONS] URL [URL...]
 
+
 # OPTIONS
+`Ctrl+F` is your friend :D
+<!-- Autogenerated -->
+
+## General Options:
     -h, --help                       Print this help text and exit
     --version                        Print program version and exit
-    -U, --update                     Update this program to latest version. Make
-                                     sure that you have sufficient permissions
-                                     (run with sudo if needed)
+    -U, --update                     [BROKEN] Update this program to latest
+                                     version. Make sure that you have sufficient
+                                     permissions (run with sudo if needed)
     -i, --ignore-errors              Continue on download errors, for example to
                                      skip unavailable videos in a playlist
-    --abort-on-error                 Abort downloading of further videos (in the
-                                     playlist or the command line) if an error
-                                     occurs
+                                     (default) (Same as --no-abort-on-error)
+    --abort-on-error                 Abort downloading of further videos if an 
+                                     error occurs (Same as --no-ignore-errors)
     --dump-user-agent                Display the current browser identification
     --list-extractors                List all supported extractors
     --extractor-descriptions         Output descriptions of all supported
@@ -110,26 +143,28 @@ I will add some memorable short links to the binaries so you can download them e
                                      extractor
     --default-search PREFIX          Use this prefix for unqualified URLs. For
                                      example "gvsearch2:" downloads two videos
-                                     from google videos for youtube-dlc "large
+                                     from google videos for youtube-dl "large
                                      apple". Use the value "auto" to let
-                                     youtube-dlc guess ("auto_warning" to emit a
+                                     youtube-dl guess ("auto_warning" to emit a
                                      warning when guessing). "error" just throws
                                      an error. The default value "fixup_error"
                                      repairs broken URLs, but emits an error if
                                      this is not possible instead of searching.
-    --ignore-config                  Do not read configuration files. When given
+    --ignore-config, --no-config     Do not read configuration files. When given
                                      in the global configuration file
-                                     /etc/youtube-dlc.conf: Do not read the user
+                                     /etc/youtube-dl.conf: Do not read the user
                                      configuration in ~/.config/youtube-
-                                     dlc/config (%APPDATA%/youtube-
-                                     dlc/config.txt on Windows)
+                                     dl/config (%APPDATA%/youtube-dl/config.txt
+                                     on Windows)
     --config-location PATH           Location of the configuration file; either
                                      the path to the config or its containing
                                      directory.
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them.
+    --flat-videos                    Do not resolve the video urls
+    --no-flat-playlist               Extract the videos of a playlist
     --mark-watched                   Mark videos watched (YouTube only)
-    --no-mark-watched                Do not mark videos watched (YouTube only)
+    --no-mark-watched                Do not mark videos watched
     --no-color                       Do not emit color codes in output
 
 ## Network Options:
@@ -180,11 +215,15 @@ I will add some memorable short links to the binaries so you can download them e
                                      SIZE (e.g. 50k or 44.6m)
     --max-filesize SIZE              Do not download any videos larger than SIZE
                                      (e.g. 50k or 44.6m)
-    --date DATE                      Download only videos uploaded in this date
+    --date DATE                      Download only videos uploaded in this date.
+                                     The date can be "YYYYMMDD" or in the format
+                                     "(now|today)[+-][0-9](day|week|month|year)(s)?"
     --datebefore DATE                Download only videos uploaded on or before
-                                     this date (i.e. inclusive)
+                                     this date. The date formats accepted is the
+                                     same as --date
     --dateafter DATE                 Download only videos uploaded on or after
-                                     this date (i.e. inclusive)
+                                     this date. The date formats accepted is the
+                                     same as --date
     --min-views COUNT                Do not download any videos with less than
                                      COUNT views
     --max-views COUNT                Do not download any videos with more than
@@ -208,6 +247,7 @@ I will add some memorable short links to the binaries so you can download them e
                                      service), but who also have a description,
                                      use --match-filter "like_count > 100 &
                                      dislike_count <? 50 & description" .
+    --no-match-filter                Do not use generic video filter (default)
     --no-playlist                    Download only the video, if the URL refers
                                      to a video and a playlist.
     --yes-playlist                   Download the playlist, if the URL refers to
@@ -219,8 +259,10 @@ I will add some memorable short links to the binaries so you can download them e
                                      downloaded videos in it.
     --break-on-existing              Stop the download process after attempting
                                      to download a file that's in the archive.
+    --no-download-archive            Do not use archive file (default)
     --include-ads                    Download advertisements as well
                                      (experimental)
+    --no-include-ads                 Do not download advertisements (default)
 
 ## Download Options:
     -r, --limit-rate RATE            Maximum download rate in bytes per second
@@ -230,25 +272,29 @@ I will add some memorable short links to the binaries so you can download them e
     --fragment-retries RETRIES       Number of retries for a fragment (default
                                      is 10), or "infinite" (DASH, hlsnative and
                                      ISM)
-    --skip-unavailable-fragments     Skip unavailable fragments (DASH, hlsnative
-                                     and ISM)
-    --abort-on-unavailable-fragment  Abort downloading when some fragment is not
-                                     available
+    --skip-unavailable-fragments     Skip unavailable fragments for DASH,
+                                     hlsnative and ISM (default)
+                                     (Same as --no-abort-on-unavailable-fragment)
+    --abort-on-unavailable-fragment  Abort downloading if a fragment is unavailable
+                                     (Same as --no-skip-unavailable-fragments)
     --keep-fragments                 Keep downloaded fragments on disk after
-                                     downloading is finished; fragments are
-                                     erased by default
+                                     downloading is finished
+    --no-keep-fragments              Delete downloaded fragments after
+                                     downloading is finished (default)
     --buffer-size SIZE               Size of download buffer (e.g. 1024 or 16K)
                                      (default is 1024)
-    --no-resize-buffer               Do not automatically adjust the buffer
-                                     size. By default, the buffer size is
-                                     automatically resized from an initial value
-                                     of SIZE.
+    --resize-buffer                  The buffer size is automatically resized
+                                     from an initial value of --buffer-size
+                                     (default)
+    --no-resize-buffer               Do not automatically adjust the buffer size
     --http-chunk-size SIZE           Size of a chunk for chunk-based HTTP
                                      downloading (e.g. 10485760 or 10M) (default
                                      is disabled). May be useful for bypassing
                                      bandwidth throttling imposed by a webserver
                                      (experimental)
     --playlist-reverse               Download playlist videos in reverse order
+    --no-playlist-reverse            Download playlist videos in default order
+                                     (default)
     --playlist-random                Download playlist videos in random order
     --xattr-set-filesize             Set file xattribute ytdl.filesize with
                                      expected file size
@@ -271,52 +317,70 @@ I will add some memorable short links to the binaries so you can download them e
                                      stdin), one URL per line. Lines starting
                                      with '#', ';' or ']' are considered as
                                      comments and ignored.
-    --id                             Use only video ID in file name
     -o, --output TEMPLATE            Output filename template, see the "OUTPUT
-                                     TEMPLATE" for all the info
+                                     TEMPLATE" for details
     --autonumber-start NUMBER        Specify the start value for %(autonumber)s
                                      (default is 1)
     --restrict-filenames             Restrict filenames to only ASCII
                                      characters, and avoid "&" and spaces in
                                      filenames
+    --no-restrict-filenames          Allow Unicode characters, "&" and spaces in
+                                     filenames (default)
     -w, --no-overwrites              Do not overwrite files
-    -c, --continue                   Force resume of partially downloaded files.
-                                     By default, youtube-dlc will resume
-                                     downloads if possible.
-    --no-continue                    Do not resume partially downloaded files
-                                     (restart from beginning)
+    -c, --continue                   Resume partially downloaded files (default)
+    --no-continue                    Restart download of partially downloaded
+                                     files from beginning
+    --part                           Use .part files instead of writing directly
+                                     into output file (default)
     --no-part                        Do not use .part files - write directly
                                      into output file
+    --mtime                          Use the Last-modified header to set the
+                                     file modification time (default)
     --no-mtime                       Do not use the Last-modified header to set
                                      the file modification time
     --write-description              Write video description to a .description
                                      file
+    --no-write-description           Do not write video description (default)
     --write-info-json                Write video metadata to a .info.json file
+    --no-write-info-json             Do not write video metadata (default)
     --write-annotations              Write video annotations to a
                                      .annotations.xml file
+    --no-write-annotations           Do not write video annotations (default)
     --load-info-json FILE            JSON file containing the video information
                                      (created with the "--write-info-json"
                                      option)
     --cookies FILE                   File to read cookies from and dump cookie
                                      jar in
-    --cache-dir DIR                  Location in the filesystem where youtube-
-                                     dlc can store some downloaded information
+    --no-cookies                     Do not read/dump cookies (default)
+    --cache-dir DIR                  Location in the filesystem where youtube-dl
+                                     can store some downloaded information
                                      permanently. By default
-                                     $XDG_CACHE_HOME/youtube-dlc or
-                                     ~/.cache/youtube-dlc . At the moment, only
+                                     $XDG_CACHE_HOME/youtube-dl or
+                                     ~/.cache/youtube-dl . At the moment, only
                                      YouTube player files (for videos with
                                      obfuscated signatures) are cached, but that
                                      may change.
     --no-cache-dir                   Disable filesystem caching
     --rm-cache-dir                   Delete all filesystem cache files
-    --trim-file-name                 Limit the filename length (extension
+    --trim-file-name LENGTH          Limit the filename length (extension
                                      excluded)
 
-## Thumbnail images:
+## Thumbnail Images:
     --write-thumbnail                Write thumbnail image to disk
+    --no-write-thumbnail             Do not write thumbnail image to disk
+                                     (default)
     --write-all-thumbnails           Write all thumbnail image formats to disk
     --list-thumbnails                Simulate and list all available thumbnail
                                      formats
+
+## Internet Shortcut Options:
+    --write-link                     Write an internet shortcut file, depending on 
+                                     the current platform (.url/.webloc/.desktop). 
+                                     The URL may be cached by the OS.
+    --write-url-link                 Write a Windows .url internet shortcut file. 
+                                     (The OS caches the URL based on the file path)
+    --write-webloc-link              Write a .webloc macOS internet shortcut file
+    --write-desktop-link             Write a .desktop Linux internet shortcut file
 
 ## Verbosity / Simulation Options:
     -q, --quiet                      Activate quiet mode
@@ -341,6 +405,10 @@ I will add some memorable short links to the binaries so you can download them e
                                      playlist information in a single line.
     --print-json                     Be quiet and print the video information as
                                      JSON (video is still being downloaded).
+    --force-write-archive            Force download archive entries to be written 
+                                     as far as no errors occur, even if -s or 
+                                     another simulation switch is used.
+                                     (Same as --force-download-archive)
     --newline                        Output progress bar as new lines
     --no-progress                    Do not print progress bar
     --console-title                  Display progress in console titlebar
@@ -351,10 +419,9 @@ I will add some memorable short links to the binaries so you can download them e
                                      files in the current directory to debug
                                      problems
     --print-traffic                  Display sent and read HTTP traffic
-    -C, --call-home                  Contact the youtube-dlc server for
-                                     debugging
-    --no-call-home                   Do NOT contact the youtube-dlc server for
-                                     debugging
+    -C, --call-home                  Contact the youtube-dlc server for debugging
+    --no-call-home                   Do not contact the youtube-dlc server for
+                                     debugging (default)
 
 ## Workarounds:
     --encoding ENCODING              Force the specified encoding (experimental)
@@ -381,30 +448,60 @@ I will add some memorable short links to the binaries so you can download them e
                                      before each download (maximum possible
                                      number of seconds to sleep). Must only be
                                      used along with --min-sleep-interval.
-    --sleep-subtitles                Enforce sleep interval on subtitles as well.
-
+    --sleep-subtitles SECONDS        Enforce sleep interval on subtitles as well
 
 ## Video Format Options:
-    -f, --format FORMAT              Video format code, see the "FORMAT
-                                     SELECTION" for all the info
+    -f, --format FORMAT              Video format code, see "FORMAT SELECTION"
+                                     for more details
+    -S, --format-sort SORTORDER      Sort the formats by the fields given, see
+                                     "Sorting Formats" for more details
+    --S-force, --format-sort-force   Force user specified sort order to have 
+                                     precedence over all fields, see "Sorting 
+                                     Formats" for more details
+    --no-format-sort-force           Some fields have precedence over the user
+                                     specified sort order (default), see
+                                     "Sorting Formats" for more details
+    --video-multistreams             Allow multiple video streams to be merged
+                                     into a single file
+    --no-video-multistreams          Only one video stream is downloaded for
+                                     each output file (default)
+    --audio-multistreams             Allow multiple audio streams to be merged
+                                     into a single file
+    --no-audio-multistreams          Only one audio stream is downloaded for
+                                     each output file (default)
     --all-formats                    Download all available video formats
     --prefer-free-formats            Prefer free video formats unless a specific
                                      one is requested
     -F, --list-formats               List all available formats of requested
                                      videos
+    --list-formats-as-table          Present the output of -F in a more tabular
+                                     form (default)
+                                     (Same as --no-list-formats-as-table)
+    --list-formats-old               Present the output of -F in the old form
+    --youtube-include-dash-manifest  Download the DASH manifests and related data 
+                                     on YouTube videos (default)
+                                     (Same as --no-youtube-skip-dash-manifest)
     --youtube-skip-dash-manifest     Do not download the DASH manifests and
                                      related data on YouTube videos
+                                     (Same as --no-youtube-include-dash-manifest)
+    --youtube-include-hls-manifest   Download the HLS manifests and related data 
+                                     on YouTube videos (default)
+                                     (Same as --no-youtube-skip-hls-manifest)
     --youtube-skip-hls-manifest      Do not download the HLS manifests and
                                      related data on YouTube videos
+                                     (Same as --no-youtube-include-hls-manifest)
     --merge-output-format FORMAT     If a merge is required (e.g.
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
                                      webm, flv. Ignored if no merge is required
 
 ## Subtitle Options:
-    --write-sub                      Write subtitle file
-    --write-auto-sub                 Write automatically generated subtitle file
+    --write-subs                     Write subtitle file
+    --no-write-subs                  Do not write subtitle file (default)
+    --write-auto-subs                Write automatically generated subtitle file
                                      (YouTube only)
+    --no-write-auto-subs             Do not write automatically generated
+                                     subtitle file (default)
     --all-subs                       Download all the available subtitles of the
                                      video
     --list-subs                      List all available subtitles for the video
@@ -421,7 +518,7 @@ I will add some memorable short links to the binaries so you can download them e
                                      out, youtube-dlc will ask interactively.
     -2, --twofactor TWOFACTOR        Two-factor authentication code
     -n, --netrc                      Use .netrc authentication data
-    --video-password PASSWORD        Video password (vimeo, smotri, youku)
+    --video-password PASSWORD        Video password (vimeo, youku)
 
 ## Adobe Pass Options:
     --ap-mso MSO                     Adobe Pass multiple-system operator (TV
@@ -434,7 +531,7 @@ I will add some memorable short links to the binaries so you can download them e
     --ap-list-mso                    List all supported multiple-system
                                      operators
 
-## Post-processing Options:
+## Post-Processing Options:
     -x, --extract-audio              Convert video files to audio-only files
                                      (requires ffmpeg or avconv and ffprobe or
                                      avprobe)
@@ -446,23 +543,27 @@ I will add some memorable short links to the binaries so you can download them e
                                      a value between 0 (better) and 9 (worse)
                                      for VBR or a specific bitrate like 128K
                                      (default 5)
-    --remux-video FORMAT             Remux the video to another container format
-                                     if necessary (currently supported: mp4|mkv,
-                                     target container format must support video
-                                     / audio encoding, remuxing may fail)
-    --recode-video FORMAT            Encode the video to another format if
-                                     necessary (currently supported:
-                                     mp4|flv|ogg|webm|mkv|avi)
+    --remux-video FORMAT             Remux the video into another container if
+                                     necessary (currently supported: mp4|mkv).
+                                     If target container does not support the
+                                     video/audio codec, remuxing will fail
+    --recode-video FORMAT            Re-encode the video into another format if
+                                     re-encoding is necessary (currently
+                                     supported: mp4|flv|ogg|webm|mkv|avi)
     --postprocessor-args ARGS        Give these arguments to the postprocessor
-    -k, --keep-video                 Keep the video file on disk after the post-
-                                     processing; the video is erased by default
-    --no-post-overwrites             Do not overwrite post-processed files; the
-                                     post-processed files are overwritten by
-                                     default
+    -k, --keep-video                 Keep the intermediate video file on disk
+                                     after post-processing
+    --no-keep-video                  Delete the intermediate video file after
+                                     post-processing (default)
+    --post-overwrites                Overwrite post-processed files (default)
+    --no-post-overwrites             Do not overwrite post-processed files
     --embed-subs                     Embed subtitles in the video (only for mp4,
                                      webm and mkv videos)
+    --no-embed-subs                  Do not embed subtitles (default)
     --embed-thumbnail                Embed thumbnail in the audio as cover art
+    --no-embed-thumbnail             Do not embed thumbnail (default)
     --add-metadata                   Write metadata to the video file
+    --no-add-metadata                Do not write metadata (default)
     --metadata-from-title FORMAT     Parse additional metadata like song title /
                                      artist from the video title. The format
                                      syntax is the same as --output. Regular
@@ -481,9 +582,10 @@ I will add some memorable short links to the binaries so you can download them e
                                      default; fix file if we can, warn
                                      otherwise)
     --prefer-avconv                  Prefer avconv over ffmpeg for running the
-                                     postprocessors
+                                     postprocessors (Same as --no-prefer-ffmpeg)
     --prefer-ffmpeg                  Prefer ffmpeg over avconv for running the
                                      postprocessors (default)
+                                     (Same as --no-prefer-avconv)
     --ffmpeg-location PATH           Location of the ffmpeg/avconv binary;
                                      either the path to the binary or its
                                      containing directory.
@@ -494,8 +596,30 @@ I will add some memorable short links to the binaries so you can download them e
     --convert-subs FORMAT            Convert the subtitles to other format
                                      (currently supported: srt|ass|vtt|lrc)
 
+## [SponSkrub](https://github.com/faissaloo/SponSkrub) Options ([SponsorBlock](https://sponsor.ajay.app)):
+    --sponskrub                      Use sponskrub to mark sponsored sections
+                                     with the data available in SponsorBlock
+                                     API. This is enabled by default if the
+                                     sponskrub binary exists (Youtube only)
+    --no-sponskrub                   Do not use sponskrub
+    --sponskrub-cut                  Cut out the sponsor sections instead of
+                                     simply marking them
+    --no-sponskrub-cut               Simply mark the sponsor sections, not cut
+                                     them out (default)
+    --sponskrub-force                Run sponskrub even if the video was already
+                                     downloaded
+    --no-sponskrub-force             Do not cut out the sponsor sections if the
+                                     video was already downloaded (default)
+    --sponskrub-location PATH        Location of the sponskrub binary; either
+                                     the path to the binary or its containing
+                                     directory.
+    --sponskrub-args None            Give these arguments to sponskrub
+
 ## Extractor Options:
     --ignore-dynamic-mpd             Do not process dynamic DASH manifests
+                                     (Same as --no-allow-dynamic-mpd)
+    --allow-dynamic-mpd              Process dynamic DASH manifests (default)
+                                     (Same as --no-ignore-dynamic-mpd)
 
 # CONFIGURATION
 
@@ -572,6 +696,7 @@ The basic usage is not to set any template arguments when downloading a single f
  - `channel_id` (string): Id of the channel
  - `location` (string): Physical location where the video was filmed
  - `duration` (numeric): Length of the video in seconds
+ - `duration_string` (string): Length of the video (HH-mm-ss)
  - `view_count` (numeric): How many users have watched the video on the platform
  - `like_count` (numeric): Number of positive ratings of the video
  - `dislike_count` (numeric): Number of negative ratings of the video
@@ -649,7 +774,7 @@ Output templates can also contain arbitrary hierarchical path, e.g. `-o '%(playl
 
 To use percent literals in an output template use `%%`. To output to stdout use `-o -`.
 
-The current default template is `%(title)s-%(id)s.%(ext)s`.
+The current default template is `%(title)s [%(id)s].%(ext)s`.
 
 In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title:
 
@@ -686,11 +811,10 @@ $ youtube-dlc -o - BaW_jenozKc
 
 # FORMAT SELECTION
 
-By default youtube-dlc tries to download the best available quality, i.e. if you want the best quality you **don't need** to pass any special options, youtube-dlc will guess it for you by **default**.
+By default, youtube-dlc tries to download the best available quality if you **don't** pass any options.
+This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg and avconv are unavailable, or if you use youtube-dlc to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
 
-But sometimes you may want to download in a different format, for example when you are on a slow or intermittent connection. The key mechanism for achieving this is so-called *format selection* based on which you can explicitly specify desired format, select formats based on some criterion or criteria, setup precedence and much more.
-
-The general syntax for format selection is `--format FORMAT` or shorter `-f FORMAT` where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
+The general syntax for format selection is `--f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
 
 **tl;dr:** [navigate me to examples](#format-selection-examples).
 
@@ -700,18 +824,28 @@ You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, 
 
 You can also use special names to select particular edge case formats:
 
- - `best`: Select the best quality format represented by a single file with video and audio.
- - `worst`: Select the worst quality format represented by a single file with video and audio.
- - `bestvideo`: Select the best quality video-only format (e.g. DASH video). May not be available.
- - `worstvideo`: Select the worst quality video-only format. May not be available.
- - `bestaudio`: Select the best quality audio only-format. May not be available.
- - `worstaudio`: Select the worst quality audio only-format. May not be available.
+ - `b*`, `best*`: Select the best quality format irrespective of whether it contains video or audio.
+ - `w*`, `worst*`: Select the worst quality format irrespective of whether it contains video or audio.
+ - `b`, `best`: Select the best quality format that contains both video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
+ - `w`, `worst`: Select the worst quality format that contains both video and audio. Equivalent to `worst*[vcodec!=none][acodec!=none]`
+ - `bv`, `bestvideo`: Select the best quality video-only format. Equivalent to `best*[acodec=none]`
+ - `wv`, `worstvideo`: Select the worst quality video-only format. Equivalent to `worst*[acodec=none]`
+ - `bv*`, `bestvideo*`: Select the best quality format that contains video. It may also contain audio. Equivalent to `best*[vcodec!=none]`
+ - `wv*`, `worstvideo*`: Select the worst quality format that contains video. It may also contain audio. Equivalent to `worst*[vcodec!=none]`
+ - `ba`, `bestaudio`: Select the best quality audio-only format. Equivalent to `best*[vcodec=none]`
+ - `wa`, `worstaudio`: Select the worst quality audio-only format. Equivalent to `worst*[vcodec=none]`
+ - `ba*`, `bestaudio*`: Select the best quality format that contains audio. It may also contain video. Equivalent to `best*[acodec!=none]`
+ - `wa*`, `worstaudio*`: Select the worst quality format that contains audio. It may also contain video. Equivalent to `worst*[acodec!=none]`
 
-For example, to download the worst quality video-only format you can use `-f worstvideo`.
+For example, to download the worst quality video-only format you can use `-f worstvideo`. It is however recomended to never actually use `worst` and related options. When your format selector is `worst`, the format which is worst in all respects is selected. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps` instead of `-f worst`. See [sorting formats](#sorting-formats) for more details.
 
-If you want to download multiple videos and they don't have the same formats available, you can specify the order of preference using slashes. Note that slash is left-associative, i.e. formats on the left hand side are preferred, for example `-f 22/17/18` will download format 22 if it's available, otherwise it will download format 17 if it's available, otherwise it will download format 18 if it's available, otherwise it will complain that no suitable formats are available for download.
+If you want to download multiple videos and they don't have the same formats available, you can specify the order of preference using slashes. Note that formats on the left hand side are preferred, for example `-f 22/17/18` will download format 22 if it's available, otherwise it will download format 17 if it's available, otherwise it will download format 18 if it's available, otherwise it will complain that no suitable formats are available for download.
 
 If you want to download several formats of the same video use a comma as a separator, e.g. `-f 22,17,18` will download all these three formats, of course if they are available. Or a more sophisticated example combined with the precedence feature: `-f 136/137/mp4/bestvideo,140/m4a/bestaudio`.
+
+You can merge the video and audio of multiple formats into a single file using `-f <format1>+<format2>+...` (requires ffmpeg or avconv installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg/avconv. If `--no-video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, if `--no-audio-multistreams` is used, all formats with an audio stream except the first one are ignored. For example, `-f bestvideo+best+bestaudio` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download and merge both formats while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
+
+## Filtering Formats
 
 You can also filter the video formats by putting a condition in brackets, as in `-f "best[height=720]"` (or `-f "[filesize>10M]"`).
 
@@ -734,60 +868,173 @@ Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends
  - `container`: Name of the container format
  - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
  - `format_id`: A short description of the format
+ - `language`: Language code
 
 Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain).
 
-Note that none of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the video hoster.
+Note that none of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the video hoster. Any other field made available by the extractor can also be used for filtering.
 
 Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height <=? 720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s.
 
-You can merge the video and audio of two formats into a single file using `-f <video-format>+<audio-format>` (requires ffmpeg or avconv installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg/avconv.
-
 Format selectors can also be grouped using parentheses, for example if you want to download the best mp4 and webm formats with a height lower than 480 you can use `-f '(mp4,webm)[height<480]'`.
 
-Since the end of April 2015 and version 2015.04.26, youtube-dlc uses `-f bestvideo+bestaudio/best` as the default format selection (see [#5447](https://github.com/ytdl-org/youtube-dl/issues/5447), [#5456](https://github.com/ytdl-org/youtube-dl/issues/5456)). If ffmpeg or avconv are installed this results in downloading `bestvideo` and `bestaudio` separately and muxing them together into a single file giving the best overall quality available. Otherwise it falls back to `best` and results in downloading the best available quality served as a single file. `best` is also needed for videos that don't come from YouTube because they don't provide the audio and video in two different files. If you want to only download some DASH formats (for example if you are not interested in getting videos with a resolution higher than 1080p), you can add `-f bestvideo[height<=?1080]+bestaudio/best` to your configuration file. Note that if you use youtube-dlc to stream to `stdout` (and most likely to pipe it to your media player then), i.e. you explicitly specify output template as `-o -`, youtube-dlc still uses `-f best` format selection in order to start content delivery immediately to your player and not to wait until `bestvideo` and `bestaudio` are downloaded and muxed.
+## Sorting Formats
 
-If you want to preserve the old format selection behavior (prior to youtube-dlc 2015.04.26), i.e. you want to download the best available quality media served as a single file, you should explicitly specify your choice with `-f best`. You may want to add it to the [configuration file](#configuration) in order not to type it every time you run youtube-dlc.
+You can change the criteria for being considered the `best` by using `-S` (`--format-sort`). The general format for this is `--format-sort field1,field2...`. The available fields are:
 
-#### Format selection examples
+ - `video`, `has_video`: Gives priority to formats that has a video stream
+ - `audio`, `has_audio`: Gives priority to formats that has a audio stream
+ - `extractor`, `preference`, `extractor_preference`: The format preference as given by the extractor
+ - `lang`, `language_preference`: Language preference as given by the extractor
+ - `quality`: The quality of the format. This is a metadata field available in some websites
+ - `source`, `source_preference`: Preference of the source as given by the extractor
+ - `proto`, `protocol`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8-native` > `m3u8` > `http-dash-segments` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
+ - `vcodec`, `video_codec`: Video Codec (`vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
+ - `acodec`, `audio_codec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac3` > `dts` > other > unknown)
+ - `codec`: Equivalent to `vcodec,acodec`
+ - `vext`, `video_ext`: Video Extension (`mp4` > `webm` > `flv` > other > unknown). If `--prefer-free-formats` is used, `webm` is prefered.
+ - `aext`, `audio_ext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other > unknown). If `--prefer-free-formats` is used, the order changes to `opus` > `ogg` > `webm` > `m4a` > `mp3` > `aac`.
+ - `ext`, `extension`: Equivalent to `vext,aext`
+ - `filesize`: Exact filesize, if know in advance. This will be unavailable for mu38 and DASH formats.
+ - `filesize_approx`: Approximate filesize calculated from the manifests
+ - `size`, `filesize_estimate`: Exact filesize if available, otherwise approximate filesize
+ - `height`: Height of video
+ - `width`: Width of video
+ - `res`, `dimension`: Video resolution, calculated as the smallest dimension.
+ - `fps`, `framerate`: Framerate of video
+ - `tbr`, `total_bitrate`: Total average bitrate in KBit/s
+ - `vbr`, `video_bitrate`: Average video bitrate in KBit/s
+ - `abr`, `audio_bitrate`: Average audio bitrate in KBit/s
+ - `br`, `bitrate`: Equivalent to using `tbr,vbr,abr`
+ - `samplerate`, `asr`: Audio sample rate in Hz
+
+Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a prefered value for the fields, seperated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
+
+The fields `has_video`, `extractor`, `lang`, `quality` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `res,fps,codec,size,br,asr,proto,ext,has_audio,source,format_id`. Note that the extractors may override this default order, but they cannot override the user-provided order.
+
+If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all repects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
+
+**Tip**: You can use the `-v -F` to see how the formats have been sorted (worst to best).
+
+## Format Selection examples
 
 Note that on Windows you may need to use double quotes instead of single.
 
 ```bash
-# Download best mp4 format available or any other best if no mp4 available
-$ youtube-dlc -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+# Download and merge the best best video-only format and the best audio-only format,
+# or download the best combined format if video-only format is not available
+$ youtube-dlc -f 'bv+ba/b'
 
-# Download best format available but no better than 480p
-$ youtube-dlc -f 'bestvideo[height<=480]+bestaudio/best[height<=480]'
+# Download best format that contains video,
+# and if it doesn't already have an audio stream, merge it with best audio-only format
+$ youtube-dlc -f 'bv*+ba/b'
 
-# Download best video only format but no bigger than 50 MB
-$ youtube-dlc -f 'best[filesize<50M]'
+# Same as above
+$ youtube-dlc
 
-# Download best format available via direct link over HTTP/HTTPS protocol
-$ youtube-dlc -f '(bestvideo+bestaudio/best)[protocol^=http]'
 
-# Download the best video format and the best audio format without merging them
-$ youtube-dlc -f 'bestvideo,bestaudio' -o '%(title)s.f%(format_id)s.%(ext)s'
+
+# Download the worst video available
+$ youtube-dlc -f 'wv*+wa/w'
+
+# Download the best video available but with the smallest resolution
+$ youtube-dlc -S '+res'
+
+# Download the smallest video available
+$ youtube-dlc -S '+size,+bitrate'
+
+
+
+# Download the best mp4 video available, or the best video if no mp4 available
+$ youtube-dlc -f 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b'
+
+# Download the best video with the best extension
+# (For video, mp4 > webm > flv. For audio, m4a > aac > mp3 ...)
+$ youtube-dlc -S 'ext'
+
+
+
+# Download the best video available but no better than 480p,
+# or the worst video if there is no video under 480p
+$ youtube-dlc -f 'bv*[height<=480]+ba/b[height<=480] / wv*+ba/w'
+
+# Download the best video available with the largest height but no better than 480p,
+# or the best video with the smallest resolution if there is no video under 480p
+$ youtube-dlc -S 'height:480'
+
+# Download the best video available with the largest resolution but no better than 480p,
+# or the best video with the smallest resolution if there is no video under 480p
+# Resolution is determined by using the smallest dimension.
+# So this works correctly for vertical videos as well
+$ youtube-dlc -S 'res:480'
+
+
+
+# Download the best video (that also has audio) but no bigger than 50 MB,
+# or the worst video (that also has audio) if there is no video under 50 MB
+$ youtube-dlc -f 'b[filesize<50M] / w'
+
+# Download largest video (that also has audio) but no bigger than 50 MB,
+# or the smallest video (that also has audio) if there is no video under 50 MB
+$ youtube-dlc -f 'b' -S 'filesize:50M'
+
+# Download best video (that also has audio) that is closest in size to 50 MB
+$ youtube-dlc -f 'b' -S 'filesize~50M'
+
+
+
+# Download best video available via direct link over HTTP/HTTPS protocol,
+# or the best video available via any protocol if there is no such video
+$ youtube-dlc -f '(bv*+ba/b)[protocol^=http][protocol!*=dash] / (bv*+ba/b)'
+
+# Download best video available via the best protocol
+# (https/ftps > http/ftp > m3u8_native > m3u8 > http_dash_segments ...)
+$ youtube-dlc -S 'protocol'
+
+
+
+# Download the best video-only format and the best audio-only format without merging them
+# For this case, an output template should be used since
+# by default, bestvideo and bestaudio will have the same file name.
+$ youtube-dlc -f 'bv,ba' -o '%(title)s.f%(format_id)s.%(ext)s'
+
+
+
+# Download the best video with h264 codec, or the best video if there is no such video
+$ youtube-dlc -f '(bv*+ba/b)[vcodec^=avc1] / (bv*+ba/b)'
+
+# Download the best video with best codec no better than h264,
+# or the best video with worst codec if there is no such video
+$ youtube-dlc -S 'codec:h264'
+
+# Download the best video with worst codec no worse than h264,
+# or the best video with best codec if there is no such video
+$ youtube-dlc -S '+codec:h264'
+
+
+
+# More complex examples
+
+# Download the best video no better than 720p prefering framerate greater than 30,
+# or the worst video (still prefering framerate greater than 30) if there is no such video
+$ youtube-dlc -f '((bv*[fps>30]/bv*)[height<=720]/(wv*[fps>30]/wv*)) + ba / (b[fps>30]/b)[height<=720]/(w[fps>30]/w)'
+
+# Download the video with the largest resolution no better than 720p,
+# or the video with the smallest resolution available  if there is no such video,
+# prefering larger framerate for formats with the same resolution
+$ youtube-dlc -S 'res:720,fps'
+
+
+
+# Download the video with smallest resolution no worse than 480p,
+# or the video with the largest resolution available if there is no such video,
+# prefering better codec and then larger total bitrate for the same resolution
+$ youtube-dlc -S '+res:480,codec,br'
 ```
-Note that in the last example, an output template is recommended as bestvideo and bestaudio may have the same file name.
 
 
-# VIDEO SELECTION
 
-Videos can be filtered by their upload date using the options `--date`, `--datebefore` or `--dateafter`. They accept dates in two formats:
 
- - Absolute dates: Dates in the format `YYYYMMDD`.
- - Relative dates: Dates in the format `(now|today)[+-][0-9](day|week|month|year)(s)?`
- 
-Examples:
 
-```bash
-# Download only the videos uploaded in the last 6 months
-$ youtube-dlc --dateafter now-6months
-
-# Download only the videos uploaded on January 1, 1970
-$ youtube-dlc --date 19700101
-
-$ # Download only the videos uploaded in the 200x decade
-$ youtube-dlc --dateafter 20000101 --datebefore 20091231
-```
+# MORE
+For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl)

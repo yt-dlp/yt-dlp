@@ -38,14 +38,19 @@ except ImportError:  # Python 2
     import urllib as compat_urllib_parse
 
 try:
+    import urllib.parse as compat_urlparse
+except ImportError:  # Python 2
+    import urlparse as compat_urlparse
+
+try:
     from urllib.parse import urlparse as compat_urllib_parse_urlparse
 except ImportError:  # Python 2
     from urlparse import urlparse as compat_urllib_parse_urlparse
 
 try:
-    import urllib.parse as compat_urlparse
+    from urllib.parse import urlunparse as compat_urllib_parse_urlunparse
 except ImportError:  # Python 2
-    import urlparse as compat_urlparse
+    from urlparse import urlunparse as compat_urllib_parse_urlunparse
 
 try:
     import urllib.response as compat_urllib_response
@@ -2366,6 +2371,20 @@ except NameError:
     compat_str = str
 
 try:
+    from urllib.parse import quote as compat_urllib_parse_quote
+    from urllib.parse import quote_plus as compat_urllib_parse_quote_plus
+except ImportError:  # Python 2
+    def compat_urllib_parse_quote(string, safe='/'):
+        return compat_urllib_parse.quote(
+            string.encode('utf-8'),
+            str(safe))
+
+    def compat_urllib_parse_quote_plus(string, safe=''):
+        return compat_urllib_parse.quote_plus(
+            string.encode('utf-8'),
+            str(safe))
+
+try:
     from urllib.parse import unquote_to_bytes as compat_urllib_parse_unquote_to_bytes
     from urllib.parse import unquote as compat_urllib_parse_unquote
     from urllib.parse import unquote_plus as compat_urllib_parse_unquote_plus
@@ -3033,11 +3052,14 @@ __all__ = [
     'compat_tokenize_tokenize',
     'compat_urllib_error',
     'compat_urllib_parse',
+    'compat_urllib_parse_quote',
+    'compat_urllib_parse_quote_plus',
     'compat_urllib_parse_unquote',
     'compat_urllib_parse_unquote_plus',
     'compat_urllib_parse_unquote_to_bytes',
     'compat_urllib_parse_urlencode',
     'compat_urllib_parse_urlparse',
+    'compat_urllib_parse_urlunparse',
     'compat_urllib_request',
     'compat_urllib_request_DataHandler',
     'compat_urllib_response',
