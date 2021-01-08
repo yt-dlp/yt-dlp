@@ -1686,11 +1686,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if embedded_config:
                 return embedded_config
 
+        video_info = {}
         player_response = {}
+        ytplayer_config = None
+        embed_webpage = None
 
         # Get video info
-        video_info = {}
-        embed_webpage = None
         if (self._og_search_property('restrictions:age', video_webpage, default=None) == '18+'
                 or re.search(r'player-age-gate-content">', video_webpage) is not None):
             cookie_keys = self._get_cookies('https://www.youtube.com').keys()
