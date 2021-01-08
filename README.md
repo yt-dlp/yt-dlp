@@ -1,4 +1,4 @@
-[![Release Version](https://img.shields.io/badge/Release-2021.01.07--1-brightgreen)](https://github.com/pukkandan/yt-dlc/releases/latest)
+[![Release Version](https://img.shields.io/badge/Release-2021.01.08-brightgreen)](https://github.com/pukkandan/yt-dlc/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlc/blob/master/LICENSE)
 [![Core Status](https://github.com/pukkandan/yt-dlc/workflows/Core%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3ACore)
 [![CI Status](https://github.com/pukkandan/yt-dlc/workflows/Full%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3AFull)

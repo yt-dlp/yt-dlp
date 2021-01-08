@@ -1,6 +1,11 @@
 # Changelog
 
 
+### 2020.01.08
+* **Merge youtube-dl:** Upto [2020.01.08](https://github.com/ytdl-org/youtube-dl/commit/bf6a74c620bd4d5726503c5302906bb36b009026)
+    * Extractor stitcher ([1](https://github.com/ytdl-org/youtube-dl/commit/bb38a1215718cdf36d73ff0a7830a64cd9fa37cc), [2](https://github.com/ytdl-org/youtube-dl/commit/a563c97c5cddf55f8989ed7ea8314ef78e30107f)) have not been merged
+* Moved changelog to seperate file
+
 ### 2021.01.07-1
 * [Akamai] fix by @nixxo
 * [Tiktok] merge youtube-dl tiktok extractor by @GreyAlien502
