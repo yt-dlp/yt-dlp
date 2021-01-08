@@ -7,7 +7,7 @@ youtube-dlc - download videos from youtube.com and many other [video platforms](
 
 This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which is inturn a fork of [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
-* [CHANGES FROM YOUTUBE-DLC](#changes)
+* [NEW FEATURES](#new-features)
 * [INSTALLATION](#installation)
     * [UPDATE](#update)
     * [COMPILE](#compile)
@@ -28,7 +28,7 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
     * [Authentication Options](#authentication-options)
     * [Adobe Pass Options](#adobe-pass-options)
     * [Post-processing Options](#post-processing-options)
-    * [SponSkrub Options (SponsorBlock)](#sponskrub-options-sponsorblock)
+    * [SponSkrub Options (SponsorBlock)](#sponSkrub-options-sponsorblock)
     * [Extractor Options](#extractor-options)
 * [CONFIGURATION](#configuration)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
@@ -43,52 +43,18 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
 * [MORE](#more)
 
 
-# CHANGES
-See [commits](https://github.com/pukkandan/yt-dlc/commits) for more details
+# NEW FEATURES
+The major new features are:
 
-### 2021.01.05
-* **Format Sort:** Added `--format-sort` (`-S`), `--format-sort-force` (`--S-force`) - See [Sorting Formats](#sorting-formats) for details
-* **Format Selection:** See [Format Selection](#format-selection) for details
-    * New format selectors: `best*`, `worst*`, `bestvideo*`, `bestaudio*`, `worstvideo*`, `worstaudio*`
-    * Changed video format sorting to show video only files and video+audio files together.
-    * Added `--video-multistreams`, `--no-video-multistreams`, `--audio-multistreams`, `--no-audio-multistreams`
-    * Added `b`,`w`,`v`,`a` as alias for `best`, `worst`, `video` and `audio` respectively
-* **Shortcut Options:** Added `--write-link`, `--write-url-link`, `--write-webloc-link`, `--write-desktop-link` by @h-h-h-h - See [Internet Shortcut Options](#internet-shortcut-options) for details
-* **Sponskrub integration:** Added `--sponskrub`, `--sponskrub-cut`, `--sponskrub-force`, `--sponskrub-location`, `--sponskrub-args` - See [SponSkrub Options](#sponskrub-options-sponsorblock) for details
-* Added `--force-download-archive` (`--force-write-archive`) by by h-h-h-h
-* Added `--list-formats-as-table`,  `--list-formats-old`
-* **Negative Options:** Makes it possible to negate boolean options by adding a `no-` to the switch
-    * Added `--no-ignore-dynamic-mpd`, `--no-allow-dynamic-mpd`, `--allow-dynamic-mpd`, `--youtube-include-hls-manifest`, `--no-youtube-include-hls-manifest`, `--no-youtube-skip-hls-manifest`, `--no-download`, `--no-download-archive`, `--resize-buffer`, `--part`, `--mtime`, `--no-keep-fragments`, `--no-cookies`, `--no-write-annotations`, `--no-write-info-json`, `--no-write-description`, `--no-write-thumbnail`, `--youtube-include-dash-manifest`, `--post-overwrites`, `--no-keep-video`, `--no-embed-subs`, `--no-embed-thumbnail`, `--no-add-metadata`, `--no-include-ads`, `--no-write-sub`, `--no-write-auto-sub`, `--no-playlist-reverse`, `--no-restrict-filenames`, `--youtube-include-dash-manifest`, `--no-format-sort-force`, `--flat-videos`, `--no-list-formats-as-table`, `--no-sponskrub`, `--no-sponskrub-cut`, `--no-sponskrub-force`
-    * Renamed: `--write-subs`, `--no-write-subs`, `--no-write-auto-subs`, `--write-auto-subs`. Note that these can still be used without the ending "s"
-* Relaxed validation for format filters so that any arbitrary field can be used
-* Fix for embedding thumbnail in mp3 by @pauldubois98
-* Make Twitch Video ID output from Playlist and VOD extractor same. This is only a temporary fix
-* **Merge youtube-dl:** Upto [2020.01.03](https://github.com/ytdl-org/youtube-dl/commit/8e953dcbb10a1a42f4e12e4e132657cb0100a1f8) - See [blackjack4494/yt-dlc#280](https://github.com/blackjack4494/yt-dlc/pull/280) for details
-* Cleaned up the fork for public use
+* **[SponSkrub Integration](#sponSkrub-options-sponsorblock)** - You can use [SponSkrub](https://github.com/faissaloo/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
-### 2021.01.05-1
-* **Changed defaults:**
-    * Enabled `--ignore`
-    * Disabled `--video-multistreams` and `--audio-multistreams`
-    * Changed default format selection to `bv*+ba/b` when `--audio-multistreams` is disabled
-    * Changed default format sort order to `res,fps,codec,size,br,asr,proto,ext,has_audio,source,format_id`
-    * Changed `webm` to be more preferable than `flv` in format sorting
-    * Changed default output template to `%(title)s [%(id)s].%(ext)s`
-    * Enabled `--list-formats-as-table`
+* **[Format Sorting](#sorting-format)** - The default format sorting options have been changed so that higher resolution and better codecs will be now prefered instead of simply using larger bitrate. Furthermore, the user can now specify the sort order if they want. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-### 2021.01.07
-* Removed priority of `av01` codec in `-S` since most devices don't support it yet
-* Added `duration_string` to be used in `--output`
-* Created First Release
+* Merged with youtube-dl **v2020.01.08** - You get the new features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494)
 
-### 2021.01.07-1
-* [Akamai] fix by @nixxo
-* [Tiktok] fix extractor by @GreyAlien502
-* [vlive] add support for playlists by @kyuyeunk
-* [youtube_live_chat] make sure playerOffsetMs is positive by @siikamiika
-* Ignore extra data streams in ffmpeg by @jbruchon
-* Allow passing different arguments to different postprocessors using `--postprocessor-args`
-* Deprecated `--sponskrub-args`. The same can now be done using `--postprocessor-args "sponskrub:<args>"`
+* **New options** - `--list-formats-as-table`, `--write-link`, `--force-download-archive` etc
+
+and many other features and patches. See [changelog](changelog.md) or [commits](https://github.com/pukkandan/yt-dlc/commits) for the full list of changes
 
 
 # INSTALLATION
@@ -635,7 +601,6 @@ Then simply type this
     --sponskrub-location PATH        Location of the sponskrub binary; either
                                      the path to the binary or its containing
                                      directory.
-    --sponskrub-args None            Give these arguments to sponskrub
 
 ## Extractor Options:
     --ignore-dynamic-mpd             Do not process dynamic DASH manifests
