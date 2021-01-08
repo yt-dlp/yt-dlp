@@ -223,12 +223,12 @@ class NRKIE(NRKBaseIE):
         legal_age = try_get(
             data, lambda x: x['legalAge']['body']['rating']['code'], compat_str)
         # https://en.wikipedia.org/wiki/Norwegian_Media_Authority
-        if legal_age == 'A':
-            age_limit = 0
-        elif legal_age.isdigit():
-            age_limit = int_or_none(legal_age)
-        else:
-            age_limit = None
+        age_limit = None
+        if legal_age:
+            if legal_age == 'A':
+                age_limit = 0
+            elif legal_age.isdigit():
+                age_limit = int_or_none(legal_age)
 
         is_series = try_get(data, lambda x: x['_links']['series']['name']) == 'series'
 
@@ -298,6 +298,14 @@ class NRKTVIE(InfoExtractor):
             'description': 'md5:46923a6e6510eefcce23d5ef2a58f2ce',
             'duration': 2223.44,
             'age_limit': 6,
+            'subtitles': {
+                'nb-nor': [{
+                    'ext': 'vtt',
+                }],
+                'nb-ttv': [{
+                    'ext': 'vtt',
+                }]
+            },
         },
     }, {
         'url': 'https://tv.nrk.no/serie/20-spoersmaal-tv/MUHH48000314/23-05-2014',

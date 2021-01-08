@@ -172,8 +172,12 @@ class HlsFD(FragmentFD):
                         iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', media_sequence)
                         decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
                             self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
-                        frag_content = AES.new(
-                            decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
+                        # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
+                        # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
+                        # not what it decrypts to.
+                        if not test:
+                            frag_content = AES.new(
+                                decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
                     self._append_fragment(ctx, frag_content)
                     # We only download the first fragment during the test
                     if test:

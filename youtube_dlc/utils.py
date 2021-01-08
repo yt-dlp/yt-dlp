@@ -5819,3 +5819,20 @@ def format_field(obj, field, template='%s', ignore=(None, ''), default='', func=
     if func and val not in ignore:
         val = func(val)
     return template % val if val not in ignore else default
+
+
+def clean_podcast_url(url):
+    return re.sub(r'''(?x)
+        (?:
+            (?:
+                chtbl\.com/track|
+                media\.blubrry\.com| # https://create.blubrry.com/resources/podcast-media-download-statistics/getting-started/
+                play\.podtrac\.com
+            )/[^/]+|
+            (?:dts|www)\.podtrac\.com/(?:pts/)?redirect\.[0-9a-z]{3,4}| # http://analytics.podtrac.com/how-to-measure
+            flex\.acast\.com|
+            pd(?:
+                cn\.co| # https://podcorn.com/analytics-prefix/
+                st\.fm # https://podsights.com/docs/
+            )/e
+        )/''', '', url)

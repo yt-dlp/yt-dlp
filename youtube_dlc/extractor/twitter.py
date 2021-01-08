@@ -251,10 +251,10 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '700207533655363584',
             'ext': 'mp4',
-            'title': 'simon vetugo - BEAT PROD: @suhmeduh #Damndaniel',
+            'title': 'simon vertugo - BEAT PROD: @suhmeduh #Damndaniel',
             'description': 'BEAT PROD: @suhmeduh  https://t.co/HBrQ4AfpvZ #Damndaniel https://t.co/byBooq2ejZ',
             'thumbnail': r're:^https?://.*\.jpg',
-            'uploader': 'simon vetugo',
+            'uploader': 'simon vertugo',
             'uploader_id': 'simonvertugo',
             'duration': 30.0,
             'timestamp': 1455777459,
@@ -312,6 +312,7 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1492000653,
             'upload_date': '20170412',
         },
+        'skip': 'Account suspended',
     }, {
         'url': 'https://twitter.com/i/web/status/910031516746514432',
         'info_dict': {
@@ -379,6 +380,14 @@ class TwitterIE(TwitterBaseIE):
     }, {
         # promo_video_website card
         'url': 'https://twitter.com/GunB1g/status/1163218564784017422',
+        'only_matching': True,
+    }, {
+        # promo_video_convo card
+        'url': 'https://twitter.com/poco_dandy/status/1047395834013384704',
+        'only_matching': True,
+    }, {
+        # appplayer card
+        'url': 'https://twitter.com/poco_dandy/status/1150646424461176832',
         'only_matching': True,
     }]
 
@@ -462,7 +471,30 @@ class TwitterIE(TwitterBaseIE):
                     return try_get(o, lambda x: x[x['type'].lower() + '_value'])
 
                 card_name = card['name'].split(':')[-1]
-                if card_name in ('amplify', 'promo_video_website'):
+                if card_name == 'player':
+                    info.update({
+                        '_type': 'url',
+                        'url': get_binding_value('player_url'),
+                    })
+                elif card_name == 'periscope_broadcast':
+                    info.update({
+                        '_type': 'url',
+                        'url': get_binding_value('url') or get_binding_value('player_url'),
+                        'ie_key': PeriscopeIE.ie_key(),
+                    })
+                elif card_name == 'broadcast':
+                    info.update({
+                        '_type': 'url',
+                        'url': get_binding_value('broadcast_url'),
+                        'ie_key': TwitterBroadcastIE.ie_key(),
+                    })
+                elif card_name == 'summary':
+                    info.update({
+                        '_type': 'url',
+                        'url': get_binding_value('card_url'),
+                    })
+                # amplify, promo_video_website, promo_video_convo, appplayer, ...
+                else:
                     is_amplify = card_name == 'amplify'
                     vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
                     content_id = get_binding_value('%s_content_id' % (card_name if is_amplify else 'player'))
@@ -488,25 +520,6 @@ class TwitterIE(TwitterBaseIE):
                         'duration': int_or_none(get_binding_value(
                             'content_duration_seconds')),
                     })
-                elif card_name == 'player':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('player_url'),
-                    })
-                elif card_name == 'periscope_broadcast':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('url') or get_binding_value('player_url'),
-                        'ie_key': PeriscopeIE.ie_key(),
-                    })
-                elif card_name == 'broadcast':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('broadcast_url'),
-                        'ie_key': TwitterBroadcastIE.ie_key(),
-                    })
-                else:
-                    raise ExtractorError('Unsupported Twitter Card.')
             else:
                 expanded_url = try_get(status, lambda x: x['entities']['urls'][0]['expanded_url'])
                 if not expanded_url:

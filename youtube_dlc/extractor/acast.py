@@ -6,6 +6,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    clean_podcast_url,
     int_or_none,
     parse_iso8601,
 )
@@ -17,7 +18,7 @@ class ACastBaseIE(InfoExtractor):
         info = {
             'id': episode['id'],
             'display_id': episode.get('episodeUrl'),
-            'url': episode['url'],
+            'url': clean_podcast_url(episode['url']),
             'title': title,
             'description': clean_html(episode.get('description') or episode.get('summary')),
             'thumbnail': episode.get('image'),

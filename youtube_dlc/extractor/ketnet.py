@@ -2,92 +2,71 @@ from __future__ import unicode_literals
 
 from .canvas import CanvasIE
 from .common import InfoExtractor
+from ..compat import compat_urllib_parse_unquote
+from ..utils import (
+    int_or_none,
+    parse_iso8601,
+)
 
 
 class KetnetIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ketnet\.be/(?:[^/]+/)*(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?ketnet\.be/(?P<id>(?:[^/]+/)*[^/?#&]+)'
     _TESTS = [{
-        'url': 'https://www.ketnet.be/kijken/zomerse-filmpjes',
-        'md5': '6bdeb65998930251bbd1c510750edba9',
+        'url': 'https://www.ketnet.be/kijken/n/nachtwacht/3/nachtwacht-s3a1-de-greystook',
+        'md5': '37b2b7bb9b3dcaa05b67058dc3a714a9',
         'info_dict': {
-            'id': 'zomerse-filmpjes',
+            'id': 'pbs-pub-aef8b526-115e-4006-aa24-e59ff6c6ef6f$vid-ddb815bf-c8e7-467b-8879-6bad7a32cebd',
             'ext': 'mp4',
-            'title': 'Gluur mee op de filmset en op Pennenzakkenrock',
-            'description': 'Gluur mee met Ghost Rockers op de filmset',
+            'title': 'Nachtwacht - Reeks 3: Aflevering 1',
+            'description': 'De Nachtwacht krijgt te maken met een parasiet',
             'thumbnail': r're:^https?://.*\.jpg$',
-        }
-    }, {
-        # mzid in playerConfig instead of sources
-        'url': 'https://www.ketnet.be/kijken/nachtwacht/de-greystook',
-        'md5': '90139b746a0a9bd7bb631283f6e2a64e',
-        'info_dict': {
-            'id': 'md-ast-4ac54990-ce66-4d00-a8ca-9eac86f4c475',
-            'display_id': 'md-ast-4ac54990-ce66-4d00-a8ca-9eac86f4c475',
-            'ext': 'flv',
-            'title': 'Nachtwacht: De Greystook',
-            'description': 'md5:1db3f5dc4c7109c821261e7512975be7',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 1468.03,
+            'duration': 1468.02,
+            'timestamp': 1609225200,
+            'upload_date': '20201229',
+            'series': 'Nachtwacht',
+            'season': 'Reeks 3',
+            'episode': 'De Greystook',
+            'episode_number': 1,
         },
         'expected_warnings': ['is not a supported codec', 'Unknown MIME type'],
     }, {
-        'url': 'https://www.ketnet.be/kijken/karrewiet/uitzending-8-september-2016',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.ketnet.be/achter-de-schermen/sien-repeteert-voor-stars-for-life',
-        'only_matching': True,
-    }, {
-        # mzsource, geo restricted to Belgium
-        'url': 'https://www.ketnet.be/kijken/nachtwacht/de-bermadoe',
+        'url': 'https://www.ketnet.be/themas/karrewiet/jaaroverzicht-20200/karrewiet-het-jaar-van-black-mamba',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        display_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        video = self._download_json(
+            'https://senior-bff.ketnet.be/graphql', display_id, query={
+                'query': '''{
+  video(id: "content/ketnet/nl/%s.model.json") {
+    description
+    episodeNr
+    imageUrl
+    mediaReference
+    programTitle
+    publicationDate
+    seasonTitle
+    subtitleVideodetail
+    titleVideodetail
+  }
+}''' % display_id,
+            })['data']['video']
 
-        config = self._parse_json(
-            self._search_regex(
-                r'(?s)playerConfig\s*=\s*({.+?})\s*;', webpage,
-                'player config'),
-            video_id)
-
-        mzid = config.get('mzid')
-        if mzid:
-            return self.url_result(
-                'https://mediazone.vrt.be/api/v1/ketnet/assets/%s' % mzid,
-                CanvasIE.ie_key(), video_id=mzid)
-
-        title = config['title']
-
-        formats = []
-        for source_key in ('', 'mz'):
-            source = config.get('%ssource' % source_key)
-            if not isinstance(source, dict):
-                continue
-            for format_id, format_url in source.items():
-                if format_id == 'hls':
-                    formats.extend(self._extract_m3u8_formats(
-                        format_url, video_id, 'mp4',
-                        entry_protocol='m3u8_native', m3u8_id=format_id,
-                        fatal=False))
-                elif format_id == 'hds':
-                    formats.extend(self._extract_f4m_formats(
-                        format_url, video_id, f4m_id=format_id, fatal=False))
-                else:
-                    formats.append({
-                        'url': format_url,
-                        'format_id': format_id,
-                    })
-        self._sort_formats(formats)
+        mz_id = compat_urllib_parse_unquote(video['mediaReference'])
 
         return {
-            'id': video_id,
-            'title': title,
-            'description': config.get('description'),
-            'thumbnail': config.get('image'),
-            'series': config.get('program'),
-            'episode': config.get('episode'),
-            'formats': formats,
+            '_type': 'url_transparent',
+            'id': mz_id,
+            'title': video['titleVideodetail'],
+            'url': 'https://mediazone.vrt.be/api/v1/ketnet/assets/' + mz_id,
+            'thumbnail': video.get('imageUrl'),
+            'description': video.get('description'),
+            'timestamp': parse_iso8601(video.get('publicationDate')),
+            'series': video.get('programTitle'),
+            'season': video.get('seasonTitle'),
+            'episode': video.get('subtitleVideodetail'),
+            'episode_number': int_or_none(video.get('episodeNr')),
+            'ie_key': CanvasIE.ie_key(),
         }

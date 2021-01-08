@@ -10,7 +10,7 @@ from ..utils import (
 
 class SBSIE(InfoExtractor):
     IE_DESC = 'sbs.com.au'
-    _VALID_URL = r'https?://(?:www\.)?sbs\.com\.au/(?:ondemand|news)/video/(?:single/)?(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?sbs\.com\.au/(?:ondemand(?:/video/(?:single/)?|.*?\bplay=)|news/(?:embeds/)?video/)(?P<id>[0-9]+)'
 
     _TESTS = [{
         # Original URL is handled by the generic IE which finds the iframe:
@@ -18,7 +18,7 @@ class SBSIE(InfoExtractor):
         'url': 'http://www.sbs.com.au/ondemand/video/single/320403011771/?source=drupal&vertical=thefeed',
         'md5': '3150cf278965eeabb5b4cea1c963fe0a',
         'info_dict': {
-            'id': '320403011771',
+            'id': '_rFBPRPO4pMR',
             'ext': 'mp4',
             'title': 'Dingo Conservation (The Feed)',
             'description': 'md5:f250a9856fca50d22dec0b5b8015f8a5',
@@ -33,6 +33,15 @@ class SBSIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'http://www.sbs.com.au/news/video/471395907773/The-Feed-July-9',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.sbs.com.au/ondemand/?play=1836638787723',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.sbs.com.au/ondemand/program/inside-windsor-castle?play=1283505731842',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.sbs.com.au/news/embeds/video/1840778819866',
         'only_matching': True,
     }]
 

@@ -7,12 +7,12 @@ from .common import InfoExtractor
 from .gigya import GigyaBaseIE
 from ..compat import compat_HTTPError
 from ..utils import (
+    extract_attributes,
     ExtractorError,
     strip_or_none,
     float_or_none,
     int_or_none,
     merge_dicts,
-    parse_iso8601,
     str_or_none,
     url_or_none,
 )
@@ -37,6 +37,7 @@ class CanvasIE(InfoExtractor):
         'url': 'https://mediazone.vrt.be/api/v1/canvas/assets/mz-ast-5e5f90b6-2d72-4c40-82c2-e134f884e93e',
         'only_matching': True,
     }]
+    _GEO_BYPASS = False
     _HLS_ENTRY_PROTOCOLS_MAP = {
         'HLS': 'm3u8_native',
         'HLS_AES': 'm3u8',
@@ -47,29 +48,34 @@ class CanvasIE(InfoExtractor):
         mobj = re.match(self._VALID_URL, url)
         site_id, video_id = mobj.group('site_id'), mobj.group('id')
 
-        # Old API endpoint, serves more formats but may fail for some videos
-        data = self._download_json(
-            'https://mediazone.vrt.be/api/v1/%s/assets/%s'
-            % (site_id, video_id), video_id, 'Downloading asset JSON',
-            'Unable to download asset JSON', fatal=False)
+        data = None
+        if site_id != 'vrtvideo':
+            # Old API endpoint, serves more formats but may fail for some videos
+            data = self._download_json(
+                'https://mediazone.vrt.be/api/v1/%s/assets/%s'
+                % (site_id, video_id), video_id, 'Downloading asset JSON',
+                'Unable to download asset JSON', fatal=False)
 
         # New API endpoint
         if not data:
+            headers = self.geo_verification_headers()
+            headers.update({'Content-Type': 'application/json'})
             token = self._download_json(
                 '%s/tokens' % self._REST_API_BASE, video_id,
-                'Downloading token', data=b'',
-                headers={'Content-Type': 'application/json'})['vrtPlayerToken']
+                'Downloading token', data=b'', headers=headers)['vrtPlayerToken']
             data = self._download_json(
                 '%s/videos/%s' % (self._REST_API_BASE, video_id),
-                video_id, 'Downloading video JSON', fatal=False, query={
+                video_id, 'Downloading video JSON', query={
                     'vrtPlayerToken': token,
                     'client': '%s@PROD' % site_id,
                 }, expected_status=400)
-            message = data.get('message')
-            if message and not data.get('title'):
-                if data.get('code') == 'AUTHENTICATION_REQUIRED':
-                    self.raise_login_required(message)
-                raise ExtractorError(message, expected=True)
+            if not data.get('title'):
+                code = data.get('code')
+                if code == 'AUTHENTICATION_REQUIRED':
+                    self.raise_login_required()
+                elif code == 'INVALID_LOCATION':
+                    self.raise_geo_restricted(countries=['BE'])
+                raise ExtractorError(data.get('message') or code, expected=True)
 
         title = data['title']
         description = data.get('description')
@@ -205,20 +211,24 @@ class CanvasEenIE(InfoExtractor):
 
 class VrtNUIE(GigyaBaseIE):
     IE_DESC = 'VrtNU.be'
-    _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?P<site_id>vrtnu)/(?:[^/]+/)*(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
         # Available via old API endpoint
-        'url': 'https://www.vrt.be/vrtnu/a-z/postbus-x/1/postbus-x-s1a1/',
+        'url': 'https://www.vrt.be/vrtnu/a-z/postbus-x/1989/postbus-x-s1989a1/',
         'info_dict': {
-            'id': 'pbs-pub-2e2d8c27-df26-45c9-9dc6-90c78153044d$vid-90c932b1-e21d-4fb8-99b1-db7b49cf74de',
+            'id': 'pbs-pub-e8713dac-899e-41de-9313-81269f4c04ac$vid-90c932b1-e21d-4fb8-99b1-db7b49cf74de',
             'ext': 'mp4',
-            'title': 'De zwarte weduwe',
-            'description': 'md5:db1227b0f318c849ba5eab1fef895ee4',
+            'title': 'Postbus X - Aflevering 1 (Seizoen 1989)',
+            'description': 'md5:b704f669eb9262da4c55b33d7c6ed4b7',
             'duration': 1457.04,
             'thumbnail': r're:^https?://.*\.jpg$',
-            'season': 'Season 1',
-            'season_number': 1,
+            'series': 'Postbus X',
+            'season': 'Seizoen 1989',
+            'season_number': 1989,
+            'episode': 'De zwarte weduwe',
             'episode_number': 1,
+            'timestamp': 1595822400,
+            'upload_date': '20200727',
         },
         'skip': 'This video is only available for registered users',
         'params': {
@@ -300,69 +310,25 @@ class VrtNUIE(GigyaBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        webpage, urlh = self._download_webpage_handle(url, display_id)
+        webpage = self._download_webpage(url, display_id)
+
+        attrs = extract_attributes(self._search_regex(
+            r'(<nui-media[^>]+>)', webpage, 'media element'))
+        video_id = attrs['videoid']
+        publication_id = attrs.get('publicationid')
+        if publication_id:
+            video_id = publication_id + '$' + video_id
+
+        page = (self._parse_json(self._search_regex(
+            r'digitalData\s*=\s*({.+?});', webpage, 'digial data',
+            default='{}'), video_id, fatal=False) or {}).get('page') or {}
 
         info = self._search_json_ld(webpage, display_id, default={})
-
-        # title is optional here since it may be extracted by extractor
-        # that is delegated from here
-        title = strip_or_none(self._html_search_regex(
-            r'(?ms)<h1 class="content__heading">(.+?)</h1>',
-            webpage, 'title', default=None))
-
-        description = self._html_search_regex(
-            r'(?ms)<div class="content__description">(.+?)</div>',
-            webpage, 'description', default=None)
-
-        season = self._html_search_regex(
-            [r'''(?xms)<div\ class="tabs__tab\ tabs__tab--active">\s*
-                    <span>seizoen\ (.+?)</span>\s*
-                </div>''',
-             r'<option value="seizoen (\d{1,3})" data-href="[^"]+?" selected>'],
-            webpage, 'season', default=None)
-
-        season_number = int_or_none(season)
-
-        episode_number = int_or_none(self._html_search_regex(
-            r'''(?xms)<div\ class="content__episode">\s*
-                    <abbr\ title="aflevering">afl</abbr>\s*<span>(\d+)</span>
-                </div>''',
-            webpage, 'episode_number', default=None))
-
-        release_date = parse_iso8601(self._html_search_regex(
-            r'(?ms)<div class="content__broadcastdate">\s*<time\ datetime="(.+?)"',
-            webpage, 'release_date', default=None))
-
-        # If there's a ? or a # in the URL, remove them and everything after
-        clean_url = urlh.geturl().split('?')[0].split('#')[0].strip('/')
-        securevideo_url = clean_url + '.mssecurevideo.json'
-
-        try:
-            video = self._download_json(securevideo_url, display_id)
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                self.raise_login_required()
-            raise
-
-        # We are dealing with a '../<show>.relevant' URL
-        redirect_url = video.get('url')
-        if redirect_url:
-            return self.url_result(self._proto_relative_url(redirect_url, 'https:'))
-
-        # There is only one entry, but with an unknown key, so just get
-        # the first one
-        video_id = list(video.values())[0].get('videoid')
-
         return merge_dicts(info, {
             '_type': 'url_transparent',
             'url': 'https://mediazone.vrt.be/api/v1/vrtvideo/assets/%s' % video_id,
             'ie_key': CanvasIE.ie_key(),
             'id': video_id,
             'display_id': display_id,
-            'title': title,
-            'description': description,
-            'season': season,
-            'season_number': season_number,
-            'episode_number': episode_number,
-            'release_date': release_date,
+            'season_number': int_or_none(page.get('episode_season')),
         })

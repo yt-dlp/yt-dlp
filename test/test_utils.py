@@ -21,6 +21,7 @@ from youtube_dlc.utils import (
     encode_base_n,
     caesar,
     clean_html,
+    clean_podcast_url,
     date_from_str,
     DateRange,
     detect_exe_version,
@@ -1496,6 +1497,10 @@ Line 1
         self.assertEqual(
             iri_to_uri('http://导航.中国/'),
             'http://xn--fet810g.xn--fiqs8s/')
+
+    def test_clean_podcast_url(self):
+        self.assertEqual(clean_podcast_url('https://www.podtrac.com/pts/redirect.mp3/chtbl.com/track/5899E/traffic.megaphone.fm/HSW7835899191.mp3'), 'https://traffic.megaphone.fm/HSW7835899191.mp3')
+        self.assertEqual(clean_podcast_url('https://play.podtrac.com/npr-344098539/edge1.pod.npr.org/anon.npr-podcasts/podcast/npr/waitwait/2020/10/20201003_waitwait_wwdtmpodcast201003-015621a5-f035-4eca-a9a1-7c118d90bc3c.mp3'), 'https://edge1.pod.npr.org/anon.npr-podcasts/podcast/npr/waitwait/2020/10/20201003_waitwait_wwdtmpodcast201003-015621a5-f035-4eca-a9a1-7c118d90bc3c.mp3')
 
 
 if __name__ == '__main__':

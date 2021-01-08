@@ -264,15 +264,23 @@ class TestNRKSubtitles(BaseTestSubtitles):
 
 
 class TestRaiPlaySubtitles(BaseTestSubtitles):
-    url = 'http://www.raiplay.it/video/2014/04/Report-del-07042014-cb27157f-9dd0-4aee-b788-b1f67643a391.html'
     IE = RaiPlayIE
 
-    def test_allsubtitles(self):
+    def test_subtitles_key(self):
+        self.url = 'http://www.raiplay.it/video/2014/04/Report-del-07042014-cb27157f-9dd0-4aee-b788-b1f67643a391.html'
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
         self.assertEqual(set(subtitles.keys()), set(['it']))
         self.assertEqual(md5(subtitles['it']), 'b1d90a98755126b61e667567a1f6680a')
+
+    def test_subtitles_array_key(self):
+        self.url = 'https://www.raiplay.it/video/2020/12/Report---04-01-2021-2e90f1de-8eee-4de4-ac0e-78d21db5b600.html'
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['allsubtitles'] = True
+        subtitles = self.getSubtitles()
+        self.assertEqual(set(subtitles.keys()), set(['it']))
+        self.assertEqual(md5(subtitles['it']), '4b3264186fbb103508abe5311cfcb9cd')
 
 
 class TestVikiSubtitles(BaseTestSubtitles):

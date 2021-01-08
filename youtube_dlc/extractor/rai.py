@@ -103,22 +103,28 @@ class RaiBaseIE(InfoExtractor):
         }.items() if v is not None)
 
     @staticmethod
-    def _extract_subtitles(url, subtitle_url):
+    def _extract_subtitles(url, video_data):
+        STL_EXT = 'stl'
+        SRT_EXT = 'srt'
         subtitles = {}
-        if subtitle_url and isinstance(subtitle_url, compat_str):
-            subtitle_url = urljoin(url, subtitle_url)
-            STL_EXT = '.stl'
-            SRT_EXT = '.srt'
-            subtitles['it'] = [{
-                'ext': 'stl',
-                'url': subtitle_url,
-            }]
-            if subtitle_url.endswith(STL_EXT):
-                srt_url = subtitle_url[:-len(STL_EXT)] + SRT_EXT
-                subtitles['it'].append({
-                    'ext': 'srt',
-                    'url': srt_url,
+        subtitles_array = video_data.get('subtitlesArray') or []
+        for k in ('subtitles', 'subtitlesUrl'):
+            subtitles_array.append({'url': video_data.get(k)})
+        for subtitle in subtitles_array:
+            sub_url = subtitle.get('url')
+            if sub_url and isinstance(sub_url, compat_str):
+                sub_lang = subtitle.get('language') or 'it'
+                sub_url = urljoin(url, sub_url)
+                sub_ext = determine_ext(sub_url, SRT_EXT)
+                subtitles.setdefault(sub_lang, []).append({
+                    'ext': sub_ext,
+                    'url': sub_url,
                 })
+                if STL_EXT == sub_ext:
+                    subtitles[sub_lang].append({
+                        'ext': SRT_EXT,
+                        'url': sub_url[:-len(STL_EXT)] + SRT_EXT,
+                    })
         return subtitles
 
 
@@ -138,12 +144,19 @@ class RaiPlayIE(RaiBaseIE):
             'duration': 6160,
             'series': 'Report',
             'season': '2013/14',
+            'subtitles': {
+                'it': 'count:2',
+            },
         },
         'params': {
             'skip_download': True,
         },
     }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
+        'only_matching': True,
+    }, {
+        # subtitles at 'subtitlesArray' key (see #27698)
+        'url': 'https://www.raiplay.it/video/2020/12/Report---04-01-2021-2e90f1de-8eee-4de4-ac0e-78d21db5b600.html',
         'only_matching': True,
     }]
 
@@ -171,7 +184,7 @@ class RaiPlayIE(RaiBaseIE):
         if date_published and time_published:
             date_published += ' ' + time_published
 
-        subtitles = self._extract_subtitles(url, video.get('subtitles'))
+        subtitles = self._extract_subtitles(url, video)
 
         program_info = media.get('program_info') or {}
         season = media.get('season')
@@ -326,6 +339,22 @@ class RaiIE(RaiBaseIE):
             'skip_download': True,
         },
     }, {
+        # ContentItem in iframe (see #12652) and subtitle at 'subtitlesUrl' key
+        'url': 'http://www.presadiretta.rai.it/dl/portali/site/puntata/ContentItem-3ed19d13-26c2-46ff-a551-b10828262f1b.html',
+        'info_dict': {
+            'id': '1ad6dc64-444a-42a4-9bea-e5419ad2f5fd',
+            'ext': 'mp4',
+            'title': 'Partiti acchiappavoti - Presa diretta del 13/09/2015',
+            'description': 'md5:d291b03407ec505f95f27970c0b025f4',
+            'upload_date': '20150913',
+            'subtitles': {
+                'it': 'count:2',
+            },
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
         # Direct MMS URL
         'url': 'http://www.rai.it/dl/RaiTV/programmi/media/ContentItem-b63a4089-ac28-48cf-bca5-9f5b5bc46df5.html',
         'only_matching': True,
@@ -365,7 +394,7 @@ class RaiIE(RaiBaseIE):
                     'url': compat_urlparse.urljoin(url, thumbnail_url),
                 })
 
-        subtitles = self._extract_subtitles(url, media.get('subtitlesUrl'))
+        subtitles = self._extract_subtitles(url, media)
 
         info = {
             'id': content_id,
@@ -402,7 +431,8 @@ class RaiIE(RaiBaseIE):
                 r'''(?x)
                     (?:
                         (?:initEdizione|drawMediaRaiTV)\(|
-                        <(?:[^>]+\bdata-id|var\s+uniquename)=
+                        <(?:[^>]+\bdata-id|var\s+uniquename)=|
+                        <iframe[^>]+\bsrc=
                     )
                     (["\'])
                     (?:(?!\1).)*\bContentItem-(?P<id>%s)

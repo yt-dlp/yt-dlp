@@ -17,7 +17,12 @@ from ..utils import (
 class DPlayIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?P<domain>
-            (?:www\.)?(?P<host>dplay\.(?P<country>dk|fi|jp|se|no))|
+            (?:www\.)?(?P<host>d
+                (?:
+                    play\.(?P<country>dk|fi|jp|se|no)|
+                    iscoveryplus\.(?P<plus_country>dk|es|fi|it|se|no)
+                )
+            )|
             (?P<subdomain_country>es|it)\.dplay\.com
         )/[^/]+/(?P<id>[^/]+/[^/?#]+)'''
 
@@ -125,6 +130,24 @@ class DPlayIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.dplay.jp/video/gold-rush/24086',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.se/videos/nugammalt-77-handelser-som-format-sverige/nugammalt-77-handelser-som-format-sverige-101',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.dk/videoer/ted-bundy-mind-of-a-monster/ted-bundy-mind-of-a-monster',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.no/videoer/i-kongens-klr/sesong-1-episode-7',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.it/videos/biografie-imbarazzanti/luigi-di-maio-la-psicosi-di-stanislawskij',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.es/videos/la-fiebre-del-oro/temporada-8-episodio-1',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.fi/videot/shifting-gears-with-aaron-kaufman/episode-16',
         'only_matching': True,
     }]
 
@@ -241,7 +264,7 @@ class DPlayIE(InfoExtractor):
         mobj = re.match(self._VALID_URL, url)
         display_id = mobj.group('id')
         domain = mobj.group('domain').lstrip('www.')
-        country = mobj.group('country') or mobj.group('subdomain_country')
-        host = 'disco-api.' + domain if domain.startswith('dplay.') else 'eu2-prod.disco-api.com'
+        country = mobj.group('country') or mobj.group('subdomain_country') or mobj.group('plus_country')
+        host = 'disco-api.' + domain if domain[0] == 'd' else 'eu2-prod.disco-api.com'
         return self._get_disco_api_info(
             url, display_id, host, 'dplay' + country, country)
