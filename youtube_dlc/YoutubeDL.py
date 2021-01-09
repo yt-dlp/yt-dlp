@@ -589,7 +589,7 @@ class YoutubeDL(object):
                 # already of type unicode()
                 ctypes.windll.kernel32.SetConsoleTitleW(ctypes.c_wchar_p(message))
         elif 'TERM' in os.environ:
-            self._write_string('\033]0;%s\007' % message, self._screen_file)
+            self._write_string('\033[0;%s\007' % message, self._screen_file)
 
     def save_console_title(self):
         if not self.params.get('consoletitle', False):
