@@ -22,6 +22,7 @@ from ..utils import (
     handle_youtubedl_headers,
     check_executable,
     is_outdated_version,
+    process_communicate_or_kill,
 )
 
 
@@ -104,7 +105,7 @@ class ExternalFD(FileDownloader):
 
         p = subprocess.Popen(
             cmd, stderr=subprocess.PIPE)
-        _, stderr = p.communicate()
+        _, stderr = process_communicate_or_kill(p)
         if p.returncode != 0:
             self.to_stderr(stderr.decode('utf-8', 'replace'))
         return p.returncode
@@ -143,7 +144,7 @@ class CurlFD(ExternalFD):
 
         # curl writes the progress to stderr so don't capture it.
         p = subprocess.Popen(cmd)
-        p.communicate()
+        process_communicate_or_kill(p)
         return p.returncode
 
 
@@ -343,14 +344,17 @@ class FFmpegFD(ExternalFD):
         proc = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
         try:
             retval = proc.wait()
-        except KeyboardInterrupt:
+        except BaseException as e:
             # subprocces.run would send the SIGKILL signal to ffmpeg and the
             # mp4 file couldn't be played, but if we ask ffmpeg to quit it
             # produces a file that is playable (this is mostly useful for live
             # streams). Note that Windows is not affected and produces playable
             # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
-            if sys.platform != 'win32':
-                proc.communicate(b'q')
+            if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32':
+                process_communicate_or_kill(proc, b'q')
+            else:
+                proc.kill()
+                proc.wait()
             raise
         return retval
 

@@ -89,11 +89,13 @@ class RtmpFD(FileDownloader):
                                 self.to_screen('')
                             cursor_in_new_line = True
                             self.to_screen('[rtmpdump] ' + line)
-            finally:
+                if not cursor_in_new_line:
+                    self.to_screen('')
+                return proc.wait()
+            except BaseException:  # Including KeyboardInterrupt
+                proc.kill()
                 proc.wait()
-            if not cursor_in_new_line:
-                self.to_screen('')
-            return proc.returncode
+                raise
 
         url = info_dict['url']
         player_url = info_dict.get('player_url')

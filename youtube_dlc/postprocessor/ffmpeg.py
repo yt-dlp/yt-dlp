@@ -21,6 +21,7 @@ from ..utils import (
     dfxp2srt,
     ISO639Utils,
     replace_extension,
+    process_communicate_or_kill,
 )
 
 
@@ -182,7 +183,7 @@ class FFmpegPostProcessor(PostProcessor):
             handle = subprocess.Popen(
                 cmd, stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-            stdout_data, stderr_data = handle.communicate()
+            stdout_data, stderr_data = process_communicate_or_kill(handle)
             expected_ret = 0 if self.probe_available else 1
             if handle.wait() != expected_ret:
                 return None
@@ -230,7 +231,7 @@ class FFmpegPostProcessor(PostProcessor):
         if self._downloader.params.get('verbose', False):
             self._downloader.to_screen('[debug] ffmpeg command line: %s' % shell_quote(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        stdout, stderr = p.communicate()
+        stdout, stderr = process_communicate_or_kill(p)
         if p.returncode != 0:
             stderr = stderr.decode('utf-8', 'replace')
             msg = stderr.strip().split('\n')[-1]

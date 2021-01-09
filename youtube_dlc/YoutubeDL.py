@@ -99,6 +99,7 @@ from .utils import (
     YoutubeDLCookieProcessor,
     YoutubeDLHandler,
     YoutubeDLRedirectHandler,
+    process_communicate_or_kill,
 )
 from .cache import Cache
 from .extractor import get_info_extractor, gen_extractor_classes, _LAZY_LOADER
@@ -2521,7 +2522,7 @@ class YoutubeDL(object):
                 ['git', 'rev-parse', '--short', 'HEAD'],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=os.path.dirname(os.path.abspath(__file__)))
-            out, err = sp.communicate()
+            out, err = process_communicate_or_kill(sp)
             out = out.decode().strip()
             if re.match('[0-9a-f]+', out):
                 self._write_string('[debug] Git HEAD: ' + out + '\n')
