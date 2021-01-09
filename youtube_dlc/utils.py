@@ -3892,13 +3892,16 @@ def read_batch_urls(batch_fd):
     def fixup(url):
         if not isinstance(url, compat_str):
             url = url.decode('utf-8', 'replace')
-        BOM_UTF8 = '\xef\xbb\xbf'
-        if url.startswith(BOM_UTF8):
-            url = url[len(BOM_UTF8):]
-        url = url.strip()
-        if url.startswith(('#', ';', ']')):
+        BOM_UTF8 = ('\xef\xbb\xbf', '\ufeff')
+        for bom in BOM_UTF8:
+            if url.startswith(bom):
+                url = url[len(bom):]
+        url = url.lstrip()
+        if not url or url.startswith(('#', ';', ']')):
             return False
-        return url
+        # "#" cannot be stripped out since it is part of the URI
+        # However, it can be safely stipped out if follwing a whitespace
+        return re.split(r'\s#', url, 1)[0].rstrip()
 
     with contextlib.closing(batch_fd) as fd:
         return [url for url in map(fixup, fd) if url]
