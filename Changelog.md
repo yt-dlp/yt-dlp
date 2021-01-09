@@ -1,5 +1,25 @@
 # Changelog
 
+<!--
+# Instuctions for creating release
+
+* Run `make doc`
+* Add changelog, bump version in top of Readme
+* Commit to master as `Release <number>`
+* Push to origin/release - build task will now run
+* Update version.py and run `make doc`
+* Commit to master as `[version] update`
+* Push to origin/master
+
+-->
+
+### 2020.01.09
+* [youtube] Fix bug in automatic caption extraction
+* Add `post_hooks` to YoutubeDL by @alexmerkel
+* Batch file enumeration improvements by @glenn-slayden
+* Stop immediately when reaching '--max-downloads' by @glenn-slayden
+* Fix incorrect ANSI sequence for restoring console-window title by @glenn-slayden
+* Kill child processes when yt-dlc is killed by @Unrud
 
 ### 2020.01.08
 * **Merge youtube-dl:** Upto [2020.01.08](https://github.com/ytdl-org/youtube-dl/commit/bf6a74c620bd4d5726503c5302906bb36b009026)
