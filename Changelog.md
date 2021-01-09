@@ -4,10 +4,10 @@
 # Instuctions for creating release
 
 * Run `make doc`
-* Add changelog, bump version in top of Readme
-* Commit to master as `Release <number>`
+* Update Changelog.md and Authors-Fork
+* Commit to master as `Release <version>`
 * Push to origin/release - build task will now run
-* Update version.py and run `make doc`
+* Update version.py and run `make issuetemplates`
 * Commit to master as `[version] update`
 * Push to origin/master
 
