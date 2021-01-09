@@ -1,4 +1,4 @@
-[![Release Version](https://img.shields.io/badge/Release-2021.01.08-brightgreen)](https://github.com/pukkandan/yt-dlc/releases/latest)
+[![Release Version](https://img.shields.io/badge/Release-2021.01.09-brightgreen)](https://github.com/pukkandan/yt-dlc/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlc/blob/master/LICENSE)
 [![Core Status](https://github.com/pukkandan/yt-dlc/workflows/Core%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3ACore)
 [![CI Status](https://github.com/pukkandan/yt-dlc/workflows/Full%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3AFull)
@@ -48,13 +48,13 @@ The major new features are:
 
 * **[SponSkrub Integration](#sponSkrub-options-sponsorblock)** - You can use [SponSkrub](https://github.com/faissaloo/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
-* **[Format Sorting](#sorting-format)** - The default format sorting options have been changed so that higher resolution and better codecs will be now prefered instead of simply using larger bitrate. Furthermore, the user can now specify the sort order if they want. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
+* **[Format Sorting](#sorting-format)** - The default format sorting options have been changed so that higher resolution and better codecs will be now prefered instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
 * Merged with youtube-dl **v2020.01.08** - You get the new features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494)
 
 * **New options** - `--list-formats-as-table`, `--write-link`, `--force-download-archive` etc
 
-and many other features and patches. See [changelog](changelog.md) or [commits](https://github.com/pukkandan/yt-dlc/commits) for the full list of changes
+and many other features and patches. See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlc/commits) for the full list of changes
 
 
 # INSTALLATION
@@ -447,8 +447,8 @@ Then simply type this
     --no-audio-multistreams          Only one audio stream is downloaded for
                                      each output file (default)
     --all-formats                    Download all available video formats
-    --prefer-free-formats            Prefer free video formats unless a specific
-                                     one is requested
+    --prefer-free-formats            Prefer free video formats over non-free
+                                     formats of same quality
     -F, --list-formats               List all available formats of requested
                                      videos
     --list-formats-as-table          Present the output of -F in a more tabular
@@ -919,9 +919,17 @@ $ youtube-dlc -f 'bv*+ba/b'
 # Same as above
 $ youtube-dlc
 
+# Download the best video-only format and the best audio-only format without merging them
+# For this case, an output template should be used since
+# by default, bestvideo and bestaudio will have the same file name.
+$ youtube-dlc -f 'bv,ba' -o '%(title)s.f%(format_id)s.%(ext)s'
 
 
-# Download the worst video available
+
+# The following examples show the old method (without -S) of format selection
+# and how to use -S to achieve a similar but better result
+
+# Download the worst video available (old method)
 $ youtube-dlc -f 'wv*+wa/w'
 
 # Download the best video available but with the smallest resolution
@@ -977,13 +985,6 @@ $ youtube-dlc -f '(bv*+ba/b)[protocol^=http][protocol!*=dash] / (bv*+ba/b)'
 # Download best video available via the best protocol
 # (https/ftps > http/ftp > m3u8_native > m3u8 > http_dash_segments ...)
 $ youtube-dlc -S 'protocol'
-
-
-
-# Download the best video-only format and the best audio-only format without merging them
-# For this case, an output template should be used since
-# by default, bestvideo and bestaudio will have the same file name.
-$ youtube-dlc -f 'bv,ba' -o '%(title)s.f%(format_id)s.%(ext)s'
 
 
 
