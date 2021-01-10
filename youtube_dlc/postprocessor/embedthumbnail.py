@@ -41,8 +41,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         thumbnail_filename = info['thumbnails'][-1]['filename']
 
         if not os.path.exists(encodeFilename(thumbnail_filename)):
-            self._downloader.report_warning(
-                'Skipping embedding the thumbnail because the file is missing.')
+            self.report_warning('Skipping embedding the thumbnail because the file is missing.')
             return [], info
 
         def is_webp(path):
@@ -125,8 +124,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
             self.to_screen('Adding thumbnail to "%s"' % filename)
 
-            if self._downloader.params.get('verbose', False):
-                self._downloader.to_screen('[debug] AtomicParsley command line: %s' % shell_quote(cmd))
+            self.verbose_message('AtomicParsley command line: %s' % shell_quote(cmd))
 
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process_communicate_or_kill(p)
@@ -140,7 +138,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             # for formats that don't support thumbnails (like 3gp) AtomicParsley
             # won't create to the temporary file
             if b'No changes' in stdout:
-                self._downloader.report_warning('The file format doesn\'t support embedding a thumbnail')
+                self.report_warning('The file format doesn\'t support embedding a thumbnail')
             else:
                 os.remove(encodeFilename(filename))
                 os.rename(encodeFilename(temp_filename), encodeFilename(filename))

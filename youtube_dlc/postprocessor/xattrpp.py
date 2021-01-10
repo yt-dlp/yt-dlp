@@ -57,16 +57,16 @@ class XAttrMetadataPP(PostProcessor):
             return [], info
 
         except XAttrUnavailableError as e:
-            self._downloader.report_error(str(e))
+            self.report_error(str(e))
             return [], info
 
         except XAttrMetadataError as e:
             if e.reason == 'NO_SPACE':
-                self._downloader.report_warning(
+                self.report_warning(
                     'There\'s no disk space left, disk quota exceeded or filesystem xattr limit exceeded. '
                     + (('Some ' if num_written else '') + 'extended attributes are not written.').capitalize())
             elif e.reason == 'VALUE_TOO_LONG':
-                self._downloader.report_warning(
+                self.report_warning(
                     'Unable to write extended attributes due to too long values.')
             else:
                 msg = 'This filesystem doesn\'t support extended attributes. '
@@ -74,5 +74,5 @@ class XAttrMetadataPP(PostProcessor):
                     msg += 'You need to use NTFS.'
                 else:
                     msg += '(You may have to enable them in your /etc/fstab)'
-                self._downloader.report_error(msg)
+                self.report_error(msg)
             return [], info

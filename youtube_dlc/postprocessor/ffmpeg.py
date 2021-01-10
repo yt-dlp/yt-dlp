@@ -68,8 +68,7 @@ class FFmpegPostProcessor(PostProcessor):
                 self._versions[self.basename], required_version):
             warning = 'Your copy of %s is outdated, update %s to version %s or newer if you encounter any errors.' % (
                 self.basename, self.basename, required_version)
-            if self._downloader:
-                self._downloader.report_warning(warning)
+            self.report_warning(warning)
 
     @staticmethod
     def get_versions(downloader=None):
@@ -99,11 +98,11 @@ class FFmpegPostProcessor(PostProcessor):
         self._paths = None
         self._versions = None
         if self._downloader:
-            prefer_ffmpeg = self._downloader.params.get('prefer_ffmpeg', True)
-            location = self._downloader.params.get('ffmpeg_location')
+            prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
+            location = self.get_param('ffmpeg_location')
             if location is not None:
                 if not os.path.exists(location):
-                    self._downloader.report_warning(
+                    self.report_warning(
                         'ffmpeg-location %s does not exist! '
                         'Continuing without avconv/ffmpeg.' % (location))
                     self._versions = {}
@@ -111,7 +110,7 @@ class FFmpegPostProcessor(PostProcessor):
                 elif not os.path.isdir(location):
                     basename = os.path.splitext(os.path.basename(location))[0]
                     if basename not in programs:
-                        self._downloader.report_warning(
+                        self.report_warning(
                             'Cannot identify executable %s, its basename should be one of %s. '
                             'Continuing without avconv/ffmpeg.' %
                             (location, ', '.join(programs)))
@@ -177,9 +176,7 @@ class FFmpegPostProcessor(PostProcessor):
                     encodeFilename(self.executable, True),
                     encodeArgument('-i')]
             cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
-            if self._downloader.params.get('verbose', False):
-                self._downloader.to_screen(
-                    '[debug] %s command line: %s' % (self.basename, shell_quote(cmd)))
+            self.write_debug('%s command line: %s' % (self.basename, shell_quote(cmd)))
             handle = subprocess.Popen(
                 cmd, stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -228,8 +225,7 @@ class FFmpegPostProcessor(PostProcessor):
                 + [encodeArgument(o) for o in opts]
                 + [encodeFilename(self._ffmpeg_filename_argument(out_path), True)])
 
-        if self._downloader.params.get('verbose', False):
-            self._downloader.to_screen('[debug] ffmpeg command line: %s' % shell_quote(cmd))
+        self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdout, stderr = process_communicate_or_kill(p)
         if p.returncode != 0:
@@ -566,8 +562,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
                        'youtube-dlc will download single file media. '
                        'Update %s to version %s or newer to fix this.') % (
                            self.basename, self.basename, required_version)
-            if self._downloader:
-                self._downloader.report_warning(warning)
+            self.report_warning(warning)
             return False
         return True
 
@@ -656,7 +651,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
             new_file = subtitles_filename(filename, lang, new_ext, info.get('ext'))
 
             if ext in ('dfxp', 'ttml', 'tt'):
-                self._downloader.report_warning(
+                self.report_warning(
                     'You have requested to convert dfxp (TTML) subtitles into another format, '
                     'which results in style information loss')
 

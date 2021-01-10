@@ -37,7 +37,25 @@ class PostProcessor(object):
             self.PP_NAME = self.__class__.__name__[:-2]
 
     def to_screen(self, text, *args, **kwargs):
-        return self._downloader.to_screen('[%s] %s' % (self.PP_NAME, text), *args, **kwargs)
+        if self._downloader:
+            return self._downloader.to_screen('[%s] %s' % (self.PP_NAME, text), *args, **kwargs)
+
+    def report_warning(self, text, *args, **kwargs):
+        if self._downloader:
+            return self._downloader.report_warning(text, *args, **kwargs)
+
+    def report_error(self, text, *args, **kwargs):
+        if self._downloader:
+            return self._downloader.report_error(text, *args, **kwargs)
+
+    def write_debug(self, text, *args, **kwargs):
+        if self.get_param('verbose', False):
+            return self._downloader.to_screen('[debug] %s' % text, *args, **kwargs)
+
+    def get_param(self, name, default=None, *args, **kwargs):
+        if self._downloader:
+            return self._downloader.params.get(name, default, *args, **kwargs)
+        return default
 
     def set_downloader(self, downloader):
         """Sets the downloader for this PP."""
@@ -64,10 +82,10 @@ class PostProcessor(object):
         try:
             os.utime(encodeFilename(path), (atime, mtime))
         except Exception:
-            self._downloader.report_warning(errnote)
+            self.report_warning(errnote)
 
     def _configuration_args(self, default=[]):
-        args = self._downloader.params.get('postprocessor_args', {})
+        args = self.get_param('postprocessor_args', {})
         if isinstance(args, list):  # for backward compatibility
             args = {'default': args, 'sponskrub': []}
         return cli_configuration_args(args, self.PP_NAME.lower(), args.get('default', []))
