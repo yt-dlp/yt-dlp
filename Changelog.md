@@ -10,6 +10,7 @@
 * Update version.py and run `make issuetemplates`
 * Commit to master as `[version] update`
 * Push to origin/master
+* Update changelog in /releases
 
 -->
 

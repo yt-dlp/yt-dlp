@@ -21,13 +21,13 @@ assignees: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlc:
-- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is 2021.01.09. If it's not, see https://github.com/pukkandan/yt-dlc on how to update. Issues with outdated version will be REJECTED.
+- First of, make sure you are using the latest version of youtube-dlc. Run `youtube-dlc --version` and ensure your version is 2021.01.10. If it's not, see https://github.com/pukkandan/yt-dlc on how to update. Issues with outdated version will be REJECTED.
 - Search the bugtracker for similar feature requests: https://github.com/pukkandan/yt-dlc. DO NOT post duplicates.
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
 - [ ] I'm reporting a feature request
-- [ ] I've verified that I'm running youtube-dlc version **2021.01.09**
+- [ ] I've verified that I'm running youtube-dlc version **2021.01.10**
 - [ ] I've searched the bugtracker for similar feature requests including closed ones
 
 
