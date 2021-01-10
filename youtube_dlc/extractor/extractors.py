@@ -46,6 +46,10 @@ from .alura import (
     AluraCourseIE
 )
 from .amcnetworks import AMCNetworksIE
+from .animelab import (
+    AnimeLabIE,
+    AnimeLabShowsIE,
+)
 from .americastestkitchen import AmericasTestKitchenIE
 from .animeondemand import AnimeOnDemandIE
 from .anvato import AnvatoIE
