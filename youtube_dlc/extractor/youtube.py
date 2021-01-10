@@ -3624,8 +3624,8 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
                 description = try_get(video, lambda x: x['descriptionSnippet']['runs'][0]['text'], compat_str)
                 duration = parse_duration(try_get(video, lambda x: x['lengthText']['simpleText'], compat_str))
                 view_count_text = try_get(video, lambda x: x['viewCountText']['simpleText'], compat_str) or ''
-                view_count = int_or_none(self._search_regex(
-                    r'^(\d+)', re.sub(r'\s', '', view_count_text),
+                view_count = str_to_int(self._search_regex(
+                    r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
                     'view count', default=None))
                 uploader = try_get(video, lambda x: x['ownerText']['runs'][0]['text'], compat_str)
                 total += 1
