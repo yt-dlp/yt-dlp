@@ -13,11 +13,20 @@
 
 -->
 
+### 2020.01.10
+* [archive.org] Fix extractor and add support for audio and playlists by @wporr
+* [Animelab] Added by @mariuszskon
+* [youtube:search] Fix view_count by @ohnonot
+* [youtube] Show if video is embeddable in info
+* Update version badge automatically in README
+* Enable `test_youtube_search_matching`
+* Create `to_screen` and similar functions in postprocessor/common
+
 ### 2020.01.09
 * [youtube] Fix bug in automatic caption extraction
 * Add `post_hooks` to YoutubeDL by @alexmerkel
 * Batch file enumeration improvements by @glenn-slayden
-* Stop immediately when reaching '--max-downloads' by @glenn-slayden
+* Stop immediately when reaching `--max-downloads` by @glenn-slayden
 * Fix incorrect ANSI sequence for restoring console-window title by @glenn-slayden
 * Kill child processes when yt-dlc is killed by @Unrud
 

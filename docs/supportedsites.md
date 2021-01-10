@@ -48,6 +48,8 @@
  - **AMCNetworks**
  - **AmericasTestKitchen**
  - **anderetijden**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
+ - **AnimeLab**
+ - **AnimeLabShows**
  - **AnimeOnDemand**
  - **Anvato**
  - **aol.com**
@@ -58,7 +60,7 @@
  - **ApplePodcasts**
  - **appletrailers**
  - **appletrailers:section**
- - **archive.org**: archive.org videos
+ - **archive.org**: archive.org video and audio
  - **ArcPublishing**
  - **ARD**
  - **ARD:mediathek**
