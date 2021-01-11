@@ -3,6 +3,7 @@ on: [push]
 jobs:
   tests:
     name: Core Tests
+    if: "!contains(github.event.head_commit.message, 'skip ci all')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -18,6 +19,7 @@ jobs:
       run: ./devscripts/run_tests.sh
   flake8:
     name: Linter
+    if: "!contains(github.event.head_commit.message, 'skip ci all')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
