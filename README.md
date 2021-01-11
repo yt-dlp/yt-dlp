@@ -45,17 +45,31 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
 
 
 # NEW FEATURES
-The major new features are:
+The major new features from the latest release of [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc) are:
 
-* **[SponSkrub Integration](#sponSkrub-options-sponsorblock)** - You can use [SponSkrub](https://github.com/faissaloo/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
+* **[SponSkrub Integration](#sponSkrub-options-sponsorblock)**: You can use [SponSkrub](https://github.com/faissaloo/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
-* **[Format Sorting](#sorting-format)** - The default format sorting options have been changed so that higher resolution and better codecs will be now prefered instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
+* **[Format Sorting](#sorting-format)**: The default format sorting options have been changed so that higher resolution and better codecs will be now prefered instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* Merged with youtube-dl **v2020.01.08** - You get the new features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494)
+* Merged with youtube-dl **v2020.01.08**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494)
 
-* **New options** - `--list-formats-as-table`, `--write-link`, `--force-download-archive` etc
+* **Youtube improvements**: 
+    * All Youtube Feeds (`:ytfav`, `ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) work correctly and support downloading multiple pages of content
+    * Youtube search works correctly (`ytsearch:`, `ytsearchdate`) along with Search URLs
+    * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
+
+* **New extractors**: AnimeLab, Rcs, Gedi, bitwave.tv
+
+* **Fixed extractors**: archive.org, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina
+
+* **New options**: `--list-formats-as-table`, `--write-link`, `--force-download-archive` etc
 
 and many other features and patches. See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlc/commits) for the full list of changes
+
+
+**PS**: Some of these changes are already in youtube-dlc, but are still unreleased. See [this](changelog.md#unreleased-changes-in-blackjack4494yt-dlc) for details
+
+If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the amount of changes are very large. Compare [options](#options) and [supported sites](docs/supportedsites.md) with youtube-dl's to get an idea of the massive number of features/patches [youtube-dlc](https://github.com/blackjack4494/yt-dlc) has accumulated.
 
 
 # INSTALLATION
