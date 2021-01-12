@@ -15,7 +15,7 @@
 -->
 
 
-### 2020.01.10
+### 2021.01.10
 * [archive.org] Fix extractor and add support for audio and playlists by @wporr
 * [Animelab] Added by @mariuszskon
 * [youtube:search] Fix view_count by @ohnonot
@@ -25,7 +25,7 @@
 * Create `to_screen` and similar functions in postprocessor/common
 
 
-### 2020.01.09
+### 2021.01.09
 * [youtube] Fix bug in automatic caption extraction
 * Add `post_hooks` to YoutubeDL by @alexmerkel
 * Batch file enumeration improvements by @glenn-slayden
@@ -34,8 +34,8 @@
 * Kill child processes when yt-dlc is killed by @Unrud
 
 
-### 2020.01.08
-* **Merge youtube-dl:** Upto [2020.01.08](https://github.com/ytdl-org/youtube-dl/commit/bf6a74c620bd4d5726503c5302906bb36b009026)
+### 2021.01.08
+* **Merge youtube-dl:** Upto [2021.01.08](https://github.com/ytdl-org/youtube-dl/commit/bf6a74c620bd4d5726503c5302906bb36b009026)
     * Extractor stitcher ([1](https://github.com/ytdl-org/youtube-dl/commit/bb38a1215718cdf36d73ff0a7830a64cd9fa37cc), [2](https://github.com/ytdl-org/youtube-dl/commit/a563c97c5cddf55f8989ed7ea8314ef78e30107f)) have not been merged
 * Moved changelog to seperate file
 
@@ -85,7 +85,7 @@
 * Relaxed validation for format filters so that any arbitrary field can be used
 * Fix for embedding thumbnail in mp3 by @pauldubois98
 * Make Twitch Video ID output from Playlist and VOD extractor same. This is only a temporary fix
-* **Merge youtube-dl:** Upto [2020.01.03](https://github.com/ytdl-org/youtube-dl/commit/8e953dcbb10a1a42f4e12e4e132657cb0100a1f8) - See [blackjack4494/yt-dlc#280](https://github.com/blackjack4494/yt-dlc/pull/280) for details
+* **Merge youtube-dl:** Upto [2021.01.03](https://github.com/ytdl-org/youtube-dl/commit/8e953dcbb10a1a42f4e12e4e132657cb0100a1f8) - See [blackjack4494/yt-dlc#280](https://github.com/blackjack4494/yt-dlc/pull/280) for details
     * Extractors [tiktok](https://github.com/ytdl-org/youtube-dl/commit/fb626c05867deab04425bad0c0b16b55473841a2) and [hotstar](https://github.com/ytdl-org/youtube-dl/commit/bb38a1215718cdf36d73ff0a7830a64cd9fa37cc) have not been merged
 * Cleaned up the fork for public use
 

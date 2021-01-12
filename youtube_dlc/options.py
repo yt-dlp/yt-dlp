@@ -785,7 +785,7 @@ def parseOpts(overrideArguments=None):
     verbosity.add_option(
         '-C', '--call-home',
         dest='call_home', action='store_true', default=False,
-        help='Contact the youtube-dlc server for debugging')
+        help='[Broken] Contact the youtube-dlc server for debugging')
     verbosity.add_option(
         '--no-call-home',
         dest='call_home', action='store_false',

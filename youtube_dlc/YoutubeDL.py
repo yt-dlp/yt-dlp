@@ -179,7 +179,7 @@ class YoutubeDL(object):
     outtmpl:           Template for output names.
     restrictfilenames: Do not allow "&" and spaces in file names.
     trim_file_name:    Limit length of filename (extension excluded).
-    ignoreerrors:      Do not stop on download errors. (Default False when running youtube-dlc, but True when directly accessing YoutubeDL class)
+    ignoreerrors:      Do not stop on download errors. (Default True when running youtube-dlc, but False when directly accessing YoutubeDL class)
     force_generic_extractor: Force downloader to use the generic extractor
     nooverwrites:      Prevent overwriting files.
     playliststart:     Playlist item to start at.
@@ -2563,6 +2563,7 @@ class YoutubeDL(object):
         if self.params.get('call_home', False):
             ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode('utf-8')
             self._write_string('[debug] Public IP address: %s\n' % ipaddr)
+            return
             latest_version = self.urlopen(
                 'https://yt-dl.org/latest/version').read().decode('utf-8')
             if version_tuple(latest_version) > version_tuple(__version__):

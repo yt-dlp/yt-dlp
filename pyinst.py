@@ -74,7 +74,7 @@ version_file = VSVersionInfo(
                         ),
                         StringStruct("OriginalFilename", "youtube-dlc.exe"),
                         StringStruct("ProductName", "Youtube-dlc"),
-                        StringStruct("ProductVersion", version + " | git.io/JUGsM"),
+                        StringStruct("ProductVersion", version + " | git.io/JLh7K"),
                     ],
                 )
             ]

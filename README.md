@@ -12,7 +12,6 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
 * [INSTALLATION](#installation)
     * [UPDATE](#update)
     * [COMPILE](#compile)
-* [YOUTUBE-DLC](#youtube-dlc)
 * [DESCRIPTION](#description)
 * [OPTIONS](#options)
     * [Network Options](#network-options)
@@ -53,9 +52,9 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * Merged with youtube-dl **v2020.01.08**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494)
 
-* **Youtube improvements**: 
-    * All Youtube Feeds (`:ytfav`, `ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) work correctly and support downloading multiple pages of content
-    * Youtube search works correctly (`ytsearch:`, `ytsearchdate`) along with Search URLs
+* **Youtube improvements**:
+    * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and support downloading multiple pages of content
+    * Youtube search works correctly (`ytsearch:`, `ytsearchdate:`) along with Search URLs
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
 
 * **New extractors**: AnimeLab, Rcs, Gedi, bitwave.tv
@@ -107,9 +106,9 @@ Then simply type this
 
 
 # DESCRIPTION
-**youtube-dlc** is a command-line program to download videos from YouTube.com and a few more sites. It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
+**youtube-dlc** is a command-line program to download videos from youtube.com many other [video platforms](docs/supportedsites.md). It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
 
-    youtube-dlc [OPTIONS] URL [URL...]
+    youtube-dlc [OPTIONS] [--] URL [URL...]
 
 
 # OPTIONS
