@@ -15,6 +15,15 @@
 -->
 
 
+### 2021.01.12
+* [roosterteeth.com] Add subtitle support by @samiksome
+* Added `--force-overwrites` by @alxnull
+* Changed fork name to `yt-dlp`
+* Fix typos by @FelixFrog
+* [ci] Option to skip
+* [changelog] Added unreleased changes in blackjack4494/yt-dlc
+
+
 ### 2021.01.10
 * [archive.org] Fix extractor and add support for audio and playlists by @wporr
 * [Animelab] Added by @mariuszskon

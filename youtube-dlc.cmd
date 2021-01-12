@@ -1,1 +1,1 @@
-py "%~dp0\youtube_dl\__main__.py"
+py "%~dp0youtube_dl\__main__.py"
