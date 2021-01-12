@@ -2532,7 +2532,7 @@ class YoutubeDL(object):
                 self.get_encoding()))
         write_string(encoding_str, encoding=None)
 
-        self._write_string('[debug] youtube-dlc version ' + __version__ + '\n')
+        self._write_string('[debug] yt-dlp version ' + __version__ + '\n')
         if _LAZY_LOADER:
             self._write_string('[debug] Lazy loading extractors enabled' + '\n')
         try:

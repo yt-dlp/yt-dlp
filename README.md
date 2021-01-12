@@ -1,10 +1,12 @@
+# YT-DLP
+
 <!-- See: https://github.com/marketplace/actions/dynamic-badges -->
 [![Release Version](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/pukkandan/c69cb23c3c5b3316248e52022790aa57/raw/version.json&color=brightgreen)](https://github.com/pukkandan/yt-dlc/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlc/blob/master/LICENSE)
 [![Core Status](https://github.com/pukkandan/yt-dlc/workflows/Core%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3ACore)
 [![CI Status](https://github.com/pukkandan/yt-dlc/workflows/Full%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3AFull)
 
-youtube-dlc - download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
+A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
 
 This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which is inturn a fork of [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
