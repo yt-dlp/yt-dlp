@@ -17,7 +17,7 @@
 
 ### 2021.01.12
 * [roosterteeth.com] Add subtitle support by @samiksome
-* Added `--force-overwrites` by @alxnull
+* Added `--force-overwrites`, `--no-force-overwrites` by @alxnull
 * Changed fork name to `yt-dlp`
 * Fix typos by @FelixFrog
 * [ci] Option to skip

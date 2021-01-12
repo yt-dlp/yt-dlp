@@ -1,10 +1,10 @@
 # YT-DLP
 
 <!-- See: https://github.com/marketplace/actions/dynamic-badges -->
-[![Release Version](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/pukkandan/c69cb23c3c5b3316248e52022790aa57/raw/version.json&color=brightgreen)](https://github.com/pukkandan/yt-dlc/releases/latest)
-[![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlc/blob/master/LICENSE)
-[![Core Status](https://github.com/pukkandan/yt-dlc/workflows/Core%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3ACore)
-[![CI Status](https://github.com/pukkandan/yt-dlc/workflows/Full%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlc/actions?query=workflow%3AFull)
+[![Release Version](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/pukkandan/c69cb23c3c5b3316248e52022790aa57/raw/version.json&color=brightgreen)](https://github.com/pukkandan/yt-dlp/releases/latest)
+[![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlp/blob/master/LICENSE)
+[![Core Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions?query=workflow%3ACore)
+[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Full%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions?query=workflow%3AFull)
 
 A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
 
@@ -50,9 +50,9 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[SponSkrub Integration](#sponSkrub-options-sponsorblock)**: You can use [SponSkrub](https://github.com/faissaloo/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
-* **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now prefered instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
+* **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* Merged with youtube-dl **v2020.01.08**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494)
+* **Merged with youtube-dl v2020.01.08**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Youtube improvements**:
     * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and support downloading multiple pages of content
@@ -63,24 +63,24 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina
 
-* **New options**: `--list-formats-as-table`, `--write-link`, `--force-download-archive` etc
+* **New options**: `--list-formats-as-table`, `--write-link`, `--force-download-archive`, `--force-overwrites` etc
 
-and many other features and patches. See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlc/commits) for the full list of changes
+and many other features and patches. See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
 
 
-**PS**: Some of these changes are already in youtube-dlc, but are still unreleased. See [this](changelog.md#unreleased-changes-in-blackjack4494yt-dlc) for details
+**PS**: Some of these changes are already in youtube-dlc, but are still unreleased. See [this](Changelog.md#unreleased-changes-in-blackjack4494yt-dlc) for details
 
 If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the amount of changes are very large. Compare [options](#options) and [supported sites](docs/supportedsites.md) with youtube-dl's to get an idea of the massive number of features/patches [youtube-dlc](https://github.com/blackjack4494/yt-dlc) has accumulated.
 
 
 # INSTALLATION
 
-To use the latest version, simply download and run the [latest release](https://github.com/pukkandan/yt-dlc/releases/latest).
+To use the latest version, simply download and run the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest).
 Currently, there is no support for any package managers.
 
 If you want to install the current master branch
 
-    python -m pip install git+https://github.com/pukkandan/yt-dlc
+    python -m pip install git+https://github.com/pukkandan/yt-dlp
 
 ### UPDATE
 **DO NOT UPDATE using `-U` !** instead download binaries again
