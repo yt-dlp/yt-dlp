@@ -842,9 +842,9 @@ class YoutubeDL(object):
         reason = check_filter()
         if reason is not None:
             self.to_screen('[download] ' + reason)
-            if reason.endswith('has already been recorded in the archive') and self.params.get('break_on_existing'):
+            if reason.endswith('has already been recorded in the archive') and self.params.get('break_on_existing', False):
                 raise ExistingVideoReached()
-            elif self.params.get('break_on_reject'):
+            elif self.params.get('break_on_reject', False):
                 raise RejectedVideoReached()
         return reason
 
@@ -1110,7 +1110,8 @@ class YoutubeDL(object):
                     'extractor_key': ie_result['extractor_key'],
                 }
 
-                self._match_entry(entry, incomplete=True)
+                if self._match_entry(entry, incomplete=True) is not None:
+                    continue
 
                 entry_result = self.__process_iterable_entry(entry, download, extra)
                 # TODO: skip failed (empty) entries?
@@ -2266,10 +2267,10 @@ class YoutubeDL(object):
                 self.to_screen('[info] Maximum number of downloaded files reached')
                 raise
             except ExistingVideoReached:
-                self.to_screen('[info] Encountered a file that did not match filter, stopping due to --break-on-reject')
+                self.to_screen('[info] Encountered a file that is already in the archive, stopping due to --break-on-existing')
                 raise
             except RejectedVideoReached:
-                self.to_screen('[info] Encountered a file that is already in the archive, stopping due to --break-on-existing')
+                self.to_screen('[info] Encountered a file that did not match filter, stopping due to --break-on-reject')
                 raise
             else:
                 if self.params.get('dump_single_json', False):
