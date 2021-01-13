@@ -58,6 +58,7 @@ from .utils import (
     encode_compat_str,
     encodeFilename,
     error_to_compat_str,
+    ExistingVideoReached,
     expand_path,
     ExtractorError,
     format_bytes,
@@ -81,6 +82,7 @@ from .utils import (
     register_socks_protocols,
     render_table,
     replace_extension,
+    RejectedVideoReached,
     SameFileError,
     sanitize_filename,
     sanitize_path,
@@ -232,6 +234,7 @@ class YoutubeDL(object):
                        again.
     break_on_existing: Stop the download process after attempting to download a file that's
                        in the archive.
+    break_on_reject:   Stop the download process when encountering a video that has been filtered out.
     cookiefile:        File name where cookies should be read from and dumped to.
     nocheckcertificate:Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
@@ -797,44 +800,53 @@ class YoutubeDL(object):
     def _match_entry(self, info_dict, incomplete):
         """ Returns None if the file should be downloaded """
 
-        video_title = info_dict.get('title', info_dict.get('id', 'video'))
-        if 'title' in info_dict:
-            # This can happen when we're just evaluating the playlist
-            title = info_dict['title']
-            matchtitle = self.params.get('matchtitle', False)
-            if matchtitle:
-                if not re.search(matchtitle, title, re.IGNORECASE):
-                    return '"' + title + '" title did not match pattern "' + matchtitle + '"'
-            rejecttitle = self.params.get('rejecttitle', False)
-            if rejecttitle:
-                if re.search(rejecttitle, title, re.IGNORECASE):
-                    return '"' + title + '" title matched reject pattern "' + rejecttitle + '"'
-        date = info_dict.get('upload_date')
-        if date is not None:
-            dateRange = self.params.get('daterange', DateRange())
-            if date not in dateRange:
-                return '%s upload date is not in range %s' % (date_from_str(date).isoformat(), dateRange)
-        view_count = info_dict.get('view_count')
-        if view_count is not None:
-            min_views = self.params.get('min_views')
-            if min_views is not None and view_count < min_views:
-                return 'Skipping %s, because it has not reached minimum view count (%d/%d)' % (video_title, view_count, min_views)
-            max_views = self.params.get('max_views')
-            if max_views is not None and view_count > max_views:
-                return 'Skipping %s, because it has exceeded the maximum view count (%d/%d)' % (video_title, view_count, max_views)
-        if age_restricted(info_dict.get('age_limit'), self.params.get('age_limit')):
-            return 'Skipping "%s" because it is age restricted' % video_title
-        if self.in_download_archive(info_dict):
-            return '%s has already been recorded in archive' % video_title
+        def check_filter():
+            video_title = info_dict.get('title', info_dict.get('id', 'video'))
+            if 'title' in info_dict:
+                # This can happen when we're just evaluating the playlist
+                title = info_dict['title']
+                matchtitle = self.params.get('matchtitle', False)
+                if matchtitle:
+                    if not re.search(matchtitle, title, re.IGNORECASE):
+                        return '"' + title + '" title did not match pattern "' + matchtitle + '"'
+                rejecttitle = self.params.get('rejecttitle', False)
+                if rejecttitle:
+                    if re.search(rejecttitle, title, re.IGNORECASE):
+                        return '"' + title + '" title matched reject pattern "' + rejecttitle + '"'
+            date = info_dict.get('upload_date')
+            if date is not None:
+                dateRange = self.params.get('daterange', DateRange())
+                if date not in dateRange:
+                    return '%s upload date is not in range %s' % (date_from_str(date).isoformat(), dateRange)
+            view_count = info_dict.get('view_count')
+            if view_count is not None:
+                min_views = self.params.get('min_views')
+                if min_views is not None and view_count < min_views:
+                    return 'Skipping %s, because it has not reached minimum view count (%d/%d)' % (video_title, view_count, min_views)
+                max_views = self.params.get('max_views')
+                if max_views is not None and view_count > max_views:
+                    return 'Skipping %s, because it has exceeded the maximum view count (%d/%d)' % (video_title, view_count, max_views)
+            if age_restricted(info_dict.get('age_limit'), self.params.get('age_limit')):
+                return 'Skipping "%s" because it is age restricted' % video_title
+            if self.in_download_archive(info_dict):
+                return '%s has already been recorded in archive' % video_title
 
-        if not incomplete:
-            match_filter = self.params.get('match_filter')
-            if match_filter is not None:
-                ret = match_filter(info_dict)
-                if ret is not None:
-                    return ret
+            if not incomplete:
+                match_filter = self.params.get('match_filter')
+                if match_filter is not None:
+                    ret = match_filter(info_dict)
+                    if ret is not None:
+                        return ret
+            return None
 
-        return None
+        reason = check_filter()
+        if reason is not None:
+            self.to_screen('[download] ' + reason)
+            if reason.endswith('has already been recorded in the archive') and self.params.get('break_on_existing'):
+                raise ExistingVideoReached()
+            elif self.params.get('break_on_reject'):
+                raise RejectedVideoReached()
+        return reason
 
     @staticmethod
     def add_extra_info(info_dict, extra_info):
@@ -895,7 +907,7 @@ class YoutubeDL(object):
                 self.report_error(msg)
             except ExtractorError as e:  # An error we somewhat expected
                 self.report_error(compat_str(e), e.format_traceback())
-            except MaxDownloadsReached:
+            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
                 raise
             except Exception as e:
                 if self.params.get('ignoreerrors', False):
@@ -1098,14 +1110,7 @@ class YoutubeDL(object):
                     'extractor_key': ie_result['extractor_key'],
                 }
 
-                reason = self._match_entry(entry, incomplete=True)
-                if reason is not None:
-                    if reason.endswith('has already been recorded in the archive') and self.params.get('break_on_existing'):
-                        print('[download] tried downloading a file that\'s already in the archive, stopping since --break-on-existing is set.')
-                        break
-                    else:
-                        self.to_screen('[download] ' + reason)
-                        continue
+                self._match_entry(entry, incomplete=True)
 
                 entry_result = self.__process_iterable_entry(entry, download, extra)
                 # TODO: skip failed (empty) entries?
@@ -1870,9 +1875,7 @@ class YoutubeDL(object):
         if 'format' not in info_dict:
             info_dict['format'] = info_dict['ext']
 
-        reason = self._match_entry(info_dict, incomplete=False)
-        if reason is not None:
-            self.to_screen('[download] ' + reason)
+        if self._match_entry(info_dict, incomplete=False) is not None:
             return
 
         self._num_downloads += 1
@@ -2260,7 +2263,13 @@ class YoutubeDL(object):
             except UnavailableVideoError:
                 self.report_error('unable to download video')
             except MaxDownloadsReached:
-                self.to_screen('[info] Maximum number of downloaded files reached.')
+                self.to_screen('[info] Maximum number of downloaded files reached')
+                raise
+            except ExistingVideoReached:
+                self.to_screen('[info] Encountered a file that did not match filter, stopping due to --break-on-reject')
+                raise
+            except RejectedVideoReached:
+                self.to_screen('[info] Encountered a file that is already in the archive, stopping due to --break-on-existing')
                 raise
             else:
                 if self.params.get('dump_single_json', False):

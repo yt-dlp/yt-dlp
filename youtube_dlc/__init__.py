@@ -26,11 +26,13 @@ from .utils import (
     decodeOption,
     DEFAULT_OUTTMPL,
     DownloadError,
+    ExistingVideoReached,
     expand_path,
     match_filter_func,
     MaxDownloadsReached,
     preferredencoding,
     read_batch_urls,
+    RejectedVideoReached,
     SameFileError,
     setproctitle,
     std_headers,
@@ -449,6 +451,7 @@ def _real_main(argv=None):
         'age_limit': opts.age_limit,
         'download_archive': download_archive_fn,
         'break_on_existing': opts.break_on_existing,
+        'break_on_reject': opts.break_on_reject,
         'cookiefile': opts.cookiefile,
         'nocheckcertificate': opts.no_check_certificate,
         'prefer_insecure': opts.prefer_insecure,
@@ -519,8 +522,8 @@ def _real_main(argv=None):
                 retcode = ydl.download_with_info_file(expand_path(opts.load_info_filename))
             else:
                 retcode = ydl.download(all_urls)
-        except MaxDownloadsReached:
-            ydl.to_screen('--max-download limit reached, aborting.')
+        except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
+            ydl.to_screen('Aborting remaining downloads')
             retcode = 101
 
     sys.exit(retcode)

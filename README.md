@@ -250,8 +250,10 @@ Then simply type this
     --download-archive FILE          Download only videos not listed in the
                                      archive file. Record the IDs of all
                                      downloaded videos in it.
-    --break-on-existing              Stop the download process after attempting
-                                     to download a file that's in the archive.
+    --break-on-existing              Stop the download process when encountering
+                                     a file that's in the archive.
+    --break-on-reject                Stop the download process when encountering
+                                     a file that has been filtered out.
     --no-download-archive            Do not use archive file (default)
     --include-ads                    Download advertisements as well
                                      (experimental)

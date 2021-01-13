@@ -367,7 +367,11 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
-        help="Stop the download process after attempting to download a file that's in the archive.")
+        help="Stop the download process when encountering a file that's in the archive.")
+    selection.add_option(
+        '--break-on-reject',
+        action='store_true', dest='break_on_reject', default=False,
+        help="Stop the download process when encountering a file that has been filtered out.")
     selection.add_option(
         '--no-download-archive',
         dest='download_archive', action="store_const", const=None,
