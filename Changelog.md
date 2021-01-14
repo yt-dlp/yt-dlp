@@ -15,6 +15,16 @@
 -->
 
 
+### 2021.01.14
+* Added option `--break-on-reject`
+* [roosterteeth.com] Fix for bonus episodes by changing API endpoint by @Zocker1999NET
+* [tiktok] Fix for when share_info is empty
+* [EmbedThumbnail] Fix bug due to incorrect function name
+* [documentation] Changed sponskrub links to point to [pukkandan/sponskrub](https://github.com/pukkandan/SponSkrub) since I am now providing both linux and windows releases
+* [documentation] Change all links to correctly point to new fork URL
+* [documentation] Fixes typos
+
+
 ### 2021.01.12
 * [roosterteeth.com] Add subtitle support by @samiksome
 * Added `--force-overwrites`, `--no-force-overwrites` by @alxnull
