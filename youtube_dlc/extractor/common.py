@@ -290,6 +290,10 @@ class InfoExtractor(object):
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
                         * "title" (optional, string)
+    playable_in_embed: Whether this video is allowed to play in embedded
+                    players on other sites. Can be True (=always allowed),
+                    False (=never allowed), None (=unknown), or a string
+                    specifying the criteria for embedability (Eg: 'whitelist').
 
     The following fields should only be used when the video belongs to some logical
     chapter or section:
