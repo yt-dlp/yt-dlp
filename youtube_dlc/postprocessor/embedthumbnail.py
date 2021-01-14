@@ -124,7 +124,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
             self.to_screen('Adding thumbnail to "%s"' % filename)
 
-            self.verbose_message('AtomicParsley command line: %s' % shell_quote(cmd))
+            self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
 
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process_communicate_or_kill(p)
