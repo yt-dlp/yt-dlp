@@ -80,6 +80,8 @@ class SponSkrubPP(PostProcessor):
             self.to_screen('No segments in the SponsorBlock database')
         else:
             stderr = stderr.decode('utf-8', 'replace')
-            msg = stderr.strip().split('\n')[-1]
+            msg = stderr.strip()
+            if not self.get_param('verbose', False):
+                msg = msg.split('\n')[-1]
             raise PostProcessingError(msg if msg else 'sponskrub failed with error code %s!' % p.returncode)
         return [], information
