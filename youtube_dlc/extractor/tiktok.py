@@ -17,8 +17,8 @@ class TikTokBaseIE(InfoExtractor):
         video_info = try_get(
             video_data, lambda x: x['itemInfo']['itemStruct'], dict)
         author_info = try_get(
-            video_data, lambda x: x['itemInfo']['itemStruct']['author'], dict)
-        share_info = try_get(video_data, lambda x: x['itemInfo']['shareMeta'], dict)
+            video_data, lambda x: x['itemInfo']['itemStruct']['author'], dict) or {}
+        share_info = try_get(video_data, lambda x: x['itemInfo']['shareMeta'], dict) or {}
 
         unique_id = str_or_none(author_info.get('uniqueId'))
         timestamp = try_get(video_info, lambda x: int(x['createTime']), int)
