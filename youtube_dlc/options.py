@@ -988,8 +988,9 @@ def parseOpts(overrideArguments=None):
             'Give these arguments to the postprocessors. '
             "Specify the postprocessor name and the arguments separated by a colon ':' "
             'to give the argument to only the specified postprocessor. Supported names are '
-            'ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor, SponSkrub and Default'
-            '. You can use this option multiple times to give different arguments to different postprocessors'))
+            'ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, FixupStretched, '
+            'FixupM4a, FixupM3u8, SubtitlesConvertor, EmbedThumbnail, XAttrMetadata, SponSkrub and Default. '
+            'You can use this option multiple times to give different arguments to different postprocessors'))
     postproc.add_option(
         '-k', '--keep-video',
         action='store_true', dest='keepvideo', default=False,

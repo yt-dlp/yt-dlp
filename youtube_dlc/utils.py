@@ -2332,8 +2332,8 @@ def bug_reports_message():
     if ytdl_is_updateable():
         update_cmd = 'type  youtube-dlc -U  to update'
     else:
-        update_cmd = 'see  https://github.com/pukkandan/yt-dlc  on how to update'
-    msg = '; please report this issue on https://github.com/pukkandan/yt-dlc .'
+        update_cmd = 'see  https://github.com/pukkandan/yt-dlp  on how to update'
+    msg = '; please report this issue on https://github.com/pukkandan/yt-dlp .'
     msg += ' Make sure you are using the latest version; %s.' % update_cmd
     msg += ' Be sure to call youtube-dlc with the --verbose flag and include its complete output.'
     return msg

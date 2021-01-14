@@ -66,7 +66,7 @@ setup(
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     # long_description_content_type="text/markdown",
-    url="https://github.com/pukkandan/yt-dlc",
+    url="https://github.com/pukkandan/yt-dlp",
     packages=find_packages(exclude=("youtube_dl","test",)),
 	#packages=[
     #    'youtube_dlc',

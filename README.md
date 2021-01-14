@@ -12,8 +12,8 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
 
 * [NEW FEATURES](#new-features)
 * [INSTALLATION](#installation)
-    * [UPDATE](#update)
-    * [COMPILE](#compile)
+    * [Update](#update)
+    * [Compile](#compile)
 * [DESCRIPTION](#description)
 * [OPTIONS](#options)
     * [Network Options](#network-options)
@@ -30,7 +30,7 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
     * [Authentication Options](#authentication-options)
     * [Adobe Pass Options](#adobe-pass-options)
     * [Post-processing Options](#post-processing-options)
-    * [SponSkrub Options (SponsorBlock)](#sponSkrub-options-sponsorblock)
+    * [SponSkrub Options (SponsorBlock)](#sponskrub-options-sponsorblock)
     * [Extractor Options](#extractor-options)
 * [CONFIGURATION](#configuration)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
@@ -48,11 +48,11 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
 # NEW FEATURES
 The major new features from the latest release of [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc) are:
 
-* **[SponSkrub Integration](#sponSkrub-options-sponsorblock)**: You can use [SponSkrub](https://github.com/faissaloo/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
+* **[SponSkrub Integration](#sponSkrub-options-sponsorblock)**: You can use [SponSkrub](https://github.com/pukkandan/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl v2020.01.08**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl v2021.01.08**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Youtube improvements**:
     * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and support downloading multiple pages of content
@@ -558,9 +558,10 @@ Then simply type this
                                      ExtractAudio, VideoRemuxer, VideoConvertor,
                                      EmbedSubtitle, Metadata, Merger,
                                      FixupStretched, FixupM4a, FixupM3u8,
-                                     SubtitlesConvertor, SponSkrub and Default.
-                                     You can use this option multiple times to
-                                     give different arguments to different
+                                     SubtitlesConvertor, EmbedThumbnail,
+                                     XAttrMetadata, SponSkrub and Default. You
+                                     can use this option multiple times to give
+                                     different arguments to different
                                      postprocessors
     -k, --keep-video                 Keep the intermediate video file on disk
                                      after post-processing
@@ -607,7 +608,7 @@ Then simply type this
     --convert-subs FORMAT            Convert the subtitles to other format
                                      (currently supported: srt|ass|vtt|lrc)
 
-## [SponSkrub](https://github.com/faissaloo/SponSkrub) Options ([SponsorBlock](https://sponsor.ajay.app)):
+## [SponSkrub](https://github.com/pukkandan/SponSkrub) Options ([SponsorBlock](https://sponsor.ajay.app)):
     --sponskrub                      Use sponskrub to mark sponsored sections
                                      with the data available in SponsorBlock
                                      API. This is enabled by default if the
