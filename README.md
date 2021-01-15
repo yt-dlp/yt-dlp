@@ -75,15 +75,14 @@ If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the
 
 # INSTALLATION
 
-To use the latest version, simply download and run the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest).
-Currently, there is no support for any package managers.
-
-If you want to install the current master branch
-
-    python -m pip install git+https://github.com/pukkandan/yt-dlp
+You can install yt-dlp using one of the following methods:
+* Use [PyPI package](https://pypi.org/project/yt-dlp/): `python -m pip install --upgrade yt-dlp`
+* Download the binary from the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest)
+* Use pip+git: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp.git@release`
+* Install master branch: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp`
 
 ### UPDATE
-**DO NOT UPDATE using `-U` !** instead download binaries again
+`-U` does not work. Simply repeat the install process to update.
 
 ### COMPILE
 
