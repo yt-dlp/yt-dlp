@@ -75,14 +75,14 @@ class WebcasterFeedIE(InfoExtractor):
     }
 
     @staticmethod
-    def _extract_url(ie, webpage):
+    def _extract_url(self, webpage):
         mobj = re.search(
             r'<(?:object|a[^>]+class=["\']webcaster-player["\'])[^>]+data(?:-config)?=(["\']).*?config=(?P<url>https?://bl\.webcaster\.pro/feed/start/free_.*?)(?:[?&]|\1)',
             webpage)
         if mobj:
             return mobj.group('url')
         for secure in (True, False):
-            video_url = ie._og_search_video_url(
+            video_url = self._og_search_video_url(
                 webpage, secure=secure, default=None)
             if video_url:
                 mobj = re.search(

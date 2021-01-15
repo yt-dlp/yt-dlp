@@ -45,6 +45,7 @@ class FranceTVIE(InfoExtractor):
                         (?P<id>[^@]+)(?:@(?P<catalog>.+))?
                     )
                     '''
+    _EMBED_REGEX = r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?://)?embed\.francetv\.fr/\?ue=.+?)\1'
 
     _TESTS = [{
         # without catalog

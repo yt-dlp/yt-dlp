@@ -34,6 +34,8 @@ class TEDIE(InfoExtractor):
         /(?P<name>[\w-]+) # Here goes the name and then ".html"
         .*)$
         '''
+    _EMBED_REGEX = r'<iframe[^>]+?src=(["\'])(?P<url>https?://embed(?:-ssl)?\.ted\.com/.+?)\1'
+
     _TESTS = [{
         'url': 'http://www.ted.com/talks/dan_dennett_on_our_consciousness.html',
         'md5': 'b0ce2b05ca215042124fbc9e3886493a',

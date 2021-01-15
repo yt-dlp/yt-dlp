@@ -288,6 +288,7 @@ class NBCSportsStreamIE(AdobePassIE):
 
 class NBCNewsIE(ThePlatformIE):
     _VALID_URL = r'(?x)https?://(?:www\.)?(?:nbcnews|today|msnbc)\.com/([^/]+/)*(?:.*-)?(?P<id>[^/?]+)'
+    _EMBED_REGEX = r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//www\.nbcnews\.com/widget/video-embed/[^"\']+)\1'
 
     _TESTS = [
         {
