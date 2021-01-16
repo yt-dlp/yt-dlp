@@ -16,9 +16,10 @@
 
 
 ### 2021.01.16
-* Update to ytdl-2021.01.16
-* Portable configuration file: `./yt-dlp.conf`
-* Changes to configuration file paths. See [this](https://github.com/pukkandan/yt-dlp#configuration) for details
+* **Merge youtube-dl:** Upto [2021.01.16](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.01.16)
+* **Configuration files:**
+    * Portable configuration file: `./yt-dlp.conf`
+    * Allow the configuration files to be named `yt-dlp` instead of `youtube-dlc`. See [this](https://github.com/pukkandan/yt-dlp#configuration) for details
 * Add PyPI release
 
 
@@ -61,7 +62,7 @@
 
 
 ### 2021.01.08
-* **Merge youtube-dl:** Upto [2021.01.08](https://github.com/ytdl-org/youtube-dl/commit/bf6a74c620bd4d5726503c5302906bb36b009026)
+* **Merge youtube-dl:** Upto [2021.01.08](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.01.08)
     * Extractor stitcher ([1](https://github.com/ytdl-org/youtube-dl/commit/bb38a1215718cdf36d73ff0a7830a64cd9fa37cc), [2](https://github.com/ytdl-org/youtube-dl/commit/a563c97c5cddf55f8989ed7ea8314ef78e30107f)) have not been merged
 * Moved changelog to seperate file
 
