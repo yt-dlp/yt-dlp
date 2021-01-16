@@ -177,46 +177,9 @@ class YahooIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        url, country, display_id = re.match(self._VALID_URL, url).groups()
-        if not country:
-            country = 'us'
-        else:
-            country = country.split('-')[0]
-        api_base = 'https://%s.yahoo.com/_td/api/resource/' % country
-
-        for i, uuid in enumerate(['url=' + url, 'ymedia-alias=' + display_id]):
-            content = self._download_json(
-                api_base + 'content;getDetailView=true;uuids=["%s"]' % uuid,
-                display_id, 'Downloading content JSON metadata', fatal=i == 1)
-            if content:
-                item = content['items'][0]
-                break
-
-        if item.get('type') != 'video':
-            entries = []
-
-            cover = item.get('cover') or {}
-            if cover.get('type') == 'yvideo':
-                cover_url = cover.get('url')
-                if cover_url:
-                    entries.append(self.url_result(
-                        cover_url, 'Yahoo', cover.get('uuid')))
-
-            for e in item.get('body', []):
-                if e.get('type') == 'videoIframe':
-                    iframe_url = e.get('url')
-                    if not iframe_url:
-                        continue
-                    entries.append(self.url_result(iframe_url))
-
-            return self.playlist_result(
-                entries, item.get('uuid'),
-                item.get('title'), item.get('summary'))
-
-        video_id = item['uuid']
+    def _extract_yahoo_video(self, video_id, country):
         video = self._download_json(
-            api_base + 'VideoService.videos;view=full;video_ids=["%s"]' % video_id,
+            'https://%s.yahoo.com/_td/api/resource/VideoService.videos;view=full;video_ids=["%s"]' % (country, video_id),
             video_id, 'Downloading video JSON metadata')[0]
         title = video['title']
 
@@ -298,7 +261,6 @@ class YahooIE(InfoExtractor):
             'id': video_id,
             'title': self._live_title(title) if is_live else title,
             'formats': formats,
-            'display_id': display_id,
             'thumbnails': thumbnails,
             'description': clean_html(video.get('description')),
             'timestamp': parse_iso8601(video.get('publish_time')),
@@ -310,6 +272,44 @@ class YahooIE(InfoExtractor):
             'season_number': int_or_none(series_info.get('season_number')),
             'episode_number': int_or_none(series_info.get('episode_number')),
         }
+
+    def _real_extract(self, url):
+        url, country, display_id = re.match(self._VALID_URL, url).groups()
+        if not country:
+            country = 'us'
+        else:
+            country = country.split('-')[0]
+
+        item = self._download_json(
+            'https://%s.yahoo.com/caas/content/article' % country, display_id,
+            'Downloading content JSON metadata', query={
+                'url': url
+            })['items'][0]['data']['partnerData']
+
+        if item.get('type') != 'video':
+            entries = []
+
+            cover = item.get('cover') or {}
+            if cover.get('type') == 'yvideo':
+                cover_url = cover.get('url')
+                if cover_url:
+                    entries.append(self.url_result(
+                        cover_url, 'Yahoo', cover.get('uuid')))
+
+            for e in (item.get('body') or []):
+                if e.get('type') == 'videoIframe':
+                    iframe_url = e.get('url')
+                    if not iframe_url:
+                        continue
+                    entries.append(self.url_result(iframe_url))
+
+            return self.playlist_result(
+                entries, item.get('uuid'),
+                item.get('title'), item.get('summary'))
+
+        info = self._extract_yahoo_video(item['uuid'], country)
+        info['display_id'] = display_id
+        return info
 
 
 class YahooSearchIE(SearchInfoExtractor):

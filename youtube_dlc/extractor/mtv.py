@@ -255,6 +255,10 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
         return try_get(feed, lambda x: x['result']['data']['id'], compat_str)
 
+    @staticmethod
+    def _extract_child_with_type(parent, t):
+        return next(c for c in parent['children'] if c.get('type') == t)
+
     def _extract_new_triforce_mgid(self, webpage, url='', video_id=None):
         if url == '':
             return
@@ -332,6 +336,13 @@ class MTVServicesInfoExtractor(InfoExtractor):
         if not mgid:
             mgid = self._extract_triforce_mgid(webpage, data_zone)
 
+        if not mgid:
+            data = self._parse_json(self._search_regex(
+                r'__DATA__\s*=\s*({.+?});', webpage, 'data'), None)
+            main_container = self._extract_child_with_type(data, 'MainContainer')
+            video_player = self._extract_child_with_type(main_container, 'VideoPlayer')
+            mgid = video_player['props']['media']['video']['config']['uri']
+
         return mgid
 
     def _real_extract(self, url):
@@ -402,18 +413,6 @@ class MTVIE(MTVServicesInfoExtractor):
         'url': 'http://www.mtv.com/episodes/g8xu7q/teen-mom-2-breaking-the-wall-season-7-ep-713',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def extract_child_with_type(parent, t):
-        children = parent['children']
-        return next(c for c in children if c.get('type') == t)
-
-    def _extract_mgid(self, webpage):
-        data = self._parse_json(self._search_regex(
-            r'__DATA__\s*=\s*({.+?});', webpage, 'data'), None)
-        main_container = self.extract_child_with_type(data, 'MainContainer')
-        video_player = self.extract_child_with_type(main_container, 'VideoPlayer')
-        return video_player['props']['media']['video']['config']['uri']
 
 
 class MTVJapanIE(MTVServicesInfoExtractor):

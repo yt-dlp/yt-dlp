@@ -50,7 +50,10 @@ from .animelab import (
     AnimeLabIE,
     AnimeLabShowsIE,
 )
-from .americastestkitchen import AmericasTestKitchenIE
+from .americastestkitchen import (
+    AmericasTestKitchenIE,
+    AmericasTestKitchenSeasonIE,
+)
 from .animeondemand import AnimeOnDemandIE
 from .anvato import AnvatoIE
 from .aol import AolIE
@@ -244,11 +247,8 @@ from .cnn import (
 )
 from .coub import CoubIE
 from .comedycentral import (
-    ComedyCentralFullEpisodesIE,
     ComedyCentralIE,
-    ComedyCentralShortnameIE,
     ComedyCentralTVIE,
-    ToshIE,
 )
 from .commonmistakes import CommonMistakesIE, UnicodeBOMIE
 from .commonprotocols import (
@@ -681,6 +681,11 @@ from .mildom import (
     MildomIE,
     MildomVodIE,
     MildomUserVodIE,
+)
+from .minds import (
+    MindsIE,
+    MindsChannelIE,
+    MindsGroupIE,
 )
 from .ministrygrid import MinistryGridIE
 from .minoto import MinotoIE
@@ -1162,6 +1167,10 @@ from .stitcher import StitcherIE
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
 from .sportdeutschland import SportDeutschlandIE
+from .spotify import (
+    SpotifyIE,
+    SpotifyShowIE,
+)
 from .spreaker import (
     SpreakerIE,
     SpreakerPageIE,
@@ -1270,7 +1279,10 @@ from .toutv import TouTvIE
 from .toypics import ToypicsUserIE, ToypicsIE
 from .traileraddict import TrailerAddictIE
 from .trilulilu import TriluliluIE
-from .trovolive import TrovoLiveIE
+from .trovo import (
+    TrovoIE,
+    TrovoVodIE,
+)
 from .trunews import TruNewsIE
 from .trutv import TruTVIE
 from .tube8 import Tube8IE

@@ -843,6 +843,10 @@ def parseOpts(overrideArguments=None):
         dest='outtmpl', metavar='TEMPLATE',
         help='Output filename template, see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
+        '--output-na-placeholder',
+        dest='outtmpl_na_placeholder', metavar='PLACEHOLDER', default='NA',
+        help=('Placeholder value for unavailable meta fields in output filename template (default is "%default")'))
+    filesystem.add_option(
         '--autonumber-size',
         dest='autonumber_size', metavar='NUMBER', type=int,
         help=optparse.SUPPRESS_HELP)
@@ -997,7 +1001,7 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '-x', '--extract-audio',
         action='store_true', dest='extractaudio', default=False,
-        help='Convert video files to audio-only files (requires ffmpeg or avconv and ffprobe or avprobe)')
+        help='Convert video files to audio-only files (requires ffmpeg/avconv and ffprobe/avprobe)')
     postproc.add_option(
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help='Specify audio format: "best", "aac", "flac", "mp3", "m4a", "opus", "vorbis", or "wav"; "%default" by default; No effect without -x')

@@ -181,9 +181,12 @@ class YoutubeDL(object):
     allow_multiple_video_streams:   Allow multiple video streams to be merged into a single file
     allow_multiple_audio_streams:   Allow multiple audio streams to be merged into a single file
     outtmpl:           Template for output names.
-    restrictfilenames: Do not allow "&" and spaces in file names.
-    trim_file_name:    Limit length of filename (extension excluded).
-    ignoreerrors:      Do not stop on download errors. (Default True when running youtube-dlc, but False when directly accessing YoutubeDL class)
+    outtmpl_na_placeholder: Placeholder for unavailable meta fields.
+    restrictfilenames: Do not allow "&" and spaces in file names
+    trim_file_name:    Limit length of filename (extension excluded)
+    ignoreerrors:      Do not stop on download errors
+                       (Default True when running youtube-dlc,
+                       but False when directly accessing YoutubeDL class)
     force_generic_extractor: Force downloader to use the generic extractor
     overwrites:        Overwrite all video and metadata files if True,
                        overwrite only non-video files if None
@@ -741,7 +744,7 @@ class YoutubeDL(object):
             template_dict = dict((k, v if isinstance(v, compat_numeric_types) else sanitize(k, v))
                                  for k, v in template_dict.items()
                                  if v is not None and not isinstance(v, (list, tuple, dict)))
-            template_dict = collections.defaultdict(lambda: 'NA', template_dict)
+            template_dict = collections.defaultdict(lambda: self.params.get('outtmpl_na_placeholder', 'NA'), template_dict)
 
             outtmpl = self.params.get('outtmpl', DEFAULT_OUTTMPL)
 
@@ -761,8 +764,8 @@ class YoutubeDL(object):
 
             # Missing numeric fields used together with integer presentation types
             # in format specification will break the argument substitution since
-            # string 'NA' is returned for missing fields. We will patch output
-            # template for missing fields to meet string presentation type.
+            # string NA placeholder is returned for missing fields. We will patch
+            # output template for missing fields to meet string presentation type.
             for numeric_field in self._NUMERIC_FIELDS:
                 if numeric_field not in template_dict:
                     # As of [1] format syntax is:

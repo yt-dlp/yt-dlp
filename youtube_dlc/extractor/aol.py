@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import re
 
-from .common import InfoExtractor
+from .yahoo import YahooIE
 from ..compat import (
     compat_parse_qs,
     compat_urllib_parse_urlparse,
@@ -15,9 +15,9 @@ from ..utils import (
 )
 
 
-class AolIE(InfoExtractor):
+class AolIE(YahooIE):
     IE_NAME = 'aol.com'
-    _VALID_URL = r'(?:aol-video:|https?://(?:www\.)?aol\.(?:com|ca|co\.uk|de|jp)/video/(?:[^/]+/)*)(?P<id>[0-9a-f]+)'
+    _VALID_URL = r'(?:aol-video:|https?://(?:www\.)?aol\.(?:com|ca|co\.uk|de|jp)/video/(?:[^/]+/)*)(?P<id>\d{9}|[0-9a-f]{24}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})'
 
     _TESTS = [{
         # video with 5min ID
@@ -76,10 +76,16 @@ class AolIE(InfoExtractor):
     }, {
         'url': 'https://www.aol.jp/video/playlist/5a28e936a1334d000137da0c/5a28f3151e642219fde19831/',
         'only_matching': True,
+    }, {
+        # Yahoo video
+        'url': 'https://www.aol.com/video/play/991e6700-ac02-11ea-99ff-357400036f61/24bbc846-3e30-3c46-915e-fe8ccd7fcc46/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        if '-' in video_id:
+            return self._extract_yahoo_video(video_id, 'us')
 
         response = self._download_json(
             'https://feedapi.b2c.on.aol.com/v1.0/app/videos/aolon/%s/details' % video_id,

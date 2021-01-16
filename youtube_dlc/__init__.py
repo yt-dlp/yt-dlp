@@ -373,6 +373,7 @@ def _real_main(argv=None):
         'listformats': opts.listformats,
         'listformats_table': opts.listformats_table,
         'outtmpl': outtmpl,
+        'outtmpl_na_placeholder': opts.outtmpl_na_placeholder,
         'paths': opts.paths,
         'autonumber_size': opts.autonumber_size,
         'autonumber_start': opts.autonumber_start,

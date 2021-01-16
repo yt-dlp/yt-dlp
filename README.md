@@ -814,7 +814,7 @@ Available for the media that is a track or a part of a music album:
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
  - `release_year` (numeric): Year (YYYY) when the album was released
 
-Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with `NA`.
+Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
 For example for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `youtube-dlc test video` and id `BaW_jenozKcj`, this will result in a `youtube-dlc test video-BaW_jenozKcj.mp4` file created in the current directory.
 
