@@ -332,6 +332,36 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', webpage, 'ytcfg',
                 default='{}'), video_id, fatal=False)
 
+    def _extract_video(self, renderer):
+        video_id = renderer.get('videoId')
+        title = try_get(
+            renderer,
+            (lambda x: x['title']['runs'][0]['text'],
+             lambda x: x['title']['simpleText']), compat_str)
+        description = try_get(
+            renderer, lambda x: x['descriptionSnippet']['runs'][0]['text'],
+            compat_str)
+        duration = parse_duration(try_get(
+            renderer, lambda x: x['lengthText']['simpleText'], compat_str))
+        view_count_text = try_get(
+            renderer, lambda x: x['viewCountText']['simpleText'], compat_str) or ''
+        view_count = str_to_int(self._search_regex(
+            r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
+            'view count', default=None))
+        uploader = try_get(
+            renderer, lambda x: x['ownerText']['runs'][0]['text'], compat_str)
+        return {
+            '_type': 'url_transparent',
+            'ie_key': YoutubeIE.ie_key(),
+            'id': video_id,
+            'url': video_id,
+            'title': title,
+            'description': description,
+            'duration': duration,
+            'view_count': view_count,
+            'uploader': uploader,
+        }
+
 
 class YoutubeIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube.com'
@@ -2871,36 +2901,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if renderer:
                 return renderer
 
-    def _extract_video(self, renderer):
-        video_id = renderer.get('videoId')
-        title = try_get(
-            renderer,
-            (lambda x: x['title']['runs'][0]['text'],
-             lambda x: x['title']['simpleText']), compat_str)
-        description = try_get(
-            renderer, lambda x: x['descriptionSnippet']['runs'][0]['text'],
-            compat_str)
-        duration = parse_duration(try_get(
-            renderer, lambda x: x['lengthText']['simpleText'], compat_str))
-        view_count_text = try_get(
-            renderer, lambda x: x['viewCountText']['simpleText'], compat_str) or ''
-        view_count = str_to_int(self._search_regex(
-            r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
-            'view count', default=None))
-        uploader = try_get(
-            renderer, lambda x: x['ownerText']['runs'][0]['text'], compat_str)
-        return {
-            '_type': 'url_transparent',
-            'ie_key': YoutubeIE.ie_key(),
-            'id': video_id,
-            'url': video_id,
-            'title': title,
-            'description': description,
-            'duration': duration,
-            'view_count': view_count,
-            'uploader': uploader,
-        }
-
     def _grid_entries(self, grid_renderer):
         for item in grid_renderer['items']:
             if not isinstance(item, dict):
@@ -3583,65 +3583,38 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
             if not slr_contents:
                 break
 
-            isr_contents = []
-            continuation_token = None
             # Youtube sometimes adds promoted content to searches,
             # changing the index location of videos and token.
             # So we search through all entries till we find them.
-            for index, isr in enumerate(slr_contents):
+            continuation_token = None
+            for slr_content in slr_contents:
+                isr_contents = try_get(
+                    slr_content,
+                    lambda x: x['itemSectionRenderer']['contents'],
+                    list)
                 if not isr_contents:
-                    isr_contents = try_get(
-                        slr_contents,
-                        (lambda x: x[index]['itemSectionRenderer']['contents']),
-                        list)
-                    for content in isr_contents:
-                        if content.get('videoRenderer') is not None:
-                            break
-                    else:
-                        isr_contents = []
+                    continue
+                for content in isr_contents:
+                    if not isinstance(content, dict):
+                        continue
+                    video = content.get('videoRenderer')
+                    if not isinstance(video, dict):
+                        continue
+                    video_id = video.get('videoId')
+                    if not video_id:
+                        continue
+
+                    yield self._extract_video(video)
+                    total += 1
+                    if total == n:
+                        return
 
                 if continuation_token is None:
                     continuation_token = try_get(
-                        slr_contents,
-                        lambda x: x[index]['continuationItemRenderer']['continuationEndpoint']['continuationCommand'][
-                            'token'],
+                        slr_content,
+                        lambda x: x['continuationItemRenderer']['continuationEndpoint']['continuationCommand']['token'],
                         compat_str)
-                if continuation_token is not None and isr_contents:
-                    break
 
-            if not isr_contents:
-                break
-            for content in isr_contents:
-                if not isinstance(content, dict):
-                    continue
-                video = content.get('videoRenderer')
-                if not isinstance(video, dict):
-                    continue
-                video_id = video.get('videoId')
-                if not video_id:
-                    continue
-                title = try_get(video, lambda x: x['title']['runs'][0]['text'], compat_str)
-                description = try_get(video, lambda x: x['descriptionSnippet']['runs'][0]['text'], compat_str)
-                duration = parse_duration(try_get(video, lambda x: x['lengthText']['simpleText'], compat_str))
-                view_count_text = try_get(video, lambda x: x['viewCountText']['simpleText'], compat_str) or ''
-                view_count = str_to_int(self._search_regex(
-                    r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
-                    'view count', default=None))
-                uploader = try_get(video, lambda x: x['ownerText']['runs'][0]['text'], compat_str)
-                total += 1
-                yield {
-                    '_type': 'url_transparent',
-                    'ie_key': YoutubeIE.ie_key(),
-                    'id': video_id,
-                    'url': video_id,
-                    'title': title,
-                    'description': description,
-                    'duration': duration,
-                    'view_count': view_count,
-                    'uploader': uploader,
-                }
-                if total == n:
-                    return
             if not continuation_token:
                 break
             data['continuation'] = continuation_token

@@ -3,10 +3,13 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
+from ..compat import compat_HTTPError
 from ..utils import (
     determine_ext,
-    js_to_json,
-    mimetype2ext,
+    ExtractorError,
+    float_or_none,
+    int_or_none,
+    parse_iso8601,
 )
 
 
@@ -15,29 +18,35 @@ class ThreeQSDNIE(InfoExtractor):
     IE_DESC = '3Q SDN'
     _VALID_URL = r'https?://playout\.3qsdn\.com/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
     _TESTS = [{
-        # ondemand from http://www.philharmonie.tv/veranstaltung/26/
-        'url': 'http://playout.3qsdn.com/0280d6b9-1215-11e6-b427-0cc47a188158?protocol=http',
-        'md5': 'ab040e37bcfa2e0c079f92cb1dd7f6cd',
+        # https://player.3qsdn.com/demo.html
+        'url': 'https://playout.3qsdn.com/7201c779-6b3c-11e7-a40e-002590c750be',
+        'md5': '64a57396b16fa011b15e0ea60edce918',
         'info_dict': {
-            'id': '0280d6b9-1215-11e6-b427-0cc47a188158',
+            'id': '7201c779-6b3c-11e7-a40e-002590c750be',
             'ext': 'mp4',
-            'title': '0280d6b9-1215-11e6-b427-0cc47a188158',
+            'title': 'Video Ads',
             'is_live': False,
+            'description': 'Video Ads Demo',
+            'timestamp': 1500334803,
+            'upload_date': '20170717',
+            'duration': 888.032,
+            'subtitles': {
+                'eng': 'count:1',
+            },
         },
-        'expected_warnings': ['Failed to download MPD manifest', 'Failed to parse JSON'],
+        'expected_warnings': ['Unknown MIME type application/mp4 in DASH manifest'],
     }, {
         # live video stream
-        'url': 'https://playout.3qsdn.com/d755d94b-4ab9-11e3-9162-0025907ad44f?js=true',
+        'url': 'https://playout.3qsdn.com/66e68995-11ca-11e8-9273-002590c750be',
         'info_dict': {
-            'id': 'd755d94b-4ab9-11e3-9162-0025907ad44f',
+            'id': '66e68995-11ca-11e8-9273-002590c750be',
             'ext': 'mp4',
-            'title': 're:^d755d94b-4ab9-11e3-9162-0025907ad44f [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'title': 're:^66e68995-11ca-11e8-9273-002590c750be [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'is_live': True,
         },
         'params': {
             'skip_download': True,  # m3u8 downloads
         },
-        'expected_warnings': ['Failed to download MPD manifest'],
     }, {
         # live audio stream
         'url': 'http://playout.3qsdn.com/9edf36e0-6bf2-11e2-a16a-9acf09e2db48',
@@ -58,6 +67,14 @@ class ThreeQSDNIE(InfoExtractor):
         # live video with rtmp link
         'url': 'https://playout.3qsdn.com/6092bb9e-8f72-11e4-a173-002590c750be',
         'only_matching': True,
+    }, {
+        # ondemand from http://www.philharmonie.tv/veranstaltung/26/
+        'url': 'http://playout.3qsdn.com/0280d6b9-1215-11e6-b427-0cc47a188158?protocol=http',
+        'only_matching': True,
+    }, {
+        # live video stream
+        'url': 'https://playout.3qsdn.com/d755d94b-4ab9-11e3-9162-0025907ad44f?js=true',
+        'only_matching': True,
     }]
 
     @staticmethod
@@ -70,73 +87,78 @@ class ThreeQSDNIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        js = self._download_webpage(
-            'http://playout.3qsdn.com/%s' % video_id, video_id,
-            query={'js': 'true'})
+        try:
+            config = self._download_json(
+                url.replace('://playout.3qsdn.com/', '://playout.3qsdn.com/config/'), video_id)
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                self.raise_geo_restricted()
+            raise
 
-        if any(p in js for p in (
-                '>This content is not available in your country',
-                'playout.3qsdn.com/forbidden')):
-            self.raise_geo_restricted()
-
-        stream_content = self._search_regex(
-            r'streamContent\s*:\s*(["\'])(?P<content>.+?)\1', js,
-            'stream content', default='demand', group='content')
-
-        live = stream_content == 'live'
-
-        stream_type = self._search_regex(
-            r'streamType\s*:\s*(["\'])(?P<type>audio|video)\1', js,
-            'stream type', default='video', group='type')
+        live = config.get('streamContent') == 'live'
+        aspect = float_or_none(config.get('aspect'))
 
         formats = []
-        urls = set()
-
-        def extract_formats(item_url, item={}):
-            if not item_url or item_url in urls:
-                return
-            urls.add(item_url)
-            ext = mimetype2ext(item.get('type')) or determine_ext(item_url, default_ext=None)
-            if ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    item_url, video_id, mpd_id='mpd', fatal=False))
-            elif ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    item_url, video_id, 'mp4',
-                    entry_protocol='m3u8' if live else 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
-            elif ext == 'f4m':
-                formats.extend(self._extract_f4m_formats(
-                    item_url, video_id, f4m_id='hds', fatal=False))
-            else:
-                if not self._is_valid_url(item_url, video_id):
-                    return
-                formats.append({
-                    'url': item_url,
-                    'format_id': item.get('quality'),
-                    'ext': 'mp4' if item_url.startswith('rtsp') else ext,
-                    'vcodec': 'none' if stream_type == 'audio' else None,
-                })
-
-        for item_js in re.findall(r'({[^{]*?\b(?:src|source)\s*:\s*["\'].+?})', js):
-            f = self._parse_json(
-                item_js, video_id, transform_source=js_to_json, fatal=False)
-            if not f:
+        for source_type, source in (config.get('sources') or {}).items():
+            if not source:
                 continue
-            extract_formats(f.get('src'), f)
+            if source_type == 'dash':
+                formats.extend(self._extract_mpd_formats(
+                    source, video_id, mpd_id='mpd', fatal=False))
+            elif source_type == 'hls':
+                formats.extend(self._extract_m3u8_formats(
+                    source, video_id, 'mp4', 'm3u8' if live else 'm3u8_native',
+                    m3u8_id='hls', fatal=False))
+            elif source_type == 'progressive':
+                for s in source:
+                    src = s.get('src')
+                    if not (src and self._is_valid_url(src, video_id)):
+                        continue
+                    width = None
+                    format_id = ['http']
+                    ext = determine_ext(src)
+                    if ext:
+                        format_id.append(ext)
+                    height = int_or_none(s.get('height'))
+                    if height:
+                        format_id.append('%dp' % height)
+                        if aspect:
+                            width = int(height * aspect)
+                    formats.append({
+                        'ext': ext,
+                        'format_id': '-'.join(format_id),
+                        'height': height,
+                        'source_preference': 0,
+                        'url': src,
+                        'vcodec': 'none' if height == 0 else None,
+                        'width': width,
+                    })
+        for f in formats:
+            if f.get('acodec') == 'none':
+                f['preference'] = -40
+            elif f.get('vcodec') == 'none':
+                f['preference'] = -50
+        self._sort_formats(formats, ('preference', 'width', 'height', 'source_preference', 'tbr', 'vbr', 'abr', 'ext', 'format_id'))
 
-        # More relaxed version to collect additional URLs and acting
-        # as a future-proof fallback
-        for _, src in re.findall(r'\b(?:src|source)\s*:\s*(["\'])((?:https?|rtsp)://.+?)\1', js):
-            extract_formats(src)
+        subtitles = {}
+        for subtitle in (config.get('subtitles') or []):
+            src = subtitle.get('src')
+            if not src:
+                continue
+            subtitles.setdefault(subtitle.get('label') or 'eng', []).append({
+                'url': src,
+            })
 
-        self._sort_formats(formats)
-
-        title = self._live_title(video_id) if live else video_id
+        title = config.get('title') or video_id
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._live_title(title) if live else title,
+            'thumbnail': config.get('poster') or None,
+            'description': config.get('description') or None,
+            'timestamp': parse_iso8601(config.get('upload_date')),
+            'duration': float_or_none(config.get('vlength')) or None,
             'is_live': live,
             'formats': formats,
+            'subtitles': subtitles,
         }

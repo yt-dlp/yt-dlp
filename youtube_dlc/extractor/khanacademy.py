@@ -1,82 +1,107 @@
 from __future__ import unicode_literals
 
-import re
+import json
 
 from .common import InfoExtractor
 from ..utils import (
-    unified_strdate,
+    int_or_none,
+    parse_iso8601,
+    try_get,
 )
 
 
-class KhanAcademyIE(InfoExtractor):
-    _VALID_URL = r'^https?://(?:(?:www|api)\.)?khanacademy\.org/(?P<key>[^/]+)/(?:[^/]+/){,2}(?P<id>[^?#/]+)(?:$|[?#])'
-    IE_NAME = 'KhanAcademy'
+class KhanAcademyBaseIE(InfoExtractor):
+    _VALID_URL_TEMPL = r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
 
-    _TESTS = [{
-        'url': 'http://www.khanacademy.org/video/one-time-pad',
-        'md5': '7b391cce85e758fb94f763ddc1bbb979',
+    def _parse_video(self, video):
+        return {
+            '_type': 'url_transparent',
+            'url': video['youtubeId'],
+            'id': video.get('slug'),
+            'title': video.get('title'),
+            'thumbnail': video.get('imageUrl') or video.get('thumbnailUrl'),
+            'duration': int_or_none(video.get('duration')),
+            'description': video.get('description'),
+            'ie_key': 'Youtube',
+        }
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        component_props = self._parse_json(self._download_json(
+            'https://www.khanacademy.org/api/internal/graphql',
+            display_id, query={
+                'hash': 1604303425,
+                'variables': json.dumps({
+                    'path': display_id,
+                    'queryParams': '',
+                }),
+            })['data']['contentJson'], display_id)['componentProps']
+        return self._parse_component_props(component_props)
+
+
+class KhanAcademyIE(KhanAcademyBaseIE):
+    IE_NAME = 'khanacademy'
+    _VALID_URL = KhanAcademyBaseIE._VALID_URL_TEMPL % ('4', 'v/')
+    _TEST = {
+        'url': 'https://www.khanacademy.org/computing/computer-science/cryptography/crypt/v/one-time-pad',
+        'md5': '9c84b7b06f9ebb80d22a5c8dedefb9a0',
         'info_dict': {
-            'id': 'one-time-pad',
-            'ext': 'webm',
+            'id': 'FlIG3TvQCBQ',
+            'ext': 'mp4',
             'title': 'The one-time pad',
             'description': 'The perfect cipher',
             'duration': 176,
             'uploader': 'Brit Cruise',
             'uploader_id': 'khanacademy',
             'upload_date': '20120411',
+            'timestamp': 1334170113,
+            'license': 'cc-by-nc-sa',
         },
         'add_ie': ['Youtube'],
-    }, {
-        'url': 'https://www.khanacademy.org/math/applied-math/cryptography',
+    }
+
+    def _parse_component_props(self, component_props):
+        video = component_props['tutorialPageData']['contentModel']
+        info = self._parse_video(video)
+        author_names = video.get('authorNames')
+        info.update({
+            'uploader': ', '.join(author_names) if author_names else None,
+            'timestamp': parse_iso8601(video.get('dateAdded')),
+            'license': video.get('kaUserLicense'),
+        })
+        return info
+
+
+class KhanAcademyUnitIE(KhanAcademyBaseIE):
+    IE_NAME = 'khanacademy:unit'
+    _VALID_URL = (KhanAcademyBaseIE._VALID_URL_TEMPL % ('2', '')) + '/?(?:[?#&]|$)'
+    _TEST = {
+        'url': 'https://www.khanacademy.org/computing/computer-science/cryptography',
         'info_dict': {
             'id': 'cryptography',
-            'title': 'Journey into cryptography',
+            'title': 'Cryptography',
             'description': 'How have humans protected their secret messages through history? What has changed today?',
         },
-        'playlist_mincount': 3,
-    }]
+        'playlist_mincount': 31,
+    }
 
-    def _real_extract(self, url):
-        m = re.match(self._VALID_URL, url)
-        video_id = m.group('id')
+    def _parse_component_props(self, component_props):
+        curation = component_props['curation']
 
-        if m.group('key') == 'video':
-            data = self._download_json(
-                'http://api.khanacademy.org/api/v1/videos/' + video_id,
-                video_id, 'Downloading video info')
-
-            upload_date = unified_strdate(data['date_added'])
-            uploader = ', '.join(data['author_names'])
-            return {
-                '_type': 'url_transparent',
-                'url': data['url'],
-                'id': video_id,
-                'title': data['title'],
-                'thumbnail': data['image_url'],
-                'duration': data['duration'],
-                'description': data['description'],
-                'uploader': uploader,
-                'upload_date': upload_date,
+        entries = []
+        tutorials = try_get(curation, lambda x: x['tabs'][0]['modules'][0]['tutorials'], list) or []
+        for tutorial_number, tutorial in enumerate(tutorials, 1):
+            chapter_info = {
+                'chapter': tutorial.get('title'),
+                'chapter_number': tutorial_number,
+                'chapter_id': tutorial.get('id'),
             }
-        else:
-            # topic
-            data = self._download_json(
-                'http://api.khanacademy.org/api/v1/topic/' + video_id,
-                video_id, 'Downloading topic info')
+            for content_item in (tutorial.get('contentItems') or []):
+                if content_item.get('kind') == 'Video':
+                    info = self._parse_video(content_item)
+                    info.update(chapter_info)
+                    entries.append(info)
 
-            entries = [
-                {
-                    '_type': 'url',
-                    'url': c['url'],
-                    'id': c['id'],
-                    'title': c['title'],
-                }
-                for c in data['children'] if c['kind'] in ('Video', 'Topic')]
-
-            return {
-                '_type': 'playlist',
-                'id': video_id,
-                'title': data['title'],
-                'description': data['description'],
-                'entries': entries,
-            }
+        return self.playlist_result(
+            entries, curation.get('unit'), curation.get('title'),
+            curation.get('description'))

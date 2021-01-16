@@ -8,11 +8,14 @@ from ..utils import (
     ExtractorError,
     extract_attributes,
     find_xpath_attr,
+    get_element_by_attribute,
     get_element_by_class,
     int_or_none,
     js_to_json,
     merge_dicts,
+    parse_iso8601,
     smuggle_url,
+    str_to_int,
     unescapeHTML,
 )
 from .senateisvp import SenateISVPIE
@@ -116,8 +119,30 @@ class CSpanIE(InfoExtractor):
                 jwsetup, video_id, require_title=False, m3u8_id='hls',
                 base_url=url)
             add_referer(info['formats'])
+            for subtitles in info['subtitles'].values():
+                for subtitle in subtitles:
+                    ext = determine_ext(subtitle['url'])
+                    if ext == 'php':
+                        ext = 'vtt'
+                    subtitle['ext'] = ext
             ld_info = self._search_json_ld(webpage, video_id, default={})
-            return merge_dicts(info, ld_info)
+            title = get_element_by_class('video-page-title', webpage) or \
+                self._og_search_title(webpage)
+            description = get_element_by_attribute('itemprop', 'description', webpage) or \
+                self._html_search_meta(['og:description', 'description'], webpage)
+            return merge_dicts(info, ld_info, {
+                'title': title,
+                'thumbnail': get_element_by_attribute('itemprop', 'thumbnailUrl', webpage),
+                'description': description,
+                'timestamp': parse_iso8601(get_element_by_attribute('itemprop', 'uploadDate', webpage)),
+                'location': get_element_by_attribute('itemprop', 'contentLocation', webpage),
+                'duration': int_or_none(self._search_regex(
+                    r'jwsetup\.seclength\s*=\s*(\d+);',
+                    webpage, 'duration', fatal=False)),
+                'view_count': str_to_int(self._search_regex(
+                    r"<span[^>]+class='views'[^>]*>([\d,]+)\s+Views</span>",
+                    webpage, 'views', fatal=False)),
+            })
 
         # Obsolete
         # We first look for clipid, because clipprog always appears before

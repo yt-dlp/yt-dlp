@@ -451,6 +451,18 @@ class PeerTubeIE(InfoExtractor):
             'categories': ['Science & Technology'],
         }
     }, {
+        # Issue #26002
+        'url': 'peertube:spacepub.space:d8943b2d-8280-497b-85ec-bc282ec2afdc',
+        'info_dict': {
+            'id': 'd8943b2d-8280-497b-85ec-bc282ec2afdc',
+            'ext': 'mp4',
+            'title': 'Dot matrix printer shell demo',
+            'uploader_id': '3',
+            'timestamp': 1587401293,
+            'upload_date': '20200420',
+            'uploader': 'Drew DeVault',
+        }
+    }, {
         'url': 'https://peertube.tamanoir.foucry.net/videos/watch/0b04f13d-1e18-4f1d-814e-4979aa7c9c44',
         'only_matching': True,
     }, {
@@ -526,7 +538,15 @@ class PeerTubeIE(InfoExtractor):
         title = video['name']
 
         formats = []
-        for file_ in video['files']:
+        files = video.get('files') or []
+        for playlist in (video.get('streamingPlaylists') or []):
+            if not isinstance(playlist, dict):
+                continue
+            playlist_files = playlist.get('files')
+            if not (playlist_files and isinstance(playlist_files, list)):
+                continue
+            files.extend(playlist_files)
+        for file_ in files:
             if not isinstance(file_, dict):
                 continue
             file_url = url_or_none(file_.get('fileUrl'))

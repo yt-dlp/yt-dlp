@@ -116,8 +116,6 @@ class AnimeOnDemandIE(InfoExtractor):
             r'(?s)<div[^>]+itemprop="description"[^>]*>(.+?)</div>',
             webpage, 'anime description', default=None)
 
-        entries = []
-
         def extract_info(html, video_id, num=None):
             title, description = [None] * 2
             formats = []
@@ -233,7 +231,7 @@ class AnimeOnDemandIE(InfoExtractor):
                 self._sort_formats(info['formats'])
                 f = common_info.copy()
                 f.update(info)
-                entries.append(f)
+                yield f
 
             # Extract teaser/trailer only when full episode is not available
             if not info['formats']:
@@ -247,7 +245,7 @@ class AnimeOnDemandIE(InfoExtractor):
                         'title': m.group('title'),
                         'url': urljoin(url, m.group('href')),
                     })
-                    entries.append(f)
+                    yield f
 
         def extract_episodes(html):
             for num, episode_html in enumerate(re.findall(
@@ -275,7 +273,8 @@ class AnimeOnDemandIE(InfoExtractor):
                     'episode_number': episode_number,
                 }
 
-                extract_entries(episode_html, video_id, common_info)
+                for e in extract_entries(episode_html, video_id, common_info):
+                    yield e
 
         def extract_film(html, video_id):
             common_info = {
@@ -283,11 +282,18 @@ class AnimeOnDemandIE(InfoExtractor):
                 'title': anime_title,
                 'description': anime_description,
             }
-            extract_entries(html, video_id, common_info)
+            for e in extract_entries(html, video_id, common_info):
+                yield e
 
-        extract_episodes(webpage)
+        def entries():
+            has_episodes = False
+            for e in extract_episodes(webpage):
+                has_episodes = True
+                yield e
 
-        if not entries:
-            extract_film(webpage, anime_id)
+            if not has_episodes:
+                for e in extract_film(webpage, anime_id):
+                    yield e
 
-        return self.playlist_result(entries, anime_id, anime_title, anime_description)
+        return self.playlist_result(
+            entries(), anime_id, anime_title, anime_description)

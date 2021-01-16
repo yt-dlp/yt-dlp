@@ -374,6 +374,24 @@ class TwitterIE(TwitterBaseIE):
         },
         'add_ie': ['TwitterBroadcast'],
     }, {
+        # unified card
+        'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
+        'info_dict': {
+            'id': '1349794411333394432',
+            'ext': 'mp4',
+            'title': 'md5:d1c4941658e4caaa6cb579260d85dcba',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'description': 'md5:71ead15ec44cee55071547d6447c6a3e',
+            'uploader': 'Brooklyn Nets',
+            'uploader_id': 'BrooklynNets',
+            'duration': 324.484,
+            'timestamp': 1610651040,
+            'upload_date': '20210114',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
         # Twitch Clip Embed
         'url': 'https://twitter.com/GunB1g/status/1163218564784017422',
         'only_matching': True,
@@ -388,6 +406,22 @@ class TwitterIE(TwitterBaseIE):
     }, {
         # appplayer card
         'url': 'https://twitter.com/poco_dandy/status/1150646424461176832',
+        'only_matching': True,
+    }, {
+        # video_direct_message card
+        'url': 'https://twitter.com/qarev001/status/1348948114569269251',
+        'only_matching': True,
+    }, {
+        # poll2choice_video card
+        'url': 'https://twitter.com/CAF_Online/status/1349365911120195585',
+        'only_matching': True,
+    }, {
+        # poll3choice_video card
+        'url': 'https://twitter.com/SamsungMobileSA/status/1348609186725289984',
+        'only_matching': True,
+    }, {
+        # poll4choice_video card
+        'url': 'https://twitter.com/SouthamptonFC/status/1347577658079641604',
         'only_matching': True,
     }]
 
@@ -433,8 +467,7 @@ class TwitterIE(TwitterBaseIE):
             'tags': tags,
         }
 
-        media = try_get(status, lambda x: x['extended_entities']['media'][0])
-        if media and media.get('type') != 'photo':
+        def extract_from_video_info(media):
             video_info = media.get('video_info') or {}
 
             formats = []
@@ -461,6 +494,10 @@ class TwitterIE(TwitterBaseIE):
                 'thumbnails': thumbnails,
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
             })
+
+        media = try_get(status, lambda x: x['extended_entities']['media'][0])
+        if media and media.get('type') != 'photo':
+            extract_from_video_info(media)
         else:
             card = status.get('card')
             if card:
@@ -493,7 +530,12 @@ class TwitterIE(TwitterBaseIE):
                         '_type': 'url',
                         'url': get_binding_value('card_url'),
                     })
-                # amplify, promo_video_website, promo_video_convo, appplayer, ...
+                elif card_name == 'unified_card':
+                    media_entities = self._parse_json(get_binding_value('unified_card'), twid)['media_entities']
+                    extract_from_video_info(next(iter(media_entities.values())))
+                # amplify, promo_video_website, promo_video_convo, appplayer,
+                # video_direct_message, poll2choice_video, poll3choice_video,
+                # poll4choice_video, ...
                 else:
                     is_amplify = card_name == 'amplify'
                     vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
