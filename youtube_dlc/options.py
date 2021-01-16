@@ -166,10 +166,10 @@ def parseOpts(overrideArguments=None):
         '--ignore-config', '--no-config',
         action='store_true',
         help=(
-            'Do not read configuration files. '
-            'When given in the global configuration file /etc/youtube-dl.conf: '
-            'Do not read the user configuration in ~/.config/youtube-dl/config '
-            '(%APPDATA%/youtube-dl/config.txt on Windows)'))
+            'Disable loading any configuration files except the one provided by --config-location. '
+            'When given inside a configuration file, no further configuration files are loaded. '
+            'Additionally, (for backward compatibility) if this option is found inside the '
+            'system configuration file, the user configuration is not loaded.'))
     general.add_option(
         '--config-location',
         dest='config_location', metavar='PATH',

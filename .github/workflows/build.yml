@@ -37,7 +37,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.bump_version.outputs.ytdlc_version }}
-        release_name: youtube-dlc ${{ steps.bump_version.outputs.ytdlc_version }}
+        release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlc_version }}
         body: |
           Changelog:
           PLACEHOLDER

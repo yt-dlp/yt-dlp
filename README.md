@@ -41,7 +41,6 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
     * [Filtering Formats](#filtering-formats)
     * [Sorting Formats](#sorting-formats)
     * [Format Selection examples](#format-selection-examples)
-* [VIDEO SELECTION](#video-selection-1)
 * [MORE](#more)
 
 
@@ -142,12 +141,14 @@ Then simply type this
                                      an error. The default value "fixup_error"
                                      repairs broken URLs, but emits an error if
                                      this is not possible instead of searching.
-    --ignore-config, --no-config     Do not read configuration files. When given
-                                     in the global configuration file
-                                     /etc/youtube-dl.conf: Do not read the user
-                                     configuration in ~/.config/youtube-
-                                     dl/config (%APPDATA%/youtube-dl/config.txt
-                                     on Windows)
+    --ignore-config, --no-config     Disable loading any configuration files
+                                     except the one provided by --config-
+                                     location. When given inside a configuration
+                                     file, no further configuration files are
+                                     loaded. Additionally, (for backward
+                                     compatibility) if this option is found
+                                     inside the system configuration file, the
+                                     user configuration is not loaded.
     --config-location PATH           Location of the configuration file; either
                                      the path to the config or its containing
                                      directory.
@@ -648,7 +649,7 @@ You can configure youtube-dlc by placing any supported command line option to a 
     If none of these files are found, the search is performed again by replacing `yt-dlp` with `youtube-dlc`. Note that `~` points to `C:\Users\<user name>` on windows. Also, `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined
 1. **System Configuration**: `/etc/yt-dlp.conf` or `/etc/youtube-dlc.conf`
 
-For example, with the following configuration file youtube-dlc will always extract the audio, not copy the mtime, use a proxy and save all videos under `Movies` directory in your home directory:
+For example, with the following configuration file youtube-dlc will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
 # Lines starting with # are comments
 
@@ -661,8 +662,8 @@ For example, with the following configuration file youtube-dlc will always extra
 # Use this proxy
 --proxy 127.0.0.1:3128
 
-# Save all videos under Movies directory in your home directory
--o ~/Movies/%(title)s.%(ext)s
+# Save all videos under YouTube directory in your home directory
+-o ~/YouTube/%(title)s.%(ext)s
 ```
 
 Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.

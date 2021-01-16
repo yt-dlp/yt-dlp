@@ -15,9 +15,16 @@
 -->
 
 
+### 2021.01.16
+* Update to ytdl-2021.01.16
+* Portable configuration file: `./yt-dlp.conf`
+* Changes to configuration file paths. See [this](https://github.com/pukkandan/yt-dlp#configuration) for details
+* Add PyPI release
+
+
 ### 2021.01.14
 * Added option `--break-on-reject`
-* [roosterteeth.com] Fix for bonus episodes by changing API endpoint by @Zocker1999NET
+* [roosterteeth.com] Fix for bonus episodes by @Zocker1999NET
 * [tiktok] Fix for when share_info is empty
 * [EmbedThumbnail] Fix bug due to incorrect function name
 * [documentation] Changed sponskrub links to point to [pukkandan/sponskrub](https://github.com/pukkandan/SponSkrub) since I am now providing both linux and windows releases

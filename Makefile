@@ -1,8 +1,10 @@
-all: youtube-dlc README.md CONTRIBUTING.md README.txt issuetemplates youtube-dlc.1 youtube-dlc.bash-completion youtube-dlc.zsh youtube-dlc.fish supportedsites
+all: youtube-dlc doc man
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
+man: README.txt youtube-dlc.1 youtube-dlc.bash-completion youtube-dlc.zsh youtube-dlc.fish
+
 
 clean:
-	rm -rf youtube-dlc.1.temp.md youtube-dlc.1 youtube-dlc.bash-completion README.txt MANIFEST build/ dist/ .coverage cover/ youtube-dlc.tar.gz youtube-dlc.zsh youtube-dlc.fish youtube_dlc/extractor/lazy_extractors.py *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png CONTRIBUTING.md.tmp youtube-dlc youtube-dlc.exe
+	rm -rf youtube-dlc.1.temp.md youtube-dlc.1 youtube-dlc.bash-completion README.txt MANIFEST build/ dist/ .coverage cover/ youtube-dlc.tar.gz youtube-dlc.zsh youtube-dlc.fish youtube_dlc/extractor/lazy_extractors.py *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.spec CONTRIBUTING.md.tmp youtube-dlc youtube-dlc.exe
 	find . -name "*.pyc" -delete
 	find . -name "*.class" -delete
 
