@@ -633,7 +633,20 @@ Then simply type this
 
 # CONFIGURATION
 
-You can configure youtube-dlc by placing any supported command line option to a configuration file. On Linux and macOS, the system wide configuration file is located at `/etc/youtube-dlc.conf` and the user wide configuration file at `~/.config/youtube-dlc/config`. On Windows, the user wide configuration file locations are `%APPDATA%\youtube-dlc\config.txt` or `C:\Users\<user name>\youtube-dlc.conf`. Note that by default configuration file may not exist so you may need to create it yourself.
+You can configure youtube-dlc by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
+
+1. The file given by `--config-location`
+1. **Portable Configuration**: `yt-dlp.conf` or `youtube-dlc.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/youtube_dlc/__main__.py`), the root directory is used instead.
+1. **User Configuration**:
+    * `%XDG_CONFIG_HOME%/yt-dlp/config` (recommended on Linux/macOS)
+    * `%XDG_CONFIG_HOME%/yt-dlp.conf`
+    * `%APPDATA%/yt-dlp/config` (recommended on Windows)
+    * `%APPDATA%/yt-dlp/config.txt`
+    * `~/yt-dlp.conf`
+    * `~/yt-dlp.conf.txt`
+
+    If none of these files are found, the search is performed again by replacing `yt-dlp` with `youtube-dlc`. Note that `~` points to `C:\Users\<user name>` on windows. Also, `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined
+1. **System Configuration**: `/etc/yt-dlp.conf` or `/etc/youtube-dlc.conf`
 
 For example, with the following configuration file youtube-dlc will always extract the audio, not copy the mtime, use a proxy and save all videos under `Movies` directory in your home directory:
 ```
@@ -652,11 +665,9 @@ For example, with the following configuration file youtube-dlc will always extra
 -o ~/Movies/%(title)s.%(ext)s
 ```
 
-Note that options in configuration file are just the same options aka switches used in regular command line calls thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
+Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
 
-You can use `--ignore-config` if you want to disable the configuration file for a particular youtube-dlc run.
-
-You can also use `--config-location` if you want to use custom configuration file for a particular youtube-dlc run.
+You can use `--ignore-config` if you want to disable all configuration files for a particular youtube-dlc run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of user and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
 ### Authentication with `.netrc` file
 

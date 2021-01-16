@@ -46,6 +46,7 @@ updates_key.pem
 *.swf
 *.part
 *.ytdl
+*.conf
 *.swp
 *.spec
 test/local_parameters.json
