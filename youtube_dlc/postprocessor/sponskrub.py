@@ -7,8 +7,10 @@ from ..compat import compat_shlex_split
 from ..utils import (
     check_executable,
     encodeArgument,
+    encodeFilename,
     shell_quote,
     PostProcessingError,
+    prepend_extension,
 )
 
 
@@ -58,9 +60,9 @@ class SponSkrubPP(PostProcessor):
                 self.report_warning('If sponskrub is run multiple times, unintended parts of the video could be cut out.')
 
         filename = information['filepath']
-        temp_filename = filename + '.' + self._temp_ext + os.path.splitext(filename)[1]
-        if os.path.exists(temp_filename):
-            os.remove(temp_filename)
+        temp_filename = prepend_extension(filename, self._temp_ext)
+        if os.path.exists(encodeFilename(temp_filename)):
+            os.remove(encodeFilename(temp_filename))
 
         cmd = [self.path]
         if self.args:
@@ -73,8 +75,8 @@ class SponSkrubPP(PostProcessor):
         stdout, stderr = p.communicate()
 
         if p.returncode == 0:
-            os.remove(filename)
-            os.rename(temp_filename, filename)
+            os.remove(encodeFilename(filename))
+            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
             self.to_screen('Sponsor sections have been %s' % ('removed' if self.cutout else 'marked'))
         elif p.returncode == 3:
             self.to_screen('No segments in the SponsorBlock database')
