@@ -252,6 +252,7 @@ def _real_main(argv=None):
         parser.error('Cannot download a video and extract audio into the same'
                      ' file! Use "{0}.%(ext)s" instead of "{0}" as the output'
                      ' template'.format(outtmpl))
+
     for f in opts.format_sort:
         if re.match(InfoExtractor.FormatSort.regex, f) is None:
             parser.error('invalid format sort string "%s" specified' % f)
@@ -326,12 +327,12 @@ def _real_main(argv=None):
             'force': opts.sponskrub_force,
             'ignoreerror': opts.sponskrub is None,
         })
-    # Please keep ExecAfterDownload towards the bottom as it allows the user to modify the final file in any way.
-    # So if the user is able to remove the file before your postprocessor runs it might cause a few problems.
+    # ExecAfterDownload must be the last PP
     if opts.exec_cmd:
         postprocessors.append({
             'key': 'ExecAfterDownload',
             'exec_cmd': opts.exec_cmd,
+            '_after_move': True
         })
     external_downloader_args = None
     if opts.external_downloader_args:
@@ -352,6 +353,18 @@ def _real_main(argv=None):
             if opts.verbose:
                 write_string('[debug] Adding postprocessor args from command line option %s: %s\n' % (pp_key, pp_args))
             postprocessor_args[pp_key] = compat_shlex_split(pp_args)
+
+    paths = {}
+    if opts.paths is not None:
+        for string in opts.paths:
+            path_names = 'home|temp|config|description|annotation|subtitle|infojson|thumbnail'
+            mobj = re.match(r'(?P<name>%s):(?P<path>.*)$' % path_names, string)
+            if mobj is None:
+                parser.error('invalid path string "%s" given' % string)
+            name, path = mobj.group('name').lower(), mobj.group('path').strip()
+            if opts.verbose:
+                write_string('[debug] Adding %s path from command line option: %s\n' % (name, path))
+            paths[name] = path
 
     match_filter = (
         None if opts.match_filter is None
@@ -390,6 +403,7 @@ def _real_main(argv=None):
         'listformats': opts.listformats,
         'listformats_table': opts.listformats_table,
         'outtmpl': outtmpl,
+        'paths': paths,
         'autonumber_size': opts.autonumber_size,
         'autonumber_start': opts.autonumber_start,
         'restrictfilenames': opts.restrictfilenames,

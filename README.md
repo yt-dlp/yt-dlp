@@ -314,6 +314,17 @@ Then simply type this
                                      stdin), one URL per line. Lines starting
                                      with '#', ';' or ']' are considered as
                                      comments and ignored
+    -P, --paths TYPE:PATH            The paths where the files should be
+                                     downloaded. Specify the type of file and
+                                     the path separated by a colon ":"
+                                     (supported: description|annotation|subtitle
+                                     |infojson|thumbnail). Additionally, you can
+                                     also provide "home" and "temp" paths. All
+                                     intermediary files are first downloaded to
+                                     the temp path and then the final files are
+                                     moved over to the home path after download
+                                     is finished. Note that this option is
+                                     ignored if --output is an absolute path
     -o, --output TEMPLATE            Output filename template, see "OUTPUT
                                      TEMPLATE" for details
     --autonumber-start NUMBER        Specify the start value for %(autonumber)s
@@ -554,7 +565,7 @@ Then simply type this
                                      supported: mp4|flv|ogg|webm|mkv|avi)
     --postprocessor-args NAME:ARGS   Give these arguments to the postprocessors.
                                      Specify the postprocessor/executable name
-                                     and the arguments separated by a colon ':'
+                                     and the arguments separated by a colon ":"
                                      to give the argument to only the specified
                                      postprocessor/executable. Supported
                                      postprocessors are: SponSkrub,
@@ -648,7 +659,8 @@ Then simply type this
 
 You can configure youtube-dlc by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
 
-1. The file given by `--config-location`
+1. **Main Configuration**: The file given by `--config-location`
+1. **Home Configuration**: `yt-dlp.conf` or `youtube-dlc.conf` in the home path given by `-P "home:<path>"`, or in the current directory if no such path is given
 1. **Portable Configuration**: `yt-dlp.conf` or `youtube-dlc.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/youtube_dlc/__main__.py`), the root directory is used instead.
 1. **User Configuration**:
     * `%XDG_CONFIG_HOME%/yt-dlp/config` (recommended on Linux/macOS)
@@ -707,7 +719,7 @@ set HOME=%USERPROFILE%
 
 # OUTPUT TEMPLATE
 
-The `-o` option allows users to indicate a template for the output file names.
+The `-o` option is used to indicate a template for the output file names while `-P` option is used to specify the path each type of file should be saved to.
 
 **tl;dr:** [navigate me to examples](#output-template-examples).
 

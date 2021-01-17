@@ -5863,3 +5863,15 @@ def clean_podcast_url(url):
                 st\.fm # https://podsights.com/docs/
             )/e
         )/''', '', url)
+
+
+def make_dir(path, to_screen=None):
+    try:
+        dn = os.path.dirname(path)
+        if dn and not os.path.exists(dn):
+            os.makedirs(dn)
+        return True
+    except (OSError, IOError) as err:
+        if callable(to_screen) is not None:
+            to_screen('unable to create directory ' + error_to_compat_str(err))
+        return False
