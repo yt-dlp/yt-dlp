@@ -476,8 +476,8 @@ Then simply type this
                                      videos
     --list-formats-as-table          Present the output of -F in a more tabular
                                      form (default)
-                                     (Same as --no-list-formats-as-table)
     --list-formats-old               Present the output of -F in the old form
+                                     (Same as --no-list-formats-as-table)
     --youtube-include-dash-manifest  Download the DASH manifests and related data 
                                      on YouTube videos (default)
                                      (Same as --no-youtube-skip-dash-manifest)
