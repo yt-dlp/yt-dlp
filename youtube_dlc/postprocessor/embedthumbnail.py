@@ -75,41 +75,22 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             os.rename(encodeFilename(escaped_thumbnail_jpg_filename), encodeFilename(thumbnail_jpg_filename))
             thumbnail_filename = thumbnail_jpg_filename
 
+        success = True
         if info['ext'] == 'mp3':
             options = [
                 '-c', 'copy', '-map', '0:0', '-map', '1:0', '-id3v2_version', '3',
                 '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment="Cover (front)"']
 
             self.to_screen('Adding thumbnail to "%s"' % filename)
-
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
-            if not self._already_have_thumbnail:
-                os.remove(encodeFilename(thumbnail_filename))
-            os.remove(encodeFilename(filename))
-            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
-
         elif info['ext'] == 'mkv':
-            old_thumbnail_filename = thumbnail_filename
-            thumbnail_filename = os.path.join(os.path.dirname(old_thumbnail_filename), 'cover.jpg')
-            if os.path.exists(thumbnail_filename):
-                os.remove(encodeFilename(thumbnail_filename))
-            os.rename(encodeFilename(old_thumbnail_filename), encodeFilename(thumbnail_filename))
-
             options = [
-                '-c', 'copy', '-map', '0', '-dn',
-                '-attach', thumbnail_filename, '-metadata:s:t', 'mimetype=image/jpeg']
+                '-c', 'copy', '-map', '0', '-dn', '-attach', thumbnail_filename,
+                '-metadata:s:t', 'mimetype=image/jpeg', '-metadata:s:t', 'filename=cover.jpg']
 
             self.to_screen('Adding thumbnail to "%s"' % filename)
-
             self.run_ffmpeg_multiple_files([filename], temp_filename, options)
-
-            if not self._already_have_thumbnail:
-                os.remove(encodeFilename(thumbnail_filename))
-            else:
-                os.rename(encodeFilename(thumbnail_filename), encodeFilename(old_thumbnail_filename))
-            os.remove(encodeFilename(filename))
-            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
 
         elif info['ext'] in ['m4a', 'mp4']:
             if not check_executable('AtomicParsley', ['-v']):
@@ -123,7 +104,6 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                    encodeFilename(temp_filename, True)]
 
             self.to_screen('Adding thumbnail to "%s"' % filename)
-
             self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
 
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -132,17 +112,18 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if p.returncode != 0:
                 msg = stderr.decode('utf-8', 'replace').strip()
                 raise EmbedThumbnailPPError(msg)
-
-            if not self._already_have_thumbnail:
-                os.remove(encodeFilename(thumbnail_filename))
             # for formats that don't support thumbnails (like 3gp) AtomicParsley
             # won't create to the temporary file
             if b'No changes' in stdout:
                 self.report_warning('The file format doesn\'t support embedding a thumbnail')
-            else:
-                os.remove(encodeFilename(filename))
-                os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+                success = False
+
         else:
             raise EmbedThumbnailPPError('Only mp3, mkv, m4a and mp4 are supported for thumbnail embedding for now.')
 
-        return [], info
+        if success:
+            os.remove(encodeFilename(filename))
+            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+
+        files_to_delete = [] if self._already_have_thumbnail else [thumbnail_filename]
+        return files_to_delete, info
