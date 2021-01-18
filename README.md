@@ -30,7 +30,7 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
     * [Authentication Options](#authentication-options)
     * [Adobe Pass Options](#adobe-pass-options)
     * [Post-processing Options](#post-processing-options)
-    * [SponSkrub Options (SponsorBlock)](#sponskrub-options-sponsorblock)
+    * [SponSkrub (SponsorBlock) Options](#sponskrub-sponsorblock-options)
     * [Extractor Options](#extractor-options)
 * [CONFIGURATION](#configuration)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
@@ -47,7 +47,7 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
 # NEW FEATURES
 The major new features from the latest release of [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc) are:
 
-* **[SponSkrub Integration](#sponSkrub-options-sponsorblock)**: You can use [SponSkrub](https://github.com/pukkandan/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
+* **[SponSkrub Integration](#sponskrub-sponsorblock-options)**: You can use [SponSkrub](https://github.com/pukkandan/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
@@ -123,9 +123,9 @@ Then simply type this
                                      permissions (run with sudo if needed)
     -i, --ignore-errors              Continue on download errors, for example to
                                      skip unavailable videos in a playlist
-                                     (default) (Same as --no-abort-on-error)
-    --abort-on-error                 Abort downloading of further videos if an 
-                                     error occurs (Same as --no-ignore-errors)
+                                     (default) (Alias: --no-abort-on-error)
+    --abort-on-error                 Abort downloading of further videos if an
+                                     error occurs (Alias: --no-ignore-errors)
     --dump-user-agent                Display the current browser identification
     --list-extractors                List all supported extractors
     --extractor-descriptions         Output descriptions of all supported
@@ -140,25 +140,25 @@ Then simply type this
                                      warning when guessing). "error" just throws
                                      an error. The default value "fixup_error"
                                      repairs broken URLs, but emits an error if
-                                     this is not possible instead of searching.
+                                     this is not possible instead of searching
     --ignore-config, --no-config     Disable loading any configuration files
-                                     except the one provided by --config-
-                                     location. When given inside a configuration
+                                     except the one provided by --config-location.
+                                     When given inside a configuration
                                      file, no further configuration files are
                                      loaded. Additionally, (for backward
                                      compatibility) if this option is found
                                      inside the system configuration file, the
-                                     user configuration is not loaded.
+                                     user configuration is not loaded
     --config-location PATH           Location of the configuration file; either
                                      the path to the config or its containing
-                                     directory.
+                                     directory
     --flat-playlist                  Do not extract the videos of a playlist,
-                                     only list them.
+                                     only list them
     --flat-videos                    Do not resolve the video urls
     --no-flat-playlist               Extract the videos of a playlist
     --mark-watched                   Mark videos watched (YouTube only)
     --no-mark-watched                Do not mark videos watched
-    --no-color                       Do not emit color codes in output
+    --no-colors                      Do not emit color codes in output
 
 ## Network Options:
     --proxy URL                      Use the specified HTTP/HTTPS/SOCKS proxy.
@@ -176,7 +176,7 @@ Then simply type this
                                      some geo-restricted sites. The default
                                      proxy specified by --proxy (or none, if the
                                      option is not present) is used for the
-                                     actual downloading.
+                                     actual downloading
     --geo-bypass                     Bypass geographic restriction via faking
                                      X-Forwarded-For HTTP header
     --no-geo-bypass                  Do not bypass geographic restriction via
@@ -198,7 +198,7 @@ Then simply type this
                                      indexed 1, 2, 5, 8 in the playlist. You can
                                      specify range: "--playlist-items
                                      1-3,7,10-13", it will download the videos
-                                     at index 1, 2, 3, 7, 10, 11, 12 and 13.
+                                     at index 1, 2, 3, 7, 10, 11, 12 and 13
     --match-title REGEX              Download only matching titles (regex or
                                      caseless sub-string)
     --reject-title REGEX             Skip download for matching titles (regex or
@@ -222,38 +222,38 @@ Then simply type this
     --max-views COUNT                Do not download any videos with more than
                                      COUNT views
     --match-filter FILTER            Generic video filter. Specify any key (see
-                                     the "OUTPUT TEMPLATE" for a list of
-                                     available keys) to match if the key is
-                                     present, !key to check if the key is not
-                                     present, key > NUMBER (like "comment_count
-                                     > 12", also works with >=, <, <=, !=, =) to
-                                     compare against a number, key = 'LITERAL'
-                                     (like "uploader = 'Mike Smith'", also works
-                                     with !=) to match against a string literal
-                                     and & to require multiple matches. Values
-                                     which are not known are excluded unless you
-                                     put a question mark (?) after the operator.
-                                     For example, to only match videos that have
+                                     "OUTPUT TEMPLATE" for a list of available
+                                     keys) to match if the key is present, !key
+                                     to check if the key is not present,
+                                     key>NUMBER (like "comment_count > 12", also
+                                     works with >=, <, <=, !=, =) to compare
+                                     against a number, key = 'LITERAL' (like
+                                     "uploader = 'Mike Smith'", also works with
+                                     !=) to match against a string literal and &
+                                     to require multiple matches. Values which
+                                     are not known are excluded unless you put a
+                                     question mark (?) after the operator. For
+                                     example, to only match videos that have
                                      been liked more than 100 times and disliked
                                      less than 50 times (or the dislike
                                      functionality is not available at the given
                                      service), but who also have a description,
                                      use --match-filter "like_count > 100 &
-                                     dislike_count <? 50 & description" .
+                                     dislike_count <? 50 & description"
     --no-match-filter                Do not use generic video filter (default)
     --no-playlist                    Download only the video, if the URL refers
-                                     to a video and a playlist.
+                                     to a video and a playlist
     --yes-playlist                   Download the playlist, if the URL refers to
-                                     a video and a playlist.
+                                     a video and a playlist
     --age-limit YEARS                Download only videos suitable for the given
                                      age
     --download-archive FILE          Download only videos not listed in the
                                      archive file. Record the IDs of all
-                                     downloaded videos in it.
+                                     downloaded videos in it
     --break-on-existing              Stop the download process when encountering
-                                     a file that's in the archive.
+                                     a file that is in the archive
     --break-on-reject                Stop the download process when encountering
-                                     a file that has been filtered out.
+                                     a file that has been filtered out
     --no-download-archive            Do not use archive file (default)
     --include-ads                    Download advertisements as well
                                      (experimental)
@@ -263,15 +263,15 @@ Then simply type this
     -r, --limit-rate RATE            Maximum download rate in bytes per second
                                      (e.g. 50K or 4.2M)
     -R, --retries RETRIES            Number of retries (default is 10), or
-                                     "infinite".
+                                     "infinite"
     --fragment-retries RETRIES       Number of retries for a fragment (default
                                      is 10), or "infinite" (DASH, hlsnative and
                                      ISM)
     --skip-unavailable-fragments     Skip unavailable fragments for DASH,
                                      hlsnative and ISM (default)
-                                     (Same as --no-abort-on-unavailable-fragment)
+                                     (Alias: --no-abort-on-unavailable-fragment)
     --abort-on-unavailable-fragment  Abort downloading if a fragment is unavailable
-                                     (Same as --no-skip-unavailable-fragments)
+                                     (Alias: --no-skip-unavailable-fragments)
     --keep-fragments                 Keep downloaded fragments on disk after
                                      downloading is finished
     --no-keep-fragments              Delete downloaded fragments after
@@ -311,8 +311,8 @@ Then simply type this
     -a, --batch-file FILE            File containing URLs to download ('-' for
                                      stdin), one URL per line. Lines starting
                                      with '#', ';' or ']' are considered as
-                                     comments and ignored.
-    -o, --output TEMPLATE            Output filename template, see the "OUTPUT
+                                     comments and ignored
+    -o, --output TEMPLATE            Output filename template, see "OUTPUT
                                      TEMPLATE" for details
     --autonumber-start NUMBER        Specify the start value for %(autonumber)s
                                      (default is 1)
@@ -358,7 +358,7 @@ Then simply type this
                                      ~/.cache/youtube-dl . At the moment, only
                                      YouTube player files (for videos with
                                      obfuscated signatures) are cached, but that
-                                     may change.
+                                     may change
     --no-cache-dir                   Disable filesystem caching
     --rm-cache-dir                   Delete all filesystem cache files
     --trim-file-name LENGTH          Limit the filename length (extension
@@ -373,13 +373,13 @@ Then simply type this
                                      formats
 
 ## Internet Shortcut Options:
-    --write-link                     Write an internet shortcut file, depending on 
-                                     the current platform (.url/.webloc/.desktop). 
-                                     The URL may be cached by the OS.
-    --write-url-link                 Write a Windows .url internet shortcut file. 
-                                     (The OS caches the URL based on the file path)
-    --write-webloc-link              Write a .webloc macOS internet shortcut file
-    --write-desktop-link             Write a .desktop Linux internet shortcut file
+    --write-link                     Write an internet shortcut file, depending
+                                     on the current platform (.url, .webloc or
+                                     .desktop). The URL may be cached by the OS
+    --write-url-link                 Write a .url Windows internet shortcut. The
+                                     OS caches the URL based on the file path
+    --write-webloc-link              Write a .webloc macOS internet shortcut
+    --write-desktop-link             Write a .desktop Linux internet shortcut
 
 ## Verbosity / Simulation Options:
     -q, --quiet                      Activate quiet mode
@@ -396,18 +396,18 @@ Then simply type this
     --get-filename                   Simulate, quiet but print output filename
     --get-format                     Simulate, quiet but print output format
     -j, --dump-json                  Simulate, quiet but print JSON information.
-                                     See the "OUTPUT TEMPLATE" for a description
-                                     of available keys.
+                                     See "OUTPUT TEMPLATE" for a description of
+                                     available keys
     -J, --dump-single-json           Simulate, quiet but print JSON information
                                      for each command-line argument. If the URL
                                      refers to a playlist, dump the whole
-                                     playlist information in a single line.
+                                     playlist information in a single line
     --print-json                     Be quiet and print the video information as
-                                     JSON (video is still being downloaded).
-    --force-write-archive            Force download archive entries to be written 
-                                     as far as no errors occur, even if -s or 
-                                     another simulation switch is used.
-                                     (Same as --force-download-archive)
+                                     JSON (video is still being downloaded)
+    --force-write-archive            Force download archive entries to be
+                                     written as far as no errors occur,even if
+                                     -s or another simulation switch is used
+                                     (Alias: --force-download-archive)
     --newline                        Output progress bar as new lines
     --no-progress                    Do not print progress bar
     --console-title                  Display progress in console titlebar
@@ -443,11 +443,11 @@ Then simply type this
                                      of a range for randomized sleep before each
                                      download (minimum possible number of
                                      seconds to sleep) when used along with
-                                     --max-sleep-interval.
+                                     --max-sleep-interval
     --max-sleep-interval SECONDS     Upper bound of a range for randomized sleep
                                      before each download (maximum possible
                                      number of seconds to sleep). Must only be
-                                     used along with --min-sleep-interval.
+                                     used along with --min-sleep-interval
     --sleep-subtitles SECONDS        Enforce sleep interval on subtitles as well
 
 ## Video Format Options:
@@ -455,8 +455,8 @@ Then simply type this
                                      for more details
     -S, --format-sort SORTORDER      Sort the formats by the fields given, see
                                      "Sorting Formats" for more details
-    --S-force, --format-sort-force   Force user specified sort order to have 
-                                     precedence over all fields, see "Sorting 
+    --S-force, --format-sort-force   Force user specified sort order to have
+                                     precedence over all fields, see "Sorting
                                      Formats" for more details
     --no-format-sort-force           Some fields have precedence over the user
                                      specified sort order (default), see
@@ -474,22 +474,22 @@ Then simply type this
                                      formats of same quality
     -F, --list-formats               List all available formats of requested
                                      videos
-    --list-formats-as-table          Present the output of -F in a more tabular
-                                     form (default)
-                                     (Same as --no-list-formats-as-table)
+    --list-formats-as-table          Present the output of -F in tabular form
+                                     (default)
     --list-formats-old               Present the output of -F in the old form
-    --youtube-include-dash-manifest  Download the DASH manifests and related data 
-                                     on YouTube videos (default)
-                                     (Same as --no-youtube-skip-dash-manifest)
+                                     (Alias: --no-list-formats-as-table)
+    --youtube-include-dash-manifest  Download the DASH manifests and related
+                                     data on YouTube videos (default) (Alias:
+                                     --no-youtube-skip-dash-manifest)
     --youtube-skip-dash-manifest     Do not download the DASH manifests and
-                                     related data on YouTube videos
-                                     (Same as --no-youtube-include-dash-manifest)
-    --youtube-include-hls-manifest   Download the HLS manifests and related data 
-                                     on YouTube videos (default)
-                                     (Same as --no-youtube-skip-hls-manifest)
+                                     related data on YouTube videos (Alias:
+                                     --no-youtube-include-dash-manifest)
+    --youtube-include-hls-manifest   Download the HLS manifests and related data
+                                     on YouTube videos (default) (Alias:
+                                    --no-youtube-skip-hls-manifest)
     --youtube-skip-hls-manifest      Do not download the HLS manifests and
-                                     related data on YouTube videos
-                                     (Same as --no-youtube-include-hls-manifest)
+                                     related data on YouTube videos (Alias:
+                                     --no-youtube-include-hls-manifest)
     --merge-output-format FORMAT     If a merge is required (e.g.
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
@@ -515,7 +515,7 @@ Then simply type this
 ## Authentication Options:
     -u, --username USERNAME          Login with this account ID
     -p, --password PASSWORD          Account password. If this option is left
-                                     out, youtube-dlc will ask interactively.
+                                     out, youtube-dlc will ask interactively
     -2, --twofactor TWOFACTOR        Two-factor authentication code
     -n, --netrc                      Use .netrc authentication data
     --video-password PASSWORD        Video password (vimeo, youku)
@@ -527,7 +527,7 @@ Then simply type this
     --ap-username USERNAME           Multiple-system operator account login
     --ap-password PASSWORD           Multiple-system operator account password.
                                      If this option is left out, youtube-dlc
-                                     will ask interactively.
+                                     will ask interactively
     --ap-list-mso                    List all supported multiple-system
                                      operators
 
@@ -594,13 +594,14 @@ Then simply type this
                                      default; fix file if we can, warn
                                      otherwise)
     --prefer-avconv                  Prefer avconv over ffmpeg for running the
-                                     postprocessors (Same as --no-prefer-ffmpeg)
+                                     postprocessors (Alias: --no-prefer-ffmpeg)
     --prefer-ffmpeg                  Prefer ffmpeg over avconv for running the
                                      postprocessors (default)
-                                     (Same as --no-prefer-avconv)
+                                     (Alias: --no-prefer-avconv)
     --ffmpeg-location PATH           Location of the ffmpeg/avconv binary;
                                      either the path to the binary or its
-                                     containing directory.
+                                     containing directory
+                                     (Alias: --avconv-location)
     --exec CMD                       Execute a command on the file after
                                      downloading and post-processing, similar to
                                      find's -exec syntax. Example: --exec 'adb
@@ -608,11 +609,14 @@ Then simply type this
     --convert-subs FORMAT            Convert the subtitles to other format
                                      (currently supported: srt|ass|vtt|lrc)
 
-## [SponSkrub](https://github.com/pukkandan/SponSkrub) Options ([SponsorBlock](https://sponsor.ajay.app)):
-    --sponskrub                      Use sponskrub to mark sponsored sections
-                                     with the data available in SponsorBlock
-                                     API. This is enabled by default if the
-                                     sponskrub binary exists (Youtube only)
+## SponSkrub (SponsorBlock) Options:
+[SponSkrub](https://github.com/pukkandan/SponSkrub) is a utility to
+    mark/remove sponsor segments from downloaded YouTube videos using
+    [SponsorBlock API](https://sponsor.ajay.app)
+
+    --sponskrub                      Use sponskrub to mark sponsored sections.
+                                     This is enabled by default if the sponskrub
+                                     binary exists (Youtube only)
     --no-sponskrub                   Do not use sponskrub
     --sponskrub-cut                  Cut out the sponsor sections instead of
                                      simply marking them
@@ -624,13 +628,13 @@ Then simply type this
                                      video was already downloaded (default)
     --sponskrub-location PATH        Location of the sponskrub binary; either
                                      the path to the binary or its containing
-                                     directory.
+                                     directory
 
 ## Extractor Options:
-    --ignore-dynamic-mpd             Do not process dynamic DASH manifests
-                                     (Same as --no-allow-dynamic-mpd)
     --allow-dynamic-mpd              Process dynamic DASH manifests (default)
-                                     (Same as --no-ignore-dynamic-mpd)
+                                     (Alias: --no-ignore-dynamic-mpd)
+    --ignore-dynamic-mpd             Do not process dynamic DASH manifests
+                                     (Alias: --no-allow-dynamic-mpd)
 
 # CONFIGURATION
 

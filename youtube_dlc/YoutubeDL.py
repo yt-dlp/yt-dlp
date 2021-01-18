@@ -232,10 +232,11 @@ class YoutubeDL(object):
     download_archive:  File name of a file where all downloads are recorded.
                        Videos already present in the file are not downloaded
                        again.
-    break_on_existing: Stop the download process after attempting to download a file that's
-                       in the archive.
-    break_on_reject:   Stop the download process when encountering a video that has been filtered out.
-    cookiefile:        File name where cookies should be read from and dumped to.
+    break_on_existing: Stop the download process after attempting to download a
+                       file that is in the archive.
+    break_on_reject:   Stop the download process when encountering a video that
+                       has been filtered out.
+    cookiefile:        File name where cookies should be read from and dumped to
     nocheckcertificate:Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.

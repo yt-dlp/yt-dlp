@@ -137,11 +137,11 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '-i', '--ignore-errors', '--no-abort-on-error',
         action='store_true', dest='ignoreerrors', default=True,
-        help='Continue on download errors, for example to skip unavailable videos in a playlist (default)')
+        help='Continue on download errors, for example to skip unavailable videos in a playlist (default) (Alias: --no-abort-on-error)')
     general.add_option(
         '--abort-on-error', '--no-ignore-errors',
         action='store_false', dest='ignoreerrors',
-        help='Abort downloading of further videos if an error occurs')
+        help='Abort downloading of further videos if an error occurs (Alias: --no-ignore-errors)')
     general.add_option(
         '--dump-user-agent',
         action='store_true', dest='dump_user_agent', default=False,
@@ -161,7 +161,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--default-search',
         dest='default_search', metavar='PREFIX',
-        help='Use this prefix for unqualified URLs. For example "gvsearch2:" downloads two videos from google videos for youtube-dl "large apple". Use the value "auto" to let youtube-dl guess ("auto_warning" to emit a warning when guessing). "error" just throws an error. The default value "fixup_error" repairs broken URLs, but emits an error if this is not possible instead of searching.')
+        help='Use this prefix for unqualified URLs. For example "gvsearch2:" downloads two videos from google videos for youtube-dl "large apple". Use the value "auto" to let youtube-dl guess ("auto_warning" to emit a warning when guessing). "error" just throws an error. The default value "fixup_error" repairs broken URLs, but emits an error if this is not possible instead of searching')
     general.add_option(
         '--ignore-config', '--no-config',
         action='store_true',
@@ -169,15 +169,15 @@ def parseOpts(overrideArguments=None):
             'Disable loading any configuration files except the one provided by --config-location. '
             'When given inside a configuration file, no further configuration files are loaded. '
             'Additionally, (for backward compatibility) if this option is found inside the '
-            'system configuration file, the user configuration is not loaded.'))
+            'system configuration file, the user configuration is not loaded'))
     general.add_option(
         '--config-location',
         dest='config_location', metavar='PATH',
-        help='Location of the configuration file; either the path to the config or its containing directory.')
+        help='Location of the configuration file; either the path to the config or its containing directory')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
-        help='Do not extract the videos of a playlist, only list them.')
+        help='Do not extract the videos of a playlist, only list them')
     general.add_option(
         '--flat-videos',
         action='store_true', dest='extract_flat',
@@ -195,7 +195,7 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='mark_watched', default=False,
         help='Do not mark videos watched')
     general.add_option(
-        '--no-color', '--no-colors',
+        '--no-colors',
         action='store_true', dest='no_color',
         default=False,
         help='Do not emit color codes in output')
@@ -235,7 +235,7 @@ def parseOpts(overrideArguments=None):
         dest='geo_verification_proxy', default=None, metavar='URL',
         help=(
             'Use this proxy to verify the IP address for some geo-restricted sites. '
-            'The default proxy specified by --proxy (or none, if the option is not present) is used for the actual downloading.'))
+            'The default proxy specified by --proxy (or none, if the option is not present) is used for the actual downloading'))
     geo.add_option(
         '--cn-verification-proxy',
         dest='cn_verification_proxy', default=None, metavar='URL',
@@ -269,7 +269,7 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
-        help='Playlist video items to download. Specify indices of the videos in the playlist separated by commas like: "--playlist-items 1,2,5,8" if you want to download videos indexed 1, 2, 5, 8 in the playlist. You can specify range: "--playlist-items 1-3,7,10-13", it will download the videos at index 1, 2, 3, 7, 10, 11, 12 and 13.')
+        help='Playlist video items to download. Specify indices of the videos in the playlist separated by commas like: "--playlist-items 1,2,5,8" if you want to download videos indexed 1, 2, 5, 8 in the playlist. You can specify range: "--playlist-items 1-3,7,10-13", it will download the videos at index 1, 2, 3, 7, 10, 11, 12 and 13')
     selection.add_option(
         '--match-title',
         dest='matchtitle', metavar='REGEX',
@@ -294,8 +294,8 @@ def parseOpts(overrideArguments=None):
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded in this date.'
-            'The date can be "YYYYMMDD" or in the format'
+            'Download only videos uploaded in this date. '
+            'The date can be "YYYYMMDD" or in the format '
             '"(now|today)[+-][0-9](day|week|month|year)(s)?"'))
     selection.add_option(
         '--datebefore',
@@ -322,10 +322,10 @@ def parseOpts(overrideArguments=None):
         metavar='FILTER', dest='match_filter', default=None,
         help=(
             'Generic video filter. '
-            'Specify any key (see the "OUTPUT TEMPLATE" for a list of available keys) to '
+            'Specify any key (see "OUTPUT TEMPLATE" for a list of available keys) to '
             'match if the key is present, '
             '!key to check if the key is not present, '
-            'key > NUMBER (like "comment_count > 12", also works with '
+            'key>NUMBER (like "comment_count > 12", also works with '
             '>=, <, <=, !=, =) to compare against a number, '
             'key = \'LITERAL\' (like "uploader = \'Mike Smith\'", also works with !=) '
             'to match against a string literal '
@@ -336,7 +336,7 @@ def parseOpts(overrideArguments=None):
             '100 times and disliked less than 50 times (or the dislike '
             'functionality is not available at the given service), but who '
             'also have a description, use --match-filter '
-            '"like_count > 100 & dislike_count <? 50 & description" .'))
+            '"like_count > 100 & dislike_count <? 50 & description"'))
     selection.add_option(
         '--no-match-filter',
         metavar='FILTER', dest='match_filter', action='store_const', const=None,
@@ -344,11 +344,11 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--no-playlist',
         action='store_true', dest='noplaylist', default=False,
-        help='Download only the video, if the URL refers to a video and a playlist.')
+        help='Download only the video, if the URL refers to a video and a playlist')
     selection.add_option(
         '--yes-playlist',
         action='store_false', dest='noplaylist', default=False,
-        help='Download the playlist, if the URL refers to a video and a playlist.')
+        help='Download the playlist, if the URL refers to a video and a playlist')
     selection.add_option(
         '--age-limit',
         metavar='YEARS', dest='age_limit', default=None, type=int,
@@ -356,15 +356,15 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--download-archive', metavar='FILE',
         dest='download_archive',
-        help='Download only videos not listed in the archive file. Record the IDs of all downloaded videos in it.')
+        help='Download only videos not listed in the archive file. Record the IDs of all downloaded videos in it')
     selection.add_option(
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
-        help="Stop the download process when encountering a file that's in the archive.")
+        help='Stop the download process when encountering a file that is in the archive')
     selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
-        help="Stop the download process when encountering a file that has been filtered out.")
+        help='Stop the download process when encountering a file that has been filtered out')
     selection.add_option(
         '--no-download-archive',
         dest='download_archive', action="store_const", const=None,
@@ -386,7 +386,7 @@ def parseOpts(overrideArguments=None):
     authentication.add_option(
         '-p', '--password',
         dest='password', metavar='PASSWORD',
-        help='Account password. If this option is left out, youtube-dlc will ask interactively.')
+        help='Account password. If this option is left out, youtube-dlc will ask interactively')
     authentication.add_option(
         '-2', '--twofactor',
         dest='twofactor', metavar='TWOFACTOR',
@@ -412,7 +412,7 @@ def parseOpts(overrideArguments=None):
     adobe_pass.add_option(
         '--ap-password',
         dest='ap_password', metavar='PASSWORD',
-        help='Multiple-system operator account password. If this option is left out, youtube-dlc will ask interactively.')
+        help='Multiple-system operator account password. If this option is left out, youtube-dlc will ask interactively')
     adobe_pass.add_option(
         '--ap-list-mso',
         action='store_true', dest='ap_list_mso', default=False,
@@ -471,27 +471,27 @@ def parseOpts(overrideArguments=None):
     video_format.add_option(
         '--list-formats-as-table',
         action='store_true', dest='listformats_table', default=True,
-        help='Present the output of -F in a more tabular form (default)')
+        help='Present the output of -F in tabular form (default)')
     video_format.add_option(
         '--list-formats-old', '--no-list-formats-as-table',
         action='store_false', dest='listformats_table',
-        help='Present the output of -F in the old form')
+        help='Present the output of -F in the old form (Alias: --no-list-formats-as-table)')
     video_format.add_option(
         '--youtube-include-dash-manifest', '--no-youtube-skip-dash-manifest',
         action='store_true', dest='youtube_include_dash_manifest', default=True,
-        help='Download the DASH manifests and related data on YouTube videos (default)')
+        help='Download the DASH manifests and related data on YouTube videos (default) (Alias: --no-youtube-skip-dash-manifest)')
     video_format.add_option(
         '--youtube-skip-dash-manifest', '--no-youtube-include-dash-manifest',
         action='store_false', dest='youtube_include_dash_manifest',
-        help='Do not download the DASH manifests and related data on YouTube videos')
+        help='Do not download the DASH manifests and related data on YouTube videos (Alias: --no-youtube-include-dash-manifest)')
     video_format.add_option(
         '--youtube-include-hls-manifest', '--no-youtube-skip-hls-manifest',
         action='store_true', dest='youtube_include_hls_manifest', default=True,
-        help='Download the HLS manifests and related data on YouTube videos (default)')
+        help='Download the HLS manifests and related data on YouTube videos (default) (Alias: --no-youtube-skip-hls-manifest)')
     video_format.add_option(
         '--youtube-skip-hls-manifest', '--no-youtube-include-hls-manifest',
         action='store_false', dest='youtube_include_hls_manifest',
-        help='Do not download the HLS manifests and related data on YouTube videos')
+        help='Do not download the HLS manifests and related data on YouTube videos (Alias: --no-youtube-include-hls-manifest)')
     video_format.add_option(
         '--merge-output-format',
         action='store', dest='merge_output_format', metavar='FORMAT', default=None,
@@ -543,7 +543,7 @@ def parseOpts(overrideArguments=None):
     downloader.add_option(
         '-R', '--retries',
         dest='retries', metavar='RETRIES', default=10,
-        help='Number of retries (default is %default), or "infinite".')
+        help='Number of retries (default is %default), or "infinite"')
     downloader.add_option(
         '--fragment-retries',
         dest='fragment_retries', metavar='RETRIES', default=10,
@@ -551,11 +551,11 @@ def parseOpts(overrideArguments=None):
     downloader.add_option(
         '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
         action='store_true', dest='skip_unavailable_fragments', default=True,
-        help='Skip unavailable fragments for DASH, hlsnative and ISM (default)')
+        help='Skip unavailable fragments for DASH, hlsnative and ISM (default) (Alias: --no-abort-on-unavailable-fragment)')
     downloader.add_option(
         '--abort-on-unavailable-fragment', '--no-skip-unavailable-fragments',
         action='store_false', dest='skip_unavailable_fragments',
-        help='Abort downloading when some fragment is unavailable')
+        help='Abort downloading if a fragment is unavailable (Alias: --no-skip-unavailable-fragments)')
     downloader.add_option(
         '--keep-fragments',
         action='store_true', dest='keep_fragments', default=False,
@@ -665,14 +665,14 @@ def parseOpts(overrideArguments=None):
             'Number of seconds to sleep before each download when used alone '
             'or a lower bound of a range for randomized sleep before each download '
             '(minimum possible number of seconds to sleep) when used along with '
-            '--max-sleep-interval.'))
+            '--max-sleep-interval'))
     workarounds.add_option(
         '--max-sleep-interval', metavar='SECONDS',
         dest='max_sleep_interval', type=float,
         help=(
             'Upper bound of a range for randomized sleep before each download '
             '(maximum possible number of seconds to sleep). Must only be used '
-            'along with --min-sleep-interval.'))
+            'along with --min-sleep-interval'))
     workarounds.add_option(
         '--sleep-subtitles', metavar='SECONDS',
         dest='sleep_interval_subtitles', default=0, type=int,
@@ -730,23 +730,23 @@ def parseOpts(overrideArguments=None):
     verbosity.add_option(
         '-j', '--dump-json',
         action='store_true', dest='dumpjson', default=False,
-        help='Simulate, quiet but print JSON information. See the "OUTPUT TEMPLATE" for a description of available keys.')
+        help='Simulate, quiet but print JSON information. See "OUTPUT TEMPLATE" for a description of available keys')
     verbosity.add_option(
         '-J', '--dump-single-json',
         action='store_true', dest='dump_single_json', default=False,
         help=(
             'Simulate, quiet but print JSON information for each command-line argument. '
-            'If the URL refers to a playlist, dump the whole playlist information in a single line.'))
+            'If the URL refers to a playlist, dump the whole playlist information in a single line'))
     verbosity.add_option(
         '--print-json',
         action='store_true', dest='print_json', default=False,
-        help='Be quiet and print the video information as JSON (video is still being downloaded).')
+        help='Be quiet and print the video information as JSON (video is still being downloaded)')
     verbosity.add_option(
         '--force-write-archive', '--force-write-download-archive', '--force-download-archive',
         action='store_true', dest='force_write_download_archive', default=False,
         help=(
             'Force download archive entries to be written as far as no errors occur,'
-            'even if -s or another simulation switch is used.'))
+            'even if -s or another simulation switch is used (Alias: --force-download-archive)'))
     verbosity.add_option(
         '--newline',
         action='store_true', dest='progress_with_newline', default=False,
@@ -793,14 +793,14 @@ def parseOpts(overrideArguments=None):
         '-a', '--batch-file',
         dest='batchfile', metavar='FILE',
         help="File containing URLs to download ('-' for stdin), one URL per line. "
-             "Lines starting with '#', ';' or ']' are considered as comments and ignored.")
+             "Lines starting with '#', ';' or ']' are considered as comments and ignored")
     filesystem.add_option(
         '--id', default=False,
         action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-o', '--output',
         dest='outtmpl', metavar='TEMPLATE',
-        help='Output filename template, see the "OUTPUT TEMPLATE" for details')
+        help='Output filename template, see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
         '--autonumber-size',
         dest='autonumber_size', metavar='NUMBER', type=int,
@@ -903,7 +903,7 @@ def parseOpts(overrideArguments=None):
         help='Do not read/dump cookies (default)')
     filesystem.add_option(
         '--cache-dir', dest='cachedir', default=None, metavar='DIR',
-        help='Location in the filesystem where youtube-dl can store some downloaded information permanently. By default $XDG_CACHE_HOME/youtube-dl or ~/.cache/youtube-dl . At the moment, only YouTube player files (for videos with obfuscated signatures) are cached, but that may change.')
+        help='Location in the filesystem where youtube-dl can store some downloaded information permanently. By default $XDG_CACHE_HOME/youtube-dl or ~/.cache/youtube-dl . At the moment, only YouTube player files (for videos with obfuscated signatures) are cached, but that may change')
     filesystem.add_option(
         '--no-cache-dir', action='store_false', dest='cachedir',
         help='Disable filesystem caching')
@@ -938,19 +938,19 @@ def parseOpts(overrideArguments=None):
     link.add_option(
         '--write-link',
         action='store_true', dest='writelink', default=False,
-        help='Write an internet shortcut file, depending on the current platform (.url/.webloc/.desktop). The URL may be cached by the OS.')
+        help='Write an internet shortcut file, depending on the current platform (.url, .webloc or .desktop). The URL may be cached by the OS')
     link.add_option(
         '--write-url-link',
         action='store_true', dest='writeurllink', default=False,
-        help='Write a Windows internet shortcut file (.url). Note that the OS caches the URL based on the file path.')
+        help='Write a .url Windows internet shortcut. The OS caches the URL based on the file path')
     link.add_option(
         '--write-webloc-link',
         action='store_true', dest='writewebloclink', default=False,
-        help='Write a macOS internet shortcut file (.webloc)')
+        help='Write a .webloc macOS internet shortcut')
     link.add_option(
         '--write-desktop-link',
         action='store_true', dest='writedesktoplink', default=False,
-        help='Write a Linux internet shortcut file (.desktop)')
+        help='Write a .desktop Linux internet shortcut')
 
     postproc = optparse.OptionGroup(parser, 'Post-Processing Options')
     postproc.add_option(
@@ -1049,15 +1049,15 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',
-        help='Prefer avconv over ffmpeg for running the postprocessors')
+        help='Prefer avconv over ffmpeg for running the postprocessors (Alias: --no-prefer-ffmpeg)')
     postproc.add_option(
         '--prefer-ffmpeg', '--no-prefer-avconv',
         action='store_true', dest='prefer_ffmpeg',
-        help='Prefer ffmpeg over avconv for running the postprocessors (default)')
+        help='Prefer ffmpeg over avconv for running the postprocessors (default) (Alias: --no-prefer-avconv)')
     postproc.add_option(
         '--ffmpeg-location', '--avconv-location', metavar='PATH',
         dest='ffmpeg_location',
-        help='Location of the ffmpeg/avconv binary; either the path to the binary or its containing directory.')
+        help='Location of the ffmpeg/avconv binary; either the path to the binary or its containing directory (Alias: --avconv-location)')
     postproc.add_option(
         '--exec',
         metavar='CMD', dest='exec_cmd',
@@ -1067,12 +1067,14 @@ def parseOpts(overrideArguments=None):
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help='Convert the subtitles to other format (currently supported: srt|ass|vtt|lrc)')
 
-    sponskrub = optparse.OptionGroup(parser, 'SponSkrub Options (SponsorBlock)')
+    sponskrub = optparse.OptionGroup(parser, 'SponSkrub (SponsorBlock) Options', description=(
+        'SponSkrub (https://github.com/pukkandan/SponSkrub) is a utility to mark/remove sponsor segments '
+        'from downloaded YouTube videos using SponsorBlock API (https://sponsor.ajay.app)'))
     sponskrub.add_option(
         '--sponskrub',
         action='store_true', dest='sponskrub', default=None,
         help=(
-            'Use sponskrub to mark sponsored sections with the data available in SponsorBlock API. '
+            'Use sponskrub to mark sponsored sections. '
             'This is enabled by default if the sponskrub binary exists (Youtube only)'))
     sponskrub.add_option(
         '--no-sponskrub',
@@ -1097,7 +1099,7 @@ def parseOpts(overrideArguments=None):
     sponskrub.add_option(
         '--sponskrub-location', metavar='PATH',
         dest='sponskrub_path', default='',
-        help='Location of the sponskrub binary; either the path to the binary or its containing directory.')
+        help='Location of the sponskrub binary; either the path to the binary or its containing directory')
     sponskrub.add_option(
         '--sponskrub-args', dest='sponskrub_args', metavar='ARGS',
         help=optparse.SUPPRESS_HELP)
@@ -1106,11 +1108,11 @@ def parseOpts(overrideArguments=None):
     extractor.add_option(
         '--allow-dynamic-mpd', '--no-ignore-dynamic-mpd',
         action='store_true', dest='dynamic_mpd', default=True,
-        help='Process dynamic DASH manifests (default)')
+        help='Process dynamic DASH manifests (default) (Alias: --no-ignore-dynamic-mpd)')
     extractor.add_option(
         '--ignore-dynamic-mpd', '--no-allow-dynamic-mpd',
         action='store_false', dest='dynamic_mpd',
-        help='Do not process dynamic DASH manifests')
+        help='Do not process dynamic DASH manifests (Alias: --no-allow-dynamic-mpd)')
 
     parser.add_option_group(general)
     parser.add_option_group(network)
