@@ -4099,7 +4099,8 @@ def strip_jsonp(code):
         r'\g<callback_data>', code)
 
 
-def js_to_json(code):
+def js_to_json(code, vars={}):
+    # vars is a dict of var, val pairs to substitute
     COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*'
     SKIP_RE = r'\s*(?:{comment})?\s*'.format(comment=COMMENT_RE)
     INTEGER_TABLE = (
@@ -4127,6 +4128,9 @@ def js_to_json(code):
                 if im:
                     i = int(im.group(1), base)
                     return '"%d":' % i if v.endswith(':') else '%d' % i
+
+            if v in vars:
+                return vars[v]
 
         return '"%s"' % v
 
