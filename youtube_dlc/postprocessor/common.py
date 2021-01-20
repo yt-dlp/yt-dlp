@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 
 import os
 
+from ..compat import compat_str
 from ..utils import (
     PostProcessingError,
-    cli_configuration_args,
     encodeFilename,
 )
 
@@ -33,8 +33,12 @@ class PostProcessor(object):
 
     def __init__(self, downloader=None):
         self._downloader = downloader
-        if not hasattr(self, 'PP_NAME'):
-            self.PP_NAME = self.__class__.__name__[:-2]
+        self.PP_NAME = self.pp_key()
+
+    @classmethod
+    def pp_key(cls):
+        name = cls.__name__[:-2]
+        return compat_str(name[6:]) if name[:6].lower() == 'ffmpeg' else name
 
     def to_screen(self, text, *args, **kwargs):
         if self._downloader:
@@ -84,11 +88,40 @@ class PostProcessor(object):
         except Exception:
             self.report_warning(errnote)
 
-    def _configuration_args(self, default=[]):
+    def _configuration_args(self, default=[], exe=None):
         args = self.get_param('postprocessor_args', {})
-        if isinstance(args, list):  # for backward compatibility
-            args = {'default': args, 'sponskrub': []}
-        return cli_configuration_args(args, self.PP_NAME.lower(), args.get('default', []))
+        pp_key = self.pp_key().lower()
+
+        if isinstance(args, (list, tuple)):  # for backward compatibility
+            return default if pp_key == 'sponskrub' else args
+        if args is None:
+            return default
+        assert isinstance(args, dict)
+
+        exe_args = None
+        if exe is not None:
+            assert isinstance(exe, compat_str)
+            exe = exe.lower()
+            specific_args = args.get('%s+%s' % (pp_key, exe))
+            if specific_args is not None:
+                assert isinstance(specific_args, (list, tuple))
+                return specific_args
+            exe_args = args.get(exe)
+
+        pp_args = args.get(pp_key) if pp_key != exe else None
+        if pp_args is None and exe_args is None:
+            default = args.get('default', default)
+            assert isinstance(default, (list, tuple))
+            return default
+
+        if pp_args is None:
+            pp_args = []
+        elif exe_args is None:
+            exe_args = []
+
+        assert isinstance(pp_args, (list, tuple))
+        assert isinstance(exe_args, (list, tuple))
+        return pp_args + exe_args
 
 
 class AudioConversionError(PostProcessingError):

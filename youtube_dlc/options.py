@@ -975,15 +975,18 @@ def parseOpts(overrideArguments=None):
         metavar='FORMAT', dest='recodevideo', default=None,
         help='Re-encode the video into another format if re-encoding is necessary (currently supported: mp4|flv|ogg|webm|mkv|avi)')
     postproc.add_option(
-        '--postprocessor-args', metavar='NAME:ARGS',
+        '--postprocessor-args', '--ppa', metavar='NAME:ARGS',
         dest='postprocessor_args', action='append',
         help=(
             'Give these arguments to the postprocessors. '
-            "Specify the postprocessor name and the arguments separated by a colon ':' "
-            'to give the argument to only the specified postprocessor. Supported names are '
-            'ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, FixupStretched, '
-            'FixupM4a, FixupM3u8, SubtitlesConvertor, EmbedThumbnail, XAttrMetadata, SponSkrub and Default. '
-            'You can use this option multiple times to give different arguments to different postprocessors'))
+            'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
+            'to give the argument to only the specified postprocessor/executable. Supported postprocessors are: '
+            'SponSkrub, ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, '
+            'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor and EmbedThumbnail. '
+            'The supported executables are: SponSkrub, FFmpeg, FFprobe, avconf, avprobe and AtomicParsley. '
+            'You can use this option multiple times to give different arguments to different postprocessors. '
+            'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
+            'only when being used by the specified postprocessor (Alias: --ppa)'))
     postproc.add_option(
         '-k', '--keep-video',
         action='store_true', dest='keepvideo', default=False,

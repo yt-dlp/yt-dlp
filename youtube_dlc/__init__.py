@@ -8,8 +8,8 @@ __license__ = 'Public Domain'
 import codecs
 import io
 import os
-import re
 import random
+import re
 import sys
 
 
@@ -340,18 +340,18 @@ def _real_main(argv=None):
     postprocessor_args = {}
     if opts.postprocessor_args is not None:
         for string in opts.postprocessor_args:
-            mobj = re.match(r'(?P<pp>\w+):(?P<args>.*)$', string)
+            mobj = re.match(r'(?P<pp>\w+(?:\+\w+)?):(?P<args>.*)$', string)
             if mobj is None:
                 if 'sponskrub' not in postprocessor_args:  # for backward compatibility
                     postprocessor_args['sponskrub'] = []
                     if opts.verbose:
-                        write_string('[debug] Adding postprocessor args from command line option sponskrub:\n')
-                pp_name, pp_args = 'default', string
+                        write_string('[debug] Adding postprocessor args from command line option sponskrub: \n')
+                pp_key, pp_args = 'default', string
             else:
-                pp_name, pp_args = mobj.group('pp').lower(), mobj.group('args')
+                pp_key, pp_args = mobj.group('pp').lower(), mobj.group('args')
             if opts.verbose:
-                write_string('[debug] Adding postprocessor args from command line option %s:%s\n' % (pp_name, pp_args))
-            postprocessor_args[pp_name] = compat_shlex_split(pp_args)
+                write_string('[debug] Adding postprocessor args from command line option %s: %s\n' % (pp_key, pp_args))
+            postprocessor_args[pp_key] = compat_shlex_split(pp_args)
 
     match_filter = (
         None if opts.match_filter is None

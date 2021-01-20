@@ -11,11 +11,14 @@ from ..utils import (
 
 
 class ExecAfterDownloadPP(PostProcessor):
-    PP_NAME = 'Exec'
 
     def __init__(self, downloader, exec_cmd):
         super(ExecAfterDownloadPP, self).__init__(downloader)
         self.exec_cmd = exec_cmd
+
+    @classmethod
+    def pp_key(cls):
+        return 'Exec'
 
     def run(self, information):
         cmd = self.exec_cmd

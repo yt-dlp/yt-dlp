@@ -9,6 +9,7 @@ from ..utils import (
     encodeArgument,
     encodeFilename,
     shell_quote,
+    str_or_none,
     PostProcessingError,
     prepend_extension,
 )
@@ -16,15 +17,13 @@ from ..utils import (
 
 class SponSkrubPP(PostProcessor):
     _temp_ext = 'spons'
-    _def_args = []
     _exe_name = 'sponskrub'
 
     def __init__(self, downloader, path='', args=None, ignoreerror=False, cut=False, force=False):
         PostProcessor.__init__(self, downloader)
         self.force = force
         self.cutout = cut
-        self.args = ['-chapter'] if not cut else []
-        self.args += self._configuration_args(self._def_args) if args is None else compat_shlex_split(args)
+        self.args = str_or_none(args) or ''  # For backward compatibility
         self.path = self.get_exe(path)
 
         if not ignoreerror and self.path is None:
@@ -64,9 +63,11 @@ class SponSkrubPP(PostProcessor):
         if os.path.exists(encodeFilename(temp_filename)):
             os.remove(encodeFilename(temp_filename))
 
-        cmd = [self.path]
-        if self.args:
-            cmd += self.args
+        cmd = [self.path] 
+        if not self.cutout:
+            cmd += ['-chapter']
+        cmd += compat_shlex_split(self.args)  # For backward compatibility
+        cmd += self._configuration_args(exe=self._exe_name)
         cmd += ['--', information['id'], filename, temp_filename]
         cmd = [encodeArgument(i) for i in cmd]
 

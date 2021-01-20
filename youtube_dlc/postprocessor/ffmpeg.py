@@ -54,8 +54,6 @@ class FFmpegPostProcessorError(PostProcessingError):
 
 class FFmpegPostProcessor(PostProcessor):
     def __init__(self, downloader=None):
-        if not hasattr(self, 'PP_NAME'):
-            self.PP_NAME = self.__class__.__name__[6:-2]  # Remove ffmpeg from the front
         PostProcessor.__init__(self, downloader)
         self._determine_executables()
 
@@ -209,7 +207,7 @@ class FFmpegPostProcessor(PostProcessor):
         oldest_mtime = min(
             os.stat(encodeFilename(path)).st_mtime for path in input_paths)
 
-        opts += self._configuration_args()
+        opts += self._configuration_args(exe=self.basename)
 
         files_cmd = []
         for path in input_paths:

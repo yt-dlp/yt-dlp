@@ -343,10 +343,11 @@ class YoutubeDL(object):
                        otherwise prefer ffmpeg.
     ffmpeg_location:   Location of the ffmpeg/avconv binary; either the path
                        to the binary or its containing directory.
-    postprocessor_args: A dictionary of postprocessor names (in lower case) and a list
-                        of additional command-line arguments for the postprocessor.
-                        Use 'default' as the name for arguments to passed to all PP.
-
+    postprocessor_args: A dictionary of postprocessor/executable keys (in lower case)
+                        and a list of additional command-line arguments for the
+                        postprocessor/executable. The dict can also have "PP+EXE" keys
+                        which are used when the given exe is used by the given PP.
+                        Use 'default' as the name for arguments to passed to all PP
     The following options are used by the Youtube extractor:
     youtube_include_dash_manifest: If True (default), DASH manifests and related
                         data will be downloaded and processed by extractor.
