@@ -8,7 +8,7 @@
 * Commit to master as `Release <version>`
 * Push to origin/release - build task will now run
 * Update version.py and run `make issuetemplates`
-* Commit to master as `[version] update`
+* Commit to master as `[version] update :skip ci all`
 * Push to origin/master
 * Update changelog in /releases
 
@@ -17,11 +17,12 @@
 
 ### 2021.01.20
 * [TrovoLive] Add extractor (only VODs)
-* [pokemon] Add `/#/player` URLs (Closes #24)
+* [pokemon] Add `/#/player` URLs
 * Improved parsing of multiple postprocessor-args, add `--ppa` as alias
 * [EmbedThumbnail] Simplify embedding in mkv
 * [sponskrub] Encode filenames correctly, better debug output and error message
 * [readme] Cleanup options
+
 
 ### 2021.01.16
 * **Merge youtube-dl:** Upto [2021.01.16](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.01.16)
