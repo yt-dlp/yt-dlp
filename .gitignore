@@ -49,6 +49,7 @@ updates_key.pem
 *.conf
 *.swp
 *.spec
+*.exe
 test/local_parameters.json
 .tox
 youtube-dl.zsh

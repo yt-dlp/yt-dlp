@@ -51,20 +51,22 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl v2021.01.08**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl v2021.01.16**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Youtube improvements**:
     * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and support downloading multiple pages of content
     * Youtube search works correctly (`ytsearch:`, `ytsearchdate:`) along with Search URLs
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
 
-* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv
+* **New extractors**: Trovo.live, AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv
 
 * **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina
 
-* **New options**: `--list-formats-as-table`, `--write-link`, `--force-download-archive`, `--force-overwrites` etc
+* **New options**: `--list-formats-as-table`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
 
-and many other features and patches. See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
+* **Improvements**: Multiple `--postprocessor-args`, `%(duration_string)s` in `-o`, faster archive checking, more [format selection options](#format-selection) etc
+
+See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
 
 
 **PS**: Some of these changes are already in youtube-dlc, but are still unreleased. See [this](Changelog.md#unreleased-changes-in-blackjack4494yt-dlc) for details
