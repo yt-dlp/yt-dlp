@@ -40,9 +40,10 @@ class PostProcessor(object):
         name = cls.__name__[:-2]
         return compat_str(name[6:]) if name[:6].lower() == 'ffmpeg' else name
 
-    def to_screen(self, text, *args, **kwargs):
+    def to_screen(self, text, prefix=True, *args, **kwargs):
+        tag = '[%s] ' % self.PP_NAME if prefix else ''
         if self._downloader:
-            return self._downloader.to_screen('[%s] %s' % (self.PP_NAME, text), *args, **kwargs)
+            return self._downloader.to_screen('%s%s' % (tag, text), *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):
         if self._downloader:
@@ -52,9 +53,10 @@ class PostProcessor(object):
         if self._downloader:
             return self._downloader.report_error(text, *args, **kwargs)
 
-    def write_debug(self, text, *args, **kwargs):
+    def write_debug(self, text, prefix=True, *args, **kwargs):
+        tag = '[debug] ' if prefix else ''
         if self.get_param('verbose', False):
-            return self._downloader.to_screen('[debug] %s' % text, *args, **kwargs)
+            return self._downloader.to_screen('%s%s' % (tag, text), *args, **kwargs)
 
     def get_param(self, name, default=None, *args, **kwargs):
         if self._downloader:

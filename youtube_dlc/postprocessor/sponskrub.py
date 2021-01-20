@@ -63,7 +63,7 @@ class SponSkrubPP(PostProcessor):
         if os.path.exists(encodeFilename(temp_filename)):
             os.remove(encodeFilename(temp_filename))
 
-        cmd = [self.path] 
+        cmd = [self.path]
         if not self.cutout:
             cmd += ['-chapter']
         cmd += compat_shlex_split(self.args)  # For backward compatibility
@@ -82,9 +82,8 @@ class SponSkrubPP(PostProcessor):
         elif p.returncode == 3:
             self.to_screen('No segments in the SponsorBlock database')
         else:
-            stderr = stderr.decode('utf-8', 'replace')
-            msg = stderr.strip()
-            if not self.get_param('verbose', False):
-                msg = msg.split('\n')[-1]
-            raise PostProcessingError(msg if msg else 'sponskrub failed with error code %s!' % p.returncode)
+            msg = stderr.decode('utf-8', 'replace').strip() or stdout.decode('utf-8', 'replace').strip()
+            self.write_debug(msg, prefix=False)
+            msg = msg.split('\n')[-1]
+            raise PostProcessingError(msg if msg else 'sponskrub failed with error code %s' % p.returncode)
         return [], information
