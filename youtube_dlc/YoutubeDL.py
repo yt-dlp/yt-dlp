@@ -885,7 +885,9 @@ class YoutubeDL(object):
                                     'and will probably not work.')
 
             try:
-                temp_id = ie.extract_id(url) if callable(getattr(ie, 'extract_id', None)) else ie._match_id(url)
+                temp_id = str_or_none(
+                  ie.extract_id(url) if callable(getattr(ie, 'extract_id', None))
+                  else ie._match_id(url))
             except (AssertionError, IndexError, AttributeError):
                 temp_id = None
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': ie_key}):
@@ -2364,7 +2366,7 @@ class YoutubeDL(object):
                     break
             else:
                 return
-        return extractor.lower() + ' ' + video_id
+        return '%s %s' % (extractor.lower(), video_id)
 
     def in_download_archive(self, info_dict):
         fn = self.params.get('download_archive')
