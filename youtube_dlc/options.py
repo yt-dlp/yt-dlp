@@ -41,7 +41,6 @@ def _hide_login_info(opts):
 
 def parseOpts(overrideArguments=None):
     def _readOptions(filename_bytes, default=[]):
-        print(filename_bytes)
         try:
             optionf = open(filename_bytes)
         except IOError:

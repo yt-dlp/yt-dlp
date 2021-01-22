@@ -2222,7 +2222,6 @@ class YoutubeDL(object):
                             os.path.splitext(filename)[0]
                             if filename_real_ext == old_ext
                             else filename)
-                        print(filename, filename_real_ext, filename_wo_ext, info_dict['ext'])
                         return '%s.%s' % (filename_wo_ext, info_dict['ext'])
 
                     # Ensure filename always has a correct extension for successful merge
