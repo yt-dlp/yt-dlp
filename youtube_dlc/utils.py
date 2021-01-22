@@ -5865,6 +5865,13 @@ def clean_podcast_url(url):
         )/''', '', url)
 
 
+_HEX_TABLE = '0123456789abcdef'
+
+
+def random_uuidv4():
+    return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
+
+
 def make_dir(path, to_screen=None):
     try:
         dn = os.path.dirname(path)
