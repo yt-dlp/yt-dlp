@@ -358,7 +358,7 @@ def _real_main(argv=None):
     if opts.paths is not None:
         for string in opts.paths:
             path_names = 'home|temp|config|description|annotation|subtitle|infojson|thumbnail'
-            mobj = re.match(r'(?P<name>%s):(?P<path>.*)$' % path_names, string)
+            mobj = re.match(r'(?i)(?P<name>%s):(?P<path>.*)$' % path_names, string)
             if mobj is None:
                 parser.error('invalid path string "%s" given' % string)
             name, path = mobj.group('name').lower(), mobj.group('path').strip()

@@ -151,9 +151,9 @@ Then simply type this
                                      compatibility) if this option is found
                                      inside the system configuration file, the
                                      user configuration is not loaded
-    --config-location PATH           Location of the configuration file; either
-                                     the path to the config or its containing
-                                     directory
+    --config-location PATH           Location of the main configuration file;
+                                     either the path to the config or its
+                                     containing directory
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them
     --flat-videos                    Do not resolve the video urls

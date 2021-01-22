@@ -389,6 +389,7 @@ class YoutubeDL(object):
         self._ies_instances = {}
         self._pps = []
         self._pps_end = []
+        self.__prepare_filename_warned = False
         self._post_hooks = []
         self._progress_hooks = []
         self._download_retcode = 0
@@ -2414,7 +2415,8 @@ class YoutubeDL(object):
                 return infodict
 
             if self.params.get('keepvideo', False):
-                files_to_move.update(dict((f, '') for f in files_to_delete))
+                for f in files_to_delete:
+                    files_to_move.setdefault(f, '')
             else:
                 for old_filename in set(files_to_delete):
                     self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
@@ -2426,9 +2428,7 @@ class YoutubeDL(object):
                         del files_to_move[old_filename]
             return infodict
 
-        for pp in ie_info.get('__postprocessors', []):
-            info = run_pp(pp)
-        for pp in self._pps:
+        for pp in ie_info.get('__postprocessors', []) + self._pps:
             info = run_pp(pp)
         info = run_pp(MoveFilesAfterDownloadPP(self, files_to_move))
         files_to_move = {}
