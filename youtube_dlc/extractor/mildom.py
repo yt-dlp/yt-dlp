@@ -60,7 +60,7 @@ class MildomBaseIE(InfoExtractor):
                             'gid': None,
                             'loc': '',
                             'clu': '',
-                            'wh': '1919*810',  # don't google this magic number!
+                            'wh': '1919*810',
                             'rtm': self.iso_timestamp(),
                             'ua': std_headers['User-Agent'],
                         }).encode('utf8')).decode('utf8').replace('\n', ''),
@@ -95,8 +95,6 @@ class MildomBaseIE(InfoExtractor):
         'getCurrentLangCode'
         return 'ja'
 
-# python3 -m youtube_dl https://www.mildom.com/10534224 -o - 2>&1 | ffmpeg -i - -f null /dev/null
-
 
 class MildomIE(MildomBaseIE):
     IE_NAME = 'mildom'
@@ -113,19 +111,16 @@ class MildomIE(MildomBaseIE):
             'https://cloudac.mildom.com/nonolive/gappserv/live/enterstudio', video_id,
             note='Downloading live metadata', query={'user_id': video_id})
 
-        # e.g. Minecraft
         title = try_get(
             enterstudio, (
                 lambda x: self._html_search_meta('twitter:description', webpage),
                 lambda x: x['anchor_intro'],
             ), compat_str)
-        # e.g. recording gameplay for my YouTube
         description = try_get(
             enterstudio, (
                 lambda x: x['intro'],
                 lambda x: x['live_intro'],
             ), compat_str)
-        # e.g. @imagDonaldTrump
         uploader = try_get(
             enterstudio, (
                 lambda x: self._html_search_meta('twitter:title', webpage),
@@ -150,7 +145,7 @@ class MildomIE(MildomBaseIE):
         }, note='Downloading m3u8 information')
         del stream_query['streamReqId'], stream_query['timestamp']
         for fmt in formats:
-            # source code behind bookish-octo-barnacle.vercel.app is here: https://github.com/nao20010128nao/bookish-octo-barnacle/
+            # Uses https://github.com/nao20010128nao/bookish-octo-barnacle by @nao20010128nao as a proxy
             parsed = compat_urlparse.urlparse(fmt['url'])
             parsed = parsed._replace(
                 netloc='bookish-octo-barnacle.vercel.app',
@@ -190,18 +185,15 @@ class MildomVodIE(MildomBaseIE):
                 'v_id': video_id,
             })['playback']
 
-        # e.g. Minecraft
         title = try_get(
             autoplay, (
                 lambda x: self._html_search_meta('og:description', webpage),
                 lambda x: x['title'],
             ), compat_str)
-        # e.g. recording gameplay for my YouTube
         description = try_get(
             autoplay, (
                 lambda x: x['video_intro'],
             ), compat_str)
-        # e.g. @imagDonaldTrump
         uploader = try_get(
             autoplay, (
                 lambda x: x['author_info']['login_name'],
@@ -253,7 +245,6 @@ class MildomVodIE(MildomBaseIE):
         }
 
 
-# User's ongoing live can be done via MildomIE, so this is only for VODs
 class MildomUserVodIE(MildomBaseIE):
     IE_NAME = 'mildom:user:vod'
     IE_DESC = 'Download all VODs from specific user in Mildom'
