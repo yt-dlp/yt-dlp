@@ -820,8 +820,12 @@ def parseOpts(overrideArguments=None):
         '--id', default=False,
         action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
-        '-P', '--paths', metavar='TYPE:PATH',
-        dest='paths', action='append',
+        '-P', '--paths',
+        metavar='TYPE:PATH', dest='paths', default={}, type='str',
+        action='callback', callback=_dict_from_multiple_values_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'home|temp|config|description|annotation|subtitle|infojson|thumbnail',
+            'process': lambda x: x.strip()},
         help=(
             'The paths where the files should be downloaded. '
             'Specify the type of file and the path separated by a colon ":" '
@@ -1231,12 +1235,7 @@ def parseOpts(overrideArguments=None):
 
             def get_home_path():
                 opts = parser.parse_args(configs['portable'] + configs['custom'] + configs['command-line'])[0]
-                if opts.paths is None:
-                    return ''
-                for string in opts.paths[::-1]:
-                    if string[:5] == 'home:':
-                        return expand_path(string[5:]).strip()
-                return ''
+                return expand_path(opts.paths.get('home', '')).strip()
 
             configs['home'], paths['home'] = read_options(get_home_path())
             if '--ignore-config' in configs['home']:

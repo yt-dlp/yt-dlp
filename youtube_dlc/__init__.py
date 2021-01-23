@@ -331,18 +331,6 @@ def _real_main(argv=None):
         opts.postprocessor_args.setdefault('sponskrub', [])
         opts.postprocessor_args['default'] = opts.postprocessor_args['default-compat']
 
-    paths = {}
-    if opts.paths is not None:
-        for string in opts.paths:
-            path_names = 'home|temp|config|description|annotation|subtitle|infojson|thumbnail'
-            mobj = re.match(r'(?i)(?P<name>%s):(?P<path>.*)$' % path_names, string)
-            if mobj is None:
-                parser.error('invalid path string "%s" given' % string)
-            name, path = mobj.group('name').lower(), mobj.group('path').strip()
-            if opts.verbose:
-                write_string('[debug] Adding %s path from command line option: %s\n' % (name, path))
-            paths[name] = path
-
     match_filter = (
         None if opts.match_filter is None
         else match_filter_func(opts.match_filter))
@@ -380,7 +368,7 @@ def _real_main(argv=None):
         'listformats': opts.listformats,
         'listformats_table': opts.listformats_table,
         'outtmpl': outtmpl,
-        'paths': paths,
+        'paths': opts.paths,
         'autonumber_size': opts.autonumber_size,
         'autonumber_start': opts.autonumber_start,
         'restrictfilenames': opts.restrictfilenames,
