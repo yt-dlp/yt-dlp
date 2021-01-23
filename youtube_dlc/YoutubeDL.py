@@ -2132,7 +2132,7 @@ class YoutubeDL(object):
 
         def _write_link_file(extension, template, newline, embed_filename):
             linkfn = replace_extension(full_filename, extension, info_dict.get('ext'))
-            if self.params.get('nooverwrites', False) and os.path.exists(encodeFilename(linkfn)):
+            if self.params.get('overwrites', True) and os.path.exists(encodeFilename(linkfn)):
                 self.to_screen('[info] Internet shortcut is already present')
             else:
                 try:
