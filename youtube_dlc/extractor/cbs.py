@@ -59,7 +59,7 @@ class CBSIE(CBSBaseIE):
             'http://can.cbs.com/thunder/player/videoPlayerService.php',
             content_id, query={'partner': site, 'contentId': content_id})
         video_data = xpath_element(items_data, './/item')
-        title = xpath_text(video_data, 'videoTitle', 'title', True)
+        title = xpath_text(video_data, 'videoTitle', 'title') or xpath_text(video_data, 'videotitle', 'title')
         tp_path = 'dJ5BDC/media/guid/%d/%s' % (mpx_acc, content_id)
         tp_release_url = 'http://link.theplatform.com/s/' + tp_path
 

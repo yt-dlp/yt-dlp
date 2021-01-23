@@ -107,6 +107,19 @@ def parseOpts(overrideArguments=None):
     def _comma_separated_values_options_callback(option, opt_str, value, parser):
         setattr(parser.values, option.dest, value.split(','))
 
+    def _dict_from_multiple_values_options_callback(
+            option, opt_str, value, parser, allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None):
+
+        out_dict = getattr(parser.values, option.dest)
+        mobj = re.match(r'(?i)(?P<key>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
+        if mobj is not None:
+            key, val = mobj.group('key').lower(), mobj.group('val')
+        elif default_key is not None:
+            key, val = default_key, value
+        else:
+            OptionValueError('wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
+        out_dict[key] = process(val) if callable(process) else val
+
     # No need to wrap help messages if we're on a wide console
     columns = compat_get_terminal_size().columns
     max_width = columns if columns else 80
@@ -621,14 +634,19 @@ def parseOpts(overrideArguments=None):
             'video while downloading (some players may not be able to play it)'))
     downloader.add_option(
         '--external-downloader',
-        dest='external_downloader', metavar='COMMAND',
+        dest='external_downloader', metavar='NAME',
         help=(
             'Use the specified external downloader. '
-            'Currently supports %s' % ','.join(list_external_downloaders())))
+            'Currently supports %s' % ', '.join(list_external_downloaders())))
     downloader.add_option(
-        '--external-downloader-args',
-        dest='external_downloader_args', metavar='ARGS',
-        help='Give these arguments to the external downloader')
+        '--downloader-args', '--external-downloader-args',
+        metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
+        action='callback', callback=_dict_from_multiple_values_options_callback,
+        callback_kwargs={'default_key': 'default', 'process': compat_shlex_split},
+        help=(
+            'Give these arguments to the external downloader. '
+            'Specify the downloader name and the arguments separated by a colon ":". '
+            'You can use this option multiple times (Alias: --external-downloader-args)'))
 
     workarounds = optparse.OptionGroup(parser, 'Workarounds')
     workarounds.add_option(
@@ -654,8 +672,9 @@ def parseOpts(overrideArguments=None):
     )
     workarounds.add_option(
         '--add-header',
-        metavar='FIELD:VALUE', dest='headers', action='append',
-        help='Specify a custom HTTP header and its value, separated by a colon \':\'. You can use this option multiple times',
+        metavar='FIELD:VALUE', dest='headers', default={}, type='str',
+        action='callback', callback=_dict_from_multiple_values_options_callback,
+        help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(
         '--bidi-workaround',
@@ -989,18 +1008,21 @@ def parseOpts(overrideArguments=None):
         metavar='FORMAT', dest='recodevideo', default=None,
         help='Re-encode the video into another format if re-encoding is necessary (currently supported: mp4|flv|ogg|webm|mkv|avi)')
     postproc.add_option(
-        '--postprocessor-args', '--ppa', metavar='NAME:ARGS',
-        dest='postprocessor_args', action='append',
+        '--postprocessor-args', '--ppa',
+        metavar='NAME:ARGS', dest='postprocessor_args', default={}, type='str',
+        action='callback', callback=_dict_from_multiple_values_options_callback,
+        callback_kwargs={'default_key': 'default-compat', 'allowed_keys': r'\w+(?:\+\w+)?', 'process': compat_shlex_split},
         help=(
             'Give these arguments to the postprocessors. '
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
-            'to give the argument to only the specified postprocessor/executable. Supported postprocessors are: '
+            'to give the argument to the specified postprocessor/executable. Supported postprocessors are: '
             'SponSkrub, ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, '
             'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor and EmbedThumbnail. '
             'The supported executables are: SponSkrub, FFmpeg, FFprobe, avconf, avprobe and AtomicParsley. '
             'You can use this option multiple times to give different arguments to different postprocessors. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
-            'only when being used by the specified postprocessor (Alias: --ppa)'))
+            'only when being used by the specified postprocessor. '
+            'You can use this option multiple times (Alias: --ppa)'))
     postproc.add_option(
         '-k', '--keep-video',
         action='store_true', dest='keepvideo', default=False,

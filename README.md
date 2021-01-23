@@ -3,8 +3,7 @@
 <!-- See: https://github.com/marketplace/actions/dynamic-badges -->
 [![Release Version](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/pukkandan/c69cb23c3c5b3316248e52022790aa57/raw/version.json&color=brightgreen)](https://github.com/pukkandan/yt-dlp/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlp/blob/master/LICENSE)
-[![Core Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions?query=workflow%3ACore)
-[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Full%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions?query=workflow%3AFull)
+[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions)
 
 A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
 
@@ -303,11 +302,14 @@ Then simply type this
                                      allowing to play the video while
                                      downloading (some players may not be able
                                      to play it)
-    --external-downloader COMMAND    Use the specified external downloader.
-                                     Currently supports
-                                     aria2c,avconv,axel,curl,ffmpeg,httpie,wget
-    --external-downloader-args ARGS  Give these arguments to the external
-                                     downloader
+    --external-downloader NAME       Use the specified external downloader.
+                                     Currently supports aria2c, avconv, axel,
+                                     curl, ffmpeg, httpie, wget
+    --downloader-args NAME:ARGS      Give these arguments to the external
+                                     downloader. Specify the downloader name and
+                                     the arguments separated by a colon ":". You
+                                     can use this option multiple times (Alias:
+                                     --external-downloader-args)
 
 ## Filesystem Options:
     -a, --batch-file FILE            File containing URLs to download ('-' for
@@ -446,7 +448,7 @@ Then simply type this
     --referer URL                    Specify a custom referer, use if the video
                                      access is restricted to one domain
     --add-header FIELD:VALUE         Specify a custom HTTP header and its value,
-                                     separated by a colon ':'. You can use this
+                                     separated by a colon ":". You can use this
                                      option multiple times
     --bidi-workaround                Work around terminals that lack
                                      bidirectional text support. Requires bidiv
@@ -566,7 +568,7 @@ Then simply type this
     --postprocessor-args NAME:ARGS   Give these arguments to the postprocessors.
                                      Specify the postprocessor/executable name
                                      and the arguments separated by a colon ":"
-                                     to give the argument to only the specified
+                                     to give the argument to the specified
                                      postprocessor/executable. Supported
                                      postprocessors are: SponSkrub,
                                      ExtractAudio, VideoRemuxer, VideoConvertor,
@@ -580,7 +582,8 @@ Then simply type this
                                      to different postprocessors. You can also
                                      specify "PP+EXE:ARGS" to give the arguments
                                      to the specified executable only when being
-                                     used by the specified postprocessor (Alias:
+                                     used by the specified postprocessor. You
+                                     can use this option multiple times (Alias:
                                      --ppa)
     -k, --keep-video                 Keep the intermediate video file on disk
                                      after post-processing

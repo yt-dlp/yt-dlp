@@ -4,8 +4,9 @@ import os
 
 from ..compat import compat_str
 from ..utils import (
-    PostProcessingError,
+    cli_configuration_args,
     encodeFilename,
+    PostProcessingError,
 )
 
 
@@ -91,39 +92,10 @@ class PostProcessor(object):
             self.report_warning(errnote)
 
     def _configuration_args(self, default=[], exe=None):
-        args = self.get_param('postprocessor_args', {})
-        pp_key = self.pp_key().lower()
-
-        if isinstance(args, (list, tuple)):  # for backward compatibility
-            return default if pp_key == 'sponskrub' else args
-        if args is None:
-            return default
-        assert isinstance(args, dict)
-
-        exe_args = None
-        if exe is not None:
-            assert isinstance(exe, compat_str)
-            exe = exe.lower()
-            specific_args = args.get('%s+%s' % (pp_key, exe))
-            if specific_args is not None:
-                assert isinstance(specific_args, (list, tuple))
-                return specific_args
-            exe_args = args.get(exe)
-
-        pp_args = args.get(pp_key) if pp_key != exe else None
-        if pp_args is None and exe_args is None:
-            default = args.get('default', default)
-            assert isinstance(default, (list, tuple))
-            return default
-
-        if pp_args is None:
-            pp_args = []
-        elif exe_args is None:
-            exe_args = []
-
-        assert isinstance(pp_args, (list, tuple))
-        assert isinstance(exe_args, (list, tuple))
-        return pp_args + exe_args
+        key = self.pp_key().lower()
+        args, is_compat = cli_configuration_args(
+            self._downloader.params, 'postprocessor_args', key, default, exe)
+        return args if not is_compat or key != 'sponskrub' else default
 
 
 class AudioConversionError(PostProcessingError):

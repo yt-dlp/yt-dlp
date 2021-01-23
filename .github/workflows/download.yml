@@ -1,9 +1,9 @@
-name: Full Test
+name: Download Tests
 on: [push, pull_request]
 jobs:
   tests:
-    name: Tests
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    name: Download Tests
+    if: "!contains(github.event.head_commit.message, 'ci skip dl') || !contains(github.event.head_commit.message, 'ci skip all')"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -12,29 +12,20 @@ jobs:
         # TODO: python 2.6
         python-version: [2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, pypy-2.7, pypy-3.6, pypy-3.7]
         python-impl: [cpython]
-        ytdl-test-set: [core, download]
+        ytdl-test-set: [download]
         run-tests-ext: [sh]
         include:
         # python 3.2 is only available on windows via setup-python
         - os: windows-latest
           python-version: 3.2
           python-impl: cpython
-          ytdl-test-set: core
-          run-tests-ext: bat
-        - os: windows-latest
-          python-version: 3.2
-          python-impl: cpython
           ytdl-test-set: download
           run-tests-ext: bat
-        # jython
-        - os: ubuntu-latest
-          python-impl: jython
-          ytdl-test-set: core
-          run-tests-ext: sh
-        - os: ubuntu-latest
-          python-impl: jython
-          ytdl-test-set: download
-          run-tests-ext: sh
+        # jython - disable for now since it takes too long to complete
+        # - os: ubuntu-latest
+        #   python-impl: jython
+        #   ytdl-test-set: download
+        #   run-tests-ext: sh
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -60,4 +51,3 @@ jobs:
       env:
         YTDL_TEST_SET: ${{ matrix.ytdl-test-set }}
       run: ./devscripts/run_tests.${{ matrix.run-tests-ext }}
-  # flake8 has been moved to quick-test

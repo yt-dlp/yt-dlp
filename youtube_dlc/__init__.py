@@ -18,7 +18,6 @@ from .options import (
 )
 from .compat import (
     compat_getpass,
-    compat_shlex_split,
     workaround_optparse_bug9161,
 )
 from .utils import (
@@ -70,14 +69,7 @@ def _real_main(argv=None):
         std_headers['Referer'] = opts.referer
 
     # Custom HTTP headers
-    if opts.headers is not None:
-        for h in opts.headers:
-            if ':' not in h:
-                parser.error('wrong header formatting, it should be key:value, not "%s"' % h)
-            key, value = h.split(':', 1)
-            if opts.verbose:
-                write_string('[debug] Adding header from command line option %s:%s\n' % (key, value))
-            std_headers[key] = value
+    std_headers.update(opts.headers)
 
     # Dump user agent
     if opts.dump_user_agent:
@@ -334,25 +326,10 @@ def _real_main(argv=None):
             'exec_cmd': opts.exec_cmd,
             '_after_move': True
         })
-    external_downloader_args = None
-    if opts.external_downloader_args:
-        external_downloader_args = compat_shlex_split(opts.external_downloader_args)
 
-    postprocessor_args = {}
-    if opts.postprocessor_args is not None:
-        for string in opts.postprocessor_args:
-            mobj = re.match(r'(?P<pp>\w+(?:\+\w+)?):(?P<args>.*)$', string)
-            if mobj is None:
-                if 'sponskrub' not in postprocessor_args:  # for backward compatibility
-                    postprocessor_args['sponskrub'] = []
-                    if opts.verbose:
-                        write_string('[debug] Adding postprocessor args from command line option sponskrub: \n')
-                pp_key, pp_args = 'default', string
-            else:
-                pp_key, pp_args = mobj.group('pp').lower(), mobj.group('args')
-            if opts.verbose:
-                write_string('[debug] Adding postprocessor args from command line option %s: %s\n' % (pp_key, pp_args))
-            postprocessor_args[pp_key] = compat_shlex_split(pp_args)
+    if 'default-compat' in opts.postprocessor_args and 'default' not in opts.postprocessor_args:
+        opts.postprocessor_args.setdefault('sponskrub', [])
+        opts.postprocessor_args['default'] = opts.postprocessor_args['default-compat']
 
     paths = {}
     if opts.paths is not None:
@@ -499,8 +476,8 @@ def _real_main(argv=None):
         'ffmpeg_location': opts.ffmpeg_location,
         'hls_prefer_native': opts.hls_prefer_native,
         'hls_use_mpegts': opts.hls_use_mpegts,
-        'external_downloader_args': external_downloader_args,
-        'postprocessor_args': postprocessor_args,
+        'external_downloader_args': opts.external_downloader_args,
+        'postprocessor_args': opts.postprocessor_args,
         'cn_verification_proxy': opts.cn_verification_proxy,
         'geo_verification_proxy': opts.geo_verification_proxy,
         'config_location': opts.config_location,

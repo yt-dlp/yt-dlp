@@ -4656,12 +4656,35 @@ def cli_valueless_option(params, command_option, param, expected_value=True):
     return [command_option] if param == expected_value else []
 
 
-def cli_configuration_args(params, param, default=[]):
-    ex_args = params.get(param)
-    if ex_args is None:
-        return default
-    assert isinstance(ex_args, list)
-    return ex_args
+def cli_configuration_args(params, arg_name, key, default=[], exe=None):  # returns arg, for_compat
+    argdict = params.get(arg_name, {})
+    if isinstance(argdict, (list, tuple)):  # for backward compatibility
+        return argdict, True
+
+    if argdict is None:
+        return default, False
+    assert isinstance(argdict, dict)
+
+    assert isinstance(key, compat_str)
+    key = key.lower()
+
+    args = exe_args = None
+    if exe is not None:
+        assert isinstance(exe, compat_str)
+        exe = exe.lower()
+        args = argdict.get('%s+%s' % (key, exe))
+        if args is None:
+            exe_args = argdict.get(exe)
+
+    if args is None:
+        args = argdict.get(key) if key != exe else None
+    if args is None and exe_args is None:
+        args = argdict.get('default', default)
+
+    args, exe_args = args or [], exe_args or []
+    assert isinstance(args, (list, tuple))
+    assert isinstance(exe_args, (list, tuple))
+    return args + exe_args, False
 
 
 class ISO639Utils(object):
