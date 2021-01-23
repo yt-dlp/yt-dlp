@@ -227,9 +227,10 @@ class FFmpegPostProcessor(PostProcessor):
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdout, stderr = process_communicate_or_kill(p)
         if p.returncode != 0:
-            stderr = stderr.decode('utf-8', 'replace')
-            msg = stderr.strip().split('\n')[-1]
-            raise FFmpegPostProcessorError(msg)
+            stderr = stderr.decode('utf-8', 'replace').strip()
+            if self._downloader.params.get('verbose', False):
+                self.report_error(stderr)
+            raise FFmpegPostProcessorError(stderr.split('\n')[-1])
         self.try_utime(out_path, oldest_mtime, oldest_mtime)
 
     def run_ffmpeg(self, path, out_path, opts):
@@ -240,6 +241,8 @@ class FFmpegPostProcessor(PostProcessor):
         # interprets that as a protocol) or can start with '-' (-- is broken in
         # ffmpeg, see https://ffmpeg.org/trac/ffmpeg/ticket/2127 for details)
         # Also leave '-' intact in order not to break streaming to stdout.
+        if fn.startswith(('http://', 'https://')):
+            return fn
         return 'file:' + fn if fn != '-' else fn
 
 
@@ -420,18 +423,22 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         sub_langs = []
         sub_filenames = []
         webm_vtt_warn = False
+        mp4_ass_warn = False
 
         for lang, sub_info in subtitles.items():
             sub_ext = sub_info['ext']
             if sub_ext == 'json':
-                self.to_screen('JSON subtitles cannot be embedded')
+                self.report_warning('JSON subtitles cannot be embedded')
             elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
                 sub_langs.append(lang)
                 sub_filenames.append(subtitles_filename(filename, lang, sub_ext, ext))
             else:
                 if not webm_vtt_warn and ext == 'webm' and sub_ext != 'vtt':
                     webm_vtt_warn = True
-                    self.to_screen('Only WebVTT subtitles can be embedded in webm files')
+                    self.report_warning('Only WebVTT subtitles can be embedded in webm files')
+            if not mp4_ass_warn and ext == 'mp4' and sub_ext == 'ass':
+                mp4_ass_warn = True
+                self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
 
         if not sub_langs:
             return [], information
@@ -455,7 +462,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             opts.extend(['-metadata:s:s:%d' % i, 'language=%s' % lang_code])
 
         temp_filename = prepend_extension(filename, 'temp')
-        self.to_screen('Embedding subtitles in \'%s\'' % filename)
+        self.to_screen('Embedding subtitles in "%s"' % filename)
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.remove(encodeFilename(filename))
         os.rename(encodeFilename(temp_filename), encodeFilename(filename))
