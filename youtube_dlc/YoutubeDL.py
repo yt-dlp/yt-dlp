@@ -930,9 +930,7 @@ class YoutubeDL(object):
                 self.to_screen("[%s] %s: has already been recorded in archive" % (
                                ie_key, temp_id))
                 break
-
             return self.__extract_info(url, ie, download, extra_info, process, info_dict)
-
         else:
             self.report_error('no suitable InfoExtractor for URL %s' % url)
 
@@ -1100,6 +1098,21 @@ class YoutubeDL(object):
         # We process each entry in the playlist
         playlist = ie_result.get('title') or ie_result.get('id')
         self.to_screen('[download] Downloading playlist: %s' % playlist)
+
+        if self.params.get('writeinfojson', False):
+            infofn = replace_extension(
+                self.prepare_filepath(self.prepare_filename(ie_result), 'infojson'),
+                'info.json', ie_result.get('ext'))
+            if self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
+                self.to_screen('[info] Playlist description metadata is already present')
+            else:
+                self.to_screen('[info] Writing description playlist metadata as JSON to: ' + infofn)
+                playlist_info = dict(ie_result)
+                playlist_info.pop('entries')
+                try:
+                    write_json_file(self.filter_requested_info(playlist_info), infofn)
+                except (OSError, IOError):
+                    self.report_error('Cannot write playlist description metadata to JSON file ' + infofn)
 
         playlist_results = []
 
