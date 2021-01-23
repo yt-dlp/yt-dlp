@@ -3,8 +3,7 @@
 <!-- See: https://github.com/marketplace/actions/dynamic-badges -->
 [![Release Version](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/pukkandan/c69cb23c3c5b3316248e52022790aa57/raw/version.json&color=brightgreen)](https://github.com/pukkandan/yt-dlp/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlp/blob/master/LICENSE)
-[![Core Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions?query=workflow%3ACore)
-[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Full%20Test/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions?query=workflow%3AFull)
+[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions)
 
 A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
 
