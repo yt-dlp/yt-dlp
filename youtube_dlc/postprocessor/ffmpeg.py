@@ -545,6 +545,12 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 in_filenames.append(metadata_filename)
                 options.extend(['-map_metadata', '1'])
 
+        if '__infojson_filename' in info and (info['ext'] == 'mkv' or info['ext'] == 'mka'):
+            options.extend([
+                '-attach', info['__infojson_filename'],
+                '-metadata:s:t', 'mimetype=application/json'
+            ])
+
         self.to_screen('Adding metadata to \'%s\'' % filename)
         self.run_ffmpeg_multiple_files(in_filenames, temp_filename, options)
         if chapters:

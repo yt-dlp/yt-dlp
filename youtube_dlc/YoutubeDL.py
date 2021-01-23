@@ -2116,6 +2116,7 @@ class YoutubeDL(object):
                 except (OSError, IOError):
                     self.report_error('Cannot write metadata to JSON file ' + infofn)
                     return
+            info_dict['__infojson_filepath'] = infofn
 
         thumbdir = os.path.dirname(self.prepare_filepath(filename, 'thumbnail'))
         for thumbfn in self._write_thumbnails(info_dict, temp_filename):
