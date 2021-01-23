@@ -14,6 +14,7 @@ from .compat import (
     compat_shlex_split,
 )
 from .utils import (
+    expand_path,
     preferredencoding,
     write_string,
 )
@@ -62,7 +63,7 @@ def parseOpts(overrideArguments=None):
             userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
         userConf = _readOptions(userConfFile, default=None)
         if userConf is not None:
-            return userConf
+            return userConf, userConfFile
 
         # appdata
         appdata_dir = compat_getenv('appdata')
@@ -70,19 +71,21 @@ def parseOpts(overrideArguments=None):
             userConfFile = os.path.join(appdata_dir, package_name, 'config')
             userConf = _readOptions(userConfFile, default=None)
             if userConf is None:
-                userConf = _readOptions('%s.txt' % userConfFile, default=None)
+                userConfFile += '.txt'
+                userConf = _readOptions(userConfFile, default=None)
         if userConf is not None:
-            return userConf
+            return userConf, userConfFile
 
         # home
         userConfFile = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
         userConf = _readOptions(userConfFile, default=None)
         if userConf is None:
-            userConf = _readOptions('%s.txt' % userConfFile, default=None)
+            userConfFile += '.txt'
+            userConf = _readOptions(userConfFile, default=None)
         if userConf is not None:
-            return userConf
+            return userConf, userConfFile
 
-        return default
+        return default, None
 
     def _format_option_string(option):
         ''' ('-o', '--option') -> -o, --format METAVAR'''
@@ -187,7 +190,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--config-location',
         dest='config_location', metavar='PATH',
-        help='Location of the configuration file; either the path to the config or its containing directory')
+        help='Location of the main configuration file; either the path to the config or its containing directory')
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
@@ -641,7 +644,7 @@ def parseOpts(overrideArguments=None):
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
         action='callback', callback=_dict_from_multiple_values_options_callback,
         callback_kwargs={
-            'allowed_keys': '|'.join(list_external_downloaders()), 
+            'allowed_keys': '|'.join(list_external_downloaders()),
             'default_key': 'default', 'process': compat_shlex_split},
         help=(
             'Give these arguments to the external downloader. '
@@ -819,6 +822,21 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--id', default=False,
         action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
+    filesystem.add_option(
+        '-P', '--paths',
+        metavar='TYPE:PATH', dest='paths', default={}, type='str',
+        action='callback', callback=_dict_from_multiple_values_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'home|temp|config|description|annotation|subtitle|infojson|thumbnail',
+            'process': lambda x: x.strip()},
+        help=(
+            'The paths where the files should be downloaded. '
+            'Specify the type of file and the path separated by a colon ":" '
+            '(supported: description|annotation|subtitle|infojson|thumbnail). '
+            'Additionally, you can also provide "home" and "temp" paths. '
+            'All intermediary files are first downloaded to the temp path and '
+            'then the final files are moved over to the home path after download is finished. '
+            'Note that this option is ignored if --output is an absolute path'))
     filesystem.add_option(
         '-o', '--output',
         dest='outtmpl', metavar='TEMPLATE',
@@ -1171,23 +1189,42 @@ def parseOpts(overrideArguments=None):
             return conf
 
         configs = {
-            'command_line': compat_conf(sys.argv[1:]),
-            'custom': [], 'portable': [], 'user': [], 'system': []}
-        opts, args = parser.parse_args(configs['command_line'])
+            'command-line': compat_conf(sys.argv[1:]),
+            'custom': [], 'home': [], 'portable': [], 'user': [], 'system': []}
+        paths = {'command-line': False}
+        opts, args = parser.parse_args(configs['command-line'])
 
         def get_configs():
-            if '--config-location' in configs['command_line']:
+            if '--config-location' in configs['command-line']:
                 location = compat_expanduser(opts.config_location)
                 if os.path.isdir(location):
                     location = os.path.join(location, 'youtube-dlc.conf')
                 if not os.path.exists(location):
                     parser.error('config-location %s does not exist.' % location)
-                configs['custom'] = _readOptions(location)
-
-            if '--ignore-config' in configs['command_line']:
+                configs['custom'] = _readOptions(location, default=None)
+                if configs['custom'] is None:
+                    configs['custom'] = []
+                else:
+                    paths['custom'] = location
+            if '--ignore-config' in configs['command-line']:
                 return
             if '--ignore-config' in configs['custom']:
                 return
+
+            def read_options(path, user=False):
+                func = _readUserConf if user else _readOptions
+                current_path = os.path.join(path, 'yt-dlp.conf')
+                config = func(current_path, default=None)
+                if user:
+                    config, current_path = config
+                if config is None:
+                    current_path = os.path.join(path, 'youtube-dlc.conf')
+                    config = func(current_path, default=None)
+                    if user:
+                        config, current_path = config
+                if config is None:
+                    return [], None
+                return config, current_path
 
             def get_portable_path():
                 path = os.path.dirname(sys.argv[0])
@@ -1195,35 +1232,36 @@ def parseOpts(overrideArguments=None):
                     path = os.path.join(path, '..')
                 return os.path.abspath(path)
 
-            run_path = get_portable_path()
-            configs['portable'] = _readOptions(os.path.join(run_path, 'yt-dlp.conf'), default=None)
-            if configs['portable'] is None:
-                configs['portable'] = _readOptions(os.path.join(run_path, 'youtube-dlc.conf'))
-
+            configs['portable'], paths['portable'] = read_options(get_portable_path())
             if '--ignore-config' in configs['portable']:
                 return
-            configs['system'] = _readOptions('/etc/yt-dlp.conf', default=None)
-            if configs['system'] is None:
-                configs['system'] = _readOptions('/etc/youtube-dlc.conf')
 
+            def get_home_path():
+                opts = parser.parse_args(configs['portable'] + configs['custom'] + configs['command-line'])[0]
+                return expand_path(opts.paths.get('home', '')).strip()
+
+            configs['home'], paths['home'] = read_options(get_home_path())
+            if '--ignore-config' in configs['home']:
+                return
+
+            configs['system'], paths['system'] = read_options('/etc')
             if '--ignore-config' in configs['system']:
                 return
-            configs['user'] = _readUserConf('yt-dlp', default=None)
-            if configs['user'] is None:
-                configs['user'] = _readUserConf('youtube-dlc')
+
+            configs['user'], paths['user'] = read_options('', True)
             if '--ignore-config' in configs['user']:
-                configs['system'] = []
+                configs['system'], paths['system'] = [], None
 
         get_configs()
-        argv = configs['system'] + configs['user'] + configs['portable'] + configs['custom'] + configs['command_line']
+        argv = configs['system'] + configs['user'] + configs['home'] + configs['portable'] + configs['custom'] + configs['command-line']
         opts, args = parser.parse_args(argv)
         if opts.verbose:
-            for conf_label, conf in (
-                    ('System config', configs['system']),
-                    ('User config', configs['user']),
-                    ('Portable config', configs['portable']),
-                    ('Custom config', configs['custom']),
-                    ('Command-line args', configs['command_line'])):
-                write_string('[debug] %s: %s\n' % (conf_label, repr(_hide_login_info(conf))))
+            for label in ('System', 'User', 'Portable', 'Home', 'Custom', 'Command-line'):
+                key = label.lower()
+                if paths.get(key) is None:
+                    continue
+                if paths[key]:
+                    write_string('[debug] %s config file: %s\n' % (label, paths[key]))
+                write_string('[debug] %s config: %s\n' % (label, repr(_hide_login_info(configs[key]))))
 
     return parser, opts, args
