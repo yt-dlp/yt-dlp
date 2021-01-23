@@ -5,6 +5,7 @@ import os
 import subprocess
 import time
 import re
+import json
 
 
 from .common import AudioConversionError, PostProcessor
@@ -201,6 +202,29 @@ class FFmpegPostProcessor(PostProcessor):
                 return mobj.group(1)
         return None
 
+        
+    def get_metadata_object(self, path, opts=[]):
+        if not self.probe_available:
+            raise PostProcessingError('ffprobe/avprobe not found. Please install one.')
+        self.check_version()
+
+        cmd = [
+            encodeFilename(self.probe_executable, True),
+            encodeArgument('-hide_banner'),
+            encodeArgument('-show_format'),
+            encodeArgument('-show_streams'),
+            encodeArgument('-print_format'),
+            encodeArgument('json'),
+        ]
+
+        cmd += opts
+        cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
+        if self._downloader.params.get('verbose', False):
+            self._downloader.to_screen('[debug] ffprobe command line: %s' % shell_quote(cmd))
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        return json.loads(stdout.decode('utf-8', 'replace'))
+
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts):
         self.check_version()
 
@@ -232,6 +256,7 @@ class FFmpegPostProcessor(PostProcessor):
                 self.report_error(stderr)
             raise FFmpegPostProcessorError(stderr.split('\n')[-1])
         self.try_utime(out_path, oldest_mtime, oldest_mtime)
+        return stderr.decode('utf-8', 'replace')
 
     def run_ffmpeg(self, path, out_path, opts):
         self.run_ffmpeg_multiple_files([path], out_path, opts)
@@ -492,7 +517,6 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         # 1. https://kdenlive.org/en/project/adding-meta-data-to-mp4-video/
         # 2. https://wiki.multimedia.cx/index.php/FFmpeg_Metadata
         # 3. https://kodi.wiki/view/Video_file_tagging
-        # 4. http://atomicparsley.sourceforge.net/mpeg-4files.html
 
         add('title', ('track', 'title'))
         add('date', 'upload_date')

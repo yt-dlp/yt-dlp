@@ -15,6 +15,7 @@ from ..utils import (
     prepend_extension,
     replace_extension,
     shell_quote,
+    PostProcessingError,
     process_communicate_or_kill,
 )
 
@@ -83,41 +84,52 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.to_screen('Adding thumbnail to "%s"' % filename)
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
-        elif info['ext'] == 'mkv':
+        elif info['ext'] in ['mkv', 'mka']:
+            # streams = self.get_metadata_object(filename)['streams']
             options = [
                 '-c', 'copy', '-map', '0', '-dn', '-attach', thumbnail_filename,
-                '-metadata:s:t', 'mimetype=image/jpeg', '-metadata:s:t', 'filename=cover.jpg']
+                # '-metadata:s:%s' % (len(streams)) - Why
+                '-metadata:s:t', 'mimetype=image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg'),
+                '-metadata:s:t', 'filename=cover.%s' % thumbnail_ext]
 
             self.to_screen('Adding thumbnail to "%s"' % filename)
-            self.run_ffmpeg_multiple_files([filename], temp_filename, options)
+            self.run_ffmpeg(filename, temp_filename, options)
 
-        elif info['ext'] in ['m4a', 'mp4']:
-            if not check_executable('AtomicParsley', ['-v']):
-                raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
 
-            cmd = [encodeFilename('AtomicParsley', True),
-                   encodeFilename(filename, True),
-                   encodeArgument('--artwork'),
-                   encodeFilename(thumbnail_filename, True),
-                   encodeArgument('-o'),
-                   encodeFilename(temp_filename, True)]
-            cmd += [encodeArgument(o) for o in self._configuration_args(exe='AtomicParsley')]
+        elif info['ext'] in ['m4a', 'mp4', 'mov']:
+            try:
+                streams = self.get_metadata_object(filename)['streams']
+                options = [
+                    '-c', 'copy', '-map', '0', '-dn', '-map', '1',
+                    '-disposition:%s' % (len(streams)), 'attached_pic']
+                self.to_screen('Adding thumbnail to "%s"' % filename)
+                self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
-            self.to_screen('Adding thumbnail to "%s"' % filename)
-            self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
+            except PostProcessingError as e:
+                self.report_warning('unable to embed using ffprobe & ffmpeg; %s' % error_to_compat_str(err))
+                if not check_executable('AtomicParsley', ['-v']):
+                    raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
 
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process_communicate_or_kill(p)
+                cmd = [encodeFilename('AtomicParsley', True),
+                       encodeFilename(filename, True),
+                       encodeArgument('--artwork'),
+                       encodeFilename(thumbnail_filename, True),
+                       encodeArgument('-o'),
+                       encodeFilename(temp_filename, True)]
+                cmd += [encodeArgument(o) for o in self._configuration_args(exe='AtomicParsley')]
 
-            if p.returncode != 0:
-                msg = stderr.decode('utf-8', 'replace').strip()
-                raise EmbedThumbnailPPError(msg)
-            # for formats that don't support thumbnails (like 3gp) AtomicParsley
-            # won't create to the temporary file
-            if b'No changes' in stdout:
-                self.report_warning('The file format doesn\'t support embedding a thumbnail')
-                success = False
-
+                self.to_screen('Adding thumbnail to "%s"' % filename)
+                self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = process_communicate_or_kill(p)
+                if p.returncode != 0:
+                    msg = stderr.decode('utf-8', 'replace').strip()
+                    raise EmbedThumbnailPPError(msg)
+                # for formats that don't support thumbnails (like 3gp) AtomicParsley
+                # won't create to the temporary file
+                if b'No changes' in stdout:
+                    self.report_warning('The file format doesn\'t support embedding a thumbnail')
+                    success = False
         else:
             raise EmbedThumbnailPPError('Only mp3, mkv, m4a and mp4 are supported for thumbnail embedding for now.')
 
