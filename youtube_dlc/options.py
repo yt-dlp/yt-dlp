@@ -1009,7 +1009,9 @@ def parseOpts(overrideArguments=None):
         metavar='FORMAT', dest='remuxvideo', default=None,
         help=(
             'Remux the video into another container if necessary (currently supported: mp4|mkv). '
-            'If target container does not support the video/audio codec, remuxing will fail'))
+            'If target container does not support the video/audio codec, remuxing will fail. '
+            'You can specify multiple rules; eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
+            'and anything else to mkv.'))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,

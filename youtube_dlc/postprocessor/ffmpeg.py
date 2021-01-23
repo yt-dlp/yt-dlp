@@ -349,21 +349,33 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 class FFmpegVideoRemuxerPP(FFmpegPostProcessor):
     def __init__(self, downloader=None, preferedformat=None):
         super(FFmpegVideoRemuxerPP, self).__init__(downloader)
-        self._preferedformat = preferedformat
+        self._preferedformats = preferedformat.lower().split('/')
 
     def run(self, information):
         path = information['filepath']
-        if information['ext'] == self._preferedformat:
-            self.to_screen('Not remuxing video file %s - already is in target format %s' % (path, self._preferedformat))
+        sourceext, targetext = information['ext'].lower(), None
+        for pair in self._preferedformats:
+            kv = pair.split('>')
+            if len(kv) == 1 or kv[0].strip() == sourceext:
+                targetext = kv[-1].strip()
+                break
+
+        _skip_msg = (
+            'could not find a mapping for %s' if not targetext
+            else 'already is in target format %s' if sourceext == targetext
+            else None)
+        if _skip_msg:
+            self.to_screen('Not remuxing media file %s - %s' % (path, _skip_msg % sourceext))
             return [], information
+
         options = ['-c', 'copy', '-map', '0', '-dn']
-        prefix, sep, ext = path.rpartition('.')
-        outpath = prefix + sep + self._preferedformat
-        self.to_screen('Remuxing video from %s to %s, Destination: ' % (information['ext'], self._preferedformat) + outpath)
+        prefix, sep, oldext = path.rpartition('.')
+        outpath = prefix + sep + targetext
+        self.to_screen('Remuxing video from %s to %s; Destination: %s' % (sourceext, targetext, outpath))
         self.run_ffmpeg(path, outpath, options)
         information['filepath'] = outpath
-        information['format'] = self._preferedformat
-        information['ext'] = self._preferedformat
+        information['format'] = targetext
+        information['ext'] = targetext
         return [path], information
 
 

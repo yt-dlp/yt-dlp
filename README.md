@@ -561,7 +561,10 @@ Then simply type this
     --remux-video FORMAT             Remux the video into another container if
                                      necessary (currently supported: mp4|mkv).
                                      If target container does not support the
-                                     video/audio codec, remuxing will fail
+                                     video/audio codec, remuxing will fail. You
+                                     can specify multiple rules; eg.
+                                     "aac>m4a/mov>mp4/mkv" will remux aac to
+                                     m4a, mov to mp4 and anything else to mkv.
     --recode-video FORMAT            Re-encode the video into another format if
                                      re-encoding is necessary (currently
                                      supported: mp4|flv|ogg|webm|mkv|avi)
