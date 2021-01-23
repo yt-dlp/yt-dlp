@@ -2252,10 +2252,8 @@ class YoutubeDL(object):
                         success, real_download = dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
 
-                # info_dict['__temp_filename'] = temp_filename
                 dl_filename = dl_filename or temp_filename
-                info_dict['__dl_filename'] = dl_filename
-                info_dict['__final_filename'] = full_filename
+                info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
 
             except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                 self.report_error('unable to download video data: %s' % error_to_compat_str(err))
