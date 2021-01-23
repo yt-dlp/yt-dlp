@@ -84,6 +84,7 @@ class SponSkrubPP(PostProcessor):
         else:
             msg = stderr.decode('utf-8', 'replace').strip() or stdout.decode('utf-8', 'replace').strip()
             self.write_debug(msg, prefix=False)
-            msg = msg.split('\n')[-1]
+            line = 0 if msg[:12].lower() == 'unrecognised' else -1
+            msg = msg.split('\n')[line]
             raise PostProcessingError(msg if msg else 'sponskrub failed with error code %s' % p.returncode)
         return [], information
