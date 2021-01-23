@@ -369,6 +369,8 @@ class FFmpegVideoRemuxerPP(FFmpegPostProcessor):
             return [], information
 
         options = ['-c', 'copy', '-map', '0', '-dn']
+        if sourceext in ['mp4', 'm4a', 'mov']:
+            options.extend(['-movflags', '+faststart'])
         prefix, sep, oldext = path.rpartition('.')
         outpath = prefix + sep + targetext
         self.to_screen('Remuxing video from %s to %s; Destination: %s' % (sourceext, targetext, outpath))
