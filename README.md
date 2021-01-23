@@ -435,7 +435,7 @@ Then simply type this
     --referer URL                    Specify a custom referer, use if the video
                                      access is restricted to one domain
     --add-header FIELD:VALUE         Specify a custom HTTP header and its value,
-                                     separated by a colon ':'. You can use this
+                                     separated by a colon ":". You can use this
                                      option multiple times
     --bidi-workaround                Work around terminals that lack
                                      bidirectional text support. Requires bidiv
@@ -554,8 +554,8 @@ Then simply type this
                                      supported: mp4|flv|ogg|webm|mkv|avi)
     --postprocessor-args NAME:ARGS   Give these arguments to the postprocessors.
                                      Specify the postprocessor/executable name
-                                     and the arguments separated by a colon ':'
-                                     to give the argument to only the specified
+                                     and the arguments separated by a colon ":"
+                                     to give the argument to the specified
                                      postprocessor/executable. Supported
                                      postprocessors are: SponSkrub,
                                      ExtractAudio, VideoRemuxer, VideoConvertor,
@@ -569,7 +569,8 @@ Then simply type this
                                      to different postprocessors. You can also
                                      specify "PP+EXE:ARGS" to give the arguments
                                      to the specified executable only when being
-                                     used by the specified postprocessor (Alias:
+                                     used by the specified postprocessor. You
+                                     can use this option multiple times (Alias:
                                      --ppa)
     -k, --keep-video                 Keep the intermediate video file on disk
                                      after post-processing
