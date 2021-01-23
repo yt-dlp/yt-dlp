@@ -303,11 +303,14 @@ Then simply type this
                                      allowing to play the video while
                                      downloading (some players may not be able
                                      to play it)
-    --external-downloader COMMAND    Use the specified external downloader.
-                                     Currently supports
-                                     aria2c,avconv,axel,curl,ffmpeg,httpie,wget
-    --external-downloader-args ARGS  Give these arguments to the external
-                                     downloader
+    --external-downloader NAME       Use the specified external downloader.
+                                     Currently supports aria2c, avconv, axel,
+                                     curl, ffmpeg, httpie, wget
+    --downloader-args NAME:ARGS      Give these arguments to the external
+                                     downloader. Specify the downloader name and
+                                     the arguments separated by a colon ":". You
+                                     can use this option multiple times (Alias:
+                                     --external-downloader-args)
 
 ## Filesystem Options:
     -a, --batch-file FILE            File containing URLs to download ('-' for

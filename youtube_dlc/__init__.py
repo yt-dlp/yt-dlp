@@ -326,9 +326,6 @@ def _real_main(argv=None):
             'key': 'ExecAfterDownload',
             'exec_cmd': opts.exec_cmd,
         })
-    external_downloader_args = None
-    if opts.external_downloader_args:
-        external_downloader_args = compat_shlex_split(opts.external_downloader_args)
 
     if 'default-compat' in opts.postprocessor_args and 'default' not in opts.postprocessor_args:
         opts.postprocessor_args.setdefault('sponskrub', [])
@@ -466,7 +463,7 @@ def _real_main(argv=None):
         'ffmpeg_location': opts.ffmpeg_location,
         'hls_prefer_native': opts.hls_prefer_native,
         'hls_use_mpegts': opts.hls_use_mpegts,
-        'external_downloader_args': external_downloader_args,
+        'external_downloader_args': opts.external_downloader_args,
         'postprocessor_args': opts.postprocessor_args,
         'cn_verification_proxy': opts.cn_verification_proxy,
         'geo_verification_proxy': opts.geo_verification_proxy,

@@ -632,14 +632,19 @@ def parseOpts(overrideArguments=None):
             'video while downloading (some players may not be able to play it)'))
     downloader.add_option(
         '--external-downloader',
-        dest='external_downloader', metavar='COMMAND',
+        dest='external_downloader', metavar='NAME',
         help=(
             'Use the specified external downloader. '
-            'Currently supports %s' % ','.join(list_external_downloaders())))
+            'Currently supports %s' % ', '.join(list_external_downloaders())))
     downloader.add_option(
-        '--external-downloader-args',
-        dest='external_downloader_args', metavar='ARGS',
-        help='Give these arguments to the external downloader')
+        '--downloader-args', '--external-downloader-args',
+        metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
+        action='callback', callback=_dict_from_multiple_values_options_callback,
+        callback_kwargs={'default_key': 'default', 'process': compat_shlex_split},
+        help=(
+            'Give these arguments to the external downloader. '
+            'Specify the downloader name and the arguments separated by a colon ":". '
+            'You can use this option multiple times (Alias: --external-downloader-args)'))
 
     workarounds = optparse.OptionGroup(parser, 'Workarounds')
     workarounds.add_option(
