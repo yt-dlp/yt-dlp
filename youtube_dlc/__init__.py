@@ -18,7 +18,6 @@ from .options import (
 )
 from .compat import (
     compat_getpass,
-    compat_shlex_split,
     workaround_optparse_bug9161,
 )
 from .utils import (
