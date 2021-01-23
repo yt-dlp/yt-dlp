@@ -119,10 +119,12 @@ from .bigflix import BigflixIE
 from .bild import BildIE
 from .bilibili import (
     BiliBiliIE,
+    BiliBiliSearchIE,
     BiliBiliBangumiIE,
     BilibiliAudioIE,
     BilibiliAudioAlbumIE,
     BiliBiliPlayerIE,
+    BilibiliChannelIE,
 )
 from .biobiochiletv import BioBioChileTVIE
 from .bitchute import (
