@@ -640,7 +640,9 @@ def parseOpts(overrideArguments=None):
         '--downloader-args', '--external-downloader-args',
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
         action='callback', callback=_dict_from_multiple_values_options_callback,
-        callback_kwargs={'default_key': 'default', 'process': compat_shlex_split},
+        callback_kwargs={
+            'allowed_keys': '|'.join(list_external_downloaders()), 
+            'default_key': 'default', 'process': compat_shlex_split},
         help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '

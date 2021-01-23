@@ -326,7 +326,12 @@ def _real_main(argv=None):
             'exec_cmd': opts.exec_cmd,
         })
 
+    _args_compat_warning = 'WARNING: %s given without specifying name. The arguments will be given to all %s\n'
+    if 'default' in opts.external_downloader_args:
+        write_string(_args_compat_warning % ('--external-downloader-args', 'external downloaders'), out=sys.stderr),
+
     if 'default-compat' in opts.postprocessor_args and 'default' not in opts.postprocessor_args:
+        write_string(_args_compat_warning % ('--post-processor-args', 'post-processors'), out=sys.stderr),
         opts.postprocessor_args.setdefault('sponskrub', [])
         opts.postprocessor_args['default'] = opts.postprocessor_args['default-compat']
 
