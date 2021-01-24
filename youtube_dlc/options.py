@@ -1217,19 +1217,15 @@ def parseOpts(overrideArguments=None):
                 return
 
             def read_options(path, user=False):
-                func = _readUserConf if user else _readOptions
-                current_path = os.path.join(path, 'yt-dlp.conf')
-                config = func(current_path, default=None)
-                if user:
-                    config, current_path = config
-                if config is None:
-                    current_path = os.path.join(path, 'youtube-dlc.conf')
-                    config = func(current_path, default=None)
+                for package in ('yt-dlp', 'youtube-dlc'):
                     if user:
-                        config, current_path = config
-                if config is None:
-                    return [], None
-                return config, current_path
+                        config, current_path = _readUserConf(package, default=None)
+                    else:
+                        current_path = os.path.join(path, '%s.conf' % package)
+                        config = _readOptions(current_path, default=None)
+                    if config is not None:
+                        return config, current_path
+                return [], None
 
             configs['portable'], paths['portable'] = read_options(get_executable_path())
             if '--ignore-config' in configs['portable']:
