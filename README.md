@@ -2,7 +2,7 @@
 
 <!-- See: https://github.com/marketplace/actions/dynamic-badges -->
 [![Release Version](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/pukkandan/c69cb23c3c5b3316248e52022790aa57/raw/version.json&color=brightgreen)](https://github.com/pukkandan/yt-dlp/releases/latest)
-[![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](https://github.com/pukkandan/yt-dlp/blob/master/LICENSE)
+[![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](LICENSE)
 [![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions)
 
 A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
@@ -51,20 +51,28 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl v2021.01.16**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl v2021.01.24.1**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Youtube improvements**:
     * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and support downloading multiple pages of content
     * Youtube search works correctly (`ytsearch:`, `ytsearchdate:`) along with Search URLs
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
 
-* **New extractors**: Trovo.live, AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv
+* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom
 
 * **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina
 
-* **New options**: `--list-formats-as-table`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+* **Plugin support**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
 
-* **Improvements**: Multiple `--postprocessor-args`, `%(duration_string)s` in `-o`, faster archive checking, more [format selection options](#format-selection) etc
+* **Multiple paths**: You can give different paths for different types of files. You can also set a temporary path where intermediary files are downloaded to. See [`--paths`](https://github.com/pukkandan/yt-dlp/#:~:text=-P,%20--paths%20TYPE:PATH) for details
+
+<!-- Relative link doesn't work for "#:~:text=" -->
+
+* **Portable Configuration**: Configuration files are automatically loaded from the home and root directories. See [configuration](#configuration) for details
+
+* **Other new options**: `--list-formats-as-table`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+
+* **Improvements**: Multiple `--postprocessor-args` and `--external-downloader-args`, `%(duration_string)s` in `-o`, faster archive checking, more [format selection options](#format-selection) etc
 
 See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
 
@@ -330,6 +338,9 @@ Then simply type this
                                      ignored if --output is an absolute path
     -o, --output TEMPLATE            Output filename template, see "OUTPUT
                                      TEMPLATE" for details
+    --output-na-placeholder TEXT     Placeholder value for unavailable meta
+                                     fields in output filename template
+                                     (default: "NA")
     --autonumber-start NUMBER        Specify the start value for %(autonumber)s
                                      (default is 1)
     --restrict-filenames             Restrict filenames to only ASCII

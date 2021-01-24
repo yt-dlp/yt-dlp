@@ -4,7 +4,8 @@
 # Instuctions for creating release
 
 * Run `make doc`
-* Update Changelog.md and Authors-Fork
+* Update Changelog.md and CONTRIBUTORS
+* Change "Merged with youtube-dl" version in Readme.md if needed
 * Commit to master as `Release <version>`
 * Push to origin/release - build task will now run
 * Update version.py and run `make issuetemplates`
@@ -13,6 +14,26 @@
 * Update changelog in /releases
 
 -->
+
+
+### 2021.01.24
+* **Merge youtube-dl:** Upto [2021.01.24](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.01.16)
+* Plugin support ([documentation](https://github.com/pukkandan/yt-dlp#plugins))
+* **Multiple paths**: New option `-P`/`--paths` to give different paths for different types of files
+    * The syntax is `-P "type:path" -P "type:path"` ([documentation](https://github.com/pukkandan/yt-dlp#:~:text=-P,%20--paths%20TYPE:PATH))
+    * Valid types are: home, temp, description, annotation, subtitle, infojson, thumbnail
+    * Additionally, configuration file is taken from home directory or current directory ([documentation](https://github.com/pukkandan/yt-dlp#:~:text=Home%20Configuration))
+* Allow passing different arguments to different external downloaders ([documentation](https://github.com/pukkandan/yt-dlp#:~:text=--downloader-args%20NAME:ARGS))
+* [mildom] Add extractor by @nao20010128nao
+* Warn when using old style `--external-downloader-args` and `--post-processor-args`
+* Fix `--no-overwrite` when using `--write-link`
+* [sponskrub] Output `unrecognized argument` error message correctly
+* [cbs] Make failure to extract title non-fatal
+* Fix typecasting when pre-checking archive
+* Fix issue with setting title on UNIX
+* Deprecate redundant aliases in `formatSort`. The aliases remain functional for backward compatibility, but will be left undocumented
+* [tests] Fix test_post_hooks
+* [tests] Split core and download tests
 
 
 ### 2021.01.20
