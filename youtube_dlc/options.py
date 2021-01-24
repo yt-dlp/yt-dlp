@@ -1218,12 +1218,13 @@ def parseOpts(overrideArguments=None):
 
             def read_options(path, user=False):
                 func = _readUserConf if user else _readOptions
-                current_path = os.path.join(path, 'yt-dlp.conf')
+                ext = '' if user else '.conf'
+                current_path = os.path.join(path, 'yt-dlp%s' % ext)
                 config = func(current_path, default=None)
                 if user:
                     config, current_path = config
                 if config is None:
-                    current_path = os.path.join(path, 'youtube-dlc.conf')
+                    current_path = os.path.join(path, 'youtube-dlc%s' % ext)
                     config = func(current_path, default=None)
                     if user:
                         config, current_path = config
