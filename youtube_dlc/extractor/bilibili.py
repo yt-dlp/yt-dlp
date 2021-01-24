@@ -1,11 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import datetime
 import hashlib
 import json
 import re
-import io
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -318,7 +316,7 @@ class BiliBiliIE(InfoExtractor):
 
     # recursive solution to getting every page of comments for the video
     # we can stop when we reach a page without any comments
-    def _get_all_comment_pages(self, video_id, commentPageNumber = 0):
+    def _get_all_comment_pages(self, video_id, commentPageNumber=0):
         comment_url = "https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=%s&type=1&oid=%s&sort=2&_=1567227301685" % (commentPageNumber, video_id)
         json_str = self._download_webpage(
             comment_url, video_id,
@@ -481,9 +479,10 @@ class BiliBiliSearchIE(SearchInfoExtractor):
         while True:
             pageNumber += 1
             # FIXME
-            api_url= "https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1" % (pageNumber, query)
-            json_str = self._download_webpage(api_url, "None", query={"Search_key": query},
-                                         note='Extracting results from page %s' % pageNumber)
+            api_url = "https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1" % (pageNumber, query)
+            json_str = self._download_webpage(
+                api_url, "None", query={"Search_key": query},
+                note='Extracting results from page %s' % pageNumber)
             data = json.loads(json_str)['data']
 
             # FIXME: this is hideous

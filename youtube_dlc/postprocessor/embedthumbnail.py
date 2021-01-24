@@ -11,7 +11,7 @@ import base64
 try:
     import mutagen
     _has_mutagen = True
-except ModuleNotFoundError:
+except ImportError:
     _has_mutagen = False
 
 from .ffmpeg import FFmpegPostProcessor
@@ -20,12 +20,12 @@ from ..utils import (
     check_executable,
     encodeArgument,
     encodeFilename,
+    error_to_compat_str,
     PostProcessingError,
     prepend_extension,
+    process_communicate_or_kill,
     replace_extension,
     shell_quote,
-    PostProcessingError,
-    process_communicate_or_kill,
 )
 
 
@@ -83,6 +83,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             # Rename back to unescaped for further processing
             os.rename(encodeFilename(escaped_thumbnail_jpg_filename), encodeFilename(thumbnail_jpg_filename))
             thumbnail_filename = thumbnail_jpg_filename
+            thumbnail_ext = 'jpg'
 
         success = True
         if info['ext'] == 'mp3':
@@ -104,7 +105,6 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.to_screen('Adding thumbnail to "%s"' % filename)
             self.run_ffmpeg(filename, temp_filename, options)
 
-
         elif info['ext'] in ['m4a', 'mp4', 'mov']:
             try:
                 streams = self.get_metadata_object(filename)['streams']
@@ -114,7 +114,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 self.to_screen('Adding thumbnail to "%s"' % filename)
                 self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
-            except PostProcessingError as e:
+            except PostProcessingError as err:
                 self.report_warning('unable to embed using ffprobe & ffmpeg; %s' % error_to_compat_str(err))
                 if not check_executable('AtomicParsley', ['-v']):
                     raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
@@ -153,7 +153,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             data = bytearray()
             data += struct.pack('>II', 3, len(mimetype))
             data += mimetype
-            data += struct.pack('>IIIIII', 0, width, height, 8, 0, os.stat(thumbnail_filename).st_size) # 32 if png else 24
+            data += struct.pack('>IIIIII', 0, width, height, 8, 0, os.stat(thumbnail_filename).st_size)  # 32 if png else 24
 
             fin = open(thumbnail_filename, "rb")
             data += fin.read()
