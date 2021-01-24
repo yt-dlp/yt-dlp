@@ -844,8 +844,8 @@ def parseOpts(overrideArguments=None):
         help='Output filename template, see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
         '--output-na-placeholder',
-        dest='outtmpl_na_placeholder', metavar='PLACEHOLDER', default='NA',
-        help=('Placeholder value for unavailable meta fields in output filename template (default is "%default")'))
+        dest='outtmpl_na_placeholder', metavar='TEXT', default='NA',
+        help=('Placeholder value for unavailable meta fields in output filename template (default: "%default")'))
     filesystem.add_option(
         '--autonumber-size',
         dest='autonumber_size', metavar='NUMBER', type=int,
