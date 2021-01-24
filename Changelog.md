@@ -9,7 +9,7 @@
 * Commit to master as `Release <version>`
 * Push to origin/release - build task will now run
 * Update version.py and run `make issuetemplates`
-* Commit to master as `[version] update :skip ci all`
+* Commit to master as `[version] update :ci skip all`
 * Push to origin/master
 * Update changelog in /releases
 
