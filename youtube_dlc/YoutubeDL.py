@@ -105,7 +105,7 @@ from .utils import (
     process_communicate_or_kill,
 )
 from .cache import Cache
-from .extractor import get_info_extractor, gen_extractor_classes, _LAZY_LOADER
+from .extractor import get_info_extractor, gen_extractor_classes, _LAZY_LOADER, _PLUGIN_CLASSES
 from .extractor.openload import PhantomJSwrapper
 from .downloader import get_suitable_downloader
 from .downloader.rtmp import rtmpdump_version
@@ -2652,9 +2652,12 @@ class YoutubeDL(object):
                 self.get_encoding()))
         write_string(encoding_str, encoding=None)
 
-        self._write_string('[debug] yt-dlp version ' + __version__ + '\n')
+        self._write_string('[debug] yt-dlp version %s\n' % __version__)
         if _LAZY_LOADER:
-            self._write_string('[debug] Lazy loading extractors enabled' + '\n')
+            self._write_string('[debug] Lazy loading extractors enabled\n')
+        if _PLUGIN_CLASSES:
+            self._write_string(
+                '[debug] Plugin Extractors: %s\n' % [ie.ie_key() for ie in _PLUGIN_CLASSES])
         try:
             sp = subprocess.Popen(
                 ['git', 'rev-parse', '--short', 'HEAD'],
@@ -2663,7 +2666,7 @@ class YoutubeDL(object):
             out, err = process_communicate_or_kill(sp)
             out = out.decode().strip()
             if re.match('[0-9a-f]+', out):
-                self._write_string('[debug] Git HEAD: ' + out + '\n')
+                self._write_string('[debug] Git HEAD: %s\n' % out)
         except Exception:
             try:
                 sys.exc_clear()

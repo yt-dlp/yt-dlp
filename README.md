@@ -40,6 +40,7 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
     * [Filtering Formats](#filtering-formats)
     * [Sorting Formats](#sorting-formats)
     * [Format Selection examples](#format-selection-examples)
+* [PLUGINS](#plugins)
 * [MORE](#more)
 
 
@@ -1082,9 +1083,11 @@ $ youtube-dlc -S 'res:720,fps'
 $ youtube-dlc -S '+res:480,codec,br'
 ```
 
+# PLUGINS
 
+Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently only `extractor` plugins are supported. Support for `downloader` and `postprocessor` plugins may be added in the future. See [ytdlp_plugins](ytdlp_plugins) for example.
 
-
+**Note**: `<root-dir>` is the directory of the binary (`<root-dir>/youtube-dlc`), or the root directory of the module if you are running directly from source-code ((`<root dir>/youtube_dlc/__main__.py`)
 
 # MORE
 For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl)

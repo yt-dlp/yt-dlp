@@ -16,6 +16,7 @@ import email.header
 import errno
 import functools
 import gzip
+import imp
 import io
 import itertools
 import json
@@ -5905,3 +5906,31 @@ def make_dir(path, to_screen=None):
         if callable(to_screen) is not None:
             to_screen('unable to create directory ' + error_to_compat_str(err))
         return False
+
+
+def get_executable_path():
+    path = os.path.dirname(sys.argv[0])
+    if os.path.abspath(sys.argv[0]) != os.path.abspath(sys.executable):  # Not packaged
+        path = os.path.join(path, '..')
+    return os.path.abspath(path)
+
+
+def load_plugins(name, type, namespace):
+    plugin_info = [None]
+    classes = []
+    try:
+        plugin_info = imp.find_module(
+            name, [os.path.join(get_executable_path(), 'ytdlp_plugins')])
+        plugins = imp.load_module(name, *plugin_info)
+        for name in dir(plugins):
+            if not name.endswith(type):
+                continue
+            klass = getattr(plugins, name)
+            classes.append(klass)
+            namespace[name] = klass
+    except ImportError:
+        pass
+    finally:
+        if plugin_info[0] is not None:
+            plugin_info[0].close()
+    return classes

@@ -1,12 +1,18 @@
 from __future__ import unicode_literals
 
+from ..utils import load_plugins
+
 try:
     from .lazy_extractors import *
     from .lazy_extractors import _ALL_CLASSES
     _LAZY_LOADER = True
+    _PLUGIN_CLASSES = []
+
 except ImportError:
     _LAZY_LOADER = False
     from .extractors import *
+
+    _PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
 
     _ALL_CLASSES = [
         klass

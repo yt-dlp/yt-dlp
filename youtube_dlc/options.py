@@ -15,6 +15,7 @@ from .compat import (
 )
 from .utils import (
     expand_path,
+    get_executable_path,
     preferredencoding,
     write_string,
 )
@@ -1226,13 +1227,7 @@ def parseOpts(overrideArguments=None):
                     return [], None
                 return config, current_path
 
-            def get_portable_path():
-                path = os.path.dirname(sys.argv[0])
-                if os.path.abspath(sys.argv[0]) != os.path.abspath(sys.executable):  # Not packaged
-                    path = os.path.join(path, '..')
-                return os.path.abspath(path)
-
-            configs['portable'], paths['portable'] = read_options(get_portable_path())
+            configs['portable'], paths['portable'] = read_options(get_executable_path())
             if '--ignore-config' in configs['portable']:
                 return
 
