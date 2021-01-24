@@ -4,6 +4,15 @@ from __future__ import unicode_literals
 
 import os
 import subprocess
+import struct
+import re
+import base64
+
+try:
+    import mutagen
+    _has_mutagen = True
+except ModuleNotFoundError:
+    _has_mutagen = False
 
 from .ffmpeg import FFmpegPostProcessor
 
@@ -130,12 +139,37 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 if b'No changes' in stdout:
                     self.report_warning('The file format doesn\'t support embedding a thumbnail')
                     success = False
+
+        elif info['ext'] in ['ogg', 'opus']:
+            if not _has_mutagen:
+                raise EmbedThumbnailPPError('module mutagen was not found. Please install.')
+            size_regex = r',\s*(?P<w>\d+)x(?P<h>\d+)\s*[,\[]'
+            size_result = self.run_ffmpeg_multiple_files([thumbnail_filename], '', ['-hide_banner'])
+            mobj = re.search(size_regex, size_result)
+            width, height = int(mobj.group('w')), int(mobj.group('h'))
+            mimetype = ('image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')).encode('ascii')
+
+            # https://xiph.org/flac/format.html#metadata_block_picture
+            data = bytearray()
+            data += struct.pack('>II', 3, len(mimetype))
+            data += mimetype
+            data += struct.pack('>IIIIII', 0, width, height, 8, 0, os.stat(thumbnail_filename).st_size) # 32 if png else 24
+
+            fin = open(thumbnail_filename, "rb")
+            data += fin.read()
+            fin.close()
+
+            temp_filename = filename
+            f = mutagen.File(temp_filename)
+            f.tags['METADATA_BLOCK_PICTURE'] = base64.b64encode(data).decode('ascii')
+            f.save()
+
         else:
-            raise EmbedThumbnailPPError('Only mp3, mkv, m4a and mp4 are supported for thumbnail embedding for now.')
+            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus, m4a/mp4/mov')
 
         if success:
             os.remove(encodeFilename(filename))
-            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
-
+            if temp_filename != filename:
+                os.rename(encodeFilename(temp_filename), encodeFilename(filename))
         files_to_delete = [] if self._already_have_thumbnail else [thumbnail_filename]
         return files_to_delete, info
