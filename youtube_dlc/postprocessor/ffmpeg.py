@@ -21,8 +21,9 @@ from ..utils import (
     subtitles_filename,
     dfxp2srt,
     ISO639Utils,
-    replace_extension,
     process_communicate_or_kill,
+    replace_extension,
+    traverse_dict,
 )
 
 
@@ -205,7 +206,7 @@ class FFmpegPostProcessor(PostProcessor):
     def get_metadata_object(self, path, opts=[]):
         if self.probe_basename != 'ffprobe':
             if self.probe_available:
-                report_warning('Only ffprobe is supported for metadata extraction')
+                self.report_warning('Only ffprobe is supported for metadata extraction')
             raise PostProcessingError('ffprobe not found. Please install.')
         self.check_version()
 
@@ -225,6 +226,13 @@ class FFmpegPostProcessor(PostProcessor):
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdout, stderr = p.communicate()
         return json.loads(stdout.decode('utf-8', 'replace'))
+
+    def get_stream_number(self, path, keys, value):
+        streams = self.get_metadata_object(path)['streams']
+        num = next(
+            (i for i, stream in enumerate(streams) if traverse_dict(stream, keys, casesense=False) == value),
+            None)
+        return num, len(streams)
 
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts):
         self.check_version()
@@ -570,10 +578,16 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 in_filenames.append(metadata_filename)
                 options.extend(['-map_metadata', '1'])
 
-        if '__infojson_filepath' in info and (info['ext'] == 'mkv' or info['ext'] == 'mka'):
+        if '__infojson_filepath' in info and info['ext'] in ('mkv', 'mka'):
+            old_stream, new_stream = self.get_stream_number(
+                filename, ('tags', 'mimetype'), 'application/json')
+            if old_stream is not None:
+                options.extend(['-map', '-0:%d' % old_stream])
+                new_stream -= 1
+
             options.extend([
                 '-attach', info['__infojson_filepath'],
-                '-metadata:s:t', 'mimetype=application/json'
+                '-metadata:s:%d' % new_stream, 'mimetype=application/json'
             ])
 
         self.to_screen('Adding metadata to \'%s\'' % filename)

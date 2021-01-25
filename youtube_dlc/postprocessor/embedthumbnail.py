@@ -95,22 +95,33 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
         elif info['ext'] in ['mkv', 'mka']:
-            # streams = self.get_metadata_object(filename)['streams']
-            options = [
-                '-c', 'copy', '-map', '0', '-dn', '-attach', thumbnail_filename,
-                # '-metadata:s:%s' % (len(streams)) - Why
-                '-metadata:s:t', 'mimetype=image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg'),
-                '-metadata:s:t', 'filename=cover.%s' % thumbnail_ext]
+            options = ['-c', 'copy', '-map', '0', '-dn']
+
+            mimetype = 'image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')
+            old_stream, new_stream = self.get_stream_number(
+                filename, ('tags', 'mimetype'), mimetype)
+            if old_stream is not None:
+                options.extend(['-map', '-0:%d' % old_stream])
+                new_stream -= 1
+            options.extend([
+                '-attach', thumbnail_filename,
+                '-metadata:s:%d' % new_stream, 'mimetype=%s' % mimetype,
+                '-metadata:s:%d' % new_stream, 'filename=cover.%s' % thumbnail_ext])
 
             self.to_screen('Adding thumbnail to "%s"' % filename)
             self.run_ffmpeg(filename, temp_filename, options)
 
         elif info['ext'] in ['m4a', 'mp4', 'mov']:
             try:
-                streams = self.get_metadata_object(filename)['streams']
-                options = [
-                    '-c', 'copy', '-map', '0', '-dn', '-map', '1',
-                    '-disposition:%s' % (len(streams)), 'attached_pic']
+                options = ['-c', 'copy', '-map', '0', '-dn', '-map', '1']
+
+                old_stream, new_stream = self.get_stream_number(
+                    filename, ('disposition', 'attached_pic'), 1)
+                if old_stream is not None:
+                    options.extend(['-map', '-0:%d' % old_stream])
+                    new_stream -= 1
+                options.extend(['-disposition:%s' % new_stream, 'attached_pic'])
+
                 self.to_screen('Adding thumbnail to "%s"' % filename)
                 self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
