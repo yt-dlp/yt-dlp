@@ -3371,8 +3371,16 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         webpage = self._download_webpage(url, item_id)
         identity_token = self._extract_identity_token(webpage, item_id)
         data = self._extract_yt_initial_data(item_id, webpage)
+        err_msg = None
         for alert_type, alert_message in self._extract_alerts(data):
-            self._downloader.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
+            if alert_type.lower() == 'error':
+                if err_msg:
+                    self._downloader.report_warning('YouTube said: %s - %s' % ('ERROR', err_msg))
+                err_msg = alert_message
+            else:
+                self._downloader.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
+        if err_msg:
+            raise ExtractorError('YouTube said: %s' % err_msg, expected=True)
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
         if tabs:
