@@ -372,6 +372,8 @@ Then simply type this
     --write-annotations              Write video annotations to a
                                      .annotations.xml file
     --no-write-annotations           Do not write video annotations (default)
+    --get-comments                   Retrieve video comments to be placed in the
+                                     .info.json file
     --load-info-json FILE            JSON file containing the video information
                                      (created with the "--write-info-json"
                                      option)

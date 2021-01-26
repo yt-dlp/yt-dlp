@@ -935,6 +935,10 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='writeannotations',
         help='Do not write video annotations (default)')
     filesystem.add_option(
+        '--get-comments',
+        action='store_true', dest='getcomments', default=False,
+        help='Retrieve video comments to be placed in the .info.json file')
+    filesystem.add_option(
         '--load-info-json', '--load-info',
         dest='load_info_filename', metavar='FILE',
         help='JSON file containing the video information (created with the "--write-info-json" option)')
