@@ -233,7 +233,7 @@ class FFmpegFD(ExternalFD):
         url = info_dict['url']
         ffpp = FFmpegPostProcessor(downloader=self)
         if not ffpp.available:
-            self.report_error('m3u8 download detected but ffmpeg or avconv could not be found. Please install one.')
+            self.report_error('m3u8 download detected but ffmpeg could not be found. Please install one.')
             return False
         ffpp.check_version()
 

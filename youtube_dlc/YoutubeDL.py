@@ -347,7 +347,7 @@ class YoutubeDL(object):
 
     The following options are used by the post processors:
     prefer_ffmpeg:     If False, use avconv instead of ffmpeg if both are available,
-                       otherwise prefer ffmpeg.
+                       otherwise prefer ffmpeg. (avconv support is deprecated)
     ffmpeg_location:   Location of the ffmpeg/avconv binary; either the path
                        to the binary or its containing directory.
     postprocessor_args: A dictionary of postprocessor/executable keys (in lower case)
@@ -2188,7 +2188,7 @@ class YoutubeDL(object):
                     if not merger.available:
                         postprocessors = []
                         self.report_warning('You have requested multiple '
-                                            'formats but ffmpeg or avconv are not installed.'
+                                            'formats but ffmpeg is not installed.'
                                             ' The formats won\'t be merged.')
                     else:
                         postprocessors = [merger]
@@ -2272,7 +2272,7 @@ class YoutubeDL(object):
                 if fixup_policy is None:
                     fixup_policy = 'detect_or_warn'
 
-                INSTALL_FFMPEG_MESSAGE = 'Install ffmpeg or avconv to fix this automatically.'
+                INSTALL_FFMPEG_MESSAGE = 'Install ffmpeg to fix this automatically.'
 
                 stretched_ratio = info_dict.get('stretched_ratio')
                 if stretched_ratio is not None and stretched_ratio != 1:

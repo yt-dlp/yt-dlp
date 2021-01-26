@@ -560,15 +560,14 @@ Then simply type this
 
 ## Post-Processing Options:
     -x, --extract-audio              Convert video files to audio-only files
-                                     (requires ffmpeg or avconv and ffprobe or
-                                     avprobe)
+                                     (requires ffmpeg and ffprobe)
     --audio-format FORMAT            Specify audio format: "best", "aac",
                                      "flac", "mp3", "m4a", "opus", "vorbis", or
                                      "wav"; "best" by default; No effect without
                                      -x
-    --audio-quality QUALITY          Specify ffmpeg/avconv audio quality, insert
-                                     a value between 0 (better) and 9 (worse)
-                                     for VBR or a specific bitrate like 128K
+    --audio-quality QUALITY          Specify ffmpeg audio quality, insert a
+                                     value between 0 (better) and 9 (worse) for
+                                     VBR or a specific bitrate like 128K
                                      (default 5)
     --remux-video FORMAT             Remux the video into another container if
                                      necessary (currently supported: mp4|mkv).
@@ -588,15 +587,14 @@ Then simply type this
                                      FixupStretched, FixupM4a, FixupM3u8,
                                      SubtitlesConvertor and EmbedThumbnail. The
                                      supported executables are: SponSkrub,
-                                     FFmpeg, FFprobe, avconf, avprobe and
-                                     AtomicParsley. You can use this option
-                                     multiple times to give different arguments
-                                     to different postprocessors. You can also
-                                     specify "PP+EXE:ARGS" to give the arguments
-                                     to the specified executable only when being
-                                     used by the specified postprocessor. You
-                                     can use this option multiple times (Alias:
-                                     --ppa)
+                                     FFmpeg, FFprobe, and AtomicParsley. You can
+                                     use this option multiple times to give
+                                     different arguments to different
+                                     postprocessors. You can also specify
+                                     "PP+EXE:ARGS" to give the arguments to the
+                                     specified executable only when being used
+                                     by the specified postprocessor. You can use
+                                     this option multiple times (Alias: --ppa)
     -k, --keep-video                 Keep the intermediate video file on disk
                                      after post-processing
     --no-keep-video                  Delete the intermediate video file after
@@ -630,15 +628,9 @@ Then simply type this
                                      emit a warning), detect_or_warn (the
                                      default; fix file if we can, warn
                                      otherwise)
-    --prefer-avconv                  Prefer avconv over ffmpeg for running the
-                                     postprocessors (Alias: --no-prefer-ffmpeg)
-    --prefer-ffmpeg                  Prefer ffmpeg over avconv for running the
-                                     postprocessors (default)
-                                     (Alias: --no-prefer-avconv)
-    --ffmpeg-location PATH           Location of the ffmpeg/avconv binary;
-                                     either the path to the binary or its
-                                     containing directory
-                                     (Alias: --avconv-location)
+    --ffmpeg-location PATH           Location of the ffmpeg binary; either the
+                                     path to the binary or its containing
+                                     directory
     --exec CMD                       Execute a command on the file after
                                      downloading and post-processing, similar to
                                      find's -exec syntax. Example: --exec 'adb
@@ -876,7 +868,7 @@ $ youtube-dlc -o - BaW_jenozKc
 # FORMAT SELECTION
 
 By default, youtube-dlc tries to download the best available quality if you **don't** pass any options.
-This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg and avconv are unavailable, or if you use youtube-dlc to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
+This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg is unavailable, or if you use youtube-dlc to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
 
 The general syntax for format selection is `--f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
 
@@ -907,7 +899,7 @@ If you want to download multiple videos and they don't have the same formats ava
 
 If you want to download several formats of the same video use a comma as a separator, e.g. `-f 22,17,18` will download all these three formats, of course if they are available. Or a more sophisticated example combined with the precedence feature: `-f 136/137/mp4/bestvideo,140/m4a/bestaudio`.
 
-You can merge the video and audio of multiple formats into a single file using `-f <format1>+<format2>+...` (requires ffmpeg or avconv installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg/avconv. If `--no-video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, if `--no-audio-multistreams` is used, all formats with an audio stream except the first one are ignored. For example, `-f bestvideo+best+bestaudio` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download and merge both formats while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
+You can merge the video and audio of multiple formats into a single file using `-f <format1>+<format2>+...` (requires ffmpeg installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg. If `--no-video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, if `--no-audio-multistreams` is used, all formats with an audio stream except the first one are ignored. For example, `-f bestvideo+best+bestaudio` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download and merge both formats while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
 
 ## Filtering Formats
 

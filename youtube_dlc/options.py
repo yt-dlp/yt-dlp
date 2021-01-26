@@ -1001,14 +1001,14 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '-x', '--extract-audio',
         action='store_true', dest='extractaudio', default=False,
-        help='Convert video files to audio-only files (requires ffmpeg/avconv and ffprobe/avprobe)')
+        help='Convert video files to audio-only files (requires ffmpeg and ffprobe)')
     postproc.add_option(
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help='Specify audio format: "best", "aac", "flac", "mp3", "m4a", "opus", "vorbis", or "wav"; "%default" by default; No effect without -x')
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg/avconv audio quality, insert a value between 0 (better) and 9 (worse) for VBR or a specific bitrate like 128K (default %default)')
+        help='Specify ffmpeg audio quality, insert a value between 0 (better) and 9 (worse) for VBR or a specific bitrate like 128K (default %default)')
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
@@ -1030,7 +1030,7 @@ def parseOpts(overrideArguments=None):
             'to give the argument to the specified postprocessor/executable. Supported postprocessors are: '
             'SponSkrub, ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, '
             'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor and EmbedThumbnail. '
-            'The supported executables are: SponSkrub, FFmpeg, FFprobe, avconf, avprobe and AtomicParsley. '
+            'The supported executables are: SponSkrub, FFmpeg, FFprobe, and AtomicParsley. '
             'You can use this option multiple times to give different arguments to different postprocessors. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. '
@@ -1106,15 +1106,15 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',
-        help='Prefer avconv over ffmpeg for running the postprocessors (Alias: --no-prefer-ffmpeg)')
+        help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--prefer-ffmpeg', '--no-prefer-avconv',
-        action='store_true', dest='prefer_ffmpeg',
-        help='Prefer ffmpeg over avconv for running the postprocessors (default) (Alias: --no-prefer-avconv)')
+        action='store_true', dest='prefer_ffmpeg', default=True,
+        help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--ffmpeg-location', '--avconv-location', metavar='PATH',
         dest='ffmpeg_location',
-        help='Location of the ffmpeg/avconv binary; either the path to the binary or its containing directory (Alias: --avconv-location)')
+        help='Location of the ffmpeg binary; either the path to the binary or its containing directory')
     postproc.add_option(
         '--exec',
         metavar='CMD', dest='exec_cmd',
