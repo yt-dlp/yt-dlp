@@ -226,13 +226,13 @@ class ARDMediathekIE(ARDMediathekBaseIE):
             if doc.tag == 'rss':
                 return GenericIE()._extract_rss(url, video_id, doc)
 
-        title = self._html_search_regex(
+        title = self._og_search_title(webpage, default=None) or self._html_search_regex(
             [r'<h1(?:\s+class="boxTopHeadline")?>(.*?)</h1>',
              r'<meta name="dcterms\.title" content="(.*?)"/>',
              r'<h4 class="headline">(.*?)</h4>',
              r'<title[^>]*>(.*?)</title>'],
             webpage, 'title')
-        description = self._html_search_meta(
+        description = self._og_search_description(webpage, default=None) or self._html_search_meta(
             'dcterms.abstract', webpage, 'description', default=None)
         if description is None:
             description = self._html_search_meta(
@@ -289,18 +289,18 @@ class ARDMediathekIE(ARDMediathekBaseIE):
 
 
 class ARDIE(InfoExtractor):
-    _VALID_URL = r'(?P<mainurl>https?://(www\.)?daserste\.de/[^?#]+/videos(?:extern)?/(?P<display_id>[^/?#]+)-(?P<id>[0-9]+))\.html'
+    _VALID_URL = r'(?P<mainurl>https?://(?:www\.)?daserste\.de/[^?#]+/videos(?:extern)?/(?P<display_id>[^/?#]+)-(?:video-?)?(?P<id>[0-9]+))\.html'
     _TESTS = [{
-        # available till 14.02.2019
-        'url': 'http://www.daserste.de/information/talk/maischberger/videos/das-groko-drama-zerlegen-sich-die-volksparteien-video-102.html',
-        'md5': '8e4ec85f31be7c7fc08a26cdbc5a1f49',
+        # available till 7.01.2022
+        'url': 'https://www.daserste.de/information/talk/maischberger/videos/maischberger-die-woche-video100.html',
+        'md5': '867d8aa39eeaf6d76407c5ad1bb0d4c1',
         'info_dict': {
-            'display_id': 'das-groko-drama-zerlegen-sich-die-volksparteien-video',
-            'id': '102',
+            'display_id': 'maischberger-die-woche',
+            'id': '100',
             'ext': 'mp4',
-            'duration': 4435.0,
-            'title': 'Das GroKo-Drama: Zerlegen sich die Volksparteien?',
-            'upload_date': '20180214',
+            'duration': 3687.0,
+            'title': 'maischberger. die woche vom 7. Januar 2021',
+            'upload_date': '20210107',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
     }, {
@@ -355,17 +355,17 @@ class ARDIE(InfoExtractor):
 class ARDBetaMediathekIE(ARDMediathekBaseIE):
     _VALID_URL = r'https://(?:(?:beta|www)\.)?ardmediathek\.de/(?P<client>[^/]+)/(?P<mode>player|live|video|sendung|sammlung)/(?P<display_id>(?:[^/]+/)*)(?P<video_id>[a-zA-Z0-9]+)'
     _TESTS = [{
-        'url': 'https://ardmediathek.de/ard/video/die-robuste-roswita/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
-        'md5': 'dfdc87d2e7e09d073d5a80770a9ce88f',
+        'url': 'https://www.ardmediathek.de/mdr/video/die-robuste-roswita/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy84MWMxN2MzZC0wMjkxLTRmMzUtODk4ZS0wYzhlOWQxODE2NGI/',
+        'md5': 'a1dc75a39c61601b980648f7c9f9f71d',
         'info_dict': {
             'display_id': 'die-robuste-roswita',
-            'id': '70153354',
+            'id': '78566716',
             'title': 'Die robuste Roswita',
-            'description': r're:^Der Mord.*trüber ist als die Ilm.',
+            'description': r're:^Der Mord.*totgeglaubte Ehefrau Roswita',
             'duration': 5316,
-            'thumbnail': 'https://img.ardmediathek.de/standard/00/70/15/33/90/-1852531467/16x9/960?mandant=ard',
-            'timestamp': 1577047500,
-            'upload_date': '20191222',
+            'thumbnail': 'https://img.ardmediathek.de/standard/00/78/56/67/84/575672121/16x9/960?mandant=ard',
+            'timestamp': 1596658200,
+            'upload_date': '20200805',
             'ext': 'mp4',
         },
     }, {

@@ -6,30 +6,40 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_urlparse
 from ..utils import (
-    extract_attributes,
     get_element_by_class,
     urlencode_postdata,
 )
 
 
 class NJPWWorldIE(InfoExtractor):
-    _VALID_URL = r'https?://njpwworld\.com/p/(?P<id>[a-z0-9_]+)'
+    _VALID_URL = r'https?://(front\.)?njpwworld\.com/p/(?P<id>[a-z0-9_]+)'
     IE_DESC = '新日本プロレスワールド'
     _NETRC_MACHINE = 'njpwworld'
 
-    _TEST = {
+    _TESTS = [{
         'url': 'http://njpwworld.com/p/s_series_00155_1_9/',
         'info_dict': {
             'id': 's_series_00155_1_9',
             'ext': 'mp4',
-            'title': '第9試合　ランディ・サベージ　vs　リック・スタイナー',
+            'title': '闘強導夢2000 2000年1月4日 東京ドーム 第9試合 ランディ・サベージ VS リック・スタイナー',
             'tags': list,
         },
         'params': {
             'skip_download': True,  # AES-encrypted m3u8
         },
         'skip': 'Requires login',
-    }
+    }, {
+        'url': 'https://front.njpwworld.com/p/s_series_00563_16_bs',
+        'info_dict': {
+            'id': 's_series_00563_16_bs',
+            'ext': 'mp4',
+            'title': 'WORLD TAG LEAGUE 2020 & BEST OF THE SUPER Jr.27 2020年12月6日 福岡・福岡国際センター バックステージコメント（字幕あり）',
+            'tags': ["福岡・福岡国際センター", "バックステージコメント", "2020", "20年代"],
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
 
     _LOGIN_URL = 'https://front.njpwworld.com/auth/login'
 
@@ -64,35 +74,27 @@ class NJPWWorldIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         formats = []
-        for mobj in re.finditer(r'<a[^>]+\bhref=(["\'])/player.+?[^>]*>', webpage):
-            player = extract_attributes(mobj.group(0))
-            player_path = player.get('href')
-            if not player_path:
-                continue
-            kind = self._search_regex(
-                r'(low|high)$', player.get('class') or '', 'kind',
-                default='low')
+        for kind, vid in re.findall(r'if\s+\(\s*imageQualityType\s*==\s*\'([^\']+)\'\s*\)\s*{\s*video_id\s*=\s*"(\d+)"', webpage):
+            player_path = '/intent?id=%s&type=url' % vid
             player_url = compat_urlparse.urljoin(url, player_path)
-            player_page = self._download_webpage(
-                player_url, video_id, note='Downloading player page')
-            entries = self._parse_html5_media_entries(
-                player_url, player_page, video_id, m3u8_id='hls-%s' % kind,
-                m3u8_entry_protocol='m3u8_native')
-            kind_formats = entries[0]['formats']
-            for f in kind_formats:
-                f['quality'] = 2 if kind == 'high' else 1
-            formats.extend(kind_formats)
+            formats.append({
+                'url': player_url,
+                'format_id': kind,
+                'ext': 'mp4',
+                'protocol': 'm3u8',
+                'quality': 2 if kind == 'high' else 1,
+            })
 
         self._sort_formats(formats)
 
-        post_content = get_element_by_class('post-content', webpage)
+        tag_block = get_element_by_class('tag-block', webpage)
         tags = re.findall(
-            r'<li[^>]+class="tag-[^"]+"><a[^>]*>([^<]+)</a></li>', post_content
-        ) if post_content else None
+            r'<a[^>]+class="tag-[^"]+"[^>]*>([^<]+)</a>', tag_block
+        ) if tag_block else None
 
         return {
             'id': video_id,
-            'title': self._og_search_title(webpage),
+            'title': get_element_by_class('article-title', webpage) or self._og_search_title(webpage),
             'formats': formats,
             'tags': tags,
         }

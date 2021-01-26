@@ -65,6 +65,14 @@ venv/
 # VS Code related files
 .vscode
 
+# SublimeText files
+*.sublime-workspace
+
+# Cookies
+cookies
 cookies.txt
 
-*.sublime-workspace
+# Plugins
+ytdlp_plugins/extractor/*
+!ytdlp_plugins/extractor/__init__.py
+!ytdlp_plugins/extractor/sample.py

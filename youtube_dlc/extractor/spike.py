@@ -20,19 +20,6 @@ class BellatorIE(MTVServicesInfoExtractor):
     _FEED_URL = 'http://www.bellator.com/feeds/mrss/'
     _GEO_COUNTRIES = ['US']
 
-    def _extract_mgid(self, webpage, url):
-        mgid = None
-
-        if not mgid:
-            mgid = self._extract_triforce_mgid(webpage)
-
-        if not mgid:
-            mgid = self._extract_new_triforce_mgid(webpage, url)
-
-        return mgid
-
-# TODO Remove - Reason: Outdated Site
-
 
 class ParamountNetworkIE(MTVServicesInfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?paramountnetwork\.com/[^/]+/[\da-z]{6}(?:[/?#&]|$)'
@@ -56,16 +43,6 @@ class ParamountNetworkIE(MTVServicesInfoExtractor):
     def _get_feed_query(self, uri):
         return {
             'arcEp': 'paramountnetwork.com',
+            'imageEp': 'paramountnetwork.com',
             'mgid': uri,
         }
-
-    def _extract_mgid(self, webpage, url):
-        root_data = self._parse_json(self._search_regex(
-            r'window\.__DATA__\s*=\s*({.+})',
-            webpage, 'data'), None)
-
-        def find_sub_data(data, data_type):
-            return next(c for c in data['children'] if c.get('type') == data_type)
-
-        c = find_sub_data(find_sub_data(root_data, 'MainContainer'), 'VideoPlayer')
-        return c['props']['media']['video']['config']['uri']

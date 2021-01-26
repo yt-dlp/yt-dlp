@@ -5,7 +5,10 @@ import functools
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_str
+from ..compat import (
+    compat_str,
+    compat_urllib_parse_unquote,
+)
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -131,6 +134,9 @@ class LBRYIE(LBRYBaseIE):
     }, {
         'url': 'https://lbry.tv/$/download/Episode-1/e7d93d772bd87e2b62d5ab993c1c3ced86ebb396',
         'only_matching': True,
+    }, {
+        'url': 'https://lbry.tv/@lacajadepandora:a/TRUMP-EST%C3%81-BIEN-PUESTO-con-Pilar-Baselga,-Carlos-Senra,-Luis-Palacios-(720p_30fps_H264-192kbit_AAC):1',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -139,6 +145,7 @@ class LBRYIE(LBRYBaseIE):
             display_id = display_id.split('/', 2)[-1].replace('/', ':')
         else:
             display_id = display_id.replace(':', '#')
+        display_id = compat_urllib_parse_unquote(display_id)
         uri = 'lbry://' + display_id
         result = self._resolve_url(uri, display_id, 'stream')
         result_value = result['value']

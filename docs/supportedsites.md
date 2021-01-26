@@ -47,12 +47,13 @@
  - **Amara**
  - **AMCNetworks**
  - **AmericasTestKitchen**
+ - **AmericasTestKitchenSeason**
  - **anderetijden**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **AnimeLab**
  - **AnimeLabShows**
  - **AnimeOnDemand**
  - **Anvato**
- - **aol.com**
+ - **aol.com**: Yahoo screen and movies
  - **APA**
  - **Aparat**
  - **AppleConnect**
@@ -197,8 +198,6 @@
  - **CNNArticle**
  - **CNNBlogs**
  - **ComedyCentral**
- - **ComedyCentralFullEpisodes**
- - **ComedyCentralShortname**
  - **ComedyCentralTV**
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
  - **CONtv**
@@ -520,6 +519,12 @@
  - **Mgoon**
  - **MGTV**: 芒果TV
  - **MiaoPai**
+ - **mildom**: Record ongoing live by specific user in Mildom
+ - **mildom:user:vod**: Download all VODs from specific user in Mildom
+ - **mildom:vod**: Download a VOD in Mildom
+ - **minds**
+ - **minds:channel**
+ - **minds:group**
  - **MinistryGrid**
  - **Minoto**
  - **miomio.tv**
@@ -880,6 +885,8 @@
  - **Sport5**
  - **SportBox**
  - **SportDeutschland**
+ - **spotify**
+ - **spotify:show**
  - **Spreaker**
  - **SpreakerPage**
  - **SpreakerShow**
@@ -962,13 +969,13 @@
  - **TNAFlixNetworkEmbed**
  - **toggle**
  - **ToonGoggles**
- - **Tosh**: Tosh.0
  - **tou.tv**
  - **Toypics**: Toypics video
  - **ToypicsUser**: Toypics user profile
  - **TrailerAddict** (Currently broken)
  - **Trilulilu**
- - **TrovoLive**
+ - **Trovo**
+ - **TrovoVod**
  - **TruNews**
  - **TruTV**
  - **Tube8**

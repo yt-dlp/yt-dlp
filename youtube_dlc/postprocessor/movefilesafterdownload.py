@@ -22,18 +22,19 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         return 'MoveFiles'
 
     def run(self, info):
-        if info.get('__dl_filename') is None:
-            return [], info
-        self.files_to_move.setdefault(info['__dl_filename'], '')
-        outdir = os.path.dirname(os.path.abspath(encodeFilename(info['__final_filename'])))
+        dl_path, dl_name = os.path.split(encodeFilename(info['filepath']))
+        finaldir = info.get('__finaldir', dl_path)
+        finalpath = os.path.join(finaldir, dl_name)
+        self.files_to_move[info['filepath']] = finalpath
 
         for oldfile, newfile in self.files_to_move.items():
+            if not newfile:
+                newfile = os.path.join(finaldir, os.path.basename(encodeFilename(oldfile)))
+            oldfile, newfile = compat_str(oldfile), compat_str(newfile)
+            if os.path.abspath(encodeFilename(oldfile)) == os.path.abspath(encodeFilename(newfile)):
+                continue
             if not os.path.exists(encodeFilename(oldfile)):
                 self.report_warning('File "%s" cannot be found' % oldfile)
-                continue
-            if not newfile:
-                newfile = compat_str(os.path.join(outdir, os.path.basename(encodeFilename(oldfile))))
-            if os.path.abspath(encodeFilename(oldfile)) == os.path.abspath(encodeFilename(newfile)):
                 continue
             if os.path.exists(encodeFilename(newfile)):
                 if self.get_param('overwrites', True):
@@ -48,5 +49,5 @@ class MoveFilesAfterDownloadPP(PostProcessor):
             self.to_screen('Moving file "%s" to "%s"' % (oldfile, newfile))
             shutil.move(oldfile, newfile)  # os.rename cannot move between volumes
 
-        info['filepath'] = info['__final_filename']
+        info['filepath'] = compat_str(finalpath)
         return [], info

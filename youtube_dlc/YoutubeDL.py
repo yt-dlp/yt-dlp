@@ -105,7 +105,7 @@ from .utils import (
     process_communicate_or_kill,
 )
 from .cache import Cache
-from .extractor import get_info_extractor, gen_extractor_classes, _LAZY_LOADER
+from .extractor import get_info_extractor, gen_extractor_classes, _LAZY_LOADER, _PLUGIN_CLASSES
 from .extractor.openload import PhantomJSwrapper
 from .downloader import get_suitable_downloader
 from .downloader.rtmp import rtmpdump_version
@@ -181,9 +181,12 @@ class YoutubeDL(object):
     allow_multiple_video_streams:   Allow multiple video streams to be merged into a single file
     allow_multiple_audio_streams:   Allow multiple audio streams to be merged into a single file
     outtmpl:           Template for output names.
-    restrictfilenames: Do not allow "&" and spaces in file names.
-    trim_file_name:    Limit length of filename (extension excluded).
-    ignoreerrors:      Do not stop on download errors. (Default True when running youtube-dlc, but False when directly accessing YoutubeDL class)
+    outtmpl_na_placeholder: Placeholder for unavailable meta fields.
+    restrictfilenames: Do not allow "&" and spaces in file names
+    trim_file_name:    Limit length of filename (extension excluded)
+    ignoreerrors:      Do not stop on download errors
+                       (Default True when running youtube-dlc,
+                       but False when directly accessing YoutubeDL class)
     force_generic_extractor: Force downloader to use the generic extractor
     overwrites:        Overwrite all video and metadata files if True,
                        overwrite only non-video files if None
@@ -372,8 +375,7 @@ class YoutubeDL(object):
 
     params = None
     _ies = []
-    _pps = []
-    _pps_end = []
+    _pps = {'beforedl': [], 'aftermove': [], 'normal': []}
     __prepare_filename_warned = False
     _download_retcode = None
     _num_downloads = None
@@ -387,8 +389,7 @@ class YoutubeDL(object):
             params = {}
         self._ies = []
         self._ies_instances = {}
-        self._pps = []
-        self._pps_end = []
+        self._pps = {'beforedl': [], 'aftermove': [], 'normal': []}
         self.__prepare_filename_warned = False
         self._post_hooks = []
         self._progress_hooks = []
@@ -491,11 +492,13 @@ class YoutubeDL(object):
             pp_class = get_postprocessor(pp_def_raw['key'])
             pp_def = dict(pp_def_raw)
             del pp_def['key']
-            after_move = pp_def.get('_after_move', False)
-            if '_after_move' in pp_def:
-                del pp_def['_after_move']
+            if 'when' in pp_def:
+                when = pp_def['when']
+                del pp_def['when']
+            else:
+                when = 'normal'
             pp = pp_class(self, **compat_kwargs(pp_def))
-            self.add_post_processor(pp, after_move=after_move)
+            self.add_post_processor(pp, when=when)
 
         for ph in self.params.get('post_hooks', []):
             self.add_post_hook(ph)
@@ -547,12 +550,9 @@ class YoutubeDL(object):
         for ie in gen_extractor_classes():
             self.add_info_extractor(ie)
 
-    def add_post_processor(self, pp, after_move=False):
+    def add_post_processor(self, pp, when='normal'):
         """Add a PostProcessor object to the end of the chain."""
-        if after_move:
-            self._pps_end.append(pp)
-        else:
-            self._pps.append(pp)
+        self._pps[when].append(pp)
         pp.set_downloader(self)
 
     def add_post_hook(self, ph):
@@ -741,7 +741,7 @@ class YoutubeDL(object):
             template_dict = dict((k, v if isinstance(v, compat_numeric_types) else sanitize(k, v))
                                  for k, v in template_dict.items()
                                  if v is not None and not isinstance(v, (list, tuple, dict)))
-            template_dict = collections.defaultdict(lambda: 'NA', template_dict)
+            template_dict = collections.defaultdict(lambda: self.params.get('outtmpl_na_placeholder', 'NA'), template_dict)
 
             outtmpl = self.params.get('outtmpl', DEFAULT_OUTTMPL)
 
@@ -761,8 +761,8 @@ class YoutubeDL(object):
 
             # Missing numeric fields used together with integer presentation types
             # in format specification will break the argument substitution since
-            # string 'NA' is returned for missing fields. We will patch output
-            # template for missing fields to meet string presentation type.
+            # string NA placeholder is returned for missing fields. We will patch
+            # output template for missing fields to meet string presentation type.
             for numeric_field in self._NUMERIC_FIELDS:
                 if numeric_field not in template_dict:
                     # As of [1] format syntax is:
@@ -1958,6 +1958,8 @@ class YoutubeDL(object):
 
         self._num_downloads += 1
 
+        info_dict = self.pre_process(info_dict)
+
         filename = self.prepare_filename(info_dict, warn=True)
         info_dict['_filename'] = full_filename = self.prepare_filepath(filename)
         temp_filename = self.prepare_filepath(filename, 'temp')
@@ -2146,7 +2148,7 @@ class YoutubeDL(object):
 
         def _write_link_file(extension, template, newline, embed_filename):
             linkfn = replace_extension(full_filename, extension, info_dict.get('ext'))
-            if self.params.get('nooverwrites', False) and os.path.exists(encodeFilename(linkfn)):
+            if self.params.get('overwrites', True) and os.path.exists(encodeFilename(linkfn)):
                 self.to_screen('[info] Internet shortcut is already present')
             else:
                 try:
@@ -2266,10 +2268,8 @@ class YoutubeDL(object):
                         success, real_download = dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
 
-                # info_dict['__temp_filename'] = temp_filename
                 dl_filename = dl_filename or temp_filename
-                info_dict['__dl_filename'] = dl_filename
-                info_dict['__final_filename'] = full_filename
+                info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
 
             except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                 self.report_error('unable to download video data: %s' % error_to_compat_str(err))
@@ -2413,41 +2413,45 @@ class YoutubeDL(object):
             (k, v) for k, v in info_dict.items()
             if k not in ['requested_formats', 'requested_subtitles'])
 
+    def run_pp(self, pp, infodict, files_to_move={}):
+        files_to_delete = []
+        try:
+            files_to_delete, infodict = pp.run(infodict)
+        except PostProcessingError as e:
+            self.report_error(e.msg)
+        if not files_to_delete:
+            return files_to_move, infodict
+
+        if self.params.get('keepvideo', False):
+            for f in files_to_delete:
+                files_to_move.setdefault(f, '')
+        else:
+            for old_filename in set(files_to_delete):
+                self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
+                try:
+                    os.remove(encodeFilename(old_filename))
+                except (IOError, OSError):
+                    self.report_warning('Unable to remove downloaded original file')
+                if old_filename in files_to_move:
+                    del files_to_move[old_filename]
+        return files_to_move, infodict
+
+    def pre_process(self, ie_info):
+        info = dict(ie_info)
+        for pp in self._pps['beforedl']:
+            info = self.run_pp(pp, info)[1]
+        return info
+
     def post_process(self, filename, ie_info, files_to_move={}):
         """Run all the postprocessors on the given file."""
         info = dict(ie_info)
         info['filepath'] = filename
 
-        def run_pp(pp):
-            files_to_delete = []
-            infodict = info
-            try:
-                files_to_delete, infodict = pp.run(infodict)
-            except PostProcessingError as e:
-                self.report_error(e.msg)
-            if not files_to_delete:
-                return infodict
-
-            if self.params.get('keepvideo', False):
-                for f in files_to_delete:
-                    files_to_move.setdefault(f, '')
-            else:
-                for old_filename in set(files_to_delete):
-                    self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
-                    try:
-                        os.remove(encodeFilename(old_filename))
-                    except (IOError, OSError):
-                        self.report_warning('Unable to remove downloaded original file')
-                    if old_filename in files_to_move:
-                        del files_to_move[old_filename]
-            return infodict
-
-        for pp in ie_info.get('__postprocessors', []) + self._pps:
-            info = run_pp(pp)
-        info = run_pp(MoveFilesAfterDownloadPP(self, files_to_move))
-        files_to_move = {}
-        for pp in self._pps_end:
-            info = run_pp(pp)
+        for pp in ie_info.get('__postprocessors', []) + self._pps['normal']:
+            files_to_move, info = self.run_pp(pp, info, files_to_move)
+        info = self.run_pp(MoveFilesAfterDownloadPP(self, files_to_move), info, files_to_move)[1]
+        for pp in self._pps['aftermove']:
+            files_to_move, info = self.run_pp(pp, info, {})
 
     def _make_archive_id(self, info_dict):
         video_id = info_dict.get('id')
@@ -2668,9 +2672,12 @@ class YoutubeDL(object):
                 self.get_encoding()))
         write_string(encoding_str, encoding=None)
 
-        self._write_string('[debug] yt-dlp version ' + __version__ + '\n')
+        self._write_string('[debug] yt-dlp version %s\n' % __version__)
         if _LAZY_LOADER:
-            self._write_string('[debug] Lazy loading extractors enabled' + '\n')
+            self._write_string('[debug] Lazy loading extractors enabled\n')
+        if _PLUGIN_CLASSES:
+            self._write_string(
+                '[debug] Plugin Extractors: %s\n' % [ie.ie_key() for ie in _PLUGIN_CLASSES])
         try:
             sp = subprocess.Popen(
                 ['git', 'rev-parse', '--short', 'HEAD'],
@@ -2679,7 +2686,7 @@ class YoutubeDL(object):
             out, err = process_communicate_or_kill(sp)
             out = out.decode().strip()
             if re.match('[0-9a-f]+', out):
-                self._write_string('[debug] Git HEAD: ' + out + '\n')
+                self._write_string('[debug] Git HEAD: %s\n' % out)
         except Exception:
             try:
                 sys.exc_clear()

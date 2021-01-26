@@ -256,7 +256,7 @@ class AENetworksShowIE(AENetworksListBaseIE):
             'title': 'Ancient Aliens',
             'description': 'md5:3f6d74daf2672ff3ae29ed732e37ea7f',
         },
-        'playlist_mincount': 168,
+        'playlist_mincount': 150,
     }]
     _RESOURCE = 'series'
     _ITEMS_KEY = 'episodes'
