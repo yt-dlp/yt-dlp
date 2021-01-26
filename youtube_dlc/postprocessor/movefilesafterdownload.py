@@ -28,13 +28,13 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         self.files_to_move[info['filepath']] = finalpath
 
         for oldfile, newfile in self.files_to_move.items():
-            if not os.path.exists(encodeFilename(oldfile)):
-                self.report_warning('File "%s" cannot be found' % oldfile)
-                continue
             if not newfile:
                 newfile = os.path.join(finaldir, os.path.basename(encodeFilename(oldfile)))
             oldfile, newfile = compat_str(oldfile), compat_str(newfile)
             if os.path.abspath(encodeFilename(oldfile)) == os.path.abspath(encodeFilename(newfile)):
+                continue
+            if not os.path.exists(encodeFilename(oldfile)):
+                self.report_warning('File "%s" cannot be found' % oldfile)
                 continue
             if os.path.exists(encodeFilename(newfile)):
                 if self.get_param('overwrites', True):
