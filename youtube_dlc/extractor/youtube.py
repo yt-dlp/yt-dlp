@@ -2424,9 +2424,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             default=None
         ))
 
-        # annotations
-        video_annotations = None
-        if self._downloader.params.get('writeannotations', False):
+        # get xsrf for annotations or comments
+        get_annotations = self._downloader.params.get('writeannotations', False)
+        get_comments = self._downloader.params.get('getcomments', False)
+        if get_annotations or get_comments:
             xsrf_token = None
             ytcfg = self._extract_ytcfg(video_id, video_webpage)
             if ytcfg:
@@ -2435,6 +2436,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 xsrf_token = self._search_regex(
                     r'([\'"])XSRF_TOKEN\1\s*:\s*([\'"])(?P<xsrf_token>(?:(?!\2).)+)\2',
                     video_webpage, 'xsrf token', group='xsrf_token', fatal=False)
+
+        # annotations
+        video_annotations = None
+        if get_annotations:
             invideo_url = try_get(
                 player_response, lambda x: x['annotations'][0]['playerAnnotationsUrlsRenderer']['invideoUrl'], compat_str)
             if xsrf_token and invideo_url:
@@ -2455,7 +2460,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         chapters = self._extract_chapters(video_webpage, description_original, video_id, video_duration)
 
         # Get comments
-        if self._downloader.params.get('getcomments', False):
+        if get_comments:
             expected_video_comment_count = 0
             video_comments = []
 
@@ -2477,13 +2482,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         for o in search_dict(i, key):
                             yield o
 
-            polymer_webpage = self._download_webpage('https://www.youtube.com/watch?v=%s' % video_id, video_id, note=False,
-                query={'disable_polymer': 'false'},
-                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:76.0) Gecko/20100101 Firefox/76.0'})
-            session_token = bytes(find_value(polymer_webpage, 'XSRF_TOKEN', 3), 'ascii').decode('unicode-escape')
-            data = json.loads(find_value(polymer_webpage, 'var ytInitialData = ', 0, '};') + '}')
             try:
-                ncd = next(search_dict(data, 'nextContinuationData'))
+                ncd = next(search_dict(yt_initial_data, 'nextContinuationData'))
                 continuations = [(ncd['continuation'], ncd['clickTrackingParams'])]
             # Handle videos where comments have been disabled entirely
             except StopIteration:
@@ -2495,7 +2495,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'ctoken': continuation,
                         'continuation': continuation,
                         'itct': itct,
-                        'disable_polymer': 'false'
                 }
                 if replies:
                     query['action_get_comment_replies'] = 1
@@ -2534,7 +2533,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             first_continuation = True
             while continuations:
                 continuation, itct = continuations.pop()
-                comment_response = get_continuation(continuation, itct, session_token)
+                comment_response = get_continuation(continuation, itct, xsrf_token)
                 if not comment_response:
                     continue
                 if list(search_dict(comment_response, 'externalErrorMessage')):
@@ -2568,11 +2567,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     itct = reply_continuation['clickTrackingParams']
                     while True:
                         time.sleep(1)
-                        replies_data = get_continuation(continuation, itct, session_token, True)
+                        replies_data = get_continuation(continuation, itct, xsrf_token, True)
                         if not replies_data or 'continuationContents' not in replies_data[1]['response']:
                             break
 
-                        self.to_screen('Comments downloaded (chain %s) %s / ~ %s' % (comment['commentId'], len(video_comments), expected_video_comment_count))
+                        if self._downloader.params.get('verbose', False):
+                            self.to_screen('[debug] Comments downloaded (chain %s) %s of ~%s' % (comment['commentId'], len(video_comments), expected_video_comment_count))
                         reply_comment_meta = replies_data[1]['response']['continuationContents']['commentRepliesContinuation']
                         for reply_meta in replies_data[1]['response']['continuationContents']['commentRepliesContinuation']['contents']:
                             reply_comment = reply_meta['commentRenderer']
@@ -2591,14 +2591,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continuation = reply_comment_meta['continuations'][0]['nextContinuationData']['continuation']
                         itct = reply_comment_meta['continuations'][0]['nextContinuationData']['clickTrackingParams']
 
-                self.to_screen('Comments downloaded %s / ~ %s' % (len(video_comments), expected_video_comment_count))
+                self.to_screen('Comments downloaded %s of ~%s' % (len(video_comments), expected_video_comment_count))
 
                 if 'continuations' in item_section:
                     continuations = [(ncd['nextContinuationData']['continuation'], ncd['nextContinuationData']['clickTrackingParams'])
                                     for ncd in item_section['continuations']] + continuations
                 time.sleep(1)
 
-            self.to_screen('Total comments downloaded %s / ~ %s' % (len(video_comments), expected_video_comment_count))
+            self.to_screen('Total comments downloaded %s of ~%s' % (len(video_comments), expected_video_comment_count))
         else:
             expected_video_comment_count = None
             video_comments = None
