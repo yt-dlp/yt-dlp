@@ -40,7 +40,7 @@ class BiliBiliIE(InfoExtractor):
                     '''
 
     _TESTS = [{
-        'url': 'http://www.bilibili.tv/video/av1074402/',
+        'url': 'http://www.bilibili.com/video/av1074402/',
         'md5': '5f7d29e1a2872f3df0cf76b1f87d3788',
         'info_dict': {
             'id': '1074402',
@@ -57,6 +57,10 @@ class BiliBiliIE(InfoExtractor):
     }, {
         # Tested in BiliBiliBangumiIE
         'url': 'http://bangumi.bilibili.com/anime/1869/play#40062',
+        'only_matching': True,
+    }, {
+        # bilibili.tv
+        'url': 'http://www.bilibili.tv/video/av1074402/',
         'only_matching': True,
     }, {
         'url': 'http://bangumi.bilibili.com/anime/5802/play#100643',
@@ -217,8 +221,8 @@ class BiliBiliIE(InfoExtractor):
             break
 
         title = self._html_search_regex(
-            ('<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
-             '(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
+            (r'<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
+             r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
             group='title') + ('_p' + str(page_id) if page_id is not None else '')
         description = self._html_search_meta('description', webpage)
         timestamp = unified_timestamp(self._html_search_regex(
@@ -229,7 +233,7 @@ class BiliBiliIE(InfoExtractor):
 
         # TODO 'view_count' requires deobfuscating Javascript
         info = {
-            'id': video_id if page_id is None else str(video_id) + '_p' + str(page_id),
+            'id': str(video_id) if page_id is None else '%s_p%s' % (video_id, page_id),
             'cid': cid,
             'title': title,
             'description': description,
