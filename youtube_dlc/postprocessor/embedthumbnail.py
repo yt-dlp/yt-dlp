@@ -178,9 +178,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         else:
             raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus, m4a/mp4/mov')
 
-        if success:
+        if success and temp_filename != filename:
             os.remove(encodeFilename(filename))
-            if temp_filename != filename:
-                os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
         files_to_delete = [] if self._already_have_thumbnail else [thumbnail_filename]
         return files_to_delete, info
