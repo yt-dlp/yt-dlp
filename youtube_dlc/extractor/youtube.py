@@ -2460,6 +2460,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         chapters = self._extract_chapters(video_webpage, description_original, video_id, video_duration)
 
         # Get comments
+        # TODO: Refactor and move to seperate function
         if get_comments:
             expected_video_comment_count = 0
             video_comments = []

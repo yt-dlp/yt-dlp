@@ -202,8 +202,9 @@ class YoutubeDL(object):
     logtostderr:       Log messages to stderr instead of stdout.
     writedescription:  Write the video description to a .description file
     writeinfojson:     Write the video description to a .info.json file
+    writecomments:     Extract video comments. This will not be written to disk
+                       unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
-    writecomments:     Write the video comments to a .comments.json file
     writethumbnail:    Write the thumbnail image to a file
     write_all_thumbnails:  Write all thumbnail formats to files
     writelink:         Write an internet shortcut file, depending on the
