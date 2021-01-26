@@ -5936,7 +5936,7 @@ def load_plugins(name, type, namespace):
     return classes
 
 
-def traverse_dict(dictn, *keys, casesense=True):
+def traverse_dict(dictn, keys, casesense=True):
     if not isinstance(dictn, dict):
         return None
     first_key = keys[0]
