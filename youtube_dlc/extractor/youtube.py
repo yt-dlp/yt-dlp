@@ -2491,10 +2491,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             def get_continuation(continuation, itct, session_token, replies=False):
                 query = {
-                        'pbj': 1,
-                        'ctoken': continuation,
-                        'continuation': continuation,
-                        'itct': itct,
+                    'pbj': 1,
+                    'ctoken': continuation,
+                    'continuation': continuation,
+                    'itct': itct,
                 }
                 if replies:
                     query['action_get_comment_replies'] = 1
@@ -2502,15 +2502,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     query['action_get_comments'] = 1
 
                 while True:
-                    content, handle = self._download_webpage_handle('https://www.youtube.com/comment_service_ajax',
+                    content, handle = self._download_webpage_handle(
+                        'https://www.youtube.com/comment_service_ajax',
                         video_id,
-                        note = False,
-                        expected_status = [413],
-                        data = urlencode_postdata({
+                        note=False,
+                        expected_status=[413],
+                        data=urlencode_postdata({
                             'session_token': session_token
                         }),
-                        query = query,
-                        headers = {
+                        query=query,
+                        headers={
                             'Accept': '*/*',
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:76.0) Gecko/20100101 Firefox/76.0',
                             'X-YouTube-Client-Name': '1',
@@ -2521,12 +2522,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     response_code = handle.getcode()
                     if (response_code == 200):
                         return self._parse_json(content, video_id)
-                    if (response_code == 413):
-                        #self.to_screen(json.dumps(query))
-                        #self.to_screen('Google API rate limit detected; waiting 30 seconds before continuing')
-                        #time.sleep(30)
-                        #continue
-                        # Sometimes google makes continuations that are too big to be accepted by themselves. Grade A engineering
+                    if (response_code == 413):  # Sometimes google makes continuations that are too big to be accepted by themselves. Grade A engineering
+                        # self.to_screen(json.dumps(query))
+                        # self.to_screen('Google API rate limit detected; waiting 30 seconds before continuing')
+                        # time.sleep(30)
+                        # continue
                         return None
                     raise ExtractorError('Unexpected HTTP error code: %s' % response_code)
 
@@ -2587,15 +2587,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             })
                         if 'continuations' not in reply_comment_meta or len(reply_comment_meta['continuations']) == 0:
                             break
-                        
+
                         continuation = reply_comment_meta['continuations'][0]['nextContinuationData']['continuation']
                         itct = reply_comment_meta['continuations'][0]['nextContinuationData']['clickTrackingParams']
 
                 self.to_screen('Comments downloaded %s of ~%s' % (len(video_comments), expected_video_comment_count))
 
                 if 'continuations' in item_section:
-                    continuations = [(ncd['nextContinuationData']['continuation'], ncd['nextContinuationData']['clickTrackingParams'])
-                                    for ncd in item_section['continuations']] + continuations
+                    new_continuations = [
+                        (ncd['nextContinuationData']['continuation'], ncd['nextContinuationData']['clickTrackingParams'])
+                        for ncd in item_section['continuations']]
+                    continuations += new_continuations
                 time.sleep(1)
 
             self.to_screen('Total comments downloaded %s of ~%s' % (len(video_comments), expected_video_comment_count))
