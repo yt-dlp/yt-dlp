@@ -251,7 +251,10 @@ class BiliBiliIE(InfoExtractor):
             info['uploader'] = self._html_search_meta(
                 'author', webpage, 'uploader', default=None)
 
-        comments = self._get_all_comment_pages(video_id)
+        comments = None
+        if self._downloader.params.get('getcomments', False):
+            comments = self._get_all_comment_pages(video_id)
+
         raw_danmaku = self._get_raw_danmaku(video_id, cid)
 
         raw_tags = self._get_tags(video_id)
@@ -260,7 +263,7 @@ class BiliBiliIE(InfoExtractor):
         top_level_info = {
             'raw_danmaku': raw_danmaku,
             'comments': comments,
-            'comment_count': len(comments),
+            'comment_count': len(comments) if comments is not None else None,
             'tags': tags,
             'raw_tags': raw_tags,
         }
