@@ -375,8 +375,7 @@ class YoutubeDL(object):
 
     params = None
     _ies = []
-    _pps = []
-    _pps_end = []
+    _pps = {'beforedl': [], 'aftermove': [], 'normal': []}
     __prepare_filename_warned = False
     _download_retcode = None
     _num_downloads = None
@@ -390,8 +389,7 @@ class YoutubeDL(object):
             params = {}
         self._ies = []
         self._ies_instances = {}
-        self._pps = []
-        self._pps_end = []
+        self._pps = {'beforedl': [], 'aftermove': [], 'normal': []}
         self.__prepare_filename_warned = False
         self._post_hooks = []
         self._progress_hooks = []
@@ -494,11 +492,13 @@ class YoutubeDL(object):
             pp_class = get_postprocessor(pp_def_raw['key'])
             pp_def = dict(pp_def_raw)
             del pp_def['key']
-            after_move = pp_def.get('_after_move', False)
-            if '_after_move' in pp_def:
-                del pp_def['_after_move']
+            if 'when' in pp_def:
+                when = pp_def['when']
+                del pp_def['when']
+            else:
+                when = 'normal'
             pp = pp_class(self, **compat_kwargs(pp_def))
-            self.add_post_processor(pp, after_move=after_move)
+            self.add_post_processor(pp, when=when)
 
         for ph in self.params.get('post_hooks', []):
             self.add_post_hook(ph)
@@ -550,12 +550,9 @@ class YoutubeDL(object):
         for ie in gen_extractor_classes():
             self.add_info_extractor(ie)
 
-    def add_post_processor(self, pp, after_move=False):
+    def add_post_processor(self, pp, when='normal'):
         """Add a PostProcessor object to the end of the chain."""
-        if after_move:
-            self._pps_end.append(pp)
-        else:
-            self._pps.append(pp)
+        self._pps[when].append(pp)
         pp.set_downloader(self)
 
     def add_post_hook(self, ph):
@@ -1948,6 +1945,8 @@ class YoutubeDL(object):
 
         self._num_downloads += 1
 
+        info_dict = self.pre_process(info_dict)
+
         filename = self.prepare_filename(info_dict, warn=True)
         info_dict['_filename'] = full_filename = self.prepare_filepath(filename)
         temp_filename = self.prepare_filepath(filename, 'temp')
@@ -2400,41 +2399,45 @@ class YoutubeDL(object):
             (k, v) for k, v in info_dict.items()
             if k not in ['requested_formats', 'requested_subtitles'])
 
+    def run_pp(self, pp, infodict, files_to_move={}):
+        files_to_delete = []
+        try:
+            files_to_delete, infodict = pp.run(infodict)
+        except PostProcessingError as e:
+            self.report_error(e.msg)
+        if not files_to_delete:
+            return files_to_move, infodict
+
+        if self.params.get('keepvideo', False):
+            for f in files_to_delete:
+                files_to_move.setdefault(f, '')
+        else:
+            for old_filename in set(files_to_delete):
+                self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
+                try:
+                    os.remove(encodeFilename(old_filename))
+                except (IOError, OSError):
+                    self.report_warning('Unable to remove downloaded original file')
+                if old_filename in files_to_move:
+                    del files_to_move[old_filename]
+        return files_to_move, infodict
+
+    def pre_process(self, ie_info):
+        info = dict(ie_info)
+        for pp in self._pps['beforedl']:
+            info = self.run_pp(pp, info)[1]
+        return info
+
     def post_process(self, filename, ie_info, files_to_move={}):
         """Run all the postprocessors on the given file."""
         info = dict(ie_info)
         info['filepath'] = filename
 
-        def run_pp(pp):
-            files_to_delete = []
-            infodict = info
-            try:
-                files_to_delete, infodict = pp.run(infodict)
-            except PostProcessingError as e:
-                self.report_error(e.msg)
-            if not files_to_delete:
-                return infodict
-
-            if self.params.get('keepvideo', False):
-                for f in files_to_delete:
-                    files_to_move.setdefault(f, '')
-            else:
-                for old_filename in set(files_to_delete):
-                    self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
-                    try:
-                        os.remove(encodeFilename(old_filename))
-                    except (IOError, OSError):
-                        self.report_warning('Unable to remove downloaded original file')
-                    if old_filename in files_to_move:
-                        del files_to_move[old_filename]
-            return infodict
-
-        for pp in ie_info.get('__postprocessors', []) + self._pps:
-            info = run_pp(pp)
-        info = run_pp(MoveFilesAfterDownloadPP(self, files_to_move))
-        files_to_move = {}
-        for pp in self._pps_end:
-            info = run_pp(pp)
+        for pp in ie_info.get('__postprocessors', []) + self._pps['normal']:
+            files_to_move, info = self.run_pp(pp, info, files_to_move)
+        info = self.run_pp(MoveFilesAfterDownloadPP(self, files_to_move), info, files_to_move)[1]
+        for pp in self._pps['aftermove']:
+            files_to_move, info = self.run_pp(pp, info, {})
 
     def _make_archive_id(self, info_dict):
         video_id = info_dict.get('id')

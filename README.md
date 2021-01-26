@@ -610,16 +610,19 @@ Then simply type this
     --no-embed-thumbnail             Do not embed thumbnail (default)
     --add-metadata                   Write metadata to the video file
     --no-add-metadata                Do not write metadata (default)
-    --metadata-from-title FORMAT     Parse additional metadata like song title /
-                                     artist from the video title. The format
-                                     syntax is the same as --output. Regular
-                                     expression with named capture groups may
-                                     also be used. The parsed parameters replace
-                                     existing values. Example: --metadata-from-
-                                     title "%(artist)s - %(title)s" matches a
+    --parse-metadata FIELD:FORMAT    Parse additional metadata like title/artist
+                                     from other fields. Give field name to
+                                     extract data from, and format of the field
+                                     seperated by a ":". The format syntax is
+                                     the same as --output. Regular expression
+                                     with named capture groups may also be used.
+                                     The parsed parameters replace existing
+                                     values. This option can be used multiple
+                                     times. Example: --parse-metadata
+                                     "title:%(artist)s - %(title)s" matches a
                                      title like "Coldplay - Paradise". Example
-                                     (regex): --metadata-from-title
-                                     "(?P<artist>.+?) - (?P<title>.+)"
+                                     (regex): --parse-metadata
+                                     "description:Artist - (?P<artist>.+?)"
     --xattrs                         Write metadata to the video file's xattrs
                                      (using dublin core and xdg standards)
     --fixup POLICY                   Automatically correct known faults of the
@@ -1098,7 +1101,7 @@ $ youtube-dlc -S '+res:480,codec,br'
 
 Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently only `extractor` plugins are supported. Support for `downloader` and `postprocessor` plugins may be added in the future. See [ytdlp_plugins](ytdlp_plugins) for example.
 
-**Note**: `<root-dir>` is the directory of the binary (`<root-dir>/youtube-dlc`), or the root directory of the module if you are running directly from source-code ((`<root dir>/youtube_dlc/__main__.py`)
+**Note**: `<root-dir>` is the directory of the binary (`<root-dir>/youtube-dlc`), or the root directory of the module if you are running directly from source-code (`<root dir>/youtube_dlc/__main__.py`)
 
 # MORE
-For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl)
+For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl#faq)

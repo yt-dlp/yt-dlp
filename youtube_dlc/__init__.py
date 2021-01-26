@@ -45,6 +45,7 @@ from .downloader import (
 from .extractor import gen_extractors, list_extractors
 from .extractor.common import InfoExtractor
 from .extractor.adobepass import MSO_INFO
+from .postprocessor.metadatafromfield import MetadataFromFieldPP
 from .YoutubeDL import YoutubeDL
 
 
@@ -249,16 +250,25 @@ def _real_main(argv=None):
         if re.match(InfoExtractor.FormatSort.regex, f) is None:
             parser.error('invalid format sort string "%s" specified' % f)
 
+    if opts.metafromfield is None:
+        opts.metafromfield = []
+    if opts.metafromtitle is not None:
+        opts.metafromfield.append('title:%s' % opts.metafromtitle)
+    for f in opts.metafromfield:
+        if re.match(MetadataFromFieldPP.regex, f) is None:
+            parser.error('invalid format string "%s" specified for --parse-metadata' % f)
+
     any_getting = opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration or opts.dumpjson or opts.dump_single_json
     any_printing = opts.print_json
     download_archive_fn = expand_path(opts.download_archive) if opts.download_archive is not None else opts.download_archive
 
     # PostProcessors
     postprocessors = []
-    if opts.metafromtitle:
+    if opts.metafromfield:
         postprocessors.append({
-            'key': 'MetadataFromTitle',
-            'titleformat': opts.metafromtitle
+            'key': 'MetadataFromField',
+            'formats': opts.metafromfield,
+            'when': 'beforedl'
         })
     if opts.extractaudio:
         postprocessors.append({
@@ -324,7 +334,7 @@ def _real_main(argv=None):
         postprocessors.append({
             'key': 'ExecAfterDownload',
             'exec_cmd': opts.exec_cmd,
-            '_after_move': True
+            'when': 'aftermove'
         })
 
     _args_compat_warning = 'WARNING: %s given without specifying name. The arguments will be given to all %s\n'

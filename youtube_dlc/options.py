@@ -1078,14 +1078,20 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--metadata-from-title',
         metavar='FORMAT', dest='metafromtitle',
+        help=optparse.SUPPRESS_HELP)
+    postproc.add_option(
+        '--parse-metadata',
+        metavar='FIELD:FORMAT', dest='metafromfield', action='append',
         help=(
-            'Parse additional metadata like song title / artist from the video title. '
-            'The format syntax is the same as --output. Regular expression with '
-            'named capture groups may also be used. '
+            'Parse additional metadata like title/artist from other fields. '
+            'Give field name to extract data from, and format of the field seperated by a ":". '
+            'The format syntax is the same as --output. '
+            'Regular expression with named capture groups may also be used. '
             'The parsed parameters replace existing values. '
-            'Example: --metadata-from-title "%(artist)s - %(title)s" matches a title like '
+            'This option can be used multiple times. '
+            'Example: --parse-metadata "title:%(artist)s - %(title)s" matches a title like '
             '"Coldplay - Paradise". '
-            'Example (regex): --metadata-from-title "(?P<artist>.+?) - (?P<title>.+)"'))
+            'Example (regex): --parse-metadata "description:Artist - (?P<artist>.+?)"'))
     postproc.add_option(
         '--xattrs',
         action='store_true', dest='xattrs', default=False,
