@@ -1,9 +1,12 @@
 # YT-DLP
 
-<!-- See: https://github.com/marketplace/actions/dynamic-badges -->
-[![Release Version](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/pukkandan/c69cb23c3c5b3316248e52022790aa57/raw/version.json&color=brightgreen)](https://github.com/pukkandan/yt-dlp/releases/latest)
+[![Release version](https://img.shields.io/github/v/release/pukkandan/yt-dlp?color=brightgreen&label=Release)](https://github.com/pukkandan/yt-dlp/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](LICENSE)
-[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions)
+[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions)  
+[![Commits](https://img.shields.io/github/commit-activity/m/pukkandan/yt-dlp?label=commits)](https://github.com/pukkandan/yt-dlp/commits)
+[![Last Commit](https://img.shields.io/github/last-commit/pukkandan/yt-dlp/master)](https://github.com/pukkandan/yt-dlp/commits)
+[![Downloads](https://img.shields.io/github/downloads/pukkandan/yt-dlp/total)](https://github.com/pukkandan/yt-dlp/releases/latest)
+[![PyPi Downloads](https://img.shields.io/pypi/dm/yt-dlp?label=PyPi)](https://pypi.org/project/yt-dlp)
 
 A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
 
@@ -85,7 +88,7 @@ If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the
 # INSTALLATION
 
 You can install yt-dlp using one of the following methods:
-* Use [PyPI package](https://pypi.org/project/yt-dlp/): `python -m pip install --upgrade yt-dlp`
+* Use [PyPI package](https://pypi.org/project/yt-dlp): `python -m pip install --upgrade yt-dlp`
 * Download the binary from the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest)
 * Use pip+git: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp.git@release`
 * Install master branch: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp`
