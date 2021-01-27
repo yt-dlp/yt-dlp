@@ -4,6 +4,15 @@ from __future__ import unicode_literals
 
 import os
 import subprocess
+import struct
+import re
+import base64
+
+try:
+    import mutagen
+    _has_mutagen = True
+except ImportError:
+    _has_mutagen = False
 
 from .ffmpeg import FFmpegPostProcessor
 
@@ -11,11 +20,12 @@ from ..utils import (
     check_executable,
     encodeArgument,
     encodeFilename,
+    error_to_compat_str,
     PostProcessingError,
     prepend_extension,
+    process_communicate_or_kill,
     replace_extension,
     shell_quote,
-    process_communicate_or_kill,
 )
 
 
@@ -73,6 +83,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             # Rename back to unescaped for further processing
             os.rename(encodeFilename(escaped_thumbnail_jpg_filename), encodeFilename(thumbnail_jpg_filename))
             thumbnail_filename = thumbnail_jpg_filename
+            thumbnail_ext = 'jpg'
 
         success = True
         if info['ext'] == 'mp3':
@@ -83,47 +94,92 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.to_screen('Adding thumbnail to "%s"' % filename)
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
-        elif info['ext'] == 'mkv':
-            options = [
-                '-c', 'copy', '-map', '0', '-dn', '-attach', thumbnail_filename,
-                '-metadata:s:t', 'mimetype=image/jpeg', '-metadata:s:t', 'filename=cover.jpg']
+        elif info['ext'] in ['mkv', 'mka']:
+            options = ['-c', 'copy', '-map', '0', '-dn']
+
+            mimetype = 'image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')
+            old_stream, new_stream = self.get_stream_number(
+                filename, ('tags', 'mimetype'), mimetype)
+            if old_stream is not None:
+                options.extend(['-map', '-0:%d' % old_stream])
+                new_stream -= 1
+            options.extend([
+                '-attach', thumbnail_filename,
+                '-metadata:s:%d' % new_stream, 'mimetype=%s' % mimetype,
+                '-metadata:s:%d' % new_stream, 'filename=cover.%s' % thumbnail_ext])
 
             self.to_screen('Adding thumbnail to "%s"' % filename)
-            self.run_ffmpeg_multiple_files([filename], temp_filename, options)
+            self.run_ffmpeg(filename, temp_filename, options)
 
-        elif info['ext'] in ['m4a', 'mp4']:
-            if not check_executable('AtomicParsley', ['-v']):
-                raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
+        elif info['ext'] in ['m4a', 'mp4', 'mov']:
+            try:
+                options = ['-c', 'copy', '-map', '0', '-dn', '-map', '1']
 
-            cmd = [encodeFilename('AtomicParsley', True),
-                   encodeFilename(filename, True),
-                   encodeArgument('--artwork'),
-                   encodeFilename(thumbnail_filename, True),
-                   encodeArgument('-o'),
-                   encodeFilename(temp_filename, True)]
-            cmd += [encodeArgument(o) for o in self._configuration_args(exe='AtomicParsley')]
+                old_stream, new_stream = self.get_stream_number(
+                    filename, ('disposition', 'attached_pic'), 1)
+                if old_stream is not None:
+                    options.extend(['-map', '-0:%d' % old_stream])
+                    new_stream -= 1
+                options.extend(['-disposition:%s' % new_stream, 'attached_pic'])
 
-            self.to_screen('Adding thumbnail to "%s"' % filename)
-            self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
+                self.to_screen('Adding thumbnail to "%s"' % filename)
+                self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process_communicate_or_kill(p)
+            except PostProcessingError as err:
+                self.report_warning('unable to embed using ffprobe & ffmpeg; %s' % error_to_compat_str(err))
+                if not check_executable('AtomicParsley', ['-v']):
+                    raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
 
-            if p.returncode != 0:
-                msg = stderr.decode('utf-8', 'replace').strip()
-                raise EmbedThumbnailPPError(msg)
-            # for formats that don't support thumbnails (like 3gp) AtomicParsley
-            # won't create to the temporary file
-            if b'No changes' in stdout:
-                self.report_warning('The file format doesn\'t support embedding a thumbnail')
-                success = False
+                cmd = [encodeFilename('AtomicParsley', True),
+                       encodeFilename(filename, True),
+                       encodeArgument('--artwork'),
+                       encodeFilename(thumbnail_filename, True),
+                       encodeArgument('-o'),
+                       encodeFilename(temp_filename, True)]
+                cmd += [encodeArgument(o) for o in self._configuration_args(exe='AtomicParsley')]
+
+                self.to_screen('Adding thumbnail to "%s"' % filename)
+                self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = process_communicate_or_kill(p)
+                if p.returncode != 0:
+                    msg = stderr.decode('utf-8', 'replace').strip()
+                    raise EmbedThumbnailPPError(msg)
+                # for formats that don't support thumbnails (like 3gp) AtomicParsley
+                # won't create to the temporary file
+                if b'No changes' in stdout:
+                    self.report_warning('The file format doesn\'t support embedding a thumbnail')
+                    success = False
+
+        elif info['ext'] in ['ogg', 'opus']:
+            if not _has_mutagen:
+                raise EmbedThumbnailPPError('module mutagen was not found. Please install.')
+            size_regex = r',\s*(?P<w>\d+)x(?P<h>\d+)\s*[,\[]'
+            size_result = self.run_ffmpeg_multiple_files([thumbnail_filename], '', ['-hide_banner'])
+            mobj = re.search(size_regex, size_result)
+            width, height = int(mobj.group('w')), int(mobj.group('h'))
+            mimetype = ('image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')).encode('ascii')
+
+            # https://xiph.org/flac/format.html#metadata_block_picture
+            data = bytearray()
+            data += struct.pack('>II', 3, len(mimetype))
+            data += mimetype
+            data += struct.pack('>IIIIII', 0, width, height, 8, 0, os.stat(thumbnail_filename).st_size)  # 32 if png else 24
+
+            fin = open(thumbnail_filename, "rb")
+            data += fin.read()
+            fin.close()
+
+            temp_filename = filename
+            f = mutagen.File(temp_filename)
+            f.tags['METADATA_BLOCK_PICTURE'] = base64.b64encode(data).decode('ascii')
+            f.save()
 
         else:
-            raise EmbedThumbnailPPError('Only mp3, mkv, m4a and mp4 are supported for thumbnail embedding for now.')
+            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus, m4a/mp4/mov')
 
-        if success:
+        if success and temp_filename != filename:
             os.remove(encodeFilename(filename))
             os.rename(encodeFilename(temp_filename), encodeFilename(filename))
-
         files_to_delete = [] if self._already_have_thumbnail else [thumbnail_filename]
         return files_to_delete, info

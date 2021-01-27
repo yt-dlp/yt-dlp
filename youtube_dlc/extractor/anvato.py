@@ -9,6 +9,7 @@ import re
 import time
 
 from .common import InfoExtractor
+from .anvato_token_generator import NFLTokenGenerator
 from ..aes import aes_encrypt
 from ..compat import compat_str
 from ..utils import (
@@ -203,6 +204,10 @@ class AnvatoIE(InfoExtractor):
         'telemundo': 'anvato_mcp_telemundo_web_prod_c5278d51ad46fda4b6ca3d0ea44a7846a054f582'
     }
 
+    _TOKEN_GENERATORS = {
+        'GXvEgwyJeWem8KCYXfeoHWknwP48Mboj': NFLTokenGenerator,
+    }
+
     _API_KEY = '3hwbSuqqT690uxjNYBktSQpa5ZrpYYR0Iofx7NcJHyA'
 
     _ANVP_RE = r'<script[^>]+\bdata-anvp\s*=\s*(["\'])(?P<anvp>(?:(?!\1).)+)\1'
@@ -262,9 +267,12 @@ class AnvatoIE(InfoExtractor):
             'anvrid': anvrid,
             'anvts': server_time,
         }
-        api['anvstk'] = md5_text('%s|%s|%d|%s' % (
-            access_key, anvrid, server_time,
-            self._ANVACK_TABLE.get(access_key, self._API_KEY)))
+        if access_key in self._TOKEN_GENERATORS:
+            api['anvstk2'] = self._TOKEN_GENERATORS[access_key].generate(self, access_key, video_id)
+        else:
+            api['anvstk'] = md5_text('%s|%s|%d|%s' % (
+                access_key, anvrid, server_time,
+                self._ANVACK_TABLE.get(access_key, self._API_KEY)))
 
         return self._download_json(
             video_data_url, video_id, transform_source=strip_jsonp,

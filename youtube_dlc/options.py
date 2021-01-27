@@ -935,6 +935,10 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='writeannotations',
         help='Do not write video annotations (default)')
     filesystem.add_option(
+        '--get-comments',
+        action='store_true', dest='getcomments', default=False,
+        help='Retrieve video comments to be placed in the .info.json file')
+    filesystem.add_option(
         '--load-info-json', '--load-info',
         dest='load_info_filename', metavar='FILE',
         help='JSON file containing the video information (created with the "--write-info-json" option)')
@@ -1014,7 +1018,9 @@ def parseOpts(overrideArguments=None):
         metavar='FORMAT', dest='remuxvideo', default=None,
         help=(
             'Remux the video into another container if necessary (currently supported: mp4|mkv). '
-            'If target container does not support the video/audio codec, remuxing will fail'))
+            'If target container does not support the video/audio codec, remuxing will fail. '
+            'You can specify multiple rules; eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
+            'and anything else to mkv.'))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,

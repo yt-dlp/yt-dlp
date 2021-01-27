@@ -5,6 +5,7 @@ import os
 import subprocess
 import time
 import re
+import json
 
 
 from .common import AudioConversionError, PostProcessor
@@ -20,8 +21,9 @@ from ..utils import (
     subtitles_filename,
     dfxp2srt,
     ISO639Utils,
-    replace_extension,
     process_communicate_or_kill,
+    replace_extension,
+    traverse_dict,
 )
 
 
@@ -201,6 +203,37 @@ class FFmpegPostProcessor(PostProcessor):
                 return mobj.group(1)
         return None
 
+    def get_metadata_object(self, path, opts=[]):
+        if self.probe_basename != 'ffprobe':
+            if self.probe_available:
+                self.report_warning('Only ffprobe is supported for metadata extraction')
+            raise PostProcessingError('ffprobe not found. Please install.')
+        self.check_version()
+
+        cmd = [
+            encodeFilename(self.probe_executable, True),
+            encodeArgument('-hide_banner'),
+            encodeArgument('-show_format'),
+            encodeArgument('-show_streams'),
+            encodeArgument('-print_format'),
+            encodeArgument('json'),
+        ]
+
+        cmd += opts
+        cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
+        if self._downloader.params.get('verbose', False):
+            self._downloader.to_screen('[debug] ffprobe command line: %s' % shell_quote(cmd))
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        return json.loads(stdout.decode('utf-8', 'replace'))
+
+    def get_stream_number(self, path, keys, value):
+        streams = self.get_metadata_object(path)['streams']
+        num = next(
+            (i for i, stream in enumerate(streams) if traverse_dict(stream, keys, casesense=False) == value),
+            None)
+        return num, len(streams)
+
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts):
         self.check_version()
 
@@ -227,10 +260,12 @@ class FFmpegPostProcessor(PostProcessor):
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdout, stderr = process_communicate_or_kill(p)
         if p.returncode != 0:
-            stderr = stderr.decode('utf-8', 'replace')
-            msg = stderr.strip().split('\n')[-1]
-            raise FFmpegPostProcessorError(msg)
+            stderr = stderr.decode('utf-8', 'replace').strip()
+            if self._downloader.params.get('verbose', False):
+                self.report_error(stderr)
+            raise FFmpegPostProcessorError(stderr.split('\n')[-1])
         self.try_utime(out_path, oldest_mtime, oldest_mtime)
+        return stderr.decode('utf-8', 'replace')
 
     def run_ffmpeg(self, path, out_path, opts):
         self.run_ffmpeg_multiple_files([path], out_path, opts)
@@ -240,6 +275,8 @@ class FFmpegPostProcessor(PostProcessor):
         # interprets that as a protocol) or can start with '-' (-- is broken in
         # ffmpeg, see https://ffmpeg.org/trac/ffmpeg/ticket/2127 for details)
         # Also leave '-' intact in order not to break streaming to stdout.
+        if fn.startswith(('http://', 'https://')):
+            return fn
         return 'file:' + fn if fn != '-' else fn
 
 
@@ -349,21 +386,35 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 class FFmpegVideoRemuxerPP(FFmpegPostProcessor):
     def __init__(self, downloader=None, preferedformat=None):
         super(FFmpegVideoRemuxerPP, self).__init__(downloader)
-        self._preferedformat = preferedformat
+        self._preferedformats = preferedformat.lower().split('/')
 
     def run(self, information):
         path = information['filepath']
-        if information['ext'] == self._preferedformat:
-            self.to_screen('Not remuxing video file %s - already is in target format %s' % (path, self._preferedformat))
+        sourceext, targetext = information['ext'].lower(), None
+        for pair in self._preferedformats:
+            kv = pair.split('>')
+            if len(kv) == 1 or kv[0].strip() == sourceext:
+                targetext = kv[-1].strip()
+                break
+
+        _skip_msg = (
+            'could not find a mapping for %s' if not targetext
+            else 'already is in target format %s' if sourceext == targetext
+            else None)
+        if _skip_msg:
+            self.to_screen('Not remuxing media file %s - %s' % (path, _skip_msg % sourceext))
             return [], information
+
         options = ['-c', 'copy', '-map', '0', '-dn']
-        prefix, sep, ext = path.rpartition('.')
-        outpath = prefix + sep + self._preferedformat
-        self.to_screen('Remuxing video from %s to %s, Destination: ' % (information['ext'], self._preferedformat) + outpath)
+        if targetext in ['mp4', 'm4a', 'mov']:
+            options.extend(['-movflags', '+faststart'])
+        prefix, sep, oldext = path.rpartition('.')
+        outpath = prefix + sep + targetext
+        self.to_screen('Remuxing video from %s to %s; Destination: %s' % (sourceext, targetext, outpath))
         self.run_ffmpeg(path, outpath, options)
         information['filepath'] = outpath
-        information['format'] = self._preferedformat
-        information['ext'] = self._preferedformat
+        information['format'] = targetext
+        information['ext'] = targetext
         return [path], information
 
 
@@ -406,18 +457,22 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         sub_langs = []
         sub_filenames = []
         webm_vtt_warn = False
+        mp4_ass_warn = False
 
         for lang, sub_info in subtitles.items():
             sub_ext = sub_info['ext']
             if sub_ext == 'json':
-                self.to_screen('JSON subtitles cannot be embedded')
+                self.report_warning('JSON subtitles cannot be embedded')
             elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
                 sub_langs.append(lang)
                 sub_filenames.append(subtitles_filename(filename, lang, sub_ext, ext))
             else:
                 if not webm_vtt_warn and ext == 'webm' and sub_ext != 'vtt':
                     webm_vtt_warn = True
-                    self.to_screen('Only WebVTT subtitles can be embedded in webm files')
+                    self.report_warning('Only WebVTT subtitles can be embedded in webm files')
+            if not mp4_ass_warn and ext == 'mp4' and sub_ext == 'ass':
+                mp4_ass_warn = True
+                self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
 
         if not sub_langs:
             return [], information
@@ -441,7 +496,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             opts.extend(['-metadata:s:s:%d' % i, 'language=%s' % lang_code])
 
         temp_filename = prepend_extension(filename, 'temp')
-        self.to_screen('Embedding subtitles in \'%s\'' % filename)
+        self.to_screen('Embedding subtitles in "%s"' % filename)
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.remove(encodeFilename(filename))
         os.rename(encodeFilename(temp_filename), encodeFilename(filename))
@@ -471,7 +526,6 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         # 1. https://kdenlive.org/en/project/adding-meta-data-to-mp4-video/
         # 2. https://wiki.multimedia.cx/index.php/FFmpeg_Metadata
         # 3. https://kodi.wiki/view/Video_file_tagging
-        # 4. http://atomicparsley.sourceforge.net/mpeg-4files.html
 
         add('title', ('track', 'title'))
         add('date', 'upload_date')
@@ -523,6 +577,18 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 f.write(metadata_file_content)
                 in_filenames.append(metadata_filename)
                 options.extend(['-map_metadata', '1'])
+
+        if '__infojson_filepath' in info and info['ext'] in ('mkv', 'mka'):
+            old_stream, new_stream = self.get_stream_number(
+                filename, ('tags', 'mimetype'), 'application/json')
+            if old_stream is not None:
+                options.extend(['-map', '-0:%d' % old_stream])
+                new_stream -= 1
+
+            options.extend([
+                '-attach', info['__infojson_filepath'],
+                '-metadata:s:%d' % new_stream, 'mimetype=application/json'
+            ])
 
         self.to_screen('Adding metadata to \'%s\'' % filename)
         self.run_ffmpeg_multiple_files(in_filenames, temp_filename, options)
