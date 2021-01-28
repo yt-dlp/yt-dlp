@@ -1101,10 +1101,15 @@ class YoutubeDL(object):
         playlist = ie_result.get('title') or ie_result.get('id')
         self.to_screen('[download] Downloading playlist: %s' % playlist)
 
+        def ensure_dir_exists(path):
+            return make_dir(path, self.report_error)
+
         if self.params.get('writeinfojson', False):
             infofn = replace_extension(
                 self.prepare_filepath(self.prepare_filename(ie_result), 'infojson'),
                 'info.json', ie_result.get('ext'))
+            if not ensure_dir_exists(encodeFilename(infofn)):
+                return
             if self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
                 self.to_screen('[info] Playlist description metadata is already present')
             else:
@@ -1115,6 +1120,25 @@ class YoutubeDL(object):
                     write_json_file(self.filter_requested_info(playlist_info), infofn)
                 except (OSError, IOError):
                     self.report_error('Cannot write playlist description metadata to JSON file ' + infofn)
+
+        if self.params.get('writedescription', False):
+            descfn = replace_extension(
+                self.prepare_filepath(self.prepare_filename(ie_result), 'description'),
+                'description', ie_result.get('ext'))
+            if not ensure_dir_exists(encodeFilename(descfn)):
+                return
+            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
+                self.to_screen('[info] Playlist description is already present')
+            elif ie_result.get('description') is None:
+                self.report_warning('There\'s no playlist description to write.')
+            else:
+                try:
+                    self.to_screen('[info] Writing playlist description to: ' + descfn)
+                    with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
+                        descfile.write(ie_result['description'])
+                except (OSError, IOError):
+                    self.report_error('Cannot write playlist description file ' + descfn)
+                    return
 
         playlist_results = []
 
