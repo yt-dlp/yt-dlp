@@ -31,6 +31,7 @@ try:
 except ImportError:
     NFLTokenGenerator = None
 
+
 def md5_text(s):
     if not isinstance(s, compat_str):
         s = compat_str(s)

@@ -1,8 +1,11 @@
 from __future__ import unicode_literals
 from datetime import datetime
+# import urllib.request
+
+# response = urllib.request.urlopen('https://blackjack4494.github.io/youtube-dlc/update/LATEST_VERSION')
+# _LATEST_VERSION = response.read().decode('utf-8')
 
 exec(compile(open('youtube_dlc/version.py').read(), 'youtube_dlc/version.py', 'exec'))
-
 _LATEST_VERSION = locals()['__version__']
 
 _OLD_VERSION = _LATEST_VERSION.replace('-', '.').split(".", 4)

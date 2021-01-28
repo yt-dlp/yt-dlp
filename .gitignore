@@ -1,35 +1,43 @@
+# Python
 *.pyc
 *.pyo
-*.class
-*~
-*.DS_Store
 wine-py2exe/
 py2exe.log
-*.kate-swp
 build/
 dist/
 zip/
+tmp/
+venv/
+
+# Misc
+*~
+*.DS_Store
+*.kate-swp
 MANIFEST
-README.txt
-youtube-dl.1
-youtube-dlc.1
-youtube-dl.bash-completion
-youtube-dlc.bash-completion
-youtube-dl.fish
-youtube-dlc.fish
-youtube_dl/extractor/lazy_extractors.py
-youtube_dlc/extractor/lazy_extractors.py
-youtube-dl
-youtube-dlc
-youtube-dl.exe
-youtube-dlc.exe
-youtube-dl.tar.gz
-youtube-dlc.tar.gz
-youtube-dlc.spec
+test/local_parameters.json
 .coverage
 cover/
 updates_key.pem
 *.egg-info
+.tox
+*.class
+
+# Generated
+README.txt
+*.1
+*.bash-completion
+*.fish
+*.exe
+*.tar.gz
+*.zsh
+*.spec
+
+# Binary
+youtube-dl
+youtube-dlc
+*.exe
+
+# Downloaded
 *.srt
 *.ttml
 *.sbv
@@ -46,31 +54,28 @@ updates_key.pem
 *.swf
 *.part
 *.ytdl
-*.conf
 *.swp
+*.ogg
+*.opus
+
+# Config
+*.conf
 *.spec
-*.exe
-test/local_parameters.json
-.tox
-youtube-dl.zsh
-youtube-dlc.zsh
-
-# IntelliJ related files
-.idea
-*.iml
-
-tmp/
-venv/
-
-# VS Code related files
-.vscode
-
-# SublimeText files
-*.sublime-workspace
-
-# Cookies
 cookies
 cookies.txt
+
+
+
+# Text Editor / IDE
+.idea
+*.iml
+.vscode
+*.sublime-workspace
+*.sublime-project
+!yt-dlp.sublime-project
+
+# Lazy extractors
+*/extractor/lazy_extractors.py
 
 # Plugins
 ytdlp_plugins/extractor/*

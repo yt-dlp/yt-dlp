@@ -41,10 +41,8 @@ else:
     params = {
         'data_files': data_files,
     }
-    #if setuptools_available:
     params['entry_points'] = {'console_scripts': ['youtube-dlc = youtube_dlc:main']}
-    #else:
-    #    params['scripts'] = ['bin/youtube-dlc']
+
 
 class build_lazy_extractors(Command):
     description = 'Build the extractor lazy loading module'
@@ -62,6 +60,9 @@ class build_lazy_extractors(Command):
             dry_run=self.dry_run,
         )
 
+
+packages = find_packages(exclude=("youtube_dl","test",))
+
 setup(
     name="yt-dlp",
     version=__version__,
@@ -71,7 +72,7 @@ setup(
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     url="https://github.com/pukkandan/yt-dlp",
-    packages=find_packages(exclude=("youtube_dl","test",)),
+    packages=packages,
     project_urls={
         'Documentation': 'https://github.com/pukkandan/yt-dlp#yt-dlp',
         'Source': 'https://github.com/pukkandan/yt-dlp',

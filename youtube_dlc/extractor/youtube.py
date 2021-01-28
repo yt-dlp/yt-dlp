@@ -2492,8 +2492,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             def get_continuation(continuation, session_token, replies=False):
                 query = {
-                        'pbj': 1,
-                        'ctoken': continuation,
+                    'pbj': 1,
+                    'ctoken': continuation,
                 }
                 if replies:
                     query['action_get_comment_replies'] = 1

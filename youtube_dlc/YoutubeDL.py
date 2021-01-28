@@ -1119,15 +1119,15 @@ class YoutubeDL(object):
             if not ensure_dir_exists(encodeFilename(infofn)):
                 return
             if self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                self.to_screen('[info] Playlist description metadata is already present')
+                self.to_screen('[info] Playlist metadata is already present')
             else:
-                self.to_screen('[info] Writing description playlist metadata as JSON to: ' + infofn)
+                self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
                 playlist_info = dict(ie_result)
                 playlist_info.pop('entries')
                 try:
                     write_json_file(self.filter_requested_info(playlist_info), infofn)
                 except (OSError, IOError):
-                    self.report_error('Cannot write playlist description metadata to JSON file ' + infofn)
+                    self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
 
         if self.params.get('writedescription', False):
             descfn = replace_extension(
@@ -2144,13 +2144,13 @@ class YoutubeDL(object):
             if not ensure_dir_exists(encodeFilename(infofn)):
                 return
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                self.to_screen('[info] Video description metadata is already present')
+                self.to_screen('[info] Video metadata is already present')
             else:
-                self.to_screen('[info] Writing video description metadata as JSON to: ' + infofn)
+                self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
                 try:
                     write_json_file(self.filter_requested_info(info_dict), infofn)
                 except (OSError, IOError):
-                    self.report_error('Cannot write metadata to JSON file ' + infofn)
+                    self.report_error('Cannot write video metadata to JSON file ' + infofn)
                     return
             info_dict['__infojson_filepath'] = infofn
 

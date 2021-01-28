@@ -25,8 +25,8 @@ jobs:
       run: sudo apt-get -y install zip pandoc man
     - name: Bump version
       id: bump_version
-      run: python scripts/update-version-workflow.py
-    - name: Check the output from My action
+      run: python devscripts/update-version-workflow.py
+    - name: Check the version
       run: echo "${{ steps.bump_version.outputs.ytdlc_version }}"
     - name: Run Make
       run: make
@@ -86,7 +86,7 @@ jobs:
     - name: Install Requirements
       run: pip install pyinstaller
     - name: Bump version
-      run: python scripts/update-version-workflow.py
+      run: python devscripts/update-version-workflow.py
     - name: Run PyInstaller Script
       run: python pyinst.py
     - name: Upload youtube-dlc.exe Windows binary
@@ -121,7 +121,7 @@ jobs:
     - name: Install Requirements for 32 Bit
       run: pip install pyinstaller==3.5
     - name: Bump version
-      run: python scripts/update-version-workflow.py
+      run: python devscripts/update-version-workflow.py
     - name: Run PyInstaller Script for 32 Bit
       run: python pyinst32.py
     - name: Upload Executable youtube-dlc_x86.exe
