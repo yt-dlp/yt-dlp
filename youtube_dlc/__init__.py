@@ -350,6 +350,8 @@ def _real_main(argv=None):
         opts.postprocessor_args.setdefault('sponskrub', [])
         opts.postprocessor_args['default'] = opts.postprocessor_args['default-compat']
 
+    audio_ext = opts.audioformat if (opts.extractaudio and opts.audioformat != 'best') else None
+
     match_filter = (
         None if opts.match_filter is None
         else match_filter_func(opts.match_filter))
@@ -469,7 +471,7 @@ def _real_main(argv=None):
         'extract_flat': opts.extract_flat,
         'mark_watched': opts.mark_watched,
         'merge_output_format': opts.merge_output_format,
-        'final_ext': opts.recodevideo or opts.remuxvideo,
+        'final_ext': opts.recodevideo or opts.remuxvideo or audio_ext,
         'postprocessors': postprocessors,
         'fixup': opts.fixup,
         'source_address': opts.source_address,
