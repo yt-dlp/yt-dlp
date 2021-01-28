@@ -155,7 +155,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not _has_mutagen:
                 raise EmbedThumbnailPPError('module mutagen was not found. Please install.')
             size_regex = r',\s*(?P<w>\d+)x(?P<h>\d+)\s*[,\[]'
-            size_result = self.run_ffmpeg_multiple_files([thumbnail_filename], '', ['-hide_banner'])
+            size_result = self.run_ffmpeg(thumbnail_filename, thumbnail_filename, ['-hide_banner'])
             mobj = re.search(size_regex, size_result)
             width, height = int(mobj.group('w')), int(mobj.group('h'))
             mimetype = ('image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')).encode('ascii')

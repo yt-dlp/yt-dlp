@@ -268,7 +268,7 @@ class FFmpegPostProcessor(PostProcessor):
         return stderr.decode('utf-8', 'replace')
 
     def run_ffmpeg(self, path, out_path, opts):
-        self.run_ffmpeg_multiple_files([path], out_path, opts)
+        return self.run_ffmpeg_multiple_files([path], out_path, opts)
 
     def _ffmpeg_filename_argument(self, fn):
         # Always use 'file:' because the filename may contain ':' (ffmpeg
