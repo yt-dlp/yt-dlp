@@ -7,9 +7,10 @@ try:
     from .lazy_extractors import _ALL_CLASSES
     _LAZY_LOADER = True
     _PLUGIN_CLASSES = []
-
 except ImportError:
     _LAZY_LOADER = False
+
+if not _LAZY_LOADER:
     from .extractors import *
 
     _PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
