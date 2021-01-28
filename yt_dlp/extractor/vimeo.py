@@ -499,6 +499,24 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'only_matching': True,
         },
         {
+            'url': 'https://vimeo.com/showcase/3253534/video/119195465',
+            'note': 'A video in a password protected album (showcase)',
+            'info_dict': {
+                'id': '119195465',
+                'ext': 'mp4',
+                'title': 'youtube-dl test video \'ä"BaW_jenozKc',
+                'uploader': 'Philipp Hagemeister',
+                'uploader_id': 'user20132939',
+                'description': 'md5:fa7b6c6d8db0bdc353893df2f111855b',
+                'upload_date': '20150209',
+                'timestamp': 1423518307,
+            },
+            'params': {
+                'format': 'best[protocol=https]',
+                'videopassword': 'youtube-dl',
+            },
+        },
+        {
             # source file returns 403: Forbidden
             'url': 'https://vimeo.com/7809605',
             'only_matching': True,
@@ -564,6 +582,44 @@ class VimeoIE(VimeoBaseInfoExtractor):
     def _real_initialize(self):
         self._login()
 
+    def _try_album_password(self, url):
+        album_id = self._search_regex(
+            r'vimeo\.com/(?:album|showcase)/([^/]+)', url, 'album id', default=None)
+        if not album_id:
+            return
+        viewer = self._download_json(
+            'https://vimeo.com/_rv/viewer', album_id, fatal=False)
+        if not viewer:
+            webpage = self._download_webpage(url, album_id)
+            viewer = self._parse_json(self._search_regex(
+                r'bootstrap_data\s*=\s*({.+?})</script>',
+                webpage, 'bootstrap data'), album_id)['viewer']
+        jwt = viewer['jwt']
+        album = self._download_json(
+            'https://api.vimeo.com/albums/' + album_id,
+            album_id, headers={'Authorization': 'jwt ' + jwt},
+            query={'fields': 'description,name,privacy'})
+        if try_get(album, lambda x: x['privacy']['view']) == 'password':
+            password = self._downloader.params.get('videopassword')
+            if not password:
+                raise ExtractorError(
+                    'This album is protected by a password, use the --video-password option',
+                    expected=True)
+            self._set_vimeo_cookie('vuid', viewer['vuid'])
+            try:
+                self._download_json(
+                    'https://vimeo.com/showcase/%s/auth' % album_id,
+                    album_id, 'Verifying the password', data=urlencode_postdata({
+                        'password': password,
+                        'token': viewer['xsrft'],
+                    }), headers={
+                        'X-Requested-With': 'XMLHttpRequest',
+                    })
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                    raise ExtractorError('Wrong password', expected=True)
+                raise
+
     def _real_extract(self, url):
         url, data = unsmuggle_url(url, {})
         headers = std_headers.copy()
@@ -591,6 +647,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         elif any(p in url for p in ('play_redirect_hls', 'moogaloop.swf')):
             url = 'https://vimeo.com/' + video_id
 
+        self._try_album_password(url)
         try:
             # Retrieve video webpage to extract further information
             webpage, urlh = self._download_webpage_handle(
