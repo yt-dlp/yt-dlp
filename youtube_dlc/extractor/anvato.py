@@ -9,7 +9,6 @@ import re
 import time
 
 from .common import InfoExtractor
-from .anvato_token_generator import NFLTokenGenerator
 from ..aes import aes_encrypt
 from ..compat import compat_str
 from ..utils import (
@@ -22,6 +21,15 @@ from ..utils import (
     unsmuggle_url,
 )
 
+# This import causes a ModuleNotFoundError on some systems for unknown reason.
+# See issues:
+# https://github.com/pukkandan/yt-dlp/issues/35
+# https://github.com/ytdl-org/youtube-dl/issues/27449
+# https://github.com/animelover1984/youtube-dl/issues/17
+try:
+    from .anvato_token_generator import NFLTokenGenerator
+except ImportError:
+    NFLTokenGenerator = None
 
 def md5_text(s):
     if not isinstance(s, compat_str):
@@ -267,7 +275,7 @@ class AnvatoIE(InfoExtractor):
             'anvrid': anvrid,
             'anvts': server_time,
         }
-        if access_key in self._TOKEN_GENERATORS:
+        if self._TOKEN_GENERATORS.get(access_key) is not None:
             api['anvstk2'] = self._TOKEN_GENERATORS[access_key].generate(self, access_key, video_id)
         else:
             api['anvstk'] = md5_text('%s|%s|%d|%s' % (
