@@ -3426,12 +3426,19 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 title += ' - %s' % tab_title
             description = renderer.get('description')
             playlist_id = renderer.get('externalId')
+
+        # this has thumbnails, but there is currently no thumbnail field for playlists
+        # sidebar.playlistSidebarRenderer has even more data, but its stucture is more complec
         renderer = try_get(
-            data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
+            data, lambda x: x['microformat']['microformatDataRenderer'], dict)
+        if not renderer:
+            renderer = try_get(
+                data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
         if renderer:
             title = renderer.get('title')
-            description = None
+            description = renderer.get('description')
             playlist_id = item_id
+
         if playlist_id is None:
             playlist_id = item_id
         if title is None:
