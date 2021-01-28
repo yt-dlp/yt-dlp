@@ -1108,13 +1108,22 @@ class YoutubeDL(object):
         # We process each entry in the playlist
         playlist = ie_result.get('title') or ie_result.get('id')
         self.to_screen('[download] Downloading playlist: %s' % playlist)
+        ie_copy = {
+            'playlist': playlist,
+            'playlist_id': ie_result.get('id'),
+            'playlist_title': ie_result.get('title'),
+            'playlist_uploader': ie_result.get('uploader'),
+            'playlist_uploader_id': ie_result.get('uploader_id'),
+            'playlist_index': 0
+        }
+        ie_copy.update(dict(ie_result))
 
         def ensure_dir_exists(path):
             return make_dir(path, self.report_error)
 
         if self.params.get('writeinfojson', False):
             infofn = replace_extension(
-                self.prepare_filepath(self.prepare_filename(ie_result), 'infojson'),
+                self.prepare_filepath(self.prepare_filename(ie_copy), 'infojson'),
                 'info.json', ie_result.get('ext'))
             if not ensure_dir_exists(encodeFilename(infofn)):
                 return
@@ -1131,7 +1140,7 @@ class YoutubeDL(object):
 
         if self.params.get('writedescription', False):
             descfn = replace_extension(
-                self.prepare_filepath(self.prepare_filename(ie_result), 'description'),
+                self.prepare_filepath(self.prepare_filename(ie_copy), 'description'),
                 'description', ie_result.get('ext'))
             if not ensure_dir_exists(encodeFilename(descfn)):
                 return
