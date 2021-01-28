@@ -296,6 +296,9 @@ class YoutubeDL(object):
                        Progress hooks are guaranteed to be called at least once
                        (with status "finished") if the download is successful.
     merge_output_format: Extension to use when merging formats.
+    final_ext:         Expected final extension; used to detect when the file was
+                       already downloaded and converted. "merge_output_format" is
+                       replaced by this extension when given
     fixup:             Automatically correct known faults of the file.
                        One of:
                        - "never": do nothing
@@ -437,6 +440,11 @@ class YoutubeDL(object):
         if check_deprecated('cn_verification_proxy', '--cn-verification-proxy', '--geo-verification-proxy'):
             if self.params.get('geo_verification_proxy') is None:
                 self.params['geo_verification_proxy'] = self.params['cn_verification_proxy']
+
+        if self.params.get('final_ext'):
+            if self.params.get('merge_output_format'):
+                self.report_warning('--merge-output-format will be ignored since --remux-video or --recode-video is given')
+            self.params['merge_output_format'] = self.params['final_ext']
 
         check_deprecated('autonumber_size', '--autonumber-size', 'output template with %(autonumber)0Nd, where N in the number of digits')
         check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
@@ -2204,22 +2212,27 @@ class YoutubeDL(object):
         if not self.params.get('skip_download', False):
             try:
 
-                def existing_file(filename, temp_filename):
-                    file_exists = os.path.exists(encodeFilename(filename))
-                    tempfile_exists = (
-                        False if temp_filename == filename
-                        else os.path.exists(encodeFilename(temp_filename)))
-                    if not self.params.get('overwrites', False) and (file_exists or tempfile_exists):
-                        existing_filename = temp_filename if tempfile_exists else filename
-                        self.to_screen('[download] %s has already been downloaded and merged' % existing_filename)
-                        return existing_filename
-                    if tempfile_exists:
-                        self.report_file_delete(temp_filename)
-                        os.remove(encodeFilename(temp_filename))
-                    if file_exists:
-                        self.report_file_delete(filename)
-                        os.remove(encodeFilename(filename))
-                    return None
+                def existing_file(*filepaths):
+                    ext = info_dict.get('ext')
+                    final_ext = self.params.get('final_ext', ext)
+                    existing_files = []
+                    for file in orderedSet(filepaths):
+                        if final_ext != ext:
+                            converted = replace_extension(file, final_ext, ext)
+                            if os.path.exists(encodeFilename(converted)):
+                                existing_files.append(converted)
+                        if os.path.exists(encodeFilename(file)):
+                            existing_files.append(file)
+
+                    if not existing_files or self.params.get('overwrites', False):
+                        for file in orderedSet(existing_files):
+                            self.report_file_delete(file)
+                            os.remove(encodeFilename(file))
+                        return None
+
+                    self.report_file_already_downloaded(existing_files[0])
+                    info_dict['ext'] = os.path.splitext(existing_files[0])[1][1:]
+                    return existing_files[0]
 
                 success = True
                 if info_dict.get('requested_formats') is not None:
@@ -2331,7 +2344,8 @@ class YoutubeDL(object):
                         assert fixup_policy in ('ignore', 'never')
 
                 if (info_dict.get('requested_formats') is None
-                        and info_dict.get('container') == 'm4a_dash'):
+                        and info_dict.get('container') == 'm4a_dash'
+                        and info_dict.get('ext') == 'm4a'):
                     if fixup_policy == 'warn':
                         self.report_warning(
                             '%s: writing DASH m4a. '

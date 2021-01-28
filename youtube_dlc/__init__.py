@@ -469,6 +469,7 @@ def _real_main(argv=None):
         'extract_flat': opts.extract_flat,
         'mark_watched': opts.mark_watched,
         'merge_output_format': opts.merge_output_format,
+        'final_ext': opts.recodevideo or opts.remuxvideo,
         'postprocessors': postprocessors,
         'fixup': opts.fixup,
         'source_address': opts.source_address,
