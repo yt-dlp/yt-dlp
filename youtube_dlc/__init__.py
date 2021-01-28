@@ -15,6 +15,7 @@ import sys
 
 from .options import (
     parseOpts,
+    _remux_formats,
 )
 from .compat import (
     compat_getpass,
@@ -209,12 +210,15 @@ def _real_main(argv=None):
         opts.audioquality = opts.audioquality.strip('k').strip('K')
         if not opts.audioquality.isdigit():
             parser.error('invalid audio quality specified')
-    if opts.remuxvideo is not None:
-        if opts.remuxvideo not in ['mp4', 'mkv']:
-            parser.error('invalid video container format specified')
     if opts.recodevideo is not None:
-        if opts.recodevideo not in ['mp4', 'flv', 'webm', 'ogg', 'mkv', 'avi']:
+        if opts.recodevideo not in _remux_formats:
             parser.error('invalid video recode format specified')
+    if opts.remuxvideo and opts.recodevideo:
+        opts.remuxvideo = None
+        write_string('WARNING: --remux-video is ignored since --recode-video was given\n', out=sys.stderr)
+    if opts.remuxvideo is not None:
+        if opts.remuxvideo not in _remux_formats:
+            parser.error('invalid video remux format specified')
     if opts.convertsubtitles is not None:
         if opts.convertsubtitles not in ['srt', 'vtt', 'ass', 'lrc']:
             parser.error('invalid subtitle format specified')

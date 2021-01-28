@@ -22,6 +22,9 @@ from .utils import (
 from .version import __version__
 
 
+_remux_formats = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')
+
+
 def _hide_login_info(opts):
     PRIVATE_OPTS = set(['-p', '--password', '-u', '--username', '--video-password', '--ap-password', '--ap-username'])
     eqre = re.compile('^(?P<key>' + ('|'.join(re.escape(po) for po in PRIVATE_OPTS)) + ')=.+$')
@@ -1017,14 +1020,16 @@ def parseOpts(overrideArguments=None):
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
         help=(
-            'Remux the video into another container if necessary (currently supported: mp4|mkv). '
+            'Remux the video into another container if necessary (currently supported: %s). '
             'If target container does not support the video/audio codec, remuxing will fail. '
             'You can specify multiple rules; eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.'))
+            'and anything else to mkv.' % '|'.join(_remux_formats)))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,
-        help='Re-encode the video into another format if re-encoding is necessary (currently supported: mp4|flv|ogg|webm|mkv|avi)')
+        help=(
+            'Re-encode the video into another format if re-encoding is necessary. '
+            'The supported formats are the same as --remux-video'))
     postproc.add_option(
         '--postprocessor-args', '--ppa',
         metavar='NAME:ARGS', dest='postprocessor_args', default={}, type='str',

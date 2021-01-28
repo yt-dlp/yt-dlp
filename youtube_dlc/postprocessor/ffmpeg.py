@@ -402,7 +402,7 @@ class FFmpegVideoRemuxerPP(FFmpegPostProcessor):
             else 'already is in target format %s' if sourceext == targetext
             else None)
         if _skip_msg:
-            self.to_screen('Not remuxing media file %s - %s' % (path, _skip_msg % sourceext))
+            self.to_screen('Not remuxing media file %s; %s' % (path, _skip_msg % sourceext))
             return [], information
 
         options = ['-c', 'copy', '-map', '0', '-dn']
