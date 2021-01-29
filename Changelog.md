@@ -8,12 +8,46 @@
 * Change "Merged with youtube-dl" version in Readme.md if needed
 * Commit to master as `Release <version>`
 * Push to origin/release - build task will now run
-* Update version.py and run `make issuetemplates`
+* Update version.py using devscripts\update-version.py
+* Run `make issuetemplates`
 * Commit to master as `[version] update :ci skip all`
 * Push to origin/master
 * Update changelog in /releases
 
 -->
+
+
+### 2021.01.29
+* **Features from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl)**: Co-authored by @animelover1984 and @bbepis
+    * Add `--get-comments`
+    * [youtube] Extract comments
+    * [billibilli] Added BiliBiliSearchIE, BilibiliChannelIE
+    * [billibilli] Extract comments
+    * [billibilli] Better video extraction
+    * Write playlist data to infojson
+    * [FFmpegMetadata] Embed infojson inside the video
+    * [EmbedThumbnail] Try embedding in mp4 using ffprobe and `-disposition`
+    * [EmbedThumbnail] Treat mka like mkv and mov like mp4
+    * [EmbedThumbnail] Embed in ogg/opus
+    * [VideoRemuxer] Conditionally remux video
+    * [VideoRemuxer] Add `-movflags +faststart` when remuxing to mp4
+    * [ffmpeg] Print entire stderr in verbose when there is error
+    * [EmbedSubtitle] Warn when embedding ass in mp4
+    * [anvato] Use NFLTokenGenerator if possible
+* **Parse additional metadata**: New option `--parse-metadata` to extract additional metadata from existing fields
+    * The extracted fields can be used in `--output`
+    * Deprecated `--metadata-from-title`
+* [Audius] Add extractor
+* [youtube] Extract playlist description and write it to `.description` file
+* Detect existing files even when using `recode`/`remux` (`extract-audio` is partially fixed)
+* Fix wrong user config from v2021.01.24
+* [youtube] Report error message from youtube as error instead of warning
+* [FormatSort] Fix some fields not sorting from v2021.01.24
+* [postprocessor] Deprecate `avconv`/`avprobe`.  All current functionality is left untouched. But don't expect any new features to work with avconv
+* [postprocessor] fix `write_debug` to not throw error when there is no `_downloader`
+* [movefiles] Don't give "cant find" warning when move is unnecessary
+* Refactor `update-version`, `pyinst.py` and related files
+* [ffmpeg] Document more formats that are supported for remux/recode
 
 
 ### 2021.01.24

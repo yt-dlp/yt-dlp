@@ -56,12 +56,14 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Merged with youtube-dl v2021.01.24.1**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
+* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/pukkandan/yt-dlp/pull/31) for details.
+
 * **Youtube improvements**:
     * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and support downloading multiple pages of content
     * Youtube search works correctly (`ytsearch:`, `ytsearchdate:`) along with Search URLs
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
 
-* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom
+* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius
 
 * **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina
 
@@ -73,9 +75,10 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Portable Configuration**: Configuration files are automatically loaded from the home and root directories. See [configuration](#configuration) for details
 
-* **Other new options**: `--list-formats-as-table`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+* **Other new options**: `--parse-metadata`, `--list-formats-as-table`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
 
 * **Improvements**: Multiple `--postprocessor-args` and `--external-downloader-args`, `%(duration_string)s` in `-o`, faster archive checking, more [format selection options](#format-selection) etc
+
 
 See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
 
@@ -320,8 +323,8 @@ Then simply type this
     --downloader-args NAME:ARGS      Give these arguments to the external
                                      downloader. Specify the downloader name and
                                      the arguments separated by a colon ":". You
-                                     can use this option multiple times (Alias:
-                                     --external-downloader-args)
+                                     can use this option multiple times
+                                     (Alias: --external-downloader-args)
 
 ## Filesystem Options:
     -a, --batch-file FILE            File containing URLs to download ('-' for
@@ -511,17 +514,17 @@ Then simply type this
     --list-formats-old               Present the output of -F in the old form
                                      (Alias: --no-list-formats-as-table)
     --youtube-include-dash-manifest  Download the DASH manifests and related
-                                     data on YouTube videos (default) (Alias:
-                                     --no-youtube-skip-dash-manifest)
+                                     data on YouTube videos (default)
+                                     (Alias: --no-youtube-skip-dash-manifest)
     --youtube-skip-dash-manifest     Do not download the DASH manifests and
-                                     related data on YouTube videos (Alias:
-                                     --no-youtube-include-dash-manifest)
+                                     related data on YouTube videos
+                                     (Alias: --no-youtube-include-dash-manifest)
     --youtube-include-hls-manifest   Download the HLS manifests and related data
-                                     on YouTube videos (default) (Alias:
-                                    --no-youtube-skip-hls-manifest)
+                                     on YouTube videos (default)
+                                     (Alias: --no-youtube-skip-hls-manifest)
     --youtube-skip-hls-manifest      Do not download the HLS manifests and
-                                     related data on YouTube videos (Alias:
-                                     --no-youtube-include-hls-manifest)
+                                     related data on YouTube videos
+                                     (Alias: --no-youtube-include-hls-manifest)
     --merge-output-format FORMAT     If a merge is required (e.g.
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
@@ -575,15 +578,16 @@ Then simply type this
                                      VBR or a specific bitrate like 128K
                                      (default 5)
     --remux-video FORMAT             Remux the video into another container if
-                                     necessary (currently supported: mp4|mkv).
-                                     If target container does not support the
+                                     necessary (currently supported: mp4|mkv|flv
+                                     |webm|mov|avi|mp3|mka|m4a|ogg|opus). If
+                                     target container does not support the
                                      video/audio codec, remuxing will fail. You
                                      can specify multiple rules; eg.
                                      "aac>m4a/mov>mp4/mkv" will remux aac to
                                      m4a, mov to mp4 and anything else to mkv.
     --recode-video FORMAT            Re-encode the video into another format if
-                                     re-encoding is necessary (currently
-                                     supported: mp4|flv|ogg|webm|mkv|avi)
+                                     re-encoding is necessary. The supported
+                                     formats are the same as --remux-video
     --postprocessor-args NAME:ARGS   Give these arguments to the postprocessors.
                                      Specify the postprocessor/executable name
                                      and the arguments separated by a colon ":"
@@ -619,12 +623,13 @@ Then simply type this
     --parse-metadata FIELD:FORMAT    Parse additional metadata like title/artist
                                      from other fields. Give field name to
                                      extract data from, and format of the field
-                                     seperated by a ":". The format syntax is
-                                     the same as --output. Regular expression
-                                     with named capture groups may also be used.
-                                     The parsed parameters replace existing
-                                     values. This option can be used multiple
-                                     times. Example: --parse-metadata
+                                     seperated by a ":". Either regular
+                                     expression with named capture groups or a
+                                     similar syntax to the output template can
+                                     also be used. The parsed parameters replace
+                                     any existing values and can be use in
+                                     output templateThis option can be used
+                                     multiple times. Example: --parse-metadata
                                      "title:%(artist)s - %(title)s" matches a
                                      title like "Coldplay - Paradise". Example
                                      (regex): --parse-metadata
@@ -771,7 +776,7 @@ The basic usage is not to set any template arguments when downloading a single f
  - `is_live` (boolean): Whether this video is a live stream or a fixed-length video
  - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
  - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
- - `format` (string): A human-readable description of the format 
+ - `format` (string): A human-readable description of the format
  - `format_id` (string): Format code specified by `--format`
  - `format_note` (string): Additional info about the format
  - `width` (numeric): Width of the video

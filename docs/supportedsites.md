@@ -80,6 +80,8 @@
  - **AudioBoom**
  - **audiomack**
  - **audiomack:album**
+ - **Audius**
+ - **audius:playlist**
  - **AWAAN**
  - **awaan:live**
  - **awaan:season**
@@ -112,7 +114,9 @@
  - **BiliBili**
  - **BilibiliAudio**
  - **BilibiliAudioAlbum**
+ - **BilibiliChannel**
  - **BiliBiliPlayer**
+ - **BiliBiliSearch**: Bilibili video search, "bilisearch" keyword
  - **BioBioChileTV**
  - **Biography**
  - **BIQLE**

@@ -1096,9 +1096,9 @@ def parseOpts(overrideArguments=None):
         help=(
             'Parse additional metadata like title/artist from other fields. '
             'Give field name to extract data from, and format of the field seperated by a ":". '
-            'The format syntax is the same as --output. '
-            'Regular expression with named capture groups may also be used. '
-            'The parsed parameters replace existing values. '
+            'Either regular expression with named capture groups or a '
+            'similar syntax to the output template can also be used. '
+            'The parsed parameters replace any existing values and can be use in output template'
             'This option can be used multiple times. '
             'Example: --parse-metadata "title:%(artist)s - %(title)s" matches a title like '
             '"Coldplay - Paradise". '
