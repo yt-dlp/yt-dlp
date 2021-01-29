@@ -99,16 +99,15 @@ You can install yt-dlp using one of the following methods:
 ### COMPILE
 
 **For Windows**:
-To build the Windows executable yourself (without version info!)
+To build the Windows executable, you must have pyinstaller (and optionally mutagen for embedding thumbnail in opus/ogg files)
 
-    python -m pip install --upgrade pyinstaller
+    python -m pip install --upgrade pyinstaller mutagen
+
+For the 64bit version, run `py devscripts\pyinst.py 64` using 64bit python3. Similarly, to install 32bit version, run `py devscripts\pyinst.py 32` using 32bit python (preferably 3)
+
+You can also build the executable without any version info or metadata by using:
+
     pyinstaller.exe youtube_dlc\__main__.py --onefile --name youtube-dlc
-    
-Or simply execute the `make_win.bat` if pyinstaller is installed.
-There will be a `youtube-dlc.exe` in `/dist`  
-
-New way to build Windows is to use `python pyinst.py` (please use python3 64Bit)  
-For 32Bit Version use a 32Bit Version of python (3 preferred here as well) and run `python pyinst32.py`  
 
 **For Unix**:
 You will need the required build tools  
@@ -117,6 +116,7 @@ Then simply type this
 
     make
 
+**Note**: In either platform, `devscripts\update-version.py` can be used to automatically update the version number
 
 # DESCRIPTION
 **youtube-dlc** is a command-line program to download videos from youtube.com many other [video platforms](docs/supportedsites.md). It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.

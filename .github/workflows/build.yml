@@ -25,8 +25,8 @@ jobs:
       run: sudo apt-get -y install zip pandoc man
     - name: Bump version
       id: bump_version
-      run: python devscripts/update-version-workflow.py
-    - name: Check the version
+      run: python devscripts/update-version.py
+    - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlc_version }}"
     - name: Run Make
       run: make
@@ -84,11 +84,14 @@ jobs:
       with:
           python-version: '3.8'
     - name: Install Requirements
-      run: pip install pyinstaller
+      run: pip install pyinstaller mutagen
     - name: Bump version
-      run: python devscripts/update-version-workflow.py
+      id: bump_version
+      run: python devscripts/update-version.py
+    - name: Print version
+      run: echo "${{ steps.bump_version.outputs.ytdlc_version }}"
     - name: Run PyInstaller Script
-      run: python pyinst.py
+      run: python devscripts/pyinst.py 64
     - name: Upload youtube-dlc.exe Windows binary
       id: upload-release-windows
       uses: actions/upload-release-asset@v1
@@ -119,11 +122,14 @@ jobs:
           python-version: '3.4.4'
           architecture: 'x86'
     - name: Install Requirements for 32 Bit
-      run: pip install pyinstaller==3.5
+      run: pip install pyinstaller==3.5 mutagen
     - name: Bump version
-      run: python devscripts/update-version-workflow.py
+      id: bump_version
+      run: python devscripts/update-version.py
+    - name: Print version
+      run: echo "${{ steps.bump_version.outputs.ytdlc_version }}"
     - name: Run PyInstaller Script for 32 Bit
-      run: python pyinst32.py
+      run: python devscripts/pyinst.py 32
     - name: Upload Executable youtube-dlc_x86.exe
       id: upload-release-windows32
       uses: actions/upload-release-asset@v1

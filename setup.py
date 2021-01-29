@@ -7,9 +7,11 @@ import warnings
 import sys
 from distutils.spawn import spawn
 
+
 # Get the version from youtube_dlc/version.py without importing the package
 exec(compile(open('youtube_dlc/version.py').read(),
              'youtube_dlc/version.py', 'exec'))
+
 
 DESCRIPTION = 'Command-line program to download videos from YouTube.com and many other other video platforms.'
 
@@ -17,6 +19,9 @@ LONG_DESCRIPTION = '\n\n'.join((
     'Official repository: <https://github.com/pukkandan/yt-dlp>',
     '**PS**: Many links in this document will not work since this is a copy of the README.md from Github',
     open("README.md", "r", encoding="utf-8").read()))
+
+REQUIREMENTS = ['mutagen']
+
 
 if len(sys.argv) >= 2 and sys.argv[1] == 'py2exe':
     print("inv")
@@ -61,7 +66,7 @@ class build_lazy_extractors(Command):
         )
 
 
-packages = find_packages(exclude=("youtube_dl","test",))
+packages = find_packages(exclude=("youtube_dl", "test", "ytdlp_plugins"))
 
 setup(
     name="yt-dlp",
@@ -73,6 +78,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/pukkandan/yt-dlp",
     packages=packages,
+    install_requires=REQUIREMENTS,
     project_urls={
         'Documentation': 'https://github.com/pukkandan/yt-dlp#yt-dlp',
         'Source': 'https://github.com/pukkandan/yt-dlp',

@@ -1,1 +1,0 @@
-py -m PyInstaller youtube_dlc\__main__.py --onefile --name youtube-dlc --version-file win\ver.txt --icon win\icon\cloud.ico --upx-exclude=vcruntime140.dll --exclude-module ytdlp_plugins
