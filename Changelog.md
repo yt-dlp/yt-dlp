@@ -8,7 +8,7 @@
 * Change "Merged with youtube-dl" version in Readme.md if needed
 * Commit to master as `Release <version>`
 * Push to origin/release - build task will now run
-* Update version.py using devscripts\update-version.py
+* Update version.py using devscripts\update-version.py (be wary of timezones)
 * Run `make issuetemplates`
 * Commit to master as `[version] update :ci skip all`
 * Push to origin/master
