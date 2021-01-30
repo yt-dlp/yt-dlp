@@ -206,6 +206,7 @@ class YoutubeDL(object):
                        unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
     writethumbnail:    Write the thumbnail image to a file
+    allow_playlist_files: Also write playlists' description, infojson etc in a seperate file
     write_all_thumbnails:  Write all thumbnail formats to files
     writelink:         Write an internet shortcut file, depending on the
                        current platform (.url/.webloc/.desktop)
@@ -1108,54 +1109,56 @@ class YoutubeDL(object):
         # We process each entry in the playlist
         playlist = ie_result.get('title') or ie_result.get('id')
         self.to_screen('[download] Downloading playlist: %s' % playlist)
-        ie_copy = {
-            'playlist': playlist,
-            'playlist_id': ie_result.get('id'),
-            'playlist_title': ie_result.get('title'),
-            'playlist_uploader': ie_result.get('uploader'),
-            'playlist_uploader_id': ie_result.get('uploader_id'),
-            'playlist_index': 0
-        }
-        ie_copy.update(dict(ie_result))
 
-        def ensure_dir_exists(path):
-            return make_dir(path, self.report_error)
+        if self.params.get('allow_playlist_files', True):
+            ie_copy = {
+                'playlist': playlist,
+                'playlist_id': ie_result.get('id'),
+                'playlist_title': ie_result.get('title'),
+                'playlist_uploader': ie_result.get('uploader'),
+                'playlist_uploader_id': ie_result.get('uploader_id'),
+                'playlist_index': 0
+            }
+            ie_copy.update(dict(ie_result))
 
-        if self.params.get('writeinfojson', False):
-            infofn = replace_extension(
-                self.prepare_filepath(self.prepare_filename(ie_copy), 'infojson'),
-                'info.json', ie_result.get('ext'))
-            if not ensure_dir_exists(encodeFilename(infofn)):
-                return
-            if self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                self.to_screen('[info] Playlist metadata is already present')
-            else:
-                self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
-                playlist_info = dict(ie_result)
-                playlist_info.pop('entries')
-                try:
-                    write_json_file(self.filter_requested_info(playlist_info), infofn)
-                except (OSError, IOError):
-                    self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
+            def ensure_dir_exists(path):
+                return make_dir(path, self.report_error)
 
-        if self.params.get('writedescription', False):
-            descfn = replace_extension(
-                self.prepare_filepath(self.prepare_filename(ie_copy), 'description'),
-                'description', ie_result.get('ext'))
-            if not ensure_dir_exists(encodeFilename(descfn)):
-                return
-            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
-                self.to_screen('[info] Playlist description is already present')
-            elif ie_result.get('description') is None:
-                self.report_warning('There\'s no playlist description to write.')
-            else:
-                try:
-                    self.to_screen('[info] Writing playlist description to: ' + descfn)
-                    with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
-                        descfile.write(ie_result['description'])
-                except (OSError, IOError):
-                    self.report_error('Cannot write playlist description file ' + descfn)
+            if self.params.get('writeinfojson', False):
+                infofn = replace_extension(
+                    self.prepare_filepath(self.prepare_filename(ie_copy), 'infojson'),
+                    'info.json', ie_result.get('ext'))
+                if not ensure_dir_exists(encodeFilename(infofn)):
                     return
+                if self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
+                    self.to_screen('[info] Playlist metadata is already present')
+                else:
+                    self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
+                    playlist_info = dict(ie_result)
+                    playlist_info.pop('entries')
+                    try:
+                        write_json_file(self.filter_requested_info(playlist_info), infofn)
+                    except (OSError, IOError):
+                        self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
+
+            if self.params.get('writedescription', False):
+                descfn = replace_extension(
+                    self.prepare_filepath(self.prepare_filename(ie_copy), 'description'),
+                    'description', ie_result.get('ext'))
+                if not ensure_dir_exists(encodeFilename(descfn)):
+                    return
+                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
+                    self.to_screen('[info] Playlist description is already present')
+                elif ie_result.get('description') is None:
+                    self.report_warning('There\'s no playlist description to write.')
+                else:
+                    try:
+                        self.to_screen('[info] Writing playlist description to: ' + descfn)
+                        with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
+                            descfile.write(ie_result['description'])
+                    except (OSError, IOError):
+                        self.report_error('Cannot write playlist description file ' + descfn)
+                        return
 
         playlist_results = []
 

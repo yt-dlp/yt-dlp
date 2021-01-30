@@ -938,6 +938,18 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='writeannotations',
         help='Do not write video annotations (default)')
     filesystem.add_option(
+        '--write-playlist-metafiles',
+        action='store_true', dest='allow_playlist_files', default=True,
+        help=(
+            'Write playlist metadata in addition to the video metadata '
+            'when using --write-info-json, --write-description etc. (default)'))
+    filesystem.add_option(
+        '--no-write-playlist-metafiles',
+        action='store_false', dest='allow_playlist_files',
+        help=(
+            'Do not write playlist metadata when using '
+            '--write-info-json, --write-description etc.'))
+    filesystem.add_option(
         '--get-comments',
         action='store_true', dest='getcomments', default=False,
         help='Retrieve video comments to be placed in the .info.json file')

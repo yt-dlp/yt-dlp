@@ -378,6 +378,11 @@ Then simply type this
     --write-annotations              Write video annotations to a
                                      .annotations.xml file
     --no-write-annotations           Do not write video annotations (default)
+    --write-playlist-metafiles       Write playlist metadata in addition to the
+                                     video metadata when using --write-info-json,
+                                     --write-description etc. (default)
+    --no-write-playlist-metafiles    Do not write playlist metadata when using
+                                     --write-info-json, --write-description etc.
     --get-comments                   Retrieve video comments to be placed in the
                                      .info.json file
     --load-info-json FILE            JSON file containing the video information
