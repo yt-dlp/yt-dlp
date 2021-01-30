@@ -4,6 +4,7 @@ import re
 
 from .common import PostProcessor
 from ..compat import compat_str
+from ..utils import str_or_none
 
 
 class MetadataFromFieldPP(PostProcessor):
@@ -48,8 +49,12 @@ class MetadataFromFieldPP(PostProcessor):
             if field not in info:
                 self.report_warning('Video doesnot have a %s' % field)
                 continue
+            data_to_parse = str_or_none(info[field])
+            if data_to_parse is None:
+                self.report_warning('Field %s cannot be parsed' % field)
+                continue
             self.write_debug('Searching for r"%s" in %s' % (regex, field))
-            match = re.search(regex, info[field])
+            match = re.search(regex, data_to_parse)
             if match is None:
                 self.report_warning('Could not interpret video %s as "%s"' % (field, dictn['format']))
                 continue
