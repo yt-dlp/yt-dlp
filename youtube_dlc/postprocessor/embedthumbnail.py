@@ -154,6 +154,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         elif info['ext'] in ['ogg', 'opus']:
             if not _has_mutagen:
                 raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python -m pip install mutagen`')
+            self.to_screen('Adding thumbnail to "%s"' % filename)
+
             size_regex = r',\s*(?P<w>\d+)x(?P<h>\d+)\s*[,\[]'
             size_result = self.run_ffmpeg(thumbnail_filename, thumbnail_filename, ['-hide_banner'])
             mobj = re.search(size_regex, size_result)

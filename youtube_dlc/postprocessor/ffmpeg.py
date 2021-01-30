@@ -61,7 +61,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     def check_version(self):
         if not self.available:
-            raise FFmpegPostProcessorError('ffmpeg not found. Please install one.')
+            raise FFmpegPostProcessorError('ffmpeg not found. Please install')
 
         required_version = '10-0' if self.basename == 'avconv' else '1.0'
         if is_outdated_version(
@@ -165,7 +165,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
-            raise PostProcessingError('ffprobe and ffmpeg not found. Please install one.')
+            raise PostProcessingError('ffprobe and ffmpeg not found. Please install')
         try:
             if self.probe_available:
                 cmd = [
