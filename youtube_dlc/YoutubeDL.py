@@ -2145,8 +2145,8 @@ class YoutubeDL(object):
                 else:
                     try:
                         self.post_process(full_filename, info_dict, files_to_move)
-                    except (PostProcessingError) as err:
-                        self.report_error('postprocessing: %s' % str(err))
+                    except PostProcessingError as err:
+                        self.report_error('Postprocessing: %s' % str(err))
                         return
 
         if self.params.get('writeinfojson', False):
@@ -2394,8 +2394,8 @@ class YoutubeDL(object):
 
                 try:
                     self.post_process(dl_filename, info_dict, files_to_move)
-                except (PostProcessingError) as err:
-                    self.report_error('postprocessing: %s' % str(err))
+                except PostProcessingError as err:
+                    self.report_error('Postprocessing: %s' % str(err))
                     return
                 try:
                     for ph in self._post_hooks:
@@ -2467,10 +2467,7 @@ class YoutubeDL(object):
 
     def run_pp(self, pp, infodict, files_to_move={}):
         files_to_delete = []
-        try:
-            files_to_delete, infodict = pp.run(infodict)
-        except PostProcessingError as e:
-            self.report_error(e.msg)
+        files_to_delete, infodict = pp.run(infodict)
         if not files_to_delete:
             return files_to_move, infodict
 
