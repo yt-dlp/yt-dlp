@@ -277,15 +277,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return super(YoutubeBaseInfoExtractor, self)._download_webpage_handle(
             *args, **compat_kwargs(kwargs))
 
-    def _get_yt_initial_data(self, video_id, webpage):
-        config = self._search_regex(
-            (r'window\["ytInitialData"\]\s*=\s*(.*?)(?<=});',
-             r'var\s+ytInitialData\s*=\s*(.*?)(?<=});'),
-            webpage, 'ytInitialData', default=None)
-        if config:
-            return self._parse_json(
-                uppercase_escape(config), video_id, fatal=False)
-
     def _real_initialize(self):
         if self._downloader is None:
             return
@@ -1943,7 +1934,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         has_live_chat_replay = False
         if not is_live:
-            yt_initial_data = self._get_yt_initial_data(video_id, video_webpage)
+            yt_initial_data = self._extract_yt_initial_data(video_id, video_webpage)
             try:
                 yt_initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
                 has_live_chat_replay = True
