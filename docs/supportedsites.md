@@ -80,8 +80,9 @@
  - **AudioBoom**
  - **audiomack**
  - **audiomack:album**
- - **Audius**
- - **audius:playlist**
+ - **Audius**: Audius.co
+ - **audius:playlist**: Audius.co playlists
+ - **audius:track**: Audius track ID or API link. Prepend with "audius:"
  - **AWAAN**
  - **awaan:live**
  - **awaan:season**

@@ -76,6 +76,7 @@ class AudiusBaseIE(InfoExtractor):
 
 class AudiusIE(AudiusBaseIE):
     _VALID_URL = r'''(?x)https?://(?:www\.)?(?:audius\.co/(?P<uploader>[\w\d-]+)(?!/album|/playlist)/(?P<title>\S+))'''
+    IE_DESC = 'Audius.co'
     _TESTS = [
         {
             # URL from Chrome address bar which replace backslash to forward slash
@@ -124,11 +125,15 @@ class AudiusIE(AudiusBaseIE):
 
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
-        uploader, title, track_id = mobj.groups()
+        track_id = try_get(mobj, lambda x: x.group('track_id'))
         if track_id is None:
+            title = mobj.group('title')
+            # uploader = mobj.group('uploader')
             url = self._prepare_url(url, title)
             track_data = self._resolve_url(url, title)
         else:  # API link
+            title = None
+            # uploader = None
             track_data = self._api_request('/tracks/%s' % track_id, track_id)
 
         if not isinstance(track_data, dict):
@@ -167,9 +172,26 @@ class AudiusIE(AudiusBaseIE):
         }
 
 
+class AudiusTrackIE(AudiusIE):
+    _VALID_URL = r'''(?x)(?:audius:)(?:https?://(?:www\.)?.+/v1/tracks/)?(?P<track_id>\w+)'''
+    IE_NAME = 'audius:track'
+    IE_DESC = 'Audius track ID or API link. Prepend with "audius:"'
+    _TESTS = [
+        {
+            'url': 'audius:9RWlo',
+            'only_matching': True
+        },
+        {
+            'url': 'audius:http://discoveryprovider.audius.prod-us-west-2.staked.cloud/v1/tracks/9RWlo',
+            'only_matching': True
+        },
+    ]
+
+
 class AudiusPlaylistIE(AudiusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?audius\.co/(?P<uploader>[\w\d-]+)/(?:album|playlist)/(?P<title>\S+)'
     IE_NAME = 'audius:playlist'
+    IE_DESC = 'Audius.co playlists'
     _TEST = {
         'url': 'https://audius.co/test_acc/playlist/test-playlist-22910',
         'info_dict': {
@@ -189,14 +211,15 @@ class AudiusPlaylistIE(AudiusBaseIE):
             if not track_id:
                 raise ExtractorError('Unable to get track ID from playlist')
             entries.append(self.url_result(
-                '%s%s/tracks/%s' % (self._API_BASE, self._API_V, track_id),
-                ie=AudiusIE.ie_key(), video_id=track_id))
+                'audius:%s' % track_id,
+                ie=AudiusTrackIE.ie_key(), video_id=track_id))
         return entries
 
     def _real_extract(self, url):
         self._select_api_base()
         mobj = re.match(self._VALID_URL, url)
-        uploader, title = mobj.groups()
+        title = mobj.group('title')
+        # uploader = mobj.group('uploader')
         url = self._prepare_url(url, title)
         playlist_response = self._resolve_url(url, title)
 

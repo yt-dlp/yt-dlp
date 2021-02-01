@@ -90,7 +90,11 @@ from .atvat import ATVAtIE
 from .audimedia import AudiMediaIE
 from .audioboom import AudioBoomIE
 from .audiomack import AudiomackIE, AudiomackAlbumIE
-from .audius import AudiusIE, AudiusPlaylistIE
+from .audius import (
+    AudiusIE,
+    AudiusTrackIE,
+    AudiusPlaylistIE
+)
 from .awaan import (
     AWAANIE,
     AWAANVideoIE,
