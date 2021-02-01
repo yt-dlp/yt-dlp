@@ -368,7 +368,7 @@ class NiconicoIE(InfoExtractor):
             'http://ext.nicovideo.jp/api/getthumbinfo/' + video_id,
             video_id, note='Downloading video info page')
 
-        def get_video_info(items):
+        def get_video_info_xml(items):
             if not isinstance(items, list):
                 items = [items]
             for item in items:
@@ -376,27 +376,27 @@ class NiconicoIE(InfoExtractor):
                 if ret:
                     return ret
 
-        extension = get_video_info('movie_type')
+        extension = get_video_info_xml('movie_type')
         if not extension:
             extension = determine_ext(video_real_url)
 
         # Economy mode movie is not source movie.
         # Similarly, if movie file size is unstable, old server movie is not original movie.
-        if not is_economy and int(get_video_info('size_high')) > 1:
+        if not is_economy and int(get_video_info_xml('size_high')) > 1:
             formats.append({
                 'url': video_real_url,
                 'format_id': 'smile',
                 'ext': extension,
-                'filesize': int_or_none(get_video_info('size_high'))
+                'filesize': int_or_none(get_video_info_xml('size_high'))
         })
 
         self._sort_formats(formats)
 
-        def get_video_info(items):
+        def get_video_info_web(items):
             return dict_get(api_data['video'], items)
 
         # Start extracting information
-        title = get_video_info('originalTitle')
+        title = get_video_info_web('originalTitle')
         if not title:
             title = self._og_search_title(webpage, default=None)
         if not title:
@@ -412,14 +412,14 @@ class NiconicoIE(InfoExtractor):
 
         thumbnail = (
             self._html_search_regex(r'<meta property="og:image" content="([^"]+)">', webpage, 'thumbnail data', default=None)
-            or get_video_info(['thumbnail_url', 'largeThumbnailURL', 'thumbnailURL'])
+            or get_video_info_web(['thumbnail_url', 'largeThumbnailURL', 'thumbnailURL'])
             or self._html_search_meta('image', webpage, 'thumbnail', default=None)
             or video_detail.get('thumbnail'))
 
-        description = get_video_info('description')
+        description = get_video_info_web('description')
 
-        timestamp = (parse_iso8601(get_video_info('first_retrieve'))
-                     or unified_timestamp(get_video_info('postedDateTime')))
+        timestamp = (parse_iso8601(get_video_info_web('first_retrieve'))
+                     or unified_timestamp(get_video_info_web('postedDateTime')))
         if not timestamp:
             match = self._html_search_meta('datePublished', webpage, 'date published', default=None)
             if match:
@@ -429,7 +429,7 @@ class NiconicoIE(InfoExtractor):
                 video_detail['postedAt'].replace('/', '-'),
                 delimiter=' ', timezone=datetime.timedelta(hours=9))
 
-        view_count = int_or_none(get_video_info(['view_counter', 'viewCount']))
+        view_count = int_or_none(get_video_info_web(['view_counter', 'viewCount']))
         if not view_count:
             match = self._html_search_regex(
                 r'>Views: <strong[^>]*>([^<]+)</strong>',
@@ -438,7 +438,7 @@ class NiconicoIE(InfoExtractor):
                 view_count = int_or_none(match.replace(',', ''))
         view_count = view_count or video_detail.get('viewCount')
 
-        comment_count = (int_or_none(get_video_info('comment_num'))
+        comment_count = (int_or_none(get_video_info_web('comment_num'))
                          or video_detail.get('commentCount')
                          or try_get(api_data, lambda x: x['thread']['commentCount']))
         if not comment_count:
@@ -449,19 +449,19 @@ class NiconicoIE(InfoExtractor):
                 comment_count = int_or_none(match.replace(',', ''))
 
         duration = (parse_duration(
-            get_video_info('length')
+            get_video_info_web('length')
             or self._html_search_meta(
                 'video:duration', webpage, 'video duration', default=None))
             or video_detail.get('length')
-            or get_video_info('duration'))
+            or get_video_info_web('duration'))
 
-        webpage_url = get_video_info('watch_url') or url
+        webpage_url = get_video_info_web('watch_url') or url
 
         # Note: cannot use api_data.get('owner', {}) because owner may be set to "null"
         # in the JSON, which will cause None to be returned instead of {}.
         owner = try_get(api_data, lambda x: x.get('owner'), dict) or {}
-        uploader_id = get_video_info(['ch_id', 'user_id']) or owner.get('id')
-        uploader = get_video_info(['ch_name', 'user_nickname']) or owner.get('nickname')
+        uploader_id = get_video_info_web(['ch_id', 'user_id']) or owner.get('id')
+        uploader = get_video_info_web(['ch_name', 'user_nickname']) or owner.get('nickname')
 
         return {
             'id': video_id,
