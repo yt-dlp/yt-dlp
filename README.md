@@ -751,7 +751,9 @@ The `-o` option is used to indicate a template for the output file names while `
 
 **tl;dr:** [navigate me to examples](#output-template-examples).
 
-The basic usage is not to set any template arguments when downloading a single file, like in `youtube-dlc -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Allowed names along with sequence type are:
+The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `youtube-dlc -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Additionally, date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses seperated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
+
+The available fields are:
 
  - `id` (string): Video identifier
  - `title` (string): Video title
@@ -870,14 +872,17 @@ youtube-dlc_test_video_.mp4          # A simple file name
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
 $ youtube-dlc -o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
 
+# Download YouTube playlist videos in seperate directories according to their uploaded year
+$ youtube-dlc -o '%(upload_date>%Y)s/%(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
+
 # Download all playlists of YouTube channel/user keeping each playlist in separate directory:
 $ youtube-dlc -o '%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/user/TheLinuxFoundation/playlists
 
 # Download Udemy course keeping each chapter in separate directory under MyVideos directory in your home
-$ youtube-dlc -u user -p password -o '~/MyVideos/%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s' https://www.udemy.com/java-tutorial/
+$ youtube-dlc -u user -p password -P '~/MyVideos' -o '%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s' https://www.udemy.com/java-tutorial/
 
 # Download entire series season keeping each series and each season in separate directory under C:/MyVideos
-$ youtube-dlc -o "C:/MyVideos/%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" https://videomore.ru/kino_v_detalayah/5_sezon/367617
+$ youtube-dlc -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" https://videomore.ru/kino_v_detalayah/5_sezon/367617
 
 # Stream the video being downloaded to stdout
 $ youtube-dlc -o - BaW_jenozKc

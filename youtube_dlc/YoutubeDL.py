@@ -61,6 +61,7 @@ from .utils import (
     ExistingVideoReached,
     expand_path,
     ExtractorError,
+    float_or_none,
     format_bytes,
     format_field,
     formatSeconds,
@@ -91,6 +92,7 @@ from .utils import (
     sanitized_Request,
     std_headers,
     str_or_none,
+    strftime_or_none,
     subtitles_filename,
     to_high_limit_path,
     UnavailableVideoError,
@@ -735,6 +737,11 @@ class YoutubeDL(object):
         try:
             template_dict = dict(info_dict)
 
+            template_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
+                formatSeconds(info_dict['duration'], '-')
+                if info_dict.get('duration', None) is not None
+                else None)
+
             template_dict['epoch'] = int(time.time())
             autonumber_size = self.params.get('autonumber_size')
             if autonumber_size is None:
@@ -755,7 +762,8 @@ class YoutubeDL(object):
             template_dict = dict((k, v if isinstance(v, compat_numeric_types) else sanitize(k, v))
                                  for k, v in template_dict.items()
                                  if v is not None and not isinstance(v, (list, tuple, dict)))
-            template_dict = collections.defaultdict(lambda: self.params.get('outtmpl_na_placeholder', 'NA'), template_dict)
+            na = self.params.get('outtmpl_na_placeholder', 'NA')
+            template_dict = collections.defaultdict(lambda: na, template_dict)
 
             outtmpl = self.params.get('outtmpl', DEFAULT_OUTTMPL)
 
@@ -773,27 +781,45 @@ class YoutubeDL(object):
                     r'%%(\1)0%dd' % field_size_compat_map[mobj.group('field')],
                     outtmpl)
 
+            # As of [1] format syntax is:
+            #  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type
+            # 1. https://docs.python.org/2/library/stdtypes.html#string-formatting
+            FORMAT_RE = r'''(?x)
+                (?<!%)
+                %
+                \({0}\)  # mapping key
+                (?:[#0\-+ ]+)?  # conversion flags (optional)
+                (?:\d+)?  # minimum field width (optional)
+                (?:\.\d+)?  # precision (optional)
+                [hlL]?  # length modifier (optional)
+                (?P<type>[diouxXeEfFgGcrs%])  # conversion type
+            '''
+
+            numeric_fields = list(self._NUMERIC_FIELDS)
+
+            # Format date
+            FORMAT_DATE_RE = FORMAT_RE.format(r'(?P<key>(?P<field>\w+)>(?P<format>.+?))')
+            for mobj in re.finditer(FORMAT_DATE_RE, outtmpl):
+                conv_type, field, frmt, key = mobj.group('type', 'field', 'format', 'key')
+                if key in template_dict:
+                    continue
+                value = strftime_or_none(template_dict.get(field), frmt, na)
+                if conv_type in 'crs':  # string
+                    value = sanitize(field, value)
+                else:  # number
+                    numeric_fields.append(key)
+                    value = float_or_none(value, default=None)
+                if value is not None:
+                    template_dict[key] = value
+
             # Missing numeric fields used together with integer presentation types
             # in format specification will break the argument substitution since
             # string NA placeholder is returned for missing fields. We will patch
             # output template for missing fields to meet string presentation type.
-            for numeric_field in self._NUMERIC_FIELDS:
+            for numeric_field in numeric_fields:
                 if numeric_field not in template_dict:
-                    # As of [1] format syntax is:
-                    #  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type
-                    # 1. https://docs.python.org/2/library/stdtypes.html#string-formatting
-                    FORMAT_RE = r'''(?x)
-                        (?<!%)
-                        %
-                        \({0}\)  # mapping key
-                        (?:[#0\-+ ]+)?  # conversion flags (optional)
-                        (?:\d+)?  # minimum field width (optional)
-                        (?:\.\d+)?  # precision (optional)
-                        [hlL]?  # length modifier (optional)
-                        [diouxXeEfFgGcrs%]  # conversion type
-                    '''
                     outtmpl = re.sub(
-                        FORMAT_RE.format(numeric_field),
+                        FORMAT_RE.format(re.escape(numeric_field)),
                         r'%({0})s'.format(numeric_field), outtmpl)
 
             # expand_path translates '%%' into '%' and '$$' into '$'
@@ -996,10 +1022,6 @@ class YoutubeDL(object):
         self.add_extra_info(ie_result, {
             'extractor': ie.IE_NAME,
             'webpage_url': url,
-            'duration_string': (
-                formatSeconds(ie_result['duration'], '-')
-                if ie_result.get('duration', None) is not None
-                else None),
             'webpage_url_basename': url_basename(url),
             'extractor_key': ie.ie_key(),
         })
