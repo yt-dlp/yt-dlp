@@ -1858,7 +1858,7 @@ class YoutubeDL(object):
         if req_format is None:
             req_format = self._default_format_spec(info_dict, download=download)
             if self.params.get('verbose'):
-                self._write_string('[debug] Default format spec: %s\n' % req_format)
+                self.to_screen('[debug] Default format spec: %s' % req_format)
 
         format_selector = self.build_format_selector(req_format)
 
