@@ -346,24 +346,6 @@ class NiconicoIE(InfoExtractor):
         video_real_url = api_data['video']['smileInfo']['url']
         is_economy = video_real_url.endswith('low')
 
-        flv_info_webpage = self._download_webpage(
-            'http://flapi.nicovideo.jp/api/getflv/' + video_id + '?as3=1',
-            video_id, 'Downloading flv info')
-
-        flv_info = compat_urlparse.parse_qs(flv_info_webpage)
-        if 'url' not in flv_info:
-            if 'deleted' in flv_info:
-                raise ExtractorError('The video has been deleted.',
-                                     expected=True)
-            elif 'closed' in flv_info:
-                raise ExtractorError('Niconico videos now require logging in',
-                                     expected=True)
-            elif 'error' in flv_info:
-                raise ExtractorError('%s reports error: %s' % (
-                    self.IE_NAME, flv_info['error'][0]), expected=True)
-            else:
-                raise ExtractorError('Unable to find video URL')
-
         video_info_xml = self._download_xml(
             'http://ext.nicovideo.jp/api/getthumbinfo/' + video_id,
             video_id, note='Downloading video info page')
