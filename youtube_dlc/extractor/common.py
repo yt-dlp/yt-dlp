@@ -1367,12 +1367,12 @@ class InfoExtractor(object):
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<seperator>[~:])(?P<limit>.*?))?)? *$'
 
         default = ('hidden', 'has_video', 'extractor', 'lang', 'quality',
-                   'res', 'fps', 'codec', 'size', 'br', 'asr',
+                   'res', 'fps', 'codec:vp9', 'size', 'br', 'asr',
                    'proto', 'ext', 'has_audio', 'source', 'format_id')
 
         settings = {
             'vcodec': {'type': 'ordered', 'regex': True,
-                       'order': ['vp9', '(h265|he?vc?)', '(h264|avc)', 'vp8', '(mp4v|h263)', 'theora', '', None, 'none']},
+                       'order': ['av0?1', 'vp9', '(h265|he?vc?)', '(h264|avc)', 'vp8', '(mp4v|h263)', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
                        'order': ['opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e?a?c-?3', 'dts', '', None, 'none']},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
