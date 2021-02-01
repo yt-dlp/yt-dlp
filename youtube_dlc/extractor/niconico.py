@@ -328,6 +328,34 @@ class NiconicoIE(InfoExtractor):
             'data-api-data="([^"]+)"', webpage,
             'API data', default='{}'), video_id)
 
+        # Get video info
+        video_info_xml = self._download_xml(
+            'http://ext.nicovideo.jp/api/getthumbinfo/' + video_id,
+            video_id, note='Downloading video info page')
+
+        def get_video_info_xml(items):
+            if not isinstance(items, list):
+                items = [items]
+            for item in items:
+                ret = xpath_text(video_info_xml, './/' + item)
+                if ret:
+                    return ret
+
+        if get_video_info_xml('error'):
+            error_code = get_video_info_xml('code')
+
+            if error_code == 'DELETED':
+                raise ExtractorError('The video has been deleted.',
+                                     expected=True)
+            elif error_code == 'NOT_FOUND':
+                raise ExtractorError('The video is not found.',
+                                     expected=True)
+            elif error_code == 'COMMUNITY':
+                raise ExtractorError('The video is community members only.',
+                                     expected=True)
+            else:
+                raise ExtractorError('%s reports error: %s' % (self.IE_NAME, error_code))
+
         # Start extracting video formats
         formats = []
 
@@ -346,18 +374,6 @@ class NiconicoIE(InfoExtractor):
         video_real_url = api_data['video']['smileInfo']['url']
         is_economy = video_real_url.endswith('low')
 
-        video_info_xml = self._download_xml(
-            'http://ext.nicovideo.jp/api/getthumbinfo/' + video_id,
-            video_id, note='Downloading video info page')
-
-        def get_video_info_xml(items):
-            if not isinstance(items, list):
-                items = [items]
-            for item in items:
-                ret = xpath_text(video_info_xml, './/' + item)
-                if ret:
-                    return ret
-
         extension = get_video_info_xml('movie_type')
         if not extension:
             extension = determine_ext(video_real_url)
@@ -371,6 +387,9 @@ class NiconicoIE(InfoExtractor):
                 'ext': extension,
                 'filesize': int_or_none(get_video_info_xml('size_high'))
         })
+
+        if len(formats) == 0:
+            raise ExtractorError('Unable to find video info.')
 
         self._sort_formats(formats)
 
