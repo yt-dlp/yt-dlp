@@ -924,7 +924,7 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--write-info-json',
         action='store_true', dest='writeinfojson', default=False,
-        help='Write video metadata to a .info.json file')
+        help='Write video metadata to a .info.json file. Note that this may contain personal information')
     filesystem.add_option(
         '--no-write-info-json',
         action='store_false', dest='writeinfojson',

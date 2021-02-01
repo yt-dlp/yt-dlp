@@ -1136,9 +1136,10 @@ class YoutubeDL(object):
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
                     self.to_screen('[info] Playlist metadata is already present')
                 else:
-                    self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
                     playlist_info = dict(ie_result)
-                    playlist_info.pop('entries')
+                    # playlist_info['entries'] = list(playlist_info['entries'])  # Entries is a generator which shouldnot be resolved here
+                    del playlist_info['entries']
+                    self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
                     try:
                         write_json_file(self.filter_requested_info(playlist_info), infofn)
                     except (OSError, IOError):
@@ -2464,9 +2465,10 @@ class YoutubeDL(object):
 
     @staticmethod
     def filter_requested_info(info_dict):
+        fields_to_remove = ('requested_formats', 'requested_subtitles')
         return dict(
             (k, v) for k, v in info_dict.items()
-            if k not in ['requested_formats', 'requested_subtitles'])
+            if (k[0] != '_' or k == '_type') and k not in fields_to_remove)
 
     def run_pp(self, pp, infodict, files_to_move={}):
         files_to_delete = []
