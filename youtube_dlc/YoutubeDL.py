@@ -447,6 +447,9 @@ class YoutubeDL(object):
                 self.report_warning('--merge-output-format will be ignored since --remux-video or --recode-video is given')
             self.params['merge_output_format'] = self.params['final_ext']
 
+        if 'overwrites' in self.params and self.params['overwrites'] is None:
+            del self.params['overwrites']
+
         check_deprecated('autonumber_size', '--autonumber-size', 'output template with %(autonumber)0Nd, where N in the number of digits')
         check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
         check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
@@ -1130,7 +1133,7 @@ class YoutubeDL(object):
                     'info.json', ie_result.get('ext'))
                 if not ensure_dir_exists(encodeFilename(infofn)):
                     return
-                if self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
+                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
                     self.to_screen('[info] Playlist metadata is already present')
                 else:
                     self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
