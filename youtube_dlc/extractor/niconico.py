@@ -328,77 +328,72 @@ class NiconicoIE(InfoExtractor):
             'data-api-data="([^"]+)"', webpage,
             'API data', default='{}'), video_id)
 
-        def _format_id_from_url(video_url):
-            return 'economy' if video_real_url.endswith('low') else 'normal'
+        # Start extracting video formats
+        formats = []
 
-        try:
-            video_real_url = api_data['video']['smileInfo']['url']
-        except KeyError:  # Flash videos
-            # Get flv info
-            flv_info_webpage = self._download_webpage(
-                'http://flapi.nicovideo.jp/api/getflv/' + video_id + '?as3=1',
-                video_id, 'Downloading flv info')
+        # Get HTML5 videos info
+        dmc_info = api_data['video'].get('dmcInfo')
 
-            flv_info = compat_urlparse.parse_qs(flv_info_webpage)
-            if 'url' not in flv_info:
-                if 'deleted' in flv_info:
-                    raise ExtractorError('The video has been deleted.',
-                                         expected=True)
-                elif 'closed' in flv_info:
-                    raise ExtractorError('Niconico videos now require logging in',
-                                         expected=True)
-                elif 'error' in flv_info:
-                    raise ExtractorError('%s reports error: %s' % (
-                        self.IE_NAME, flv_info['error'][0]), expected=True)
-                else:
-                    raise ExtractorError('Unable to find video URL')
+        quality_info = dmc_info['quality']
+        for audio_quality in quality_info['audios']:
+            for video_quality in quality_info['videos']:
+                if not audio_quality['available'] or not video_quality['available']:
+                    continue
+                formats.append(self._extract_format_for_quality(
+                    api_data, video_id, audio_quality, video_quality))
 
-            video_info_xml = self._download_xml(
-                'http://ext.nicovideo.jp/api/getthumbinfo/' + video_id,
-                video_id, note='Downloading video info page')
+        # Get flv/swf info
+        video_real_url = api_data['video']['smileInfo']['url']
+        is_economy = video_real_url.endswith('low')
 
-            def get_video_info(items):
-                if not isinstance(items, list):
-                    items = [items]
-                for item in items:
-                    ret = xpath_text(video_info_xml, './/' + item)
-                    if ret:
-                        return ret
+        flv_info_webpage = self._download_webpage(
+            'http://flapi.nicovideo.jp/api/getflv/' + video_id + '?as3=1',
+            video_id, 'Downloading flv info')
 
-            video_real_url = flv_info['url'][0]
+        flv_info = compat_urlparse.parse_qs(flv_info_webpage)
+        if 'url' not in flv_info:
+            if 'deleted' in flv_info:
+                raise ExtractorError('The video has been deleted.',
+                                     expected=True)
+            elif 'closed' in flv_info:
+                raise ExtractorError('Niconico videos now require logging in',
+                                     expected=True)
+            elif 'error' in flv_info:
+                raise ExtractorError('%s reports error: %s' % (
+                    self.IE_NAME, flv_info['error'][0]), expected=True)
+            else:
+                raise ExtractorError('Unable to find video URL')
 
-            extension = get_video_info('movie_type')
-            if not extension:
-                extension = determine_ext(video_real_url)
+        video_info_xml = self._download_xml(
+            'http://ext.nicovideo.jp/api/getthumbinfo/' + video_id,
+            video_id, note='Downloading video info page')
 
-            formats = [{
+        def get_video_info(items):
+            if not isinstance(items, list):
+                items = [items]
+            for item in items:
+                ret = xpath_text(video_info_xml, './/' + item)
+                if ret:
+                    return ret
+
+        extension = get_video_info('movie_type')
+        if not extension:
+            extension = determine_ext(video_real_url)
+
+        # Economy mode movie is not source movie.
+        # Similarly, if movie file size is unstable, old server movie is not original movie.
+        if not is_economy and int(get_video_info('size_high')) > 1:
+            formats.append({
                 'url': video_real_url,
+                'format_id': 'smile',
                 'ext': extension,
-                'format_id': _format_id_from_url(video_real_url),
-            }]
-        else:
-            formats = []
+                'filesize': int_or_none(get_video_info('size_high'))
+        })
 
-            dmc_info = api_data['video'].get('dmcInfo')
-            if dmc_info:  # "New" HTML5 videos
-                quality_info = dmc_info['quality']
-                for audio_quality in quality_info['audios']:
-                    for video_quality in quality_info['videos']:
-                        if not audio_quality['available'] or not video_quality['available']:
-                            continue
-                        formats.append(self._extract_format_for_quality(
-                            api_data, video_id, audio_quality, video_quality))
+        self._sort_formats(formats)
 
-                self._sort_formats(formats)
-            else:  # "Old" HTML5 videos
-                formats = [{
-                    'url': video_real_url,
-                    'ext': 'mp4',
-                    'format_id': _format_id_from_url(video_real_url),
-                }]
-
-            def get_video_info(items):
-                return dict_get(api_data['video'], items)
+        def get_video_info(items):
+            return dict_get(api_data['video'], items)
 
         # Start extracting information
         title = get_video_info('originalTitle')
