@@ -31,6 +31,7 @@ from ..utils import (
     clean_html,
     error_to_compat_str,
     ExtractorError,
+    format_field,
     float_or_none,
     get_element_by_id,
     int_or_none,
@@ -2675,6 +2676,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'uploader': video_uploader,
             'uploader_id': video_uploader_id,
             'uploader_url': video_uploader_url,
+            'channel': video_uploader,
             'channel_id': channel_id,
             'channel_url': channel_url,
             'upload_date': upload_date,
@@ -3402,44 +3404,71 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     uploader['uploader_url'] = urljoin(
                         'https://www.youtube.com/',
                         try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], compat_str))
-        return uploader
+        return {k:v for k, v in uploader.items() if v is not None}
 
     def _extract_from_tabs(self, item_id, webpage, data, tabs, identity_token):
+        playlist_id = title = description = channel_url = channel_name = channel_id = None
+        thumbnails_list = tags = []
+
         selected_tab = self._extract_selected_tab(tabs)
         renderer = try_get(
             data, lambda x: x['metadata']['channelMetadataRenderer'], dict)
-        playlist_id = title = description = None
         if renderer:
-            channel_title = renderer.get('title') or item_id
-            tab_title = selected_tab.get('title')
-            title = channel_title or item_id
-            if tab_title:
-                title += ' - %s' % tab_title
-            description = renderer.get('description')
-            playlist_id = renderer.get('externalId')
+            channel_name = renderer.get('title')
+            channel_url = renderer.get('channelUrl')
+            channel_id = renderer.get('externalId')
 
-        # this has thumbnails, but there is currently no thumbnail field for playlists
-        # sidebar.playlistSidebarRenderer has even more data, but its stucture is more complec
-        renderer = try_get(
-            data, lambda x: x['microformat']['microformatDataRenderer'], dict)
         if not renderer:
             renderer = try_get(
                 data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
         if renderer:
             title = renderer.get('title')
             description = renderer.get('description')
-            playlist_id = item_id
+            playlist_id = channel_id
+            tags = renderer.get('keywords', '').split()
+            thumbnails_list = (
+                try_get(renderer, lambda x: x['avatar']['thumbnails'], list)
+                or data['sidebar']['playlistSidebarRenderer']['items'][0]['playlistSidebarPrimaryInfoRenderer']['thumbnailRenderer']['playlistVideoThumbnailRenderer']['thumbnail']['thumbnails']
+                or [])
+
+        thumbnails = []
+        for t in thumbnails_list:
+            if not isinstance(t, dict):
+                continue
+            thumbnail_url = url_or_none(t.get('url'))
+            if not thumbnail_url:
+                continue
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': int_or_none(t.get('width')),
+                'height': int_or_none(t.get('height')),
+            })
 
         if playlist_id is None:
             playlist_id = item_id
         if title is None:
-            title = "Youtube " + playlist_id.title()
-        playlist = self.playlist_result(
+            title = playlist_id
+        title += format_field(selected_tab, 'title', ' - %s')
+
+        metadata = {
+            'playlist_id': playlist_id,
+            'playlist_title': title,
+            'playlist_description': description,
+            'uploader': channel_name,
+            'uploader_id': channel_id,
+            'uploader_url': channel_url,
+            'thumbnails': thumbnails,
+            'tags': tags,
+        }
+        if not channel_id:
+            metadata.update(self._extract_uploader(data))
+        metadata.update({
+            'channel': metadata['uploader'],
+            'channel_id': metadata['uploader_id'],
+            'channel_url': metadata['uploader_url']})
+        return self.playlist_result(
             self._entries(selected_tab, identity_token),
-            playlist_id=playlist_id, playlist_title=title,
-            playlist_description=description)
-        playlist.update(self._extract_uploader(data))
-        return playlist
+            **metadata)
 
     def _extract_from_playlist(self, item_id, url, data, playlist):
         title = playlist.get('title') or try_get(

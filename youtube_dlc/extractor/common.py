@@ -336,9 +336,8 @@ class InfoExtractor(object):
     There must be a key "entries", which is a list, an iterable, or a PagedList
     object, each element of which is a valid dictionary by this specification.
 
-    Additionally, playlists can have "id", "title", "description", "uploader",
-    "uploader_id", "uploader_url", "duration" attributes with the same semantics
-    as videos (see above).
+    Additionally, playlists can have "id", "title", and any other relevent
+    attributes with the same semantics as videos (see above).
 
 
     _type "multi_video" indicates that there are multiple videos that
@@ -967,10 +966,11 @@ class InfoExtractor(object):
             urls, playlist_id=playlist_id, playlist_title=playlist_title)
 
     @staticmethod
-    def playlist_result(entries, playlist_id=None, playlist_title=None, playlist_description=None):
+    def playlist_result(entries, playlist_id=None, playlist_title=None, playlist_description=None, **kwargs):
         """Returns a playlist"""
         video_info = {'_type': 'playlist',
                       'entries': entries}
+        video_info.update(kwargs)
         if playlist_id:
             video_info['id'] = playlist_id
         if playlist_title:
