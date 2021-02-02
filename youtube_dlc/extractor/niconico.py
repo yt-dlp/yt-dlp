@@ -380,11 +380,14 @@ class NiconicoIE(InfoExtractor):
             extension = determine_ext(video_real_url)
 
         # Economy mode movie is not source movie.
-        # Similarly, if movie file size is unstable, old server movie is not original movie.
+        # Similarly, if movie file size is unstable, old server movie is not source movie.
         if not is_economy and int(get_video_info_xml('size_high')) > 1:
             formats.append({
                 'url': video_real_url,
                 'format_id': 'smile',
+                'format_note' : 'Source movie file in old server (SMILEVIDEO)',
+                'preference' : -2, # I think demand for source movie is not high.
+                'source_preference' : 0,
                 'ext': extension,
                 'filesize': int_or_none(get_video_info_xml('size_high'))
         })
