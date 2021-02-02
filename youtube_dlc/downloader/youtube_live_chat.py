@@ -94,9 +94,12 @@ class YoutubeLiveChatReplayFD(FragmentFD):
         frag_index = offset = 0
         while continuation_id is not None:
             frag_index += 1
-            url = 'https://www.youtube.com/live_chat_replay?continuation=%s' % continuation_id
-            if frag_index > 1:
-                url += '&playerOffsetMs=%d&hidden=false&pbj=1' % max(offset - 5000, 0)
+            url = ''.join((
+                'https://www.youtube.com/live_chat_replay',
+                '/get_live_chat_replay' if frag_index > 1 else '',
+                '?continuation=%s' % continuation_id,
+                '&playerOffsetMs=%d&hidden=false&pbj=1' % max(offset - 5000, 0) if frag_index > 1 else ''))
+            print(url)
             success, continuation_id, offset = download_and_parse_fragment(url, frag_index)
             if not success:
                 return False
