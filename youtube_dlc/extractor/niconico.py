@@ -304,7 +304,7 @@ class NiconicoIE(InfoExtractor):
             'vbr': float_or_none(video_quality.get('bitrate'), 1000),
             'height': resolution.get('height'),
             'width': resolution.get('width'),
-            'quality': -2 if 'low' in format_id else -1, # Default quality value is -1
+            'quality': -2 if 'low' in format_id else -1,  # Default quality value is -1
             'heartbeat_url': heartbeat_url,
             'heartbeat_data': heartbeat_data,
             'heartbeat_interval': heartbeat_interval,
@@ -385,12 +385,12 @@ class NiconicoIE(InfoExtractor):
             formats.append({
                 'url': video_real_url,
                 'format_id': 'smile',
-                'format_note' : 'Source movie file in old server (SMILEVIDEO)',
-                'preference' : -2, # I think demand for source movie is not high.
-                'source_preference' : 0,
+                'format_note': 'Source movie file in old server (SMILEVIDEO)',
+                'preference': -2,  # I think demand for source movie is not high.
+                'source_preference': 0,
                 'ext': extension,
                 'filesize': int_or_none(get_video_info_xml('size_high'))
-        })
+            })
 
         if len(formats) == 0:
             raise ExtractorError('Unable to find video info.')
