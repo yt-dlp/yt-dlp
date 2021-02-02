@@ -50,6 +50,7 @@ from .compat import (
     compat_html_entities_html5,
     compat_http_client,
     compat_integer_types,
+    compat_numeric_types,
     compat_kwargs,
     compat_os_name,
     compat_parse_qs,
@@ -3671,6 +3672,18 @@ def url_or_none(url):
         return None
     url = url.strip()
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
+
+
+def strftime_or_none(timestamp, date_format, default=None):
+    datetime_object = None
+    try:
+        if isinstance(timestamp, compat_numeric_types):  # unix timestamp
+            datetime_object = datetime.datetime.utcfromtimestamp(timestamp)
+        elif isinstance(timestamp, compat_str):  # assume YYYYMMDD
+            datetime_object = datetime.datetime.strptime(timestamp, '%Y%m%d')
+        return datetime_object.strftime(date_format)
+    except (ValueError, TypeError, AttributeError):
+        return default
 
 
 def parse_duration(s):
