@@ -237,18 +237,21 @@ def _real_main(argv=None):
     if opts.allsubtitles and not opts.writeautomaticsub:
         opts.writesubtitles = True
 
-    outtmpl = ((opts.outtmpl is not None and opts.outtmpl)
-               or (opts.format == '-1' and opts.usetitle and '%(title)s-%(id)s-%(format)s.%(ext)s')
-               or (opts.format == '-1' and '%(id)s-%(format)s.%(ext)s')
-               or (opts.usetitle and opts.autonumber and '%(autonumber)s-%(title)s-%(id)s.%(ext)s')
-               or (opts.usetitle and '%(title)s-%(id)s.%(ext)s')
-               or (opts.useid and '%(id)s.%(ext)s')
-               or (opts.autonumber and '%(autonumber)s-%(id)s.%(ext)s')
-               or DEFAULT_OUTTMPL)
-    if not os.path.splitext(outtmpl)[1] and opts.extractaudio:
+    outtmpl = opts.outtmpl
+    if not outtmpl:
+        outtmpl = {'default': (
+            '%(title)s-%(id)s-%(format)s.%(ext)s' if opts.format == '-1' and opts.usetitle
+            else '%(id)s-%(format)s.%(ext)s' if opts.format == '-1'
+            else '%(autonumber)s-%(title)s-%(id)s.%(ext)s' if opts.usetitle and opts.autonumber
+            else '%(title)s-%(id)s.%(ext)s' if opts.usetitle
+            else '%(id)s.%(ext)s' if opts.useid
+            else '%(autonumber)s-%(id)s.%(ext)s' if opts.autonumber
+            else None)}
+    outtmpl_default = outtmpl.get('default')
+    if outtmpl_default is not None and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
         parser.error('Cannot download a video and extract audio into the same'
                      ' file! Use "{0}.%(ext)s" instead of "{0}" as the output'
-                     ' template'.format(outtmpl))
+                     ' template'.format(outtmpl_default))
 
     for f in opts.format_sort:
         if re.match(InfoExtractor.FormatSort.regex, f) is None:
@@ -413,7 +416,7 @@ def _real_main(argv=None):
         'playlistreverse': opts.playlist_reverse,
         'playlistrandom': opts.playlist_random,
         'noplaylist': opts.noplaylist,
-        'logtostderr': opts.outtmpl == '-',
+        'logtostderr': outtmpl_default == '-',
         'consoletitle': opts.consoletitle,
         'nopart': opts.nopart,
         'updatetime': opts.updatetime,

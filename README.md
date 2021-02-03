@@ -333,16 +333,16 @@ Then simply type this
                                      comments and ignored
     -P, --paths TYPE:PATH            The paths where the files should be
                                      downloaded. Specify the type of file and
-                                     the path separated by a colon ":"
-                                     (supported: description|annotation|subtitle
-                                     |infojson|thumbnail). Additionally, you can
-                                     also provide "home" and "temp" paths. All
-                                     intermediary files are first downloaded to
-                                     the temp path and then the final files are
-                                     moved over to the home path after download
-                                     is finished. Note that this option is
-                                     ignored if --output is an absolute path
-    -o, --output TEMPLATE            Output filename template, see "OUTPUT
+                                     the path separated by a colon ":". All the
+                                     same types as --output are supported.
+                                     Additionally, you can also provide "home"
+                                     and "temp" paths. All intermediary files
+                                     are first downloaded to the temp path and
+                                     then the final files are moved over to the
+                                     home path after download is finished. This
+                                     option is ignored if --output is an
+                                     absolute path
+    -o, --output [TYPE:]TEMPLATE     Output filename template, see "OUTPUT
                                      TEMPLATE" for details
     --output-na-placeholder TEXT     Placeholder value for unavailable meta
                                      fields in output filename template
@@ -751,7 +751,9 @@ The `-o` option is used to indicate a template for the output file names while `
 
 **tl;dr:** [navigate me to examples](#output-template-examples).
 
-The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `youtube-dlc -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Additionally, date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses seperated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
+The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `youtube-dlc -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Date/time fields can also be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses seperated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
+
+Additionally, you can set different output templates for the various metadata files seperately from the general output template by specifying the type of file followed by the template seperated by a colon ":". The different filetypes supported are subtitle|thumbnail|description|annotation|infojson|pl_description|pl_infojson. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
 
 The available fields are:
 
@@ -860,7 +862,7 @@ If you are using an output template inside a Windows batch file then you must es
 
 #### Output template examples
 
-Note that on Windows you may need to use double quotes instead of single.
+Note that on Windows you need to use double quotes instead of single.
 
 ```bash
 $ youtube-dlc --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc

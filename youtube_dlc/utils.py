@@ -4169,7 +4169,18 @@ def qualities(quality_ids):
     return q
 
 
-DEFAULT_OUTTMPL = '%(title)s [%(id)s].%(ext)s'
+DEFAULT_OUTTMPL = {
+    'default': '%(title)s [%(id)s].%(ext)s',
+}
+OUTTMPL_TYPES = {
+    'subtitle': None,
+    'thumbnail': None,
+    'description': 'description',
+    'annotation': 'annotations.xml',
+    'infojson': 'info.json',
+    'pl_description': 'description',
+    'pl_infojson': 'info.json',
+}
 
 
 def limit_length(s, length):

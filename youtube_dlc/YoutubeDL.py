@@ -49,6 +49,7 @@ from .utils import (
     date_from_str,
     DateRange,
     DEFAULT_OUTTMPL,
+    OUTTMPL_TYPES,
     determine_ext,
     determine_protocol,
     DOT_DESKTOP_LINK_TEMPLATE,
@@ -182,7 +183,8 @@ class YoutubeDL(object):
     format_sort_force: Force the given format_sort. see "Sorting Formats" for more details.
     allow_multiple_video_streams:   Allow multiple video streams to be merged into a single file
     allow_multiple_audio_streams:   Allow multiple audio streams to be merged into a single file
-    outtmpl:           Template for output names.
+    outtmpl:           Dictionary of templates for output names. Allowed keys
+                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py)
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
@@ -493,10 +495,7 @@ class YoutubeDL(object):
                 'Set the LC_ALL environment variable to fix this.')
             self.params['restrictfilenames'] = True
 
-        if isinstance(params.get('outtmpl'), bytes):
-            self.report_warning(
-                'Parameter outtmpl is bytes, but should be a unicode string. '
-                'Put  from __future__ import unicode_literals  at the top of your code file or consider switching to Python 3.x.')
+        self.outtmpl_dict = self.parse_outtmpl()
 
         self._setup_opener()
 
@@ -732,8 +731,21 @@ class YoutubeDL(object):
         except UnicodeEncodeError:
             self.to_screen('Deleting already existent file')
 
-    def prepare_filename(self, info_dict, warn=False):
-        """Generate the output filename."""
+    def parse_outtmpl(self):
+        outtmpl_dict = self.params.get('outtmpl', {})
+        if not isinstance(outtmpl_dict, dict):
+            outtmpl_dict = {'default': outtmpl_dict}
+        outtmpl_dict.update({
+            k: v for k, v in DEFAULT_OUTTMPL.items()
+            if not outtmpl_dict.get(k)})
+        for key, val in outtmpl_dict.items():
+            if isinstance(val, bytes):
+                self.report_warning(
+                    'Parameter outtmpl is bytes, but should be a unicode string. '
+                    'Put  from __future__ import unicode_literals  at the top of your code file or consider switching to Python 3.x.')
+        return outtmpl_dict
+
+    def _prepare_filename(self, info_dict, tmpl_type='default'):
         try:
             template_dict = dict(info_dict)
 
@@ -765,7 +777,8 @@ class YoutubeDL(object):
             na = self.params.get('outtmpl_na_placeholder', 'NA')
             template_dict = collections.defaultdict(lambda: na, template_dict)
 
-            outtmpl = self.params.get('outtmpl', DEFAULT_OUTTMPL)
+            outtmpl = self.outtmpl_dict.get(tmpl_type, self.outtmpl_dict['default'])
+            force_ext = OUTTMPL_TYPES.get(tmpl_type)
 
             # For fields playlist_index and autonumber convert all occurrences
             # of %(field)s to %(field)0Nd for backward compatibility
@@ -835,6 +848,9 @@ class YoutubeDL(object):
             # title "Hello $PATH", we don't want `$PATH` to be expanded.
             filename = expand_path(outtmpl).replace(sep, '') % template_dict
 
+            if force_ext is not None:
+                filename = replace_extension(filename, force_ext, template_dict.get('ext'))
+
             # https://github.com/blackjack4494/youtube-dlc/issues/85
             trim_file_name = self.params.get('trim_file_name', False)
             if trim_file_name:
@@ -852,25 +868,28 @@ class YoutubeDL(object):
                 filename = encodeFilename(filename, True).decode(preferredencoding())
             filename = sanitize_path(filename)
 
-            if warn and not self.__prepare_filename_warned:
-                if not self.params.get('paths'):
-                    pass
-                elif filename == '-':
-                    self.report_warning('--paths is ignored when an outputting to stdout')
-                elif os.path.isabs(filename):
-                    self.report_warning('--paths is ignored since an absolute path is given in output template')
-                self.__prepare_filename_warned = True
-
             return filename
         except ValueError as err:
             self.report_error('Error in output template: ' + str(err) + ' (encoding: ' + repr(preferredencoding()) + ')')
             return None
 
-    def prepare_filepath(self, filename, dir_type=''):
-        if filename == '-':
-            return filename
+    def prepare_filename(self, info_dict, dir_type='', warn=False):
+        """Generate the output filename."""
         paths = self.params.get('paths', {})
         assert isinstance(paths, dict)
+        filename = self._prepare_filename(info_dict, dir_type or 'default')
+
+        if warn and not self.__prepare_filename_warned:
+            if not paths:
+                pass
+            elif filename == '-':
+                self.report_warning('--paths is ignored when an outputting to stdout')
+            elif os.path.isabs(filename):
+                self.report_warning('--paths is ignored since an absolute path is given in output template')
+            self.__prepare_filename_warned = True
+        if filename == '-' or not filename:
+            return filename
+
         homepath = expand_path(paths.get('home', '').strip())
         assert isinstance(homepath, compat_str)
         subdir = expand_path(paths.get(dir_type, '').strip()) if dir_type else ''
@@ -1041,10 +1060,7 @@ class YoutubeDL(object):
             extract_flat = self.params.get('extract_flat', False)
             if ((extract_flat == 'in_playlist' and 'playlist' in extra_info)
                     or extract_flat is True):
-                self.__forced_printings(
-                    ie_result,
-                    self.prepare_filepath(self.prepare_filename(ie_result)),
-                    incomplete=True)
+                self.__forced_printings(ie_result, self.prepare_filename(ie_result), incomplete=True)
                 return ie_result
 
         if result_type == 'video':
@@ -1150,9 +1166,7 @@ class YoutubeDL(object):
                 return make_dir(path, self.report_error)
 
             if self.params.get('writeinfojson', False):
-                infofn = replace_extension(
-                    self.prepare_filepath(self.prepare_filename(ie_copy), 'infojson'),
-                    'info.json', ie_result.get('ext'))
+                infofn = self.prepare_filename(ie_copy, 'pl_infojson')
                 if not ensure_dir_exists(encodeFilename(infofn)):
                     return
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
@@ -1168,9 +1182,7 @@ class YoutubeDL(object):
                         self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
 
             if self.params.get('writedescription', False):
-                descfn = replace_extension(
-                    self.prepare_filepath(self.prepare_filename(ie_copy), 'description'),
-                    'description', ie_result.get('ext'))
+                descfn = self.prepare_filename(ie_copy, 'pl_description')
                 if not ensure_dir_exists(encodeFilename(descfn)):
                     return
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
@@ -1370,7 +1382,7 @@ class YoutubeDL(object):
             and (
                 not can_merge()
                 or info_dict.get('is_live', False)
-                or self.params.get('outtmpl', DEFAULT_OUTTMPL) == '-'))
+                or self.outtmpl_dict['default'] == '-'))
 
         return (
             'best/bestvideo+bestaudio'
@@ -2032,10 +2044,10 @@ class YoutubeDL(object):
 
         info_dict = self.pre_process(info_dict)
 
-        filename = self.prepare_filename(info_dict, warn=True)
-        info_dict['_filename'] = full_filename = self.prepare_filepath(filename)
-        temp_filename = self.prepare_filepath(filename, 'temp')
+        info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
+        temp_filename = self.prepare_filename(info_dict, 'temp')
         files_to_move = {}
+        skip_dl = self.params.get('skip_download', False)
 
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=False)
@@ -2047,7 +2059,7 @@ class YoutubeDL(object):
             # Do nothing else if in simulate mode
             return
 
-        if filename is None:
+        if full_filename is None:
             return
 
         def ensure_dir_exists(path):
@@ -2059,9 +2071,7 @@ class YoutubeDL(object):
             return
 
         if self.params.get('writedescription', False):
-            descfn = replace_extension(
-                self.prepare_filepath(filename, 'description'),
-                'description', info_dict.get('ext'))
+            descfn = self.prepare_filename(info_dict, 'description')
             if not ensure_dir_exists(encodeFilename(descfn)):
                 return
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
@@ -2078,9 +2088,7 @@ class YoutubeDL(object):
                     return
 
         if self.params.get('writeannotations', False):
-            annofn = replace_extension(
-                self.prepare_filepath(filename, 'annotation'),
-                'annotations.xml', info_dict.get('ext'))
+            annofn = self.prepare_filename(info_dict, 'annotation')
             if not ensure_dir_exists(encodeFilename(annofn)):
                 return
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(annofn)):
@@ -2116,10 +2124,11 @@ class YoutubeDL(object):
             # ie = self.get_info_extractor(info_dict['extractor_key'])
             for sub_lang, sub_info in subtitles.items():
                 sub_format = sub_info['ext']
-                sub_filename = subtitles_filename(temp_filename, sub_lang, sub_format, info_dict.get('ext'))
-                sub_filename_final = subtitles_filename(
-                    self.prepare_filepath(filename, 'subtitle'),
+                sub_fn = self.prepare_filename(info_dict, 'subtitle')
+                sub_filename = subtitles_filename(
+                     temp_filename if not skip_dl else sub_fn,
                     sub_lang, sub_format, info_dict.get('ext'))
+                sub_filename_final = subtitles_filename(sub_fn, sub_lang, sub_format, info_dict.get('ext'))
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(sub_filename)):
                     self.to_screen('[info] Video subtitle %s.%s is already present' % (sub_lang, sub_format))
                     files_to_move[sub_filename] = sub_filename_final
@@ -2153,10 +2162,10 @@ class YoutubeDL(object):
                                                 (sub_lang, error_to_compat_str(err)))
                             continue
 
-        if self.params.get('skip_download', False):
+        if skip_dl:
             if self.params.get('convertsubtitles', False):
                 # subconv = FFmpegSubtitlesConvertorPP(self, format=self.params.get('convertsubtitles'))
-                filename_real_ext = os.path.splitext(filename)[1][1:]
+                filename_real_ext = os.path.splitext(full_filename)[1][1:]
                 filename_wo_ext = (
                     os.path.splitext(full_filename)[0]
                     if filename_real_ext == info_dict['ext']
@@ -2176,9 +2185,7 @@ class YoutubeDL(object):
                         return
 
         if self.params.get('writeinfojson', False):
-            infofn = replace_extension(
-                self.prepare_filepath(filename, 'infojson'),
-                'info.json', info_dict.get('ext'))
+            infofn = self.prepare_filename(info_dict, 'infojson')
             if not ensure_dir_exists(encodeFilename(infofn)):
                 return
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
@@ -2190,11 +2197,14 @@ class YoutubeDL(object):
                 except (OSError, IOError):
                     self.report_error('Cannot write video metadata to JSON file ' + infofn)
                     return
-            info_dict['__infojson_filepath'] = infofn
+            info_dict['__infojson_filename'] = infofn
 
-        thumbdir = os.path.dirname(self.prepare_filepath(filename, 'thumbnail'))
-        for thumbfn in self._write_thumbnails(info_dict, temp_filename):
-            files_to_move[thumbfn] = os.path.join(thumbdir, os.path.basename(thumbfn))
+        thumbfn = self.prepare_filename(info_dict, 'thumbnail')
+        thumb_fn_temp = temp_filename if not skip_dl else thumbfn
+        for thumb_ext in self._write_thumbnails(info_dict, thumb_fn_temp):
+            thumb_filename_temp = replace_extension(thumb_fn_temp, thumb_ext, info_dict.get('ext'))
+            thumb_filename = replace_extension(thumbfn, thumb_ext, info_dict.get('ext'))
+            files_to_move[thumb_filename_temp] = info_dict['__thumbnail_filename'] = thumb_filename
 
         # Write internet shortcut files
         url_link = webloc_link = desktop_link = False
@@ -2247,7 +2257,7 @@ class YoutubeDL(object):
 
         # Download
         must_record_download_archive = False
-        if not self.params.get('skip_download', False):
+        if not skip_dl:
             try:
 
                 def existing_file(*filepaths):
@@ -2327,7 +2337,7 @@ class YoutubeDL(object):
                             new_info = dict(info_dict)
                             new_info.update(f)
                             fname = prepend_extension(
-                                self.prepare_filepath(self.prepare_filename(new_info), 'temp'),
+                                self.prepare_filename(new_info, 'temp'),
                                 'f%s' % f['format_id'], new_info['ext'])
                             if not ensure_dir_exists(fname):
                                 return
@@ -2357,7 +2367,7 @@ class YoutubeDL(object):
                 self.report_error('content too short (expected %s bytes and served %s)' % (err.expected, err.downloaded))
                 return
 
-            if success and filename != '-':
+            if success and full_filename != '-':
                 # Fixup content
                 fixup_policy = self.params.get('fixup')
                 if fixup_policy is None:
@@ -2439,7 +2449,7 @@ class YoutubeDL(object):
 
     def download(self, url_list):
         """Download a given list of URLs."""
-        outtmpl = self.params.get('outtmpl', DEFAULT_OUTTMPL)
+        outtmpl = self.outtmpl_dict['default']
         if (len(url_list) > 1
                 and outtmpl != '-'
                 and '%' not in outtmpl
@@ -2522,12 +2532,13 @@ class YoutubeDL(object):
         """Run all the postprocessors on the given file."""
         info = dict(ie_info)
         info['filepath'] = filename
+        info['__files_to_move'] = {}
 
         for pp in ie_info.get('__postprocessors', []) + self._pps['normal']:
             files_to_move, info = self.run_pp(pp, info, files_to_move)
-        info = self.run_pp(MoveFilesAfterDownloadPP(self, files_to_move), info, files_to_move)[1]
+        info = self.run_pp(MoveFilesAfterDownloadPP(self, files_to_move), info)[1]
         for pp in self._pps['aftermove']:
-            files_to_move, info = self.run_pp(pp, info, {})
+            info = self.run_pp(pp, info, {})[1]
 
     def _make_archive_id(self, info_dict):
         video_id = info_dict.get('id')
@@ -2878,7 +2889,7 @@ class YoutubeDL(object):
             encoding = preferredencoding()
         return encoding
 
-    def _write_thumbnails(self, info_dict, filename):
+    def _write_thumbnails(self, info_dict, filename):  # return the extensions
         if self.params.get('writethumbnail', False):
             thumbnails = info_dict.get('thumbnails')
             if thumbnails:
@@ -2891,12 +2902,12 @@ class YoutubeDL(object):
         ret = []
         for t in thumbnails:
             thumb_ext = determine_ext(t['url'], 'jpg')
-            suffix = '_%s' % t['id'] if len(thumbnails) > 1 else ''
+            suffix = '%s.' % t['id'] if len(thumbnails) > 1 else ''
             thumb_display_id = '%s ' % t['id'] if len(thumbnails) > 1 else ''
-            t['filename'] = thumb_filename = replace_extension(filename + suffix, thumb_ext, info_dict.get('ext'))
+            t['filename'] = thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
 
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
-                ret.append(thumb_filename)
+                ret.append(suffix + thumb_ext)
                 self.to_screen('[%s] %s: Thumbnail %sis already present' %
                                (info_dict['extractor'], info_dict['id'], thumb_display_id))
             else:
@@ -2906,7 +2917,7 @@ class YoutubeDL(object):
                     uf = self.urlopen(t['url'])
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
-                    ret.append(thumb_filename)
+                    ret.append(suffix + thumb_ext)
                     self.to_screen('[%s] %s: Writing thumbnail %sto: %s' %
                                    (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
                 except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:

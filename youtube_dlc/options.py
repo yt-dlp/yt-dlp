@@ -16,6 +16,7 @@ from .compat import (
 from .utils import (
     expand_path,
     get_executable_path,
+    OUTTMPL_TYPES,
     preferredencoding,
     write_string,
 )
@@ -831,19 +832,23 @@ def parseOpts(overrideArguments=None):
         metavar='TYPE:PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_multiple_values_options_callback,
         callback_kwargs={
-            'allowed_keys': 'home|temp|config|description|annotation|subtitle|infojson|thumbnail',
+            'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys()),
             'process': lambda x: x.strip()},
         help=(
             'The paths where the files should be downloaded. '
-            'Specify the type of file and the path separated by a colon ":" '
-            '(supported: description|annotation|subtitle|infojson|thumbnail). '
+            'Specify the type of file and the path separated by a colon ":". '
+            'All the same types as --output are supported. '
             'Additionally, you can also provide "home" and "temp" paths. '
             'All intermediary files are first downloaded to the temp path and '
             'then the final files are moved over to the home path after download is finished. '
-            'Note that this option is ignored if --output is an absolute path'))
+            'This option is ignored if --output is an absolute path'))
     filesystem.add_option(
         '-o', '--output',
-        dest='outtmpl', metavar='TEMPLATE',
+        metavar='[TYPE:]TEMPLATE', dest='outtmpl', default={}, type='str',
+        action='callback', callback=_dict_from_multiple_values_options_callback,
+        callback_kwargs={
+            'allowed_keys': '|'.join(OUTTMPL_TYPES.keys()),
+            'default_key': 'default', 'process': lambda x: x.strip()},
         help='Output filename template, see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
         '--output-na-placeholder',

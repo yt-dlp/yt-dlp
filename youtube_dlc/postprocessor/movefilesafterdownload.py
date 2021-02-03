@@ -25,6 +25,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         dl_path, dl_name = os.path.split(encodeFilename(info['filepath']))
         finaldir = info.get('__finaldir', dl_path)
         finalpath = os.path.join(finaldir, dl_name)
+        self.files_to_move.update(info['__files_to_move'])
         self.files_to_move[info['filepath']] = finalpath
 
         for oldfile, newfile in self.files_to_move.items():
@@ -39,7 +40,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
             if os.path.exists(encodeFilename(newfile)):
                 if self.get_param('overwrites', True):
                     self.report_warning('Replacing existing file "%s"' % newfile)
-                    os.path.remove(encodeFilename(newfile))
+                    os.remove(encodeFilename(newfile))
                 else:
                     self.report_warning(
                         'Cannot move file "%s" out of temporary directory since "%s" already exists. '
