@@ -57,6 +57,9 @@ youtube-dlc
 *.swp
 *.ogg
 *.opus
+*.info.json
+*.annotations.xml
+*.description
 
 # Config
 *.conf

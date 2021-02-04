@@ -175,14 +175,18 @@ class YoutubeDL(object):
     forcejson:         Force printing info_dict as JSON.
     dump_single_json:  Force printing the info_dict of the whole playlist
                        (or video) as a single JSON line.
-    force_write_download_archive: Force writing download archive regardless of
-                       'skip_download' or 'simulate'.
+    force_write_download_archive: Force writing download archive regardless
+                       of 'skip_download' or 'simulate'.
     simulate:          Do not download the video files.
     format:            Video format code. see "FORMAT SELECTION" for more details.
-    format_sort:       How to sort the video formats. see "Sorting Formats" for more details.
-    format_sort_force: Force the given format_sort. see "Sorting Formats" for more details.
-    allow_multiple_video_streams:   Allow multiple video streams to be merged into a single file
-    allow_multiple_audio_streams:   Allow multiple audio streams to be merged into a single file
+    format_sort:       How to sort the video formats. see "Sorting Formats"
+                       for more details.
+    format_sort_force: Force the given format_sort. see "Sorting Formats"
+                       for more details.
+    allow_multiple_video_streams:   Allow multiple video streams to be merged
+                       into a single file
+    allow_multiple_audio_streams:   Allow multiple audio streams to be merged
+                       into a single file
     outtmpl:           Dictionary of templates for output names. Allowed keys
                        are 'default' and the keys of OUTTMPL_TYPES (in utils.py)
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
@@ -210,7 +214,8 @@ class YoutubeDL(object):
                        unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
     writethumbnail:    Write the thumbnail image to a file
-    allow_playlist_files: Also write playlists' description, infojson etc in a seperate file
+    allow_playlist_files: Whether to write playlists' description, infojson etc
+                       also to disk when using the 'write*' options
     write_all_thumbnails:  Write all thumbnail formats to files
     writelink:         Write an internet shortcut file, depending on the
                        current platform (.url/.webloc/.desktop)
@@ -727,9 +732,9 @@ class YoutubeDL(object):
     def report_file_delete(self, file_name):
         """Report that existing file will be deleted."""
         try:
-            self.to_screen('Deleting already existent file %s' % file_name)
+            self.to_screen('Deleting existing file %s' % file_name)
         except UnicodeEncodeError:
-            self.to_screen('Deleting already existent file')
+            self.to_screen('Deleting existing file')
 
     def parse_outtmpl(self):
         outtmpl_dict = self.params.get('outtmpl', {})

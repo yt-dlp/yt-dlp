@@ -2,7 +2,7 @@ name: Quick Test
 on: [push, pull_request]
 jobs:
   tests:
-    name: Core Tests
+    name: Core Test
     if: "!contains(github.event.head_commit.message, 'ci skip all')"
     runs-on: ubuntu-latest
     steps:

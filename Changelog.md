@@ -17,6 +17,26 @@
 -->
 
 
+### 2021.02.04
+* **Merge youtube-dl:** Upto [2021.02.04.1](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.02.04.1)
+* **Date/time formatting in output template:** You can now use [`strftime`](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) to format date/time fields. Example: `%(upload_date>%Y-%m-%d)s`
+* **Multiple output templates:**
+    * Seperate output templates can be given for the different metadata files by using `-o TYPE:TEMPLATE`
+    * The alowed types are: `subtitle|thumbnail|description|annotation|infojson|pl_description|pl_infojson`
+* [youtube] More metadata extraction for channel/playlist URLs (channel, uploader, thumbnail, tags)
+* New option `--no-write-playlist-metafiles` to prevent writing playlist metadata files
+* [audius] Fix extractor
+* [youtube_live_chat] Fix `parse_yt_initial_data` and add `fragment_retries`
+* [postprocessor] Raise errors correctly
+* [metadatafromtitle] Fix bug when extracting data from numeric fields
+* Fix issue with overwriting files
+* Fix "Default format spec" appearing in quiet mode
+* [FormatSort] Allow user to prefer av01 over vp9 (The default is still vp9)
+* [FormatSort] fix bug where `quality` had more priority than `hasvid`
+* [pyinst] Automatically detect python architecture and working directory
+* Strip out internal fields such as `_filename` from infojson
+
+
 ### 2021.01.29
 * **Features from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl)**: Co-authored by @animelover1984 and @bbepis
     * Add `--get-comments`
@@ -174,7 +194,7 @@
     * Added `--no-ignore-dynamic-mpd`, `--no-allow-dynamic-mpd`, `--allow-dynamic-mpd`, `--youtube-include-hls-manifest`, `--no-youtube-include-hls-manifest`, `--no-youtube-skip-hls-manifest`, `--no-download`, `--no-download-archive`, `--resize-buffer`, `--part`, `--mtime`, `--no-keep-fragments`, `--no-cookies`, `--no-write-annotations`, `--no-write-info-json`, `--no-write-description`, `--no-write-thumbnail`, `--youtube-include-dash-manifest`, `--post-overwrites`, `--no-keep-video`, `--no-embed-subs`, `--no-embed-thumbnail`, `--no-add-metadata`, `--no-include-ads`, `--no-write-sub`, `--no-write-auto-sub`, `--no-playlist-reverse`, `--no-restrict-filenames`, `--youtube-include-dash-manifest`, `--no-format-sort-force`, `--flat-videos`, `--no-list-formats-as-table`, `--no-sponskrub`, `--no-sponskrub-cut`, `--no-sponskrub-force`
     * Renamed: `--write-subs`, `--no-write-subs`, `--no-write-auto-subs`, `--write-auto-subs`. Note that these can still be used without the ending "s"
 * Relaxed validation for format filters so that any arbitrary field can be used
-* Fix for embedding thumbnail in mp3 by @pauldubois98
+* Fix for embedding thumbnail in mp3 by @pauldubois98 ([ytdl-org/youtube-dl#21569](https://github.com/ytdl-org/youtube-dl/pull/21569))
 * Make Twitch Video ID output from Playlist and VOD extractor same. This is only a temporary fix
 * **Merge youtube-dl:** Upto [2021.01.03](https://github.com/ytdl-org/youtube-dl/commit/8e953dcbb10a1a42f4e12e4e132657cb0100a1f8) - See [blackjack4494/yt-dlc#280](https://github.com/blackjack4494/yt-dlc/pull/280) for details
     * Extractors [tiktok](https://github.com/ytdl-org/youtube-dl/commit/fb626c05867deab04425bad0c0b16b55473841a2) and [hotstar](https://github.com/ytdl-org/youtube-dl/commit/bb38a1215718cdf36d73ff0a7830a64cd9fa37cc) have not been merged

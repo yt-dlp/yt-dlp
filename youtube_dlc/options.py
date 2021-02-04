@@ -897,11 +897,13 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '-c', '--continue',
         action='store_true', dest='continue_dl', default=True,
-        help='Resume partially downloaded files (default)')
+        help='Resume partially downloaded files/fragments (default)')
     filesystem.add_option(
         '--no-continue',
         action='store_false', dest='continue_dl',
-        help='Restart download of partially downloaded files from beginning')
+        help=(
+            'Do not resume partially downloaded fragments. '
+            'If the file is unfragmented, restart download of the entire file'))
     filesystem.add_option(
         '--part',
         action='store_false', dest='nopart', default=False,
@@ -929,7 +931,7 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--write-info-json',
         action='store_true', dest='writeinfojson', default=False,
-        help='Write video metadata to a .info.json file. Note that this may contain personal information')
+        help='Write video metadata to a .info.json file (this may contain personal information)')
     filesystem.add_option(
         '--no-write-info-json',
         action='store_false', dest='writeinfojson',
