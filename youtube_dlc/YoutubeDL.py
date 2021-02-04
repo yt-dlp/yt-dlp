@@ -2131,7 +2131,7 @@ class YoutubeDL(object):
                 sub_format = sub_info['ext']
                 sub_fn = self.prepare_filename(info_dict, 'subtitle')
                 sub_filename = subtitles_filename(
-                     temp_filename if not skip_dl else sub_fn,
+                    temp_filename if not skip_dl else sub_fn,
                     sub_lang, sub_format, info_dict.get('ext'))
                 sub_filename_final = subtitles_filename(sub_fn, sub_lang, sub_format, info_dict.get('ext'))
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(sub_filename)):

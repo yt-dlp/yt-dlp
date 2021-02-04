@@ -24,7 +24,6 @@ from .compat import (
 from .utils import (
     DateRange,
     decodeOption,
-    DEFAULT_OUTTMPL,
     DownloadError,
     ExistingVideoReached,
     expand_path,

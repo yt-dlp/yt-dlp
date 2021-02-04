@@ -19,10 +19,11 @@
 
 ### 2021.02.04
 * **Merge youtube-dl:** Upto [2021.02.04.1](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.02.04.1)
-* **Date/time formatting in output template:** You can now use [`strftime`](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) to format date/time fields. Example: `%(upload_date>%Y-%m-%d)s`
+* **Date/time formatting in output template:**
+    * You can use [`strftime`](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) to format date/time fields. Example: `%(upload_date>%Y-%m-%d)s`
 * **Multiple output templates:**
-    * Seperate output templates can be given for the different metadata files by using `-o TYPE:TEMPLATE`
-    * The alowed types are: `subtitle|thumbnail|description|annotation|infojson|pl_description|pl_infojson`
+    * Separate output templates can be given for the different metadata files by using `-o TYPE:TEMPLATE`
+    * The allowed types are: `subtitle|thumbnail|description|annotation|infojson|pl_description|pl_infojson`
 * [youtube] More metadata extraction for channel/playlist URLs (channel, uploader, thumbnail, tags)
 * New option `--no-write-playlist-metafiles` to prevent writing playlist metadata files
 * [audius] Fix extractor
