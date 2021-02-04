@@ -1366,9 +1366,9 @@ class InfoExtractor(object):
     class FormatSort:
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<seperator>[~:])(?P<limit>.*?))?)? *$'
 
-        default = ('hidden', 'has_video', 'extractor', 'lang', 'quality',
+        default = ('hidden', 'hasvid', 'ie_pref', 'lang', 'quality',
                    'res', 'fps', 'codec:vp9', 'size', 'br', 'asr',
-                   'proto', 'ext', 'has_audio', 'source', 'format_id')
+                   'proto', 'ext', 'has_audio', 'source', 'format_id')  # These must not be aliases
 
         settings = {
             'vcodec': {'type': 'ordered', 'regex': True,
