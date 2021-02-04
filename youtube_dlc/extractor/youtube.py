@@ -7,6 +7,7 @@ import json
 import os.path
 import random
 import re
+import time
 import traceback
 
 from .common import InfoExtractor, SearchInfoExtractor
@@ -30,9 +31,8 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     parse_codecs,
-    parse_count,
     parse_duration,
-    qualities,
+    # qualities,
     remove_start,
     smuggle_url,
     str_or_none,
@@ -1494,7 +1494,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         formats = []
         itags = []
         player_url = None
-        q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
+        # q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
         streaming_data = player_response.get('streamingData') or {}
         streaming_formats = streaming_data.get('formats') or []
         streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
@@ -1909,10 +1909,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not xsrf_token:
                 xsrf_token = self._search_regex(
                     r'([\'"])XSRF_TOKEN\1\s*:\s*([\'"])(?P<xsrf_token>(?:(?!\2).)+)\2',
-                    video_webpage, 'xsrf token', group='xsrf_token', fatal=False)
+                    webpage, 'xsrf token', group='xsrf_token', fatal=False)
 
         # annotations
-        video_annotations = None
         if get_annotations:
             invideo_url = try_get(
                 player_response, lambda x: x['annotations'][0]['playerAnnotationsUrlsRenderer']['invideoUrl'], compat_str)
@@ -1923,9 +1922,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if not xsrf_field_name:
                     xsrf_field_name = self._search_regex(
                         r'([\'"])XSRF_FIELD_NAME\1\s*:\s*([\'"])(?P<xsrf_field_name>\w+)\2',
-                        video_webpage, 'xsrf field name',
+                        webpage, 'xsrf field name',
                         group='xsrf_field_name', default='session_token')
-                video_annotations = self._download_webpage(
+                info['annotations'] = self._download_webpage(
                     self._proto_relative_url(invideo_url),
                     video_id, note='Downloading annotations',
                     errnote='Unable to download video annotations', fatal=False,
@@ -1955,12 +1954,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         for o in search_dict(i, key):
                             yield o
 
-            try:
-                ncd = next(search_dict(yt_initial_data, 'nextContinuationData'))
-                continuations = [ncd['continuation']]
-            # Handle videos where comments have been disabled entirely
-            except StopIteration:
-                continuations = []
+            continuations = []
+            if initial_data:
+                try:
+                    ncd = next(search_dict(initial_data, 'nextContinuationData'))
+                    continuations = [ncd['continuation']]
+                # Handle videos where comments have been disabled entirely
+                except StopIteration:
+                    pass
 
             def get_continuation(continuation, session_token, replies=False):
                 query = {
@@ -2034,9 +2035,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'parent': 'root'
                     })
                     if 'replies' not in meta_comment['commentThreadRenderer']:
- 
                         continue
-
 
                     reply_continuations = [rcn['nextContinuationData']['continuation'] for rcn in meta_comment['commentThreadRenderer']['replies']['commentRepliesRenderer']['continuations']]
                     while reply_continuations:
@@ -2061,13 +2060,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                 'parent': comment['commentId']
                             })
                         if 'continuations' not in reply_comment_meta or len(reply_comment_meta['continuations']) == 0:
-
                             continue
-
                         reply_continuations += [rcn['nextContinuationData']['continuation'] for rcn in reply_comment_meta['continuations']]
 
                 self.to_screen('Comments downloaded %s of ~%s' % (len(video_comments), expected_video_comment_count))
-
                 if 'continuations' in item_section:
                     continuations += [ncd['nextContinuationData']['continuation'] for ncd in item_section['continuations']]
                 time.sleep(1)
