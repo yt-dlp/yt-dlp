@@ -193,13 +193,13 @@ class NiconicoIE(InfoExtractor):
         def yesno(boolean):
             return 'yes' if boolean else 'no'
 
-        session_api_data = api_data['video']['dmcInfo']['session_api']
-        session_api_endpoint = session_api_data['urls'][0]
+        session_api_data = try_get(api_data, lambda x: x['video']['dmcInfo']['session_api'])
+        session_api_endpoint = try_get(session_api_data, lambda x: x['urls'][0])
 
         # ping
         self._download_json(
             'https://nvapi.nicovideo.jp/v1/2ab0cbaa/watch', video_id,
-            query={'t': api_data['video']['dmcInfo']['tracking_id']},
+            query={'t': try_get(api_data, lambda x: x['video']['dmcInfo']['tracking_id'])},
             headers={
                 'Origin': 'https://www.nicovideo.jp',
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
@@ -208,14 +208,14 @@ class NiconicoIE(InfoExtractor):
             })
 
         # hls (encryption)
-        if 'encryption' in api_data['video']['dmcInfo']:
+        if 'encryption' in try_get(api_data, lambda x: x['video']['dmcInfo']) or {}:
             session_api_http_parameters = {
                 'parameters': {
                     'hls_parameters': {
                         'encryption': {
                             'hls_encryption_v1': {
-                                'encrypted_key': api_data['video']['dmcInfo']['encryption']['hls_encryption_v1']['encrypted_key'],
-                                'key_uri': api_data['video']['dmcInfo']['encryption']['hls_encryption_v1']['key_uri']
+                                'encrypted_key': try_get(api_data, lambda x: x['video']['dmcInfo']['encryption']['hls_encryption_v1']['encrypted_key']),
+                                'key_uri': try_get(api_data, lambda x: x['video']['dmcInfo']['encryption']['hls_encryption_v1']['key_uri'])
                             }
                         },
                         'transfer_preset': '',
@@ -246,20 +246,20 @@ class NiconicoIE(InfoExtractor):
             data=json.dumps({
                 'session': {
                     'client_info': {
-                        'player_id': session_api_data['player_id'],
+                        'player_id': try_get(session_api_data, lambda x: x['player_id']),
                     },
                     'content_auth': {
-                        'auth_type': session_api_data['auth_types'][session_api_data['protocols'][0]],
-                        'content_key_timeout': session_api_data['content_key_timeout'],
+                        'auth_type': try_get(session_api_data, lambda x: x['auth_types'][session_api_data['protocols'][0]]),
+                        'content_key_timeout': try_get(session_api_data, lambda x: x['content_key_timeout']),
                         'service_id': 'nicovideo',
-                        'service_user_id': session_api_data['service_user_id']
+                        'service_user_id': try_get(session_api_data, lambda x: x['service_user_id'])
                     },
-                    'content_id': session_api_data['content_id'],
+                    'content_id': try_get(session_api_data, lambda x: x['content_id']),
                     'content_src_id_sets': [{
                         'content_src_ids': [{
                             'src_id_to_mux': {
-                                'audio_src_ids': [audio_quality['id']],
-                                'video_src_ids': [video_quality['id']],
+                                'audio_src_ids': [try_get(audio_quality, lambda x: x['id'])],
+                                'video_src_ids': [try_get(video_quality, lambda x: x['id'])],
                             }
                         }]
                     }],
@@ -267,21 +267,21 @@ class NiconicoIE(InfoExtractor):
                     'content_uri': '',
                     'keep_method': {
                         'heartbeat': {
-                            'lifetime': session_api_data['heartbeat_lifetime']
+                            'lifetime': try_get(session_api_data, lambda x: x['heartbeat_lifetime'])
                         }
                     },
-                    'priority': session_api_data['priority'],
+                    'priority': try_get(session_api_data, lambda x: x['priority']),
                     'protocol': {
                         'name': 'http',
                         'parameters': {
                             'http_parameters': session_api_http_parameters
                         }
                     },
-                    'recipe_id': session_api_data['recipe_id'],
+                    'recipe_id': try_get(session_api_data, lambda x: x['recipe_id']),
                     'session_operation_auth': {
                         'session_operation_auth_by_signature': {
-                            'signature': session_api_data['signature'],
-                            'token': session_api_data['token'],
+                            'signature': try_get(session_api_data, lambda x: x['signature']),
+                            'token': try_get(session_api_data, lambda x: x['token']),
                         }
                     },
                     'timing_constraint': 'unlimited'
@@ -292,7 +292,7 @@ class NiconicoIE(InfoExtractor):
         heartbeat_url = session_api_endpoint['url'] + '/' + session_response['data']['session']['id'] + '?_format=json&_method=PUT'
         heartbeat_data = json.dumps(session_response['data'])
         # interval, convert milliseconds to seconds, then halve to make a buffer.
-        heartbeat_interval = session_api_data['heartbeat_lifetime'] / 2000
+        heartbeat_interval = try_get(session_api_data, lambda x: x['heartbeat_lifetime']) / 2000
 
         resolution = video_quality.get('resolution', {})
 
@@ -302,8 +302,8 @@ class NiconicoIE(InfoExtractor):
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'abr': float_or_none(audio_quality.get('bitrate'), 1000),
             'vbr': float_or_none(video_quality.get('bitrate'), 1000),
-            'height': resolution.get('height'),
-            'width': resolution.get('width'),
+            'height': try_get(resolution, lambda x: x.get('height')),
+            'width': try_get(resolution, lambda x: x.get('width')),
             'quality': -2 if 'low' in format_id else -1,  # Default quality value is -1
             'heartbeat_url': heartbeat_url,
             'heartbeat_data': heartbeat_data,
@@ -317,9 +317,7 @@ class NiconicoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        # Get video webpage. We are not actually interested in it for normal
-        # cases, but need the cookies in order to be able to download the
-        # info webpage
+        # Get video webpage for API data.
         webpage, handle = self._download_webpage_handle(
             'http://www.nicovideo.jp/watch/' + video_id, video_id)
         if video_id.startswith('so'):
@@ -361,18 +359,18 @@ class NiconicoIE(InfoExtractor):
         formats = []
 
         # Get HTML5 videos info
-        dmc_info = api_data['video'].get('dmcInfo')
+        dmc_info = try_get(api_data, lambda x: x['video']['dmcInfo'])
 
-        quality_info = dmc_info['quality']
-        for audio_quality in quality_info['audios']:
-            for video_quality in quality_info['videos']:
-                if not audio_quality['available'] or not video_quality['available']:
+        quality_info = try_get(dmc_info, lambda x: x['quality'])
+        for audio_quality in try_get(quality_info, lambda x: x['audios']) or {}:
+            for video_quality in try_get(quality_info, lambda x: x['videos']) or {}:
+                if not try_get(audio_quality, lambda x: x['available']) or not try_get(video_quality, lambda x: x['available']):
                     continue
                 formats.append(self._extract_format_for_quality(
                     api_data, video_id, audio_quality, video_quality))
 
         # Get flv/swf info
-        video_real_url = api_data['video']['smileInfo']['url']
+        video_real_url = try_get(api_data, lambda x: x['video']['smileInfo']['url'])
         is_economy = video_real_url.endswith('low')
 
         extension = get_video_info_xml('movie_type')
