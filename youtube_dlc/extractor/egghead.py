@@ -12,7 +12,14 @@ from ..utils import (
 )
 
 
-class EggheadCourseIE(InfoExtractor):
+class EggheadBaseIE(InfoExtractor):
+    def _call_api(self, path, video_id, resource, fatal=True):
+        return self._download_json(
+            'https://app.egghead.io/api/v1/' + path,
+            video_id, 'Downloading %s JSON' % resource, fatal=fatal)
+
+
+class EggheadCourseIE(EggheadBaseIE):
     IE_DESC = 'egghead.io course'
     IE_NAME = 'egghead:course'
     _VALID_URL = r'https://egghead\.io/courses/(?P<id>[^/?#&]+)'
@@ -28,10 +35,9 @@ class EggheadCourseIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-
-        lessons = self._download_json(
-            'https://egghead.io/api/v1/series/%s/lessons' % playlist_id,
-            playlist_id, 'Downloading course lessons JSON')
+        series_path = 'series/' + playlist_id
+        lessons = self._call_api(
+            series_path + '/lessons', playlist_id, 'course lessons')
 
         entries = []
         for lesson in lessons:
@@ -44,9 +50,8 @@ class EggheadCourseIE(InfoExtractor):
             entries.append(self.url_result(
                 lesson_url, ie=EggheadLessonIE.ie_key(), video_id=lesson_id))
 
-        course = self._download_json(
-            'https://egghead.io/api/v1/series/%s' % playlist_id,
-            playlist_id, 'Downloading course JSON', fatal=False) or {}
+        course = self._call_api(
+            series_path, playlist_id, 'course', False) or {}
 
         playlist_id = course.get('id')
         if playlist_id:
@@ -57,7 +62,7 @@ class EggheadCourseIE(InfoExtractor):
             course.get('description'))
 
 
-class EggheadLessonIE(InfoExtractor):
+class EggheadLessonIE(EggheadBaseIE):
     IE_DESC = 'egghead.io lesson'
     IE_NAME = 'egghead:lesson'
     _VALID_URL = r'https://egghead\.io/(?:api/v1/)?lessons/(?P<id>[^/?#&]+)'
@@ -74,7 +79,7 @@ class EggheadLessonIE(InfoExtractor):
             'upload_date': '20161209',
             'duration': 304,
             'view_count': 0,
-            'tags': ['javascript', 'free'],
+            'tags': 'count:2',
         },
         'params': {
             'skip_download': True,
@@ -88,8 +93,8 @@ class EggheadLessonIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        lesson = self._download_json(
-            'https://egghead.io/api/v1/lessons/%s' % display_id, display_id)
+        lesson = self._call_api(
+            'lessons/' + display_id, display_id, 'lesson')
 
         lesson_id = compat_str(lesson['id'])
         title = lesson['title']

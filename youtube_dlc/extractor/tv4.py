@@ -17,7 +17,7 @@ class TV4IE(InfoExtractor):
             tv4\.se/(?:[^/]+)/klipp/(?:.*)-|
             tv4play\.se/
             (?:
-                (?:program|barn)/(?:[^/]+/|(?:[^\?]+)\?video_id=)|
+                (?:program|barn)/(?:(?:[^/]+/){1,2}|(?:[^\?]+)\?video_id=)|
                 iframe/video/|
                 film/|
                 sport/|
@@ -64,6 +64,10 @@ class TV4IE(InfoExtractor):
         },
         {
             'url': 'http://www.tv4play.se/program/farang/3922081',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://www.tv4play.se/program/nyheterna/avsnitt/13315940',
             'only_matching': True,
         }
     ]

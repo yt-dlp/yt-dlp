@@ -7,6 +7,7 @@ from ..compat import compat_parse_qs
 from ..utils import (
     determine_ext,
     ExtractorError,
+    get_element_by_class,
     int_or_none,
     lowercase_escape,
     try_get,
@@ -237,7 +238,7 @@ class GoogleDriveIE(InfoExtractor):
                 if confirmation_webpage:
                     confirm = self._search_regex(
                         r'confirm=([^&"\']+)', confirmation_webpage,
-                        'confirmation code', fatal=False)
+                        'confirmation code', default=None)
                     if confirm:
                         confirmed_source_url = update_url_query(source_url, {
                             'confirm': confirm,
@@ -245,6 +246,11 @@ class GoogleDriveIE(InfoExtractor):
                         urlh = request_source_file(confirmed_source_url, 'confirmed source')
                         if urlh and urlh.headers.get('Content-Disposition'):
                             add_source_format(urlh)
+                    else:
+                        self.report_warning(
+                            get_element_by_class('uc-error-subcaption', confirmation_webpage)
+                            or get_element_by_class('uc-error-caption', confirmation_webpage)
+                            or 'unable to extract confirmation code')
 
         if not formats and reason:
             raise ExtractorError(reason, expected=True)

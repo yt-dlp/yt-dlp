@@ -90,13 +90,19 @@ class BleacherReportCMSIE(AMPIE):
     _VALID_URL = r'https?://(?:www\.)?bleacherreport\.com/video_embed\?id=(?P<id>[0-9a-f-]{36}|\d{5})'
     _TESTS = [{
         'url': 'http://bleacherreport.com/video_embed?id=8fd44c2f-3dc5-4821-9118-2c825a98c0e1&library=video-cms',
-        'md5': '2e4b0a997f9228ffa31fada5c53d1ed1',
+        'md5': '670b2d73f48549da032861130488c681',
         'info_dict': {
             'id': '8fd44c2f-3dc5-4821-9118-2c825a98c0e1',
-            'ext': 'flv',
+            'ext': 'mp4',
             'title': 'Cena vs. Rollins Would Expose the Heavyweight Division',
             'description': 'md5:984afb4ade2f9c0db35f3267ed88b36e',
+            'upload_date': '20150723',
+            'timestamp': 1437679032,
+
         },
+        'expected_warnings': [
+            'Unable to download f4m manifest'
+        ]
     }]
 
     def _real_extract(self, url):

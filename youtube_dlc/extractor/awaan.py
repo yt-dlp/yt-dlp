@@ -48,6 +48,7 @@ class AWAANBaseIE(InfoExtractor):
             'duration': int_or_none(video_data.get('duration')),
             'timestamp': parse_iso8601(video_data.get('create_time'), ' '),
             'is_live': is_live,
+            'uploader_id': video_data.get('user_id'),
         }
 
 
@@ -107,6 +108,7 @@ class AWAANLiveIE(AWAANBaseIE):
             'title': 're:Dubai Al Oula [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'upload_date': '20150107',
             'timestamp': 1420588800,
+            'uploader_id': '71',
         },
         'params': {
             # m3u8 download

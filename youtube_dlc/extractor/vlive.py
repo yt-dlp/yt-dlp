@@ -125,7 +125,7 @@ class VLiveIE(VLiveBaseIE):
                 headers={'Referer': 'https://www.vlive.tv/'}, query=query)
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                self.raise_login_required(json.loads(e.cause.read().decode())['message'])
+                self.raise_login_required(json.loads(e.cause.read().decode('utf-8'))['message'])
             raise
 
     def _real_extract(self, url):

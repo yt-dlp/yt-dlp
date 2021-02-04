@@ -8,6 +8,7 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     parse_iso8601,
+    unified_timestamp,
     url_or_none,
 )
 
@@ -88,7 +89,7 @@ class AMPIE(InfoExtractor):
 
         self._sort_formats(formats)
 
-        timestamp = parse_iso8601(item.get('pubDate'), ' ') or parse_iso8601(item.get('dc-date'))
+        timestamp = unified_timestamp(item.get('pubDate'), ' ') or parse_iso8601(item.get('dc-date'))
 
         return {
             'id': video_id,
