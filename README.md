@@ -106,7 +106,7 @@ To build the Windows executable, you must have pyinstaller (and optionally mutag
 
     python -m pip install --upgrade pyinstaller mutagen
 
-For the 64bit version, run `py devscripts\pyinst.py 64` using 64bit python3. Similarly, to install 32bit version, run `py devscripts\pyinst.py 32` using 32bit python (preferably 3)
+Once you have all the necessary dependancies installed, just run `py devscripts\pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it. It is strongly reccomended to use python3 although python2.6+ is supported.
 
 You can also build the executable without any version info or metadata by using:
 
