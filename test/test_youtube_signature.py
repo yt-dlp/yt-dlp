@@ -86,13 +86,9 @@ class TestPlayerInfo(unittest.TestCase):
             ('https://www.youtube.com/yts/jsbin/player-en_US-vflaxXRn1/base.js', 'vflaxXRn1'),
             ('https://s.ytimg.com/yts/jsbin/html5player-en_US-vflXGBaUN.js', 'vflXGBaUN'),
             ('https://s.ytimg.com/yts/jsbin/html5player-en_US-vflKjOTVq/html5player.js', 'vflKjOTVq'),
-            ('http://s.ytimg.com/yt/swfbin/watch_as3-vflrEm9Nq.swf', 'vflrEm9Nq'),
-            ('https://s.ytimg.com/yts/swfbin/player-vflenCdZL/watch_as3.swf', 'vflenCdZL'),
         )
         for player_url, expected_player_id in PLAYER_URLS:
-            expected_player_type = player_url.split('.')[-1]
-            player_type, player_id = YoutubeIE._extract_player_info(player_url)
-            self.assertEqual(player_type, expected_player_type)
+            player_id = YoutubeIE._extract_player_info(player_url)
             self.assertEqual(player_id, expected_player_id)
 
 
