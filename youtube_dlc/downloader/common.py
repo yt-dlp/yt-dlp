@@ -5,12 +5,8 @@ import re
 import sys
 import time
 import random
-import threading
 
-from ..compat import (
-    compat_os_name,
-    compat_urllib_request,
-)
+from ..compat import compat_os_name
 from ..utils import (
     decodeArgument,
     encodeFilename,
@@ -376,38 +372,7 @@ class FileDownloader(object):
                     '[download] Sleeping %s seconds...' % (
                         sleep_interval_sub))
                 time.sleep(sleep_interval_sub)
-
-        timer = [None]
-        heartbeat_lock = None
-        download_complete = False
-        if 'heartbeat_url' in info_dict:
-            heartbeat_lock = threading.Lock()
-
-            heartbeat_url = info_dict['heartbeat_url']
-            heartbeat_data = info_dict['heartbeat_data']
-            heartbeat_interval = info_dict.get('heartbeat_interval', 30)
-            self.to_screen('[download] Heartbeat with %s second interval...' % heartbeat_interval)
-
-            def heartbeat():
-                try:
-                    compat_urllib_request.urlopen(url=heartbeat_url, data=heartbeat_data.encode())
-                except Exception:
-                    self.to_screen('[download] Heartbeat failed')
-
-                with heartbeat_lock:
-                    if not download_complete:
-                        timer[0] = threading.Timer(heartbeat_interval, heartbeat)
-                        timer[0].start()
-
-            heartbeat()
-
-        try:
-            return self.real_download(filename, info_dict), True
-        finally:
-            if heartbeat_lock:
-                with heartbeat_lock:
-                    timer[0].cancel()
-                    download_complete = True
+        return self.real_download(filename, info_dict), True
 
     def real_download(self, filename, info_dict):
         """Real download process. Redefine in subclasses."""
