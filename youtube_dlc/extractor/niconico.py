@@ -193,6 +193,8 @@ class NiconicoIE(InfoExtractor):
         def yesno(boolean):
             return 'yes' if boolean else 'no'
 
+        protocol = 'niconico_dmc_http'
+
         session_api_data = try_get(api_data, lambda x: x['video']['dmcInfo']['session_api'])
         session_api_endpoint = try_get(session_api_data, lambda x: x['urls'][0])
 
@@ -209,6 +211,7 @@ class NiconicoIE(InfoExtractor):
 
         # hls (encryption)
         if 'encryption' in try_get(api_data, lambda x: x['video']['dmcInfo']) or {}:
+            protocol = 'niconico_dmc_hls'
             session_api_http_parameters = {
                 'parameters': {
                     'hls_parameters': {
@@ -305,6 +308,7 @@ class NiconicoIE(InfoExtractor):
             'height': try_get(resolution, lambda x: x.get('height')),
             'width': try_get(resolution, lambda x: x.get('width')),
             'quality': -2 if 'low' in format_id else -1,  # Default quality value is -1
+            'protocol': protocol,
             'heartbeat_url': heartbeat_url,
             'heartbeat_data': heartbeat_data,
             'heartbeat_interval': heartbeat_interval,
