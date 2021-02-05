@@ -1999,8 +1999,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     raise ExtractorError('Unexpected HTTP error code: %s' % response_code)
 
             first_continuation = True
+            chain_msg = ''
+            self.to_screen('Downloading comments')
             while continuations:
-                continuation, itct = continuations.pop()
+                continuation = continuations.pop()
                 comment_response = get_continuation(continuation, xsrf_token)
                 if not comment_response:
                     continue
@@ -2046,9 +2048,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             continue
 
                         if self._downloader.params.get('verbose', False):
-                            self.to_screen('[debug] Comments downloaded (chain %s) %s of ~%s' % (comment['commentId'], len(video_comments), expected_video_comment_count))
+                            chain_msg = ' (chain %s)' % comment['commentId']
+                        self.to_screen('Comments downloaded: %d of ~%d%s' % (len(video_comments), expected_video_comment_count, chain_msg))
                         reply_comment_meta = replies_data[1]['response']['continuationContents']['commentRepliesContinuation']
-                        for reply_meta in replies_data[1]['response']['continuationContents']['commentRepliesContinuation']['contents']:
+                        for reply_meta in reply_comment_meta.get('contents', {}):
                             reply_comment = reply_meta['commentRenderer']
                             video_comments.append({
                                 'id': reply_comment['commentId'],
@@ -2063,12 +2066,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             continue
                         reply_continuations += [rcn['nextContinuationData']['continuation'] for rcn in reply_comment_meta['continuations']]
 
-                self.to_screen('Comments downloaded %s of ~%s' % (len(video_comments), expected_video_comment_count))
+                self.to_screen('Comments downloaded: %d of ~%d' % (len(video_comments), expected_video_comment_count))
                 if 'continuations' in item_section:
                     continuations += [ncd['nextContinuationData']['continuation'] for ncd in item_section['continuations']]
                 time.sleep(1)
 
-            self.to_screen('Total comments downloaded %s of ~%s' % (len(video_comments), expected_video_comment_count))
+            self.to_screen('Total comments downloaded: %d of ~%d' % (len(video_comments), expected_video_comment_count))
             info.update({
                 'comments': video_comments,
                 'comment_count': expected_video_comment_count
