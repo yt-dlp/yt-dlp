@@ -11,57 +11,60 @@ from ..compat import compat_urllib_request
 
 
 class NiconicoDmcFD(FileDownloader):
-    """ Base class of Downloading niconico douga from DMC using heartbeat """
+    """ Downloading niconico douga from DMC with heartbeat """
 
-    FD_NAME = ''
-    FD_DESCRIPTION = ''
+    FD_NAME = 'niconico_dmc'
 
     def real_download(self, filename, info_dict):
-        self.to_screen('[%s] %s' % (self.FD_NAME, self.FD_DESCRIPTION))
+        self.to_screen('[%s] Downloading from DMC' % self.FD_NAME)
+
+        ie = NiconicoIE(self.ydl)
+        fd = None
+        ret = None
+
+        info_dict, heartbeat_info_dict = ie._get_actually_info(info_dict)
 
         timer = [None]
         heartbeat_lock = None
         download_complete = False
 
-        if 'heartbeat_url' in info_dict:
-            heartbeat_lock = threading.Lock()
+        heartbeat_lock = threading.Lock()
 
-            heartbeat_url = info_dict['heartbeat_url']
-            heartbeat_data = info_dict['heartbeat_data']
-            heartbeat_interval = info_dict.get('heartbeat_interval', 30)
-            self.to_screen('[%s] Heartbeat with %s second interval...' % (self.FD_NAME, heartbeat_interval))
+        heartbeat_url = heartbeat_info_dict['url']
+        heartbeat_data = heartbeat_info_dict['data']
+        heartbeat_interval = heartbeat_info_dict.get('interval', 30)
+        self.to_screen('[%s] Heartbeat with %s second interval...' % (self.FD_NAME, heartbeat_interval))
 
-            def heartbeat():
-                try:
-                    compat_urllib_request.urlopen(url=heartbeat_url, data=heartbeat_data.encode())
-                except Exception:
-                    self.to_screen("[%s] Heartbeat failed" % self.FD_NAME)
+        def heartbeat():
+            try:
+                compat_urllib_request.urlopen(url=heartbeat_url, data=heartbeat_data.encode())
+            except Exception:
+                self.to_screen("[%s] Heartbeat failed" % self.FD_NAME)
 
-                with heartbeat_lock:
-                    if not download_complete:
-                        timer[0] = threading.Timer(heartbeat_interval, heartbeat)
-                        timer[0].start()
-
-            heartbeat()
+            with heartbeat_lock:
+                if not download_complete:
+                    timer[0] = threading.Timer(heartbeat_interval, heartbeat)
+                    timer[0].start()
 
         try:
-            super().real_download(filename, info_dict)
+            if info_dict['protocol'] == 'http':
+                self.to_screen('[%s] Downloading from DMC by http' % self.FD_NAME)
+
+                fd = HttpFD(self.ydl, self.params)
+            elif info_dict['protocol'] == 'm3u8':  # not 'hls'!
+                self.to_screen('[%s] Downloading from DMC by hls' % self.FD_NAME)
+
+                fd = FFmpegFD(self.ydl, self.params)
+            else:
+                self.report_error('[%s] Unable download %s' % (self.FD_NAME, info_dict['url']))
+
+            heartbeat()
+            ret = fd.real_download(filename, info_dict)
+
         finally:
             if heartbeat_lock:
                 with heartbeat_lock:
                     timer[0].cancel()
                     download_complete = True
 
-
-class NiconicoDmcHttpFD(NiconicoDmcFD, HttpFD):
-    """ Downloads niconico douga from DMC by http with heartbeat """
-
-    FD_NAME = 'niconico_dmc_http'
-    FD_DESCRIPTION = 'Downloading from DMC by http'
-
-
-class NiconicoDmcHlsFD(NiconicoDmcFD, FFmpegFD):
-    """ Downloads niconico douga from DMC by hls with heartbeat """
-
-    FD_NAME = 'niconico_dmc_hls'
-    FD_DESCRIPTION = 'Downloading from DMC by hls'
+            return ret

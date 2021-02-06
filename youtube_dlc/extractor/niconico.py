@@ -1,11 +1,13 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
 import json
 import datetime
 
 from .common import InfoExtractor
 from ..compat import (
+    compat_str,
     compat_parse_qs,
     compat_urllib_parse_urlparse,
 )
@@ -189,11 +191,23 @@ class NiconicoIE(InfoExtractor):
             self._downloader.report_warning('unable to log in: bad username or password')
         return login_ok
 
-    def _extract_format_for_quality(self, api_data, video_id, audio_quality, video_quality):
+    def _get_actually_info(self, info_dict):
         def yesno(boolean):
             return 'yes' if boolean else 'no'
 
-        protocol = 'niconico_dmc_http'
+        def _match_id(url):
+            m = re.compile(r'niconico_dmc://(?P<id>(?:[a-z]{2})?[0-9]+)').match(url)
+            return compat_str(m.group('id'))
+
+        video_id = _match_id(info_dict['url'])
+
+        # Get video webpage for API data.
+        webpage, handle = self._download_webpage_handle(
+            'http://www.nicovideo.jp/watch/' + video_id, video_id)
+
+        api_data = self._parse_json(self._html_search_regex(
+            'data-api-data="([^"]+)"', webpage,
+            'API data', default='{}'), video_id)
 
         session_api_data = try_get(api_data, lambda x: x['video']['dmcInfo']['session_api'])
         session_api_endpoint = try_get(session_api_data, lambda x: x['urls'][0])
@@ -209,9 +223,11 @@ class NiconicoIE(InfoExtractor):
                 'X-Frontend-Version': '0'
             })
 
+        protocol = 'http'
+
         # hls (encryption)
         if 'encryption' in try_get(api_data, lambda x: x['video']['dmcInfo']) or {}:
-            protocol = 'niconico_dmc_hls'
+            protocol = 'm3u8'  # not 'hls'!
             session_api_http_parameters = {
                 'parameters': {
                     'hls_parameters': {
@@ -239,13 +255,13 @@ class NiconicoIE(InfoExtractor):
                 }
             }
 
-        format_id = '-'.join(map(lambda s: remove_start(s['id'], 'archive_'), [video_quality, audio_quality]))
+        video_quality, audio_quality = info_dict['format_id'].split('-', 2)
 
         session_response = self._download_json(
             session_api_endpoint['url'], video_id,
             query={'_format': 'json'},
             headers={'Content-Type': 'application/json'},
-            note='Downloading JSON metadata for %s' % format_id,
+            note='Downloading JSON metadata for %s' % info_dict['format_id'],
             data=json.dumps({
                 'session': {
                     'client_info': {
@@ -261,8 +277,8 @@ class NiconicoIE(InfoExtractor):
                     'content_src_id_sets': [{
                         'content_src_ids': [{
                             'src_id_to_mux': {
-                                'audio_src_ids': [try_get(audio_quality, lambda x: x['id'])],
-                                'video_src_ids': [try_get(video_quality, lambda x: x['id'])],
+                                'audio_src_ids': ['archive_' + audio_quality],
+                                'video_src_ids': ['archive_' + video_quality],
                             }
                         }]
                     }],
@@ -291,16 +307,26 @@ class NiconicoIE(InfoExtractor):
                 }
             }).encode())
 
-        # get heartbeat info
-        heartbeat_url = session_api_endpoint['url'] + '/' + session_response['data']['session']['id'] + '?_format=json&_method=PUT'
-        heartbeat_data = json.dumps(session_response['data'])
-        # interval, convert milliseconds to seconds, then halve to make a buffer.
-        heartbeat_interval = try_get(session_api_data, lambda x: x['heartbeat_lifetime']) / 2000
+        info_dict['url'] = session_response['data']['session']['content_uri']
+        info_dict['protocol'] = protocol
 
+        # get heartbeat info
+        heartbeat_info_dict = {
+            'url': session_api_endpoint['url'] + '/' + session_response['data']['session']['id'] + '?_format=json&_method=PUT',
+            'data': json.dumps(session_response['data']),
+            # interval, convert milliseconds to seconds, then halve to make a buffer.
+            'interval': try_get(session_api_data, lambda x: x['heartbeat_lifetime']) / 2000,
+        }
+
+        return info_dict, heartbeat_info_dict
+
+    def _extract_format_for_quality(self, api_data, video_id, audio_quality, video_quality):
+        protocol = 'niconico_dmc'
+        format_id = '-'.join(map(lambda s: remove_start(s['id'], 'archive_'), [video_quality, audio_quality]))
         resolution = video_quality.get('resolution', {})
 
         return {
-            'url': session_response['data']['session']['content_uri'],
+            'url': protocol + '://' + video_id,  # ugly
             'format_id': format_id,
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'abr': float_or_none(audio_quality.get('bitrate'), 1000),
@@ -309,9 +335,6 @@ class NiconicoIE(InfoExtractor):
             'width': try_get(resolution, lambda x: x.get('width')),
             'quality': -2 if 'low' in format_id else -1,  # Default quality value is -1
             'protocol': protocol,
-            'heartbeat_url': heartbeat_url,
-            'heartbeat_data': heartbeat_data,
-            'heartbeat_interval': heartbeat_interval,
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
