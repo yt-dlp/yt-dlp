@@ -3404,7 +3404,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     uploader['uploader_url'] = urljoin(
                         'https://www.youtube.com/',
                         try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], compat_str))
-        return {k:v for k, v in uploader.items() if v is not None}
+        return {k: v for k, v in uploader.items() if v is not None}
 
     def _extract_from_tabs(self, item_id, webpage, data, tabs, identity_token):
         playlist_id = title = description = channel_url = channel_name = channel_id = None

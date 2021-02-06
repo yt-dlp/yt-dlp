@@ -2645,7 +2645,7 @@ class YoutubeDL(object):
                     '|',
                     format_field(f, 'filesize', ' %s', func=format_bytes) + format_field(f, 'filesize_approx', '~%s', func=format_bytes),
                     format_field(f, 'tbr', '%4dk'),
-                    f.get('protocol').replace('http_dash_segments', 'dash').replace("native", "n"),
+                    f.get('protocol').replace('http_dash_segments', 'dash').replace("native", "n").replace('niconico_', ''),
                     '|',
                     format_field(f, 'vcodec', default='unknown').replace('none', ''),
                     format_field(f, 'vbr', '%4dk'),
