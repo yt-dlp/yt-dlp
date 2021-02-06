@@ -4,8 +4,7 @@ from __future__ import unicode_literals
 import threading
 
 from .common import FileDownloader
-from .http import HttpFD
-from .external import FFmpegFD
+from ..downloader import get_suitable_downloader
 from ..extractor.niconico import NiconicoIE
 from ..compat import compat_urllib_request
 
@@ -19,9 +18,9 @@ class NiconicoDmcFD(FileDownloader):
         self.to_screen('[%s] Downloading from DMC' % self.FD_NAME)
 
         ie = NiconicoIE(self.ydl)
-        fd = None
         info_dict, heartbeat_info_dict = ie._get_heartbeat_info(info_dict)
 
+        fd = get_suitable_downloader(info_dict, self.params)(self.ydl, self.params)
 
         ret = download_complete = False
         timer = [None]
@@ -44,16 +43,6 @@ class NiconicoDmcFD(FileDownloader):
                     timer[0].start()
 
         try:
-            if info_dict['protocol'] == 'http':
-                self.to_screen('[%s] Downloading from DMC by http' % self.FD_NAME)
-                fd = HttpFD(self.ydl, self.params)
-
-            elif info_dict['protocol'] == 'm3u8':
-                self.to_screen('[%s] Downloading from DMC by m3u8' % self.FD_NAME)
-                fd = FFmpegFD(self.ydl, self.params)
-            else:
-                self.report_error('[%s] Unable download %s' % (self.FD_NAME, info_dict['url']))
-
             heartbeat()
             ret = fd.real_download(filename, info_dict)
         finally:

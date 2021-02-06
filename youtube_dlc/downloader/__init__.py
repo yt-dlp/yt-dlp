@@ -9,7 +9,6 @@ from .dash import DashSegmentsFD
 from .rtsp import RtspFD
 from .ism import IsmFD
 from .youtube_live_chat import YoutubeLiveChatReplayFD
-from .niconico import NiconicoDmcFD
 from .external import (
     get_external_downloader,
     FFmpegFD,
@@ -29,7 +28,6 @@ PROTOCOL_MAP = {
     'http_dash_segments': DashSegmentsFD,
     'ism': IsmFD,
     'youtube_live_chat_replay': YoutubeLiveChatReplayFD,
-    'niconico_dmc': NiconicoDmcFD,
 }
 
 
@@ -47,6 +45,9 @@ def get_suitable_downloader(info_dict, params={}):
         if ed.can_download(info_dict):
             return ed
 
+    if protocol.startswith('niconico'):
+        return NiconicoDmcFD
+
     if protocol.startswith('m3u8') and info_dict.get('is_live'):
         return FFmpegFD
 
@@ -63,3 +64,5 @@ __all__ = [
     'get_suitable_downloader',
     'FileDownloader',
 ]
+
+from .niconico import NiconicoDmcFD  # This needs get_suitable_downloader
