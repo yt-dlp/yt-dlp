@@ -313,19 +313,32 @@ class NiconicoIE(InfoExtractor):
         return info_dict, heartbeat_info_dict
 
     def _extract_format_for_quality(self, api_data, video_id, audio_quality, video_quality):
+        def parse_format_id(id_code):
+            mobj = re.match(r'''(?x)
+                    (?:archive_)?
+                    (?:(?P<codec>[^_]+)_)?
+                    (?:(?P<br>[\d]+)kbps_)?
+                    (?:(?P<res>[\d+]+)p_)?
+                ''', '%s_' % id_code)
+            return mobj.groupdict() if mobj else {}
+
         protocol = 'niconico_dmc'
         format_id = '-'.join(map(lambda s: remove_start(s['id'], 'archive_'), [video_quality, audio_quality]))
-        resolution = video_quality.get('resolution', {})
+        vdict = parse_format_id(video_quality['id'])
+        adict = parse_format_id(audio_quality['id'])
+        resolution = video_quality.get('resolution', {'height': vdict.get('res')})
 
         return {
             'url': '%s:%s/%s/%s' % (protocol, video_id, video_quality['id'], audio_quality['id']),
             'format_id': format_id,
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
-            'abr': float_or_none(audio_quality.get('bitrate'), 1000),
-            'vbr': float_or_none(video_quality.get('bitrate'), 1000),
-            'height': try_get(resolution, lambda x: x.get('height')),
-            'width': try_get(resolution, lambda x: x.get('width')),
+            'abr': float_or_none(audio_quality.get('bitrate'), 1000) or float_or_none(adict.get('br')),
+            'vbr': float_or_none(video_quality.get('bitrate'), 1000) or float_or_none(vdict.get('br')),
+            'height': int_or_none(resolution.get('height', vdict.get('res'))),
+            'width': int_or_none(resolution.get('width')),
             'quality': -2 if 'low' in format_id else -1,  # Default quality value is -1
+            'vcodec': vdict.get('codec'),
+            'acodec': adict.get('codec'),
             'protocol': protocol,
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
