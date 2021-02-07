@@ -2787,7 +2787,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
         if renderer:
             title = renderer.get('title')
-            description = renderer.get('description')
+            description = renderer.get('description', '')
             playlist_id = channel_id
             tags = renderer.get('keywords', '').split()
             thumbnails_list = (

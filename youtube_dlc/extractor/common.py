@@ -975,7 +975,7 @@ class InfoExtractor(object):
             video_info['id'] = playlist_id
         if playlist_title:
             video_info['title'] = playlist_title
-        if playlist_description:
+        if playlist_description is not None:
             video_info['description'] = playlist_description
         return video_info
 
