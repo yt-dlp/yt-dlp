@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from os import terminal_size
 
 import os.path
 import re
@@ -118,6 +119,41 @@ class ExternalFD(FileDownloader):
         _, stderr = process_communicate_or_kill(p)
         if p.returncode != 0:
             self.to_stderr(stderr.decode('utf-8', 'replace'))
+
+        if 'url_list' in info_dict:
+            file_list = []
+            for [i, url] in enumerate(info_dict['url_list']):
+                tmpsegmentname = '%s_%s.frag' % (tmpfilename, i)
+                file_list.append(tmpsegmentname)
+            with open(tmpfilename, 'wb') as dest:
+                for i in file_list:
+                    if 'decrypt_info' in info_dict:
+                        decrypt_info = info_dict['decrypt_info']
+                        with open(i, 'rb') as src:
+                            if decrypt_info['METHOD'] == 'AES-128':
+                                iv = decrypt_info.get('IV')
+                                decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
+                                    self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
+                                encrypted_data = src.read()
+                                decrypted_data = AES.new(
+                                    decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(encrypted_data)
+                                dest.write(decrypted_data)
+                            else:
+                                shutil.copyfileobj(open(i, 'rb'), dest)
+                    else:
+                        shutil.copyfileobj(open(i, 'rb'), dest)
+            if not self.params.get('keep_fragments', False):
+                for file_path in file_list:
+                    try:
+                        os.remove(file_path)
+                    except OSError as e:
+                        print("Error: %s : %s" % (file_path, e.strerror))
+                try:
+                    file_path = '%s.frag.urls' % tmpfilename
+                    os.remove(file_path)
+                except OSError as e:
+                    print("Error: %s : %s" % (file_path, e.strerror))
+
         return p.returncode
 
     def _prepare_url(self, info_dict, url):
@@ -202,13 +238,11 @@ class Aria2cFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c']
-        # cmd += self._configuration_args([
-        #    '--min-split-size', '1M', '--max-connection-per-server', '4'])
-        # dn = os.path.dirname(tmpfilename)
-        # if dn:
-        #     cmd += ['--dir', dn]
+        dn = os.path.dirname(tmpfilename)
         if 'url_list' not in info_dict:
             cmd += ['--out', tmpfilename]
+        if dn:
+            cmd += ['--dir', dn]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
@@ -216,70 +250,23 @@ class Aria2cFD(ExternalFD):
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
+        cmd += ['--console-log-level', 'warn']
         if 'url_list' in info_dict:
-            cmd += self._configuration_args(['--file-allocation', 'none', '--download-result', 'hide', '--uri-selector', 'inorder', '--console-log-level', 'warn', '-x16', '-j16', '-s16'])
+            cmd += ['--file-allocation', 'none',  '--uri-selector', 'inorder', '--download-result', 'hide']
+            cmd += self._configuration_args(['-x16', '-j16', '-s16'])
 
-            url_list_file = '%s_urls.txt' % tmpfilename
-
+            url_list_file = '%s.frag.urls' % tmpfilename
             url_list = []
             for [i, url] in enumerate(info_dict['url_list']):
-                tmpsegmentname = '%s_%s.fragment' % (tmpfilename, i)
+                tmpsegmentname = '%s_%s.frag' % (os.path.basename(tmpfilename), i)
                 url_list.append('%s\n\tout=%s' % (url, tmpsegmentname))
-
             with open(url_list_file, 'w') as f:
                 f.write('\n'.join(url_list))
+                
             cmd += ['-i', url_list_file]
         else:
             cmd += ['--', info_dict['url']]
         return cmd
-
-    def _call_downloader(self, tmpfilename, info_dict):
-        """ Either overwrite this or implement _make_cmd """
-        tn = os.path.basename(tmpfilename)
-
-        file_list = []
-        if 'url_list' in info_dict:
-            for [i, url] in enumerate(info_dict['url_list']):
-                tmpsegmentname = '%s_%s.fragment' % (tn, i)
-                file_list.append(tmpsegmentname)
-            info_dict['file_list'] = file_list
-
-        cmd = [encodeArgument(a) for a in self._make_cmd(tmpfilename, info_dict)]
-
-        self._debug_cmd(cmd)
-
-        p = subprocess.Popen(
-            cmd, stderr=subprocess.PIPE)
-        _, stderr = process_communicate_or_kill(p)
-        if p.returncode != 0:
-            self.to_stderr(stderr.decode('utf-8', 'replace'))
-
-        if 'url_list' in info_dict:
-            dn = os.path.dirname(tmpfilename)
-            with open(tmpfilename, 'wb') as dest:
-                for i in file_list:
-                    if 'decrypt_info' in info_dict:
-                        decrypt_info = info_dict['decrypt_info']
-                        with open(os.path.join(dn, i), 'rb') as src:
-                            if decrypt_info['METHOD'] == 'AES-128':
-                                iv = decrypt_info.get('IV')
-                                decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
-                                    self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
-                                encrypted_data = src.read()
-                                decrypted_data = AES.new(
-                                    decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(encrypted_data)
-                                dest.write(decrypted_data)
-                    else:
-                        shutil.copyfileobj(open(os.path.join(dn, i), 'rb'), dest)
-            for x in file_list:
-                try:
-                    file_path = os.path.join(dn, x)
-                    os.remove(file_path)
-                except OSError as e:
-                    print("Error: %s : %s" % (dn, e.strerror))
-            os.remove('%s_urls.txt' % tmpfilename)
-
-        return p.returncode
 
 
 class HttpieFD(ExternalFD):

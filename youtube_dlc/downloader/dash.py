@@ -86,9 +86,11 @@ class DashSegmentsFD(FragmentFD):
                 return False
 
         if external_downloader == 'aria2c':
-            ctx['url_list'] = fragment_urls
-            downloader = Aria2cFD(self, self.params)
-            downloader.real_download(ctx['filename'], ctx)
+            info_dict['url_list'] = fragment_urls
+            downloader = Aria2cFD(self.ydl, self.params)
+            real_download = downloader.real_download(filename, info_dict)
+            if not real_download:
+                return False
 
         self._finish_frag_download(ctx)
 

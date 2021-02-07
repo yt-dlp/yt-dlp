@@ -223,12 +223,13 @@ class HlsFD(FragmentFD):
                     ad_frag_next = False
 
         if external_downloader == 'aria2c':
-            ctx['url_list'] = fragment_urls
-            ctx['decrypt_info'] = decrypt_info
-            self.urlopen = self.ydl.urlopen
+            info_dict['url_list'] = fragment_urls
+            info_dict['decrypt_info'] = decrypt_info
 
             downloader = Aria2cFD(self.ydl, self.params)
-            downloader.real_download(ctx['filename'], ctx)
+            real_download = downloader.real_download(filename, info_dict)
+            if not real_download:
+                return False
 
         self._finish_frag_download(ctx)
 
