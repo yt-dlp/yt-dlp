@@ -252,7 +252,7 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
         cmd += ['--auto-file-renaming', 'false']
         if 'url_list' in info_dict:
-            cmd += ['--console-log-level', 'warn', '--uri-selector', 'inorder', '--download-result', 'full']
+            cmd += ['--console-log-level', 'warn', '--uri-selector', 'inorder', '--download-result', 'hide']
             url_list_file = '%s.frag.urls' % tmpfilename
             url_list = []
             for [i, url] in enumerate(info_dict['url_list']):
