@@ -4690,9 +4690,7 @@ def cli_configuration_args(params, arg_name, key, default=[], exe=None):  # retu
         return default, False
     assert isinstance(argdict, dict)
 
-    assert isinstance(key, compat_str)
     key = key.lower()
-
     args = exe_args = None
     if exe is not None:
         assert isinstance(exe, compat_str)

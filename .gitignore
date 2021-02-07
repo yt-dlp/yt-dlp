@@ -58,6 +58,10 @@ youtube-dlc
 *.ogg
 *.opus
 *.info.json
+*.live_chat.json
+*.jpg
+*.png
+*.webp
 *.annotations.xml
 *.description
 

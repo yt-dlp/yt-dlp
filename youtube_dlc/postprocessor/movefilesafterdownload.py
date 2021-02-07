@@ -4,11 +4,11 @@ import shutil
 
 from .common import PostProcessor
 from ..utils import (
+    decodeFilename,
     encodeFilename,
     make_dir,
     PostProcessingError,
 )
-from ..compat import compat_str
 
 
 class MoveFilesAfterDownloadPP(PostProcessor):
@@ -26,12 +26,12 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         finaldir = info.get('__finaldir', dl_path)
         finalpath = os.path.join(finaldir, dl_name)
         self.files_to_move.update(info['__files_to_move'])
-        self.files_to_move[info['filepath']] = finalpath
+        self.files_to_move[info['filepath']] = decodeFilename(finalpath)
 
+        make_newfilename = lambda old: decodeFilename(os.path.join(finaldir, os.path.basename(encodeFilename(old))))
         for oldfile, newfile in self.files_to_move.items():
             if not newfile:
-                newfile = os.path.join(finaldir, os.path.basename(encodeFilename(oldfile)))
-            oldfile, newfile = compat_str(oldfile), compat_str(newfile)
+                newfile = make_newfilename(oldfile)
             if os.path.abspath(encodeFilename(oldfile)) == os.path.abspath(encodeFilename(newfile)):
                 continue
             if not os.path.exists(encodeFilename(oldfile)):
@@ -50,5 +50,5 @@ class MoveFilesAfterDownloadPP(PostProcessor):
             self.to_screen('Moving file "%s" to "%s"' % (oldfile, newfile))
             shutil.move(oldfile, newfile)  # os.rename cannot move between volumes
 
-        info['filepath'] = compat_str(finalpath)
+        info['filepath'] = finalpath
         return [], info
