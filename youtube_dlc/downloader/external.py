@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-from os import terminal_size
-
 import os.path
 import re
 import subprocess
@@ -252,7 +249,7 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
         cmd += ['--console-log-level', 'warn']
         if 'url_list' in info_dict:
-            cmd += ['--file-allocation', 'none',  '--uri-selector', 'inorder', '--download-result', 'hide']
+            cmd += ['--file-allocation', 'none', '--uri-selector', 'inorder', '--download-result', 'hide']
             cmd += self._configuration_args(['-x16', '-j16', '-s16'])
 
             url_list_file = '%s.frag.urls' % tmpfilename
@@ -262,7 +259,7 @@ class Aria2cFD(ExternalFD):
                 url_list.append('%s\n\tout=%s' % (url, tmpsegmentname))
             with open(url_list_file, 'w') as f:
                 f.write('\n'.join(url_list))
-                
+
             cmd += ['-i', url_list_file]
         else:
             cmd += ['--', info_dict['url']]
