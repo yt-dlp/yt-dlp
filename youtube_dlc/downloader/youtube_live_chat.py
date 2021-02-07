@@ -50,7 +50,16 @@ class YoutubeLiveChatReplayFD(FragmentFD):
                     success, raw_fragment = dl_fragment(url)
                     if not success:
                         return False, None, None
-                    data = parse_yt_initial_data(raw_fragment) or json.loads(raw_fragment)['response']
+                    data = parse_yt_initial_data(raw_fragment)
+                    if not data:
+                        raw_data = json.loads(raw_fragment)
+                        # sometimes youtube replies with a list
+                        if not isinstance(raw_data, list):
+                            raw_data = [raw_data]
+                        try:
+                            data = next(item['response'] for item in raw_data if 'response' in item)
+                        except StopIteration:
+                            data = {}
 
                     live_chat_continuation = try_get(
                         data,
