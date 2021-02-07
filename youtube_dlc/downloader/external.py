@@ -240,6 +240,7 @@ class Aria2cFD(ExternalFD):
         dn = os.path.dirname(tmpfilename)
         if 'url_list' not in info_dict:
             cmd += ['--out', tmpfilename]
+        cmd += self._configuration_args(['-x16', '-j16', '-s16'])
         if dn:
             cmd += ['--dir', dn]
         if info_dict.get('http_headers') is not None:
@@ -249,11 +250,8 @@ class Aria2cFD(ExternalFD):
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
-        cmd += ['--console-log-level', 'warn']
+        cmd += ['--console-log-level', 'warn', '--file-allocation', 'none', '--uri-selector', 'inorder', '--download-result', 'hide']
         if 'url_list' in info_dict:
-            cmd += ['--file-allocation', 'none', '--uri-selector', 'inorder', '--download-result', 'hide']
-            cmd += self._configuration_args(['-x16', '-j16', '-s16'])
-
             url_list_file = '%s.frag.urls' % tmpfilename
             url_list = []
             for [i, url] in enumerate(info_dict['url_list']):
