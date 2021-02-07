@@ -20,7 +20,7 @@ from ..compat import (
     compat_struct_pack,
 )
 from ..utils import (
-    DownloadError, parse_m3u8_attributes,
+    parse_m3u8_attributes,
     update_url_query,
 )
 

@@ -17,7 +17,6 @@ from .common import FileDownloader
 from ..compat import (
     compat_setenv,
     compat_str,
-    compat_struct_pack,
 )
 from ..postprocessor.ffmpeg import FFmpegPostProcessor, EXT_TO_OUT_FORMATS
 from ..utils import (
@@ -61,7 +60,7 @@ class ExternalFD(FileDownloader):
             if filename != '-':
                 fsize = os.path.getsize(encodeFilename(tmpfilename))
                 self.to_screen('\r[%s] Downloaded %s bytes' % (self.get_basename(), fsize))
-                if not 'url_list' in info_dict:
+                if 'url_list' not in info_dict:
                     self.try_rename(tmpfilename, filename)
                 status.update({
                     'downloaded_bytes': fsize,
@@ -203,12 +202,12 @@ class Aria2cFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c']
-        #cmd += self._configuration_args([
+        # cmd += self._configuration_args([
         #    '--min-split-size', '1M', '--max-connection-per-server', '4'])
         # dn = os.path.dirname(tmpfilename)
         # if dn:
         #     cmd += ['--dir', dn]
-        if not 'url_list' in info_dict:
+        if 'url_list' not in info_dict:
             cmd += ['--out', tmpfilename]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
@@ -218,14 +217,14 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
         if 'url_list' in info_dict:
-            cmd += self._configuration_args(['--file-allocation', 'none', '--download-result', 'hide', '--uri-selector', 'inorder', '--console-log-level', 'warn' ,'-x16', '-j16', '-s16'])
+            cmd += self._configuration_args(['--file-allocation', 'none', '--download-result', 'hide', '--uri-selector', 'inorder', '--console-log-level', 'warn', '-x16', '-j16', '-s16'])
 
             url_list_file = '%s_urls.txt' % tmpfilename
-            
+
             url_list = []
             for [i, url] in enumerate(info_dict['url_list']):
                 tmpsegmentname = '%s_%s.fragment' % (tmpfilename, i)
-                url_list.append('%s\n\tout=%s' % (url, tmpsegmentname))            
+                url_list.append('%s\n\tout=%s' % (url, tmpsegmentname))
 
             with open(url_list_file, 'w') as f:
                 f.write('\n'.join(url_list))
@@ -244,7 +243,7 @@ class Aria2cFD(ExternalFD):
                 tmpsegmentname = '%s_%s.fragment' % (tn, i)
                 file_list.append(tmpsegmentname)
             info_dict['file_list'] = file_list
-        
+
         cmd = [encodeArgument(a) for a in self._make_cmd(tmpfilename, info_dict)]
 
         self._debug_cmd(cmd)
@@ -257,7 +256,6 @@ class Aria2cFD(ExternalFD):
 
         if 'url_list' in info_dict:
             dn = os.path.dirname(tmpfilename)
-            
             with open(tmpfilename, 'wb') as dest:
                 for i in file_list:
                     if 'decrypt_info' in info_dict:

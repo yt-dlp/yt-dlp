@@ -8,9 +8,9 @@ from ..utils import (
 )
 
 from .external import (
-    get_external_downloader,
     Aria2cFD
 )
+
 
 class DashSegmentsFD(FragmentFD):
     """
@@ -89,7 +89,7 @@ class DashSegmentsFD(FragmentFD):
             ctx['url_list'] = fragment_urls
             downloader = Aria2cFD(self, self.params)
             downloader.real_download(ctx['filename'], ctx)
-            
+
         self._finish_frag_download(ctx)
 
         return True
