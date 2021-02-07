@@ -443,8 +443,14 @@ class NiconicoIE(InfoExtractor):
             or unified_timestamp(get_video_info_web('postedDateTime'))
         )
 
+        # According to my personal research,
+        # 'creation_time' tag on video stream of re-encoded SMILEVIDEO files are '1970-01-01T00:00:00.000000Z'.
+        metadata_timestamp = parse_iso8601(v_stream['tags']['creation_time'])
+
         # According to compconf and my personal research, smile videos from pre-2017 are always better quality than their DMC counterparts
         smile_threshold_timestamp = parse_iso8601('2016-12-08T00:00:00+09:00')
+
+        is_source = timestamp < smile_threshold_timestamp or metadata_timestamp > 0
 
         # If movie file size is unstable, old server movie is not source movie.
         if int(get_video_info_xml('size_high')) > 1:
@@ -462,7 +468,7 @@ class NiconicoIE(InfoExtractor):
                 'height': int(v_stream['height']),
                 'width': int(v_stream['width']),
                 'source_preference': 5 if not is_economy else -2,
-                'quality': 5 if timestamp < smile_threshold_timestamp and not is_economy else None,
+                'quality': 5 if is_source and not is_economy else None,
                 'filesize': filesize
             })
 
