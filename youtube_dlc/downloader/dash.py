@@ -7,6 +7,10 @@ from ..utils import (
     urljoin,
 )
 
+from .external import (
+    get_external_downloader,
+    Aria2cFD
+)
 
 class DashSegmentsFD(FragmentFD):
     """
@@ -20,6 +24,8 @@ class DashSegmentsFD(FragmentFD):
         fragments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']
 
+        external_downloader = self.params.get('external_downloader')
+
         ctx = {
             'filename': filename,
             'total_frags': len(fragments),
@@ -30,6 +36,7 @@ class DashSegmentsFD(FragmentFD):
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
+        fragment_urls = []
         frag_index = 0
         for i, fragment in enumerate(fragments):
             frag_index += 1
@@ -45,10 +52,13 @@ class DashSegmentsFD(FragmentFD):
                     if not fragment_url:
                         assert fragment_base_url
                         fragment_url = urljoin(fragment_base_url, fragment['path'])
-                    success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
-                    if not success:
-                        return False
-                    self._append_fragment(ctx, frag_content)
+                    if external_downloader == 'aria2c':
+                        fragment_urls.append(fragment_url)
+                    else:
+                        success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
+                        if not success:
+                            return False
+                        self._append_fragment(ctx, frag_content)
                     break
                 except compat_urllib_error.HTTPError as err:
                     # YouTube may often return 404 HTTP error for a fragment causing the
@@ -75,6 +85,11 @@ class DashSegmentsFD(FragmentFD):
                 self.report_error('giving up after %s fragment retries' % fragment_retries)
                 return False
 
+        if external_downloader == 'aria2c':
+            ctx['url_list'] = fragment_urls
+            downloader = Aria2cFD(self, self.params)
+            downloader.real_download(ctx['filename'], ctx)
+            
         self._finish_frag_download(ctx)
 
         return True
