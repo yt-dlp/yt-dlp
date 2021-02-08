@@ -18,12 +18,10 @@ from .utils import (
     get_executable_path,
     OUTTMPL_TYPES,
     preferredencoding,
+    REMUX_EXTENSIONS,
     write_string,
 )
 from .version import __version__
-
-
-_remux_formats = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')
 
 
 def _hide_login_info(opts):
@@ -1042,7 +1040,7 @@ def parseOpts(overrideArguments=None):
             'Remux the video into another container if necessary (currently supported: %s). '
             'If target container does not support the video/audio codec, remuxing will fail. '
             'You can specify multiple rules; eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.' % '|'.join(_remux_formats)))
+            'and anything else to mkv.' % '|'.join(REMUX_EXTENSIONS)))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,
