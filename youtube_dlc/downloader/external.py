@@ -25,6 +25,7 @@ from ..utils import (
     cli_bool_option,
     cli_configuration_args,
     encodeFilename,
+    error_to_compat_str,
     encodeArgument,
     handle_youtubedl_headers,
     check_executable,
@@ -145,13 +146,13 @@ class ExternalFD(FileDownloader):
                 for file_path in file_list:
                     try:
                         os.remove(file_path)
-                    except OSError as e:
-                        print("Error: %s : %s" % (file_path, e.strerror))
+                    except OSError as ose:
+                        self.report_error("Unable to delete file %s; %s" % (file_path, error_to_compat_str(ose)))
                 try:
                     file_path = '%s.frag.urls' % tmpfilename
                     os.remove(file_path)
-                except OSError as e:
-                    print("Error: %s : %s" % (file_path, e.strerror))
+                except OSError as ose:
+                    self.report_error("Unable to delete file %s; %s" % (file_path, error_to_compat_str(ose)))
 
         return p.returncode
 
