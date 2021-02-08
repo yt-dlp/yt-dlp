@@ -223,13 +223,13 @@ class HlsFD(FragmentFD):
                     ad_frag_next = False
 
         if real_downloader:
-            info_dict['url_list'] = fragment_urls
-            info_dict['decrypt_info'] = decrypt_info
-
+            info_copy = info_dict.copy()
+            info_copy['url_list'] = fragment_urls
+            info_copy['decrypt_info'] = decrypt_info
             fd = real_downloader(self.ydl, self.params)
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
-            success = fd.real_download(filename, info_dict)
+            success = fd.real_download(filename, info_copy)
             if not success:
                 return False
 
