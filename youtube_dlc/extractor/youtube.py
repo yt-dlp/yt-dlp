@@ -2792,7 +2792,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             tags = renderer.get('keywords', '').split()
             thumbnails_list = (
                 try_get(renderer, lambda x: x['avatar']['thumbnails'], list)
-                or data['sidebar']['playlistSidebarRenderer']['items'][0]['playlistSidebarPrimaryInfoRenderer']['thumbnailRenderer']['playlistVideoThumbnailRenderer']['thumbnail']['thumbnails']
+                or try_get(
+                    data,
+                    lambda x: x['sidebar']['playlistSidebarRenderer']['items'][0]['playlistSidebarPrimaryInfoRenderer']['thumbnailRenderer']['playlistVideoThumbnailRenderer']['thumbnail']['thumbnails'],
+                    list)
                 or [])
 
         thumbnails = []
