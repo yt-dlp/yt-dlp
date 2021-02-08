@@ -36,6 +36,8 @@ from ..utils import (
 
 
 class ExternalFD(FileDownloader):
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
+
     def real_download(self, filename, info_dict):
         self.report_destination(filename)
         tmpfilename = self.temp_name(filename)
@@ -89,7 +91,7 @@ class ExternalFD(FileDownloader):
 
     @classmethod
     def supports(cls, info_dict):
-        return info_dict['protocol'] in ('http', 'https', 'ftp', 'ftps')
+        return info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS
 
     @classmethod
     def can_download(cls, info_dict):
@@ -235,6 +237,7 @@ class WgetFD(ExternalFD):
 
 class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'frag_urls')
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c']
@@ -283,9 +286,7 @@ class HttpieFD(ExternalFD):
 
 
 class FFmpegFD(ExternalFD):
-    @classmethod
-    def supports(cls, info_dict):
-        return info_dict['protocol'] in ('http', 'https', 'ftp', 'ftps', 'm3u8', 'rtsp', 'rtmp', 'mms')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'rtsp', 'rtmp', 'mms')
 
     @classmethod
     def available(cls):

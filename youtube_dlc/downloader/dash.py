@@ -1,14 +1,12 @@
 from __future__ import unicode_literals
 
+from ..downloader import _get_real_downloader
 from .fragment import FragmentFD
+
 from ..compat import compat_urllib_error
 from ..utils import (
     DownloadError,
     urljoin,
-)
-
-from .external import (
-    Aria2cFD
 )
 
 
@@ -24,7 +22,7 @@ class DashSegmentsFD(FragmentFD):
         fragments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']
 
-        external_downloader = self.params.get('external_downloader')
+        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
 
         ctx = {
             'filename': filename,
@@ -42,23 +40,25 @@ class DashSegmentsFD(FragmentFD):
             frag_index += 1
             if frag_index <= ctx['fragment_index']:
                 continue
+            fragment_url = fragment.get('url')
+            if not fragment_url:
+                assert fragment_base_url
+                fragment_url = urljoin(fragment_base_url, fragment['path'])
+
+            if real_downloader:
+                fragment_urls.append(fragment_url)
+                continue
+
             # In DASH, the first segment contains necessary headers to
             # generate a valid MP4 file, so always abort for the first segment
             fatal = i == 0 or not skip_unavailable_fragments
             count = 0
             while count <= fragment_retries:
                 try:
-                    fragment_url = fragment.get('url')
-                    if not fragment_url:
-                        assert fragment_base_url
-                        fragment_url = urljoin(fragment_base_url, fragment['path'])
-                    if external_downloader == 'aria2c':
-                        fragment_urls.append(fragment_url)
-                    else:
-                        success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
-                        if not success:
-                            return False
-                        self._append_fragment(ctx, frag_content)
+                    success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
+                    if not success:
+                        return False
+                    self._append_fragment(ctx, frag_content)
                     break
                 except compat_urllib_error.HTTPError as err:
                     # YouTube may often return 404 HTTP error for a fragment causing the
@@ -85,13 +85,14 @@ class DashSegmentsFD(FragmentFD):
                 self.report_error('giving up after %s fragment retries' % fragment_retries)
                 return False
 
-        if external_downloader == 'aria2c':
+        if real_downloader:
             info_dict['url_list'] = fragment_urls
-            downloader = Aria2cFD(self.ydl, self.params)
-            real_download = downloader.real_download(filename, info_dict)
-            if not real_download:
+            fd = real_downloader(self.ydl, self.params)
+            for ph in self._progress_hooks:
+                fd.add_progress_hook(ph)
+            success = fd.real_download(filename, info_dict)
+            if not success:
                 return False
 
         self._finish_frag_download(ctx)
-
         return True

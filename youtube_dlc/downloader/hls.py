@@ -8,11 +8,9 @@ try:
 except ImportError:
     can_decrypt_frag = False
 
+from ..downloader import _get_real_downloader
 from .fragment import FragmentFD
-from .external import (
-    FFmpegFD,
-    Aria2cFD
-)
+from .external import FFmpegFD
 
 from ..compat import (
     compat_urllib_error,
@@ -61,8 +59,6 @@ class HlsFD(FragmentFD):
         return all(check_results)
 
     def real_download(self, filename, info_dict):
-        external_downloader = self.params.get('external_downloader')
-
         man_url = info_dict['url']
         self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
 
@@ -81,6 +77,8 @@ class HlsFD(FragmentFD):
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
+
+        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
 
         def is_ad_fragment_start(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s
@@ -147,19 +145,21 @@ class HlsFD(FragmentFD):
                         else compat_urlparse.urljoin(man_url, line))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
+
+                    if real_downloader:
+                        fragment_urls.append(frag_url)
+                        continue
+
                     count = 0
                     headers = info_dict.get('http_headers', {})
                     if byte_range:
                         headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
                     while count <= fragment_retries:
                         try:
-                            if external_downloader == 'aria2c':
-                                fragment_urls.append(frag_url)
-                            else:
-                                success, frag_content = self._download_fragment(
-                                    ctx, frag_url, info_dict, headers)
-                                if not success:
-                                    return False
+                            success, frag_content = self._download_fragment(
+                                ctx, frag_url, info_dict, headers)
+                            if not success:
+                                return False
                             break
                         except compat_urllib_error.HTTPError as err:
                             # Unavailable (possibly temporary) fragments may be served.
@@ -178,23 +178,23 @@ class HlsFD(FragmentFD):
                         self.report_error(
                             'giving up after %s fragment retries' % fragment_retries)
                         return False
-                    if external_downloader != 'aria2c':
-                        if decrypt_info['METHOD'] == 'AES-128':
-                            iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', media_sequence)
-                            decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
-                                self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
-                            # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
-                            # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
-                            # not what it decrypts to.
-                            if not test:
-                                frag_content = AES.new(
-                                    decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
-                        self._append_fragment(ctx, frag_content)
-                        # We only download the first fragment during the test
-                        if test:
-                            break
-                        i += 1
-                        media_sequence += 1
+
+                    if decrypt_info['METHOD'] == 'AES-128':
+                        iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', media_sequence)
+                        decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
+                            self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
+                        # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
+                        # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
+                        # not what it decrypts to.
+                        if not test:
+                            frag_content = AES.new(
+                                decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
+                    self._append_fragment(ctx, frag_content)
+                    # We only download the first fragment during the test
+                    if test:
+                        break
+                    i += 1
+                    media_sequence += 1
                 elif line.startswith('#EXT-X-KEY'):
                     decrypt_url = decrypt_info.get('URI')
                     decrypt_info = parse_m3u8_attributes(line[11:])
@@ -222,15 +222,16 @@ class HlsFD(FragmentFD):
                 elif is_ad_fragment_end(line):
                     ad_frag_next = False
 
-        if external_downloader == 'aria2c':
+        if real_downloader:
             info_dict['url_list'] = fragment_urls
             info_dict['decrypt_info'] = decrypt_info
 
-            downloader = Aria2cFD(self.ydl, self.params)
-            real_download = downloader.real_download(filename, info_dict)
-            if not real_download:
+            fd = real_downloader(self.ydl, self.params)
+            for ph in self._progress_hooks:
+                fd.add_progress_hook(ph)
+            success = fd.real_download(filename, info_dict)
+            if not success:
                 return False
 
         self._finish_frag_download(ctx)
-
         return True
