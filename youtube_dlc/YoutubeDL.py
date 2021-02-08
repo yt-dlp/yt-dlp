@@ -2349,7 +2349,7 @@ class YoutubeDL(object):
                             downloaded.append(fname)
                             partial_success, real_download = dl(fname, new_info)
                             success = success and partial_success
-                        info_dict['__postprocessors'] = postprocessors
+                        info_dict['__postprocessors'].append(postprocessors)
                         info_dict['__files_to_merge'] = downloaded
                         # Even if there were no downloads, it is being merged only now
                         info_dict['__real_download'] = True
