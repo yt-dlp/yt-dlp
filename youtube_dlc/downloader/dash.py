@@ -29,7 +29,10 @@ class DashSegmentsFD(FragmentFD):
             'total_frags': len(fragments),
         }
 
-        self._prepare_and_start_frag_download(ctx)
+        if real_downloader:
+            self._prepare_external_frag_download(ctx)
+        else:
+            self._prepare_and_start_frag_download(ctx)
 
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
@@ -89,11 +92,9 @@ class DashSegmentsFD(FragmentFD):
             info_copy = info_dict.copy()
             info_copy['url_list'] = fragment_urls
             fd = real_downloader(self.ydl, self.params)
-            for ph in self._progress_hooks:
-                fd.add_progress_hook(ph)
             success = fd.real_download(filename, info_copy)
             if not success:
                 return False
-
-        self._finish_frag_download(ctx)
+        else:
+            self._finish_frag_download(ctx)
         return True

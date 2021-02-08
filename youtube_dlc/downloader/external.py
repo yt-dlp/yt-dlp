@@ -63,8 +63,7 @@ class ExternalFD(FileDownloader):
             if filename != '-':
                 fsize = os.path.getsize(encodeFilename(tmpfilename))
                 self.to_screen('\r[%s] Downloaded %s bytes' % (self.get_basename(), fsize))
-                if 'url_list' not in info_dict:
-                    self.try_rename(tmpfilename, filename)
+                self.try_rename(tmpfilename, filename)
                 status.update({
                     'downloaded_bytes': fsize,
                     'total_bytes': fsize,
@@ -243,7 +242,7 @@ class Aria2cFD(ExternalFD):
         cmd = [self.exe, '-c']
         dn = os.path.dirname(tmpfilename)
         if 'url_list' not in info_dict:
-            cmd += ['--out', tmpfilename]
+            cmd += ['--out', os.path.basename(tmpfilename)]
         verbose_level_args = ['--console-log-level=warn', '--summary-interval=0']
         cmd += self._configuration_args(['--file-allocation=none', '-x16', '-j16', '-s16'] + verbose_level_args)
         if dn:
