@@ -8,6 +8,7 @@ try:
 except ImportError:
     can_decrypt_frag = False
 
+from ..downloader import _get_real_downloader
 from .fragment import FragmentFD
 from .external import FFmpegFD
 
@@ -73,9 +74,12 @@ class HlsFD(FragmentFD):
                 'hlsnative has detected features it does not support, '
                 'extraction will be delegated to ffmpeg')
             fd = FFmpegFD(self.ydl, self.params)
-            for ph in self._progress_hooks:
-                fd.add_progress_hook(ph)
+            # TODO: Make progress updates work without hooking twice
+            # for ph in self._progress_hooks:
+            #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
+
+        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
 
         def is_ad_fragment_start(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s
@@ -84,6 +88,8 @@ class HlsFD(FragmentFD):
         def is_ad_fragment_end(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=master' in s
                     or s.startswith('#UPLYNK-SEGMENT') and s.endswith(',segment'))
+
+        fragment_urls = []
 
         media_frags = 0
         ad_frags = 0
@@ -109,7 +115,10 @@ class HlsFD(FragmentFD):
             'ad_frags': ad_frags,
         }
 
-        self._prepare_and_start_frag_download(ctx)
+        if real_downloader:
+            self._prepare_external_frag_download(ctx)
+        else:
+            self._prepare_and_start_frag_download(ctx)
 
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
@@ -140,6 +149,11 @@ class HlsFD(FragmentFD):
                         else compat_urlparse.urljoin(man_url, line))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
+
+                    if real_downloader:
+                        fragment_urls.append(frag_url)
+                        continue
+
                     count = 0
                     headers = info_dict.get('http_headers', {})
                     if byte_range:
@@ -168,6 +182,7 @@ class HlsFD(FragmentFD):
                         self.report_error(
                             'giving up after %s fragment retries' % fragment_retries)
                         return False
+
                     if decrypt_info['METHOD'] == 'AES-128':
                         iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', media_sequence)
                         decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
@@ -211,6 +226,17 @@ class HlsFD(FragmentFD):
                 elif is_ad_fragment_end(line):
                     ad_frag_next = False
 
-        self._finish_frag_download(ctx)
-
+        if real_downloader:
+            info_copy = info_dict.copy()
+            info_copy['url_list'] = fragment_urls
+            info_copy['decrypt_info'] = decrypt_info
+            fd = real_downloader(self.ydl, self.params)
+            # TODO: Make progress updates work without hooking twice
+            # for ph in self._progress_hooks:
+            #     fd.add_progress_hook(ph)
+            success = fd.real_download(filename, info_copy)
+            if not success:
+                return False
+        else:
+            self._finish_frag_download(ctx)
         return True

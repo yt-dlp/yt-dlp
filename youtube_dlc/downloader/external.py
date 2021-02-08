@@ -5,6 +5,13 @@ import re
 import subprocess
 import sys
 import time
+import shutil
+
+try:
+    from Crypto.Cipher import AES
+    can_decrypt_frag = True
+except ImportError:
+    can_decrypt_frag = False
 
 from .common import FileDownloader
 from ..compat import (
@@ -18,15 +25,19 @@ from ..utils import (
     cli_bool_option,
     cli_configuration_args,
     encodeFilename,
+    error_to_compat_str,
     encodeArgument,
     handle_youtubedl_headers,
     check_executable,
     is_outdated_version,
     process_communicate_or_kill,
+    sanitized_Request,
 )
 
 
 class ExternalFD(FileDownloader):
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
+
     def real_download(self, filename, info_dict):
         self.report_destination(filename)
         tmpfilename = self.temp_name(filename)
@@ -79,7 +90,7 @@ class ExternalFD(FileDownloader):
 
     @classmethod
     def supports(cls, info_dict):
-        return info_dict['protocol'] in ('http', 'https', 'ftp', 'ftps')
+        return info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS
 
     @classmethod
     def can_download(cls, info_dict):
@@ -109,7 +120,46 @@ class ExternalFD(FileDownloader):
         _, stderr = process_communicate_or_kill(p)
         if p.returncode != 0:
             self.to_stderr(stderr.decode('utf-8', 'replace'))
+
+        if 'url_list' in info_dict:
+            file_list = []
+            for [i, url] in enumerate(info_dict['url_list']):
+                tmpsegmentname = '%s_%s.frag' % (tmpfilename, i)
+                file_list.append(tmpsegmentname)
+            with open(tmpfilename, 'wb') as dest:
+                for i in file_list:
+                    if 'decrypt_info' in info_dict:
+                        decrypt_info = info_dict['decrypt_info']
+                        with open(i, 'rb') as src:
+                            if decrypt_info['METHOD'] == 'AES-128':
+                                iv = decrypt_info.get('IV')
+                                decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
+                                    self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
+                                encrypted_data = src.read()
+                                decrypted_data = AES.new(
+                                    decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(encrypted_data)
+                                dest.write(decrypted_data)
+                            else:
+                                shutil.copyfileobj(open(i, 'rb'), dest)
+                    else:
+                        shutil.copyfileobj(open(i, 'rb'), dest)
+            if not self.params.get('keep_fragments', False):
+                for file_path in file_list:
+                    try:
+                        os.remove(file_path)
+                    except OSError as ose:
+                        self.report_error("Unable to delete file %s; %s" % (file_path, error_to_compat_str(ose)))
+                try:
+                    file_path = '%s.frag.urls' % tmpfilename
+                    os.remove(file_path)
+                except OSError as ose:
+                    self.report_error("Unable to delete file %s; %s" % (file_path, error_to_compat_str(ose)))
+
         return p.returncode
+
+    def _prepare_url(self, info_dict, url):
+        headers = info_dict.get('http_headers')
+        return sanitized_Request(url, None, headers) if headers else url
 
 
 class CurlFD(ExternalFD):
@@ -186,15 +236,17 @@ class WgetFD(ExternalFD):
 
 class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'frag_urls')
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c']
-        cmd += self._configuration_args([
-            '--min-split-size', '1M', '--max-connection-per-server', '4'])
         dn = os.path.dirname(tmpfilename)
+        if 'url_list' not in info_dict:
+            cmd += ['--out', os.path.basename(tmpfilename)]
+        verbose_level_args = ['--console-log-level=warn', '--summary-interval=0']
+        cmd += self._configuration_args(['--file-allocation=none', '-x16', '-j16', '-s16'] + verbose_level_args)
         if dn:
             cmd += ['--dir', dn]
-        cmd += ['--out', os.path.basename(tmpfilename)]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
@@ -202,7 +254,21 @@ class Aria2cFD(ExternalFD):
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
-        cmd += ['--', info_dict['url']]
+        cmd += ['--auto-file-renaming=false']
+        if 'url_list' in info_dict:
+            cmd += verbose_level_args
+            cmd += ['--uri-selector', 'inorder', '--download-result=hide']
+            url_list_file = '%s.frag.urls' % tmpfilename
+            url_list = []
+            for [i, url] in enumerate(info_dict['url_list']):
+                tmpsegmentname = '%s_%s.frag' % (os.path.basename(tmpfilename), i)
+                url_list.append('%s\n\tout=%s' % (url, tmpsegmentname))
+            with open(url_list_file, 'w') as f:
+                f.write('\n'.join(url_list))
+
+            cmd += ['-i', url_list_file]
+        else:
+            cmd += ['--', info_dict['url']]
         return cmd
 
 
@@ -221,9 +287,7 @@ class HttpieFD(ExternalFD):
 
 
 class FFmpegFD(ExternalFD):
-    @classmethod
-    def supports(cls, info_dict):
-        return info_dict['protocol'] in ('http', 'https', 'ftp', 'ftps', 'm3u8', 'rtsp', 'rtmp', 'mms')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'rtsp', 'rtmp', 'mms')
 
     @classmethod
     def available(cls):
