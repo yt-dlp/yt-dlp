@@ -446,14 +446,13 @@ class NiconicoIE(InfoExtractor):
             or unified_timestamp(get_video_info_web('postedDateTime'))
         )
 
-        # According to my personal research,
         # 'creation_time' tag on video stream of re-encoded SMILEVIDEO mp4 files are '1970-01-01T00:00:00.000000Z'.
         metadata_timestamp = (
             parse_iso8601(try_get(v_stream, lambda x: x['tags']['creation_time']))
             or timestamp
         )
 
-        # According to compconf and my personal research, smile videos from pre-2017 are always better quality than their DMC counterparts
+        # According to compconf, smile videos from pre-2017 are always better quality than their DMC counterparts
         smile_threshold_timestamp = parse_iso8601('2016-12-08T00:00:00+09:00')
 
         is_source = timestamp < smile_threshold_timestamp or metadata_timestamp > 0
@@ -466,14 +465,14 @@ class NiconicoIE(InfoExtractor):
                 'format_note': 'SMILEVIDEO source' if not is_economy else 'SMILEVIDEO low quality',
                 'ext': extension,
                 'container': extension,
-                'vcodec': dict_get(v_stream, 'codec_name'),
-                'acodec': dict_get(a_stream, 'codec_name'),
+                'vcodec': v_stream.get('codec_name'),
+                'acodec': a_stream.get('codec_name'),
                 # Some complex swf files doesn't have total bit rate metadata (e.g. nm6049209)
-                'tbr': int_or_none(metadata['format'].get('bit_rate', None), scale=1000),
-                'vbr': int_or_none(v_stream.get('bit_rate', None), scale=1000),
-                'abr': int_or_none(a_stream.get('bit_rate', None), scale=1000),
-                'height': int_or_none(v_stream.get('height', None)),
-                'width': int_or_none(v_stream.get('width', None)),
+                'tbr': int_or_none(metadata['format'].get('bit_rate'), scale=1000),
+                'vbr': int_or_none(v_stream.get('bit_rate'), scale=1000),
+                'abr': int_or_none(a_stream.get('bit_rate'), scale=1000),
+                'height': int_or_none(v_stream.get('height')),
+                'width': int_or_none(v_stream.get('width')),
                 'source_preference': 5 if not is_economy else -2,
                 'quality': 5 if is_source and not is_economy else None,
                 'filesize': filesize
