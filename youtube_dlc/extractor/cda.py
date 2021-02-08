@@ -96,7 +96,7 @@ class CDAIE(InfoExtractor):
             raise ExtractorError('This video is only available for premium users.', expected=True)
 
         need_confirm_age = False
-        if self._html_search_regex(r'(<form[^>]+action="/a/validatebirth")',
+        if self._html_search_regex(r'(<form[^>]+action="[^"]*/a/validatebirth[^"]*")',
                                    webpage, 'birthday validate form', default=None):
             webpage = self._download_age_confirm_page(
                 url, video_id, note='Confirming age')

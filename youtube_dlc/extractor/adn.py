@@ -26,6 +26,7 @@ from ..utils import (
     strip_or_none,
     try_get,
     unified_strdate,
+    urlencode_postdata,
 )
 
 
@@ -51,9 +52,12 @@ class ADNIE(InfoExtractor):
         }
     }
 
+    _NETRC_MACHINE = 'animedigitalnetwork'
     _BASE_URL = 'http://animedigitalnetwork.fr'
     _API_BASE_URL = 'https://gw.api.animedigitalnetwork.fr/'
     _PLAYER_BASE_URL = _API_BASE_URL + 'player/'
+    _HEADERS = {}
+    _LOGIN_ERR_MESSAGE = 'Unable to log in'
     _RSA_KEY = (0x9B42B08905199A5CCE2026274399CA560ECB209EE9878A708B1C0812E1BB8CB5D1FB7441861147C1A1F2F3A0476DD63A9CAC20D3E983613346850AA6CB38F16DC7D720FD7D86FC6E5B3D5BBC72E14CD0BF9E869F2CEA2CCAD648F1DCE38F1FF916CEFB2D339B64AA0264372344BC775E265E8A852F88144AB0BD9AA06C1A4ABB, 65537)
     _POS_ALIGN_MAP = {
         'start': 1,
@@ -129,19 +133,42 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             }])
         return subtitles
 
+    def _real_initialize(self):
+        username, password = self._get_login_info()
+        if not username:
+            return
+        try:
+            access_token = (self._download_json(
+                self._API_BASE_URL + 'authentication/login', None,
+                'Logging in', self._LOGIN_ERR_MESSAGE, fatal=False,
+                data=urlencode_postdata({
+                    'password': password,
+                    'rememberMe': False,
+                    'source': 'Web',
+                    'username': username,
+                })) or {}).get('accessToken')
+            if access_token:
+                self._HEADERS = {'authorization': 'Bearer ' + access_token}
+        except ExtractorError as e:
+            message = None
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                resp = self._parse_json(
+                    e.cause.read().decode(), None, fatal=False) or {}
+                message = resp.get('message') or resp.get('code')
+            self.report_warning(message or self._LOGIN_ERR_MESSAGE)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
         player = self._download_json(
             video_base_url + 'configuration', video_id,
-            'Downloading player config JSON metadata')['player']
+            'Downloading player config JSON metadata',
+            headers=self._HEADERS)['player']
         options = player['options']
 
         user = options['user']
         if not user.get('hasAccess'):
-            raise ExtractorError(
-                'This video is only available for paying users', expected=True)
-            # self.raise_login_required() # FIXME: Login is not implemented
+            self.raise_login_required()
 
         token = self._download_json(
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
@@ -188,8 +215,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 message = error.get('message')
                 if e.cause.code == 403 and error.get('code') == 'player-bad-geolocation-country':
                     self.raise_geo_restricted(msg=message)
-                else:
-                    raise ExtractorError(message)
+                raise ExtractorError(message)
         else:
             raise ExtractorError('Giving up retrying')
 

@@ -4,7 +4,13 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import (
+    int_or_none,
+    parse_iso8601,
+    str_or_none,
+    strip_or_none,
+    try_get,
+)
 
 
 class VidioIE(InfoExtractor):
@@ -21,57 +27,63 @@ class VidioIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 149,
             'like_count': int,
+            'uploader': 'TWELVE Pic',
+            'timestamp': 1444902800,
+            'upload_date': '20151015',
+            'uploader_id': 'twelvepictures',
+            'channel': 'Cover Music Video',
+            'channel_id': '280236',
+            'view_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'tags': 'count:4',
         },
     }, {
         'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
         'only_matching': True,
     }]
 
+    def _real_initialize(self):
+        self._api_key = self._download_json(
+            'https://www.vidio.com/auth', None, data=b'')['api_key']
+
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        video_id, display_id = mobj.group('id', 'display_id')
+        video_id, display_id = re.match(self._VALID_URL, url).groups()
+        data = self._download_json(
+            'https://api.vidio.com/videos/' + video_id, display_id, headers={
+                'Content-Type': 'application/vnd.api+json',
+                'X-API-KEY': self._api_key,
+            })
+        video = data['videos'][0]
+        title = video['title'].strip()
 
-        webpage = self._download_webpage(url, display_id)
-
-        title = self._og_search_title(webpage)
-
-        m3u8_url, duration, thumbnail = [None] * 3
-
-        clips = self._parse_json(
-            self._html_search_regex(
-                r'data-json-clips\s*=\s*(["\'])(?P<data>\[.+?\])\1',
-                webpage, 'video data', default='[]', group='data'),
-            display_id, fatal=False)
-        if clips:
-            clip = clips[0]
-            m3u8_url = clip.get('sources', [{}])[0].get('file')
-            duration = clip.get('clip_duration')
-            thumbnail = clip.get('image')
-
-        m3u8_url = m3u8_url or self._search_regex(
-            r'data(?:-vjs)?-clip-hls-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
-            webpage, 'hls url', group='url')
         formats = self._extract_m3u8_formats(
-            m3u8_url, display_id, 'mp4', entry_protocol='m3u8_native')
+            data['clips'][0]['hls_url'], display_id, 'mp4', 'm3u8_native')
         self._sort_formats(formats)
 
-        duration = int_or_none(duration or self._search_regex(
-            r'data-video-duration=(["\'])(?P<duration>\d+)\1', webpage,
-            'duration', fatal=False, group='duration'))
-        thumbnail = thumbnail or self._og_search_thumbnail(webpage)
-
-        like_count = int_or_none(self._search_regex(
-            (r'<span[^>]+data-comment-vote-count=["\'](\d+)',
-             r'<span[^>]+class=["\'].*?\blike(?:__|-)count\b.*?["\'][^>]*>\s*(\d+)'),
-            webpage, 'like count', fatal=False))
+        get_first = lambda x: try_get(data, lambda y: y[x + 's'][0], dict) or {}
+        channel = get_first('channel')
+        user = get_first('user')
+        username = user.get('username')
+        get_count = lambda x: int_or_none(video.get('total_' + x))
 
         return {
             'id': video_id,
             'display_id': display_id,
             'title': title,
-            'description': self._og_search_description(webpage),
-            'thumbnail': thumbnail,
-            'duration': duration,
-            'like_count': like_count,
+            'description': strip_or_none(video.get('description')),
+            'thumbnail': video.get('image_url_medium'),
+            'duration': int_or_none(video.get('duration')),
+            'like_count': get_count('likes'),
             'formats': formats,
+            'uploader': user.get('name'),
+            'timestamp': parse_iso8601(video.get('created_at')),
+            'uploader_id': username,
+            'uploader_url': 'https://www.vidio.com/@' + username if username else None,
+            'channel': channel.get('name'),
+            'channel_id': str_or_none(channel.get('id')),
+            'view_count': get_count('view_count'),
+            'dislike_count': get_count('dislikes'),
+            'comment_count': get_count('comments'),
+            'tags': video.get('tag_list'),
         }

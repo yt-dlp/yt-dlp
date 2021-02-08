@@ -975,7 +975,7 @@ class InfoExtractor(object):
             video_info['id'] = playlist_id
         if playlist_title:
             video_info['title'] = playlist_title
-        if playlist_description:
+        if playlist_description is not None:
             video_info['description'] = playlist_description
         return video_info
 
@@ -1366,9 +1366,9 @@ class InfoExtractor(object):
     class FormatSort:
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<seperator>[~:])(?P<limit>.*?))?)? *$'
 
-        default = ('hidden', 'has_video', 'extractor', 'lang', 'quality',
+        default = ('hidden', 'hasvid', 'ie_pref', 'lang', 'quality',
                    'res', 'fps', 'codec:vp9', 'size', 'br', 'asr',
-                   'proto', 'ext', 'has_audio', 'source', 'format_id')
+                   'proto', 'ext', 'has_audio', 'source', 'format_id')  # These must not be aliases
 
         settings = {
             'vcodec': {'type': 'ordered', 'regex': True,
@@ -2264,7 +2264,7 @@ class InfoExtractor(object):
             })
         return entries
 
-    def _extract_mpd_formats(self, mpd_url, video_id, mpd_id=None, note=None, errnote=None, fatal=True, formats_dict={}, data=None, headers={}, query={}):
+    def _extract_mpd_formats(self, mpd_url, video_id, mpd_id=None, note=None, errnote=None, fatal=True, data=None, headers={}, query={}):
         res = self._download_xml_handle(
             mpd_url, video_id,
             note=note or 'Downloading MPD manifest',
@@ -2278,10 +2278,9 @@ class InfoExtractor(object):
         mpd_base_url = base_url(urlh.geturl())
 
         return self._parse_mpd_formats(
-            mpd_doc, mpd_id=mpd_id, mpd_base_url=mpd_base_url,
-            formats_dict=formats_dict, mpd_url=mpd_url)
+            mpd_doc, mpd_id, mpd_base_url, mpd_url)
 
-    def _parse_mpd_formats(self, mpd_doc, mpd_id=None, mpd_base_url='', formats_dict={}, mpd_url=None):
+    def _parse_mpd_formats(self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
         """
         Parse formats from MPD manifest.
         References:
@@ -2560,15 +2559,7 @@ class InfoExtractor(object):
                         else:
                             # Assuming direct URL to unfragmented media.
                             f['url'] = base_url
-
-                        # According to [1, 5.3.5.2, Table 7, page 35] @id of Representation
-                        # is not necessarily unique within a Period thus formats with
-                        # the same `format_id` are quite possible. There are numerous examples
-                        # of such manifests (see https://github.com/ytdl-org/youtube-dl/issues/15111,
-                        # https://github.com/ytdl-org/youtube-dl/issues/13919)
-                        full_info = formats_dict.get(representation_id, {}).copy()
-                        full_info.update(f)
-                        formats.append(full_info)
+                        formats.append(f)
                     else:
                         self.report_warning('Unknown MIME type %s in DASH manifest' % mime_type)
         return formats

@@ -16,13 +16,12 @@ from .compat import (
 from .utils import (
     expand_path,
     get_executable_path,
+    OUTTMPL_TYPES,
     preferredencoding,
+    REMUX_EXTENSIONS,
     write_string,
 )
 from .version import __version__
-
-
-_remux_formats = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')
 
 
 def _hide_login_info(opts):
@@ -831,19 +830,23 @@ def parseOpts(overrideArguments=None):
         metavar='TYPE:PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_multiple_values_options_callback,
         callback_kwargs={
-            'allowed_keys': 'home|temp|config|description|annotation|subtitle|infojson|thumbnail',
+            'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys()),
             'process': lambda x: x.strip()},
         help=(
             'The paths where the files should be downloaded. '
-            'Specify the type of file and the path separated by a colon ":" '
-            '(supported: description|annotation|subtitle|infojson|thumbnail). '
+            'Specify the type of file and the path separated by a colon ":". '
+            'All the same types as --output are supported. '
             'Additionally, you can also provide "home" and "temp" paths. '
             'All intermediary files are first downloaded to the temp path and '
             'then the final files are moved over to the home path after download is finished. '
-            'Note that this option is ignored if --output is an absolute path'))
+            'This option is ignored if --output is an absolute path'))
     filesystem.add_option(
         '-o', '--output',
-        dest='outtmpl', metavar='TEMPLATE',
+        metavar='[TYPE:]TEMPLATE', dest='outtmpl', default={}, type='str',
+        action='callback', callback=_dict_from_multiple_values_options_callback,
+        callback_kwargs={
+            'allowed_keys': '|'.join(OUTTMPL_TYPES.keys()),
+            'default_key': 'default', 'process': lambda x: x.strip()},
         help='Output filename template, see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
         '--output-na-placeholder',
@@ -892,11 +895,13 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '-c', '--continue',
         action='store_true', dest='continue_dl', default=True,
-        help='Resume partially downloaded files (default)')
+        help='Resume partially downloaded files/fragments (default)')
     filesystem.add_option(
         '--no-continue',
         action='store_false', dest='continue_dl',
-        help='Restart download of partially downloaded files from beginning')
+        help=(
+            'Do not resume partially downloaded fragments. '
+            'If the file is unfragmented, restart download of the entire file'))
     filesystem.add_option(
         '--part',
         action='store_false', dest='nopart', default=False,
@@ -924,7 +929,7 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--write-info-json',
         action='store_true', dest='writeinfojson', default=False,
-        help='Write video metadata to a .info.json file. Note that this may contain personal information')
+        help='Write video metadata to a .info.json file (this may contain personal information)')
     filesystem.add_option(
         '--no-write-info-json',
         action='store_false', dest='writeinfojson',
@@ -1035,7 +1040,7 @@ def parseOpts(overrideArguments=None):
             'Remux the video into another container if necessary (currently supported: %s). '
             'If target container does not support the video/audio codec, remuxing will fail. '
             'You can specify multiple rules; eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.' % '|'.join(_remux_formats)))
+            'and anything else to mkv.' % '|'.join(REMUX_EXTENSIONS)))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,

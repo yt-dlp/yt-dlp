@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import threading
 
 from .common import FileDownloader
-from ..downloader import get_suitable_downloader
+from ..downloader import _get_real_downloader
 from ..extractor.niconico import NiconicoIE
 from ..compat import compat_urllib_request
 
@@ -20,9 +20,9 @@ class NiconicoDmcFD(FileDownloader):
         ie = NiconicoIE(self.ydl)
         info_dict, heartbeat_info_dict = ie._get_heartbeat_info(info_dict)
 
-        fd = get_suitable_downloader(info_dict, self.params)(self.ydl, self.params)
+        fd = _get_real_downloader(info_dict, params=self.params)(self.ydl, self.params)
 
-        ret = download_complete = False
+        success = download_complete = False
         timer = [None]
 
         heartbeat_lock = threading.Lock()
@@ -44,11 +44,11 @@ class NiconicoDmcFD(FileDownloader):
 
         try:
             heartbeat()
-            ret = fd.real_download(filename, info_dict)
+            success = fd.real_download(filename, info_dict)
         finally:
             if heartbeat_lock:
                 with heartbeat_lock:
                     timer[0].cancel()
                     download_complete = True
 
-            return ret
+            return success

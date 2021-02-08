@@ -50,6 +50,7 @@ from .compat import (
     compat_html_entities_html5,
     compat_http_client,
     compat_integer_types,
+    compat_numeric_types,
     compat_kwargs,
     compat_os_name,
     compat_parse_qs,
@@ -1713,6 +1714,8 @@ KNOWN_EXTENSIONS = (
     'ape',
     'wav',
     'f4f', 'f4m', 'm3u8', 'smil')
+
+REMUX_EXTENSIONS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')
 
 # needed for sanitizing filenames in restricted mode
 ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ',
@@ -3673,6 +3676,18 @@ def url_or_none(url):
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
+def strftime_or_none(timestamp, date_format, default=None):
+    datetime_object = None
+    try:
+        if isinstance(timestamp, compat_numeric_types):  # unix timestamp
+            datetime_object = datetime.datetime.utcfromtimestamp(timestamp)
+        elif isinstance(timestamp, compat_str):  # assume YYYYMMDD
+            datetime_object = datetime.datetime.strptime(timestamp, '%Y%m%d')
+        return datetime_object.strftime(date_format)
+    except (ValueError, TypeError, AttributeError):
+        return default
+
+
 def parse_duration(s):
     if not isinstance(s, compat_basestring):
         return None
@@ -4156,7 +4171,18 @@ def qualities(quality_ids):
     return q
 
 
-DEFAULT_OUTTMPL = '%(title)s [%(id)s].%(ext)s'
+DEFAULT_OUTTMPL = {
+    'default': '%(title)s [%(id)s].%(ext)s',
+}
+OUTTMPL_TYPES = {
+    'subtitle': None,
+    'thumbnail': None,
+    'description': 'description',
+    'annotation': 'annotations.xml',
+    'infojson': 'info.json',
+    'pl_description': 'description',
+    'pl_infojson': 'info.json',
+}
 
 
 def limit_length(s, length):
@@ -4666,9 +4692,7 @@ def cli_configuration_args(params, arg_name, key, default=[], exe=None):  # retu
         return default, False
     assert isinstance(argdict, dict)
 
-    assert isinstance(key, compat_str)
     key = key.lower()
-
     args = exe_args = None
     if exe is not None:
         assert isinstance(exe, compat_str)

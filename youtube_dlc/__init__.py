@@ -15,7 +15,6 @@ import sys
 
 from .options import (
     parseOpts,
-    _remux_formats,
 )
 from .compat import (
     compat_getpass,
@@ -24,7 +23,6 @@ from .compat import (
 from .utils import (
     DateRange,
     decodeOption,
-    DEFAULT_OUTTMPL,
     DownloadError,
     ExistingVideoReached,
     expand_path,
@@ -33,11 +31,12 @@ from .utils import (
     preferredencoding,
     read_batch_urls,
     RejectedVideoReached,
+    REMUX_EXTENSIONS,
+    render_table,
     SameFileError,
     setproctitle,
     std_headers,
     write_string,
-    render_table,
 )
 from .update import update_self
 from .downloader import (
@@ -211,13 +210,15 @@ def _real_main(argv=None):
         if not opts.audioquality.isdigit():
             parser.error('invalid audio quality specified')
     if opts.recodevideo is not None:
-        if opts.recodevideo not in _remux_formats:
+        if opts.recodevideo not in REMUX_EXTENSIONS:
             parser.error('invalid video recode format specified')
     if opts.remuxvideo and opts.recodevideo:
         opts.remuxvideo = None
         write_string('WARNING: --remux-video is ignored since --recode-video was given\n', out=sys.stderr)
     if opts.remuxvideo is not None:
-        if opts.remuxvideo not in _remux_formats:
+        opts.remuxvideo = opts.remuxvideo.replace(' ', '')
+        remux_regex = r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(REMUX_EXTENSIONS))
+        if not re.match(remux_regex, opts.remuxvideo):
             parser.error('invalid video remux format specified')
     if opts.convertsubtitles is not None:
         if opts.convertsubtitles not in ['srt', 'vtt', 'ass', 'lrc']:
@@ -237,18 +238,21 @@ def _real_main(argv=None):
     if opts.allsubtitles and not opts.writeautomaticsub:
         opts.writesubtitles = True
 
-    outtmpl = ((opts.outtmpl is not None and opts.outtmpl)
-               or (opts.format == '-1' and opts.usetitle and '%(title)s-%(id)s-%(format)s.%(ext)s')
-               or (opts.format == '-1' and '%(id)s-%(format)s.%(ext)s')
-               or (opts.usetitle and opts.autonumber and '%(autonumber)s-%(title)s-%(id)s.%(ext)s')
-               or (opts.usetitle and '%(title)s-%(id)s.%(ext)s')
-               or (opts.useid and '%(id)s.%(ext)s')
-               or (opts.autonumber and '%(autonumber)s-%(id)s.%(ext)s')
-               or DEFAULT_OUTTMPL)
-    if not os.path.splitext(outtmpl)[1] and opts.extractaudio:
+    outtmpl = opts.outtmpl
+    if not outtmpl:
+        outtmpl = {'default': (
+            '%(title)s-%(id)s-%(format)s.%(ext)s' if opts.format == '-1' and opts.usetitle
+            else '%(id)s-%(format)s.%(ext)s' if opts.format == '-1'
+            else '%(autonumber)s-%(title)s-%(id)s.%(ext)s' if opts.usetitle and opts.autonumber
+            else '%(title)s-%(id)s.%(ext)s' if opts.usetitle
+            else '%(id)s.%(ext)s' if opts.useid
+            else '%(autonumber)s-%(id)s.%(ext)s' if opts.autonumber
+            else None)}
+    outtmpl_default = outtmpl.get('default')
+    if outtmpl_default is not None and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
         parser.error('Cannot download a video and extract audio into the same'
                      ' file! Use "{0}.%(ext)s" instead of "{0}" as the output'
-                     ' template'.format(outtmpl))
+                     ' template'.format(outtmpl_default))
 
     for f in opts.format_sort:
         if re.match(InfoExtractor.FormatSort.regex, f) is None:
@@ -350,7 +354,11 @@ def _real_main(argv=None):
         opts.postprocessor_args.setdefault('sponskrub', [])
         opts.postprocessor_args['default'] = opts.postprocessor_args['default-compat']
 
-    audio_ext = opts.audioformat if (opts.extractaudio and opts.audioformat != 'best') else None
+    final_ext = (
+        opts.recodevideo
+        or (opts.remuxvideo in REMUX_EXTENSIONS) and opts.remuxvideo
+        or (opts.extractaudio and opts.audioformat != 'best') and opts.audioformat
+        or None)
 
     match_filter = (
         None if opts.match_filter is None
@@ -413,7 +421,7 @@ def _real_main(argv=None):
         'playlistreverse': opts.playlist_reverse,
         'playlistrandom': opts.playlist_random,
         'noplaylist': opts.noplaylist,
-        'logtostderr': opts.outtmpl == '-',
+        'logtostderr': outtmpl_default == '-',
         'consoletitle': opts.consoletitle,
         'nopart': opts.nopart,
         'updatetime': opts.updatetime,
@@ -471,7 +479,7 @@ def _real_main(argv=None):
         'extract_flat': opts.extract_flat,
         'mark_watched': opts.mark_watched,
         'merge_output_format': opts.merge_output_format,
-        'final_ext': opts.recodevideo or opts.remuxvideo or audio_ext,
+        'final_ext': final_ext,
         'postprocessors': postprocessors,
         'fixup': opts.fixup,
         'source_address': opts.source_address,

@@ -54,7 +54,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl v2021.01.24.1**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl v2021.02.04.1**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/pukkandan/yt-dlp/pull/31) for details.
 
@@ -69,7 +69,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Plugin support**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
 
-* **Multiple paths**: You can give different paths for different types of files. You can also set a temporary path where intermediary files are downloaded to. See [`--paths`](https://github.com/pukkandan/yt-dlp/#:~:text=-P,%20--paths%20TYPE:PATH) for details
+* **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to. See [`--paths`](https://github.com/pukkandan/yt-dlp/#:~:text=-P,%20--paths%20TYPE:PATH) for details
 
 <!-- Relative link doesn't work for "#:~:text=" -->
 
@@ -77,7 +77,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Other new options**: `--parse-metadata`, `--list-formats-as-table`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
 
-* **Improvements**: Multiple `--postprocessor-args` and `--external-downloader-args`, `%(duration_string)s` in `-o`, faster archive checking, more [format selection options](#format-selection) etc
+* **Improvements**: Multiple `--postprocessor-args` and `--external-downloader-args`, Date/time formatting in `-o`, faster archive checking, more [format selection options](#format-selection) etc
 
 
 See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
@@ -102,11 +102,11 @@ You can install yt-dlp using one of the following methods:
 ### COMPILE
 
 **For Windows**:
-To build the Windows executable, you must have pyinstaller (and optionally mutagen for embedding thumbnail in opus/ogg files)
+To build the Windows executable, you must have pyinstaller (and optionally mutagen and Crypto)
 
-    python -m pip install --upgrade pyinstaller mutagen
+    python -m pip install --upgrade pyinstaller mutagen Crypto
 
-For the 64bit version, run `py devscripts\pyinst.py 64` using 64bit python3. Similarly, to install 32bit version, run `py devscripts\pyinst.py 32` using 32bit python (preferably 3)
+Once you have all the necessary dependancies installed, just run `py devscripts\pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it. It is strongly reccomended to use python3 although python2.6+ is supported.
 
 You can also build the executable without any version info or metadata by using:
 
@@ -333,16 +333,16 @@ Then simply type this
                                      comments and ignored
     -P, --paths TYPE:PATH            The paths where the files should be
                                      downloaded. Specify the type of file and
-                                     the path separated by a colon ":"
-                                     (supported: description|annotation|subtitle
-                                     |infojson|thumbnail). Additionally, you can
-                                     also provide "home" and "temp" paths. All
-                                     intermediary files are first downloaded to
-                                     the temp path and then the final files are
-                                     moved over to the home path after download
-                                     is finished. Note that this option is
-                                     ignored if --output is an absolute path
-    -o, --output TEMPLATE            Output filename template, see "OUTPUT
+                                     the path separated by a colon ":". All the
+                                     same types as --output are supported.
+                                     Additionally, you can also provide "home"
+                                     and "temp" paths. All intermediary files
+                                     are first downloaded to the temp path and
+                                     then the final files are moved over to the
+                                     home path after download is finished. This
+                                     option is ignored if --output is an
+                                     absolute path
+    -o, --output [TYPE:]TEMPLATE     Output filename template, see "OUTPUT
                                      TEMPLATE" for details
     --output-na-placeholder TEXT     Placeholder value for unavailable meta
                                      fields in output filename template
@@ -359,9 +359,11 @@ Then simply type this
                                      This option includes --no-continue
     --no-force-overwrites            Do not overwrite the video, but overwrite
                                      related files (default)
-    -c, --continue                   Resume partially downloaded files (default)
-    --no-continue                    Restart download of partially downloaded
-                                     files from beginning
+    -c, --continue                   Resume partially downloaded files/fragments
+                                     (default)
+    --no-continue                    Do not resume partially downloaded
+                                     fragments. If the file is unfragmented,
+                                     restart download of the entire file
     --part                           Use .part files instead of writing directly
                                      into output file (default)
     --no-part                        Do not use .part files - write directly
@@ -374,6 +376,7 @@ Then simply type this
                                      file
     --no-write-description           Do not write video description (default)
     --write-info-json                Write video metadata to a .info.json file
+                                     (this may contain personal information)
     --no-write-info-json             Do not write video metadata (default)
     --write-annotations              Write video annotations to a
                                      .annotations.xml file
@@ -751,7 +754,11 @@ The `-o` option is used to indicate a template for the output file names while `
 
 **tl;dr:** [navigate me to examples](#output-template-examples).
 
-The basic usage is not to set any template arguments when downloading a single file, like in `youtube-dlc -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Allowed names along with sequence type are:
+The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `youtube-dlc -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Date/time fields can also be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses seperated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
+
+Additionally, you can set different output templates for the various metadata files seperately from the general output template by specifying the type of file followed by the template seperated by a colon ":". The different filetypes supported are `subtitle|thumbnail|description|annotation|infojson|pl_description|pl_infojson`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
+
+The available fields are:
 
  - `id` (string): Video identifier
  - `title` (string): Video title
@@ -858,7 +865,7 @@ If you are using an output template inside a Windows batch file then you must es
 
 #### Output template examples
 
-Note that on Windows you may need to use double quotes instead of single.
+Note that on Windows you need to use double quotes instead of single.
 
 ```bash
 $ youtube-dlc --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc
@@ -870,14 +877,17 @@ youtube-dlc_test_video_.mp4          # A simple file name
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
 $ youtube-dlc -o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
 
+# Download YouTube playlist videos in seperate directories according to their uploaded year
+$ youtube-dlc -o '%(upload_date>%Y)s/%(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
+
 # Download all playlists of YouTube channel/user keeping each playlist in separate directory:
 $ youtube-dlc -o '%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/user/TheLinuxFoundation/playlists
 
 # Download Udemy course keeping each chapter in separate directory under MyVideos directory in your home
-$ youtube-dlc -u user -p password -o '~/MyVideos/%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s' https://www.udemy.com/java-tutorial/
+$ youtube-dlc -u user -p password -P '~/MyVideos' -o '%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s' https://www.udemy.com/java-tutorial/
 
 # Download entire series season keeping each series and each season in separate directory under C:/MyVideos
-$ youtube-dlc -o "C:/MyVideos/%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" https://videomore.ru/kino_v_detalayah/5_sezon/367617
+$ youtube-dlc -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" https://videomore.ru/kino_v_detalayah/5_sezon/367617
 
 # Stream the video being downloaded to stdout
 $ youtube-dlc -o - BaW_jenozKc
@@ -963,7 +973,7 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
  - `quality`: The quality of the format. This is a metadata field available in some websites
  - `source`: Preference of the source as given by the extractor
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8-native` > `m3u8` > `http-dash-segments` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
- - `vcodec`: Video Codec (`vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
+ - `vcodec`: Video Codec (`av01` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
  - `acodec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac3` > `dts` > other > unknown)
  - `codec`: Equivalent to `vcodec,acodec`
  - `vext`: Video Extension (`mp4` > `webm` > `flv` > other > unknown). If `--prefer-free-formats` is used, `webm` is prefered.
@@ -984,7 +994,7 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
 
 Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a prefered value for the fields, seperated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
-The fields `hasvid`, `ie_pref`, `lang`, `quality` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `res,fps,codec,size,br,asr,proto,ext,hasaud,source,id`. Note that the extractors may override this default order, but they cannot override the user-provided order.
+The fields `hasvid`, `ie_pref`, `lang`, `quality` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `res,fps,codec:vp9,size,br,asr,proto,ext,hasaud,source,id`. Note that the extractors may override this default order, but they cannot override the user-provided order.
 
 If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all repects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
 

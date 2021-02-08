@@ -252,7 +252,7 @@ class AENetworksShowIE(AENetworksListBaseIE):
     _TESTS = [{
         'url': 'http://www.history.com/shows/ancient-aliens',
         'info_dict': {
-            'id': 'SH012427480000',
+            'id': 'SERIES1574',
             'title': 'Ancient Aliens',
             'description': 'md5:3f6d74daf2672ff3ae29ed732e37ea7f',
         },

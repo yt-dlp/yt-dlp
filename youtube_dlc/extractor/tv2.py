@@ -20,7 +20,7 @@ from ..utils import (
 
 class TV2IE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?tv2\.no/v/(?P<id>\d+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'http://www.tv2.no/v/916509/',
         'info_dict': {
             'id': '916509',
@@ -33,7 +33,7 @@ class TV2IE(InfoExtractor):
             'view_count': int,
             'categories': list,
         },
-    }
+    }]
     _API_DOMAIN = 'sumo.tv2.no'
     _PROTOCOLS = ('HDS', 'HLS', 'DASH')
     _GEO_COUNTRIES = ['NO']
@@ -41,6 +41,12 @@ class TV2IE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         api_base = 'http://%s/api/web/asset/%s' % (self._API_DOMAIN, video_id)
+
+        asset = self._download_json(
+            api_base + '.json', video_id,
+            'Downloading metadata JSON')['asset']
+        title = asset.get('subtitle') or asset['title']
+        is_live = asset.get('live') is True
 
         formats = []
         format_urls = []
@@ -81,7 +87,8 @@ class TV2IE(InfoExtractor):
                 elif ext == 'm3u8':
                     if not data.get('drmProtected'):
                         formats.extend(self._extract_m3u8_formats(
-                            video_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                            video_url, video_id, 'mp4',
+                            'm3u8' if is_live else 'm3u8_native',
                             m3u8_id=format_id, fatal=False))
                 elif ext == 'mpd':
                     formats.extend(self._extract_mpd_formats(
@@ -99,11 +106,6 @@ class TV2IE(InfoExtractor):
             raise ExtractorError('This video is DRM protected.', expected=True)
         self._sort_formats(formats)
 
-        asset = self._download_json(
-            api_base + '.json', video_id,
-            'Downloading metadata JSON')['asset']
-        title = asset['title']
-
         thumbnails = [{
             'id': thumbnail.get('@type'),
             'url': thumbnail.get('url'),
@@ -112,7 +114,7 @@ class TV2IE(InfoExtractor):
         return {
             'id': video_id,
             'url': video_url,
-            'title': title,
+            'title': self._live_title(title) if is_live else title,
             'description': strip_or_none(asset.get('description')),
             'thumbnails': thumbnails,
             'timestamp': parse_iso8601(asset.get('createTime')),
@@ -120,6 +122,7 @@ class TV2IE(InfoExtractor):
             'view_count': int_or_none(asset.get('views')),
             'categories': asset.get('keywords', '').split(','),
             'formats': formats,
+            'is_live': is_live,
         }
 
 
@@ -168,13 +171,13 @@ class TV2ArticleIE(InfoExtractor):
 
 
 class KatsomoIE(TV2IE):
-    _VALID_URL = r'https?://(?:www\.)?(?:katsomo|mtv)\.fi/(?:#!/)?(?:[^/]+/[0-9a-z-]+-\d+/[0-9a-z-]+-|[^/]+/\d+/[^/]+/)(?P<id>\d+)'
-    _TEST = {
+    _VALID_URL = r'https?://(?:www\.)?(?:katsomo|mtv(uutiset)?)\.fi/(?:sarja/[0-9a-z-]+-\d+/[0-9a-z-]+-|(?:#!/)?jakso/(?:\d+/[^/]+/)?|video/prog)(?P<id>\d+)'
+    _TESTS = [{
         'url': 'https://www.mtv.fi/sarja/mtv-uutiset-live-33001002003/lahden-pelicans-teki-kovan-ratkaisun-ville-nieminen-pihalle-1181321',
         'info_dict': {
             'id': '1181321',
             'ext': 'mp4',
-            'title': 'MTV Uutiset Live',
+            'title': 'Lahden Pelicans teki kovan ratkaisun – Ville Nieminen pihalle',
             'description': 'Päätöksen teki Pelicansin hallitus.',
             'timestamp': 1575116484,
             'upload_date': '20191130',
@@ -186,7 +189,60 @@ class KatsomoIE(TV2IE):
             # m3u8 download
             'skip_download': True,
         },
-    }
+    }, {
+        'url': 'http://www.katsomo.fi/#!/jakso/33001005/studio55-fi/658521/jukka-kuoppamaki-tekee-yha-lauluja-vaikka-lentokoneessa',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.mtvuutiset.fi/video/prog1311159',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.katsomo.fi/#!/jakso/1311159',
+        'only_matching': True,
+    }]
     _API_DOMAIN = 'api.katsomo.fi'
     _PROTOCOLS = ('HLS', 'MPD')
     _GEO_COUNTRIES = ['FI']
+
+
+class MTVUutisetArticleIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)mtvuutiset\.fi/artikkeli/[^/]+/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.mtvuutiset.fi/artikkeli/tallaisia-vaurioita-viking-amorellassa-on-useamman-osaston-alla-vetta/7931384',
+        'info_dict': {
+            'id': '1311159',
+            'ext': 'mp4',
+            'title': 'Viking Amorellan matkustajien evakuointi on alkanut – tältä operaatio näyttää laivalla',
+            'description': 'Viking Amorellan matkustajien evakuointi on alkanut – tältä operaatio näyttää laivalla',
+            'timestamp': 1600608966,
+            'upload_date': '20200920',
+            'duration': 153.7886666,
+            'view_count': int,
+            'categories': list,
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+    }, {
+        # multiple Youtube embeds
+        'url': 'https://www.mtvuutiset.fi/artikkeli/50-vuotta-subarun-vastaiskua/6070962',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        article_id = self._match_id(url)
+        article = self._download_json(
+            'http://api.mtvuutiset.fi/mtvuutiset/api/json/' + article_id,
+            article_id)
+
+        def entries():
+            for video in (article.get('videos') or []):
+                video_type = video.get('videotype')
+                video_url = video.get('url')
+                if not (video_url and video_type in ('katsomo', 'youtube')):
+                    continue
+                yield self.url_result(
+                    video_url, video_type.capitalize(), video.get('video_id'))
+
+        return self.playlist_result(
+            entries(), article_id, article.get('title'), article.get('description'))

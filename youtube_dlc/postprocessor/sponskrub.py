@@ -43,6 +43,10 @@ class SponSkrubPP(PostProcessor):
         if self.path is None:
             return [], information
 
+        filename = information['filepath']
+        if not os.path.exists(encodeFilename(filename)):  # no download
+            return [], information
+
         if information['extractor_key'].lower() != 'youtube':
             self.to_screen('Skipping sponskrub since it is not a YouTube video')
             return [], information
@@ -58,7 +62,6 @@ class SponSkrubPP(PostProcessor):
             if not information.get('__real_download', False):
                 self.report_warning('If sponskrub is run multiple times, unintended parts of the video could be cut out.')
 
-        filename = information['filepath']
         temp_filename = prepend_extension(filename, self._temp_ext)
         if os.path.exists(encodeFilename(temp_filename)):
             os.remove(encodeFilename(temp_filename))

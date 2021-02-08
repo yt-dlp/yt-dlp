@@ -1,14 +1,15 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import calendar
 import re
-import time
 
 from .amp import AMPIE
 from .common import InfoExtractor
-from .youtube import YoutubeIE
-from ..compat import compat_urlparse
+from ..utils import (
+    parse_duration,
+    parse_iso8601,
+    try_get,
+)
 
 
 class AbcNewsVideoIE(AMPIE):
@@ -18,8 +19,8 @@ class AbcNewsVideoIE(AMPIE):
                         (?:
                             abcnews\.go\.com/
                             (?:
-                                [^/]+/video/(?P<display_id>[0-9a-z-]+)-|
-                                video/embed\?.*?\bid=
+                                (?:[^/]+/)*video/(?P<display_id>[0-9a-z-]+)-|
+                                video/(?:embed|itemfeed)\?.*?\bid=
                             )|
                             fivethirtyeight\.abcnews\.go\.com/video/embed/\d+/
                         )
@@ -36,6 +37,8 @@ class AbcNewsVideoIE(AMPIE):
             'description': 'George Stephanopoulos goes one-on-one with Iranian Foreign Minister Dr. Javad Zarif.',
             'duration': 180,
             'thumbnail': r're:^https?://.*\.jpg$',
+            'timestamp': 1380454200,
+            'upload_date': '20130929',
         },
         'params': {
             # m3u8 download
@@ -46,6 +49,12 @@ class AbcNewsVideoIE(AMPIE):
         'only_matching': True,
     }, {
         'url': 'http://abcnews.go.com/2020/video/2020-husband-stands-teacher-jail-student-affairs-26119478',
+        'only_matching': True,
+    }, {
+        'url': 'http://abcnews.go.com/video/itemfeed?id=46979033',
+        'only_matching': True,
+    }, {
+        'url': 'https://abcnews.go.com/GMA/News/video/history-christmas-story-67894761',
         'only_matching': True,
     }]
 
@@ -67,28 +76,23 @@ class AbcNewsIE(InfoExtractor):
     _VALID_URL = r'https?://abcnews\.go\.com/(?:[^/]+/)+(?P<display_id>[0-9a-z-]+)/story\?id=(?P<id>\d+)'
 
     _TESTS = [{
-        'url': 'http://abcnews.go.com/Blotter/News/dramatic-video-rare-death-job-america/story?id=10498713#.UIhwosWHLjY',
+        # Youtube Embeds
+        'url': 'https://abcnews.go.com/Entertainment/peter-billingsley-child-actor-christmas-story-hollywood-power/story?id=51286501',
         'info_dict': {
-            'id': '10505354',
-            'ext': 'flv',
-            'display_id': 'dramatic-video-rare-death-job-america',
-            'title': 'Occupational Hazards',
-            'description': 'Nightline investigates the dangers that lurk at various jobs.',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'upload_date': '20100428',
-            'timestamp': 1272412800,
+            'id': '51286501',
+            'title': "Peter Billingsley: From child actor in 'A Christmas Story' to Hollywood power player",
+            'description': 'Billingsley went from a child actor to Hollywood power player.',
         },
-        'add_ie': ['AbcNewsVideo'],
+        'playlist_count': 5,
     }, {
         'url': 'http://abcnews.go.com/Entertainment/justin-timberlake-performs-stop-feeling-eurovision-2016/story?id=39125818',
         'info_dict': {
             'id': '38897857',
             'ext': 'mp4',
-            'display_id': 'justin-timberlake-performs-stop-feeling-eurovision-2016',
             'title': 'Justin Timberlake Drops Hints For Secret Single',
             'description': 'Lara Spencer reports the buzziest stories of the day in "GMA" Pop News.',
-            'upload_date': '20160515',
-            'timestamp': 1463329500,
+            'upload_date': '20160505',
+            'timestamp': 1462442280,
         },
         'params': {
             # m3u8 download
@@ -100,49 +104,55 @@ class AbcNewsIE(InfoExtractor):
     }, {
         'url': 'http://abcnews.go.com/Technology/exclusive-apple-ceo-tim-cook-iphone-cracking-software/story?id=37173343',
         'only_matching': True,
+    }, {
+        # inline.type == 'video'
+        'url': 'http://abcnews.go.com/Technology/exclusive-apple-ceo-tim-cook-iphone-cracking-software/story?id=37173343',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        display_id = mobj.group('display_id')
-        video_id = mobj.group('id')
+        story_id = self._match_id(url)
+        webpage = self._download_webpage(url, story_id)
+        story = self._parse_json(self._search_regex(
+            r"window\['__abcnews__'\]\s*=\s*({.+?});",
+            webpage, 'data'), story_id)['page']['content']['story']['everscroll'][0]
+        article_contents = story.get('articleContents') or {}
 
-        webpage = self._download_webpage(url, video_id)
-        video_url = self._search_regex(
-            r'window\.abcnvideo\.url\s*=\s*"([^"]+)"', webpage, 'video URL')
-        full_video_url = compat_urlparse.urljoin(url, video_url)
+        def entries():
+            featured_video = story.get('featuredVideo') or {}
+            feed = try_get(featured_video, lambda x: x['video']['feed'])
+            if feed:
+                yield {
+                    '_type': 'url',
+                    'id': featured_video.get('id'),
+                    'title': featured_video.get('name'),
+                    'url': feed,
+                    'thumbnail': featured_video.get('images'),
+                    'description': featured_video.get('description'),
+                    'timestamp': parse_iso8601(featured_video.get('uploadDate')),
+                    'duration': parse_duration(featured_video.get('duration')),
+                    'ie_key': AbcNewsVideoIE.ie_key(),
+                }
 
-        youtube_url = YoutubeIE._extract_url(webpage)
+            for inline in (article_contents.get('inlines') or []):
+                inline_type = inline.get('type')
+                if inline_type == 'iframe':
+                    iframe_url = try_get(inline, lambda x: x['attrs']['src'])
+                    if iframe_url:
+                        yield self.url_result(iframe_url)
+                elif inline_type == 'video':
+                    video_id = inline.get('id')
+                    if video_id:
+                        yield {
+                            '_type': 'url',
+                            'id': video_id,
+                            'url': 'http://abcnews.go.com/video/embed?id=' + video_id,
+                            'thumbnail': inline.get('imgSrc') or inline.get('imgDefault'),
+                            'description': inline.get('description'),
+                            'duration': parse_duration(inline.get('duration')),
+                            'ie_key': AbcNewsVideoIE.ie_key(),
+                        }
 
-        timestamp = None
-        date_str = self._html_search_regex(
-            r'<span[^>]+class="timestamp">([^<]+)</span>',
-            webpage, 'timestamp', fatal=False)
-        if date_str:
-            tz_offset = 0
-            if date_str.endswith(' ET'):  # Eastern Time
-                tz_offset = -5
-                date_str = date_str[:-3]
-            date_formats = ['%b. %d, %Y', '%b %d, %Y, %I:%M %p']
-            for date_format in date_formats:
-                try:
-                    timestamp = calendar.timegm(time.strptime(date_str.strip(), date_format))
-                except ValueError:
-                    continue
-            if timestamp is not None:
-                timestamp -= tz_offset * 3600
-
-        entry = {
-            '_type': 'url_transparent',
-            'ie_key': AbcNewsVideoIE.ie_key(),
-            'url': full_video_url,
-            'id': video_id,
-            'display_id': display_id,
-            'timestamp': timestamp,
-        }
-
-        if youtube_url:
-            entries = [entry, self.url_result(youtube_url, ie=YoutubeIE.ie_key())]
-            return self.playlist_result(entries)
-
-        return entry
+        return self.playlist_result(
+            entries(), story_id, article_contents.get('headline'),
+            article_contents.get('subHead'))

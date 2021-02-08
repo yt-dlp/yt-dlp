@@ -131,6 +131,7 @@ from .gedi import GediEmbedsIE
 from .rcs import RCSEmbedsIE
 from .bitchute import BitChuteIE
 from .arcpublishing import ArcPublishingIE
+from .medialaan import MedialaanIE
 
 
 class GenericIE(InfoExtractor):
@@ -2224,6 +2225,20 @@ class GenericIE(InfoExtractor):
                 'duration': 1581,
             },
         },
+        {
+            # MyChannels SDK embed
+            # https://www.24kitchen.nl/populair/deskundige-dit-waarom-sommigen-gevoelig-zijn-voor-voedselallergieen
+            'url': 'https://www.demorgen.be/nieuws/burgemeester-rotterdam-richt-zich-in-videoboodschap-tot-relschoppers-voelt-het-goed~b0bcfd741/',
+            'md5': '90c0699c37006ef18e198c032d81739c',
+            'info_dict': {
+                'id': '194165',
+                'ext': 'mp4',
+                'title': 'Burgemeester Aboutaleb spreekt relschoppers toe',
+                'timestamp': 1611740340,
+                'upload_date': '20210127',
+                'duration': 159,
+            },
+        },
     ]
 
     def report_following_redirect(self, new_url):
@@ -2463,6 +2478,9 @@ class GenericIE(InfoExtractor):
         webpage = self._webpage_read_content(
             full_response, url, video_id, prefix=first_bytes)
 
+        if '<title>DPG Media Privacy Gate</title>' in webpage:
+            webpage = self._download_webpage(url, video_id)
+
         self.report_extraction(video_id)
 
         # Is it an RSS feed, a SMIL file, an XSPF playlist or a MPD manifest?
@@ -2593,6 +2611,11 @@ class GenericIE(InfoExtractor):
         arc_urls = ArcPublishingIE._extract_urls(webpage)
         if arc_urls:
             return self.playlist_from_matches(arc_urls, video_id, video_title, ie=ArcPublishingIE.ie_key())
+
+        mychannels_urls = MedialaanIE._extract_urls(webpage)
+        if mychannels_urls:
+            return self.playlist_from_matches(
+                mychannels_urls, video_id, video_title, ie=MedialaanIE.ie_key())
 
         # Look for embedded rtl.nl player
         matches = re.findall(

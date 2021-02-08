@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class BravoTVIE(AdobePassIE):
-    _VALID_URL = r'https?://(?:www\.)?bravotv\.com/(?:[^/]+/)+(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?P<req_id>bravotv|oxygen)\.com/(?:[^/]+/)+(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.bravotv.com/top-chef/season-16/episode-15/videos/the-top-chef-season-16-winner-is',
         'md5': 'e34684cfea2a96cd2ee1ef3a60909de9',
@@ -28,10 +28,13 @@ class BravoTVIE(AdobePassIE):
     }, {
         'url': 'http://www.bravotv.com/below-deck/season-3/ep-14-reunion-part-1',
         'only_matching': True,
+    }, {
+        'url': 'https://www.oxygen.com/in-ice-cold-blood/season-2/episode-16/videos/handling-the-horwitz-house-after-the-murder-season-2',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        site, display_id = re.match(self._VALID_URL, url).groups()
         webpage = self._download_webpage(url, display_id)
         settings = self._parse_json(self._search_regex(
             r'<script[^>]+data-drupal-selector="drupal-settings-json"[^>]*>({.+?})</script>', webpage, 'drupal settings'),
@@ -53,11 +56,14 @@ class BravoTVIE(AdobePassIE):
                 tp_path = release_pid = tve['release_pid']
             if tve.get('entitlement') == 'auth':
                 adobe_pass = settings.get('tve_adobe_auth', {})
+                if site == 'bravotv':
+                    site = 'bravo'
                 resource = self._get_mvpd_resource(
-                    adobe_pass.get('adobePassResourceId', 'bravo'),
+                    adobe_pass.get('adobePassResourceId') or site,
                     tve['title'], release_pid, tve.get('rating'))
                 query['auth'] = self._extract_mvpd_auth(
-                    url, release_pid, adobe_pass.get('adobePassRequestorId', 'bravo'), resource)
+                    url, release_pid,
+                    adobe_pass.get('adobePassRequestorId') or site, resource)
         else:
             shared_playlist = settings['ls_playlist']
             account_pid = shared_playlist['account_pid']
