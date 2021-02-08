@@ -20,7 +20,7 @@ LONG_DESCRIPTION = '\n\n'.join((
     '**PS**: Many links in this document will not work since this is a copy of the README.md from Github',
     open("README.md", "r", encoding="utf-8").read()))
 
-REQUIREMENTS = ['mutagen']
+REQUIREMENTS = ['mutagen', 'Crypto']
 
 
 if len(sys.argv) >= 2 and sys.argv[1] == 'py2exe':

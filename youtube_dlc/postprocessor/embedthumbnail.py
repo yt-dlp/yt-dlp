@@ -10,9 +10,9 @@ import base64
 
 try:
     import mutagen
-    _has_mutagen = True
+    has_mutagen = True
 except ImportError:
-    _has_mutagen = False
+    has_mutagen = False
 
 from .ffmpeg import FFmpegPostProcessor
 
@@ -153,7 +153,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     success = False
 
         elif info['ext'] in ['ogg', 'opus']:
-            if not _has_mutagen:
+            if not has_mutagen:
                 raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python -m pip install mutagen`')
             self.to_screen('Adding thumbnail to "%s"' % filename)
 
