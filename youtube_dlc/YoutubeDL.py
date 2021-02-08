@@ -2292,12 +2292,9 @@ class YoutubeDL(object):
                     downloaded = []
                     merger = FFmpegMergerPP(self)
                     if not merger.available:
-                        postprocessors = []
                         self.report_warning('You have requested multiple '
                                             'formats but ffmpeg is not installed.'
                                             ' The formats won\'t be merged.')
-                    else:
-                        postprocessors = [merger]
 
                     def compatible_formats(formats):
                         # TODO: some formats actually allow this (mkv, webm, ogg, mp4), but not all of them.
@@ -2349,7 +2346,8 @@ class YoutubeDL(object):
                             downloaded.append(fname)
                             partial_success, real_download = dl(fname, new_info)
                             success = success and partial_success
-                        info_dict['__postprocessors'].append(postprocessors)
+                        if merger.available:
+                            info_dict['__postprocessors'].append(merger)
                         info_dict['__files_to_merge'] = downloaded
                         # Even if there were no downloads, it is being merged only now
                         info_dict['__real_download'] = True
