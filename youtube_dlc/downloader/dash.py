@@ -92,6 +92,9 @@ class DashSegmentsFD(FragmentFD):
             info_copy = info_dict.copy()
             info_copy['url_list'] = fragment_urls
             fd = real_downloader(self.ydl, self.params)
+            # TODO: Make progress updates work without hooking twice
+            # for ph in self._progress_hooks:
+            #     fd.add_progress_hook(ph)
             success = fd.real_download(filename, info_copy)
             if not success:
                 return False

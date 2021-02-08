@@ -74,8 +74,9 @@ class HlsFD(FragmentFD):
                 'hlsnative has detected features it does not support, '
                 'extraction will be delegated to ffmpeg')
             fd = FFmpegFD(self.ydl, self.params)
-            for ph in self._progress_hooks:
-                fd.add_progress_hook(ph)
+            # TODO: Make progress updates work without hooking twice
+            # for ph in self._progress_hooks:
+            #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
 
         real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
@@ -230,6 +231,9 @@ class HlsFD(FragmentFD):
             info_copy['url_list'] = fragment_urls
             info_copy['decrypt_info'] = decrypt_info
             fd = real_downloader(self.ydl, self.params)
+            # TODO: Make progress updates work without hooking twice
+            # for ph in self._progress_hooks:
+            #     fd.add_progress_hook(ph)
             success = fd.real_download(filename, info_copy)
             if not success:
                 return False
