@@ -468,7 +468,8 @@ class NiconicoIE(InfoExtractor):
                 'container': extension,
                 'vcodec': dict_get(v_stream, 'codec_name'),
                 'acodec': dict_get(a_stream, 'codec_name'),
-                'tbr': int(metadata['format'].get('bit_rate', None)) / 1000,
+                # Some complex swf files doesn't have total bit rate metadata (e.g. nm6049209)
+                'tbr': int_or_none(metadata['format'].get('bit_rate', None), scale=1000),
                 'vbr': int_or_none(v_stream.get('bit_rate', None), scale=1000),
                 'abr': int_or_none(a_stream.get('bit_rate', None), scale=1000),
                 'height': int_or_none(v_stream.get('height', None)),
