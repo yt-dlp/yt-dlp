@@ -2577,7 +2577,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         next_continuation = cls._extract_next_continuation_data(renderer)
         if next_continuation:
             return next_continuation
-        contents = renderer.get('contents')
+        contents = renderer.get('contents') or renderer.get('items')
         if not isinstance(contents, list):
             return
         for content in contents:
@@ -2724,19 +2724,26 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     continuation = continuation_list[0]
                     continue
 
+            known_renderers = {
+                'gridPlaylistRenderer': (self._grid_entries, 'items'),
+                'gridVideoRenderer': (self._grid_entries, 'items'),
+                'playlistVideoRenderer': (self._playlist_entries, 'contents'),
+                'itemSectionRenderer': (self._playlist_entries, 'contents'),
+            }
             continuation_items = try_get(
                 response, lambda x: x['onResponseReceivedActions'][0]['appendContinuationItemsAction']['continuationItems'], list)
-            if continuation_items:
-                continuation_item = continuation_items[0]
-                if not isinstance(continuation_item, dict):
+            continuation_item = try_get(continuation_items, lambda x: x[0], dict) or {}
+            video_items_renderer = None
+            for key, value in continuation_item.items():
+                if key not in known_renderers:
                     continue
-                renderer = continuation_item.get('playlistVideoRenderer') or continuation_item.get('itemSectionRenderer')
-                if renderer:
-                    video_list_renderer = {'contents': continuation_items}
-                    for entry in self._playlist_entries(video_list_renderer):
-                        yield entry
-                    continuation = self._extract_continuation(video_list_renderer)
-                    continue
+                video_items_renderer = {known_renderers[key][1]: continuation_items}
+                for entry in known_renderers[key][0](video_items_renderer):
+                    yield entry
+                continuation = self._extract_continuation(video_items_renderer)
+                break
+            if video_items_renderer:
+                continue
             break
 
     @staticmethod
