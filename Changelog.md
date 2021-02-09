@@ -17,6 +17,24 @@
 -->
 
 
+### 2021.02.09
+* **aria2c support for DASH/HLS**: by [shirt](https://github.com/shirt-dev)
+* **Implement Updater** (`-U`) by [shirt](https://github.com/shirt-dev)
+* [youtube] Fix comment extraction
+* [youtube_live_chat] Improve extraction
+* [youtube] Fix for channel URLs sometimes not downloading all pages
+* [aria2c] Changed default arguments to `--console-log-level=warn --summary-interval=0 --file-allocation=none -x16 -j16 -s16`
+* Add fallback for thumbnails
+* [embedthumbnail] Keep original thumbnail after conversion if write_thumbnail given
+* [embedsubtitle] Keep original subtitle after conversion if write_subtitles given
+* [pyinst.py] Move back to root dir
+* [youtube] Simplified renderer parsing and bugfixes
+* [movefiles] Fix compatibility with python2
+* [remuxvideo] Fix validation of conditional remux
+* [sponskrub] Don't raise error when the video does not exist
+* [documentation] Crypto is an optional dependency
+
+
 ### 2021.02.04
 * **Merge youtube-dl:** Upto [2021.02.04.1](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.02.04.1)
 * **Date/time formatting in output template:**
@@ -39,7 +57,7 @@
 
 
 ### 2021.01.29
-* **Features from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl)**: Co-authored by @animelover1984 and @bbepis
+* **Features from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl)**: Co-authored by [animelover1984](https://github.com/animelover1984) and [bbepis](https://github.com/bbepis)
     * Add `--get-comments`
     * [youtube] Extract comments
     * [billibilli] Added BiliBiliSearchIE, BilibiliChannelIE
@@ -79,7 +97,7 @@
     * Valid types are: home, temp, description, annotation, subtitle, infojson, thumbnail
     * Additionally, configuration file is taken from home directory or current directory ([documentation](https://github.com/pukkandan/yt-dlp#:~:text=Home%20Configuration))
 * Allow passing different arguments to different external downloaders ([documentation](https://github.com/pukkandan/yt-dlp#:~:text=--downloader-args%20NAME:ARGS))
-* [mildom] Add extractor by @nao20010128nao
+* [mildom] Add extractor by [nao20010128nao](https://github.com/nao20010128nao)
 * Warn when using old style `--external-downloader-args` and `--post-processor-args`
 * Fix `--no-overwrite` when using `--write-link`
 * [sponskrub] Output `unrecognized argument` error message correctly
@@ -110,7 +128,7 @@
 
 ### 2021.01.14
 * Added option `--break-on-reject`
-* [roosterteeth.com] Fix for bonus episodes by @Zocker1999NET
+* [roosterteeth.com] Fix for bonus episodes by [Zocker1999NET](https://github.com/Zocker1999NET)
 * [tiktok] Fix for when share_info is empty
 * [EmbedThumbnail] Fix bug due to incorrect function name
 * [documentation] Changed sponskrub links to point to [pukkandan/sponskrub](https://github.com/pukkandan/SponSkrub) since I am now providing both linux and windows releases
@@ -119,18 +137,18 @@
 
 
 ### 2021.01.12
-* [roosterteeth.com] Add subtitle support by @samiksome
-* Added `--force-overwrites`, `--no-force-overwrites` by @alxnull
+* [roosterteeth.com] Add subtitle support by [samiksome](https://github.com/samiksome)
+* Added `--force-overwrites`, `--no-force-overwrites` by [alxnull](https://github.com/alxnull)
 * Changed fork name to `yt-dlp`
-* Fix typos by @FelixFrog
+* Fix typos by [FelixFrog](https://github.com/FelixFrog)
 * [ci] Option to skip
 * [changelog] Added unreleased changes in blackjack4494/yt-dlc
 
 
 ### 2021.01.10
-* [archive.org] Fix extractor and add support for audio and playlists by @wporr
-* [Animelab] Added by @mariuszskon
-* [youtube:search] Fix view_count by @ohnonot
+* [archive.org] Fix extractor and add support for audio and playlists by [wporr](https://github.com/wporr)
+* [Animelab] Added by [mariuszskon](https://github.com/mariuszskon)
+* [youtube:search] Fix view_count by [ohnonot](https://github.com/ohnonot)
 * [youtube] Show if video is embeddable in info
 * Update version badge automatically in README
 * Enable `test_youtube_search_matching`
@@ -139,11 +157,11 @@
 
 ### 2021.01.09
 * [youtube] Fix bug in automatic caption extraction
-* Add `post_hooks` to YoutubeDL by @alexmerkel
-* Batch file enumeration improvements by @glenn-slayden
-* Stop immediately when reaching `--max-downloads` by @glenn-slayden
-* Fix incorrect ANSI sequence for restoring console-window title by @glenn-slayden
-* Kill child processes when yt-dlc is killed by @Unrud
+* Add `post_hooks` to YoutubeDL by [alexmerkel](https://github.com/alexmerkel)
+* Batch file enumeration improvements by [glenn-slayden](https://github.com/glenn-slayden)
+* Stop immediately when reaching `--max-downloads` by [glenn-slayden](https://github.com/glenn-slayden)
+* Fix incorrect ANSI sequence for restoring console-window title by [glenn-slayden](https://github.com/glenn-slayden)
+* Kill child processes when yt-dlc is killed by [Unrud](https://github.com/Unrud)
 
 
 ### 2021.01.08
@@ -153,11 +171,11 @@
 
 
 ### 2021.01.07-1
-* [Akamai] fix by @nixxo
-* [Tiktok] merge youtube-dl tiktok extractor by @GreyAlien502
-* [vlive] add support for playlists by @kyuyeunk
-* [youtube_live_chat] make sure playerOffsetMs is positive by @siikamiika
-* Ignore extra data streams in ffmpeg by @jbruchon
+* [Akamai] fix by [nixxo](https://github.com/nixxo)
+* [Tiktok] merge youtube-dl tiktok extractor by [GreyAlien502](https://github.com/GreyAlien502)
+* [vlive] add support for playlists by [kyuyeunk](https://github.com/kyuyeunk)
+* [youtube_live_chat] make sure playerOffsetMs is positive by [siikamiika](https://github.com/siikamiika)
+* Ignore extra data streams in ffmpeg by [jbruchon](https://github.com/jbruchon)
 * Allow passing different arguments to different postprocessors using `--postprocessor-args`
 * Deprecated `--sponskrub-args`. The same can now be done using `--postprocessor-args "sponskrub:<args>"`
 * [CI] Split tests into core-test and full-test
@@ -187,15 +205,15 @@
     * Changed video format sorting to show video only files and video+audio files together.
     * Added `--video-multistreams`, `--no-video-multistreams`, `--audio-multistreams`, `--no-audio-multistreams`
     * Added `b`,`w`,`v`,`a` as alias for `best`, `worst`, `video` and `audio` respectively
-* **Shortcut Options:** Added `--write-link`, `--write-url-link`, `--write-webloc-link`, `--write-desktop-link` by @h-h-h-h - See [Internet Shortcut Options]README.md(#internet-shortcut-options) for details
+* **Shortcut Options:** Added `--write-link`, `--write-url-link`, `--write-webloc-link`, `--write-desktop-link` by [h-h-h-h](https://github.com/h-h-h-h) - See [Internet Shortcut Options]README.md(#internet-shortcut-options) for details
 * **Sponskrub integration:** Added `--sponskrub`, `--sponskrub-cut`, `--sponskrub-force`, `--sponskrub-location`, `--sponskrub-args` - See [SponSkrub Options](README.md#sponskrub-options-sponsorblock) for details
-* Added `--force-download-archive` (`--force-write-archive`) by @h-h-h-h
+* Added `--force-download-archive` (`--force-write-archive`) by [h-h-h-h](https://github.com/h-h-h-h)
 * Added `--list-formats-as-table`,  `--list-formats-old`
 * **Negative Options:** Makes it possible to negate most boolean options by adding a `no-` to the switch. Usefull when you want to reverse an option that is defined in a config file
     * Added `--no-ignore-dynamic-mpd`, `--no-allow-dynamic-mpd`, `--allow-dynamic-mpd`, `--youtube-include-hls-manifest`, `--no-youtube-include-hls-manifest`, `--no-youtube-skip-hls-manifest`, `--no-download`, `--no-download-archive`, `--resize-buffer`, `--part`, `--mtime`, `--no-keep-fragments`, `--no-cookies`, `--no-write-annotations`, `--no-write-info-json`, `--no-write-description`, `--no-write-thumbnail`, `--youtube-include-dash-manifest`, `--post-overwrites`, `--no-keep-video`, `--no-embed-subs`, `--no-embed-thumbnail`, `--no-add-metadata`, `--no-include-ads`, `--no-write-sub`, `--no-write-auto-sub`, `--no-playlist-reverse`, `--no-restrict-filenames`, `--youtube-include-dash-manifest`, `--no-format-sort-force`, `--flat-videos`, `--no-list-formats-as-table`, `--no-sponskrub`, `--no-sponskrub-cut`, `--no-sponskrub-force`
     * Renamed: `--write-subs`, `--no-write-subs`, `--no-write-auto-subs`, `--write-auto-subs`. Note that these can still be used without the ending "s"
 * Relaxed validation for format filters so that any arbitrary field can be used
-* Fix for embedding thumbnail in mp3 by @pauldubois98 ([ytdl-org/youtube-dl#21569](https://github.com/ytdl-org/youtube-dl/pull/21569))
+* Fix for embedding thumbnail in mp3 by [pauldubois98](https://github.com/pauldubois98) ([ytdl-org/youtube-dl#21569](https://github.com/ytdl-org/youtube-dl/pull/21569))
 * Make Twitch Video ID output from Playlist and VOD extractor same. This is only a temporary fix
 * **Merge youtube-dl:** Upto [2021.01.03](https://github.com/ytdl-org/youtube-dl/commit/8e953dcbb10a1a42f4e12e4e132657cb0100a1f8) - See [blackjack4494/yt-dlc#280](https://github.com/blackjack4494/yt-dlc/pull/280) for details
     * Extractors [tiktok](https://github.com/ytdl-org/youtube-dl/commit/fb626c05867deab04425bad0c0b16b55473841a2) and [hotstar](https://github.com/ytdl-org/youtube-dl/commit/bb38a1215718cdf36d73ff0a7830a64cd9fa37cc) have not been merged
@@ -212,7 +230,7 @@
     * Redirect channel home to /video
     * Print youtube's warning message
     * Multiple pages are handled better for feeds
-* Add --break-on-existing by @gergesh
+* Add --break-on-existing by [gergesh](https://github.com/gergesh)
 * Pre-check video IDs in the archive before downloading
 * [bitwave.tv] New extractor
 * [Gedi] Add extractor

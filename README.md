@@ -2,7 +2,9 @@
 
 [![Release version](https://img.shields.io/github/v/release/pukkandan/yt-dlp?color=brightgreen&label=Release)](https://github.com/pukkandan/yt-dlp/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](LICENSE)
-[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions)  
+[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions)
+[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&label=discord&logo=discord)](https://discord.gg/S75JaBna)  
+
 [![Commits](https://img.shields.io/github/commit-activity/m/pukkandan/yt-dlp?label=commits)](https://github.com/pukkandan/yt-dlp/commits)
 [![Last Commit](https://img.shields.io/github/last-commit/pukkandan/yt-dlp/master)](https://github.com/pukkandan/yt-dlp/commits)
 [![Downloads](https://img.shields.io/github/downloads/pukkandan/yt-dlp/total)](https://github.com/pukkandan/yt-dlp/releases/latest)

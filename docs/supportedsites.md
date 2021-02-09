@@ -1218,9 +1218,9 @@
  - **youtube:history**: Youtube watch history, ":ythistory" for short (requires authentication)
  - **youtube:playlist**: YouTube.com playlists
  - **youtube:recommended**: YouTube.com recommended videos, ":ytrec" for short (requires authentication)
- - **youtube:search**: YouTube.com searches
+ - **youtube:search**: YouTube.com searches, "ytsearch" keyword
  - **youtube:search:date**: YouTube.com searches, newest videos first, "ytsearchdate" keyword
- - **youtube:search_url**: YouTube.com searches, "ytsearch" keyword
+ - **youtube:search_url**: YouTube.com search URLs
  - **youtube:subscriptions**: YouTube.com subscriptions feed, ":ytsubs" for short (requires authentication)
  - **youtube:tab**: YouTube.com tab
  - **youtube:watchlater**: Youtube watch later list, ":ytwatchlater" for short (requires authentication)
