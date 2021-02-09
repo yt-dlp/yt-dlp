@@ -2111,6 +2111,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Игорь Клейнер - Playlists',
             'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
+            'uploader': 'Игорь Клейнер',
+            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
         },
     }, {
         # playlists, multipage, different order
@@ -2120,6 +2122,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Игорь Клейнер - Playlists',
             'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
+            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
+            'uploader': 'Игорь Клейнер',
         },
     }, {
         # playlists, singlepage
@@ -2129,6 +2133,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
             'title': 'ThirstForScience - Playlists',
             'description': 'md5:609399d937ea957b0f53cbffb747a14c',
+            'uploader': 'ThirstForScience',
+            'uploader_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
         }
     }, {
         'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
@@ -2160,6 +2166,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'title': 'lex will - Home',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
         },
         'playlist_mincount': 2,
     }, {
@@ -2169,6 +2177,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'title': 'lex will - Videos',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
         },
         'playlist_mincount': 975,
     }, {
@@ -2178,6 +2188,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'title': 'lex will - Videos',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
         },
         'playlist_mincount': 199,
     }, {
@@ -2187,6 +2199,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'title': 'lex will - Playlists',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
         },
         'playlist_mincount': 17,
     }, {
@@ -2196,6 +2210,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'title': 'lex will - Community',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
         },
         'playlist_mincount': 18,
     }, {
@@ -2205,8 +2221,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'title': 'lex will - Channels',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
         },
-        'playlist_mincount': 138,
+        'playlist_mincount': 12,
     }, {
         'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
         'only_matching': True,
@@ -2224,6 +2242,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC',
             'uploader': 'Christiaan008',
             'uploader_id': 'UCEPzS1rYsrkqzSLNp76nrcg',
+            'description': 'md5:a14dc1a8ef8307a9807fe136a0660268',
         },
         'playlist_count': 96,
     }, {
@@ -2258,6 +2277,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'id': 'PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
             'uploader_id': 'UC9-y-6csu5WGm29I7JiwpnA',
             'uploader': 'Computerphile',
+            'description': 'md5:7f567c574d13d3f8c0954d9ffee4e487',
         },
         'playlist_mincount': 11,
     }, {
@@ -2298,12 +2318,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'info_dict': {
             'id': '9Auq9mYxFEE',
             'ext': 'mp4',
-            'title': 'Watch Sky News live',
+            'title': compat_str,
             'uploader': 'Sky News',
             'uploader_id': 'skynews',
             'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/skynews',
             'upload_date': '20191102',
-            'description': 'md5:78de4e1c2359d0ea3ed829678e38b662',
+            'description': 'md5:85ddd75d888674631aaf9599a9a0b0ae',
             'categories': ['News & Politics'],
             'tags': list,
             'like_count': int,
