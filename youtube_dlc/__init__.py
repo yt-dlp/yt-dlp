@@ -233,11 +233,6 @@ def _real_main(argv=None):
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'
 
-    # --all-sub automatically sets --write-sub if --write-auto-sub is not given
-    # this was the old behaviour if only --all-sub was given.
-    if opts.allsubtitles and not opts.writeautomaticsub:
-        opts.writesubtitles = True
-
     outtmpl = opts.outtmpl
     if not outtmpl:
         outtmpl = {'default': (
@@ -311,9 +306,17 @@ def _real_main(argv=None):
             'format': opts.convertsubtitles,
         })
     if opts.embedsubtitles:
+        already_have_subtitle = opts.writesubtitles
         postprocessors.append({
             'key': 'FFmpegEmbedSubtitle',
+            'already_have_subtitle': already_have_subtitle
         })
+        if not already_have_subtitle:
+            opts.writesubtitles = True
+    # --all-sub automatically sets --write-sub if --write-auto-sub is not given
+    # this was the old behaviour if only --all-sub was given.
+    if opts.allsubtitles and not opts.writeautomaticsub:
+        opts.writesubtitles = True
     if opts.embedthumbnail:
         already_have_thumbnail = opts.writethumbnail or opts.write_all_thumbnails
         postprocessors.append({

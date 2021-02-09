@@ -442,6 +442,10 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
+    def __init__(self, downloader=None, already_have_subtitle=False):
+        super(FFmpegEmbedSubtitlePP, self).__init__(downloader)
+        self._already_have_subtitle = already_have_subtitle
+
     def run(self, information):
         if information['ext'] not in ('mp4', 'webm', 'mkv'):
             self.to_screen('Subtitles can only be embedded in mp4, webm or mkv files')
@@ -501,7 +505,8 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         os.remove(encodeFilename(filename))
         os.rename(encodeFilename(temp_filename), encodeFilename(filename))
 
-        return sub_filenames, information
+        files_to_delete = [] if self._already_have_subtitle else sub_filenames
+        return files_to_delete, information
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
