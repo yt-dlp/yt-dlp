@@ -8,7 +8,7 @@ from datetime import datetime
 exec(compile(open('youtube_dlc/version.py').read(), 'youtube_dlc/version.py', 'exec'))
 old_version = locals()['__version__']
 
-old_version_list = old_version.replace('-', '.').split(".", 4)
+old_version_list = old_version.split(".", 4)
 
 old_ver = '.'.join(old_version_list[:3])
 old_rev = old_version_list[3] if len(old_version_list) > 3 else ''

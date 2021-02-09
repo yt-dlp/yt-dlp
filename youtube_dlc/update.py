@@ -15,6 +15,22 @@ from .utils import encode_compat_str
 from .version import __version__
 
 
+'''  # Not signed
+def rsa_verify(message, signature, key):
+    from hashlib import sha256
+    assert isinstance(message, bytes)
+    byte_size = (len(bin(key[0])) - 2 + 8 - 1) // 8
+    signature = ('%x' % pow(int(signature, 16), key[1], key[0])).encode()
+    signature = (byte_size * 2 - len(signature)) * b'0' + signature
+    asn1 = b'3031300d060960864801650304020105000420'
+    asn1 += sha256(message).hexdigest().encode()
+    if byte_size < len(asn1) // 2 + 11:
+        return False
+    expected = b'0001' + (byte_size - len(asn1) // 2 - 3) * b'ff' + b'00' + asn1
+    return expected == signature
+'''
+
+
 def update_self(to_screen, verbose, opener):
     """Update the program file with the latest version from the repository"""
 
@@ -35,11 +51,6 @@ def update_self(to_screen, verbose, opener):
         to_screen('It looks like you installed youtube-dlc with a package manager, pip, setup.py or a tarball. Please use that to update.')
         return
 
-    # compiled file.exe can find itself by
-    # to_screen(os.path.basename(sys.executable))
-    # and path to py or exe
-    # to_screen(os.path.realpath(sys.executable))
-
     # Download and check versions info
     try:
         version_info = opener.open(JSON_URL).read().decode('utf-8')
@@ -58,6 +69,7 @@ def update_self(to_screen, verbose, opener):
 
     def version_tuple(version_str):
         return tuple(map(int, version_str.split('.')))
+
     if version_tuple(__version__) >= version_tuple(version_id):
         to_screen('youtube-dlc is up to date (%s)' % __version__)
         return
@@ -108,16 +120,17 @@ def update_self(to_screen, verbose, opener):
             return
 
         try:
-            bat = os.path.join(directory, 'youtube-dlc-updater.bat')
+            bat = os.path.join(directory, 'yt-dlp-updater.cmd')
             with io.open(bat, 'w') as batfile:
                 batfile.write('''
-@echo off
-echo Waiting for file handle to be closed ...
-ping 127.0.0.1 -n 5 -w 1000 > NUL
-move /Y "%s.new" "%s" > NUL
-echo Updated youtube-dlc to version %s.
-start /b "" cmd /c del "%%~f0"&exit /b"
-                \n''' % (exe, exe, version_id))
+@(
+    echo.Waiting for file handle to be closed ...
+    ping 127.0.0.1 -n 5 -w 1000 > NUL
+    move /Y "%s.new" "%s" > NUL
+    echo.Updated youtube-dlc to version %s.
+)
+@start /b "" cmd /c del "%%~f0"&exit /b
+                ''' % (exe, exe, version_id))
 
             subprocess.Popen([bat])  # Continues to run in the background
             return  # Do not show premature success messages
@@ -152,6 +165,7 @@ start /b "" cmd /c del "%%~f0"&exit /b"
     to_screen('Updated youtube-dlc. Restart youtube-dlc to use the new version.')
 
 
+'''  # UNUSED
 def get_notes(versions, fromVersion):
     notes = []
     for v, vdata in sorted(versions.items()):
@@ -166,3 +180,4 @@ def print_notes(to_screen, versions, fromVersion=__version__):
         to_screen('PLEASE NOTE:')
         for note in notes:
             to_screen(note)
+'''
