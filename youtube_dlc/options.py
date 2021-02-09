@@ -153,7 +153,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '-U', '--update',
         action='store_true', dest='update_self',
-        help='[BROKEN] Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
+        help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
     general.add_option(
         '-i', '--ignore-errors', '--no-abort-on-error',
         action='store_true', dest='ignoreerrors', default=True,
@@ -810,11 +810,13 @@ def parseOpts(overrideArguments=None):
     verbosity.add_option(
         '-C', '--call-home',
         dest='call_home', action='store_true', default=False,
-        help='[Broken] Contact the youtube-dlc server for debugging')
+        # help='[Broken] Contact the youtube-dlc server for debugging')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--no-call-home',
         dest='call_home', action='store_false',
-        help='Do not contact the youtube-dlc server for debugging (default)')
+        # help='Do not contact the youtube-dlc server for debugging (default)')
+        help=optparse.SUPPRESS_HELP)
 
     filesystem = optparse.OptionGroup(parser, 'Filesystem Options')
     filesystem.add_option(

@@ -65,6 +65,8 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
     * Youtube search works correctly (`ytsearch:`, `ytsearchdate:`) along with Search URLs
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
 
+* **Aria2c with HLS/DASH**: You can use aria2c as the external downloader for DASH(mpd) and HLS(m3u8) formats. No more slow ffmpeg/native downloads
+
 * **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius
 
 * **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina
@@ -136,9 +138,9 @@ Then simply type this
 ## General Options:
     -h, --help                       Print this help text and exit
     --version                        Print program version and exit
-    -U, --update                     [BROKEN] Update this program to latest
-                                     version. Make sure that you have sufficient
-                                     permissions (run with sudo if needed)
+    -U, --update                     Update this program to latest version. Make
+                                     sure that you have sufficient permissions
+                                     (run with sudo if needed)
     -i, --ignore-errors              Continue on download errors, for example to
                                      skip unavailable videos in a playlist
                                      (default) (Alias: --no-abort-on-error)
@@ -463,10 +465,6 @@ Then simply type this
                                      files in the current directory to debug
                                      problems
     --print-traffic                  Display sent and read HTTP traffic
-    -C, --call-home                  [Broken] Contact the youtube-dlc server for
-                                     debugging
-    --no-call-home                   Do not contact the youtube-dlc server for
-                                     debugging (default)
 
 ## Workarounds:
     --encoding ENCODING              Force the specified encoding (experimental)
