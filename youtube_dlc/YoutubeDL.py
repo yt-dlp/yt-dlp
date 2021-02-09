@@ -2893,20 +2893,17 @@ class YoutubeDL(object):
         return encoding
 
     def _write_thumbnails(self, info_dict, filename):  # return the extensions
-        if self.params.get('writethumbnail', False):
-            thumbnails = info_dict.get('thumbnails')
-            if thumbnails:
-                thumbnails = [thumbnails[-1]]
-        elif self.params.get('write_all_thumbnails', False):
+        write_all = self.params.get('write_all_thumbnails', False)
+        thumbnails = []
+        if write_all or self.params.get('writethumbnail', False):
             thumbnails = info_dict.get('thumbnails') or []
-        else:
-            thumbnails = []
+        multiple = write_all and len(thumbnails) > 1
 
         ret = []
-        for t in thumbnails:
+        for t in thumbnails[::1 if write_all else -1]:
             thumb_ext = determine_ext(t['url'], 'jpg')
-            suffix = '%s.' % t['id'] if len(thumbnails) > 1 else ''
-            thumb_display_id = '%s ' % t['id'] if len(thumbnails) > 1 else ''
+            suffix = '%s.' % t['id'] if multiple else ''
+            thumb_display_id = '%s ' % t['id'] if multiple else ''
             t['filename'] = thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
 
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
@@ -2926,4 +2923,6 @@ class YoutubeDL(object):
                 except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                     self.report_warning('Unable to download thumbnail "%s": %s' %
                                         (t['url'], error_to_compat_str(err)))
+            if ret and not write_all:
+                break
         return ret
