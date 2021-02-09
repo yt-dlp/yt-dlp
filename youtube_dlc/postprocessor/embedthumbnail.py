@@ -42,13 +42,12 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
     def run(self, info):
         filename = info['filepath']
         temp_filename = prepend_extension(filename, 'temp')
-        files_to_delete = []
 
         if not info.get('thumbnails'):
             self.to_screen('There aren\'t any thumbnails to embed')
             return [], info
 
-        thumbnail_filename = info['thumbnails'][-1]['filename']
+        original_thumbnail = thumbnail_filename = info['thumbnails'][-1]['filename']
 
         if not os.path.exists(encodeFilename(thumbnail_filename)):
             self.report_warning('Skipping embedding the thumbnail because the file is missing.')
@@ -67,7 +66,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 self.to_screen('Correcting extension to webp and escaping path for thumbnail "%s"' % thumbnail_filename)
                 thumbnail_webp_filename = replace_extension(thumbnail_filename, 'webp')
                 os.rename(encodeFilename(thumbnail_filename), encodeFilename(thumbnail_webp_filename))
-                thumbnail_filename = thumbnail_webp_filename
+                original_thumbnail = thumbnail_filename = thumbnail_webp_filename
                 thumbnail_ext = 'webp'
 
         # Convert unsupported thumbnail formats to JPEG (see #25687, #25717)
@@ -79,9 +78,9 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             escaped_thumbnail_jpg_filename = replace_extension(escaped_thumbnail_filename, 'jpg')
             self.to_screen('Converting thumbnail "%s" to JPEG' % escaped_thumbnail_filename)
             self.run_ffmpeg(escaped_thumbnail_filename, escaped_thumbnail_jpg_filename, ['-bsf:v', 'mjpeg2jpeg'])
-            files_to_delete.append(escaped_thumbnail_filename)
             thumbnail_jpg_filename = replace_extension(thumbnail_filename, 'jpg')
             # Rename back to unescaped for further processing
+            os.rename(encodeFilename(escaped_thumbnail_filename), encodeFilename(thumbnail_filename))
             os.rename(encodeFilename(escaped_thumbnail_jpg_filename), encodeFilename(thumbnail_jpg_filename))
             thumbnail_filename = thumbnail_jpg_filename
             thumbnail_ext = 'jpg'
@@ -184,9 +183,11 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         if success and temp_filename != filename:
             os.remove(encodeFilename(filename))
             os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+
+        files_to_delete = [thumbnail_filename]
         if self._already_have_thumbnail:
-            info['__files_to_move'][thumbnail_filename] = replace_extension(
-                info['__thumbnail_filename'], os.path.splitext(thumbnail_filename)[1][1:])
-        else:
-            files_to_delete.append(thumbnail_filename)
+            info['__files_to_move'][original_thumbnail] = replace_extension(
+                info['__thumbnail_filename'], os.path.splitext(original_thumbnail)[1][1:])
+            if original_thumbnail == thumbnail_filename:
+                files_to_delete = []
         return files_to_delete, info
