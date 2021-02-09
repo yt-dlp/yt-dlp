@@ -17,6 +17,7 @@ MANIFEST
 test/local_parameters.json
 .coverage
 cover/
+secrets/
 updates_key.pem
 *.egg-info
 .tox

@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals
 import sys
-import os
+# import os
 import platform
 
 from PyInstaller.utils.win32.versioninfo import (
@@ -18,11 +18,10 @@ print('Building %sbit version' % arch)
 _x86 = '_x86' if arch == '32' else ''
 
 FILE_DESCRIPTION = 'Media Downloader%s' % (' (32 Bit)' if _x86 else '')
-SHORT_URLS = {'32': 'git.io/JUGsM', '64': 'git.io/JLh7K'}
 
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-print('Changing working directory to %s' % root_dir)
-os.chdir(root_dir)
+# root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# print('Changing working directory to %s' % root_dir)
+# os.chdir(root_dir)
 
 exec(compile(open('youtube_dlc/version.py').read(), 'youtube_dlc/version.py', 'exec'))
 VERSION = locals()['__version__']
@@ -49,7 +48,7 @@ VERSION_FILE = VSVersionInfo(
             StringTable(
                 '040904B0', [
                     StringStruct('Comments', 'Youtube-dlc%s Command Line Interface.' % _x86),
-                    StringStruct('CompanyName', 'pukkandan@gmail.com'),
+                    StringStruct('CompanyName', 'https://github.com/pukkandan/yt-dlp'),
                     StringStruct('FileDescription', FILE_DESCRIPTION),
                     StringStruct('FileVersion', VERSION),
                     StringStruct('InternalName', 'youtube-dlc%s' % _x86),
@@ -59,7 +58,7 @@ VERSION_FILE = VSVersionInfo(
                     ),
                     StringStruct('OriginalFilename', 'youtube-dlc%s.exe' % _x86),
                     StringStruct('ProductName', 'Youtube-dlc%s' % _x86),
-                    StringStruct('ProductVersion', '%s%s | %s' % (VERSION, _x86, SHORT_URLS[arch])),
+                    StringStruct('ProductVersion', '%s%s' % (VERSION, _x86)),
                 ])]),
         VarFileInfo([VarStruct('Translation', [0, 1200])])
     ]

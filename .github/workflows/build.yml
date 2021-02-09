@@ -91,7 +91,7 @@ jobs:
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlc_version }}"
     - name: Run PyInstaller Script
-      run: python devscripts/pyinst.py 64
+      run: python pyinst.py 64
     - name: Upload youtube-dlc.exe Windows binary
       id: upload-release-windows
       uses: actions/upload-release-asset@v1
@@ -129,7 +129,7 @@ jobs:
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlc_version }}"
     - name: Run PyInstaller Script for 32 Bit
-      run: python devscripts/pyinst.py 32
+      run: python pyinst.py 32
     - name: Upload Executable youtube-dlc_x86.exe
       id: upload-release-windows32
       uses: actions/upload-release-asset@v1
