@@ -12,7 +12,6 @@ from ..compat import (
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
-    determine_ext,
     dict_get,
     ExtractorError,
     int_or_none,
