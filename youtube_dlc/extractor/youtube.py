@@ -2614,35 +2614,22 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 for isr_content in isr_contents:
                     if not isinstance(isr_content, dict):
                         continue
-                    renderer = isr_content.get('playlistVideoListRenderer')
-                    if renderer:
-                        for entry in self._playlist_entries(renderer):
-                            yield entry
+
+                    known_renderers = {
+                        'playlistVideoListRenderer': self._playlist_entries,
+                        'gridRenderer': self._grid_entries,
+                        'shelfRenderer': lambda x: self._shelf_entries(x, tab.get('title') != 'Channels'),
+                        'backstagePostThreadRenderer': self._post_thread_entries,
+                        'videoRenderer': lambda x: [self._video_entry(x)],
+                    }
+                    for key, renderer in isr_content.items():
+                        if key not in known_renderers:
+                            continue
+                        for entry in known_renderers[key](renderer):
+                            if entry:
+                                yield entry
                         continuation_list[0] = self._extract_continuation(renderer)
-                        continue
-                    renderer = isr_content.get('gridRenderer')
-                    if renderer:
-                        for entry in self._grid_entries(renderer):
-                            yield entry
-                        continuation_list[0] = self._extract_continuation(renderer)
-                        continue
-                    renderer = isr_content.get('shelfRenderer')
-                    if renderer:
-                        is_channels_tab = tab.get('title') == 'Channels'
-                        for entry in self._shelf_entries(renderer, not is_channels_tab):
-                            yield entry
-                        continue
-                    renderer = isr_content.get('backstagePostThreadRenderer')
-                    if renderer:
-                        for entry in self._post_thread_entries(renderer):
-                            yield entry
-                        continuation_list[0] = self._extract_continuation(renderer)
-                        continue
-                    renderer = isr_content.get('videoRenderer')
-                    if renderer:
-                        entry = self._video_entry(renderer)
-                        if entry:
-                            yield entry
+                        break
 
                 if not continuation_list[0]:
                     continuation_list[0] = self._extract_continuation(is_renderer)
@@ -2695,34 +2682,26 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if not response:
                 break
 
+            known_continuation_renderers = {
+                'playlistVideoListContinuation': self._playlist_entries,
+                'gridContinuation': self._grid_entries,
+                'itemSectionContinuation': self._post_thread_continuation_entries,
+                'sectionListContinuation': extract_entries,  # for feeds
+            }
             continuation_contents = try_get(
-                response, lambda x: x['continuationContents'], dict)
-            if continuation_contents:
-                continuation_renderer = continuation_contents.get('playlistVideoListContinuation')
-                if continuation_renderer:
-                    for entry in self._playlist_entries(continuation_renderer):
-                        yield entry
-                    continuation = self._extract_continuation(continuation_renderer)
+                response, lambda x: x['continuationContents'], dict) or {}
+            continuation_renderer = None
+            for key, value in continuation_contents.items():
+                if key not in known_continuation_renderers:
                     continue
-                continuation_renderer = continuation_contents.get('gridContinuation')
-                if continuation_renderer:
-                    for entry in self._grid_entries(continuation_renderer):
-                        yield entry
-                    continuation = self._extract_continuation(continuation_renderer)
-                    continue
-                continuation_renderer = continuation_contents.get('itemSectionContinuation')
-                if continuation_renderer:
-                    for entry in self._post_thread_continuation_entries(continuation_renderer):
-                        yield entry
-                    continuation = self._extract_continuation(continuation_renderer)
-                    continue
-                continuation_renderer = continuation_contents.get('sectionListContinuation')  # for feeds
-                if continuation_renderer:
-                    continuation_list = [None]
-                    for entry in extract_entries(continuation_renderer):
-                        yield entry
-                    continuation = continuation_list[0]
-                    continue
+                continuation_renderer = value
+                continuation_list = [None]
+                for entry in known_continuation_renderers[key](continuation_renderer):
+                    yield entry
+                continuation = continuation_list[0] or self._extract_continuation(continuation_renderer)
+                break
+            if continuation_renderer:
+                continue
 
             known_renderers = {
                 'gridPlaylistRenderer': (self._grid_entries, 'items'),
@@ -3102,7 +3081,7 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
 
 
 class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
-    IE_DESC = 'YouTube.com searches'
+    IE_DESC = 'YouTube.com searches, "ytsearch" keyword'
     # there doesn't appear to be a real limit, for example if you search for
     # 'python' you get more than 8.000.000 results
     _MAX_RESULTS = float('inf')
@@ -3191,7 +3170,7 @@ class YoutubeSearchDateIE(YoutubeSearchIE):
 
 
 class YoutubeSearchURLIE(YoutubeSearchIE):
-    IE_DESC = 'YouTube.com searches, "ytsearch" keyword'
+    IE_DESC = 'YouTube.com search URLs'
     IE_NAME = YoutubeSearchIE.IE_NAME + '_url'
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/results\?(.*?&)?(?:search_query|q)=(?:[^&]+)(?:[&]|$)'
     # _MAX_RESULTS = 100
