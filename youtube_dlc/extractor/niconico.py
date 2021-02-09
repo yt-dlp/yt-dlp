@@ -386,8 +386,7 @@ class NiconicoIE(InfoExtractor):
                 raise ExtractorError('The video is not found.',
                                      expected=True)
             elif error_code == 'COMMUNITY':
-                raise ExtractorError('The video is community members only.',
-                                     expected=True)
+                self.to_screen('%s: The video is community members only.' % video_id)
             else:
                 raise ExtractorError('%s reports error: %s' % (self.IE_NAME, error_code))
 
@@ -434,22 +433,19 @@ class NiconicoIE(InfoExtractor):
             (get_video_info_xml('size_high') if not is_economy else get_video_info_xml('size_low'))
             or metadata['format']['size']
         )
-
         extension = (
             get_video_info_xml('movie_type')
             or 'mp4' if 'mp4' in metadata['format']['format_name'] else metadata['format']['format_name']
-            or determine_ext(video_real_url)
         )
 
+        # 'creation_time' tag on video stream of re-encoded SMILEVIDEO mp4 files are '1970-01-01T00:00:00.000000Z'.
         timestamp = (
             parse_iso8601(get_video_info_web('first_retrieve'))
             or unified_timestamp(get_video_info_web('postedDateTime'))
         )
-
-        # 'creation_time' tag on video stream of re-encoded SMILEVIDEO mp4 files are '1970-01-01T00:00:00.000000Z'.
         metadata_timestamp = (
             parse_iso8601(try_get(v_stream, lambda x: x['tags']['creation_time']))
-            or timestamp
+            or timestamp if extension != 'mp4' else 0
         )
 
         # According to compconf, smile videos from pre-2017 are always better quality than their DMC counterparts
@@ -458,7 +454,7 @@ class NiconicoIE(InfoExtractor):
         is_source = timestamp < smile_threshold_timestamp or metadata_timestamp > 0
 
         # If movie file size is unstable, old server movie is not source movie.
-        if int(get_video_info_xml('size_high')) > 1:
+        if filesize > 1:
             formats.append({
                 'url': video_real_url,
                 'format_id': 'smile' if not is_economy else 'smile_low',
