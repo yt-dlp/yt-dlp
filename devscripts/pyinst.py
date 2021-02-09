@@ -27,7 +27,7 @@ os.chdir(root_dir)
 exec(compile(open('youtube_dlc/version.py').read(), 'youtube_dlc/version.py', 'exec'))
 VERSION = locals()['__version__']
 
-VERSION_LIST = VERSION.replace('-', '.').split('.')
+VERSION_LIST = VERSION.split('.')
 VERSION_LIST = list(map(int, VERSION_LIST)) + [0] * (4 - len(VERSION_LIST))
 
 print('Version: %s%s' % (VERSION, _x86))

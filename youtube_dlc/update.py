@@ -15,6 +15,7 @@ from .utils import encode_compat_str
 from .version import __version__
 
 
+'''  # Not signed
 def rsa_verify(message, signature, key):
     from hashlib import sha256
     assert isinstance(message, bytes)
@@ -27,17 +28,13 @@ def rsa_verify(message, signature, key):
         return False
     expected = b'0001' + (byte_size - len(asn1) // 2 - 3) * b'ff' + b'00' + asn1
     return expected == signature
+'''
 
 
 def update_self(to_screen, verbose, opener):
     """Update the program file with the latest version from the repository"""
 
-    return to_screen('Update is currently broken.\nVisit  https://github.com/pukkandan/yt-dlp/releases/latest  to get the latest version')
-
-    UPDATE_URL = 'https://blackjack4494.github.io//update/'
-    VERSION_URL = UPDATE_URL + 'LATEST_VERSION'
-    JSON_URL = UPDATE_URL + 'versions.json'
-    UPDATES_RSA_KEY = (0x9d60ee4d8f805312fdb15a62f87b95bd66177b91df176765d13514a0f1754bcd2057295c5b6f1d35daa6742c3ffc9a82d3e118861c207995a8031e151d863c9927e304576bc80692bc8e094896fcf11b66f3e29e04e3a71e9a11558558acea1840aec37fc396fb6b65dc81a1c4144e03bd1c011de62e3f1357b327d08426fe93, 65537)
+    JSON_URL = 'https://api.github.com/repos/pukkandan/yt-dlp/releases/latest'
 
     def sha256sum():
         h = hashlib.sha256()
@@ -54,55 +51,36 @@ def update_self(to_screen, verbose, opener):
         to_screen('It looks like you installed youtube-dlc with a package manager, pip, setup.py or a tarball. Please use that to update.')
         return
 
-    # compiled file.exe can find itself by
-    # to_screen(os.path.basename(sys.executable))
-    # and path to py or exe
-    # to_screen(os.path.realpath(sys.executable))
-
-    # Check if there is a new version
-    try:
-        newversion = opener.open(VERSION_URL).read().decode('utf-8').strip()
-    except Exception:
-        if verbose:
-            to_screen(encode_compat_str(traceback.format_exc()))
-        to_screen('ERROR: can\'t find the current version. Please try again later.')
-        to_screen('Visit https://github.com/blackjack4494/yt-dlc/releases/latest')
-        return
-    if newversion == __version__:
-        to_screen('youtube-dlc is up-to-date (' + __version__ + ')')
-        return
-
     # Download and check versions info
     try:
-        versions_info = opener.open(JSON_URL).read().decode('utf-8')
-        versions_info = json.loads(versions_info)
+        version_info = opener.open(JSON_URL).read().decode('utf-8')
+        version_info = json.loads(version_info)
     except Exception:
         if verbose:
             to_screen(encode_compat_str(traceback.format_exc()))
         to_screen('ERROR: can\'t obtain versions info. Please try again later.')
-        to_screen('Visit https://github.com/blackjack4494/yt-dlc/releases/latest')
-        return
-    if 'signature' not in versions_info:
-        to_screen('ERROR: the versions file is not signed or corrupted. Aborting.')
-        return
-    signature = versions_info['signature']
-    del versions_info['signature']
-    if not rsa_verify(json.dumps(versions_info, sort_keys=True).encode('utf-8'), signature, UPDATES_RSA_KEY):
-        to_screen('ERROR: the versions file signature is invalid. Aborting.')
+        to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/lastest')
         return
 
-    version_id = versions_info['latest']
+    version_id = version_info['tag_name']
+    if version_id == __version__:
+        to_screen('youtube-dlc is up-to-date (' + __version__ + ')')
+        return
 
     def version_tuple(version_str):
         return tuple(map(int, version_str.split('.')))
+
     if version_tuple(__version__) >= version_tuple(version_id):
         to_screen('youtube-dlc is up to date (%s)' % __version__)
         return
 
     to_screen('Updating to version ' + version_id + ' ...')
-    version = versions_info['versions'][version_id]
 
-    print_notes(to_screen, versions_info['versions'])
+    version = {
+        'bin': next(i for i in version_info['assets'] if i['name'] == 'youtube-dlc'),
+        'exe': next(i for i in version_info['assets'] if i['name'] == 'youtube-dlc.exe'),
+        'exe_x86': next(i for i in version_info['assets'] if i['name'] == 'youtube-dlc_x86.exe'),
+    }
 
     # sys.executable is set to the full pathname of the exe-file for py2exe
     # though symlinks are not followed so that we need to do this manually
@@ -113,7 +91,7 @@ def update_self(to_screen, verbose, opener):
         to_screen('ERROR: no write permissions on %s' % filename)
         return
 
-    # Py2EXE
+    # PyInstaller
     if hasattr(sys, 'frozen'):
         exe = filename
         directory = os.path.dirname(exe)
@@ -122,19 +100,14 @@ def update_self(to_screen, verbose, opener):
             return
 
         try:
-            urlh = opener.open(version['exe'][0])
+            urlh = opener.open(version['exe']['browser_download_url'])
             newcontent = urlh.read()
             urlh.close()
         except (IOError, OSError):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
-            to_screen('Visit https://github.com/blackjack4494/yt-dlc/releases/latest')
-            return
-
-        newcontent_hash = hashlib.sha256(newcontent).hexdigest()
-        if newcontent_hash != version['exe'][1]:
-            to_screen('ERROR: the downloaded file hash does not match. Aborting.')
+            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/lastest')
             return
 
         try:
@@ -147,16 +120,17 @@ def update_self(to_screen, verbose, opener):
             return
 
         try:
-            bat = os.path.join(directory, 'youtube-dlc-updater.bat')
+            bat = os.path.join(directory, 'yt-dlp-updater.cmd')
             with io.open(bat, 'w') as batfile:
                 batfile.write('''
-@echo off
-echo Waiting for file handle to be closed ...
-ping 127.0.0.1 -n 5 -w 1000 > NUL
-move /Y "%s.new" "%s" > NUL
-echo Updated youtube-dlc to version %s.
-start /b "" cmd /c del "%%~f0"&exit /b"
-                \n''' % (exe, exe, version_id))
+@(
+    echo.Waiting for file handle to be closed ...
+    ping 127.0.0.1 -n 5 -w 1000 > NUL
+    move /Y "%s.new" "%s" > NUL
+    echo.Updated youtube-dlc to version %s.
+)
+@start /b "" cmd /c del "%%~f0"&exit /b
+                ''' % (exe, exe, version_id))
 
             subprocess.Popen([bat])  # Continues to run in the background
             return  # Do not show premature success messages
@@ -169,19 +143,14 @@ start /b "" cmd /c del "%%~f0"&exit /b"
     # Zip unix package
     elif isinstance(globals().get('__loader__'), zipimporter):
         try:
-            urlh = opener.open(version['bin'][0])
+            urlh = opener.open(version['bin']['browser_download_url'])
             newcontent = urlh.read()
             urlh.close()
         except (IOError, OSError):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
-            to_screen('Visit https://github.com/blackjack4494/yt-dlc/releases/latest')
-            return
-
-        newcontent_hash = hashlib.sha256(newcontent).hexdigest()
-        if newcontent_hash != version['bin'][1]:
-            to_screen('ERROR: the downloaded file hash does not match. Aborting.')
+            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/lastest')
             return
 
         try:
@@ -196,6 +165,7 @@ start /b "" cmd /c del "%%~f0"&exit /b"
     to_screen('Updated youtube-dlc. Restart youtube-dlc to use the new version.')
 
 
+'''  # UNUSED
 def get_notes(versions, fromVersion):
     notes = []
     for v, vdata in sorted(versions.items()):
@@ -210,3 +180,4 @@ def print_notes(to_screen, versions, fromVersion=__version__):
         to_screen('PLEASE NOTE:')
         for note in notes:
             to_screen(note)
+'''
