@@ -5,7 +5,6 @@ import re
 import subprocess
 import sys
 import time
-import shutil
 
 try:
     from Crypto.Cipher import AES
@@ -32,6 +31,7 @@ from ..utils import (
     is_outdated_version,
     process_communicate_or_kill,
     sanitized_Request,
+    sanitize_open,
 )
 
 
@@ -126,23 +126,27 @@ class ExternalFD(FileDownloader):
             for [i, url] in enumerate(info_dict['url_list']):
                 tmpsegmentname = '%s_%s.frag' % (tmpfilename, i)
                 file_list.append(tmpsegmentname)
-            with open(tmpfilename, 'wb') as dest:
-                for i in file_list:
-                    if 'decrypt_info' in info_dict:
-                        decrypt_info = info_dict['decrypt_info']
-                        with open(i, 'rb') as src:
-                            if decrypt_info['METHOD'] == 'AES-128':
-                                iv = decrypt_info.get('IV')
-                                decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
-                                    self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
-                                encrypted_data = src.read()
-                                decrypted_data = AES.new(
-                                    decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(encrypted_data)
-                                dest.write(decrypted_data)
-                            else:
-                                shutil.copyfileobj(open(i, 'rb'), dest)
+            dest, _ = sanitize_open(tmpfilename, 'wb')
+            for i in file_list:
+                src, _ = sanitize_open(i, 'rb')
+                if 'decrypt_info' in info_dict:
+                    decrypt_info = info_dict['decrypt_info']
+                    if decrypt_info['METHOD'] == 'AES-128':
+                        iv = decrypt_info.get('IV')
+                        decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
+                            self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
+                        encrypted_data = src.read()
+                        decrypted_data = AES.new(
+                            decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(encrypted_data)
+                        dest.write(decrypted_data)
                     else:
-                        shutil.copyfileobj(open(i, 'rb'), dest)
+                        fragment_data = src.read()
+                        dest.write(fragment_data)
+                else:
+                    fragment_data = src.read()
+                    dest.write(fragment_data)
+                src.close()
+            dest.close()
             if not self.params.get('keep_fragments', False):
                 for file_path in file_list:
                     try:
@@ -263,8 +267,9 @@ class Aria2cFD(ExternalFD):
             for [i, url] in enumerate(info_dict['url_list']):
                 tmpsegmentname = '%s_%s.frag' % (os.path.basename(tmpfilename), i)
                 url_list.append('%s\n\tout=%s' % (url, tmpsegmentname))
-            with open(url_list_file, 'w') as f:
-                f.write('\n'.join(url_list))
+            stream, _ = sanitize_open(url_list_file, 'wb')
+            stream.write('\n'.join(url_list).encode('utf-8'))
+            stream.close()
 
             cmd += ['-i', url_list_file]
         else:
