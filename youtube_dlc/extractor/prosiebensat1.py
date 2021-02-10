@@ -34,7 +34,7 @@ class ProSiebenSat1BaseIE(InfoExtractor):
                 'ids': clip_id,
             })[0]
 
-        if video.get('is_protected') is True and self._downloader.params.get('allow_unplayable_formats', False) is False:
+        if not self._downloader.params.get('allow_unplayable_formats', False) and video.get('is_protected') is True:
             raise ExtractorError('This video is DRM protected.', expected=True)
 
         formats = []

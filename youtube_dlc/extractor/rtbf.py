@@ -125,7 +125,7 @@ class RTBFIE(InfoExtractor):
                 })
 
         mpd_url = data.get('urlDash')
-        if (not data.get('drm') and self._downloader.params.get('allow_unplayable_formats', False) is False) and mpd_url:
+        if (not data.get('drm') and not self._downloader.params.get('allow_unplayable_formats', False)) and mpd_url:
             formats.extend(self._extract_mpd_formats(
                 mpd_url, media_id, mpd_id='dash', fatal=False))
 

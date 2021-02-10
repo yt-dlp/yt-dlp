@@ -66,7 +66,7 @@ class HlsFD(FragmentFD):
         man_url = urlh.geturl()
         s = urlh.read().decode('utf-8', 'ignore')
 
-        if not self.can_download(s, info_dict) and self._downloader.params.get('allow_unplayable_formats', False):
+        if not self.params.get('allow_unplayable_formats', False) and not self.can_download(s, info_dict):
             if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
                 self.report_error('pycrypto not found. Please install it.')
                 return False

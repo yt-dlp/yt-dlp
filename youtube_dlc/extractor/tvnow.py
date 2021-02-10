@@ -69,7 +69,7 @@ class TVNowBaseIE(InfoExtractor):
             if formats:
                 break
         else:
-            if info.get('isDrm') and self._downloader.params.get('allow_unplayable_formats', False) is False:
+            if not self._downloader.params.get('allow_unplayable_formats', False) and info.get('isDrm'):
                 raise ExtractorError(
                     'Video %s is DRM protected' % video_id, expected=True)
             if info.get('geoblocked'):
