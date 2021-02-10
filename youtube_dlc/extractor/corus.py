@@ -130,7 +130,7 @@ class CorusIE(ThePlatformFeedIE):
             namespace = self._parse_smil_namespace(smil)
             formats.extend(self._parse_smil_formats(
                 smil, smil_url, video_id, namespace))
-        if not self._downloader.params.get('allow_unplayable_formats') and video.get('drm') and not formats:
+        if not formats and video.get('drm'):
             raise ExtractorError('This video is DRM protected.', expected=True)
         self._sort_formats(formats)
 
