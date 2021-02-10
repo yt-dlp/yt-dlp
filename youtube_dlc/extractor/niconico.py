@@ -19,6 +19,7 @@ from ..utils import (
     OnDemandPagedList,
     parse_duration,
     parse_iso8601,
+    PostProcessingError,
     remove_start,
     try_get,
     unified_timestamp,
@@ -420,7 +421,10 @@ class NiconicoIE(InfoExtractor):
 
         self.to_screen('%s: %s' % (video_id, 'Checking smile format with ffprobe'))
 
-        metadata = pp.get_metadata_object(video_real_url, ['-cookies', cookies])
+        try:
+            metadata = pp.get_metadata_object(video_real_url, ['-cookies', cookies])
+        except PostProcessingError as err:
+            raise ExtractorError(err.msg, expected=True)
 
         v_stream = a_stream = {}
 
