@@ -45,7 +45,7 @@ class WakanimIE(InfoExtractor):
         encryption = self._search_regex(
             r'encryption%3D(c(?:enc|bc(?:s-aapl)?))',
             m3u8_url, 'encryption', default=None)
-        if encryption and encryption in ('cenc', 'cbcs-aapl'):
+        if encryption and encryption in ('cenc', 'cbcs-aapl') and self._downloader.params.get('allow_unplayable_formats', False) is False:
             raise ExtractorError('This video is DRM protected.', expected=True)
 
         formats = self._extract_m3u8_formats(

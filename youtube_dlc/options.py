@@ -444,6 +444,10 @@ def parseOpts(overrideArguments=None):
         action='store', dest='format', metavar='FORMAT', default=None,
         help='Video format code, see "FORMAT SELECTION" for more details')
     video_format.add_option(
+        '--allow-unplayable-formats',
+        action='store_true', dest='allow_unplayable_formats', default=False,
+        help='Allow unplayable formats to be downloaded')
+    video_format.add_option(
         '-S', '--format-sort', metavar='SORTORDER',
         dest='format_sort', default=[],
         action='callback', callback=_comma_separated_values_options_callback, type='str',

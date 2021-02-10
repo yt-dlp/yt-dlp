@@ -59,6 +59,7 @@ class HlsFD(FragmentFD):
         return all(check_results)
 
     def real_download(self, filename, info_dict):
+        allow_unplayable_formats = self._downloader.params.get('allow_unplayable_formats', False)
         man_url = info_dict['url']
         self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
 
@@ -66,7 +67,7 @@ class HlsFD(FragmentFD):
         man_url = urlh.geturl()
         s = urlh.read().decode('utf-8', 'ignore')
 
-        if not self.can_download(s, info_dict):
+        if not self.can_download(s, info_dict) and allow_unplayable_formats is False:
             if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
                 self.report_error('pycrypto not found. Please install it.')
                 return False

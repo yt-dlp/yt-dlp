@@ -36,7 +36,7 @@ class NineCNineMediaIE(InfoExtractor):
                 '$include': '[HasClosedCaptions]',
             })
 
-        if try_get(content_package, lambda x: x['Constraints']['Security']['Type']):
+        if try_get(content_package, lambda x: x['Constraints']['Security']['Type']) and self._downloader.params.get('allow_unplayable_formats', False) is False:
             raise ExtractorError('This video is DRM protected.', expected=True)
 
         manifest_base_url = content_package_url + 'manifest.'

@@ -309,7 +309,7 @@ class KalturaIE(InfoExtractor):
             if f.get('fileExt') == 'chun':
                 continue
             # DRM-protected video, cannot be decrypted
-            if f.get('fileExt') == 'wvm':
+            if f.get('fileExt') == 'wvm' and self._downloader.params.get('allow_unplayable_formats', False) is False:
                 continue
             if not f.get('fileExt'):
                 # QT indicates QuickTime; some videos have broken fileExt

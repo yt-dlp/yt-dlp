@@ -147,7 +147,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 is_live = item.get('type') == 'LIVE'
                 formats = []
                 for format_id, stream_url in item.get('streamUrls', {}).items():
-                    if 'drmOnly=true' in stream_url:
+                    if 'drmOnly=true' in stream_url and self._downloader.params.get('allow_unplayable_formats', False) is False:
                         continue
                     if 'playerType=flash' in stream_url:
                         stream_formats = self._extract_m3u8_formats(

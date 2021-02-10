@@ -393,6 +393,7 @@ def _real_main(argv=None):
         'simulate': opts.simulate or any_getting,
         'skip_download': opts.skip_download,
         'format': opts.format,
+        'allow_unplayable_formats': opts.allow_unplayable_formats,
         'format_sort': opts.format_sort,
         'format_sort_force': opts.format_sort_force,
         'allow_multiple_video_streams': opts.allow_multiple_video_streams,

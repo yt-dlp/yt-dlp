@@ -66,7 +66,7 @@ class NineNowIE(InfoExtractor):
 
         video_data = common_data['video']
 
-        if video_data.get('drm'):
+        if video_data.get('drm') and self._downloader.params.get('allow_unplayable_formats', False) is False:
             raise ExtractorError('This video is DRM protected.', expected=True)
 
         brightcove_id = video_data.get('brightcoveId') or 'ref:' + video_data['referenceId']

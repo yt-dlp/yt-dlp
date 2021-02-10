@@ -163,7 +163,7 @@ class IviIE(InfoExtractor):
         for f in result.get('files', []):
             f_url = f.get('url')
             content_format = f.get('content_format')
-            if not f_url or '-MDRM-' in content_format or '-FPS-' in content_format:
+            if not f_url or (('-MDRM-' in content_format or '-FPS-' in content_format) and self._downloader.params.get('allow_unplayable_formats', False) is False):
                 continue
             formats.append({
                 'url': f_url,
