@@ -246,7 +246,7 @@ class NPOIE(NPOBaseIE):
                 })
 
         if not formats:
-            if not self._downloader.params.get('allow_unplayable_formats', False) and drm:
+            if not self._downloader.params.get('allow_unplayable_formats') and drm:
                 raise ExtractorError('This video is DRM protected.', expected=True)
             return
 

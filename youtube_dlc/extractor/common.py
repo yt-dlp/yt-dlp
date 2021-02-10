@@ -2358,7 +2358,7 @@ class InfoExtractor(object):
                         extract_Initialization(segment_template)
             return ms_info
 
-        allow_unplayable_formats = self._downloader.params.get('allow_unplayable_formats', False)
+        allow_unplayable_formats = self._downloader.params.get('allow_unplayable_formats')
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
         formats = []
@@ -2587,7 +2587,7 @@ class InfoExtractor(object):
          1. [MS-SSTR]: Smooth Streaming Protocol,
             https://msdn.microsoft.com/en-us/library/ff469518.aspx
         """
-        if ism_doc.get('IsLive') == 'TRUE' or (ism_doc.find('Protection') is not None and not self._downloader.params.get('allow_unplayable_formats', False)):
+        if ism_doc.get('IsLive') == 'TRUE' or (ism_doc.find('Protection') is not None and not self._downloader.params.get('allow_unplayable_formats')):
             return []
 
         duration = int(ism_doc.attrib['Duration'])

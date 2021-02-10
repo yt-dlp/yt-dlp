@@ -103,7 +103,7 @@ class CrackleIE(InfoExtractor):
 
             formats = []
             for e in media['MediaURLs']:
-                if not self._downloader.params.get('allow_unplayable_formats', False) and e.get('UseDRM') is True:
+                if not self._downloader.params.get('allow_unplayable_formats') and e.get('UseDRM') is True:
                     continue
                 format_url = url_or_none(e.get('Path'))
                 if not format_url:
