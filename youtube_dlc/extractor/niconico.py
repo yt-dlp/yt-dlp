@@ -393,7 +393,11 @@ class NiconicoIE(InfoExtractor):
         formats = []
 
         # Get HTML5 videos info
-        dmc_info = try_get(api_data, lambda x: x['video']['dmcInfo'])
+        try:
+            dmc_info = api_data['video']['dmcInfo']
+        except KeyError:
+            raise ExtractorError('The video can\'t downloaded.',
+                                 expected=True)
 
         quality_info = dmc_info.get('quality')
         for audio_quality in quality_info.get('audios') or {}:
