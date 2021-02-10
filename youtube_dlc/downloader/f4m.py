@@ -264,12 +264,10 @@ class F4mFD(FragmentFD):
     FD_NAME = 'f4m'
 
     def _get_unencrypted_media(self, doc):
-        allow_unplayable_formats = self._downloader.params.get('allow_unplayable_formats', False)
-
         media = doc.findall(_add_ns('media'))
         if not media:
             self.report_error('No media found')
-        if allow_unplayable_formats is False:
+        if self._downloader.params.get('allow_unplayable_formats', False) is False:
             for e in (doc.findall(_add_ns('drmAdditionalHeader'))
                       + doc.findall(_add_ns('drmAdditionalHeaderSet'))):
                 # If id attribute is missing it's valid for all media nodes
