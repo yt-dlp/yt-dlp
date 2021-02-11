@@ -106,9 +106,9 @@ You can install yt-dlp using one of the following methods:
 ### COMPILE
 
 **For Windows**:
-To build the Windows executable, you must have pyinstaller (and optionally mutagen and Crypto)
+To build the Windows executable, you must have pyinstaller (and optionally mutagen and pycryptodome)
 
-    python -m pip install --upgrade pyinstaller mutagen Crypto
+    python -m pip install --upgrade pyinstaller mutagen pycryptodome
 
 Once you have all the necessary dependancies installed, just run `py pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it. It is strongly reccomended to use python3 although python2.6+ is supported.
 

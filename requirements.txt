@@ -1,2 +1,2 @@
 mutagen
-Crypto
+pycryptodome
