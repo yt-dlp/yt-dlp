@@ -2609,6 +2609,8 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
 
     @staticmethod
     def deflate(data):
+        if not data:
+            return data
         try:
             return zlib.decompress(data, -zlib.MAX_WBITS)
         except zlib.error:
