@@ -179,7 +179,7 @@ class YoutubeDL(object):
                        of 'skip_download' or 'simulate'.
     simulate:          Do not download the video files.
     format:            Video format code. see "FORMAT SELECTION" for more details.
-    allow_unplayable_formats:   Allow unplayable formats to be downloaded.
+    allow_unplayable_formats:   Allow unplayable formats to be extracted and downloaded.
     format_sort:       How to sort the video formats. see "Sorting Formats"
                        for more details.
     format_sort_force: Force the given format_sort. see "Sorting Formats"
