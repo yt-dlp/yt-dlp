@@ -212,9 +212,6 @@ def _real_main(argv=None):
     if opts.recodevideo is not None:
         if opts.recodevideo not in REMUX_EXTENSIONS:
             parser.error('invalid video recode format specified')
-    if opts.remuxvideo and opts.recodevideo:
-        opts.remuxvideo = None
-        write_string('WARNING: --remux-video is ignored since --recode-video was given\n', out=sys.stderr)
     if opts.remuxvideo is not None:
         opts.remuxvideo = opts.remuxvideo.replace(' ', '')
         remux_regex = r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(REMUX_EXTENSIONS))
@@ -264,6 +261,40 @@ def _real_main(argv=None):
     any_getting = opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration or opts.dumpjson or opts.dump_single_json
     any_printing = opts.print_json
     download_archive_fn = expand_path(opts.download_archive) if opts.download_archive is not None else opts.download_archive
+
+    def report_conflict(arg1, arg2):
+        write_string('WARNING: %s is ignored since %s was given\n' % (arg2, arg1), out=sys.stderr)
+    if opts.remuxvideo and opts.recodevideo:
+        report_conflict('--recode-video', '--remux-video')
+        opts.remuxvideo = False
+    if opts.allow_unplayable_formats:
+        if opts.extractaudio:
+            report_conflict('--allow-unplayable-formats', '--extract-audio')
+            opts.extractaudio = False
+        if opts.remuxvideo:
+            report_conflict('--allow-unplayable-formats', '--remux-video')
+            opts.remuxvideo = False
+        if opts.recodevideo:
+            report_conflict('--allow-unplayable-formats', '--recode-video')
+            opts.recodevideo = False
+        if opts.addmetadata:
+            report_conflict('--allow-unplayable-formats', '--add-metadata')
+            opts.addmetadata = False
+        if opts.embedsubtitles:
+            report_conflict('--allow-unplayable-formats', '--embed-subs')
+            opts.embedsubtitles = False
+        if opts.embedthumbnail:
+            report_conflict('--allow-unplayable-formats', '--embed-thumbnail')
+            opts.embedthumbnail = False
+        if opts.xattrs:
+            report_conflict('--allow-unplayable-formats', '--xattrs')
+            opts.xattrs = False
+        if opts.fixup and opts.fixup.lower() not in ('never', 'ignore'):
+            report_conflict('--allow-unplayable-formats', '--fixup')
+        opts.fixup = 'never'
+        if opts.sponskrub:
+            report_conflict('--allow-unplayable-formats', '--sponskrub')
+        opts.sponskrub = False
 
     # PostProcessors
     postprocessors = []
