@@ -12,6 +12,7 @@ from ..utils import (
     str_or_none,
     PostProcessingError,
     prepend_extension,
+    process_communicate_or_kill,
 )
 
 
@@ -75,8 +76,9 @@ class SponSkrubPP(PostProcessor):
         cmd = [encodeArgument(i) for i in cmd]
 
         self.write_debug('sponskrub command line: %s' % shell_quote(cmd))
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        stdout, stderr = p.communicate()
+        pipe = None if self.get_param('verbose') else subprocess.PIPE
+        p = subprocess.Popen(cmd, stdout=pipe)
+        stdout = process_communicate_or_kill(p)[0]
 
         if p.returncode == 0:
             os.remove(encodeFilename(filename))
@@ -85,9 +87,7 @@ class SponSkrubPP(PostProcessor):
         elif p.returncode == 3:
             self.to_screen('No segments in the SponsorBlock database')
         else:
-            msg = stderr.decode('utf-8', 'replace').strip() or stdout.decode('utf-8', 'replace').strip()
-            self.write_debug(msg, prefix=False)
-            line = 0 if msg[:12].lower() == 'unrecognised' else -1
-            msg = msg.split('\n')[line]
+            msg = stdout.decode('utf-8', 'replace').strip() if stdout else ''
+            msg = msg.split('\n')[0 if msg.lower().startswith('unrecognised') else -1]
             raise PostProcessingError(msg if msg else 'sponskrub failed with error code %s' % p.returncode)
         return [], information
