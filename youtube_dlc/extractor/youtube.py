@@ -3181,6 +3181,12 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
             # So we search through all entries till we find them.
             continuation_token = None
             for slr_content in slr_contents:
+                if continuation_token is None:
+                    continuation_token = try_get(
+                        slr_content,
+                        lambda x: x['continuationItemRenderer']['continuationEndpoint']['continuationCommand']['token'],
+                        compat_str)
+
                 isr_contents = try_get(
                     slr_content,
                     lambda x: x['itemSectionRenderer']['contents'],
@@ -3201,12 +3207,6 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
                     total += 1
                     if total == n:
                         return
-
-                if continuation_token is None:
-                    continuation_token = try_get(
-                        slr_content,
-                        lambda x: x['continuationItemRenderer']['continuationEndpoint']['continuationCommand']['token'],
-                        compat_str)
 
             if not continuation_token:
                 break
