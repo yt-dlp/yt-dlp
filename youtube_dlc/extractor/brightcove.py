@@ -482,7 +482,7 @@ class BrightcoveNewIE(AdobePassIE):
             if not self._downloader.params.get('allow_unplayable_formats') and (container == 'WVM' or source.get('key_systems')):
                 num_drm_sources += 1
                 continue
-            elif ext == 'ism' and self._downloader.params.get('allow_unplayable_formats'):
+            elif ext == 'ism' and not self._downloader.params.get('allow_unplayable_formats'):
                 continue
             elif ext == 'm3u8' or container == 'M2TS':
                 if not src:

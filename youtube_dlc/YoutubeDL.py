@@ -2340,6 +2340,7 @@ class YoutubeDL(object):
                     full_filename = correct_ext(full_filename)
                     temp_filename = correct_ext(temp_filename)
                     dl_filename = existing_file(full_filename, temp_filename)
+                    info_dict['__real_download'] = False
                     if dl_filename is None:
                         for f in requested_formats:
                             new_info = dict(info_dict)
@@ -2351,12 +2352,13 @@ class YoutubeDL(object):
                                 return
                             downloaded.append(fname)
                             partial_success, real_download = dl(fname, new_info)
+                            info_dict['__real_download'] = info_dict['__real_download'] or real_download
                             success = success and partial_success
                         if merger.available and not self.params.get('allow_unplayable_formats'):
                             info_dict['__postprocessors'].append(merger)
-                        info_dict['__files_to_merge'] = downloaded
-                        # Even if there were no downloads, it is being merged only now
-                        info_dict['__real_download'] = True
+                            info_dict['__files_to_merge'] = downloaded
+                            # Even if there were no downloads, it is being merged only now
+                            info_dict['__real_download'] = True
                 else:
                     # Just a single file
                     dl_filename = existing_file(full_filename, temp_filename)

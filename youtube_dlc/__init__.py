@@ -463,6 +463,7 @@ def _real_main(argv=None):
         'writedescription': opts.writedescription,
         'writeannotations': opts.writeannotations,
         'writeinfojson': opts.writeinfojson or opts.getcomments,
+        'allow_playlist_files': opts.allow_playlist_files,
         'getcomments': opts.getcomments,
         'writethumbnail': opts.writethumbnail,
         'write_all_thumbnails': opts.write_all_thumbnails,
