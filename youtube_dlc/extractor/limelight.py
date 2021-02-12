@@ -96,7 +96,9 @@ class LimelightBaseIE(InfoExtractor):
         urls = []
         for stream in pc_item.get('streams', []):
             stream_url = stream.get('url')
-            if not stream_url or (not self._downloader.params.get('allow_unplayable_formats') and stream.get('drmProtected')) or stream_url in urls:
+            if not stream_url or stream_url in urls:
+                continue
+            if not self._downloader.params.get('allow_unplayable_formats') and stream.get('drmProtected'):
                 continue
             urls.append(stream_url)
             ext = determine_ext(stream_url)

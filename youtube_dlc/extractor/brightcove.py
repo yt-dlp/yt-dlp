@@ -478,11 +478,12 @@ class BrightcoveNewIE(AdobePassIE):
             container = source.get('container')
             ext = mimetype2ext(source.get('type'))
             src = source.get('src')
+            skip_unplayable = not self._downloader.params.get('allow_unplayable_formats')
             # https://support.brightcove.com/playback-api-video-fields-reference#key_systems_object
-            if not self._downloader.params.get('allow_unplayable_formats') and (container == 'WVM' or source.get('key_systems')):
+            if skip_unplayable and (container == 'WVM' or source.get('key_systems')):
                 num_drm_sources += 1
                 continue
-            elif ext == 'ism' and not self._downloader.params.get('allow_unplayable_formats'):
+            elif ext == 'ism' and skip_unplayable:
                 continue
             elif ext == 'm3u8' or container == 'M2TS':
                 if not src:
@@ -546,7 +547,8 @@ class BrightcoveNewIE(AdobePassIE):
                 error = errors[0]
                 raise ExtractorError(
                     error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
-            if not self._downloader.params.get('allow_unplayable_formats') and sources and num_drm_sources == len(sources):
+            if (not self._downloader.params.get('allow_unplayable_formats')
+                    and sources and num_drm_sources == len(sources)):
                 raise ExtractorError('This video is DRM protected.', expected=True)
 
         self._sort_formats(formats)

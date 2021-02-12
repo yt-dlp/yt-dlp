@@ -205,7 +205,7 @@
     * Changed video format sorting to show video only files and video+audio files together.
     * Added `--video-multistreams`, `--no-video-multistreams`, `--audio-multistreams`, `--no-audio-multistreams`
     * Added `b`,`w`,`v`,`a` as alias for `best`, `worst`, `video` and `audio` respectively
-* **Shortcut Options:** Added `--write-link`, `--write-url-link`, `--write-webloc-link`, `--write-desktop-link` by [h-h-h-h](https://github.com/h-h-h-h) - See [Internet Shortcut Options]README.md(#internet-shortcut-options) for details
+* **Shortcut Options:** Added `--write-link`, `--write-url-link`, `--write-webloc-link`, `--write-desktop-link` by [h-h-h-h](https://github.com/h-h-h-h) - See [Internet Shortcut Options](README.md#internet-shortcut-options) for details
 * **Sponskrub integration:** Added `--sponskrub`, `--sponskrub-cut`, `--sponskrub-force`, `--sponskrub-location`, `--sponskrub-args` - See [SponSkrub Options](README.md#sponskrub-options-sponsorblock) for details
 * Added `--force-download-archive` (`--force-write-archive`) by [h-h-h-h](https://github.com/h-h-h-h)
 * Added `--list-formats-as-table`,  `--list-formats-old`

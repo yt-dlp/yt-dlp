@@ -41,12 +41,13 @@ class WakanimIE(InfoExtractor):
         m3u8_url = urljoin(url, self._search_regex(
             r'file\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage, 'm3u8 url',
             group='url'))
-        # https://docs.microsoft.com/en-us/azure/media-services/previous/media-services-content-protection-overview#streaming-urls
-        encryption = self._search_regex(
-            r'encryption%3D(c(?:enc|bc(?:s-aapl)?))',
-            m3u8_url, 'encryption', default=None)
-        if not self._downloader.params.get('allow_unplayable_formats') and encryption and encryption in ('cenc', 'cbcs-aapl'):
-            raise ExtractorError('This video is DRM protected.', expected=True)
+        if not self._downloader.params.get('allow_unplayable_formats'):
+            # https://docs.microsoft.com/en-us/azure/media-services/previous/media-services-content-protection-overview#streaming-urls
+            encryption = self._search_regex(
+                r'encryption%3D(c(?:enc|bc(?:s-aapl)?))',
+                m3u8_url, 'encryption', default=None)
+            if encryption in ('cenc', 'cbcs-aapl'):
+                raise ExtractorError('This video is DRM protected.', expected=True)
 
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',

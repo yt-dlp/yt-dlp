@@ -59,7 +59,7 @@ def update_self(to_screen, verbose, opener):
         if verbose:
             to_screen(encode_compat_str(traceback.format_exc()))
         to_screen('ERROR: can\'t obtain versions info. Please try again later.')
-        to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/lastest')
+        to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
         return
 
     version_id = version_info['tag_name']
@@ -107,7 +107,7 @@ def update_self(to_screen, verbose, opener):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
-            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/lastest')
+            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
             return
 
         try:
@@ -150,7 +150,7 @@ def update_self(to_screen, verbose, opener):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
-            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/lastest')
+            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
             return
 
         try:

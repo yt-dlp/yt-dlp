@@ -55,6 +55,9 @@ youtube-dlc
 *.swf
 *.part
 *.ytdl
+*.frag
+*.frag.urls
+*.aria2
 *.swp
 *.ogg
 *.opus
