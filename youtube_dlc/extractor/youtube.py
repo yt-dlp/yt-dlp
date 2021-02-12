@@ -1618,7 +1618,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     formats.append(f)
 
         if not formats:
-            if streaming_data.get('licenseInfos'):
+            if not self._downloader.params.get('allow_unplayable_formats') and streaming_data.get('licenseInfos'):
                 raise ExtractorError(
                     'This video is DRM protected.', expected=True)
             pemr = try_get(

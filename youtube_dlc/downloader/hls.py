@@ -29,9 +29,8 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict):
-        UNSUPPORTED_FEATURES = (
-            r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1]
+    def can_download(manifest, info_dict, allow_unplayable_formats=False):
+        UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
             # Live streams heuristic does not always work (e.g. geo restricted to Germany
@@ -50,7 +49,11 @@ class HlsFD(FragmentFD):
             # 3. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.3.2
             # 4. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.3.5
             # 5. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.5
-        )
+        ]
+        if not allow_unplayable_formats:
+            UNSUPPORTED_FEATURES += [
+                r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1]
+            ]
         check_results = [not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES]
         is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
         check_results.append(can_decrypt_frag or not is_aes128_enc)
@@ -66,7 +69,7 @@ class HlsFD(FragmentFD):
         man_url = urlh.geturl()
         s = urlh.read().decode('utf-8', 'ignore')
 
-        if not self.can_download(s, info_dict):
+        if not self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')):
             if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
                 self.report_error('pycrypto not found. Please install it.')
                 return False

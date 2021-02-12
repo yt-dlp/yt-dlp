@@ -537,6 +537,11 @@ Then simply type this
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
                                      webm, flv. Ignored if no merge is required
+    --allow-unplayable-formats       Allow unplayable formats to be listed and
+                                     downloaded. All video postprocessing will
+                                     also be turned off
+    --no-allow-unplayable-formats    Do not allow unplayable formats to be
+                                     listed or downloaded (default)
 
 ## Subtitle Options:
     --write-subs                     Write subtitle file

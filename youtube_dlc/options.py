@@ -519,6 +519,16 @@ def parseOpts(overrideArguments=None):
             'If a merge is required (e.g. bestvideo+bestaudio), '
             'output to given container format. One of mkv, mp4, ogg, webm, flv. '
             'Ignored if no merge is required'))
+    video_format.add_option(
+        '--allow-unplayable-formats',
+        action='store_true', dest='allow_unplayable_formats', default=False,
+        help=(
+            'Allow unplayable formats to be listed and downloaded. '
+            'All video postprocessing will also be turned off'))
+    video_format.add_option(
+        '--no-allow-unplayable-formats',
+        action='store_false', dest='allow_unplayable_formats',
+        help='Do not allow unplayable formats to be listed or downloaded (default)')
 
     subtitles = optparse.OptionGroup(parser, 'Subtitle Options')
     subtitles.add_option(

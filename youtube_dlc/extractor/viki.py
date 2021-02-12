@@ -315,7 +315,7 @@ class VikiIE(VikiBaseIE):
                 # Despite CODECS metadata in m3u8 all video-only formats
                 # are actually video+audio
                 for f in m3u8_formats:
-                    if '_drm/index_' in f['url']:
+                    if not self._downloader.params.get('allow_unplayable_formats') and '_drm/index_' in f['url']:
                         continue
                     if f.get('acodec') == 'none' and f.get('vcodec') != 'none':
                         f['acodec'] = None

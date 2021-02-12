@@ -154,7 +154,7 @@ class ToggleIE(InfoExtractor):
                 })
         if not formats:
             for meta in (info.get('Metas') or []):
-                if meta.get('Key') == 'Encryption' and meta.get('Value') == '1':
+                if not self._downloader.params.get('allow_unplayable_formats') and meta.get('Key') == 'Encryption' and meta.get('Value') == '1':
                     raise ExtractorError(
                         'This video is DRM protected.', expected=True)
             # Most likely because geo-blocked

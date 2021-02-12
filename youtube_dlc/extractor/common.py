@@ -2358,6 +2358,8 @@ class InfoExtractor(object):
                         extract_Initialization(segment_template)
             return ms_info
 
+        allow_unplayable_formats = self._downloader.params.get('allow_unplayable_formats')
+
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
         formats = []
         for period in mpd_doc.findall(_add_ns('Period')):
@@ -2367,11 +2369,11 @@ class InfoExtractor(object):
                 'timescale': 1,
             })
             for adaptation_set in period.findall(_add_ns('AdaptationSet')):
-                if is_drm_protected(adaptation_set):
+                if is_drm_protected(adaptation_set) and allow_unplayable_formats is False:
                     continue
                 adaption_set_ms_info = extract_multisegment_info(adaptation_set, period_ms_info)
                 for representation in adaptation_set.findall(_add_ns('Representation')):
-                    if is_drm_protected(representation):
+                    if is_drm_protected(representation) and allow_unplayable_formats is False:
                         continue
                     representation_attrib = adaptation_set.attrib.copy()
                     representation_attrib.update(representation.attrib)
@@ -2585,7 +2587,7 @@ class InfoExtractor(object):
          1. [MS-SSTR]: Smooth Streaming Protocol,
             https://msdn.microsoft.com/en-us/library/ff469518.aspx
         """
-        if ism_doc.get('IsLive') == 'TRUE' or ism_doc.find('Protection') is not None:
+        if ism_doc.get('IsLive') == 'TRUE' or (ism_doc.find('Protection') is not None and not self._downloader.params.get('allow_unplayable_formats')):
             return []
 
         duration = int(ism_doc.attrib['Duration'])

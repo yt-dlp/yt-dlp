@@ -179,6 +179,7 @@ class YoutubeDL(object):
                        of 'skip_download' or 'simulate'.
     simulate:          Do not download the video files.
     format:            Video format code. see "FORMAT SELECTION" for more details.
+    allow_unplayable_formats:   Allow unplayable formats to be extracted and downloaded.
     format_sort:       How to sort the video formats. see "Sorting Formats"
                        for more details.
     format_sort_force: Force the given format_sort. see "Sorting Formats"
@@ -2291,10 +2292,15 @@ class YoutubeDL(object):
                 if info_dict.get('requested_formats') is not None:
                     downloaded = []
                     merger = FFmpegMergerPP(self)
-                    if not merger.available:
-                        self.report_warning('You have requested multiple '
-                                            'formats but ffmpeg is not installed.'
-                                            ' The formats won\'t be merged.')
+                    if self.params.get('allow_unplayable_formats'):
+                        self.report_warning(
+                            'You have requested merging of multiple formats '
+                            'while also allowing unplayable formats to be downloaded. '
+                            'The formats won\'t be merged to prevent data corruption.')
+                    elif not merger.available:
+                        self.report_warning(
+                            'You have requested merging of multiple formats but ffmpeg is not installed. '
+                            'The formats won\'t be merged.')
 
                     def compatible_formats(formats):
                         # TODO: some formats actually allow this (mkv, webm, ogg, mp4), but not all of them.
@@ -2346,7 +2352,7 @@ class YoutubeDL(object):
                             downloaded.append(fname)
                             partial_success, real_download = dl(fname, new_info)
                             success = success and partial_success
-                        if merger.available:
+                        if merger.available and not self.params.get('allow_unplayable_formats'):
                             info_dict['__postprocessors'].append(merger)
                         info_dict['__files_to_merge'] = downloaded
                         # Even if there were no downloads, it is being merged only now

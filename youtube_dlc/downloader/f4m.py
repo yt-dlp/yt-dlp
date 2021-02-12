@@ -267,13 +267,14 @@ class F4mFD(FragmentFD):
         media = doc.findall(_add_ns('media'))
         if not media:
             self.report_error('No media found')
-        for e in (doc.findall(_add_ns('drmAdditionalHeader'))
-                  + doc.findall(_add_ns('drmAdditionalHeaderSet'))):
-            # If id attribute is missing it's valid for all media nodes
-            # without drmAdditionalHeaderId or drmAdditionalHeaderSetId attribute
-            if 'id' not in e.attrib:
-                self.report_error('Missing ID in f4m DRM')
-        media = remove_encrypted_media(media)
+        if not self.params.get('allow_unplayable_formats'):
+            for e in (doc.findall(_add_ns('drmAdditionalHeader'))
+                      + doc.findall(_add_ns('drmAdditionalHeaderSet'))):
+                # If id attribute is missing it's valid for all media nodes
+                # without drmAdditionalHeaderId or drmAdditionalHeaderSetId attribute
+                if 'id' not in e.attrib:
+                    self.report_error('Missing ID in f4m DRM')
+            media = remove_encrypted_media(media)
         if not media:
             self.report_error('Unsupported DRM')
         return media
