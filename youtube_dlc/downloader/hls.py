@@ -134,6 +134,7 @@ class HlsFD(FragmentFD):
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
+        key_list = []
         byte_range = {}
         frag_index = 0
         ad_frag_next = False
@@ -215,6 +216,10 @@ class HlsFD(FragmentFD):
                             decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
                         if decrypt_url != decrypt_info['URI']:
                             decrypt_info['KEY'] = None
+                    key_data = decrypt_info.copy()
+                    key_data['INDEX'] = frag_index
+                    key_list.append(key_data)
+
                 elif line.startswith('#EXT-X-MEDIA-SEQUENCE'):
                     media_sequence = int(line[22:])
                 elif line.startswith('#EXT-X-BYTERANGE'):
@@ -232,7 +237,7 @@ class HlsFD(FragmentFD):
         if real_downloader:
             info_copy = info_dict.copy()
             info_copy['url_list'] = fragment_urls
-            info_copy['decrypt_info'] = decrypt_info
+            info_copy['key_list'] = key_list
             fd = real_downloader(self.ydl, self.params)
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
