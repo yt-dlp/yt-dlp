@@ -126,10 +126,7 @@ class ExternalFD(FileDownloader):
             for [i, url] in enumerate(info_dict['url_list']):
                 tmpsegmentname = '%s_%s.frag' % (tmpfilename, i)
                 file_list.append(tmpsegmentname)
-            if 'key_list' in info_dict:
-                key_list = info_dict['key_list']
-            else:
-                key_list = None
+            key_list = info_dict.get('key_list')
             decrypt_info = None
             dest, _ = sanitize_open(tmpfilename, 'wb')
             for i, file in enumerate(file_list):
