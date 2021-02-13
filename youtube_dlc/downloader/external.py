@@ -126,11 +126,14 @@ class ExternalFD(FileDownloader):
             for [i, url] in enumerate(info_dict['url_list']):
                 tmpsegmentname = '%s_%s.frag' % (tmpfilename, i)
                 file_list.append(tmpsegmentname)
+            if 'key_list' in info_dict:
+                key_list = info_dict['key_list']
+            decrypt_info = None
             dest, _ = sanitize_open(tmpfilename, 'wb')
-            for i in file_list:
-                src, _ = sanitize_open(i, 'rb')
-                if 'decrypt_info' in info_dict:
-                    decrypt_info = info_dict['decrypt_info']
+            for [i, file] in enumerate(file_list):
+                src, _ = sanitize_open(file, 'rb')
+                if key_list:
+                    decrypt_info = next((x for x in key_list if x['INDEX'] == i), decrypt_info)
                     if decrypt_info['METHOD'] == 'AES-128':
                         iv = decrypt_info.get('IV')
                         decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
