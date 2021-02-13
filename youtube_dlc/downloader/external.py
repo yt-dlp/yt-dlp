@@ -128,6 +128,8 @@ class ExternalFD(FileDownloader):
                 file_list.append(tmpsegmentname)
             if 'key_list' in info_dict:
                 key_list = info_dict['key_list']
+            else:
+                key_list = None
             decrypt_info = None
             dest, _ = sanitize_open(tmpfilename, 'wb')
             for [i, file] in enumerate(file_list):
