@@ -132,7 +132,7 @@ class ExternalFD(FileDownloader):
                 key_list = None
             decrypt_info = None
             dest, _ = sanitize_open(tmpfilename, 'wb')
-            for [i, file] in enumerate(file_list):
+            for i, file in enumerate(file_list):
                 src, _ = sanitize_open(file, 'rb')
                 if key_list:
                     decrypt_info = next((x for x in key_list if x['INDEX'] == i), decrypt_info)
