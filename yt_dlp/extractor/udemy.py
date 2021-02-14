@@ -143,7 +143,7 @@ class UdemyIE(InfoExtractor):
             raise ExtractorError(
                 'Udemy asks you to solve a CAPTCHA. Login with browser, '
                 'solve CAPTCHA, then export cookies and pass cookie file to '
-                'youtube-dlp with --cookies.', expected=True)
+                'yt-dlp with --cookies.', expected=True)
         return ret
 
     def _download_json(self, url_or_request, *args, **kwargs):

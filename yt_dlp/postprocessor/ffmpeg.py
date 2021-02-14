@@ -627,7 +627,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         if is_outdated_version(
                 self._versions[self.basename], required_version):
             warning = ('Your copy of %s is outdated and unable to properly mux separate video and audio files, '
-                       'youtube-dlp will download single file media. '
+                       'yt-dlp will download single file media. '
                        'Update %s to version %s or newer to fix this.') % (
                            self.basename, self.basename, required_version)
             self.report_warning(warning)

@@ -22,7 +22,7 @@ You use the :meth:`YoutubeDL.extract_info` method for getting the video informat
     [youtube] BaW_jenozKc: Downloading video info webpage
     [youtube] BaW_jenozKc: Extracting video information
     >>> info['title']
-    'youtube-dlp test video "\'/\\ä↭𝕐'
+    'yt-dlp test video "\'/\\ä↭𝕐'
     >>> info['height'], info['width']
     (720, 1280)
 

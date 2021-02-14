@@ -128,7 +128,7 @@ Then simply type this
 # DESCRIPTION
 **yt-dlp** is a command-line program to download videos from youtube.com many other [video platforms](docs/supportedsites.md). It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
 
-    youtube-dlp [OPTIONS] [--] URL [URL...]
+    yt-dlp [OPTIONS] [--] URL [URL...]
 
 
 # OPTIONS
@@ -563,7 +563,7 @@ Then simply type this
 ## Authentication Options:
     -u, --username USERNAME          Login with this account ID
     -p, --password PASSWORD          Account password. If this option is left
-                                     out, youtube-dlp will ask interactively
+                                     out, yt-dlp will ask interactively
     -2, --twofactor TWOFACTOR        Two-factor authentication code
     -n, --netrc                      Use .netrc authentication data
     --video-password PASSWORD        Video password (vimeo, youku)
@@ -574,7 +574,7 @@ Then simply type this
                                      a list of available MSOs
     --ap-username USERNAME           Multiple-system operator account login
     --ap-password PASSWORD           Multiple-system operator account password.
-                                     If this option is left out, youtube-dlp
+                                     If this option is left out, yt-dlp
                                      will ask interactively
     --ap-list-mso                    List all supported multiple-system
                                      operators
@@ -693,7 +693,7 @@ Then simply type this
 
 # CONFIGURATION
 
-You can configure youtube-dlp by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
+You can configure yt-dlp by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
 
 1. **Main Configuration**: The file given by `--config-location`
 1. **Portable Configuration**: `yt-dlp.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/yt_dlp/__main__.py`), the root directory is used instead.
@@ -709,7 +709,7 @@ You can configure youtube-dlp by placing any supported command line option to a 
     Note that `~` points to `C:\Users\<user name>` on windows. Also, `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined
 1. **System Configuration**: `/etc/yt-dlp.conf` or `/etc/yt-dlp.conf`
 
-For example, with the following configuration file youtube-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
+For example, with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
 # Lines starting with # are comments
 
@@ -728,11 +728,11 @@ For example, with the following configuration file youtube-dlp will always extra
 
 Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
 
-You can use `--ignore-config` if you want to disable all configuration files for a particular youtube-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of user and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
+You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of user and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
 ### Authentication with `.netrc` file
 
-You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every youtube-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per extractor basis. For that you will need to create a `.netrc` file in your `$HOME` and restrict permissions to read/write by only you:
+You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per extractor basis. For that you will need to create a `.netrc` file in your `$HOME` and restrict permissions to read/write by only you:
 ```
 touch $HOME/.netrc
 chmod a-rwx,u+rw $HOME/.netrc
@@ -746,7 +746,7 @@ For example:
 machine youtube login myaccount@gmail.com password my_youtube_password
 machine twitch login my_twitch_account_name password my_twitch_password
 ```
-To activate authentication with the `.netrc` file you should pass `--netrc` to youtube-dlp or place it in the [configuration file](#configuration).
+To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
 On Windows you may also need to setup the `%HOME%` environment variable manually. For example:
 ```
@@ -900,8 +900,8 @@ $ yt-dlp -o - BaW_jenozKc
 
 # FORMAT SELECTION
 
-By default, youtube-dlp tries to download the best available quality if you **don't** pass any options.
-This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg is unavailable, or if you use youtube-dlp to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
+By default, yt-dlp tries to download the best available quality if you **don't** pass any options.
+This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg is unavailable, or if you use yt-dlp to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
 
 The general syntax for format selection is `--f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
 

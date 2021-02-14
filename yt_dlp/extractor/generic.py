@@ -2361,7 +2361,7 @@ class GenericIE(InfoExtractor):
                     if default_search == 'auto_warning':
                         if re.match(r'^(?:url|URL)$', url):
                             raise ExtractorError(
-                                'Invalid URL:  %r . Call youtube-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ' % url,
+                                'Invalid URL:  %r . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ' % url,
                                 expected=True)
                         else:
                             self._downloader.report_warning(
@@ -2447,7 +2447,7 @@ class GenericIE(InfoExtractor):
             request = sanitized_Request(url)
             # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
             # making it impossible to download only chunk of the file (yet we need only 512kB to
-            # test whether it's HTML or not). According to youtube-dlp default Accept-Encoding
+            # test whether it's HTML or not). According to yt-dlp default Accept-Encoding
             # that will always result in downloading the whole file that is not desirable.
             # Therefore for extraction pass we have to override Accept-Encoding to any in order
             # to accept raw bytes and being able to download only a chunk.
@@ -3497,7 +3497,7 @@ class GenericIE(InfoExtractor):
 
         if not found:
             # twitter:player is a https URL to iframe player that may or may not
-            # be supported by youtube-dlp thus this is checked the very last (see
+            # be supported by yt-dlp thus this is checked the very last (see
             # https://dev.twitter.com/cards/types/player#On_twitter.com_via_desktop_browser)
             embed_url = self._html_search_meta('twitter:player', webpage, default=None)
             if embed_url and embed_url != url:

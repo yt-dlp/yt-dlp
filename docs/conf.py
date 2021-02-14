@@ -1,6 +1,6 @@
 # coding: utf-8
 #
-# youtube-dlp documentation build configuration file, created by
+# yt-dlp documentation build configuration file, created by
 # sphinx-quickstart on Fri Mar 14 21:05:43 2014.
 #
 # This file is execfile()d with the current directory set to its
@@ -68,4 +68,4 @@ html_theme = 'default'
 html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'youtube-dlpdoc'
+htmlhelp_basename = 'yt-dlpdoc'

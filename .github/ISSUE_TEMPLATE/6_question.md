@@ -20,7 +20,7 @@ assignees: ''
 ## Checklist
 
 <!--
-Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlp:
+Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
 - Look through the README (https://github.com/pukkandan/yt-dlp) and FAQ (https://github.com/pukkandan/yt-dlp) for similar questions
 - Search the bugtracker for similar questions: https://github.com/pukkandan/yt-dlp
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)

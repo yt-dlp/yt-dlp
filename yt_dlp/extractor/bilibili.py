@@ -153,7 +153,7 @@ class BiliBiliIE(InfoExtractor):
                 webpage, 'player parameters'))['cid'][0]
         else:
             if 'no_bangumi_tip' not in smuggled_data:
-                self.to_screen('Downloading episode %s. To download all videos in anime %s, re-run youtube-dlp with %s' % (
+                self.to_screen('Downloading episode %s. To download all videos in anime %s, re-run yt-dlp with %s' % (
                     video_id, anime_id, compat_urlparse.urljoin(url, '//bangumi.bilibili.com/anime/%s' % anime_id)))
             headers = {
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',

@@ -20,7 +20,7 @@ assignees: ''
 ## Checklist
 
 <!--
-Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlp:
+Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
 - First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is 2021.02.09. If it's not, see https://github.com/pukkandan/yt-dlp on how to update. Issues with outdated version will be REJECTED.
 - Make sure that all provided video/audio/playlist URLs (if any) are alive and playable in a browser.
 - Make sure that site you are requesting is not dedicated to copyright infringement, see https://github.com/pukkandan/yt-dlp. yt-dlp does not support such sites. In order for site support request to be accepted all provided example URLs should not violate any copyrights.

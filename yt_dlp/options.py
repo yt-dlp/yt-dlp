@@ -406,7 +406,7 @@ def parseOpts(overrideArguments=None):
     authentication.add_option(
         '-p', '--password',
         dest='password', metavar='PASSWORD',
-        help='Account password. If this option is left out, youtube-dlp will ask interactively')
+        help='Account password. If this option is left out, yt-dlp will ask interactively')
     authentication.add_option(
         '-2', '--twofactor',
         dest='twofactor', metavar='TWOFACTOR',
@@ -432,7 +432,7 @@ def parseOpts(overrideArguments=None):
     adobe_pass.add_option(
         '--ap-password',
         dest='ap_password', metavar='PASSWORD',
-        help='Multiple-system operator account password. If this option is left out, youtube-dlp will ask interactively')
+        help='Multiple-system operator account password. If this option is left out, yt-dlp will ask interactively')
     adobe_pass.add_option(
         '--ap-list-mso',
         action='store_true', dest='ap_list_mso', default=False,
@@ -820,12 +820,12 @@ def parseOpts(overrideArguments=None):
     verbosity.add_option(
         '-C', '--call-home',
         dest='call_home', action='store_true', default=False,
-        # help='[Broken] Contact the youtube-dlp server for debugging')
+        # help='[Broken] Contact the yt-dlp server for debugging')
         help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--no-call-home',
         dest='call_home', action='store_false',
-        # help='Do not contact the youtube-dlp server for debugging (default)')
+        # help='Do not contact the yt-dlp server for debugging (default)')
         help=optparse.SUPPRESS_HELP)
 
     filesystem = optparse.OptionGroup(parser, 'Filesystem Options')

@@ -29,12 +29,12 @@ class YandexMusicBaseIE(InfoExtractor):
     @staticmethod
     def _raise_captcha():
         raise ExtractorError(
-            'YandexMusic has considered youtube-dlp requests automated and '
+            'YandexMusic has considered yt-dlp requests automated and '
             'asks you to solve a CAPTCHA. You can either wait for some '
             'time until unblocked and optionally use --sleep-interval '
             'in future or alternatively you can go to https://music.yandex.ru/ '
             'solve CAPTCHA, then export cookies and pass cookie file to '
-            'youtube-dlp with --cookies',
+            'yt-dlp with --cookies',
             expected=True)
 
     def _download_webpage_handle(self, *args, **kwargs):

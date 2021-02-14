@@ -194,7 +194,7 @@ class YoutubeDL(object):
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
     ignoreerrors:      Do not stop on download errors
-                       (Default True when running youtube-dlp,
+                       (Default True when running yt-dlp,
                        but False when directly accessing YoutubeDL class)
     force_generic_extractor: Force downloader to use the generic extractor
     overwrites:        Overwrite all video and metadata files if True,
@@ -318,7 +318,7 @@ class YoutubeDL(object):
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
     call_home:         Boolean, true iff we are allowed to contact the
-                       youtube-dlp servers for debugging.
+                       yt-dlp servers for debugging.
     sleep_interval:    Number of seconds to sleep before each download when
                        used alone or a lower bound of a range for randomized
                        sleep before each download (minimum possible number
@@ -2872,7 +2872,7 @@ class YoutubeDL(object):
         file_handler = compat_urllib_request.FileHandler()
 
         def file_open(*args, **kwargs):
-            raise compat_urllib_error.URLError('file:// scheme is explicitly disabled in youtube-dlp for security reasons')
+            raise compat_urllib_error.URLError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
         file_handler.file_open = file_open
 
         opener = compat_urllib_request.build_opener(

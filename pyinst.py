@@ -47,11 +47,11 @@ VERSION_FILE = VSVersionInfo(
         StringFileInfo([
             StringTable(
                 '040904B0', [
-                    StringStruct('Comments', 'Youtube-dlp%s Command Line Interface.' % _x86),
+                    StringStruct('Comments', 'yt-dlp%s Command Line Interface.' % _x86),
                     StringStruct('CompanyName', 'https://github.com/pukkandan/yt-dlp'),
                     StringStruct('FileDescription', FILE_DESCRIPTION),
                     StringStruct('FileVersion', VERSION),
-                    StringStruct('InternalName', 'youtube-dlp%s' % _x86),
+                    StringStruct('InternalName', 'yt-dlp%s' % _x86),
                     StringStruct(
                         'LegalCopyright',
                         'pukkandan@gmail.com | UNLICENSE',

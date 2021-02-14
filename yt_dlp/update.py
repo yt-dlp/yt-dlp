@@ -48,7 +48,7 @@ def update_self(to_screen, verbose, opener):
     to_screen('Current Build Hash %s' % sha256sum())
 
     if not isinstance(globals().get('__loader__'), zipimporter) and not hasattr(sys, 'frozen'):
-        to_screen('It looks like you installed youtube-dlp with a package manager, pip, setup.py or a tarball. Please use that to update.')
+        to_screen('It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Please use that to update.')
         return
 
     # Download and check versions info
@@ -64,14 +64,14 @@ def update_self(to_screen, verbose, opener):
 
     version_id = version_info['tag_name']
     if version_id == __version__:
-        to_screen('youtube-dlp is up-to-date (' + __version__ + ')')
+        to_screen('yt-dlp is up-to-date (' + __version__ + ')')
         return
 
     def version_tuple(version_str):
         return tuple(map(int, version_str.split('.')))
 
     if version_tuple(__version__) >= version_tuple(version_id):
-        to_screen('youtube-dlp is up to date (%s)' % __version__)
+        to_screen('yt-dlp is up to date (%s)' % __version__)
         return
 
     to_screen('Updating to version ' + version_id + ' ...')
@@ -127,7 +127,7 @@ def update_self(to_screen, verbose, opener):
     echo.Waiting for file handle to be closed ...
     ping 127.0.0.1 -n 5 -w 1000 > NUL
     move /Y "%s.new" "%s" > NUL
-    echo.Updated youtube-dlp to version %s.
+    echo.Updated yt-dlp to version %s.
 )
 @start /b "" cmd /c del "%%~f0"&exit /b
                 ''' % (exe, exe, version_id))
@@ -162,7 +162,7 @@ def update_self(to_screen, verbose, opener):
             to_screen('ERROR: unable to overwrite current version')
             return
 
-    to_screen('Updated youtube-dlp. Restart youtube-dlp to use the new version.')
+    to_screen('Updated yt-dlp. Restart yt-dlp to use the new version.')
 
 
 '''  # UNUSED

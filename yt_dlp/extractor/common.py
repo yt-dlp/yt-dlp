@@ -272,7 +272,7 @@ class InfoExtractor(object):
                                      Set to "root" to indicate that this is a
                                      comment to the original video.
     age_limit:      Age restriction for the video, as an integer (years)
-    webpage_url:    The URL to the video webpage, if given to youtube-dlp it
+    webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
                     by YoutubeDL if it's missing)
     categories:     A list of categories that the video falls in, for example
@@ -1718,7 +1718,7 @@ class InfoExtractor(object):
         if not isinstance(manifest, compat_etree_Element) and not fatal:
             return []
 
-        # currently youtube-dlp cannot decode the playerVerificationChallenge as Akamai uses Adobe Alchemy
+        # currently yt-dlp cannot decode the playerVerificationChallenge as Akamai uses Adobe Alchemy
         akamai_pv = manifest.find('{http://ns.adobe.com/f4m/1.0}pv-2.0')
         if akamai_pv is not None and ';' in akamai_pv.text:
             playerVerificationChallenge = akamai_pv.text.split(';')[0]

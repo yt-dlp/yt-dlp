@@ -20,8 +20,8 @@ assignees: ''
 ## Checklist
 
 <!--
-Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlp:
-- First of, make sure you are using the latest version of yt-dlp. Run `youtube-dlp --version` and ensure your version is 2021.02.09. If it's not, see https://github.com/pukkandan/yt-dlp on how to update. Issues with outdated version will be REJECTED.
+Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
+- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is 2021.02.09. If it's not, see https://github.com/pukkandan/yt-dlp on how to update. Issues with outdated version will be REJECTED.
 - Search the bugtracker for similar site feature requests: https://github.com/pukkandan/yt-dlp. DO NOT post duplicates.
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->

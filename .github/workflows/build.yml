@@ -43,7 +43,7 @@ jobs:
           PLACEHOLDER
         draft: false
         prerelease: false
-    - name: Upload youtube-dlp Unix binary
+    - name: Upload yt-dlp Unix binary
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1
       env:
@@ -53,7 +53,7 @@ jobs:
         asset_path: ./yt-dlp
         asset_name: yt-dlp
         asset_content_type: application/octet-stream
-    - name: Get SHA2-256SUMS for youtube-dlp
+    - name: Get SHA2-256SUMS for yt-dlp
       id: sha2_file
       env:
         SHA2: ${{ hashFiles('yt-dlp') }}

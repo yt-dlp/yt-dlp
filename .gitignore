@@ -36,7 +36,7 @@ README.txt
 # Binary
 youtube-dl
 youtube-dlc
-youtube-dlp
+yt-dlp
 *.exe
 
 # Downloaded
