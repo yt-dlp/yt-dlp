@@ -1263,7 +1263,7 @@ def parseOpts(overrideArguments=None):
                 return
 
             def read_options(path, user=False):
-                for package in ('yt-dlp'):
+                for package in ('yt-dlp', 'youtube-dlc'):
                     if user:
                         config, current_path = _readUserConf(package, default=None)
                     else:
