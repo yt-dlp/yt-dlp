@@ -1,0 +1,95 @@
+# Python
+*.pyc
+*.pyo
+wine-py2exe/
+py2exe.log
+build/
+dist/
+zip/
+tmp/
+venv/
+
+# Misc
+*~
+*.DS_Store
+*.kate-swp
+MANIFEST
+test/local_parameters.json
+.coverage
+cover/
+secrets/
+updates_key.pem
+*.egg-info
+.tox
+*.class
+
+# Generated
+README.txt
+*.1
+*.bash-completion
+*.fish
+*.exe
+*.tar.gz
+*.zsh
+*.spec
+
+# Binary
+youtube-dl
+youtube-dlc
+youtube-dlp
+*.exe
+
+# Downloaded
+*.srt
+*.ttml
+*.sbv
+*.vtt
+*.flv
+*.mp4
+*.m4a
+*.m4v
+*.mp3
+*.3gp
+*.wav
+*.ape
+*.mkv
+*.swf
+*.part
+*.ytdl
+*.frag
+*.frag.urls
+*.aria2
+*.swp
+*.ogg
+*.opus
+*.info.json
+*.live_chat.json
+*.jpg
+*.png
+*.webp
+*.annotations.xml
+*.description
+
+# Config
+*.conf
+*.spec
+cookies
+cookies.txt
+
+
+
+# Text Editor / IDE
+.idea
+*.iml
+.vscode
+*.sublime-workspace
+*.sublime-project
+!yt-dlp.sublime-project
+
+# Lazy extractors
+*/extractor/lazy_extractors.py
+
+# Plugins
+ytdlp_plugins/extractor/*
+!ytdlp_plugins/extractor/__init__.py
+!ytdlp_plugins/extractor/sample.py
