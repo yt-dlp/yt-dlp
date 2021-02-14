@@ -5936,7 +5936,7 @@ def make_dir(path, to_screen=None):
 
 def get_executable_path():
     path = os.path.dirname(sys.argv[0])
-    if os.path.abspath(sys.argv[0]) != os.path.abspath(sys.executable):  # Not packaged
+    if os.path.basename(sys.argv[0]) == '__main__':  # Running from source
         path = os.path.join(path, '..')
     return os.path.abspath(path)
 

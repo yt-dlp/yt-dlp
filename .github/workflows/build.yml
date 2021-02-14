@@ -122,7 +122,7 @@ jobs:
           python-version: '3.4.4'
           architecture: 'x86'
     - name: Install Requirements for 32 Bit
-      run: pip install pyinstaller==3.5 mutagen pycryptodome
+      run: pip install pyinstaller==3.5 mutagen Crypto
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py

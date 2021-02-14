@@ -5,6 +5,7 @@ import json
 import traceback
 import hashlib
 import os
+import platform
 import subprocess
 import sys
 from zipimport import zipimporter
@@ -32,7 +33,10 @@ def rsa_verify(message, signature, key):
 
 
 def update_self(to_screen, verbose, opener):
-    """Update the program file with the latest version from the repository"""
+    """
+    Update the program file with the latest version from the repository
+    Returns whether the program should terminate
+    """
 
     JSON_URL = 'https://api.github.com/repos/pukkandan/yt-dlp/releases/latest'
 
@@ -48,7 +52,7 @@ def update_self(to_screen, verbose, opener):
     to_screen('Current Build Hash %s' % sha256sum())
 
     if not isinstance(globals().get('__loader__'), zipimporter) and not hasattr(sys, 'frozen'):
-        to_screen('It looks like you installed youtube-dlc with a package manager, pip, setup.py or a tarball. Please use that to update.')
+        to_screen('It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Please use that to update.')
         return
 
     # Download and check versions info
@@ -62,25 +66,28 @@ def update_self(to_screen, verbose, opener):
         to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
         return
 
-    version_id = version_info['tag_name']
-    if version_id == __version__:
-        to_screen('youtube-dlc is up-to-date (' + __version__ + ')')
-        return
-
     def version_tuple(version_str):
         return tuple(map(int, version_str.split('.')))
 
+    version_id = version_info['tag_name']
     if version_tuple(__version__) >= version_tuple(version_id):
-        to_screen('youtube-dlc is up to date (%s)' % __version__)
+        to_screen('yt-dlp is up to date (%s)' % __version__)
         return
 
     to_screen('Updating to version ' + version_id + ' ...')
 
-    version = {
-        'bin': next(i for i in version_info['assets'] if i['name'] == 'youtube-dlc'),
-        'exe': next(i for i in version_info['assets'] if i['name'] == 'youtube-dlc.exe'),
-        'exe_x86': next(i for i in version_info['assets'] if i['name'] == 'youtube-dlc_x86.exe'),
-    }
+    def get_bin_info(bin_or_exe, version):
+        labels = {
+            'zip_3': '',
+            'zip_2': '',
+            # 'zip_2': '_py2',
+            'exe_64': '.exe',
+            'exe_32': '_x86.exe',
+        }
+        label = labels['%s_%s' % (bin_or_exe, version)]
+        return next(
+            i for i in version_info['assets']
+            if i['name'] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label))
 
     # sys.executable is set to the full pathname of the exe-file for py2exe
     # though symlinks are not followed so that we need to do this manually
@@ -100,10 +107,11 @@ def update_self(to_screen, verbose, opener):
             return
 
         try:
-            urlh = opener.open(version['exe']['browser_download_url'])
+            arch = platform.architecture()[0][:2]
+            urlh = opener.open(get_bin_info('exe', arch)['browser_download_url'])
             newcontent = urlh.read()
             urlh.close()
-        except (IOError, OSError):
+        except (IOError, OSError, StopIteration):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
@@ -127,7 +135,7 @@ def update_self(to_screen, verbose, opener):
     echo.Waiting for file handle to be closed ...
     ping 127.0.0.1 -n 5 -w 1000 > NUL
     move /Y "%s.new" "%s" > NUL
-    echo.Updated youtube-dlc to version %s.
+    echo.Updated yt-dlp to version %s.
 )
 @start /b "" cmd /c del "%%~f0"&exit /b
                 ''' % (exe, exe, version_id))
@@ -143,10 +151,11 @@ def update_self(to_screen, verbose, opener):
     # Zip unix package
     elif isinstance(globals().get('__loader__'), zipimporter):
         try:
-            urlh = opener.open(version['bin']['browser_download_url'])
+            py_ver = platform.python_version()[0]
+            urlh = opener.open(get_bin_info('zip', py_ver)['browser_download_url'])
             newcontent = urlh.read()
             urlh.close()
-        except (IOError, OSError):
+        except (IOError, OSError, StopIteration):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
@@ -162,7 +171,7 @@ def update_self(to_screen, verbose, opener):
             to_screen('ERROR: unable to overwrite current version')
             return
 
-    to_screen('Updated youtube-dlc. Restart youtube-dlc to use the new version.')
+    to_screen('Updated yt-dlp. Restart youtube-dlc to use the new version.')
 
 
 '''  # UNUSED

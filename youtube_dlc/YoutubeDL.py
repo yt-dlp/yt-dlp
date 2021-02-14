@@ -27,6 +27,7 @@ import traceback
 import random
 
 from string import ascii_letters
+from zipimport import zipimporter
 
 from .compat import (
     compat_basestring,
@@ -2770,7 +2771,12 @@ class YoutubeDL(object):
                 self.get_encoding()))
         write_string(encoding_str, encoding=None)
 
-        self._write_string('[debug] yt-dlp version %s\n' % __version__)
+        source = (
+            '(exe)' if hasattr(sys, 'frozen')
+            else '(zip)' if isinstance(globals().get('__loader__'), zipimporter)
+            else '(source)' if os.path.basename(sys.argv[0]) == '__main__.py'
+            else '')
+        self._write_string('[debug] yt-dlp version %s %s\n' % (__version__, source))
         if _LAZY_LOADER:
             self._write_string('[debug] Lazy loading extractors enabled\n')
         if _PLUGIN_CLASSES:
@@ -2797,8 +2803,10 @@ class YoutubeDL(object):
                 return impl_name + ' version %d.%d.%d' % sys.pypy_version_info[:3]
             return impl_name
 
-        self._write_string('[debug] Python version %s (%s) - %s\n' % (
-            platform.python_version(), python_implementation(),
+        self._write_string('[debug] Python version %s (%s %s) - %s\n' % (
+            platform.python_version(),
+            python_implementation(),
+            platform.architecture()[0],
             platform_name()))
 
         exe_versions = FFmpegPostProcessor.get_versions(self)
