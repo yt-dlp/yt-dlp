@@ -1264,14 +1264,14 @@ def parseOpts(overrideArguments=None):
 
             def read_options(path, user=False):
                 package = "yt-dlp"
-                
+
                 if user:
                     config, current_path = _readUserConf(package, default=None)
                 else:
                     current_path = os.path.join(path, '%s.conf' % package)
                     config = _readOptions(current_path, default=None)
                 if config is not None:
-                        return config, current_path
+                    return config, current_path
                 return [], None
 
             configs['portable'], paths['portable'] = read_options(get_executable_path())
