@@ -2993,7 +2993,7 @@ else:
 
 if platform.python_implementation() == 'PyPy' and sys.pypy_version_info < (5, 4, 0):
     # PyPy2 prior to version 5.4.0 expects byte strings as Windows function
-    # names, see the original PyPy issue [1] and the youtube-dlc one [2].
+    # names, see the original PyPy issue [1] and the youtube-dlp one [2].
     # 1. https://bitbucket.org/pypy/pypy/issues/2360/windows-ctypescdll-typeerror-function-name
     # 2. https://github.com/ytdl-org/youtube-dl/pull/4392
     def compat_ctypes_WINFUNCTYPE(*args, **kwargs):

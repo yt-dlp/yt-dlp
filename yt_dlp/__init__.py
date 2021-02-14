@@ -57,7 +57,7 @@ def _real_main(argv=None):
 
     workaround_optparse_bug9161()
 
-    setproctitle('youtube-dlc')
+    setproctitle('yt-dlp')
 
     parser, opts, args = parseOpts(argv)
 
@@ -565,7 +565,7 @@ def _real_main(argv=None):
             ydl.warn_if_short_id(sys.argv[1:] if argv is None else argv)
             parser.error(
                 'You must provide at least one URL.\n'
-                'Type youtube-dlc --help to see a list of all options.')
+                'Type yt-dlp --help to see a list of all options.')
 
         try:
             if opts.load_info_filename is not None:

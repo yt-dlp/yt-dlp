@@ -1,6 +1,6 @@
-#compdef youtube-dlc
+#compdef yt-dlp
 
-__youtube_dlc() {
+__yt_dlp() {
     local curcontext="$curcontext" fileopts diropts cur prev
     typeset -A opt_args
     fileopts="{{fileopts}}"
@@ -27,4 +27,4 @@ __youtube_dlc() {
     esac
 }
 
-__youtube_dlc
+__yt_dlp

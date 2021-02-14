@@ -22,9 +22,9 @@ if 'signature' in versions_info:
 new_version = {}
 
 filenames = {
-    'bin': 'youtube-dlc',
-    'exe': 'youtube-dlc.exe',
-    'tar': 'youtube-dlc-%s.tar.gz' % version}
+    'bin': 'yt-dlp',
+    'exe': 'yt-dlp.exe',
+    'tar': 'yt-dlp-%s.tar.gz' % version}
 build_dir = os.path.join('..', '..', 'build', version)
 for key, filename in filenames.items():
     url = 'https://yt-dl.org/downloads/%s/%s' % (version, filename)

@@ -142,7 +142,7 @@ class IviIE(InfoExtractor):
                     continue
                 elif bundled:
                     raise ExtractorError(
-                        'This feature does not work from bundled exe. Run youtube-dlc from sources.',
+                        'This feature does not work from bundled exe. Run youtube-dlp from sources.',
                         expected=True)
                 elif not pycryptodomex_found:
                     raise ExtractorError(

@@ -194,7 +194,7 @@ class YoutubeDL(object):
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
     ignoreerrors:      Do not stop on download errors
-                       (Default True when running youtube-dlc,
+                       (Default True when running youtube-dlp,
                        but False when directly accessing YoutubeDL class)
     force_generic_extractor: Force downloader to use the generic extractor
     overwrites:        Overwrite all video and metadata files if True,
@@ -274,7 +274,7 @@ class YoutubeDL(object):
                        playlist items.
     postprocessors:    A list of dictionaries, each with an entry
                        * key:  The name of the postprocessor. See
-                               youtube_dlc/postprocessor/__init__.py for a list.
+                               yt_dlp/postprocessor/__init__.py for a list.
                        * _after_move: Optional. If True, run this post_processor
                                after 'MoveFilesAfterDownload'
                        as well as any further keyword arguments for the
@@ -318,7 +318,7 @@ class YoutubeDL(object):
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
     call_home:         Boolean, true iff we are allowed to contact the
-                       youtube-dlc servers for debugging.
+                       youtube-dlp servers for debugging.
     sleep_interval:    Number of seconds to sleep before each download when
                        used alone or a lower bound of a range for randomized
                        sleep before each download (minimum possible number
@@ -355,7 +355,7 @@ class YoutubeDL(object):
                        use downloader suggested by extractor if None.
 
     The following parameters are not used by YoutubeDL itself, they are used by
-    the downloader (see youtube_dlc/downloader/common.py):
+    the downloader (see yt_dlp/downloader/common.py):
     nopart, updatetime, buffersize, ratelimit, min_filesize, max_filesize, test,
     noresizebuffer, retries, continuedl, noprogress, consoletitle,
     xattr_set_filesize, external_downloader_args, hls_use_mpegts,
@@ -536,7 +536,7 @@ class YoutubeDL(object):
             if re.match(r'^-[0-9A-Za-z_-]{10}$', a)]
         if idxs:
             correct_argv = (
-                ['youtube-dlc']
+                ['yt-dlp']
                 + [a for i, a in enumerate(argv) if i not in idxs]
                 + ['--'] + [argv[i] for i in idxs]
             )
@@ -2872,7 +2872,7 @@ class YoutubeDL(object):
         file_handler = compat_urllib_request.FileHandler()
 
         def file_open(*args, **kwargs):
-            raise compat_urllib_error.URLError('file:// scheme is explicitly disabled in youtube-dlc for security reasons')
+            raise compat_urllib_error.URLError('file:// scheme is explicitly disabled in youtube-dlp for security reasons')
         file_handler.file_open = file_open
 
         opener = compat_urllib_request.build_opener(

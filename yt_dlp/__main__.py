@@ -2,8 +2,8 @@
 from __future__ import unicode_literals
 
 # Execute with
-# $ python youtube_dlc/__main__.py (2.6+)
-# $ python -m youtube_dlc          (2.7+)
+# $ python yt_dlp/__main__.py (2.6+)
+# $ python -m yt_dlp          (2.7+)
 
 import sys
 
@@ -13,7 +13,7 @@ if __package__ is None and not hasattr(sys, 'frozen'):
     path = os.path.realpath(os.path.abspath(__file__))
     sys.path.insert(0, os.path.dirname(os.path.dirname(path)))
 
-import youtube_dlc
+import yt_dlp
 
 if __name__ == '__main__':
-    youtube_dlc.main()
+    yt_dlp.main()

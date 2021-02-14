@@ -12,12 +12,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import copy
 
 from test.helper import FakeYDL, assertRegexpMatches
-from youtube_dlc import YoutubeDL
-from youtube_dlc.compat import compat_str, compat_urllib_error
-from youtube_dlc.extractor import YoutubeIE
-from youtube_dlc.extractor.common import InfoExtractor
-from youtube_dlc.postprocessor.common import PostProcessor
-from youtube_dlc.utils import ExtractorError, match_filter_func
+from yt_dlp import YoutubeDL
+from yt_dlp.compat import compat_str, compat_urllib_error
+from yt_dlp.extractor import YoutubeIE
+from yt_dlp.extractor.common import InfoExtractor
+from yt_dlp.postprocessor.common import PostProcessor
+from yt_dlp.utils import ExtractorError, match_filter_func
 
 TEST_URL = 'http://localhost/sample.mp4'
 

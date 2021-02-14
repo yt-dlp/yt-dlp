@@ -1,13 +1,13 @@
-Welcome to youtube-dlc's documentation!
+Welcome to youtube-dlp's documentation!
 ======================================
 
-*youtube-dlc* is a command-line program to download videos from YouTube.com and more sites.
+*yt-dlp* is a command-line program to download videos from YouTube.com and more sites.
 It can also be used in Python code.
 
 Developer guide
 ---------------
 
-This section contains information for using *youtube-dlc* from Python programs.
+This section contains information for using *youtube-dlp* from Python programs.
 
 .. toctree::
     :maxdepth: 2

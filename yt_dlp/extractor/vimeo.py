@@ -601,7 +601,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 if b'Because of its privacy settings, this video cannot be played here' in errmsg:
                     raise ExtractorError(
                         'Cannot download embed-only video without embedding '
-                        'URL. Please call youtube-dlc with the URL of the page '
+                        'URL. Please call yt-dlp with the URL of the page '
                         'that embeds this video.',
                         expected=True)
             raise

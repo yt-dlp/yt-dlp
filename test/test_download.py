@@ -24,24 +24,24 @@ import io
 import json
 import socket
 
-import youtube_dlc.YoutubeDL
-from youtube_dlc.compat import (
+import yt_dlp.YoutubeDL
+from yt_dlp.compat import (
     compat_http_client,
     compat_urllib_error,
     compat_HTTPError,
 )
-from youtube_dlc.utils import (
+from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
     format_bytes,
     UnavailableVideoError,
 )
-from youtube_dlc.extractor import get_info_extractor
+from yt_dlp.extractor import get_info_extractor
 
 RETRIES = 3
 
 
-class YoutubeDL(youtube_dlc.YoutubeDL):
+class YoutubeDL(yt_dlp.YoutubeDL):
     def __init__(self, *args, **kwargs):
         self.to_stderr = self.to_screen
         self.processed_info_dicts = []
@@ -92,7 +92,7 @@ class TestDownload(unittest.TestCase):
 def generator(test_case, tname):
 
     def test_template(self):
-        ie = youtube_dlc.extractor.get_info_extractor(test_case['name'])()
+        ie = yt_dlp.extractor.get_info_extractor(test_case['name'])()
         other_ies = [get_info_extractor(ie_key)() for ie_key in test_case.get('add_ie', [])]
         is_playlist = any(k.startswith('playlist') for k in test_case)
         test_cases = test_case.get(

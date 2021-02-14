@@ -1,6 +1,6 @@
 # coding: utf-8
 #
-# youtube-dlc documentation build configuration file, created by
+# youtube-dlp documentation build configuration file, created by
 # sphinx-quickstart on Fri Mar 14 21:05:43 2014.
 #
 # This file is execfile()d with the current directory set to its
@@ -14,7 +14,7 @@
 
 import sys
 import os
-# Allows to import youtube_dlc
+# Allows to import youtube_dlp
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # -- General configuration ------------------------------------------------
@@ -36,7 +36,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'youtube-dlc'
+project = u'yt-dlp'
 copyright = u'2014, Ricardo Garcia Gonzalez'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -44,7 +44,7 @@ copyright = u'2014, Ricardo Garcia Gonzalez'
 # built documents.
 #
 # The short X.Y version.
-from youtube_dlc.version import __version__
+from yt_dlp.version import __version__
 version = __version__
 # The full version, including alpha/beta/rc tags.
 release = version
@@ -68,4 +68,4 @@ html_theme = 'default'
 html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'youtube-dlcdoc'
+htmlhelp_basename = 'youtube-dlpdoc'

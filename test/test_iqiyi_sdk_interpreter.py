@@ -9,7 +9,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import FakeYDL
-from youtube_dlc.extractor import IqiyiIE
+from yt_dlp.extractor import IqiyiIE
 
 
 class IqiyiIEWithCredentials(IqiyiIE):

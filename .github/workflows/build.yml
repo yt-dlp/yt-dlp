@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      ytdlc_version: ${{ steps.bump_version.outputs.ytdlc_version }}
+      ytdlp_version: ${{ steps.bump_version.outputs.ytdlp_version }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       sha2_unix: ${{ steps.sha2_file.outputs.sha2_unix }}
 
@@ -27,7 +27,7 @@ jobs:
       id: bump_version
       run: python devscripts/update-version.py
     - name: Print version
-      run: echo "${{ steps.bump_version.outputs.ytdlc_version }}"
+      run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Run Make
       run: make
     - name: Create Release
@@ -36,27 +36,27 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.bump_version.outputs.ytdlc_version }}
-        release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlc_version }}
+        tag_name: ${{ steps.bump_version.outputs.ytdlp_version }}
+        release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
         body: |
           Changelog:
           PLACEHOLDER
         draft: false
         prerelease: false
-    - name: Upload youtube-dlc Unix binary
+    - name: Upload youtube-dlp Unix binary
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./youtube-dlc
-        asset_name: youtube-dlc
+        asset_path: ./yt-dlp
+        asset_name: yt-dlp
         asset_content_type: application/octet-stream
-    - name: Get SHA2-256SUMS for youtube-dlc
+    - name: Get SHA2-256SUMS for youtube-dlp
       id: sha2_file
       env:
-        SHA2: ${{ hashFiles('youtube-dlc') }}
+        SHA2: ${{ hashFiles('yt-dlp') }}
       run: echo "::set-output name=sha2_unix::$SHA2"
     - name: Install dependencies for pypi
       run: |
@@ -89,23 +89,23 @@ jobs:
       id: bump_version
       run: python devscripts/update-version.py
     - name: Print version
-      run: echo "${{ steps.bump_version.outputs.ytdlc_version }}"
+      run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Run PyInstaller Script
       run: python pyinst.py 64
-    - name: Upload youtube-dlc.exe Windows binary
+    - name: Upload yt-dlp.exe Windows binary
       id: upload-release-windows
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/youtube-dlc.exe
-        asset_name: youtube-dlc.exe
+        asset_path: ./dist/yt-dlp.exe
+        asset_name: yt-dlp.exe
         asset_content_type: application/vnd.microsoft.portable-executable
-    - name: Get SHA2-256SUMS for youtube-dlc.exe
+    - name: Get SHA2-256SUMS for yt-dlp.exe
       id: sha2_file_win
       env:
-        SHA2_win: ${{ hashFiles('dist/youtube-dlc.exe') }}
+        SHA2_win: ${{ hashFiles('dist/yt-dlp.exe') }}
       run: echo "::set-output name=sha2_windows::$SHA2_win"
 
   build_windows32:
@@ -127,35 +127,35 @@ jobs:
       id: bump_version
       run: python devscripts/update-version.py
     - name: Print version
-      run: echo "${{ steps.bump_version.outputs.ytdlc_version }}"
+      run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Run PyInstaller Script for 32 Bit
       run: python pyinst.py 32
-    - name: Upload Executable youtube-dlc_x86.exe
+    - name: Upload Executable yt-dlp_x86.exe
       id: upload-release-windows32
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/youtube-dlc_x86.exe
-        asset_name: youtube-dlc_x86.exe
+        asset_path: ./dist/yt-dlp_x86.exe
+        asset_name: yt-dlp_x86.exe
         asset_content_type: application/vnd.microsoft.portable-executable
-    - name: Get SHA2-256SUMS for youtube-dlc_x86.exe
+    - name: Get SHA2-256SUMS for yt-dlp_x86.exe
       id: sha2_file_win32
       env:
-        SHA2_win32: ${{ hashFiles('dist/youtube-dlc_x86.exe') }}
+        SHA2_win32: ${{ hashFiles('dist/yt-dlp_x86.exe') }}
       run: echo "::set-output name=sha2_windows32::$SHA2_win32"
     - name: Make SHA2-256SUMS file
       env:
         SHA2_WINDOWS: ${{ needs.build_windows.outputs.sha2_windows }}
         SHA2_WINDOWS32: ${{ steps.sha2_file_win32.outputs.sha2_windows32 }}
         SHA2_UNIX: ${{ needs.build_unix.outputs.sha2_unix }}
-        YTDLC_VERSION: ${{ needs.build_unix.outputs.ytdlc_version }}
+        YTDLP_VERSION: ${{ needs.build_unix.outputs.ytdlp_version }}
       run: |
-        echo "version:${env:YTDLC_VERSION}" >> SHA2-256SUMS
-        echo "youtube-dlc.exe:${env:SHA2_WINDOWS}" >> SHA2-256SUMS
-        echo "youtube-dlc_x86.exe:${env:SHA2_WINDOWS32}" >> SHA2-256SUMS
-        echo "youtube-dlc:${env:SHA2_UNIX}" >> SHA2-256SUMS
+        echo "version:${env:YTDLP_VERSION}" >> SHA2-256SUMS
+        echo "yt-dlp.exe:${env:SHA2_WINDOWS}" >> SHA2-256SUMS
+        echo "yt-dlp_x86.exe:${env:SHA2_WINDOWS32}" >> SHA2-256SUMS
+        echo "yt-dlp:${env:SHA2_UNIX}" >> SHA2-256SUMS
 
     - name: Upload 256SUMS file
       id: upload-sums
@@ -179,4 +179,4 @@ jobs:
 #        gistID: c69cb23c3c5b3316248e52022790aa57
 #        filename: version.json
 #        label: Version
-#        message: ${{ needs.build_unix.outputs.ytdlc_version }}
+#        message: ${{ needs.build_unix.outputs.ytdlp_version }}

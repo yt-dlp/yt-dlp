@@ -60,7 +60,7 @@ class ImgurIE(InfoExtractor):
                 'width': width,
                 'height': height,
                 'http_headers': {
-                    'User-Agent': 'youtube-dlc (like wget)',
+                    'User-Agent': 'yt-dlp (like wget)',
                 },
             })
 
@@ -82,7 +82,7 @@ class ImgurIE(InfoExtractor):
                 'url': self._proto_relative_url(gifd['gifUrl']),
                 'filesize': gifd.get('size'),
                 'http_headers': {
-                    'User-Agent': 'youtube-dlc (like wget)',
+                    'User-Agent': 'yt-dlp (like wget)',
                 },
             })
 

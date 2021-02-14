@@ -23,7 +23,7 @@ FILE_DESCRIPTION = 'Media Downloader%s' % (' (32 Bit)' if _x86 else '')
 # print('Changing working directory to %s' % root_dir)
 # os.chdir(root_dir)
 
-exec(compile(open('youtube_dlc/version.py').read(), 'youtube_dlc/version.py', 'exec'))
+exec(compile(open('yt_dlp/version.py').read(), 'yt_dlp/version.py', 'exec'))
 VERSION = locals()['__version__']
 
 VERSION_LIST = VERSION.split('.')
@@ -47,17 +47,17 @@ VERSION_FILE = VSVersionInfo(
         StringFileInfo([
             StringTable(
                 '040904B0', [
-                    StringStruct('Comments', 'Youtube-dlc%s Command Line Interface.' % _x86),
+                    StringStruct('Comments', 'Youtube-dlp%s Command Line Interface.' % _x86),
                     StringStruct('CompanyName', 'https://github.com/pukkandan/yt-dlp'),
                     StringStruct('FileDescription', FILE_DESCRIPTION),
                     StringStruct('FileVersion', VERSION),
-                    StringStruct('InternalName', 'youtube-dlc%s' % _x86),
+                    StringStruct('InternalName', 'youtube-dlp%s' % _x86),
                     StringStruct(
                         'LegalCopyright',
                         'pukkandan@gmail.com | UNLICENSE',
                     ),
-                    StringStruct('OriginalFilename', 'youtube-dlc%s.exe' % _x86),
-                    StringStruct('ProductName', 'Youtube-dlc%s' % _x86),
+                    StringStruct('OriginalFilename', 'yt-dlp%s.exe' % _x86),
+                    StringStruct('ProductName', 'yt-dlp%s' % _x86),
                     StringStruct('ProductVersion', '%s%s' % (VERSION, _x86)),
                 ])]),
         VarFileInfo([VarStruct('Translation', [0, 1200])])
@@ -65,7 +65,7 @@ VERSION_FILE = VSVersionInfo(
 )
 
 PyInstaller.__main__.run([
-    '--name=youtube-dlc%s' % _x86,
+    '--name=yt-dlp%s' % _x86,
     '--onefile',
     '--icon=devscripts/cloud.ico',
     '--exclude-module=youtube_dl',
@@ -73,6 +73,6 @@ PyInstaller.__main__.run([
     '--exclude-module=ytdlp_plugins',
     '--hidden-import=mutagen',
     '--hidden-import=pycryptodome',
-    'youtube_dlc/__main__.py',
+    'yt_dlp/__main__.py',
 ])
-SetVersion('dist/youtube-dlc%s.exe' % _x86, VERSION_FILE)
+SetVersion('dist/yt-dlp%s.exe' % _x86, VERSION_FILE)

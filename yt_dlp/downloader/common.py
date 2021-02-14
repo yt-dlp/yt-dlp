@@ -243,7 +243,7 @@ class FileDownloader(object):
             else:
                 clear_line = ('\r\x1b[K' if sys.stderr.isatty() else '\r')
             self.to_screen(clear_line + fullmsg, skip_eol=not is_last_line)
-        self.to_console_title('youtube-dlc ' + msg)
+        self.to_console_title('yt-dlp ' + msg)
 
     def report_progress(self, s):
         if s['status'] == 'finished':

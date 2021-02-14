@@ -20,8 +20,8 @@ assignees: ''
 ## Checklist
 
 <!--
-Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlc:
-- First of, make sure you are using the latest version of yt-dlp. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://github.com/pukkandan/yt-dlp on how to update. Issues with outdated version will be REJECTED.
+Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlp:
+- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is %(version)s. If it's not, see https://github.com/pukkandan/yt-dlp on how to update. Issues with outdated version will be REJECTED.
 - Make sure that all provided video/audio/playlist URLs (if any) are alive and playable in a browser.
 - Make sure that all URLs and arguments with special characters are properly quoted or escaped as explained in https://github.com/pukkandan/yt-dlp.
 - Search the bugtracker for similar issues: https://github.com/pukkandan/yt-dlp. DO NOT post duplicates.
@@ -40,8 +40,8 @@ Carefully read and work through this check list in order to prevent the most com
 ## Verbose log
 
 <!--
-Provide the complete verbose output of youtube-dlc that clearly demonstrates the problem.
-Add the `-v` flag to your command line you run youtube-dlc with (`youtube-dlc -v <your command line>`), copy the WHOLE output and insert it below. It should look similar to this:
+Provide the complete verbose output of youtube-dlp that clearly demonstrates the problem.
+Add the `-v` flag to your command line you run youtube-dlp with (`yt-dlp -v <your command line>`), copy the WHOLE output and insert it below. It should look similar to this:
  [debug] System config: []
  [debug] User config: []
  [debug] Command-line args: [u'-v', u'http://www.youtube.com/watch?v=BaW_jenozKcj']

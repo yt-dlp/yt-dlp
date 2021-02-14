@@ -2,4 +2,4 @@
 {{commands}}
 
 
-complete --command youtube-dlc --arguments ":ytfavorites :ytrecommended :ytsubscriptions :ytwatchlater :ythistory"
+complete --command yt-dlp --arguments ":ytfavorites :ytrecommended :ytsubscriptions :ytwatchlater :ythistory"

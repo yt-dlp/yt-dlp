@@ -406,7 +406,7 @@ def parseOpts(overrideArguments=None):
     authentication.add_option(
         '-p', '--password',
         dest='password', metavar='PASSWORD',
-        help='Account password. If this option is left out, youtube-dlc will ask interactively')
+        help='Account password. If this option is left out, youtube-dlp will ask interactively')
     authentication.add_option(
         '-2', '--twofactor',
         dest='twofactor', metavar='TWOFACTOR',
@@ -432,7 +432,7 @@ def parseOpts(overrideArguments=None):
     adobe_pass.add_option(
         '--ap-password',
         dest='ap_password', metavar='PASSWORD',
-        help='Multiple-system operator account password. If this option is left out, youtube-dlc will ask interactively')
+        help='Multiple-system operator account password. If this option is left out, youtube-dlp will ask interactively')
     adobe_pass.add_option(
         '--ap-list-mso',
         action='store_true', dest='ap_list_mso', default=False,
@@ -820,12 +820,12 @@ def parseOpts(overrideArguments=None):
     verbosity.add_option(
         '-C', '--call-home',
         dest='call_home', action='store_true', default=False,
-        # help='[Broken] Contact the youtube-dlc server for debugging')
+        # help='[Broken] Contact the youtube-dlp server for debugging')
         help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--no-call-home',
         dest='call_home', action='store_false',
-        # help='Do not contact the youtube-dlc server for debugging (default)')
+        # help='Do not contact the youtube-dlp server for debugging (default)')
         help=optparse.SUPPRESS_HELP)
 
     filesystem = optparse.OptionGroup(parser, 'Filesystem Options')
@@ -1249,7 +1249,7 @@ def parseOpts(overrideArguments=None):
             if '--config-location' in configs['command-line']:
                 location = compat_expanduser(opts.config_location)
                 if os.path.isdir(location):
-                    location = os.path.join(location, 'youtube-dlc.conf')
+                    location = os.path.join(location, 'yt-dlp.conf')
                 if not os.path.exists(location):
                     parser.error('config-location %s does not exist.' % location)
                 configs['custom'] = _readOptions(location, default=None)
@@ -1263,7 +1263,7 @@ def parseOpts(overrideArguments=None):
                 return
 
             def read_options(path, user=False):
-                for package in ('yt-dlp', 'youtube-dlc'):
+                for package in ('yt-dlp'):
                     if user:
                         config, current_path = _readUserConf(package, default=None)
                     else:

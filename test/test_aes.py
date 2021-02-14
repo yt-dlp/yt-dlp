@@ -8,8 +8,8 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from youtube_dlc.aes import aes_decrypt, aes_encrypt, aes_cbc_decrypt, aes_cbc_encrypt, aes_decrypt_text
-from youtube_dlc.utils import bytes_to_intlist, intlist_to_bytes
+from yt_dlp.aes import aes_decrypt, aes_encrypt, aes_cbc_decrypt, aes_cbc_encrypt, aes_decrypt_text
+from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
 import base64
 
 # the encrypted data can be generate with 'devscripts/generate_aes_testdata.py'

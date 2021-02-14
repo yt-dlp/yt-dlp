@@ -199,7 +199,7 @@ class AppleTrailersIE(InfoExtractor):
                 'upload_date': upload_date,
                 'uploader_id': uploader_id,
                 'http_headers': {
-                    'User-Agent': 'QuickTime compatible (youtube-dlc)',
+                    'User-Agent': 'QuickTime compatible (yt-dlp)',
                 },
             })
 

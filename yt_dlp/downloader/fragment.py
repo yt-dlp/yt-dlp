@@ -32,9 +32,9 @@ class FragmentFD(FileDownloader):
     keep_fragments:     Keep downloaded fragments on disk after downloading is
                         finished
 
-    For each incomplete fragment download youtube-dlc keeps on disk a special
+    For each incomplete fragment download youtube-dlp keeps on disk a special
     bookkeeping file with download state and metadata (in future such files will
-    be used for any incomplete download handled by youtube-dlc). This file is
+    be used for any incomplete download handled by youtube-dlp). This file is
     used to properly handle resuming, check download file consistency and detect
     potential errors. The file has a .ytdl extension and represents a standard
     JSON file of the following format:

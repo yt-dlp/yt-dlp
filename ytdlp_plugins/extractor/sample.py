@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from youtube_dlc.extractor.common import InfoExtractor
+from yt_dlp.extractor.common import InfoExtractor
 
 
 class SamplePluginIE(InfoExtractor):

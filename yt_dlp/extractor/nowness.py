@@ -37,7 +37,7 @@ class NownessBaseIE(InfoExtractor):
                     elif source == 'youtube':
                         return self.url_result(video_id, 'Youtube')
                     elif source == 'cinematique':
-                        # youtube-dlc currently doesn't support cinematique
+                        # youtube-dlp currently doesn't support cinematique
                         # return self.url_result('http://cinematique.com/embed/%s' % video_id, 'Cinematique')
                         pass
 
