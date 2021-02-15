@@ -178,7 +178,7 @@ def update_self(to_screen, verbose, opener):
                 ''' % (exe, exe, version_id))
 
             subprocess.Popen([bat])  # Continues to run in the background
-            return  # Do not show premature success messages
+            return True  # Exit app
         except (IOError, OSError):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
