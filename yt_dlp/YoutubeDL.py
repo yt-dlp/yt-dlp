@@ -318,7 +318,7 @@ class YoutubeDL(object):
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
     call_home:         Boolean, true iff we are allowed to contact the
-                       yt-dlp servers for debugging.
+                       yt-dlp servers for debugging. (BROKEN)
     sleep_interval:    Number of seconds to sleep before each download when
                        used alone or a lower bound of a range for randomized
                        sleep before each download (minimum possible number
