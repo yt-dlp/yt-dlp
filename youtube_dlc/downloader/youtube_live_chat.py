@@ -30,7 +30,7 @@ class YoutubeLiveChatReplayFD(FragmentFD):
             'total_frags': None,
         }
 
-        ie = YT_BaseIE(self)
+        ie = YT_BaseIE(self.ydl)
 
         def dl_fragment(url, data=None, headers=None):
             http_headers = info_dict.get('http_headers', {})
