@@ -72,7 +72,7 @@ def update_self(to_screen, verbose, opener):
     version_id = version_info['tag_name']
     if version_tuple(__version__) >= version_tuple(version_id):
         to_screen('yt-dlp is up to date (%s)' % __version__)
-        #return
+        return
 
     to_screen('Updating to version ' + version_id + ' ...')
 
@@ -87,7 +87,7 @@ def update_self(to_screen, verbose, opener):
         label = labels['%s_%s' % (bin_or_exe, version)]
         return next(
             (i for i in version_info['assets']
-            if i['name'] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label)), {})
+                if i['name'] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label)), {})
 
     def get_sha256sum(bin_or_exe, version):
         labels = {
@@ -100,14 +100,14 @@ def update_self(to_screen, verbose, opener):
         label = labels['%s_%s' % (bin_or_exe, version)]
         urlh = next(
             (i for i in version_info['assets']
-            if i['name'] in ('SHA2-256SUMS')), {}).get('browser_download_url')
+                if i['name'] in ('SHA2-256SUMS')), {}).get('browser_download_url')
         if not urlh:
             return None
         hash_data = opener.open(urlh).read().decode('utf-8')
         hashes = list(map(lambda x: x.split(':'), hash_data.splitlines()))
         return next(
             (i[1] for i in hashes
-            if i[0] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label)), None)
+                if i[0] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label)), None)
 
     # sys.executable is set to the full pathname of the exe-file for py2exe
     # though symlinks are not followed so that we need to do this manually
@@ -210,7 +210,7 @@ def update_self(to_screen, verbose, opener):
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to write the new version')
             return
-        
+
         expected_sum = get_sha256sum('zip', py_ver)
         if expected_sum and calc_sha256sum(filename + '.new') != expected_sum:
             to_screen('ERROR: unable to verify the new zip')
@@ -220,7 +220,7 @@ def update_self(to_screen, verbose, opener):
             except OSError:
                 to_screen('ERROR: unable to remove corrupt zip')
             return
-        
+
         try:
             os.rename(filename + '.new', filename)
         except OSError:
