@@ -6,7 +6,10 @@ import copy
 
 from .fragment import FragmentFD
 from ..compat import compat_urllib_error
-from ..utils import try_get
+from ..utils import (
+    try_get,
+    RegexNotFoundError,
+)
 from ..extractor.youtube import YoutubeBaseInfoExtractor as YT_BaseIE
 
 
@@ -28,32 +31,14 @@ class YoutubeLiveChatReplayFD(FragmentFD):
             'total_frags': None,
         }
 
+        ie = YT_BaseIE(self)
+
         def dl_fragment(url, data=None, headers=None):
             http_headers = info_dict.get('http_headers', {})
             if headers:
                 http_headers = copy.deepcopy(http_headers)
                 http_headers.update(headers)
             return self._download_fragment(ctx, url, info_dict, http_headers, data)
-
-        def parse_yt_initial_data(data):
-            patterns = (
-                r'%s\\s*%s' % (YT_BaseIE._YT_INITIAL_DATA_RE, YT_BaseIE._YT_INITIAL_BOUNDARY_RE),
-                r'%s' % YT_BaseIE._YT_INITIAL_DATA_RE)
-            data = data.decode('utf-8', 'replace')
-            for patt in patterns:
-                try:
-                    raw_json = re.search(patt, data).group(1)
-                    return json.loads(raw_json)
-                except AttributeError:
-                    continue
-
-        def parse_ytcfg(data):
-            data = data.decode('utf-8', 'replace')
-            try:
-                raw_json = re.search(r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', data).group(1)
-                return json.loads(raw_json)
-            except IndexError:
-                return None
 
         def download_and_parse_fragment(url, frag_index, request_data):
             count = 0
@@ -62,7 +47,10 @@ class YoutubeLiveChatReplayFD(FragmentFD):
                     success, raw_fragment = dl_fragment(url, request_data, {'content-type': 'application/json'})
                     if not success:
                         return False, None, None
-                    data = parse_yt_initial_data(raw_fragment)
+                    try:
+                        data = ie._extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
+                    except RegexNotFoundError:
+                        data = None
                     if not data:
                         data = {}
                         raw_data = json.loads(raw_fragment)
@@ -109,14 +97,18 @@ class YoutubeLiveChatReplayFD(FragmentFD):
             'https://www.youtube.com/watch?v={}'.format(video_id))
         if not success:
             return False
-        data = parse_yt_initial_data(raw_fragment)
+        try:
+            data = ie._extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
+        except RegexNotFoundError:
+            return False
         continuation_id = try_get(
             data,
             lambda x: x['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation'])
         # no data yet but required to call _append_fragment
         self._append_fragment(ctx, b'')
 
-        ytcfg = parse_ytcfg(raw_fragment)
+        ytcfg = ie._extract_ytcfg(video_id, raw_fragment.decode('utf-8', 'replace'))
+
         if not ytcfg:
             return False
         api_key = try_get(ytcfg, lambda x: x['INNERTUBE_API_KEY'])
