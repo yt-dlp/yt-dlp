@@ -55,25 +55,14 @@ jobs:
         asset_content_type: application/octet-stream
     - name: Get SHA2-256SUMS for youtube-dlc
       id: sha2_file
-      env:
-        SHA2: ${{ hashFiles('youtube-dlc') }}
-      run: echo "::set-output name=sha2_unix::$SHA2"
-    - name: Install dependencies for pypi
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish on pypi
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      run: |
-        rm -rf dist/*
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
+      run: echo "::set-output name=sha2_unix::$(sha256sum youtube-dlc)"
 
   build_windows:
 
     runs-on: windows-latest
+
+    outputs:
+      sha2_windows: ${{ steps.sha2_file_win.outputs.sha2_windows }}
 
     needs: build_unix
 
@@ -104,13 +93,14 @@ jobs:
         asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for youtube-dlc.exe
       id: sha2_file_win
-      env:
-        SHA2_win: ${{ hashFiles('dist/youtube-dlc.exe') }}
-      run: echo "::set-output name=sha2_windows::$SHA2_win"
+      run: echo "::set-output name=sha2_windows::$(certUtil -hashfile dist\youtube-dlc.exe SHA256 | findstr -v :)"
 
   build_windows32:
 
     runs-on: windows-latest
+
+    outputs:
+      sha2_windows32: ${{ steps.sha2_file_win32.outputs.sha2_windows32 }}
 
     needs: [build_unix, build_windows]
 
@@ -121,8 +111,10 @@ jobs:
       with:
           python-version: '3.4.4'
           architecture: 'x86'
+    - name: Install VS libs
+      run: choco install vcexpress2010
     - name: Install Requirements for 32 Bit
-      run: pip install pyinstaller==3.5 mutagen Crypto
+      run: pip install pyinstaller==3.5 mutagen pycryptodome
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
@@ -142,9 +134,7 @@ jobs:
         asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for youtube-dlc_x86.exe
       id: sha2_file_win32
-      env:
-        SHA2_win32: ${{ hashFiles('dist/youtube-dlc_x86.exe') }}
-      run: echo "::set-output name=sha2_windows32::$SHA2_win32"
+      run: echo "::set-output name=sha2_windows32::$(certUtil -hashfile dist\youtube-dlc_x86.exe SHA256 | findstr -v :)"
     - name: Make SHA2-256SUMS file
       env:
         SHA2_WINDOWS: ${{ needs.build_windows.outputs.sha2_windows }}
