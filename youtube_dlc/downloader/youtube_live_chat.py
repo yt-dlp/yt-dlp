@@ -1,6 +1,5 @@
 from __future__ import division, unicode_literals
 
-import re
 import json
 
 from .fragment import FragmentFD
