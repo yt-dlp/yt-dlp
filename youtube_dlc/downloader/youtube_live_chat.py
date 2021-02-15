@@ -27,9 +27,11 @@ class YoutubeLiveChatReplayFD(FragmentFD):
             'total_frags': None,
         }
 
-        def dl_fragment(url):
-            headers = info_dict.get('http_headers', {})
-            return self._download_fragment(ctx, url, info_dict, headers)
+        def dl_fragment(url, data=None, headers=None):
+            http_headers = info_dict.get('http_headers', {})
+            if headers:
+                http_headers = {**http_headers, **headers}
+            return self._download_fragment(ctx, url, info_dict, http_headers, data)
 
         def parse_yt_initial_data(data):
             patterns = (
@@ -43,23 +45,35 @@ class YoutubeLiveChatReplayFD(FragmentFD):
                 except AttributeError:
                     continue
 
-        def download_and_parse_fragment(url, frag_index):
+        def parse_ytcfg(data):
+            data = data.decode('utf-8', 'replace')
+            try:
+                raw_json = re.search(r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', data).group(1)
+                return json.loads(raw_json)
+            except IndexError:
+                return None
+
+        def download_and_parse_fragment(url, frag_index, request_data):
             count = 0
             while count <= fragment_retries:
                 try:
-                    success, raw_fragment = dl_fragment(url)
+                    success, raw_fragment = dl_fragment(url, request_data, {'content-type': 'application/json'})
                     if not success:
                         return False, None, None
                     data = parse_yt_initial_data(raw_fragment)
                     if not data:
+                        data = {}
                         raw_data = json.loads(raw_fragment)
                         # sometimes youtube replies with a list
                         if not isinstance(raw_data, list):
                             raw_data = [raw_data]
-                        try:
-                            data = next(item['response'] for item in raw_data if 'response' in item)
-                        except StopIteration:
-                            data = {}
+                        for item in raw_data:
+                            # data is sometimes behind 'response'
+                            if 'response' in item:
+                                data = item['response']
+                            else:
+                                data = item
+                            break
 
                     live_chat_continuation = try_get(
                         data,
@@ -100,15 +114,26 @@ class YoutubeLiveChatReplayFD(FragmentFD):
         # no data yet but required to call _append_fragment
         self._append_fragment(ctx, b'')
 
+        ytcfg = parse_ytcfg(raw_fragment)
+        if not ytcfg:
+            return False
+        api_key = try_get(ytcfg, lambda x: x['INNERTUBE_API_KEY'])
+        innertube_context = try_get(ytcfg, lambda x: x['INNERTUBE_CONTEXT'])
+        if not api_key or not innertube_context:
+            return False
+        url = 'https://www.youtube.com/youtubei/v1/live_chat/get_live_chat_replay?key=' + api_key
+
         frag_index = offset = 0
         while continuation_id is not None:
             frag_index += 1
-            url = ''.join((
-                'https://www.youtube.com/live_chat_replay',
-                '/get_live_chat_replay' if frag_index > 1 else '',
-                '?continuation=%s' % continuation_id,
-                '&playerOffsetMs=%d&hidden=false&pbj=1' % max(offset - 5000, 0) if frag_index > 1 else ''))
-            success, continuation_id, offset = download_and_parse_fragment(url, frag_index)
+            request_data = {
+                'context': {**innertube_context},
+                'continuation': continuation_id,
+            }
+            if frag_index > 1:
+                request_data['currentPlayerState'] = {'playerOffsetMs': str(max(offset - 5000, 0))}
+            success, continuation_id, offset = download_and_parse_fragment(
+                url, frag_index, json.dumps(request_data, ensure_ascii=False).encode('utf-8') + b'\n')
             if not success:
                 return False
             if test:

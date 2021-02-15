@@ -95,11 +95,12 @@ class FragmentFD(FileDownloader):
         frag_index_stream.write(json.dumps({'downloader': downloader}))
         frag_index_stream.close()
 
-    def _download_fragment(self, ctx, frag_url, info_dict, headers=None):
+    def _download_fragment(self, ctx, frag_url, info_dict, headers=None, request_data=None):
         fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], ctx['fragment_index'])
         fragment_info_dict = {
             'url': frag_url,
             'http_headers': headers or info_dict.get('http_headers'),
+            'request_data': request_data,
         }
         success = ctx['dl'].download(fragment_filename, fragment_info_dict)
         if not success:
