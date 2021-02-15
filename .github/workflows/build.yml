@@ -124,7 +124,7 @@ jobs:
     - name: Install VS libs
       run: choco install vcexpress2010
     - name: Install Requirements for 32 Bit
-      run: pip install pyinstaller==3.5 mutagen pycrytodome
+      run: pip install pyinstaller==3.5 mutagen pycryptodome
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
