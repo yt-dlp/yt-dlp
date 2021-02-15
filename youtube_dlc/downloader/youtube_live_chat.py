@@ -50,19 +50,7 @@ class YoutubeLiveChatReplayFD(FragmentFD):
                     except RegexNotFoundError:
                         data = None
                     if not data:
-                        data = {}
-                        raw_data = json.loads(raw_fragment)
-                        # sometimes youtube replies with a list
-                        if not isinstance(raw_data, list):
-                            raw_data = [raw_data]
-                        for item in raw_data:
-                            # data is sometimes behind 'response'
-                            if 'response' in item:
-                                data = item['response']
-                            else:
-                                data = item
-                            break
-
+                        data = json.loads(raw_fragment)
                     live_chat_continuation = try_get(
                         data,
                         lambda x: x['continuationContents']['liveChatContinuation'], dict) or {}
