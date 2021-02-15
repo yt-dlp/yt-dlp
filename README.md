@@ -56,20 +56,20 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl v2021.02.04.1**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl v2021.02.10**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/pukkandan/yt-dlp/pull/31) for details.
 
 * **Youtube improvements**:
-    * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and support downloading multiple pages of content
-    * Youtube search works correctly (`ytsearch:`, `ytsearchdate:`) along with Search URLs
+    * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and supports downloading multiple pages of content
+    * Youtube search (`ytsearch:`, `ytsearchdate:`) along with Search URLs works correctly
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
 
 * **Aria2c with HLS/DASH**: You can use aria2c as the external downloader for DASH(mpd) and HLS(m3u8) formats. No more slow ffmpeg/native downloads
 
 * **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius
 
-* **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina
+* **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina, rumble
 
 * **Plugin support**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
 
@@ -83,6 +83,8 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Improvements**: Multiple `--postprocessor-args` and `--external-downloader-args`, Date/time formatting in `-o`, faster archive checking, more [format selection options](#format-selection) etc
 
+* **Self-updater**: The releases can be updated using `youtube-dlc -U`
+
 
 See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
 
@@ -95,13 +97,14 @@ If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the
 # INSTALLATION
 
 You can install yt-dlp using one of the following methods:
+* Download the binary from the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest) (recommended method)
 * Use [PyPI package](https://pypi.org/project/yt-dlp): `python -m pip install --upgrade yt-dlp`
-* Download the binary from the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest)
 * Use pip+git: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp.git@release`
 * Install master branch: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp`
 
 ### UPDATE
-`-U` does not work. Simply repeat the install process to update.
+Starting from version `2021.02.09`, you can use `youtube-dlc -U` to update if you are using the provided release.
+If you are using `pip`, simply re-run the same command that was used to install the program.
 
 ### COMPILE
 

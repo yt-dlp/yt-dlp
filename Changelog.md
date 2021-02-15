@@ -17,6 +17,31 @@
 -->
 
 
+### 2021.02.15
+* **Merge youtube-dl:** Upto [2021.02.10](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.02.10) (except archive.org)
+* [niconico] Improved extraction and support encrypted/SMILE movies
+* Fix HLS AES-128 with multiple keys in external downloaders
+* [youtube_live_chat] Fix by using POST API
+* [rumble] Add support for video page
+* Option to allow downloading unplayable video formats (`--allow-unplayable-formats`)
+* [ExtractAudio] Don't re-encode when file is already in a common audio format
+* Change optional dependency to `pycryptodome`
+* [youtube] Fix search continuations
+* [youtube] Fix for new accounts
+* Improve build/updater:
+    * Fix SHA256 calculation in build and implement hash checking for updater
+    * Exit immediately in windows once the update process starts
+    * Fix updater for `x86.exe`
+    * Updater looks for both `yt-dlp` and `youtube-dlc` in releases for future-proofing
+* Fix issue with unicode filenames in aria2c
+* Fix `allow_playlist_files` not being correctly passed through
+* Fix for empty HTTP head requests
+* Fix `get_executable_path` in UNIX
+* [sponskrub] Print ffmpeg output and errors to terminal
+* `__real_download` should be false when ffmpeg unavailable and no download
+* Show `exe`/`zip`/`source` and 32/64bit in verbose message
+
+
 ### 2021.02.09
 * **aria2c support for DASH/HLS**: by [shirt](https://github.com/shirt-dev)
 * **Implement Updater** (`-U`) by [shirt](https://github.com/shirt-dev)
