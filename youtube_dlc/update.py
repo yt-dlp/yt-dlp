@@ -76,28 +76,22 @@ def update_self(to_screen, verbose, opener):
 
     to_screen('Updating to version ' + version_id + ' ...')
 
+    version_labels = {
+        'zip_3': '',
+        'zip_2': '',
+        # 'zip_2': '_py2',
+        'exe_64': '.exe',
+        'exe_32': '_x86.exe',
+    }
+
     def get_bin_info(bin_or_exe, version):
-        labels = {
-            'zip_3': '',
-            'zip_2': '',
-            # 'zip_2': '_py2',
-            'exe_64': '.exe',
-            'exe_32': '_x86.exe',
-        }
-        label = labels['%s_%s' % (bin_or_exe, version)]
+        label = version_labels['%s_%s' % (bin_or_exe, version)]
         return next(
             (i for i in version_info['assets']
                 if i['name'] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label)), {})
 
     def get_sha256sum(bin_or_exe, version):
-        labels = {
-            'zip_3': '',
-            'zip_2': '',
-            # 'zip_2': '_py2',
-            'exe_64': '.exe',
-            'exe_32': '_x86.exe',
-        }
-        label = labels['%s_%s' % (bin_or_exe, version)]
+        label = version_labels['%s_%s' % (bin_or_exe, version)]
         urlh = next(
             (i for i in version_info['assets']
                 if i['name'] in ('SHA2-256SUMS')), {}).get('browser_download_url')
