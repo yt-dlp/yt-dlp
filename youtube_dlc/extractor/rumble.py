@@ -1,6 +1,8 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
+
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -27,6 +29,14 @@ class RumbleEmbedIE(InfoExtractor):
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
     }]
+
+    @staticmethod
+    def _extract_urls(webpage):
+        return [
+            mobj.group('url')
+            for mobj in re.finditer(
+                r'(?:<(?:script|iframe)[^>]+\bsrc=|["\']embedUrl["\']\s*:\s*)["\'](?P<url>%s)' % RumbleEmbedIE._VALID_URL,
+                webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

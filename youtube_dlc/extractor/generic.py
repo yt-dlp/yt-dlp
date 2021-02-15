@@ -130,6 +130,7 @@ from .kinja import KinjaEmbedIE
 from .gedi import GediEmbedsIE
 from .rcs import RCSEmbedsIE
 from .bitchute import BitChuteIE
+from .rumble import RumbleEmbedIE
 from .arcpublishing import ArcPublishingIE
 from .medialaan import MedialaanIE
 
@@ -3337,6 +3338,13 @@ class GenericIE(InfoExtractor):
         if bitchute_urls:
             return self.playlist_from_matches(
                 bitchute_urls, video_id, video_title, ie=BitChuteIE.ie_key())
+
+        rumble_urls = RumbleEmbedIE._extract_urls(webpage)
+        if len(rumble_urls) == 1:
+            return self.url_result(rumble_urls[0], RumbleEmbedIE.ie_key())
+        if rumble_urls:
+            return self.playlist_from_matches(
+                rumble_urls, video_id, video_title, ie=RumbleEmbedIE.ie_key())
 
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
