@@ -153,7 +153,9 @@ def update_self(to_screen, verbose, opener):
             return
 
         expected_sum = get_sha256sum('exe', arch)
-        if expected_sum and calc_sha256sum(exe + '.new') != expected_sum:
+        if not expected_sum:
+            to_screen('WARNING: no hash information found for the release')
+        elif calc_sha256sum(exe + '.new') != expected_sum:
             to_screen('ERROR: unable to verify the new executable')
             to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
             try:
