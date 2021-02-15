@@ -280,6 +280,8 @@ class FFmpegPostProcessor(PostProcessor):
 
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
+    COMMON_AUDIO_EXTENSIONS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
+
     def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
         FFmpegPostProcessor.__init__(self, downloader)
         if preferredcodec is None:
@@ -301,6 +303,10 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
     def run(self, information):
         path = information['filepath']
+        orig_ext = information['ext']
+
+        if self._preferredcodec == 'best' and orig_ext in self.COMMON_AUDIO_EXTENSIONS:
+            self.to_screen('Skipping audio extraction since the file is already in a common audio format')
 
         filecodec = self.get_audio_codec(path)
         if filecodec is None:
