@@ -72,7 +72,7 @@ PyInstaller.__main__.run([
     '--exclude-module=test',
     '--exclude-module=ytdlp_plugins',
     '--hidden-import=mutagen',
-    '--hidden-import=%s' % ('Crypto' if _x86 else 'pycryptodome'),
+    '--hidden-import=Crypto',
     'youtube_dlc/__main__.py',
 ])
 SetVersion('dist/youtube-dlc%s.exe' % _x86, VERSION_FILE)

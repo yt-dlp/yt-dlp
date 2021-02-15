@@ -121,8 +121,10 @@ jobs:
       with:
           python-version: '3.4.4'
           architecture: 'x86'
+    - name: Install VS libs
+      run: choco install vcexpress2010
     - name: Install Requirements for 32 Bit
-      run: pip install pyinstaller==3.5 mutagen Crypto
+      run: pip install pyinstaller==3.5 mutagen pycrytodome
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
