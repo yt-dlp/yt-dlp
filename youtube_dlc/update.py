@@ -40,16 +40,16 @@ def update_self(to_screen, verbose, opener):
 
     JSON_URL = 'https://api.github.com/repos/pukkandan/yt-dlp/releases/latest'
 
-    def sha256sum():
+    def calc_sha256sum(path):
         h = hashlib.sha256()
         b = bytearray(128 * 1024)
         mv = memoryview(b)
-        with open(os.path.realpath(sys.executable), 'rb', buffering=0) as f:
+        with open(os.path.realpath(path), 'rb', buffering=0) as f:
             for n in iter(lambda: f.readinto(mv), 0):
                 h.update(mv[:n])
         return h.hexdigest()
 
-    to_screen('Current Build Hash %s' % sha256sum())
+    to_screen('Current Build Hash %s' % calc_sha256sum(sys.executable))
 
     if not isinstance(globals().get('__loader__'), zipimporter) and not hasattr(sys, 'frozen'):
         to_screen('It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Please use that to update.')
@@ -76,18 +76,32 @@ def update_self(to_screen, verbose, opener):
 
     to_screen('Updating to version ' + version_id + ' ...')
 
+    version_labels = {
+        'zip_3': '',
+        'zip_2': '',
+        # 'zip_2': '_py2',
+        'exe_64': '.exe',
+        'exe_32': '_x86.exe',
+    }
+
     def get_bin_info(bin_or_exe, version):
-        labels = {
-            'zip_3': '',
-            'zip_2': '',
-            # 'zip_2': '_py2',
-            'exe_64': '.exe',
-            'exe_32': '_x86.exe',
-        }
-        label = labels['%s_%s' % (bin_or_exe, version)]
+        label = version_labels['%s_%s' % (bin_or_exe, version)]
         return next(
-            i for i in version_info['assets']
-            if i['name'] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label))
+            (i for i in version_info['assets']
+                if i['name'] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label)), {})
+
+    def get_sha256sum(bin_or_exe, version):
+        label = version_labels['%s_%s' % (bin_or_exe, version)]
+        urlh = next(
+            (i for i in version_info['assets']
+                if i['name'] in ('SHA2-256SUMS')), {}).get('browser_download_url')
+        if not urlh:
+            return None
+        hash_data = opener.open(urlh).read().decode('utf-8')
+        hashes = list(map(lambda x: x.split(':'), hash_data.splitlines()))
+        return next(
+            (i[1] for i in hashes
+                if i[0] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label)), None)
 
     # sys.executable is set to the full pathname of the exe-file for py2exe
     # though symlinks are not followed so that we need to do this manually
@@ -108,7 +122,12 @@ def update_self(to_screen, verbose, opener):
 
         try:
             arch = platform.architecture()[0][:2]
-            urlh = opener.open(get_bin_info('exe', arch)['browser_download_url'])
+            url = get_bin_info('exe', arch).get('browser_download_url')
+            if not url:
+                to_screen('ERROR: unable to fetch updates')
+                to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+                return
+            urlh = opener.open(url)
             newcontent = urlh.read()
             urlh.close()
         except (IOError, OSError, StopIteration):
@@ -127,6 +146,18 @@ def update_self(to_screen, verbose, opener):
             to_screen('ERROR: unable to write the new version')
             return
 
+        expected_sum = get_sha256sum('exe', arch)
+        if not expected_sum:
+            to_screen('WARNING: no hash information found for the release')
+        elif calc_sha256sum(exe + '.new') != expected_sum:
+            to_screen('ERROR: unable to verify the new executable')
+            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+            try:
+                os.remove(exe + '.new')
+            except OSError:
+                to_screen('ERROR: unable to remove corrupt download')
+            return
+
         try:
             bat = os.path.join(directory, 'yt-dlp-updater.cmd')
             with io.open(bat, 'w') as batfile:
@@ -141,7 +172,7 @@ def update_self(to_screen, verbose, opener):
                 ''' % (exe, exe, version_id))
 
             subprocess.Popen([bat])  # Continues to run in the background
-            return  # Do not show premature success messages
+            return True  # Exit app
         except (IOError, OSError):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
@@ -152,7 +183,12 @@ def update_self(to_screen, verbose, opener):
     elif isinstance(globals().get('__loader__'), zipimporter):
         try:
             py_ver = platform.python_version()[0]
-            urlh = opener.open(get_bin_info('zip', py_ver)['browser_download_url'])
+            url = get_bin_info('zip', py_ver).get('browser_download_url')
+            if not url:
+                to_screen('ERROR: unable to fetch updates')
+                to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+                return
+            urlh = opener.open(url)
             newcontent = urlh.read()
             urlh.close()
         except (IOError, OSError, StopIteration):
@@ -163,11 +199,27 @@ def update_self(to_screen, verbose, opener):
             return
 
         try:
-            with open(filename, 'wb') as outf:
+            with open(filename + '.new', 'wb') as outf:
                 outf.write(newcontent)
         except (IOError, OSError):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
+            to_screen('ERROR: unable to write the new version')
+            return
+
+        expected_sum = get_sha256sum('zip', py_ver)
+        if expected_sum and calc_sha256sum(filename + '.new') != expected_sum:
+            to_screen('ERROR: unable to verify the new zip')
+            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+            try:
+                os.remove(filename + '.new')
+            except OSError:
+                to_screen('ERROR: unable to remove corrupt zip')
+            return
+
+        try:
+            os.rename(filename + '.new', filename)
+        except OSError:
             to_screen('ERROR: unable to overwrite current version')
             return
 
