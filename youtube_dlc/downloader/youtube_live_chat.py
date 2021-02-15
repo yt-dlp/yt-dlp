@@ -2,7 +2,6 @@ from __future__ import division, unicode_literals
 
 import re
 import json
-import copy
 
 from .fragment import FragmentFD
 from ..compat import compat_urllib_error
@@ -36,7 +35,7 @@ class YoutubeLiveChatReplayFD(FragmentFD):
         def dl_fragment(url, data=None, headers=None):
             http_headers = info_dict.get('http_headers', {})
             if headers:
-                http_headers = copy.deepcopy(http_headers)
+                http_headers = http_headers.copy()
                 http_headers.update(headers)
             return self._download_fragment(ctx, url, info_dict, http_headers, data)
 
