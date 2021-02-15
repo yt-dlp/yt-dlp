@@ -27,6 +27,7 @@ from ..utils import (
 class HttpFD(FileDownloader):
     def real_download(self, filename, info_dict):
         url = info_dict['url']
+        request_data = info_dict.get('request_data', None)
 
         class DownloadContext(dict):
             __getattr__ = dict.get
@@ -101,7 +102,7 @@ class HttpFD(FileDownloader):
                 range_end = ctx.data_len - 1
             has_range = range_start is not None
             ctx.has_range = has_range
-            request = sanitized_Request(url, None, headers)
+            request = sanitized_Request(url, request_data, headers)
             if has_range:
                 set_range(request, range_start, range_end)
             # Establish connection
@@ -152,7 +153,7 @@ class HttpFD(FileDownloader):
                     try:
                         # Open the connection again without the range header
                         ctx.data = self.ydl.urlopen(
-                            sanitized_Request(url, None, headers))
+                            sanitized_Request(url, request_data, headers))
                         content_length = ctx.data.info()['Content-Length']
                     except (compat_urllib_error.HTTPError, ) as err:
                         if err.code < 500 or err.code >= 600:
