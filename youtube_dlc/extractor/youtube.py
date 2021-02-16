@@ -350,6 +350,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             (?:www\.)?yourepeat\.com/|
                             tube\.majestyc\.net/|
                             # Invidious instances taken from https://github.com/omarroth/invidious/wiki/Invidious-Instances
+                            (?:www\.)?invidious\.pussthecat\.org/|
+                            (?:www\.)?invidious\.048596\.xyz/|
+                            (?:www\.)?invidious\.zee\.li/|
+                            (?:www\.)?vid\.puffyan\.us/|
+                            (?:(?:www|au)\.)?ytprivate\.com/|
+                            (?:www\.)?invidious\.namazso\.eu/|
+                            (?:www\.)?invidious\.ethibox\.fr/|
+                            (?:www\.)?inv\.skyn3t\.in/|
+                            (?:www\.)?invidious\.himiko\.cloud/|
+                            (?:www\.)?w6ijuptxiku4xpnnaetxvnkc5vqcdu7mgns2u77qefoixi63vbvnpnqd\.onion/|
+                            (?:www\.)?kbjggqkzv65ivcqj6bumvp337z6264huv5kpkwuv6gu5yjiskvan7fad\.onion/|
+                            (?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion/|
+                            (?:www\.)?grwp24hodrefzvjjuccrkw3mjq4tzhaaq32amf33dzpmuxe7ilepcmad\.onion/|
                             (?:(?:www|dev)\.)?invidio\.us/|
                             (?:(?:www|no)\.)?invidiou\.sh/|
                             (?:(?:www|fi)\.)?invidious\.snopyta\.org/|
@@ -373,7 +386,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             (?:www\.)?yt\.lelux\.fi/|
                             (?:www\.)?invidious\.ggc-project\.de/|
                             (?:www\.)?yt\.maisputain\.ovh/|
-                            (?:www\.)?invidious\.13ad\.de/|
                             (?:www\.)?invidious\.toot\.koeln/|
                             (?:www\.)?invidious\.fdn\.fr/|
                             (?:www\.)?watch\.nettohikari\.com/|
