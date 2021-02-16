@@ -560,7 +560,7 @@ def _real_main(argv=None):
             # If updater returns True, exit. Required for windows
             if update_self(ydl.to_screen, opts.verbose, ydl._opener):
                 if actual_use:
-                    parser.error('The program must exit for the update to complete')
+                    sys.exit('ERROR: The program must exit for the update to complete')
                 sys.exit()
 
         # Maybe do nothing
