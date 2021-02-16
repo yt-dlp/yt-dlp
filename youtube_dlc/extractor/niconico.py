@@ -547,14 +547,14 @@ class NiconicoIE(InfoExtractor):
         webpage_url = get_video_info_web('watch_url') or url
 
         # for channel movie and community movie
-        channel_id = (
-            try_get(api_data, lambda x: x['channel']['globalId'])
-            or try_get(api_data, lambda x: x['community']['globalId'])
-        )
-        channel = (
-            try_get(api_data, lambda x: x['channel']['name'])
-            or try_get(api_data, lambda x: x['community']['name'])
-        )
+        channel_id = try_get(
+            api_data,
+            (lambda x: x['channel']['globalId'],
+             lambda x: x['community']['globalId']))
+        channel = try_get(
+            api_data,
+            (lambda x: x['channel']['name'],
+             lambda x: x['community']['name']))
 
         # Note: cannot use api_data.get('owner', {}) because owner may be set to "null"
         # in the JSON, which will cause None to be returned instead of {}.
