@@ -2360,6 +2360,9 @@ class YoutubeDL(object):
                             info_dict['__files_to_merge'] = downloaded
                             # Even if there were no downloads, it is being merged only now
                             info_dict['__real_download'] = True
+                        else:
+                            for file in downloaded:
+                                files_to_move[file] = None
                 else:
                     # Just a single file
                     dl_filename = existing_file(full_filename, temp_filename)
