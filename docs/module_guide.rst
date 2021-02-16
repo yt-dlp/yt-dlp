@@ -22,7 +22,7 @@ You use the :meth:`YoutubeDL.extract_info` method for getting the video informat
     [youtube] BaW_jenozKc: Downloading video info webpage
     [youtube] BaW_jenozKc: Extracting video information
     >>> info['title']
-    'yt-dlp test video "\'/\\ä↭𝕐'
+    'youtube-dl test video "\'/\\ä↭𝕐'
     >>> info['height'], info['width']
     (720, 1280)
 
@@ -64,4 +64,3 @@ You can access the videos in the playlist with the ``entries`` field:
     Video #7: Coding a better government
     Video #8: The era of open innovation
     Video #9: The currency of the new economy is trust
-
