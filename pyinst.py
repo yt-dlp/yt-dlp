@@ -73,6 +73,7 @@ PyInstaller.__main__.run([
     '--exclude-module=ytdlp_plugins',
     '--hidden-import=mutagen',
     '--hidden-import=Crypto',
+    '--upx-exclude=vcruntime140.dll',
     'youtube_dlc/__main__.py',
 ])
 SetVersion('dist/youtube-dlc%s.exe' % _x86, VERSION_FILE)
