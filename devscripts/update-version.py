@@ -13,7 +13,7 @@ old_version_list = old_version.split(".", 4)
 old_ver = '.'.join(old_version_list[:3])
 old_rev = old_version_list[3] if len(old_version_list) > 3 else ''
 
-ver = datetime.now().strftime("%Y.%m.%d")
+ver = datetime.utcnow().strftime("%Y.%m.%d")
 rev = str(int(old_rev or 0) + 1) if old_ver == ver else ''
 
 VERSION = '.'.join((ver, rev)) if rev else ver
