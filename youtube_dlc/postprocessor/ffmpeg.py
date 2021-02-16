@@ -307,6 +307,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
         if self._preferredcodec == 'best' and orig_ext in self.COMMON_AUDIO_EXTENSIONS:
             self.to_screen('Skipping audio extraction since the file is already in a common audio format')
+            return [], information
 
         filecodec = self.get_audio_codec(path)
         if filecodec is None:
