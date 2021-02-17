@@ -84,6 +84,8 @@ jobs:
       uses: actions/setup-python@v2
       with:
           python-version: '3.8'
+    - name: Enable wheel support
+      run: pip install wheel
     - name: Install Requirements
       run: pip install pyinstaller mutagen pycryptodome
     - name: Bump version
@@ -105,7 +107,7 @@ jobs:
         asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for youtube-dlc.exe
       id: sha2_file_win
-      run: echo "::set-output name=sha2_windows::$(certUtil -hashfile dist\youtube-dlc.exe SHA256 | findstr -v :)"
+      run: echo "::set-output name=sha2_windows::$((Get-FileHash dist\youtube-dlc.exe -Algorithm SHA256).Hash)"
 
   build_windows32:
 
@@ -123,10 +125,12 @@ jobs:
       with:
           python-version: '3.4.4'
           architecture: 'x86'
-    - name: Install VS libs
-      run: choco install vcexpress2010
+    - name: Upgrade pip
+      run: python -m pip install --upgrade pip==19.1.1
+    - name: Enable wheel support
+      run: pip install wheel==0.33.6
     - name: Install Requirements for 32 Bit
-      run: pip install pyinstaller==3.5 mutagen pycryptodome
+      run: pip install pyinstaller==3.5 mutagen==1.42.0 pycryptodome==3.9.4
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
@@ -146,7 +150,7 @@ jobs:
         asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for youtube-dlc_x86.exe
       id: sha2_file_win32
-      run: echo "::set-output name=sha2_windows32::$(certUtil -hashfile dist\youtube-dlc_x86.exe SHA256 | findstr -v :)"
+      run: echo "::set-output name=sha2_windows32::$((Get-FileHash dist\youtube-dlc_x86.exe -Algorithm SHA256).Hash)"
     - name: Make SHA2-256SUMS file
       env:
         SHA2_WINDOWS: ${{ needs.build_windows.outputs.sha2_windows }}
