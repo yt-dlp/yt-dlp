@@ -107,7 +107,7 @@ jobs:
         asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for youtube-dlc.exe
       id: sha2_file_win
-      run: echo "::set-output name=sha2_windows::$((Get-FileHash dist\youtube-dlc.exe -Algorithm SHA256).Hash)"
+      run: echo "::set-output name=sha2_windows::$((Get-FileHash dist\youtube-dlc.exe -Algorithm SHA256).Hash.ToLower())"
 
   build_windows32:
 
@@ -148,7 +148,7 @@ jobs:
         asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for youtube-dlc_x86.exe
       id: sha2_file_win32
-      run: echo "::set-output name=sha2_windows32::$((Get-FileHash dist\youtube-dlc_x86.exe -Algorithm SHA256).Hash)"
+      run: echo "::set-output name=sha2_windows32::$((Get-FileHash dist\youtube-dlc_x86.exe -Algorithm SHA256).Hash.ToLower())"
     - name: Make SHA2-256SUMS file
       env:
         SHA2_WINDOWS: ${{ needs.build_windows.outputs.sha2_windows }}
