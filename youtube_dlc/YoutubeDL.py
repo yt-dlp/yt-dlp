@@ -868,13 +868,6 @@ class YoutubeDL(object):
                     sub_ext = fn_groups[-2]
                 filename = '.'.join(filter(None, [fn_groups[0][:trim_file_name], sub_ext, ext]))
 
-            # Temporary fix for #4787
-            # 'Treat' all problem characters by passing filename through preferredencoding
-            # to workaround encoding issues with subprocess on python2 @ Windows
-            if sys.version_info < (3, 0) and sys.platform == 'win32':
-                filename = encodeFilename(filename, True).decode(preferredencoding())
-            filename = sanitize_path(filename)
-
             return filename
         except ValueError as err:
             self.report_error('Error in output template: ' + str(err) + ' (encoding: ' + repr(preferredencoding()) + ')')
@@ -901,7 +894,14 @@ class YoutubeDL(object):
         assert isinstance(homepath, compat_str)
         subdir = expand_path(paths.get(dir_type, '').strip()) if dir_type else ''
         assert isinstance(subdir, compat_str)
-        return sanitize_path(os.path.join(homepath, subdir, filename))
+        path = os.path.join(homepath, subdir, filename)
+
+        # Temporary fix for #4787
+        # 'Treat' all problem characters by passing filename through preferredencoding
+        # to workaround encoding issues with subprocess on python2 @ Windows
+        if sys.version_info < (3, 0) and sys.platform == 'win32':
+            path = encodeFilename(path, True).decode(preferredencoding())
+        return sanitize_path(path, force=self.params.get('windowsfilenames'))
 
     def _match_entry(self, info_dict, incomplete):
         """ Returns None if the file should be downloaded """

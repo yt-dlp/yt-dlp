@@ -878,8 +878,20 @@ def parseOpts(overrideArguments=None):
         help='Restrict filenames to only ASCII characters, and avoid "&" and spaces in filenames')
     filesystem.add_option(
         '--no-restrict-filenames',
-        action='store_false', dest='restrictfilenames', default=False,
+        action='store_false', dest='restrictfilenames',
         help='Allow Unicode characters, "&" and spaces in filenames (default)')
+    filesystem.add_option(
+        '--windows-filenames',
+        action='store_true', dest='windowsfilenames', default=False,
+        help='Force filenames to be windows compatible')
+    filesystem.add_option(
+        '--no-windows-filenames',
+        action='store_false', dest='windowsfilenames',
+        help='Make filenames windows compatible only if using windows (default)')
+    filesystem.add_option(
+        '--trim-filenames', '--trim-file-names', metavar='LENGTH',
+        dest='trim_file_name', default=0, type=int,
+        help='Limit the filename length (excluding extension) to the specified number of characters')
     filesystem.add_option(
         '-A', '--auto-number',
         action='store_true', dest='autonumber', default=False,
@@ -992,10 +1004,6 @@ def parseOpts(overrideArguments=None):
         '--rm-cache-dir',
         action='store_true', dest='rm_cachedir',
         help='Delete all filesystem cache files')
-    filesystem.add_option(
-        '--trim-file-name', metavar='LENGTH',
-        dest='trim_file_name', default=0, type=int,
-        help='Limit the filename length (extension excluded)')
 
     thumbnail = optparse.OptionGroup(parser, 'Thumbnail Images')
     thumbnail.add_option(

@@ -2125,13 +2125,17 @@ def sanitize_filename(s, restricted=False, is_id=False):
     return result
 
 
-def sanitize_path(s):
+def sanitize_path(s, force=False):
     """Sanitizes and normalizes path on Windows"""
-    if sys.platform != 'win32':
+    if sys.platform == 'win32':
+        drive_or_unc, _ = os.path.splitdrive(s)
+        if sys.version_info < (2, 7) and not drive_or_unc:
+            drive_or_unc, _ = os.path.splitunc(s)
+    elif force:
+        drive_or_unc = ''
+    else:
         return s
-    drive_or_unc, _ = os.path.splitdrive(s)
-    if sys.version_info < (2, 7) and not drive_or_unc:
-        drive_or_unc, _ = os.path.splitunc(s)
+
     norm_path = os.path.normpath(remove_start(s, drive_or_unc)).split(os.path.sep)
     if drive_or_unc:
         norm_path.pop(0)

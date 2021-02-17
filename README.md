@@ -361,6 +361,12 @@ Then simply type this
                                      filenames
     --no-restrict-filenames          Allow Unicode characters, "&" and spaces in
                                      filenames (default)
+    --windows-filenames              Force filenames to be windows compatible
+    --no-windows-filenames           Make filenames windows compatible only if
+                                     using windows (default)
+    --trim-filenames LENGTH          Limit the filename length (excluding
+                                     extension) to the specified number of
+                                     characters
     -w, --no-overwrites              Do not overwrite any files
     --force-overwrites               Overwrite all video and metadata files.
                                      This option includes --no-continue
@@ -411,8 +417,6 @@ Then simply type this
                                      may change
     --no-cache-dir                   Disable filesystem caching
     --rm-cache-dir                   Delete all filesystem cache files
-    --trim-file-name LENGTH          Limit the filename length (extension
-                                     excluded)
 
 ## Thumbnail Images:
     --write-thumbnail                Write thumbnail image to disk
