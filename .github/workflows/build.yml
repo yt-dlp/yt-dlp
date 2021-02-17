@@ -84,8 +84,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
           python-version: '3.8'
+    - name: Upgrade pip
+      run: python -m pip install --upgrade pip
     - name: Enable wheel support
-      run: pip install wheel
+      run: pip install --upgrade wheel setuptools
     - name: Install Requirements
       run: pip install pyinstaller mutagen pycryptodome
     - name: Bump version
@@ -127,8 +129,8 @@ jobs:
           architecture: 'x86'
     - name: Upgrade pip
       run: python -m pip install --upgrade pip==19.1.1
-    - name: Enable wheel support
-      run: pip install wheel==0.33.6
+    - name: Enable wheel support 
+      run: pip install --upgrade wheel==0.33.6 setuptools==43.0.0
     - name: Install Requirements for 32 Bit
       run: pip install pyinstaller==3.5 mutagen==1.42.0 pycryptodome==3.9.4
     - name: Bump version
