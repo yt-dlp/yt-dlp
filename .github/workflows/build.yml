@@ -55,7 +55,7 @@ jobs:
         asset_content_type: application/octet-stream
     - name: Get SHA2-256SUMS for youtube-dlc
       id: sha2_file
-      run: echo "::set-output name=sha2_unix::$(sha256sum youtube-dlc)"
+      run: echo "::set-output name=sha2_unix::$(sha256sum youtube-dlc | awk '{print $1}')"
     - name: Install dependencies for pypi
       run: |
         python -m pip install --upgrade pip
