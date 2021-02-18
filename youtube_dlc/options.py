@@ -201,7 +201,9 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--flat-videos',
         action='store_true', dest='extract_flat',
-        help='Do not resolve the video urls')
+        # help='Do not resolve the video urls')
+        # doesn't work
+        help=optparse.SUPPRESS_HELP)
     general.add_option(
         '--no-flat-playlist',
         action='store_false', dest='extract_flat',

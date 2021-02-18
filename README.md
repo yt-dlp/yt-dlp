@@ -177,7 +177,6 @@ Then simply type this
                                      containing directory
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them
-    --flat-videos                    Do not resolve the video urls
     --no-flat-playlist               Extract the videos of a playlist
     --mark-watched                   Mark videos watched (YouTube only)
     --no-mark-watched                Do not mark videos watched
