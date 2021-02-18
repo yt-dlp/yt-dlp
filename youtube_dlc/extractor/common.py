@@ -1388,7 +1388,7 @@ class InfoExtractor(object):
             'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'lang': {'priority': True, 'convert': 'ignore', 'field': 'language_preference'},
-            'quality': {'priority': True, 'convert': 'float_none'},
+            'quality': {'convert': 'float_none'},
             'filesize': {'convert': 'bytes'},
             'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
             'id': {'convert': 'string', 'field': 'format_id'},

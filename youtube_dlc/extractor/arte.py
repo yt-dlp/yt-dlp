@@ -168,7 +168,9 @@ class ArteTVIE(ArteTVBaseIE):
 
             formats.append(format)
 
-        self._sort_formats(formats)
+        # For this extractor, quality only represents the relative quality
+        # with respect to other formats with the same resolution
+        self._sort_formats(formats, ('res', 'quality'))
 
         return {
             'id': player_info.get('VID') or video_id,

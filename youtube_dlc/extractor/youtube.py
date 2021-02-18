@@ -32,7 +32,7 @@ from ..utils import (
     mimetype2ext,
     parse_codecs,
     parse_duration,
-    # qualities,  # TODO: Enable this after fixing formatSort
+    qualities,
     remove_start,
     smuggle_url,
     str_or_none,
@@ -1528,8 +1528,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         itags = []
         itag_qualities = {}
         player_url = None
-        # TODO: Enable this after fixing formatSort
-        # q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
+        q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
         streaming_data = player_response.get('streamingData') or {}
         streaming_formats = streaming_data.get('formats') or []
         streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
@@ -1577,7 +1576,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'format_note': fmt.get('qualityLabel') or quality,
                 'fps': int_or_none(fmt.get('fps')),
                 'height': int_or_none(fmt.get('height')),
-                # 'quality': q(quality),    # TODO: Enable this after fixing formatSort
+                'quality': q(quality),
                 'tbr': tbr,
                 'url': fmt_url,
                 'width': fmt.get('width'),
@@ -1620,8 +1619,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     itag = f['format_id']
                     if itag in itags:
                         continue
-                    # if itag in itag_qualities:  # TODO: Enable this after fixing formatSort
-                    #     f['quality'] = q(itag_qualities[itag])
+                    if itag in itag_qualities:
+                        # Not actually usefull since the sorting is already done with "quality,res,fps,codec"
+                        # but kept to maintain feature parity (and code similarity) with youtube-dl
+                        # Remove if this causes any issues with sorting in future
+                        f['quality'] = q(itag_qualities[itag])
                     filesize = int_or_none(self._search_regex(
                         r'/clen/(\d+)', f.get('fragment_base_url')
                         or f['url'], 'file size', default=None))

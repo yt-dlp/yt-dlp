@@ -2716,8 +2716,6 @@ class YoutubeDL(object):
                 if f.get('preference') is None or f['preference'] >= -1000]
             header_line = ['format code', 'extension', 'resolution', 'note']
 
-        # if len(formats) > 1:
-        #     table[-1][-1] += (' ' if table[-1][-1] else '') + '(best)'
         self.to_screen(
             '[info] Available formats for %s:\n%s' % (info_dict['id'], render_table(
                 header_line,
