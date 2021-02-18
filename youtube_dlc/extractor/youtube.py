@@ -2078,7 +2078,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment = meta_comment['commentThreadRenderer']['comment']['commentRenderer']
                     video_comments.append({
                         'id': comment['commentId'],
-                        'text': ''.join([c['text'] for c in comment['contentText']['runs']]),
+                        'text': ''.join([c['text'] for c in try_get(comment, lambda x: x['contentText']['runs'], list) or []]),
                         'time_text': ''.join([c['text'] for c in comment['publishedTimeText']['runs']]),
                         'author': comment.get('authorText', {}).get('simpleText', ''),
                         'votes': comment.get('voteCount', {}).get('simpleText', '0'),
