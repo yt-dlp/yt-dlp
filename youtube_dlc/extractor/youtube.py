@@ -58,7 +58,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'embed|e|watch_popup|channel|c|user|playlist|watch|w|v|movies|results|shared|'
+        r'embed|e|watch_popup|channel|c|user|playlist|watch|w|v|movies|results|shared|hashtag|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout|'
         r'feed/(?:watch_later|history|subscriptions|library|trending|recommended)')
 
@@ -2141,7 +2141,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         (?:
                             (?:channel|c|user)/|
                             (?P<not_channel>
-                                feed/|
+                                feed/|hashtag/|
                                 (?:playlist|watch)\?.*?\blist=
                             )|
                             (?!(?:%s)\b)  # Direct URLs
@@ -2775,6 +2775,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 'gridVideoRenderer': (self._grid_entries, 'items'),
                 'playlistVideoRenderer': (self._playlist_entries, 'contents'),
                 'itemSectionRenderer': (self._playlist_entries, 'contents'),
+                'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
             }
             continuation_items = try_get(
                 response, lambda x: x['onResponseReceivedActions'][0]['appendContinuationItemsAction']['continuationItems'], list)
@@ -2784,9 +2785,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 if key not in known_renderers:
                     continue
                 video_items_renderer = {known_renderers[key][1]: continuation_items}
+                continuation_list = [None]
                 for entry in known_renderers[key][0](video_items_renderer):
                     yield entry
-                continuation = self._extract_continuation(video_items_renderer)
+                continuation = continuation_list[0] or self._extract_continuation(video_items_renderer)
                 break
             if video_items_renderer:
                 continue
