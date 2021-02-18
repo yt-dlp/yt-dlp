@@ -150,7 +150,7 @@ class PlaytvakIE(InfoExtractor):
                 ext = 'mp4'
                 # Some streams have mp3 audio which does not play
                 # well with ffmpeg filter aac_adtstoasc
-                preference = -1
+                preference = -10
             elif format_ == 'adobe':  # f4m manifest fails with 404 in 80% of requests
                 continue
             else:  # Other formats not supported yet

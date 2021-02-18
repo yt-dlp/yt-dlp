@@ -206,7 +206,7 @@ class MediasiteIE(InfoExtractor):
             # disprefer 'secondary' streams
             if stream_type != 0:
                 for fmt in stream_formats:
-                    fmt['preference'] = -1
+                    fmt['quality'] = -10
 
             thumbnail_url = Stream.get('ThumbnailUrl')
             if thumbnail_url:

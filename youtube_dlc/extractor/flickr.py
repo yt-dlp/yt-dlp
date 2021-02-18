@@ -88,7 +88,7 @@ class FlickrIE(InfoExtractor):
                 formats.append({
                     'format_id': stream_type,
                     'url': stream['_content'],
-                    'preference': preference(stream_type),
+                    'quality': preference(stream_type),
                 })
             self._sort_formats(formats)
 

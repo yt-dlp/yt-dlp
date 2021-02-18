@@ -182,7 +182,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
                 else:
                     assert False
                 for this_format in this_formats:
-                    this_format['preference'] = preference
+                    this_format['quality'] = preference
                 formats.extend(this_formats)
         self._sort_formats(formats)
         return formats

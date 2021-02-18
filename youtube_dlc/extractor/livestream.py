@@ -84,7 +84,7 @@ class LivestreamIE(InfoExtractor):
                 'format_id': 'smil_%d' % tbr,
                 'ext': 'flv',
                 'tbr': tbr,
-                'preference': -1000,
+                'preference': -1000,  # Strictly inferior than all other formats?
             })
         return formats
 

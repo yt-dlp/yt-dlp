@@ -49,7 +49,7 @@ class KuwoBaseIE(InfoExtractor):
                     'url': song_url,
                     'format_id': file_format['format'],
                     'format': file_format['format'],
-                    'preference': file_format['preference'],
+                    'quality': file_format['preference'],
                     'abr': file_format.get('abr'),
                 })
 

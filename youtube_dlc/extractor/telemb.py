@@ -57,7 +57,7 @@ class TeleMBIE(InfoExtractor):
                     'app': rtmp.group('app'),
                     'player_url': 'http://p.jwpcdn.com/6/10/jwplayer.flash.swf',
                     'page_url': 'http://www.telemb.be',
-                    'preference': -1,
+                    'preference': -10,
                 })
             formats.append(fmt)
         self._sort_formats(formats)

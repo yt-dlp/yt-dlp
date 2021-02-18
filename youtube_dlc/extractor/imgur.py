@@ -72,7 +72,7 @@ class ImgurIE(InfoExtractor):
                 gif_json, video_id, transform_source=js_to_json)
             formats.append({
                 'format_id': 'gif',
-                'preference': -10,
+                'preference': -10,  # gifs are worse than videos
                 'width': width,
                 'height': height,
                 'ext': 'gif',

@@ -70,7 +70,7 @@ class Tele13IE(InfoExtractor):
                     formats.append({
                         'url': format_url,
                         'format_id': f.get('label'),
-                        'preference': preference(f.get('label')),
+                        'quality': preference(f.get('label')),
                         'ext': ext,
                     })
                 urls.append(format_url)

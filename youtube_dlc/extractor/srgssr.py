@@ -89,7 +89,7 @@ class SRGSSRIE(InfoExtractor):
                     formats.append({
                         'format_id': format_id,
                         'url': asset_url,
-                        'preference': preference(quality),
+                        'quality': preference(quality),
                         'ext': 'flv' if protocol == 'RTMP' else None,
                     })
         self._sort_formats(formats)

@@ -179,15 +179,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             formats.append({
                 'format_id': 'live-archive-source',
                 'url': live_archive_source_url,
-                'preference': 1,
+                'quality': 10,
             })
-
-        # Reduntant code! This is already done in common.py
-        # for f in formats:
-        #     if f.get('vcodec') == 'none':
-        #         f['preference'] = -50
-        #     elif f.get('acodec') == 'none':
-        #         f['preference'] = -40
 
         subtitles = {}
         text_tracks = config['request'].get('text_tracks')
@@ -251,7 +244,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                             'height': int_or_none(source_file.get('height')),
                             'filesize': parse_filesize(source_file.get('size')),
                             'format_id': source_name,
-                            'preference': 1,
+                            'quality': 1,
                         }
 
 

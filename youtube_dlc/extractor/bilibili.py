@@ -203,7 +203,7 @@ class BiliBiliIE(InfoExtractor):
                     formats.append({
                         'url': backup_url,
                         # backup URLs have lower priorities
-                        'preference': -2 if 'hd.mp4' in backup_url else -3,
+                        'quality': -2 if 'hd.mp4' in backup_url else -3,
                     })
 
                 for a_format in formats:

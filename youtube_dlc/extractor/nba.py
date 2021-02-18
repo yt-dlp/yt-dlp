@@ -303,7 +303,7 @@ class NBABaseIE(NBACVPBaseIE):
                 formats.append({
                     'format_id': 'source',
                     'url': source_url,
-                    'preference': 1,
+                    'quality': 1,
                 })
 
             m3u8_url = video.get('m3u8')

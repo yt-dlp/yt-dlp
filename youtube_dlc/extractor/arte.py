@@ -150,7 +150,6 @@ class ArteTVIE(ArteTVBaseIE):
 
             format = {
                 'format_id': format_id,
-                'preference': -10 if f.get('videoFormat') == 'M3U8' else None,
                 'language_preference': lang_pref,
                 'format_note': '%s, %s' % (f.get('versionCode'), f.get('versionLibelle')),
                 'width': int_or_none(f.get('width')),

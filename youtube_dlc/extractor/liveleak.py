@@ -143,7 +143,7 @@ class LiveLeakIE(InfoExtractor):
                         formats.append({
                             'format_id': format_id,
                             'url': orig_url,
-                            'preference': 1,
+                            'quality': 1,
                         })
             self._sort_formats(formats)
             info_dict['formats'] = formats

@@ -87,7 +87,7 @@ class CoubIE(InfoExtractor):
                     'filesize': int_or_none(item.get('size')),
                     'vcodec': 'none' if kind == 'audio' else None,
                     'quality': quality_key(quality),
-                    'preference': preference_key(HTML5),
+                    'source_preference': preference_key(HTML5),
                 })
 
         iphone_url = file_versions.get(IPHONE, {}).get('url')
@@ -95,7 +95,7 @@ class CoubIE(InfoExtractor):
             formats.append({
                 'url': iphone_url,
                 'format_id': IPHONE,
-                'preference': preference_key(IPHONE),
+                'source_preference': preference_key(IPHONE),
             })
 
         mobile_url = file_versions.get(MOBILE, {}).get('audio_url')
@@ -103,7 +103,7 @@ class CoubIE(InfoExtractor):
             formats.append({
                 'url': mobile_url,
                 'format_id': '%s-audio' % MOBILE,
-                'preference': preference_key(MOBILE),
+                'source_preference': preference_key(MOBILE),
             })
 
         self._sort_formats(formats)

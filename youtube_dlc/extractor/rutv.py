@@ -180,11 +180,11 @@ class RUTVIE(InfoExtractor):
                         'rtmp_live': True,
                         'ext': 'flv',
                         'vbr': int(quality),
-                        'preference': preference,
+                        'quality': preference,
                     }
                 elif transport == 'm3u8':
                     formats.extend(self._extract_m3u8_formats(
-                        url, video_id, 'mp4', preference=preference, m3u8_id='hls'))
+                        url, video_id, 'mp4', quality=preference, m3u8_id='hls'))
                     continue
                 else:
                     fmt = {

@@ -132,7 +132,7 @@ class MSNIE(InfoExtractor):
                         'width': int_or_none(file_.get('width')),
                         'height': int_or_none(file_.get('height')),
                         'vbr': int_or_none(self._search_regex(r'_(\d+)\.mp4', format_url, 'vbr', default=None)),
-                        'preference': 1 if format_id == '1001' else None,
+                        'quality': 1 if format_id == '1001' else None,
                     })
             self._sort_formats(formats)
 

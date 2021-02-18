@@ -66,7 +66,7 @@ class AdobeTVBaseIE(InfoExtractor):
                 if original_filename.startswith('s3://') and not s3_extracted:
                     formats.append({
                         'format_id': 'original',
-                        'preference': 1,
+                        'quality': 1,
                         'url': original_filename.replace('s3://', 'https://s3.amazonaws.com/'),
                     })
                     s3_extracted = True

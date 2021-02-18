@@ -82,6 +82,7 @@ class DigitallySpeakingIE(InfoExtractor):
                 'play_path': remove_end(audio.get('url'), '.flv'),
                 'ext': 'flv',
                 'vcodec': 'none',
+                'quality': 1,
                 'format_id': audio.get('code'),
             })
         slide_video_path = xpath_text(metadata, './slideVideo', fatal=True)
@@ -91,7 +92,6 @@ class DigitallySpeakingIE(InfoExtractor):
             'ext': 'flv',
             'format_note': 'slide deck video',
             'quality': -2,
-            'preference': -2,
             'format_id': 'slides',
             'acodec': 'none',
         })
@@ -102,7 +102,6 @@ class DigitallySpeakingIE(InfoExtractor):
             'ext': 'flv',
             'format_note': 'speaker video',
             'quality': -1,
-            'preference': -1,
             'format_id': 'speaker',
         })
         return formats
