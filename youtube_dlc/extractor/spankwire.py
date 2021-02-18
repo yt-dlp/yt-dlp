@@ -108,7 +108,7 @@ class SpankwireIE(InfoExtractor):
             formats.extend(self._extract_m3u8_formats(
                 m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',
                 m3u8_id='hls', fatal=False))
-        self._sort_formats(formats, ('height', 'tbr', 'width', 'format_id'))
+        self._sort_formats(formats)
 
         view_count = str_to_int(video.get('viewed'))
 

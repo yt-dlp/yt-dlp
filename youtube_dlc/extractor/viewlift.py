@@ -134,7 +134,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
         if hls_url:
             formats.extend(self._extract_m3u8_formats(
                 hls_url, film_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False))
-        self._sort_formats(formats, ('height', 'tbr', 'format_id'))
+        self._sort_formats(formats)
 
         info = {
             'id': film_id,

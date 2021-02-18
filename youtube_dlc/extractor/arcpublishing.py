@@ -152,8 +152,7 @@ class ArcPublishingIE(InfoExtractor):
                     'url': s_url,
                     'preference': -1,
                 })
-        self._sort_formats(
-            formats, ('preference', 'width', 'height', 'vbr', 'filesize', 'tbr', 'ext', 'format_id'))
+        self._sort_formats(formats)
 
         subtitles = {}
         for subtitle in (try_get(video, lambda x: x['subtitles']['urls'], list) or []):

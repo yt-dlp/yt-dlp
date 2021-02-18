@@ -72,8 +72,7 @@ class AparatIE(InfoExtractor):
                             r'(\d+)[pP]', label or '', 'height',
                             default=None)),
                     })
-        self._sort_formats(
-            formats, field_preference=('height', 'width', 'tbr', 'format_id'))
+        self._sort_formats(formats)
 
         info = self._search_json_ld(webpage, video_id, default={})
 

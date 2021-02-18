@@ -231,7 +231,7 @@ class XHamsterIE(InfoExtractor):
                                         'Referer': standard_url,
                                     },
                                 })
-            self._sort_formats(formats, field_preference=('height', 'width', 'tbr', 'format_id'))
+            self._sort_formats(formats)
 
             categories_list = video.get('categories')
             if isinstance(categories_list, list):

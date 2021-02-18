@@ -138,7 +138,10 @@ class ThreeQSDNIE(InfoExtractor):
                 f['preference'] = -40
             elif f.get('vcodec') == 'none':
                 f['preference'] = -50
-        self._sort_formats(formats, ('preference', 'width', 'height', 'source_preference', 'tbr', 'vbr', 'abr', 'ext', 'format_id'))
+        # It seems like this would be correctly handled by default
+        # However, unless someone can confirm this, the old
+        # behaviour is being kept as-is
+        self._sort_formats(formats, ('res', 'source_preference'))
 
         subtitles = {}
         for subtitle in (config.get('subtitles') or []):

@@ -116,7 +116,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     def _vimeo_sort_formats(self, formats):
         # Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
         # at the same time without actual units specified. This lead to wrong sorting.
-        self._sort_formats(formats, field_preference=('preference', 'height', 'width', 'fps', 'tbr', 'format_id'))
+        # But since yt-dlp prefers 'res,fps' anyway, 'field_preference' is not needed
+        self._sort_formats(formats)
 
     def _parse_config(self, config, video_id):
         video_data = config['video']

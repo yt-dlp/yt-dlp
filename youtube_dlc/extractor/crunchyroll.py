@@ -571,7 +571,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         'ext': 'flv',
                     })
                     formats.append(format_info)
-        self._sort_formats(formats, ('preference', 'language_preference', 'height', 'width', 'tbr', 'fps'))
+        self._sort_formats(formats)
 
         metadata = self._call_rpc_api(
             'VideoPlayer_GetMediaMetadata', video_id,
