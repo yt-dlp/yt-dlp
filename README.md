@@ -520,8 +520,12 @@ Then simply type this
     --no-audio-multistreams          Only one audio stream is downloaded for
                                      each output file (default)
     --all-formats                    Download all available video formats
-    --prefer-free-formats            Prefer free video formats over non-free
-                                     formats of same quality
+    --prefer-free-formats            Prefer video formats with free containers
+                                     over non-free ones of same quality. Use
+                                     with "-S ext" to strictly prefer free
+                                     containers irrespective of quality
+    --no-prefer-free-formats         Don't give any special preference to free
+                                     containers (default)
     -F, --list-formats               List all available formats of requested
                                      videos
     --list-formats-as-table          Present the output of -F in tabular form

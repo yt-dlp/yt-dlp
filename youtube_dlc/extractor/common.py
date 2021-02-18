@@ -1469,13 +1469,12 @@ class InfoExtractor(object):
             elif conversion == 'bytes':
                 return FileDownloader.parse_bytes(value)
             elif conversion == 'order':
-                order_free = self._get_field_setting(field, 'order_free')
-                order_list = order_free if order_free and self._use_free_order else self._get_field_setting(field, 'order')
+                order_list = (self._use_free_order and self._get_field_setting(field, 'order_free')) or self._get_field_setting(field, 'order')
                 use_regex = self._get_field_setting(field, 'regex')
                 list_length = len(order_list)
                 empty_pos = order_list.index('') if '' in order_list else list_length + 1
                 if use_regex and value is not None:
-                    for (i, regex) in enumerate(order_list):
+                    for i, regex in enumerate(order_list):
                         if regex and re.match(regex, value):
                             return list_length - i
                     return list_length - empty_pos  # not in list
