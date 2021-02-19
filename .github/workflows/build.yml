@@ -57,6 +57,9 @@ jobs:
       id: sha2_file
       run: echo "::set-output name=sha2_unix::$(sha256sum youtube-dlc | awk '{print $1}')"
     - name: Install dependencies for pypi
+      env:
+        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      if: "env.PYPI_TOKEN != ''"
       run: |
         python -m pip install --upgrade pip
         pip install setuptools wheel twine
@@ -64,6 +67,7 @@ jobs:
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      if: "env.TWINE_PASSWORD != ''"
       run: |
         rm -rf dist/*
         python setup.py sdist bdist_wheel
@@ -171,16 +175,3 @@ jobs:
         asset_path: ./SHA2-256SUMS
         asset_name: SHA2-256SUMS
         asset_content_type: text/plain
-
-#  update_version_badge:
-#    runs-on: ubuntu-latest
-#    needs: build_unix
-#    steps:
-#    - name: Create Version Badge
-#      uses: schneegans/dynamic-badges-action@v1.0.0
-#      with:
-#        auth: ${{ secrets.GIST_TOKEN }}
-#        gistID: c69cb23c3c5b3316248e52022790aa57
-#        filename: version.json
-#        label: Version
-#        message: ${{ needs.build_unix.outputs.ytdlc_version }}
