@@ -74,6 +74,6 @@ PyInstaller.__main__.run([
     '--hidden-import=mutagen',
     '--hidden-import=Crypto',
     '--upx-exclude=vcruntime140.dll',
-    'yt-dlp/__main__.py',
+    'yt_dlp/__main__.py',
 ])
 SetVersion('dist/yt-dlp%s.exe' % _x86, VERSION_FILE)
