@@ -1279,15 +1279,17 @@ def parseOpts(overrideArguments=None):
                 return
 
             def read_options(path, user=False):
-                package = "yt-dlp"
-
-                if user:
-                    config, current_path = _readUserConf(package, default=None)
-                else:
-                    current_path = os.path.join(path, '%s.conf' % package)
-                    config = _readOptions(current_path, default=None)
-                if config is not None:
-                    return config, current_path
+                # Multiple package names can be given here
+                # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
+                # the configuration file of any of these three packages
+                for package in ('yt-dlp',):
+                    if user:
+                        config, current_path = _readUserConf(package, default=None)
+                    else:
+                        current_path = os.path.join(path, '%s.conf' % package)
+                        config = _readOptions(current_path, default=None)
+                    if config is not None:
+                        return config, current_path
                 return [], None
 
             configs['portable'], paths['portable'] = read_options(get_executable_path())
