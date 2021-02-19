@@ -83,7 +83,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Improvements**: Multiple `--postprocessor-args` and `--external-downloader-args`, Date/time formatting in `-o`, faster archive checking, more [format selection options](#format-selection) etc
 
-* **Self-updater**: The releases can be updated using `youtube-dlc -U`
+* **Self-updater**: The releases can be updated using `yt-dlp -U`
 
 
 See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
@@ -103,7 +103,7 @@ You can install yt-dlp using one of the following methods:
 * Install master branch: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp`
 
 ### UPDATE
-Starting from version `2021.02.09`, you can use `youtube-dlc -U` to update if you are using the provided release.
+Starting from version `2021.02.09`, you can use `yt-dlp -U` to update if you are using the provided release.
 If you are using `pip`, simply re-run the same command that was used to install the program.
 
 ### COMPILE
@@ -1136,7 +1136,7 @@ $ yt-dlp -S '+res:480,codec,br'
 
 Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently only `extractor` plugins are supported. Support for `downloader` and `postprocessor` plugins may be added in the future. See [ytdlp_plugins](ytdlp_plugins) for example.
 
-**Note**: `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/youtube_dlc/__main__.py`)
+**Note**: `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`)
 
 # MORE
 For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl#faq)
