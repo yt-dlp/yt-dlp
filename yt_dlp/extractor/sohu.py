@@ -77,7 +77,7 @@ class SohuIE(InfoExtractor):
         'info_dict': {
             'id': '78932792',
             'ext': 'mp4',
-            'title': 'youtube-dlc testing video',
+            'title': 'youtube-dl testing video',
         },
         'params': {
             'skip_download': True

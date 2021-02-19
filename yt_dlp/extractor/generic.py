@@ -1996,7 +1996,7 @@ class GenericIE(InfoExtractor):
         },
         {
             # vshare embed
-            'url': 'https://youtube-dlc-demo.neocities.org/vshare.html',
+            'url': 'https://youtube-dl-demo.neocities.org/vshare.html',
             'md5': '17b39f55b5497ae8b59f5fbce8e35886',
             'info_dict': {
                 'id': '0f64ce6',

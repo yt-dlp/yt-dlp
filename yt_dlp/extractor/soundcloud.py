@@ -122,7 +122,7 @@ class SoundcloudIE(InfoExtractor):
         },
         # private link
         {
-            'url': 'https://soundcloud.com/jaimemf/youtube-dlc-test-video-a-y-baw/s-8Pjrp',
+            'url': 'https://soundcloud.com/jaimemf/youtube-dl-test-video-a-y-baw/s-8Pjrp',
             'md5': 'aa0dd32bfea9b0c5ef4f02aacd080604',
             'info_dict': {
                 'id': '123998367',

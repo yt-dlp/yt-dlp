@@ -15,12 +15,12 @@ class StreamcloudIE(InfoExtractor):
     _VALID_URL = r'https?://streamcloud\.eu/(?P<id>[a-zA-Z0-9_-]+)(?:/(?P<fname>[^#?]*)\.html)?'
 
     _TESTS = [{
-        'url': 'http://streamcloud.eu/skp9j99s4bpz/youtube-dlc_test_video_____________-BaW_jenozKc.mp4.html',
+        'url': 'http://streamcloud.eu/skp9j99s4bpz/youtube-dl_test_video_____________-BaW_jenozKc.mp4.html',
         'md5': '6bea4c7fa5daaacc2a946b7146286686',
         'info_dict': {
             'id': 'skp9j99s4bpz',
             'ext': 'mp4',
-            'title': 'youtube-dlc test video  \'/\\ ä ↭',
+            'title': 'youtube-dl test video  \'/\\ ä ↭',
         },
         'skip': 'Only available from the EU'
     }, {
