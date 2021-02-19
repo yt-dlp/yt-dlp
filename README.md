@@ -884,10 +884,10 @@ Note that on Windows you need to use double quotes instead of single.
 
 ```bash
 $ yt-dlp --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc
-yt-dlp test video ''_ä↭𝕐.mp4    # All kinds of weird characters
+youtube-dl test video ''_ä↭𝕐.mp4    # All kinds of weird characters
 
 $ yt-dlp --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc --restrict-filenames
-yt-dlp_test_video_.mp4          # A simple file name
+youtube-dl_test_video_.mp4          # A simple file name
 
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
 $ yt-dlp -o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
