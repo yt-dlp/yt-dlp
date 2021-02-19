@@ -137,11 +137,11 @@ class MDRIE(InfoExtractor):
                 if ext == 'm3u8':
                     formats.extend(self._extract_m3u8_formats(
                         video_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                        preference=0, m3u8_id='HLS', fatal=False))
+                        quality=1, m3u8_id='HLS', fatal=False))
                 elif ext == 'f4m':
                     formats.extend(self._extract_f4m_formats(
                         video_url + '?hdcore=3.7.0&plugin=aasp-3.7.0.39.44', video_id,
-                        preference=0, f4m_id='HDS', fatal=False))
+                        quality=1, f4m_id='HDS', fatal=False))
                 else:
                     media_type = xpath_text(asset, './mediaType', 'media type', default='MP4')
                     vbr = int_or_none(xpath_text(asset, './bitrateVideo', 'vbr'), 1000)

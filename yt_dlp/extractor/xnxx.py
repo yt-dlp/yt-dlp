@@ -54,7 +54,7 @@ class XNXXIE(InfoExtractor):
             if determine_ext(format_url) == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
                     format_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    preference=1, m3u8_id='hls', fatal=False))
+                    quality=1, m3u8_id='hls', fatal=False))
             else:
                 format_id = mobj.group('id')
                 if format_id:

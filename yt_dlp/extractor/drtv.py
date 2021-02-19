@@ -242,7 +242,7 @@ class DRTVIE(InfoExtractor):
                     elif target == 'HLS':
                         formats.extend(self._extract_m3u8_formats(
                             uri, video_id, 'mp4', entry_protocol='m3u8_native',
-                            preference=preference, m3u8_id=format_id,
+                            quality=preference, m3u8_id=format_id,
                             fatal=False))
                     else:
                         bitrate = link.get('Bitrate')
@@ -254,7 +254,7 @@ class DRTVIE(InfoExtractor):
                             'tbr': int_or_none(bitrate),
                             'ext': link.get('FileFormat'),
                             'vcodec': 'none' if kind == 'AudioResource' else None,
-                            'preference': preference,
+                            'quality': preference,
                         })
             subtitles_list = asset.get('SubtitlesList') or asset.get('Subtitleslist')
             if isinstance(subtitles_list, list):

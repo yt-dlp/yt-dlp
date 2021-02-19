@@ -154,7 +154,7 @@ class ESPNIE(OnceIE):
                         'tbr': int(mobj.group(3)),
                     })
                 if source_id == 'mezzanine':
-                    f['preference'] = 1
+                    f['quality'] = 1
                 formats.append(f)
 
         links = clip.get('links', {})

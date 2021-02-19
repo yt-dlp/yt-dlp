@@ -78,7 +78,7 @@ class PicartoIE(InfoExtractor):
                         update_url_query(
                             'https://%s/hls/%s/index.m3u8'
                             % (edge_ep, channel_id), params),
-                        channel_id, 'mp4', preference=preference,
+                        channel_id, 'mp4', quality=preference,
                         m3u8_id='-'.join(format_id), fatal=False))
                     continue
                 elif tech_type == 'video/mp4' or tech_label == 'MP4':
@@ -88,7 +88,7 @@ class PicartoIE(InfoExtractor):
                             'https://%s/mp4/%s.mp4' % (edge_ep, channel_id),
                             params),
                         'format_id': '-'.join(format_id),
-                        'preference': preference,
+                        'quality': preference,
                     })
                 else:
                     # rtmp format does not seem to work

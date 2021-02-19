@@ -185,7 +185,7 @@ class LeIE(InfoExtractor):
                     f['height'] = int_or_none(format_id[:-1])
 
                 formats.append(f)
-        self._sort_formats(formats, ('height', 'quality', 'format_id'))
+        self._sort_formats(formats, ('res', 'quality'))
 
         publish_time = parse_iso8601(self._html_search_regex(
             r'发布时间&nbsp;([^<>]+) ', page, 'publish time', default=None),

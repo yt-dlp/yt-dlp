@@ -129,10 +129,6 @@ class ArcPublishingIE(InfoExtractor):
                 if all([f.get('acodec') == 'none' for f in m3u8_formats]):
                     continue
                 for f in m3u8_formats:
-                    if f.get('acodec') == 'none':
-                        f['preference'] = -40
-                    elif f.get('vcodec') == 'none':
-                        f['preference'] = -50
                     height = f.get('height')
                     if not height:
                         continue
@@ -150,10 +146,9 @@ class ArcPublishingIE(InfoExtractor):
                     'height': int_or_none(s.get('height')),
                     'filesize': int_or_none(s.get('filesize')),
                     'url': s_url,
-                    'preference': -1,
+                    'quality': -10,
                 })
-        self._sort_formats(
-            formats, ('preference', 'width', 'height', 'vbr', 'filesize', 'tbr', 'ext', 'format_id'))
+        self._sort_formats(formats)
 
         subtitles = {}
         for subtitle in (try_get(video, lambda x: x['subtitles']['urls'], list) or []):

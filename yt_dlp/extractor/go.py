@@ -236,7 +236,7 @@ class GoIE(AdobePassIE):
                 if re.search(r'(?:/mp4/source/|_source\.mp4)', asset_url):
                     f.update({
                         'format_id': ('%s-' % format_id if format_id else '') + 'SOURCE',
-                        'preference': 1,
+                        'quality': 1,
                     })
                 else:
                     mobj = re.search(r'/(\d+)x(\d+)/', asset_url)

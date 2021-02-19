@@ -1367,12 +1367,12 @@ class InfoExtractor(object):
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<seperator>[~:])(?P<limit>.*?))?)? *$'
 
         default = ('hidden', 'hasvid', 'ie_pref', 'lang', 'quality',
-                   'res', 'fps', 'codec:vp9', 'size', 'br', 'asr',
+                   'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
                    'proto', 'ext', 'has_audio', 'source', 'format_id')  # These must not be aliases
 
         settings = {
             'vcodec': {'type': 'ordered', 'regex': True,
-                       'order': ['av0?1', 'vp9', '(h265|he?vc?)', '(h264|avc)', 'vp8', '(mp4v|h263)', 'theora', '', None, 'none']},
+                       'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
                        'order': ['opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e?a?c-?3', 'dts', '', None, 'none']},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
@@ -1384,11 +1384,11 @@ class InfoExtractor(object):
                      'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
                      'order_free': ('opus', 'ogg', 'webm', 'm4a', 'mp3', 'aac', '', 'none')},
             'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
-            'ie_pref': {'priority': True, 'type': 'extractor', 'field': 'extractor_preference'},
+            'ie_pref': {'priority': True, 'type': 'extractor'},
             'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'lang': {'priority': True, 'convert': 'ignore', 'field': 'language_preference'},
-            'quality': {'priority': True, 'convert': 'float_none'},
+            'lang': {'priority': True, 'convert': 'ignore', 'type': 'extractor', 'field': 'language_preference'},
+            'quality': {'convert': 'float_none', 'type': 'extractor'},
             'filesize': {'convert': 'bytes'},
             'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
             'id': {'convert': 'string', 'field': 'format_id'},
@@ -1399,7 +1399,7 @@ class InfoExtractor(object):
             'vbr': {'convert': 'float_none'},
             'abr': {'convert': 'float_none'},
             'asr': {'convert': 'float_none'},
-            'source': {'convert': 'ignore', 'field': 'source_preference'},
+            'source': {'convert': 'ignore', 'type': 'extractor', 'field': 'source_preference'},
 
             'codec': {'type': 'combined', 'field': ('vcodec', 'acodec')},
             'br': {'type': 'combined', 'field': ('tbr', 'vbr', 'abr'), 'same_limit': True},
@@ -1469,13 +1469,12 @@ class InfoExtractor(object):
             elif conversion == 'bytes':
                 return FileDownloader.parse_bytes(value)
             elif conversion == 'order':
-                order_free = self._get_field_setting(field, 'order_free')
-                order_list = order_free if order_free and self._use_free_order else self._get_field_setting(field, 'order')
+                order_list = (self._use_free_order and self._get_field_setting(field, 'order_free')) or self._get_field_setting(field, 'order')
                 use_regex = self._get_field_setting(field, 'regex')
                 list_length = len(order_list)
                 empty_pos = order_list.index('') if '' in order_list else list_length + 1
                 if use_regex and value is not None:
-                    for (i, regex) in enumerate(order_list):
+                    for i, regex in enumerate(order_list):
                         if regex and re.match(regex, value):
                             return list_length - i
                     return list_length - empty_pos  # not in list
@@ -1544,7 +1543,7 @@ class InfoExtractor(object):
         def print_verbose_info(self, to_screen):
             to_screen('[debug] Sort order given by user: %s' % ','.join(self._sort_user))
             if self._sort_extractor:
-                to_screen('[debug] Sort order given by extractor: %s' % ','.join(self._sort_extractor))
+                to_screen('[debug] Sort order given by extractor: %s' % ', '.join(self._sort_extractor))
             to_screen('[debug] Formats sorted by: %s' % ', '.join(['%s%s%s' % (
                 '+' if self._get_field_setting(field, 'reverse') else '', field,
                 '%s%s(%s)' % ('~' if self._get_field_setting(field, 'closest') else ':',
@@ -1561,7 +1560,7 @@ class InfoExtractor(object):
             if type == 'extractor':
                 maximum = self._get_field_setting(field, 'max')
                 if value is None or (maximum is not None and value >= maximum):
-                    value = 0
+                    value = -1
             elif type == 'boolean':
                 in_list = self._get_field_setting(field, 'in_list')
                 not_in_list = self._get_field_setting(field, 'not_in_list')
@@ -1694,7 +1693,7 @@ class InfoExtractor(object):
         self.to_screen(msg)
         time.sleep(timeout)
 
-    def _extract_f4m_formats(self, manifest_url, video_id, preference=None, f4m_id=None,
+    def _extract_f4m_formats(self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                              transform_source=lambda s: fix_xml_ampersands(s).strip(),
                              fatal=True, m3u8_id=None, data=None, headers={}, query={}):
         manifest = self._download_xml(
@@ -1709,10 +1708,10 @@ class InfoExtractor(object):
             return []
 
         return self._parse_f4m_formats(
-            manifest, manifest_url, video_id, preference=preference, f4m_id=f4m_id,
+            manifest, manifest_url, video_id, preference=preference, quality=quality, f4m_id=f4m_id,
             transform_source=transform_source, fatal=fatal, m3u8_id=m3u8_id)
 
-    def _parse_f4m_formats(self, manifest, manifest_url, video_id, preference=None, f4m_id=None,
+    def _parse_f4m_formats(self, manifest, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                            transform_source=lambda s: fix_xml_ampersands(s).strip(),
                            fatal=True, m3u8_id=None):
         if not isinstance(manifest, compat_etree_Element) and not fatal:
@@ -1777,7 +1776,7 @@ class InfoExtractor(object):
                 ext = determine_ext(manifest_url)
                 if ext == 'f4m':
                     f4m_formats = self._extract_f4m_formats(
-                        manifest_url, video_id, preference=preference, f4m_id=f4m_id,
+                        manifest_url, video_id, preference=preference, quality=quality, f4m_id=f4m_id,
                         transform_source=transform_source, fatal=fatal)
                     # Sometimes stream-level manifest contains single media entry that
                     # does not contain any quality metadata (e.g. http://matchtv.ru/#live-player).
@@ -1797,7 +1796,7 @@ class InfoExtractor(object):
                 elif ext == 'm3u8':
                     formats.extend(self._extract_m3u8_formats(
                         manifest_url, video_id, 'mp4', preference=preference,
-                        m3u8_id=m3u8_id, fatal=fatal))
+                        quality=quality, m3u8_id=m3u8_id, fatal=fatal))
                     continue
             formats.append({
                 'format_id': format_id,
@@ -1810,22 +1809,24 @@ class InfoExtractor(object):
                 'height': height,
                 'vcodec': vcodec,
                 'preference': preference,
+                'quality': quality,
             })
         return formats
 
-    def _m3u8_meta_format(self, m3u8_url, ext=None, preference=None, m3u8_id=None):
+    def _m3u8_meta_format(self, m3u8_url, ext=None, preference=None, quality=None, m3u8_id=None):
         return {
             'format_id': '-'.join(filter(None, [m3u8_id, 'meta'])),
             'url': m3u8_url,
             'ext': ext,
             'protocol': 'm3u8',
             'preference': preference - 100 if preference else -100,
+            'quality': quality,
             'resolution': 'multiple',
             'format_note': 'Quality selection URL',
         }
 
     def _extract_m3u8_formats(self, m3u8_url, video_id, ext=None,
-                              entry_protocol='m3u8', preference=None,
+                              entry_protocol='m3u8', preference=None, quality=None,
                               m3u8_id=None, note=None, errnote=None,
                               fatal=True, live=False, data=None, headers={},
                               query={}):
@@ -1843,10 +1844,10 @@ class InfoExtractor(object):
 
         return self._parse_m3u8_formats(
             m3u8_doc, m3u8_url, ext=ext, entry_protocol=entry_protocol,
-            preference=preference, m3u8_id=m3u8_id, live=live)
+            preference=preference, quality=quality, m3u8_id=m3u8_id, live=live)
 
     def _parse_m3u8_formats(self, m3u8_doc, m3u8_url, ext=None,
-                            entry_protocol='m3u8', preference=None,
+                            entry_protocol='m3u8', preference=None, quality=None,
                             m3u8_id=None, live=False):
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
             return []
@@ -1884,6 +1885,7 @@ class InfoExtractor(object):
                 'ext': ext,
                 'protocol': entry_protocol,
                 'preference': preference,
+                'quality': quality,
             }]
 
         groups = {}
@@ -1912,6 +1914,7 @@ class InfoExtractor(object):
                     'ext': ext,
                     'protocol': entry_protocol,
                     'preference': preference,
+                    'quality': quality,
                 }
                 if media_type == 'AUDIO':
                     f['vcodec'] = 'none'
@@ -1971,6 +1974,7 @@ class InfoExtractor(object):
                     'fps': float_or_none(last_stream_inf.get('FRAME-RATE')),
                     'protocol': entry_protocol,
                     'preference': preference,
+                    'quality': quality,
                 }
                 resolution = last_stream_inf.get('RESOLUTION')
                 if resolution:
@@ -2678,7 +2682,7 @@ class InfoExtractor(object):
                 })
         return formats
 
-    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8', mpd_id=None, preference=None):
+    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8', mpd_id=None, preference=None, quality=None):
         def absolute_url(item_url):
             return urljoin(base_url, item_url)
 
@@ -2701,7 +2705,7 @@ class InfoExtractor(object):
                 formats = self._extract_m3u8_formats(
                     full_url, video_id, ext='mp4',
                     entry_protocol=m3u8_entry_protocol, m3u8_id=m3u8_id,
-                    preference=preference, fatal=False)
+                    preference=preference, quality=quality, fatal=False)
             elif ext == 'mpd':
                 is_plain_url = False
                 formats = self._extract_mpd_formats(

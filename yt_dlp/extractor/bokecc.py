@@ -23,7 +23,7 @@ class BokeCCBaseIE(InfoExtractor):
         formats = [{
             'format_id': format_id,
             'url': quality.find('./copy').attrib['playurl'],
-            'preference': int(quality.attrib['value']),
+            'quality': int(quality.attrib['value']),
         } for quality in info_xml.findall('./video/quality')]
 
         self._sort_formats(formats)

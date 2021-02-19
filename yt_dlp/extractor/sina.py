@@ -99,7 +99,7 @@ class SinaIE(InfoExtractor):
                 formats.append({
                     'format_id': quality_id,
                     'url': update_url_query(file_api, {'vid': file_id}),
-                    'preference': preference(quality_id),
+                    'quality': preference(quality_id),
                     'ext': 'mp4',
                 })
             self._sort_formats(formats)

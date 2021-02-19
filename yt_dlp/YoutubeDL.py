@@ -27,6 +27,7 @@ import traceback
 import random
 
 from string import ascii_letters
+from zipimport import zipimporter
 
 from .compat import (
     compat_basestring,
@@ -867,13 +868,6 @@ class YoutubeDL(object):
                     sub_ext = fn_groups[-2]
                 filename = '.'.join(filter(None, [fn_groups[0][:trim_file_name], sub_ext, ext]))
 
-            # Temporary fix for #4787
-            # 'Treat' all problem characters by passing filename through preferredencoding
-            # to workaround encoding issues with subprocess on python2 @ Windows
-            if sys.version_info < (3, 0) and sys.platform == 'win32':
-                filename = encodeFilename(filename, True).decode(preferredencoding())
-            filename = sanitize_path(filename)
-
             return filename
         except ValueError as err:
             self.report_error('Error in output template: ' + str(err) + ' (encoding: ' + repr(preferredencoding()) + ')')
@@ -900,7 +894,14 @@ class YoutubeDL(object):
         assert isinstance(homepath, compat_str)
         subdir = expand_path(paths.get(dir_type, '').strip()) if dir_type else ''
         assert isinstance(subdir, compat_str)
-        return sanitize_path(os.path.join(homepath, subdir, filename))
+        path = os.path.join(homepath, subdir, filename)
+
+        # Temporary fix for #4787
+        # 'Treat' all problem characters by passing filename through preferredencoding
+        # to workaround encoding issues with subprocess on python2 @ Windows
+        if sys.version_info < (3, 0) and sys.platform == 'win32':
+            path = encodeFilename(path, True).decode(preferredencoding())
+        return sanitize_path(path, force=self.params.get('windowsfilenames'))
 
     def _match_entry(self, info_dict, incomplete):
         """ Returns None if the file should be downloaded """
@@ -2359,6 +2360,9 @@ class YoutubeDL(object):
                             info_dict['__files_to_merge'] = downloaded
                             # Even if there were no downloads, it is being merged only now
                             info_dict['__real_download'] = True
+                        else:
+                            for file in downloaded:
+                                files_to_move[file] = None
                 else:
                     # Just a single file
                     dl_filename = existing_file(full_filename, temp_filename)
@@ -2712,8 +2716,6 @@ class YoutubeDL(object):
                 if f.get('preference') is None or f['preference'] >= -1000]
             header_line = ['format code', 'extension', 'resolution', 'note']
 
-        # if len(formats) > 1:
-        #     table[-1][-1] += (' ' if table[-1][-1] else '') + '(best)'
         self.to_screen(
             '[info] Available formats for %s:\n%s' % (info_dict['id'], render_table(
                 header_line,
@@ -2770,7 +2772,12 @@ class YoutubeDL(object):
                 self.get_encoding()))
         write_string(encoding_str, encoding=None)
 
-        self._write_string('[debug] yt-dlp version %s\n' % __version__)
+        source = (
+            '(exe)' if hasattr(sys, 'frozen')
+            else '(zip)' if isinstance(globals().get('__loader__'), zipimporter)
+            else '(source)' if os.path.basename(sys.argv[0]) == '__main__.py'
+            else '')
+        self._write_string('[debug] yt-dlp version %s %s\n' % (__version__, source))
         if _LAZY_LOADER:
             self._write_string('[debug] Lazy loading extractors enabled\n')
         if _PLUGIN_CLASSES:
@@ -2797,8 +2804,10 @@ class YoutubeDL(object):
                 return impl_name + ' version %d.%d.%d' % sys.pypy_version_info[:3]
             return impl_name
 
-        self._write_string('[debug] Python version %s (%s) - %s\n' % (
-            platform.python_version(), python_implementation(),
+        self._write_string('[debug] Python version %s (%s %s) - %s\n' % (
+            platform.python_version(),
+            python_implementation(),
+            platform.architecture()[0],
             platform_name()))
 
         exe_versions = FFmpegPostProcessor.get_versions(self)

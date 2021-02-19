@@ -175,7 +175,7 @@ class LimelightBaseIE(InfoExtractor):
                 formats.append({
                     'url': media_url,
                     'format_id': format_id,
-                    'preference': -1,
+                    'quality': -10,
                     'ext': ext,
                 })
 

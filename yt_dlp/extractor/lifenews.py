@@ -201,7 +201,7 @@ class LifeEmbedIE(InfoExtractor):
             formats.append({
                 'url': original_url,
                 'format_id': determine_ext(original_url, None),
-                'preference': 1,
+                'quality': 1,
             })
 
         playlist = self._parse_json(

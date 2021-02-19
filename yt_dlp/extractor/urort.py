@@ -44,7 +44,7 @@ class UrortIE(InfoExtractor):
                 'ext': f['FileType'],
                 'format_id': '%s-%s' % (f['FileType'], f.get('Quality', '')),
                 'url': 'http://p3urort.blob.core.windows.net/tracks/%s' % f['FileRef'],
-                'preference': 3 if f['FileType'] == 'mp3' else 2,
+                'quality': 3 if f['FileType'] == 'mp3' else 2,
             } for f in s['Files']]
             self._sort_formats(formats)
             e = {

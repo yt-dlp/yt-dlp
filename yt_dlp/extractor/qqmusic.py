@@ -121,7 +121,7 @@ class QQMusicIE(InfoExtractor):
                        % (details['prefix'], mid, details['ext'], vkey, guid),
                 'format': format_id,
                 'format_id': format_id,
-                'preference': details['preference'],
+                'quality': details['preference'],
                 'abr': details.get('abr'),
             })
         self._check_formats(formats, mid)

@@ -45,7 +45,7 @@ class RTPIE(InfoExtractor):
             if file_key:
                 formats.append({
                     'url': 'https://cdn-ondemand.rtp.pt' + file_key,
-                    'preference': 1,
+                    'quality': 1,
                 })
             self._sort_formats(formats)
         else:

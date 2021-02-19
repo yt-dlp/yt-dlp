@@ -82,7 +82,7 @@ class CamModelsIE(InfoExtractor):
                     f.update({
                         'ext': 'mp4',
                         # hls skips fragments, preferring rtmp
-                        'preference': -1,
+                        'quality': -10,
                     })
                 else:
                     continue

@@ -181,6 +181,7 @@ class VidmeIE(InfoExtractor):
                     'url': format_url,
                     'width': int_or_none(f.get('width')),
                     'height': int_or_none(f.get('height')),
+                    # Clips should never be prefered over full video
                     'preference': 0 if f.get('type', '').endswith(
                         'clip') else 1,
                 })

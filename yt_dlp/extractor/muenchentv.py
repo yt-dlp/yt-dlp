@@ -61,7 +61,7 @@ class MuenchenTVIE(InfoExtractor):
                 'tbr': int_or_none(s.get('label')),
                 'ext': 'mp4',
                 'format_id': format_id,
-                'preference': -100 if '.smil' in s['file'] else 0,
+                'preference': -100 if '.smil' in s['file'] else 0,  # Strictly inferior than all other formats?
             })
         self._sort_formats(formats)
 

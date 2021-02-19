@@ -115,7 +115,7 @@ class HearThisAtIE(InfoExtractor):
                     'vcodec': 'none',
                     'ext': ext,
                     'url': download_url,
-                    'preference': 2,  # Usually better quality
+                    'quality': 2,  # Usually better quality
                 })
         self._sort_formats(formats)
 

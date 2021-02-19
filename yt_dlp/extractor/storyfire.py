@@ -92,7 +92,7 @@ class StoryFireIE(InfoExtractor):
             if aformat:
                 format['acodec'] = aformat['acodec']
                 format['abr'] = aformat['abr']
-                format['preference'] = aformat['preference']
+                format['quality'] = aformat['preference']
                 format['ext'] = 'm4a'
 
         self._sort_formats(formats)

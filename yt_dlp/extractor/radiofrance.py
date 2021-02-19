@@ -43,7 +43,7 @@ class RadioFranceIE(InfoExtractor):
                 'format_id': fm[0],
                 'url': fm[1],
                 'vcodec': 'none',
-                'preference': i,
+                'quality': i,
             }
             for i, fm in
             enumerate(re.findall(r"([a-z0-9]+)\s*:\s*'([^']+)'", formats_str))

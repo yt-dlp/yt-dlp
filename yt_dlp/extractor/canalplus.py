@@ -89,7 +89,7 @@ class CanalplusIE(InfoExtractor):
                     # the secret extracted from ya function in http://player.canalplus.fr/common/js/canalPlayer.js
                     'url': format_url + '?secret=pqzerjlsmdkjfoiuerhsdlfknaes',
                     'format_id': format_id,
-                    'preference': preference(format_id),
+                    'quality': preference(format_id),
                 })
         self._sort_formats(formats)
 

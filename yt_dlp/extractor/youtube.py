@@ -32,7 +32,7 @@ from ..utils import (
     mimetype2ext,
     parse_codecs,
     parse_duration,
-    # qualities,  # TODO: Enable this after fixing formatSort
+    qualities,
     remove_start,
     smuggle_url,
     str_or_none,
@@ -58,7 +58,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'embed|e|watch_popup|channel|c|user|playlist|watch|w|v|movies|results|shared|'
+        r'embed|e|watch_popup|channel|c|user|playlist|watch|w|v|movies|results|shared|hashtag|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout|'
         r'feed/(?:watch_later|history|subscriptions|library|trending|recommended)')
 
@@ -350,6 +350,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             (?:www\.)?yourepeat\.com/|
                             tube\.majestyc\.net/|
                             # Invidious instances taken from https://github.com/omarroth/invidious/wiki/Invidious-Instances
+                            (?:www\.)?invidious\.pussthecat\.org/|
+                            (?:www\.)?invidious\.048596\.xyz/|
+                            (?:www\.)?invidious\.zee\.li/|
+                            (?:www\.)?vid\.puffyan\.us/|
+                            (?:(?:www|au)\.)?ytprivate\.com/|
+                            (?:www\.)?invidious\.namazso\.eu/|
+                            (?:www\.)?invidious\.ethibox\.fr/|
+                            (?:www\.)?inv\.skyn3t\.in/|
+                            (?:www\.)?invidious\.himiko\.cloud/|
+                            (?:www\.)?w6ijuptxiku4xpnnaetxvnkc5vqcdu7mgns2u77qefoixi63vbvnpnqd\.onion/|
+                            (?:www\.)?kbjggqkzv65ivcqj6bumvp337z6264huv5kpkwuv6gu5yjiskvan7fad\.onion/|
+                            (?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion/|
+                            (?:www\.)?grwp24hodrefzvjjuccrkw3mjq4tzhaaq32amf33dzpmuxe7ilepcmad\.onion/|
                             (?:(?:www|dev)\.)?invidio\.us/|
                             (?:(?:www|no)\.)?invidiou\.sh/|
                             (?:(?:www|fi)\.)?invidious\.snopyta\.org/|
@@ -373,7 +386,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             (?:www\.)?yt\.lelux\.fi/|
                             (?:www\.)?invidious\.ggc-project\.de/|
                             (?:www\.)?yt\.maisputain\.ovh/|
-                            (?:www\.)?invidious\.13ad\.de/|
                             (?:www\.)?invidious\.toot\.koeln/|
                             (?:www\.)?invidious\.fdn\.fr/|
                             (?:www\.)?watch\.nettohikari\.com/|
@@ -1414,7 +1426,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
         base_url = self.http_scheme() + '//www.youtube.com/'
-        webpage_url = base_url + 'watch?v=' + video_id
+        webpage_url = base_url + 'watch?v=' + video_id + '&has_verified=1'
         webpage = self._download_webpage(webpage_url, video_id, fatal=False)
 
         player_response = None
@@ -1516,8 +1528,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         itags = []
         itag_qualities = {}
         player_url = None
-        # TODO: Enable this after fixing formatSort
-        # q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
+        q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
         streaming_data = player_response.get('streamingData') or {}
         streaming_formats = streaming_data.get('formats') or []
         streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
@@ -1565,7 +1576,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'format_note': fmt.get('qualityLabel') or quality,
                 'fps': int_or_none(fmt.get('fps')),
                 'height': int_or_none(fmt.get('height')),
-                # 'quality': q(quality),    # TODO: Enable this after fixing formatSort
+                'quality': q(quality),
                 'tbr': tbr,
                 'url': fmt_url,
                 'width': fmt.get('width'),
@@ -1608,8 +1619,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     itag = f['format_id']
                     if itag in itags:
                         continue
-                    # if itag in itag_qualities:  # TODO: Enable this after fixing formatSort
-                    #     f['quality'] = q(itag_qualities[itag])
+                    if itag in itag_qualities:
+                        # Not actually usefull since the sorting is already done with "quality,res,fps,codec"
+                        # but kept to maintain feature parity (and code similarity) with youtube-dl
+                        # Remove if this causes any issues with sorting in future
+                        f['quality'] = q(itag_qualities[itag])
                     filesize = int_or_none(self._search_regex(
                         r'/clen/(\d+)', f.get('fragment_base_url')
                         or f['url'], 'file size', default=None))
@@ -2064,7 +2078,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment = meta_comment['commentThreadRenderer']['comment']['commentRenderer']
                     video_comments.append({
                         'id': comment['commentId'],
-                        'text': ''.join([c['text'] for c in comment['contentText']['runs']]),
+                        'text': ''.join([c['text'] for c in try_get(comment, lambda x: x['contentText']['runs'], list) or []]),
                         'time_text': ''.join([c['text'] for c in comment['publishedTimeText']['runs']]),
                         'author': comment.get('authorText', {}).get('simpleText', ''),
                         'votes': comment.get('voteCount', {}).get('simpleText', '0'),
@@ -2129,7 +2143,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         (?:
                             (?:channel|c|user)/|
                             (?P<not_channel>
-                                feed/|
+                                feed/|hashtag/|
                                 (?:playlist|watch)\?.*?\blist=
                             )|
                             (?!(?:%s)\b)  # Direct URLs
@@ -2763,6 +2777,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 'gridVideoRenderer': (self._grid_entries, 'items'),
                 'playlistVideoRenderer': (self._playlist_entries, 'contents'),
                 'itemSectionRenderer': (self._playlist_entries, 'contents'),
+                'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
             }
             continuation_items = try_get(
                 response, lambda x: x['onResponseReceivedActions'][0]['appendContinuationItemsAction']['continuationItems'], list)
@@ -2772,9 +2787,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 if key not in known_renderers:
                     continue
                 video_items_renderer = {known_renderers[key][1]: continuation_items}
+                continuation_list = [None]
                 for entry in known_renderers[key][0](video_items_renderer):
                     yield entry
-                continuation = self._extract_continuation(video_items_renderer)
+                continuation = continuation_list[0] or self._extract_continuation(video_items_renderer)
                 break
             if video_items_renderer:
                 continue

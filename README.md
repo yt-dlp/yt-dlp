@@ -56,20 +56,20 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl v2021.02.04.1**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl v2021.02.10**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/pukkandan/yt-dlp/pull/31) for details.
 
 * **Youtube improvements**:
-    * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and support downloading multiple pages of content
-    * Youtube search works correctly (`ytsearch:`, `ytsearchdate:`) along with Search URLs
+    * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and supports downloading multiple pages of content
+    * Youtube search (`ytsearch:`, `ytsearchdate:`) along with Search URLs works correctly
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
 
 * **Aria2c with HLS/DASH**: You can use aria2c as the external downloader for DASH(mpd) and HLS(m3u8) formats. No more slow ffmpeg/native downloads
 
 * **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius
 
-* **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina
+* **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina, rumble
 
 * **Plugin support**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
 
@@ -83,6 +83,8 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Improvements**: Multiple `--postprocessor-args` and `--external-downloader-args`, Date/time formatting in `-o`, faster archive checking, more [format selection options](#format-selection) etc
 
+* **Self-updater**: The releases can be updated using `youtube-dlc -U`
+
 
 See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
 
@@ -95,13 +97,14 @@ If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the
 # INSTALLATION
 
 You can install yt-dlp using one of the following methods:
+* Download the binary from the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest) (recommended method)
 * Use [PyPI package](https://pypi.org/project/yt-dlp): `python -m pip install --upgrade yt-dlp`
-* Download the binary from the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest)
 * Use pip+git: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp.git@release`
 * Install master branch: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp`
 
 ### UPDATE
-`-U` does not work. Simply repeat the install process to update.
+Starting from version `2021.02.09`, you can use `youtube-dlc -U` to update if you are using the provided release.
+If you are using `pip`, simply re-run the same command that was used to install the program.
 
 ### COMPILE
 
@@ -174,7 +177,6 @@ Then simply type this
                                      containing directory
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them
-    --flat-videos                    Do not resolve the video urls
     --no-flat-playlist               Extract the videos of a playlist
     --mark-watched                   Mark videos watched (YouTube only)
     --no-mark-watched                Do not mark videos watched
@@ -358,6 +360,12 @@ Then simply type this
                                      filenames
     --no-restrict-filenames          Allow Unicode characters, "&" and spaces in
                                      filenames (default)
+    --windows-filenames              Force filenames to be windows compatible
+    --no-windows-filenames           Make filenames windows compatible only if
+                                     using windows (default)
+    --trim-filenames LENGTH          Limit the filename length (excluding
+                                     extension) to the specified number of
+                                     characters
     -w, --no-overwrites              Do not overwrite any files
     --force-overwrites               Overwrite all video and metadata files.
                                      This option includes --no-continue
@@ -408,8 +416,6 @@ Then simply type this
                                      may change
     --no-cache-dir                   Disable filesystem caching
     --rm-cache-dir                   Delete all filesystem cache files
-    --trim-file-name LENGTH          Limit the filename length (extension
-                                     excluded)
 
 ## Thumbnail Images:
     --write-thumbnail                Write thumbnail image to disk
@@ -513,8 +519,12 @@ Then simply type this
     --no-audio-multistreams          Only one audio stream is downloaded for
                                      each output file (default)
     --all-formats                    Download all available video formats
-    --prefer-free-formats            Prefer free video formats over non-free
-                                     formats of same quality
+    --prefer-free-formats            Prefer video formats with free containers
+                                     over non-free ones of same quality. Use
+                                     with "-S ext" to strictly prefer free
+                                     containers irrespective of quality
+    --no-prefer-free-formats         Don't give any special preference to free
+                                     containers (default)
     -F, --list-formats               List all available formats of requested
                                      videos
     --list-formats-as-table          Present the output of -F in tabular form
@@ -975,10 +985,10 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
  - `hasaud`: Gives priority to formats that has a audio stream
  - `ie_pref`: The format preference as given by the extractor
  - `lang`: Language preference as given by the extractor
- - `quality`: The quality of the format. This is a metadata field available in some websites
+ - `quality`: The quality of the format as given by the extractor
  - `source`: Preference of the source as given by the extractor
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8-native` > `m3u8` > `http-dash-segments` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
- - `vcodec`: Video Codec (`av01` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
+ - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
  - `acodec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac3` > `dts` > other > unknown)
  - `codec`: Equivalent to `vcodec,acodec`
  - `vext`: Video Extension (`mp4` > `webm` > `flv` > other > unknown). If `--prefer-free-formats` is used, `webm` is prefered.
@@ -997,9 +1007,9 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
  - `br`: Equivalent to using `tbr,vbr,abr`
  - `asr`: Audio sample rate in Hz
 
-Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a prefered value for the fields, seperated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
+Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a prefered value for the fields, seperated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
-The fields `hasvid`, `ie_pref`, `lang`, `quality` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `res,fps,codec:vp9,size,br,asr,proto,ext,hasaud,source,id`. Note that the extractors may override this default order, but they cannot override the user-provided order.
+The fields `hasvid`, `ie_pref`, `lang` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. Note that the extractors may override this default order, but they cannot override the user-provided order.
 
 If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all repects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
 

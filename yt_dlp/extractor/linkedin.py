@@ -124,7 +124,10 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
                 streaming_url, video_slug, 'mp4',
                 'm3u8_native', m3u8_id='hls', fatal=False))
 
-        self._sort_formats(formats, ('width', 'height', 'source_preference', 'tbr', 'abr'))
+        # It seems like this would be correctly handled by default
+        # However, unless someone can confirm this, the old
+        # behaviour is being kept as-is
+        self._sort_formats(formats, ('res', 'source_preference'))
 
         return {
             'id': self._get_video_id(video_data, course_slug, video_slug),

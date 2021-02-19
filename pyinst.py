@@ -72,7 +72,8 @@ PyInstaller.__main__.run([
     '--exclude-module=test',
     '--exclude-module=ytdlp_plugins',
     '--hidden-import=mutagen',
-    '--hidden-import=pycryptodome',
-    'yt_dlp/__main__.py',
+    '--hidden-import=Crypto',
+    '--upx-exclude=vcruntime140.dll',
+    'yt-dlp/__main__.py',
 ])
 SetVersion('dist/yt-dlp%s.exe' % _x86, VERSION_FILE)

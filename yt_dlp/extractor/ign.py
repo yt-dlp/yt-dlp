@@ -100,7 +100,7 @@ class IGNIE(IGNBaseIE):
             formats.append({
                 'ext': determine_ext(mezzanine_url, 'mp4'),
                 'format_id': 'mezzanine',
-                'preference': 1,
+                'quality': 1,
                 'url': mezzanine_url,
             })
 

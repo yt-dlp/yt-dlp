@@ -440,6 +440,7 @@ def _real_main(argv=None):
         'autonumber_size': opts.autonumber_size,
         'autonumber_start': opts.autonumber_start,
         'restrictfilenames': opts.restrictfilenames,
+        'windowsfilenames': opts.windowsfilenames,
         'ignoreerrors': opts.ignoreerrors,
         'force_generic_extractor': opts.force_generic_extractor,
         'ratelimit': opts.ratelimit,
@@ -549,16 +550,22 @@ def _real_main(argv=None):
     }
 
     with YoutubeDL(ydl_opts) as ydl:
-        # Update version
-        if opts.update_self:
-            update_self(ydl.to_screen, opts.verbose, ydl._opener)
+        actual_use = len(all_urls) or opts.load_info_filename
 
         # Remove cache dir
         if opts.rm_cachedir:
             ydl.cache.remove()
 
+        # Update version
+        if opts.update_self:
+            # If updater returns True, exit. Required for windows
+            if update_self(ydl.to_screen, opts.verbose, ydl._opener):
+                if actual_use:
+                    sys.exit('ERROR: The program must exit for the update to complete')
+                sys.exit()
+
         # Maybe do nothing
-        if (len(all_urls) < 1) and (opts.load_info_filename is None):
+        if not actual_use:
             if opts.update_self or opts.rm_cachedir:
                 sys.exit()
 

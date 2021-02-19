@@ -62,7 +62,7 @@ class WistiaBaseIE(InfoExtractor):
                     'format_id': format_id,
                     'url': aurl,
                     'tbr': int_or_none(a.get('bitrate')) or None,
-                    'preference': 1 if atype == 'original' else None,
+                    'quality': 1 if atype == 'original' else None,
                 }
                 if display_name == 'Audio':
                     f.update({

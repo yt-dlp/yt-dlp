@@ -619,7 +619,7 @@ class FacebookIE(InfoExtractor):
                         formats.append({
                             'format_id': '%s_%s_%s' % (format_id, quality, src_type),
                             'url': src,
-                            'preference': preference,
+                            'quality': preference,
                         })
             extract_dash_manifest(f[0], formats)
             subtitles_src = f[0].get('subtitles_src')

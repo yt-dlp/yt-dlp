@@ -422,7 +422,7 @@ class SoundcloudIE(InfoExtractor):
                         'ext': urlhandle_detect_ext(urlh) or 'mp3',
                         'filesize': int_or_none(urlh.headers.get('Content-Length')),
                         'url': format_url,
-                        'preference': 10,
+                        'quality': 10,
                     })
 
         def invalid_url(url):

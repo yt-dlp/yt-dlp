@@ -69,12 +69,10 @@ class BeatportIE(InfoExtractor):
                 'vcodec': 'none',
             }
             if ext == 'mp3':
-                fmt['preference'] = 0
                 fmt['acodec'] = 'mp3'
                 fmt['abr'] = 96
                 fmt['asr'] = 44100
             elif ext == 'mp4':
-                fmt['preference'] = 1
                 fmt['acodec'] = 'aac'
                 fmt['abr'] = 96
                 fmt['asr'] = 44100

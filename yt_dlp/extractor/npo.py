@@ -425,7 +425,7 @@ class NPOIE(NPOBaseIE):
                         stream_url, video_id, fatal=False)
                     # f4m downloader downloads only piece of live stream
                     for f4m_format in f4m_formats:
-                        f4m_format['preference'] = -1
+                        f4m_format['preference'] = -5
                     formats.extend(f4m_formats)
                 elif stream_type == 'hls':
                     formats.extend(self._extract_m3u8_formats(

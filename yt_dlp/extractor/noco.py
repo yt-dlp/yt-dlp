@@ -183,7 +183,7 @@ class NocoIE(InfoExtractor):
                         'filesize': int_or_none(fmt.get('filesize')),
                         'format_note': qualities[format_id].get('quality_name'),
                         'quality': qualities[format_id].get('priority'),
-                        'preference': preference,
+                        'language_preference': preference,
                     })
 
         self._sort_formats(formats)

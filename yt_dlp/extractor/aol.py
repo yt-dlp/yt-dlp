@@ -125,7 +125,7 @@ class AolIE(YahooIE):
                         'height': int_or_none(qs.get('h', [None])[0]),
                     })
                 formats.append(f)
-        self._sort_formats(formats, ('width', 'height', 'tbr', 'format_id'))
+        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -80,7 +80,9 @@ class SendtoNewsIE(InfoExtractor):
                     'format_id': '%s-%d' % (determine_protocol(f), tbr),
                     'tbr': tbr,
                 })
-            self._sort_formats(info_dict['formats'], ('tbr', 'height', 'width', 'format_id'))
+            # 'tbr' was explicitly set to be prefered over 'height' originally,
+            # So this is being kept unless someone can confirm this is unnecessary
+            self._sort_formats(info_dict['formats'], ('tbr', 'res'))
 
             thumbnails = []
             if video.get('thumbnailUrl'):
