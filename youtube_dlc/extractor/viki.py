@@ -31,7 +31,7 @@ class VikiBaseIE(InfoExtractor):
     _API_URL_TEMPLATE = 'https://api.viki.io%s&sig=%s'
 
     _APP = '100005a'
-    _APP_VERSION = '2.2.5.1428709186'
+    _APP_VERSION = '6.0.0'
     _APP_SECRET = 'MM_d*yP@`&1@]@!AVrXf_o-HVEnoTnm$O-ti4[G~$JDI/Dc-&piU&z&5.;:}95=Iad'
 
     _GEO_BYPASS = False
@@ -63,14 +63,25 @@ class VikiBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, note, timestamp=None, post_data=None):
         resp = self._download_json(
-            self._prepare_call(path, timestamp, post_data), video_id, note)
+            self._prepare_call(path, timestamp, post_data),
+            video_id, note,
+            headers={
+                'x-client-user-agent': std_headers['User-Agent'],
+                'x-viki-as-id': self._APP,
+                'x-viki-app-ver': self._APP_VERSION,
+            })
 
         error = resp.get('error')
         if error:
             if error == 'invalid timestamp':
                 resp = self._download_json(
                     self._prepare_call(path, int(resp['current_timestamp']), post_data),
-                    video_id, '%s (retry)' % note)
+                    video_id, '%s (retry)' % note,
+                    headers={
+                        'x-client-user-agent': std_headers['User-Agent'],
+                        'x-viki-as-id': self._APP,
+                        'x-viki-app-ver': self._APP_VERSION,
+                    })
                 error = resp.get('error')
             if error:
                 self._raise_error(resp['error'])
@@ -230,7 +241,8 @@ class VikiIE(VikiBaseIE):
             'https://www.viki.com/api/videos/' + video_id,
             video_id, 'Downloading video JSON', headers={
                 'x-client-user-agent': std_headers['User-Agent'],
-                'x-viki-app-ver': '4.0.57',
+                'x-viki-as-id': self._APP,
+                'x-viki-app-ver': self._APP_VERSION,
             })
         video = resp['video']
 
@@ -263,7 +275,12 @@ class VikiIE(VikiBaseIE):
             # New way to fetch subtitles
             new_video = self._download_json(
                 'https://www.viki.com/api/videos/%s' % video_id, video_id,
-                'Downloading new video JSON to get subtitles', fatal=False)
+                'Downloading new video JSON to get subtitles', fatal=False,
+                headers={
+                    'x-client-user-agent': std_headers['User-Agent'],
+                    'x-viki-as-id': self._APP,
+                    'x-viki-app-ver': self._APP_VERSION,
+                })
             for sub in new_video.get('streamSubtitles').get('dash'):
                 subtitles[sub.get('srclang')] = [{
                     'ext': 'vtt',
