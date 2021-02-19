@@ -5,6 +5,7 @@
  - **23video**
  - **24video**
  - **3qsdn**: 3Q SDN
+ - **3sat**
  - **4tube**
  - **56.com**
  - **5min**
@@ -222,6 +223,7 @@
  - **curiositystream**
  - **curiositystream:collection**
  - **CWTV**
+ - **DagelijkseKost**: dagelijksekost.een.be
  - **DailyMail**
  - **dailymotion**
  - **dailymotion:playlist**
@@ -244,6 +246,7 @@
  - **DiscoveryGo**
  - **DiscoveryGoPlaylist**
  - **DiscoveryNetworksDe**
+ - **DiscoveryPlus**
  - **DiscoveryVR**
  - **Disney**
  - **dlive:stream**
@@ -370,6 +373,7 @@
  - **HentaiStigma**
  - **hetklokhuis**
  - **hgtv.com:show**
+ - **HGTVDe**
  - **HiDive**
  - **HistoricFilms**
  - **history:player**
@@ -854,6 +858,9 @@
  - **ShahidShow**
  - **Shared**: shared.sx
  - **ShowRoomLive**
+ - **simplecast**
+ - **simplecast:episode**
+ - **simplecast:podcast**
  - **Sina**
  - **sky.it**
  - **sky:news**
@@ -1231,6 +1238,7 @@
  - **ZattooLive**
  - **ZDF-3sat**
  - **ZDFChannel**
+ - **Zhihu**
  - **zingmp3**: mp3.zing.vn
  - **zoom**
  - **Zype**

@@ -189,11 +189,15 @@ class YoutubeDL(object):
                        into a single file
     allow_multiple_audio_streams:   Allow multiple audio streams to be merged
                        into a single file
+    paths:             Dictionary of output paths. The allowed keys are 'home'
+                       'temp' and the keys of OUTTMPL_TYPES (in utils.py)
     outtmpl:           Dictionary of templates for output names. Allowed keys
-                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py)
+                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py).
+                       A string a also accepted for backward compatibility
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
+    windowsfilenames:  Force the filenames to be windows compatible
     ignoreerrors:      Do not stop on download errors
                        (Default True when running youtube-dlc,
                        but False when directly accessing YoutubeDL class)
