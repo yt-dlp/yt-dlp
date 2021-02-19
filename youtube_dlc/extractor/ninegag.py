@@ -2,10 +2,11 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     try_get,
+    unescapeHTML,
     url_or_none,
 )
 
@@ -14,7 +15,7 @@ class NineGagIE(InfoExtractor):
     IE_NAME = '9gag'
     _VALID_URL = r'https?://(?:www\.)?9gag\.com/gag/(?P<id>[^/?&#]+)'
 
-    _TEST = {
+    _TESTS = [{
         'url': 'https://9gag.com/gag/ae5Ag7B',
         'info_dict': {
             'id': 'ae5Ag7B',
@@ -29,7 +30,11 @@ class NineGagIE(InfoExtractor):
             'dislike_count': int,
             'comment_count': int,
         }
-    }
+    }, {
+        # HTML escaped title
+        'url': 'https://9gag.com/gag/av5nvyb',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
@@ -43,7 +48,7 @@ class NineGagIE(InfoExtractor):
                 'The given url does not contain a video',
                 expected=True)
 
-        title = post['title']
+        title = unescapeHTML(post['title'])
 
         duration = None
         formats = []

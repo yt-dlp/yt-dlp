@@ -182,6 +182,7 @@ from .canvas import (
     CanvasIE,
     CanvasEenIE,
     VrtNUIE,
+    DagelijkseKostIE,
 )
 from .carambatv import (
     CarambaTVIE,
@@ -309,7 +310,12 @@ from .douyutv import (
     DouyuShowIE,
     DouyuTVIE,
 )
-from .dplay import DPlayIE
+from .dplay import (
+    DPlayIE,
+    DiscoveryPlusIE,
+    HGTVDeIE,
+)
+from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
 from .drtuber import DrTuberIE
 from .drtv import (
@@ -1107,6 +1113,11 @@ from .shared import (
     VivoIE,
 )
 from .showroomlive import ShowRoomLiveIE
+from .simplecast import (
+    SimplecastIE,
+    SimplecastEpisodeIE,
+    SimplecastPodcastIE,
+)
 from .sina import SinaIE
 from .sixplay import SixPlayIE
 from .skyit import (
@@ -1165,11 +1176,6 @@ from .spike import (
     BellatorIE,
     ParamountNetworkIE,
 )
-from .storyfire import (
-    StoryFireIE,
-    StoryFireUserIE,
-    StoryFireSeriesIE,
-)
 from .stitcher import StitcherIE
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
@@ -1193,6 +1199,11 @@ from .srgssr import (
 from .srmediathek import SRMediathekIE
 from .stanfordoc import StanfordOpenClassroomIE
 from .steam import SteamIE
+from .storyfire import (
+    StoryFireIE,
+    StoryFireUserIE,
+    StoryFireSeriesIE,
+)
 from .streamable import StreamableIE
 from .streamcloud import StreamcloudIE
 from .streamcz import StreamCZIE
@@ -1652,6 +1663,7 @@ from .zattoo import (
     ZattooLiveIE,
 )
 from .zdf import ZDFIE, ZDFChannelIE
+from .zhihu import ZhihuIE
 from .zingmp3 import ZingMp3IE
 from .zoom import ZoomIE
 from .zype import ZypeIE

@@ -12,6 +12,7 @@ from test.helper import FakeYDL
 
 from youtube_dlc.extractor import (
     YoutubePlaylistIE,
+    YoutubeTabIE,
     YoutubeIE,
 )
 
@@ -57,14 +58,22 @@ class TestYoutubeLists(unittest.TestCase):
         entries = result['entries']
         self.assertEqual(len(entries), 100)
 
-    def test_youtube_flat_playlist_titles(self):
+    def test_youtube_flat_playlist_extraction(self):
         dl = FakeYDL()
         dl.params['extract_flat'] = True
-        ie = YoutubePlaylistIE(dl)
-        result = ie.extract('https://www.youtube.com/playlist?list=PL-KKIb8rvtMSrAO9YFbeM6UQrAqoFTUWv')
+        ie = YoutubeTabIE(dl)
+        result = ie.extract('https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc')
         self.assertIsPlaylist(result)
-        for entry in result['entries']:
-            self.assertTrue(entry.get('title'))
+        entries = list(result['entries'])
+        self.assertTrue(len(entries) == 1)
+        video = entries[0]
+        self.assertEqual(video['_type'], 'url_transparent')
+        self.assertEqual(video['ie_key'], 'Youtube')
+        self.assertEqual(video['id'], 'BaW_jenozKc')
+        self.assertEqual(video['url'], 'BaW_jenozKc')
+        self.assertEqual(video['title'], 'youtube-dl test video "\'/\\ä↭𝕐')
+        self.assertEqual(video['duration'], 10)
+        self.assertEqual(video['uploader'], 'Philipp Hagemeister')
 
 
 if __name__ == '__main__':

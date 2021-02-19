@@ -1,8 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 import hashlib
+import itertools
+import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -209,17 +210,27 @@ class YandexMusicPlaylistBaseIE(YandexMusicBaseIE):
             missing_track_ids = [
                 track_id for track_id in track_ids
                 if track_id not in present_track_ids]
-            missing_tracks = self._call_api(
-                'track-entries', tld, url, item_id,
-                'Downloading missing tracks JSON', {
-                    'entries': ','.join(missing_track_ids),
-                    'lang': tld,
-                    'external-domain': 'music.yandex.%s' % tld,
-                    'overembed': 'false',
-                    'strict': 'true',
-                })
-            if missing_tracks:
-                tracks.extend(missing_tracks)
+            # Request missing tracks in chunks to avoid exceeding max HTTP header size,
+            # see https://github.com/ytdl-org/youtube-dl/issues/27355
+            _TRACKS_PER_CHUNK = 250
+            for chunk_num in itertools.count(0):
+                start = chunk_num * _TRACKS_PER_CHUNK
+                end = start + _TRACKS_PER_CHUNK
+                missing_track_ids_req = missing_track_ids[start:end]
+                assert missing_track_ids_req
+                missing_tracks = self._call_api(
+                    'track-entries', tld, url, item_id,
+                    'Downloading missing tracks JSON chunk %d' % (chunk_num + 1), {
+                        'entries': ','.join(missing_track_ids_req),
+                        'lang': tld,
+                        'external-domain': 'music.yandex.%s' % tld,
+                        'overembed': 'false',
+                        'strict': 'true',
+                    })
+                if missing_tracks:
+                    tracks.extend(missing_tracks)
+                if end >= len(missing_track_ids):
+                    break
 
         return tracks
 
