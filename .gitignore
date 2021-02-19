@@ -82,9 +82,7 @@ cookies.txt
 .idea
 *.iml
 .vscode
-*.sublime-workspace
-*.sublime-project
-!yt-dlp.sublime-project
+*.sublime-*
 
 # Lazy extractors
 */extractor/lazy_extractors.py
