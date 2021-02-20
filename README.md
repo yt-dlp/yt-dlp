@@ -923,6 +923,7 @@ You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, 
 
 You can also use special names to select particular edge case formats:
 
+ - `all`: Select all formats
  - `b*`, `best*`: Select the best quality format irrespective of whether it contains video or audio.
  - `w*`, `worst*`: Select the worst quality format irrespective of whether it contains video or audio.
  - `b`, `best`: Select the best quality format that contains both video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
@@ -973,7 +974,7 @@ Any string comparison may be prefixed with negation `!` in order to produce an o
 
 Note that none of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the video hoster. Any other field made available by the extractor can also be used for filtering.
 
-Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height <=? 720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s.
+Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter. For example, `-f "all[vcodec=none]"` selects all audio-only formats.
 
 Format selectors can also be grouped using parentheses, for example if you want to download the best mp4 and webm formats with a height lower than 480 you can use `-f '(mp4,webm)[height<480]'`.
 
