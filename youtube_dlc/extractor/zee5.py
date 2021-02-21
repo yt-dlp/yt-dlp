@@ -7,7 +7,7 @@ from ..utils import try_get
 
 class Zee5IE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?zee5\.com/.*/(?P<id>.*)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.zee5.com/movies/details/krishna-the-birth/0-0-63098',
         # 'md5': 'cd5abd10fab020dbb633cb8e94df0e12',
         'info_dict': {
@@ -20,7 +20,22 @@ class Zee5IE(InfoExtractor):
         'params': {
             'format': 'bv',
         },
-    }
+    }, {'url': 'https://zee5.com/tvshows/details/krishna-balram/0-6-1871/episode-1-the-test-of-bramha/0-1-233402',
+        # 'md5': 'cd5abd10fab020dbb633cb8e94df0e12',
+        'info_dict': {
+            'id': '0-1-233402',
+            'ext': 'm3u8',
+            'title': 'Episode 1 - The Test Of Bramha',
+            'thumbnail': 'https://akamaividz.zee5.com/resources/0-1-233402/list/270x152/01233402_list.jpg',
+            'description': str,
+            'show_title': 'Krishna Balram',
+            'season_title': 'Season 1',
+            'season_index': 1,
+            'ep_index': 1,
+        },
+        'params': {
+            'format': 'bv',
+        }, }]
 
     def _real_extract(self, url):
         token_url = "https://useraction.zee5.com/tokennd"
