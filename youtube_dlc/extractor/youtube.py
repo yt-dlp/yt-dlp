@@ -1757,6 +1757,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'tags': keywords,
             'is_live': is_live,
             'playable_in_embed': playability_status.get('playableInEmbed'),
+            'was_live': video_details.get('isLiveContent')
         }
 
         pctr = try_get(

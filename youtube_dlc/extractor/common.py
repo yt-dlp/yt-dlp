@@ -280,6 +280,8 @@ class InfoExtractor(object):
     tags:           A list of tags assigned to the video, e.g. ["sweden", "pop music"]
     is_live:        True, False, or None (=unknown). Whether this video is a
                     live stream that goes on instead of a fixed-length video.
+    was_live:       True, False, or None (=unknown). Whether this video was
+                    originally a live stream.
     start_time:     Time in seconds where the reproduction should start, as
                     specified in the URL.
     end_time:       Time in seconds where the reproduction should end, as

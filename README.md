@@ -801,6 +801,7 @@ The available fields are:
  - `comment_count` (numeric): Number of comments on the video
  - `age_limit` (numeric): Age restriction for the video (years)
  - `is_live` (boolean): Whether this video is a live stream or a fixed-length video
+ - `was_live` (boolean): Whether this video was originally a live stream
  - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
  - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
  - `format` (string): A human-readable description of the format
