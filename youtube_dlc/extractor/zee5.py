@@ -70,13 +70,13 @@ class Zee5IE(InfoExtractor):
         video_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
         access_token_request = self._download_json(
             'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
-            video_id, "Downloading access token")
+            video_id, note="Downloading access token")
         token_request = self._download_json(
-            'https://useraction.zee5.com/tokennd', video_id,
-            note="Downloading video token")
+            'https://useraction.zee5.com/tokennd',
+            video_id, note="Downloading video token")
         json_data = self._download_json(
-            'https://gwapi.zee5.com/content/details/{}?translation=en&country=IN'.format(video_id), video_id,
-            headers={'X-Access-Token': access_token_request['token']})
+            'https://gwapi.zee5.com/content/details/{}?translation=en&country=IN'.format(video_id),
+            video_id, headers={'X-Access-Token': access_token_request['token']})
         m3u8_url = try_get(
             json_data,
             (lambda x: x['hls'][0], lambda x: x['video_details']['hls_url']),
