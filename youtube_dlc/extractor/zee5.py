@@ -1,88 +1,115 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
+
 from .common import InfoExtractor
-from ..utils import try_get
+from ..utils import (
+    int_or_none,
+    parse_age_limit,
+    str_or_none,
+    try_get,
+    unified_strdate,
+    unified_timestamp,
+    url_or_none,
+)
 
 
 class Zee5IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?zee5\.com/.*/(?P<id>.*)'
+    _VALID_URL = r'https?://(?:www\.)?zee5\.com/[^#?]*/(?P<display_id>[-\w]+)/(?P<id>[-\d]+)'
     _TESTS = [{
         'url': 'https://www.zee5.com/movies/details/krishna-the-birth/0-0-63098',
-        # 'md5': 'cd5abd10fab020dbb633cb8e94df0e12',
+        'md5': 'cd5abd10fab020dbb633cb8e94df0e12',
         'info_dict': {
-            'id': '0-0-63098',
-            'ext': 'm3u8',
-            'title': 'Krishna - The Birth',
-            'thumbnail': 'https://akamaividz.zee5.com/resources/0-0-63098/list/270x152/0063098_list_80888170.jpg',
-            'description': str,
+            "id": "0-0-63098",
+            "ext": "m3u8",
+            "display_id": "krishna-the-birth",
+            "title": "Krishna - The Birth",
+            "duration": 4368,
+            "average_rating": 4,
+            "description": str,
+            "alt_title": "Krishna - The Birth",
+            "uploader": "Zee Entertainment Enterprises Ltd",
+            "release_date": "20060101",
+            "upload_date": "20060101",
+            "timestamp": 1136073600,
+            "thumbnail": "https://akamaividz.zee5.com/resources/0-0-63098/list/270x152/0063098_list_80888170.jpg",
+            "tags": list
         },
         'params': {
             'format': 'bv',
         },
-    }, {'url': 'https://zee5.com/tvshows/details/krishna-balram/0-6-1871/episode-1-the-test-of-bramha/0-1-233402',
-        # 'md5': 'cd5abd10fab020dbb633cb8e94df0e12',
+    }, {
+        'url': 'https://zee5.com/tvshows/details/krishna-balram/0-6-1871/episode-1-the-test-of-bramha/0-1-233402',
+        'md5': '8cfb2db5d51e587ce6762f14c09df90e',
         'info_dict': {
-            'id': '0-1-233402',
+            "id": "0-1-233402",
             'ext': 'm3u8',
-            'title': 'Episode 1 - The Test Of Bramha',
-            'thumbnail': 'https://akamaividz.zee5.com/resources/0-1-233402/list/270x152/01233402_list.jpg',
-            'description': str,
-            'show_title': 'Krishna Balram',
-            'season_title': 'Season 1',
-            'season_index': 1,
-            'ep_index': 1,
+            "display_id": "episode-1-the-test-of-bramha",
+            "title": "Episode 1 - The Test Of Bramha",
+            "duration": 1336,
+            "average_rating": 4,
+            "description": str,
+            "alt_title": "Episode 1 - The Test Of Bramha",
+            "uploader": "Green Gold",
+            "release_date": "20090101",
+            "upload_date": "20090101",
+            "timestamp": 1230768000,
+            "thumbnail": "https://akamaividz.zee5.com/resources/0-1-233402/list/270x152/01233402_list.jpg",
+            "series": "Krishna Balram",
+            "season_number": 1,
+            "episode_number": 1,
+            "tags": list,
         },
         'params': {
             'format': 'bv',
-        }, }]
+        },
+    }]
 
     def _real_extract(self, url):
-        token_url = "https://useraction.zee5.com/tokennd"
-        search_api_endpoint = "https://gwapi.zee5.com/content/details/{}?translation=en&country=IN"
-        platform_token = "https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app"
-        stream_baseurl = "https://zee5vodnd.akamaized.net"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Linux; Android 10; SM-J400F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Mobile Safari/537.36",
-            "Referer": "https://www.zee5.com",
-            "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Origin": "https://www.zee5.com",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-site",
-        }
-        video_id = self._match_id(url)
-        token_request = self._download_json(url_or_request=token_url, video_id=video_id, headers=headers)
-        x_access_token = self._download_json(url_or_request=platform_token, video_id=video_id)["token"]
-        headers["X-Access-Token"] = x_access_token
-        json_data = self._download_json(url_or_request=search_api_endpoint.format(video_id), video_id=video_id, headers=headers,)
-        partial_m3u8_url = (json_data["hls"][0].replace("drm", "hls") + token_request["video_token"])
-        title = json_data['title']
-        m3u8_url = stream_baseurl + partial_m3u8_url
-        description = json_data['description']
-        thumbnail = json_data['image_url']
-        formats = self._extract_m3u8_formats(m3u8_url=m3u8_url, video_id=video_id)
-        if json_data['asset_subtype'] == 'episode':
-            show_title = try_get(json_data, lambda x: x['tvshow_details']['title'])
-            season_title = try_get(json_data, lambda x: x['season_details']['title'])
-            season_index = try_get(json_data, lambda x: x['season_details']['index'])
-            ep_index = try_get(json_data, lambda x: x['index'])
-        elif json_data['asset_subtype'] == 'movie':
-            show_title = None
-            season_title = None
-            season_index = None
-            ep_index = None
+        video_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
+        access_token_request = self._download_json(
+            'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
+            video_id, "Downloading access token")
+        token_request = self._download_json(
+            'https://useraction.zee5.com/tokennd', video_id,
+            note="Downloading video token")
+        json_data = self._download_json(
+            'https://gwapi.zee5.com/content/details/{}?translation=en&country=IN'.format(video_id), video_id,
+            headers={'X-Access-Token': access_token_request['token']})
+        m3u8_url = try_get(
+            json_data,
+            (lambda x: x['hls'][0], lambda x: x['video_details']['hls_url']),
+            str)
+        formats = self._extract_m3u8_formats(
+            'https://zee5vodnd.akamaized.net' + m3u8_url.replace('/drm1/', '/hls1/') + token_request['video_token'],
+            video_id, fatal=False)
+        mpd_url = try_get(
+            json_data,
+            (lambda x: x['video'][0], lambda x: x['video_details']['url']),
+            str)
+        formats += self._extract_mpd_formats(
+            'https://zee5vodnd.akamaized.net' + mpd_url + token_request['video_token'],
+            video_id, fatal=False)
+
+        self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': title,
+            'display_id': display_id,
+            'title': json_data['title'],
             'formats': formats,
-            'description': description,
-            'thumbnail': thumbnail,
-            'show_title': show_title,
-            'season_title': season_title,
-            'season_index': season_index,
-            'ep_index': ep_index,
-
+            'duration': int_or_none(json_data.get('duration')),
+            'average_rating': int_or_none(json_data.get('rating')),
+            'description': str_or_none(json_data.get('description')),
+            'alt_title': str_or_none(json_data.get('original_title')),
+            'uploader': str_or_none(json_data.get('content_owner')),
+            'age_limit': parse_age_limit(json_data.get('age_rating')),
+            'release_date': unified_strdate(json_data.get('release_date')),
+            'timestamp': unified_timestamp(json_data.get('release_date')),
+            'thumbnail': url_or_none(json_data.get('image_url')),
+            'series': try_get(json_data, lambda x: x['tvshow_details']['title'], str),
+            'season': try_get(json_data, lambda x: x['season_details']['title'], str),
+            'season_number': int_or_none(try_get(json_data, lambda x: x['season_details']['index'])),
+            'episode_number': int_or_none(try_get(json_data, lambda x: x['index'])),
+            'tags': try_get(json_data, lambda x: x['tags'], list)
         }
