@@ -32,9 +32,14 @@ class JWPlatformIE(InfoExtractor):
 
     @staticmethod
     def _extract_urls(webpage):
-        return re.findall(
-            r'<(?:script|iframe)[^>]+?src=["\']((?:https?:)?//(?:content\.jwplatform|cdn\.jwplayer)\.com/players/[a-zA-Z0-9]{8})',
-            webpage)
+        for tag, key in ((r'(?:script|iframe)', 'src'), ('input', 'value')):
+            # <input value=URL> is used by hyland.com
+            # if we find <iframe>, dont look for <input>
+            ret = re.findall(
+                r'<%s[^>]+?%s=["\']((?:https?:)?//(?:content\.jwplatform|cdn\.jwplayer)\.com/players/[a-zA-Z0-9]{8})' % (tag, key),
+                webpage)
+            if ret:
+                return ret
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
