@@ -19,7 +19,6 @@ class Zee5IE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?zee5\.com/[^#?]*/(?P<display_id>[-\w]+)/(?P<id>[-\d]+)'
     _TESTS = [{
         'url': 'https://www.zee5.com/movies/details/krishna-the-birth/0-0-63098',
-        'md5': 'cd5abd10fab020dbb633cb8e94df0e12',
         'info_dict': {
             "id": "0-0-63098",
             "ext": "m3u8",
@@ -41,7 +40,6 @@ class Zee5IE(InfoExtractor):
         },
     }, {
         'url': 'https://zee5.com/tvshows/details/krishna-balram/0-6-1871/episode-1-the-test-of-bramha/0-1-233402',
-        'md5': '8cfb2db5d51e587ce6762f14c09df90e',
         'info_dict': {
             "id": "0-1-233402",
             'ext': 'm3u8',
