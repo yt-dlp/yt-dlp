@@ -42,7 +42,7 @@ class HlsFD(FragmentFD):
             # no segments will definitely be appended to the end of the playlist.
             # r'#EXT-X-PLAYLIST-TYPE:EVENT',  # media segments may be appended to the end of
             #                                 # event media playlists [4]
-            r'#EXT-X-MAP:',  # media initialization [5]
+            # r'#EXT-X-MAP:',  # media initialization [5]
 
             # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.4
             # 2. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.2
@@ -205,6 +205,75 @@ class HlsFD(FragmentFD):
                         break
                     i += 1
                     media_sequence += 1
+                elif line.startswith('#EXT-X-MAP'):
+                    if frag_index > 0:
+                        self.report_error(
+                            'initialization fragment found after media fragments, unable to download')
+                        return False
+                    frag_index += 1
+                    map_info = parse_m3u8_attributes(line[11:])
+                    frag_url = (
+                        map_info.get('uri')
+                        if re.match(r'^https?://', line)
+                        else compat_urlparse.urljoin(man_url, map_info.get('uri')))
+                    if real_downloader:
+                        fragment_urls.append(frag_url)
+                        continue
+
+                    if map_info.get('byterange'):
+                        splitted_byte_range = map_info.get('byte_range').split('@')
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                        byte_range = {
+                            'start': sub_range_start,
+                            'end': sub_range_start + int(splitted_byte_range[0]),
+                        }
+
+                    count = 0
+                    headers = info_dict.get('http_headers', {})
+                    if byte_range:
+                        headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
+                    while count <= fragment_retries:
+                        try:
+                            success, frag_content = self._download_fragment(
+                                ctx, frag_url, info_dict, headers)
+                            if not success:
+                                return False
+                            break
+                        except compat_urllib_error.HTTPError as err:
+                            # Unavailable (possibly temporary) fragments may be served.
+                            # First we try to retry then either skip or abort.
+                            # See https://github.com/ytdl-org/youtube-dl/issues/10165,
+                            # https://github.com/ytdl-org/youtube-dl/issues/10448).
+                            count += 1
+                            if count <= fragment_retries:
+                                self.report_retry_fragment(err, frag_index, count, fragment_retries)
+                    if count > fragment_retries:
+                        if skip_unavailable_fragments:
+                            i += 1
+                            media_sequence += 1
+                            self.report_skip_fragment(frag_index)
+                            continue
+                        self.report_error(
+                            'giving up after %s fragment retries' % fragment_retries)
+                        return False
+
+                    if decrypt_info['METHOD'] == 'AES-128':
+                        iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', media_sequence)
+                        decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
+                            self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
+                        # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
+                        # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
+                        # not what it decrypts to.
+                        if not test:
+                            frag_content = AES.new(
+                                decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
+                    self._append_fragment(ctx, frag_content)
+                    # We only download the first fragment during the test
+                    if test:
+                        break
+                    i += 1
+                    media_sequence += 1
+
                 elif line.startswith('#EXT-X-KEY'):
                     decrypt_url = decrypt_info.get('URI')
                     decrypt_info = parse_m3u8_attributes(line[11:])
