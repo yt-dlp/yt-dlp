@@ -43,7 +43,7 @@ class HlsFD(FragmentFD):
             # r'#EXT-X-PLAYLIST-TYPE:EVENT',  # media segments may be appended to the end of
             #                                 # event media playlists [4]
             # r'#EXT-X-MAP:',  # media initialization [5]
-
+            r'^\s*(?:[^#\s]|#EXT-X-MAP:).+?\n\s*#EXT-X-MAP:', # media initialization [5]
             # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.4
             # 2. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.2
             # 3. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.3.2
