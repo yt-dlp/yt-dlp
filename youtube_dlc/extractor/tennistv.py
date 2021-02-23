@@ -69,7 +69,7 @@ class TennisTVIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        internal_id = self._search_regex(r'video=([0-9]+)', webpage, 'internal video id')
+        internal_id = self._search_regex(r'video=([\w-]+)', webpage, 'internal video id')
 
         headers = {
             'Origin': 'https://www.tennistv.com',
@@ -79,7 +79,7 @@ class TennisTVIE(InfoExtractor):
         }
         check_data = {
             'videoID': internal_id,
-            'VideoUrlType': 'HLSV3',
+            'VideoUrlType': 'HLS',
         }
         check_json = json.dumps(check_data).encode('utf-8')
         check_result = self._download_json(
@@ -87,8 +87,9 @@ class TennisTVIE(InfoExtractor):
             video_id, note='Checking video authorization', headers=headers, data=check_json)
         formats = self._extract_m3u8_formats(check_result['contentUrl'], video_id, ext='mp4')
 
-        vdata_url = 'https://www.tennistv.com/api/channels/v1/de/none/video/%s' % video_id
-        vdata = self._download_json(vdata_url, video_id)
+        vdata = self._download_json(
+            'https://www.tennistv.com/api/en/v2/none/common/video/%s' % video_id,
+            video_id, headers=headers)
 
         timestamp = unified_timestamp(vdata['timestamp'])
         thumbnail = vdata['video']['thumbnailUrl']
