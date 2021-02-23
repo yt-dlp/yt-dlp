@@ -170,15 +170,17 @@ class HlsFD(FragmentFD):
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
                     frag_url = (
-                        map_info.get('uri')
-                        if re.match(r'^https?://', line)
-                        else compat_urlparse.urljoin(man_url, map_info.get('uri')))
+                        map_info.get('URI')
+                        if re.match(r'^https?://', map_info.get('URI'))
+                        else compat_urlparse.urljoin(man_url, map_info.get('URI')))
+                    if extra_query:
+                        frag_url = update_url_query(frag_url, extra_query)
                     if real_downloader:
                         fragment_urls.append(frag_url)
                         continue
 
-                    if map_info.get('byterange'):
-                        splitted_byte_range = map_info.get('byte_range').split('@')
+                    if map_info.get('BYTERANGE'):
+                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
                         sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
                         byte_range = {
                             'start': sub_range_start,
