@@ -42,8 +42,8 @@ class HlsFD(FragmentFD):
             # no segments will definitely be appended to the end of the playlist.
             # r'#EXT-X-PLAYLIST-TYPE:EVENT',  # media segments may be appended to the end of
             #                                 # event media playlists [4]
-            r'#EXT-X-MAP:',  # media initialization [5]
-
+            # r'#EXT-X-MAP:',  # media initialization [5]
+            r'^\s*(?:[^#\s]|#EXT-X-MAP:).+?\n\s*#EXT-X-MAP:',  # media initialization [5]
             # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.4
             # 2. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.2
             # 3. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.3.2
@@ -142,6 +142,7 @@ class HlsFD(FragmentFD):
         ad_frag_next = False
         for line in s.splitlines():
             line = line.strip()
+            download_frag = False
             if line:
                 if not line.startswith('#'):
                     if ad_frag_next:
@@ -159,7 +160,66 @@ class HlsFD(FragmentFD):
                     if real_downloader:
                         fragment_urls.append(frag_url)
                         continue
+                    download_frag = True
 
+                elif line.startswith('#EXT-X-MAP'):
+                    if frag_index > 0:
+                        self.report_error(
+                            'initialization fragment found after media fragments, unable to download')
+                        return False
+                    frag_index += 1
+                    map_info = parse_m3u8_attributes(line[11:])
+                    frag_url = (
+                        map_info.get('URI')
+                        if re.match(r'^https?://', map_info.get('URI'))
+                        else compat_urlparse.urljoin(man_url, map_info.get('URI')))
+                    if extra_query:
+                        frag_url = update_url_query(frag_url, extra_query)
+                    if real_downloader:
+                        fragment_urls.append(frag_url)
+                        continue
+
+                    if map_info.get('BYTERANGE'):
+                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                        byte_range = {
+                            'start': sub_range_start,
+                            'end': sub_range_start + int(splitted_byte_range[0]),
+                        }
+                    download_frag = True
+
+                elif line.startswith('#EXT-X-KEY'):
+                    decrypt_url = decrypt_info.get('URI')
+                    decrypt_info = parse_m3u8_attributes(line[11:])
+                    if decrypt_info['METHOD'] == 'AES-128':
+                        if 'IV' in decrypt_info:
+                            decrypt_info['IV'] = binascii.unhexlify(decrypt_info['IV'][2:].zfill(32))
+                        if not re.match(r'^https?://', decrypt_info['URI']):
+                            decrypt_info['URI'] = compat_urlparse.urljoin(
+                                man_url, decrypt_info['URI'])
+                        if extra_query:
+                            decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
+                        if decrypt_url != decrypt_info['URI']:
+                            decrypt_info['KEY'] = None
+                    key_data = decrypt_info.copy()
+                    key_data['INDEX'] = frag_index
+                    key_list.append(key_data)
+
+                elif line.startswith('#EXT-X-MEDIA-SEQUENCE'):
+                    media_sequence = int(line[22:])
+                elif line.startswith('#EXT-X-BYTERANGE'):
+                    splitted_byte_range = line[17:].split('@')
+                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                    byte_range = {
+                        'start': sub_range_start,
+                        'end': sub_range_start + int(splitted_byte_range[0]),
+                    }
+                elif is_ad_fragment_start(line):
+                    ad_frag_next = True
+                elif is_ad_fragment_end(line):
+                    ad_frag_next = False
+
+                if download_frag:
                     count = 0
                     headers = info_dict.get('http_headers', {})
                     if byte_range:
@@ -205,36 +265,6 @@ class HlsFD(FragmentFD):
                         break
                     i += 1
                     media_sequence += 1
-                elif line.startswith('#EXT-X-KEY'):
-                    decrypt_url = decrypt_info.get('URI')
-                    decrypt_info = parse_m3u8_attributes(line[11:])
-                    if decrypt_info['METHOD'] == 'AES-128':
-                        if 'IV' in decrypt_info:
-                            decrypt_info['IV'] = binascii.unhexlify(decrypt_info['IV'][2:].zfill(32))
-                        if not re.match(r'^https?://', decrypt_info['URI']):
-                            decrypt_info['URI'] = compat_urlparse.urljoin(
-                                man_url, decrypt_info['URI'])
-                        if extra_query:
-                            decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
-                        if decrypt_url != decrypt_info['URI']:
-                            decrypt_info['KEY'] = None
-                    key_data = decrypt_info.copy()
-                    key_data['INDEX'] = frag_index
-                    key_list.append(key_data)
-
-                elif line.startswith('#EXT-X-MEDIA-SEQUENCE'):
-                    media_sequence = int(line[22:])
-                elif line.startswith('#EXT-X-BYTERANGE'):
-                    splitted_byte_range = line[17:].split('@')
-                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
-                    byte_range = {
-                        'start': sub_range_start,
-                        'end': sub_range_start + int(splitted_byte_range[0]),
-                    }
-                elif is_ad_fragment_start(line):
-                    ad_frag_next = True
-                elif is_ad_fragment_end(line):
-                    ad_frag_next = False
 
         if real_downloader:
             info_copy = info_dict.copy()
