@@ -1892,7 +1892,7 @@ class InfoExtractor(object):
             if not m3u8_doc:
                 res = self._download_webpage_handle(
                     format_url, video_id,
-                    note=note or 'Downloading m3u8 playlist information',
+                    note=False,
                     errnote=errnote or 'Failed to download m3u8 playlist information',
                     fatal=fatal, data=data, headers=headers, query=query)
 
