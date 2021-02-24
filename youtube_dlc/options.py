@@ -1229,12 +1229,12 @@ def parseOpts(overrideArguments=None):
     extractor.add_option(
         '--hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_true', default=False,
-        help='Split discontinuity on HLS playlists to different formats (split ad breaks)'
+        help='Split HLS playlists to different formats at discontinuities such as ad breaks'
     )
     extractor.add_option(
         '--no-hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_false',
-        help='Ignore discontinuity on HLS playlists (do not split ad breaks) (default)')
+        help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
 
     parser.add_option_group(general)
     parser.add_option_group(network)
