@@ -17,7 +17,6 @@ import os
 
 # Allows to import yt-dlp
 sys.path.insert(0, os.path.abspath('..'))
-import recommonmark
 from recommonmark.transform import AutoStructify
 
 # -- General configuration ------------------------------------------------
@@ -78,6 +77,8 @@ highlight_language = 'none'
 htmlhelp_basename = 'youtube-dlcdoc'
 
 github_root = 'https://github.com/yt-dlp/yt-dlp/tree/master/'
+
+
 def setup(app):
     app.add_config_value('recommonmark_config', {
         # 'url_resolver': lambda url: github_root + url,
