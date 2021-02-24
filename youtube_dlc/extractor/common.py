@@ -1888,10 +1888,10 @@ class InfoExtractor(object):
         # media playlist and MUST NOT appear in master playlist thus we can
         # clearly detect media playlist with this criterion.
 
-        def _extract_m3u8_playlist_formats(m3u8_url, m3u8_doc=None):
+        def _extract_m3u8_playlist_formats(format_url, m3u8_doc=None):
             if not m3u8_doc:
                 res = self._download_webpage_handle(
-                    m3u8_url, video_id,
+                    format_url, video_id,
                     note=note or 'Downloading m3u8 playlist information',
                     errnote=errnote or 'Failed to download m3u8 playlist information',
                     fatal=fatal, data=data, headers=headers, query=query)
@@ -1900,7 +1900,7 @@ class InfoExtractor(object):
                     return []
 
                 m3u8_doc, urlh = res
-                m3u8_url = urlh.geturl()
+                format_url = urlh.geturl()
 
             playlist_formats = []
             i = (
@@ -1920,7 +1920,7 @@ class InfoExtractor(object):
                     playlist_formats.append(format_info)
                     format_info = {
                         'index': i,
-                        'url': m3u8_url,
+                        'url': format_url,
                         'files': [],
                     }
             playlist_formats.append(format_info)
@@ -1928,13 +1928,13 @@ class InfoExtractor(object):
 
         if '#EXT-X-TARGETDURATION' in m3u8_doc:  # media playlist, return as is
 
-            playlist_formats = _extract_m3u8_playlist_formats(m3u8_url)
+            playlist_formats = _extract_m3u8_playlist_formats(m3u8_doc, True)
 
             for format in playlist_formats:
                 format_id = []
                 if m3u8_id:
                     format_id.append(m3u8_id)
-                format_index = format.get('index', 0)
+                format_index = format.get('index')
                 if format_index:
                     format_id.append(str(format_index))
                 f = {
@@ -1963,8 +1963,10 @@ class InfoExtractor(object):
             if media_type not in ('VIDEO', 'AUDIO'):
                 return
             media_url = media.get('URI')
+            manifest_url = format_url(media_url)
             if media_url:
-                playlist_formats = _extract_m3u8_playlist_formats(media_url)
+                format_id = []
+                playlist_formats = _extract_m3u8_playlist_formats(manifest_url)
 
                 for format in playlist_formats:
                     format_index = format.get('index')
@@ -1976,7 +1978,7 @@ class InfoExtractor(object):
                     f = {
                         'format_id': '-'.join(format_id),
                         'format_index': format_index,
-                        'url': format_url(media_url),
+                        'url': manifest_url,
                         'manifest_url': m3u8_url,
                         'language': media.get('LANGUAGE'),
                         'ext': ext,
