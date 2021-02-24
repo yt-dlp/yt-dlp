@@ -11,6 +11,8 @@ AC_SUBST(bashcompdir)
 PKG_CHECK_VAR(fishcompdir, [fish], [completionsdir], ,
   fishcompdir="${prefix}/share/fish/vendor_completions.d")
 AC_SUBST(fishcompdir)
+zshcompdir="${prefix}/share/zsh/site-functions"
+AC_SUBST(zshcompdir)
 
 AC_CONFIG_FILES([Makefile
                  docs/Makefile])

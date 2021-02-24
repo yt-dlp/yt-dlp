@@ -23,12 +23,13 @@ MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" 
 
 bashcompdir = @bashcompdir@
 fishcompdir = @fishcompdir@
+zshcompdir = @zshcompdir@
 
 install: yt-dlp yt-dlp.1 yt-dlp.bash-completion yt-dlp.zsh yt-dlp.fish
 	install -Dm755 yt-dlp $(DESTDIR)$(BINDIR)/yt-dlp
 	install -Dm644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1
 	install -Dm644 yt-dlp.bash-completion $(DESTDIR)$(bashcompdir)/yt-dlp
-	install -Dm644 yt-dlp.zsh $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
+	install -Dm644 yt-dlp.zsh $(DESTDIR)$(zshcompdir)/_yt-dlp
 	install -Dm644 yt-dlp.fish $(DESTDIR)$(fishcompdir)/yt-dlp.fish
 
 codetest:
