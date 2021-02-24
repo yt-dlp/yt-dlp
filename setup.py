@@ -6,7 +6,7 @@ import os.path
 import warnings
 import sys
 from distutils.spawn import spawn
-
+import pkgconfig
 
 # Get the version from yt_dlp/version.py without importing the package
 exec(compile(open('yt_dlp/version.py').read(),
@@ -27,8 +27,15 @@ if len(sys.argv) >= 2 and sys.argv[1] == 'py2exe':
     print("inv")
 else:
     files_spec = [
-        ('etc/bash_completion.d', ['yt-dlp.bash-completion']),
-        ('etc/fish/completions', ['yt-dlp.fish']),
+        ((pkgconfig.variables('bash-completion')['completionsdir']
+            if pkgconfig.exists('bash-completion')
+            else 'share/bash-completion/completions'),
+            ['yt-dlp.bash-completion']),
+        ((pkgconfig.variables('fish')['completionsdir']
+            if pkgconfig.exists('fish')
+            else 'share/fish/vendor_completions.d'),
+            ['yt-dlp.fish']),
+        ('share/zsh/site-functions/', ['_yt-dlp']),
         ('share/doc/yt_dlp', ['README.txt']),
         ('share/man/man1', ['yt-dlp.1'])
     ]
@@ -83,10 +90,10 @@ setup(
         'Documentation': 'https://yt-dlp.readthedocs.io',
         'Source': 'https://github.com/yt-dlp/yt-dlp',
         'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
-        #'Funding': 'https://donate.pypi.org',
+        # 'Funding': 'https://donate.pypi.org',
     },
     classifiers=[
-	    "Topic :: Multimedia :: Video",
+        "Topic :: Multimedia :: Video",
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Programming Language :: Python",
@@ -110,7 +117,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=2.6',
-	
-	cmdclass={'build_lazy_extractors': build_lazy_extractors},
+
+    cmdclass={'build_lazy_extractors': build_lazy_extractors},
     **params
 )

@@ -21,17 +21,15 @@ SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then ech
 # set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
 MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
+bashcompdir = @bashcompdir@
+fishcompdir = @fishcompdir@
+
 install: yt-dlp yt-dlp.1 yt-dlp.bash-completion yt-dlp.zsh yt-dlp.fish
-	install -d $(DESTDIR)$(BINDIR)
-	install -m 755 yt-dlp $(DESTDIR)$(BINDIR)
-	install -d $(DESTDIR)$(MANDIR)/man1
-	install -m 644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1
-	install -d $(DESTDIR)$(SYSCONFDIR)/bash_completion.d
-	install -m 644 yt-dlp.bash-completion $(DESTDIR)$(SYSCONFDIR)/bash_completion.d/yt-dlp
-	install -d $(DESTDIR)$(SHAREDIR)/zsh/site-functions
-	install -m 644 yt-dlp.zsh $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
-	install -d $(DESTDIR)$(SYSCONFDIR)/fish/completions
-	install -m 644 yt-dlp.fish $(DESTDIR)$(SYSCONFDIR)/fish/completions/yt-dlp.fish
+	install -Dm755 yt-dlp $(DESTDIR)$(BINDIR)/yt-dlp
+	install -Dm644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1
+	install -Dm644 yt-dlp.bash-completion $(DESTDIR)$(bashcompdir)/yt-dlp
+	install -Dm644 yt-dlp.zsh $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
+	install -Dm644 yt-dlp.fish $(DESTDIR)$(fishcompdir)/yt-dlp.fish
 
 codetest:
 	flake8 .
