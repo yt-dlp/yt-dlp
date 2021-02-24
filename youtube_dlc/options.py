@@ -1226,6 +1226,15 @@ def parseOpts(overrideArguments=None):
         '--ignore-dynamic-mpd', '--no-allow-dynamic-mpd',
         action='store_false', dest='dynamic_mpd',
         help='Do not process dynamic DASH manifests (Alias: --no-allow-dynamic-mpd)')
+    extractor.add_option(
+        '--hls-split-discontinuity',
+        dest='hls_split_discontinuity', action='store_true', default=False,
+        help='Split HLS playlists to different formats at discontinuities such as ad breaks'
+    )
+    extractor.add_option(
+        '--no-hls-split-discontinuity',
+        dest='hls_split_discontinuity', action='store_false',
+        help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
 
     parser.add_option_group(general)
     parser.add_option_group(network)
