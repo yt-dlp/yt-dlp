@@ -251,7 +251,7 @@ class FFmpegPostProcessor(PostProcessor):
                 + [encodeFilename(self._ffmpeg_filename_argument(file), True)])
 
         for i, path in enumerate(input_paths):
-            cmd += make_args(path, post=['-i'], exe='%s_i%d' % (self.basename, i+1), use_default_arg=False)
+            cmd += make_args(path, post=['-i'], exe='%s_i%d' % (self.basename, i + 1), use_default_arg=False)
         cmd += make_args(out_path, pre=opts, exe=self.basename)
 
         self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))

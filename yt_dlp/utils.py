@@ -4692,7 +4692,7 @@ def cli_valueless_option(params, command_option, param, expected_value=True):
 def cli_configuration_args(argdict, key, default=[], exe=None, use_default_arg=True):
     # use_default_arg can be True, False, or 'no_compat'
     if isinstance(argdict, (list, tuple)):  # for backward compatibility
-        if use_default_arg == True:
+        if use_default_arg is True:
             return argdict
         else:
             argdict = None
