@@ -708,7 +708,7 @@ def parseOpts(overrideArguments=None):
         dest='sleep_interval_subtitles', default=0, type=int,
         help='Enforce sleep interval on subtitles as well')
 
-    verbosity = optparse.OptionGroup(parser, 'Verbosity / Simulation Options')
+    verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(
         '-q', '--quiet',
         action='store_true', dest='quiet', default=False,

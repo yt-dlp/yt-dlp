@@ -30,6 +30,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'yt-dlp'
+author = u'yt-dlp'
 copyright = u'UNLICENSE'
 
 # The version info for the project you're documenting, acts as replacement for

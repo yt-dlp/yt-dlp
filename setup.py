@@ -80,7 +80,7 @@ setup(
     packages=packages,
     install_requires=REQUIREMENTS,
     project_urls={
-        'Documentation': 'https://github.com/yt-dlp/yt-dlp#yt-dlp',
+        'Documentation': 'https://yt-dlp.readthedocs.io',
         'Source': 'https://github.com/yt-dlp/yt-dlp',
         'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
         #'Funding': 'https://donate.pypi.org',

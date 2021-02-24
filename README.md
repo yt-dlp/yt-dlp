@@ -9,6 +9,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master)](https://github.com/yt-dlp/yt-dlp/commits)
 [![Downloads](https://img.shields.io/github/downloads/yt-dlp/yt-dlp/total)](https://github.com/yt-dlp/yt-dlp/releases/latest)
 [![PyPi Downloads](https://img.shields.io/pypi/dm/yt-dlp?label=PyPi)](https://pypi.org/project/yt-dlp)
+[![Doc Status](https://readthedocs.org/projects/yt-dlp/badge/?version=latest)](https://yt-dlp.readthedocs.io)
 
 A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
 
@@ -27,7 +28,7 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
     * [Filesystem Options](#filesystem-options)
     * [Thumbnail images](#thumbnail-images)
     * [Internet Shortcut Options](#internet-shortcut-options)
-    * [Verbosity / Simulation Options](#verbosity--simulation-options)
+    * [Verbosity and Simulation Options](#verbosity-and-simulation-options)
     * [Workarounds](#workarounds)
     * [Video Format Options](#video-format-options)
     * [Subtitle Options](#subtitle-options)
@@ -434,7 +435,7 @@ Then simply type this
     --write-webloc-link              Write a .webloc macOS internet shortcut
     --write-desktop-link             Write a .desktop Linux internet shortcut
 
-## Verbosity / Simulation Options:
+## Verbosity and Simulation Options:
     -q, --quiet                      Activate quiet mode
     --no-warnings                    Ignore warnings
     -s, --simulate                   Do not download the video and do not write
