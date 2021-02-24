@@ -531,18 +531,6 @@ Then simply type this
                                      (default)
     --list-formats-old               Present the output of -F in the old form
                                      (Alias: --no-list-formats-as-table)
-    --youtube-include-dash-manifest  Download the DASH manifests and related
-                                     data on YouTube videos (default)
-                                     (Alias: --no-youtube-skip-dash-manifest)
-    --youtube-skip-dash-manifest     Do not download the DASH manifests and
-                                     related data on YouTube videos
-                                     (Alias: --no-youtube-include-dash-manifest)
-    --youtube-include-hls-manifest   Download the HLS manifests and related data
-                                     on YouTube videos (default)
-                                     (Alias: --no-youtube-skip-hls-manifest)
-    --youtube-skip-hls-manifest      Do not download the HLS manifests and
-                                     related data on YouTube videos
-                                     (Alias: --no-youtube-include-hls-manifest)
     --merge-output-format FORMAT     If a merge is required (e.g.
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
@@ -700,6 +688,23 @@ Then simply type this
                                      (Alias: --no-ignore-dynamic-mpd)
     --ignore-dynamic-mpd             Do not process dynamic DASH manifests
                                      (Alias: --no-allow-dynamic-mpd)
+    --hls-split-discontinuity        Split HLS playlists to different formats at
+                                     discontinuities such as ad breaks
+    --no-hls-split-discontinuity     Do not split HLS playlists to different
+                                     formats at discontinuities such as ad
+                                     breaks (default)
+    --youtube-include-dash-manifest  Download the DASH manifests and related
+                                     data on YouTube videos (default)
+                                     (Alias: --no-youtube-skip-dash-manifest)
+    --youtube-skip-dash-manifest     Do not download the DASH manifests and
+                                     related data on YouTube videos
+                                     (Alias: --no-youtube-include-dash-manifest)
+    --youtube-include-hls-manifest   Download the HLS manifests and related data
+                                     on YouTube videos (default)
+                                     (Alias: --no-youtube-skip-hls-manifest)
+    --youtube-skip-hls-manifest      Do not download the HLS manifests and
+                                     related data on YouTube videos
+                                     (Alias: --no-youtube-include-hls-manifest)
 
 # CONFIGURATION
 
