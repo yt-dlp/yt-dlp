@@ -127,10 +127,13 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
             except PostProcessingError as err:
                 self.report_warning('unable to embed using ffprobe & ffmpeg; %s' % error_to_compat_str(err))
-                if not check_executable('AtomicParsley', ['-v']):
+                atomicparsley = next((
+                    x for x in ['AtomicParsley', 'atomicparsley']
+                    if check_executable(x, ['-v'])), None)
+                if atomicparsley is None:
                     raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
 
-                cmd = [encodeFilename('AtomicParsley', True),
+                cmd = [encodeFilename(atomicparsley, True),
                        encodeFilename(filename, True),
                        encodeArgument('--artwork'),
                        encodeFilename(thumbnail_filename, True),

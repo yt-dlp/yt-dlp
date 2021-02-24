@@ -505,22 +505,6 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='listformats_table',
         help='Present the output of -F in the old form (Alias: --no-list-formats-as-table)')
     video_format.add_option(
-        '--youtube-include-dash-manifest', '--no-youtube-skip-dash-manifest',
-        action='store_true', dest='youtube_include_dash_manifest', default=True,
-        help='Download the DASH manifests and related data on YouTube videos (default) (Alias: --no-youtube-skip-dash-manifest)')
-    video_format.add_option(
-        '--youtube-skip-dash-manifest', '--no-youtube-include-dash-manifest',
-        action='store_false', dest='youtube_include_dash_manifest',
-        help='Do not download the DASH manifests and related data on YouTube videos (Alias: --no-youtube-include-dash-manifest)')
-    video_format.add_option(
-        '--youtube-include-hls-manifest', '--no-youtube-skip-hls-manifest',
-        action='store_true', dest='youtube_include_hls_manifest', default=True,
-        help='Download the HLS manifests and related data on YouTube videos (default) (Alias: --no-youtube-skip-hls-manifest)')
-    video_format.add_option(
-        '--youtube-skip-hls-manifest', '--no-youtube-include-hls-manifest',
-        action='store_false', dest='youtube_include_hls_manifest',
-        help='Do not download the HLS manifests and related data on YouTube videos (Alias: --no-youtube-include-hls-manifest)')
-    video_format.add_option(
         '--merge-output-format',
         action='store', dest='merge_output_format', metavar='FORMAT', default=None,
         help=(
@@ -1087,10 +1071,12 @@ def parseOpts(overrideArguments=None):
             'SponSkrub, ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, '
             'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor and EmbedThumbnail. '
             'The supported executables are: SponSkrub, FFmpeg, FFprobe, and AtomicParsley. '
-            'You can use this option multiple times to give different arguments to different postprocessors. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
-            'only when being used by the specified postprocessor. '
-            'You can use this option multiple times (Alias: --ppa)'))
+            'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
+            'a number can be appended to the exe name seperated by "_i" to pass the argument '
+            'before the specified input file. Eg: --ppa "Merger+ffmpeg_i1:-v quiet". '
+            'You can use this option multiple times to give different arguments to different '
+            'postprocessors. (Alias: --ppa)'))
     postproc.add_option(
         '-k', '--keep-video',
         action='store_true', dest='keepvideo', default=False,
@@ -1226,6 +1212,31 @@ def parseOpts(overrideArguments=None):
         '--ignore-dynamic-mpd', '--no-allow-dynamic-mpd',
         action='store_false', dest='dynamic_mpd',
         help='Do not process dynamic DASH manifests (Alias: --no-allow-dynamic-mpd)')
+    extractor.add_option(
+        '--hls-split-discontinuity',
+        dest='hls_split_discontinuity', action='store_true', default=False,
+        help='Split HLS playlists to different formats at discontinuities such as ad breaks'
+    )
+    extractor.add_option(
+        '--no-hls-split-discontinuity',
+        dest='hls_split_discontinuity', action='store_false',
+        help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
+    extractor.add_option(
+        '--youtube-include-dash-manifest', '--no-youtube-skip-dash-manifest',
+        action='store_true', dest='youtube_include_dash_manifest', default=True,
+        help='Download the DASH manifests and related data on YouTube videos (default) (Alias: --no-youtube-skip-dash-manifest)')
+    extractor.add_option(
+        '--youtube-skip-dash-manifest', '--no-youtube-include-dash-manifest',
+        action='store_false', dest='youtube_include_dash_manifest',
+        help='Do not download the DASH manifests and related data on YouTube videos (Alias: --no-youtube-include-dash-manifest)')
+    extractor.add_option(
+        '--youtube-include-hls-manifest', '--no-youtube-skip-hls-manifest',
+        action='store_true', dest='youtube_include_hls_manifest', default=True,
+        help='Download the HLS manifests and related data on YouTube videos (default) (Alias: --no-youtube-skip-hls-manifest)')
+    extractor.add_option(
+        '--youtube-skip-hls-manifest', '--no-youtube-include-hls-manifest',
+        action='store_false', dest='youtube_include_hls_manifest',
+        help='Do not download the HLS manifests and related data on YouTube videos (Alias: --no-youtube-include-hls-manifest)')
 
     parser.add_option_group(general)
     parser.add_option_group(network)

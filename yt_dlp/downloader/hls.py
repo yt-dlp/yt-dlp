@@ -29,7 +29,7 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False):
+    def can_download(manifest, info_dict, allow_unplayable_formats=False, with_crypto=can_decrypt_frag):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -42,8 +42,7 @@ class HlsFD(FragmentFD):
             # no segments will definitely be appended to the end of the playlist.
             # r'#EXT-X-PLAYLIST-TYPE:EVENT',  # media segments may be appended to the end of
             #                                 # event media playlists [4]
-            r'#EXT-X-MAP:',  # media initialization [5]
-
+            # r'#EXT-X-MAP:',  # media initialization [5]
             # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.4
             # 2. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.2
             # 3. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.3.2
@@ -56,7 +55,7 @@ class HlsFD(FragmentFD):
             ]
         check_results = [not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES]
         is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
-        check_results.append(can_decrypt_frag or not is_aes128_enc)
+        check_results.append(with_crypto or not is_aes128_enc)
         check_results.append(not (is_aes128_enc and r'#EXT-X-BYTERANGE' in manifest))
         check_results.append(not info_dict.get('is_live'))
         return all(check_results)
@@ -71,8 +70,10 @@ class HlsFD(FragmentFD):
 
         if not self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')):
             if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
-                self.report_error('pycrypto not found. Please install it.')
+                self.report_error('pycryptodome not found. Please install it.')
                 return False
+            if self.can_download(s, info_dict, with_crypto=True):
+                self.report_warning('pycryptodome is needed to download this file with hlsnative')
             self.report_warning(
                 'hlsnative has detected features it does not support, '
                 'extraction will be delegated to ffmpeg')
@@ -127,6 +128,7 @@ class HlsFD(FragmentFD):
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
         test = self.params.get('test', False)
 
+        format_index = info_dict.get('format_index')
         extra_query = None
         extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
         if extra_param_to_segment_url:
@@ -136,12 +138,16 @@ class HlsFD(FragmentFD):
         decrypt_info = {'METHOD': 'NONE'}
         key_list = []
         byte_range = {}
+        discontinuity_count = 0
         frag_index = 0
         ad_frag_next = False
         for line in s.splitlines():
             line = line.strip()
+            download_frag = False
             if line:
                 if not line.startswith('#'):
+                    if format_index and discontinuity_count != format_index:
+                        continue
                     if ad_frag_next:
                         continue
                     frag_index += 1
@@ -157,7 +163,70 @@ class HlsFD(FragmentFD):
                     if real_downloader:
                         fragment_urls.append(frag_url)
                         continue
+                    download_frag = True
 
+                elif line.startswith('#EXT-X-MAP'):
+                    if format_index and discontinuity_count != format_index:
+                        continue
+                    if frag_index > 0:
+                        self.report_error(
+                            'initialization fragment found after media fragments, unable to download')
+                        return False
+                    frag_index += 1
+                    map_info = parse_m3u8_attributes(line[11:])
+                    frag_url = (
+                        map_info.get('URI')
+                        if re.match(r'^https?://', map_info.get('URI'))
+                        else compat_urlparse.urljoin(man_url, map_info.get('URI')))
+                    if extra_query:
+                        frag_url = update_url_query(frag_url, extra_query)
+                    if real_downloader:
+                        fragment_urls.append(frag_url)
+                        continue
+
+                    if map_info.get('BYTERANGE'):
+                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                        byte_range = {
+                            'start': sub_range_start,
+                            'end': sub_range_start + int(splitted_byte_range[0]),
+                        }
+                    download_frag = True
+
+                elif line.startswith('#EXT-X-KEY'):
+                    decrypt_url = decrypt_info.get('URI')
+                    decrypt_info = parse_m3u8_attributes(line[11:])
+                    if decrypt_info['METHOD'] == 'AES-128':
+                        if 'IV' in decrypt_info:
+                            decrypt_info['IV'] = binascii.unhexlify(decrypt_info['IV'][2:].zfill(32))
+                        if not re.match(r'^https?://', decrypt_info['URI']):
+                            decrypt_info['URI'] = compat_urlparse.urljoin(
+                                man_url, decrypt_info['URI'])
+                        if extra_query:
+                            decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
+                        if decrypt_url != decrypt_info['URI']:
+                            decrypt_info['KEY'] = None
+                    key_data = decrypt_info.copy()
+                    key_data['INDEX'] = frag_index
+                    key_list.append(key_data)
+
+                elif line.startswith('#EXT-X-MEDIA-SEQUENCE'):
+                    media_sequence = int(line[22:])
+                elif line.startswith('#EXT-X-BYTERANGE'):
+                    splitted_byte_range = line[17:].split('@')
+                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                    byte_range = {
+                        'start': sub_range_start,
+                        'end': sub_range_start + int(splitted_byte_range[0]),
+                    }
+                elif is_ad_fragment_start(line):
+                    ad_frag_next = True
+                elif is_ad_fragment_end(line):
+                    ad_frag_next = False
+                elif line.startswith('#EXT-X-DISCONTINUITY'):
+                    discontinuity_count += 1
+
+                if download_frag:
                     count = 0
                     headers = info_dict.get('http_headers', {})
                     if byte_range:
@@ -203,36 +272,6 @@ class HlsFD(FragmentFD):
                         break
                     i += 1
                     media_sequence += 1
-                elif line.startswith('#EXT-X-KEY'):
-                    decrypt_url = decrypt_info.get('URI')
-                    decrypt_info = parse_m3u8_attributes(line[11:])
-                    if decrypt_info['METHOD'] == 'AES-128':
-                        if 'IV' in decrypt_info:
-                            decrypt_info['IV'] = binascii.unhexlify(decrypt_info['IV'][2:].zfill(32))
-                        if not re.match(r'^https?://', decrypt_info['URI']):
-                            decrypt_info['URI'] = compat_urlparse.urljoin(
-                                man_url, decrypt_info['URI'])
-                        if extra_query:
-                            decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
-                        if decrypt_url != decrypt_info['URI']:
-                            decrypt_info['KEY'] = None
-                    key_data = decrypt_info.copy()
-                    key_data['INDEX'] = frag_index
-                    key_list.append(key_data)
-
-                elif line.startswith('#EXT-X-MEDIA-SEQUENCE'):
-                    media_sequence = int(line[22:])
-                elif line.startswith('#EXT-X-BYTERANGE'):
-                    splitted_byte_range = line[17:].split('@')
-                    sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
-                    byte_range = {
-                        'start': sub_range_start,
-                        'end': sub_range_start + int(splitted_byte_range[0]),
-                    }
-                elif is_ad_fragment_start(line):
-                    ad_frag_next = True
-                elif is_ad_fragment_end(line):
-                    ad_frag_next = False
 
         if real_downloader:
             info_copy = info_dict.copy()

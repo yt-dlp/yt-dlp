@@ -531,18 +531,6 @@ Then simply type this
                                      (default)
     --list-formats-old               Present the output of -F in the old form
                                      (Alias: --no-list-formats-as-table)
-    --youtube-include-dash-manifest  Download the DASH manifests and related
-                                     data on YouTube videos (default)
-                                     (Alias: --no-youtube-skip-dash-manifest)
-    --youtube-skip-dash-manifest     Do not download the DASH manifests and
-                                     related data on YouTube videos
-                                     (Alias: --no-youtube-include-dash-manifest)
-    --youtube-include-hls-manifest   Download the HLS manifests and related data
-                                     on YouTube videos (default)
-                                     (Alias: --no-youtube-skip-hls-manifest)
-    --youtube-skip-hls-manifest      Do not download the HLS manifests and
-                                     related data on YouTube videos
-                                     (Alias: --no-youtube-include-hls-manifest)
     --merge-output-format FORMAT     If a merge is required (e.g.
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
@@ -623,13 +611,17 @@ Then simply type this
                                      SubtitlesConvertor and EmbedThumbnail. The
                                      supported executables are: SponSkrub,
                                      FFmpeg, FFprobe, and AtomicParsley. You can
-                                     use this option multiple times to give
+                                     also specify "PP+EXE:ARGS" to give the
+                                     arguments to the specified executable only
+                                     when being used by the specified
+                                     postprocessor. Additionally, for
+                                     ffmpeg/ffprobe, a number can be appended to
+                                     the exe name seperated by "_i" to pass the
+                                     argument before the specified input file.
+                                     Eg: --ppa "Merger+ffmpeg_i1:-v quiet". You
+                                     can use this option multiple times to give
                                      different arguments to different
-                                     postprocessors. You can also specify
-                                     "PP+EXE:ARGS" to give the arguments to the
-                                     specified executable only when being used
-                                     by the specified postprocessor. You can use
-                                     this option multiple times (Alias: --ppa)
+                                     postprocessors. (Alias: --ppa)
     -k, --keep-video                 Keep the intermediate video file on disk
                                      after post-processing
     --no-keep-video                  Delete the intermediate video file after
@@ -700,6 +692,23 @@ Then simply type this
                                      (Alias: --no-ignore-dynamic-mpd)
     --ignore-dynamic-mpd             Do not process dynamic DASH manifests
                                      (Alias: --no-allow-dynamic-mpd)
+    --hls-split-discontinuity        Split HLS playlists to different formats at
+                                     discontinuities such as ad breaks
+    --no-hls-split-discontinuity     Do not split HLS playlists to different
+                                     formats at discontinuities such as ad
+                                     breaks (default)
+    --youtube-include-dash-manifest  Download the DASH manifests and related
+                                     data on YouTube videos (default)
+                                     (Alias: --no-youtube-skip-dash-manifest)
+    --youtube-skip-dash-manifest     Do not download the DASH manifests and
+                                     related data on YouTube videos
+                                     (Alias: --no-youtube-include-dash-manifest)
+    --youtube-include-hls-manifest   Download the HLS manifests and related data
+                                     on YouTube videos (default)
+                                     (Alias: --no-youtube-skip-hls-manifest)
+    --youtube-skip-hls-manifest      Do not download the HLS manifests and
+                                     related data on YouTube videos
+                                     (Alias: --no-youtube-include-hls-manifest)
 
 # CONFIGURATION
 
@@ -801,6 +810,8 @@ The available fields are:
  - `comment_count` (numeric): Number of comments on the video
  - `age_limit` (numeric): Age restriction for the video (years)
  - `is_live` (boolean): Whether this video is a live stream or a fixed-length video
+ - `was_live` (boolean): Whether this video was originally a live stream
+ - `playable_in_embed` (string): Whether this video is allowed to play in embedded players on other sites
  - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
  - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
  - `format` (string): A human-readable description of the format
@@ -923,6 +934,7 @@ You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, 
 
 You can also use special names to select particular edge case formats:
 
+ - `all`: Select all formats
  - `b*`, `best*`: Select the best quality format irrespective of whether it contains video or audio.
  - `w*`, `worst*`: Select the worst quality format irrespective of whether it contains video or audio.
  - `b`, `best`: Select the best quality format that contains both video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
@@ -973,7 +985,7 @@ Any string comparison may be prefixed with negation `!` in order to produce an o
 
 Note that none of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the video hoster. Any other field made available by the extractor can also be used for filtering.
 
-Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height <=? 720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s.
+Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter. For example, `-f "all[vcodec=none]"` selects all audio-only formats.
 
 Format selectors can also be grouped using parentheses, for example if you want to download the best mp4 and webm formats with a height lower than 480 you can use `-f '(mp4,webm)[height<480]'`.
 

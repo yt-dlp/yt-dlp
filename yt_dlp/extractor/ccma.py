@@ -1,12 +1,14 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import calendar
 import datetime
 import re
 
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    extract_timezone,
     int_or_none,
     parse_duration,
     parse_resolution,
@@ -97,8 +99,9 @@ class CCMAIE(InfoExtractor):
         timestamp = None
         data_utc = try_get(informacio, lambda x: x['data_emissio']['utc'])
         try:
-            timestamp = datetime.datetime.strptime(
-                data_utc, '%Y-%d-%mT%H:%M:%S%z').timestamp()
+            timezone, data_utc = extract_timezone(data_utc)
+            timestamp = calendar.timegm((datetime.datetime.strptime(
+                data_utc, '%Y-%d-%mT%H:%M:%S') - timezone).timetuple())
         except TypeError:
             pass
 

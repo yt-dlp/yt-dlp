@@ -17,25 +17,50 @@
 -->
 
 
+### 2021.02.19
+* **Merge youtube-dl:** Upto [commit/cf2dbec](https://github.com/ytdl-org/youtube-dl/commit/cf2dbec6301177a1fddf72862de05fa912d9869d) (except kakao)
+* [viki] Fix extractor
+* [niconico] Extract `channel` and `channel_id` by [kurumigi](https://github.com/kurumigi)
+* [youtube] Multiple page support for hashtag URLs
+* [youtube] Add more invidious instances
+* [youtube] Fix comment extraction when comment text is empty
+* Option `--windows-filenames` to force use of windows compatible filenames
+* [ExtractAudio] Bugfix
+* Don't raise `parser.error` when exiting for update
+* [MoveFiles] Fix for when merger can't run
+* Changed `--trim-file-name` to `--trim-filenames` to be similar to related options
+* Format Sort improvements:
+    * Prefer `vp9.2` more than other `vp9` codecs
+    * Remove forced priority of `quality`
+    * Remove unnecessary `field_preference` and misuse of `preference` from extractors
+* Build improvements:
+    * Fix hash output by [shirt](https://github.com/shirt-dev)
+    * Lock python package versions for x86 and use `wheels` by [shirt](https://github.com/shirt-dev)
+    * Exclude `vcruntime140.dll` from UPX by [jbruchon](https://github.com/jbruchon)
+    * Set version number based on UTC time, not local time
+    * Publish on PyPi only if token is set
+* [documentation] Better document `--prefer-free-formats` and add `--no-prefer-free-format`
+
+
 ### 2021.02.15
 * **Merge youtube-dl:** Upto [2021.02.10](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.02.10) (except archive.org)
-* [niconico] Improved extraction and support encrypted/SMILE movies
-* Fix HLS AES-128 with multiple keys in external downloaders
-* [youtube_live_chat] Fix by using POST API
+* [niconico] Improved extraction and support encrypted/SMILE movies by [kurumigi](https://github.com/kurumigi), [tsukumi](https://github.com/tsukumi), [bbepis](https://github.com/bbepis), [pukkandan](https://github.com/pukkandan)
+* Fix HLS AES-128 with multiple keys in external downloaders by [shirt](https://github.com/shirt-dev)
+* [youtube_live_chat] Fix by using POST API by [siikamiika](https://github.com/siikamiika)
 * [rumble] Add support for video page
-* Option to allow downloading unplayable video formats (`--allow-unplayable-formats`)
+* Option `--allow-unplayable-formats` to allow downloading unplayable video formats
 * [ExtractAudio] Don't re-encode when file is already in a common audio format
-* Change optional dependency to `pycryptodome`
 * [youtube] Fix search continuations
 * [youtube] Fix for new accounts
-* Improve build/updater:
+* Improve build/updater: by [pukkandan](https://github.com/pukkandan) and [shirt](https://github.com/shirt-dev)
     * Fix SHA256 calculation in build and implement hash checking for updater
     * Exit immediately in windows once the update process starts
     * Fix updater for `x86.exe`
     * Updater looks for both `yt-dlp` and `youtube-dlc` in releases for future-proofing
-* Fix issue with unicode filenames in aria2c
+    * Change optional dependency to `pycryptodome`
+* Fix issue with unicode filenames in aria2c by [shirt](https://github.com/shirt-dev)
 * Fix `allow_playlist_files` not being correctly passed through
-* Fix for empty HTTP head requests
+* Fix for empty HTTP head requests by [shirt](https://github.com/shirt-dev)
 * Fix `get_executable_path` in UNIX
 * [sponskrub] Print ffmpeg output and errors to terminal
 * `__real_download` should be false when ffmpeg unavailable and no download
@@ -82,7 +107,7 @@
 
 
 ### 2021.01.29
-* **Features from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl)**: Co-authored by [animelover1984](https://github.com/animelover1984) and [bbepis](https://github.com/bbepis)
+* **Features from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl)**: by [animelover1984](https://github.com/animelover1984) and [bbepis](https://github.com/bbepis)
     * Add `--get-comments`
     * [youtube] Extract comments
     * [billibilli] Added BiliBiliSearchIE, BilibiliChannelIE

@@ -4,21 +4,22 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     float_or_none,
+    int_or_none,
     parse_age_limit,
     qualities,
     random_birthday,
-    try_get,
     unified_timestamp,
     urljoin,
 )
 
 
 class VideoPressIE(InfoExtractor):
-    _VALID_URL = r'https?://videopress\.com/embed/(?P<id>[\da-zA-Z]+)'
+    _ID_REGEX = r'[\da-zA-Z]{8}'
+    _PATH_REGEX = r'video(?:\.word)?press\.com/embed/'
+    _VALID_URL = r'https?://%s(?P<id>%s)' % (_PATH_REGEX, _ID_REGEX)
     _TESTS = [{
         'url': 'https://videopress.com/embed/kUJmAcSf',
         'md5': '706956a6c875873d51010921310e4bc6',
@@ -36,35 +37,36 @@ class VideoPressIE(InfoExtractor):
         # 17+, requires birth_* params
         'url': 'https://videopress.com/embed/iH3gstfZ',
         'only_matching': True,
+    }, {
+        'url': 'https://video.wordpress.com/embed/kUJmAcSf',
+        'only_matching': True,
     }]
 
     @staticmethod
     def _extract_urls(webpage):
         return re.findall(
-            r'<iframe[^>]+src=["\']((?:https?://)?videopress\.com/embed/[\da-zA-Z]+)',
+            r'<iframe[^>]+src=["\']((?:https?://)?%s%s)' % (VideoPressIE._PATH_REGEX, VideoPressIE._ID_REGEX),
             webpage)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         query = random_birthday('birth_year', 'birth_month', 'birth_day')
+        query['fields'] = 'description,duration,file_url_base,files,height,original,poster,rating,title,upload_date,width'
         video = self._download_json(
             'https://public-api.wordpress.com/rest/v1.1/videos/%s' % video_id,
             video_id, query=query)
 
         title = video['title']
 
-        def base_url(scheme):
-            return try_get(
-                video, lambda x: x['file_url_base'][scheme], compat_str)
-
-        base_url = base_url('https') or base_url('http')
+        file_url_base = video.get('file_url_base') or {}
+        base_url = file_url_base.get('https') or file_url_base.get('http')
 
         QUALITIES = ('std', 'dvd', 'hd')
         quality = qualities(QUALITIES)
 
         formats = []
-        for format_id, f in video['files'].items():
+        for format_id, f in (video.get('files') or {}).items():
             if not isinstance(f, dict):
                 continue
             for ext, path in f.items():
@@ -75,12 +77,14 @@ class VideoPressIE(InfoExtractor):
                         'ext': determine_ext(path, ext),
                         'quality': quality(format_id),
                     })
-        original_url = try_get(video, lambda x: x['original'], compat_str)
+        original_url = video.get('original')
         if original_url:
             formats.append({
                 'url': original_url,
                 'format_id': 'original',
                 'quality': len(QUALITIES),
+                'width': int_or_none(video.get('width')),
+                'height': int_or_none(video.get('height')),
             })
         self._sort_formats(formats)
 

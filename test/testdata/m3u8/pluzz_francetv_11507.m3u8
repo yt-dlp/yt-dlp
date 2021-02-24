@@ -1,14 +1,0 @@
-#EXTM3U
-    #EXT-X-VERSION:5
-    #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Francais",DEFAULT=NO,FORCED=NO,URI="http://replayftv-pmd.francetv.fr/subtitles/2017/16/156589847-1492488987.m3u8",LANGUAGE="fra"
-    #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aac",LANGUAGE="fra",NAME="Francais",DEFAULT=YES, AUTOSELECT=YES
-#EXT-X-STREAM-INF:SUBTITLES="subs",AUDIO="aac",PROGRAM-ID=1,BANDWIDTH=180000,RESOLUTION=256x144,CODECS="avc1.66.30, mp4a.40.2"
-http://replayftv-vh.akamaihd.net/i/streaming-adaptatif_france-dom-tom/2017/S16/J2/156589847-58f59130c1f52-,standard1,standard2,standard3,standard4,standard5,.mp4.csmil/index_0_av.m3u8?null=0
-#EXT-X-STREAM-INF:SUBTITLES="subs",AUDIO="aac",PROGRAM-ID=1,BANDWIDTH=303000,RESOLUTION=320x180,CODECS="avc1.66.30, mp4a.40.2"
-http://replayftv-vh.akamaihd.net/i/streaming-adaptatif_france-dom-tom/2017/S16/J2/156589847-58f59130c1f52-,standard1,standard2,standard3,standard4,standard5,.mp4.csmil/index_1_av.m3u8?null=0
-#EXT-X-STREAM-INF:SUBTITLES="subs",AUDIO="aac",PROGRAM-ID=1,BANDWIDTH=575000,RESOLUTION=512x288,CODECS="avc1.66.30, mp4a.40.2"
-http://replayftv-vh.akamaihd.net/i/streaming-adaptatif_france-dom-tom/2017/S16/J2/156589847-58f59130c1f52-,standard1,standard2,standard3,standard4,standard5,.mp4.csmil/index_2_av.m3u8?null=0
-#EXT-X-STREAM-INF:SUBTITLES="subs",AUDIO="aac",PROGRAM-ID=1,BANDWIDTH=831000,RESOLUTION=704x396,CODECS="avc1.77.30, mp4a.40.2"
-http://replayftv-vh.akamaihd.net/i/streaming-adaptatif_france-dom-tom/2017/S16/J2/156589847-58f59130c1f52-,standard1,standard2,standard3,standard4,standard5,.mp4.csmil/index_3_av.m3u8?null=0
-#EXT-X-STREAM-INF:SUBTITLES="subs",AUDIO="aac",PROGRAM-ID=1,BANDWIDTH=1467000,RESOLUTION=1024x576,CODECS="avc1.77.30, mp4a.40.2"
-http://replayftv-vh.akamaihd.net/i/streaming-adaptatif_france-dom-tom/2017/S16/J2/156589847-58f59130c1f52-,standard1,standard2,standard3,standard4,standard5,.mp4.csmil/index_4_av.m3u8?null=0

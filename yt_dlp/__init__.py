@@ -536,6 +536,7 @@ def _real_main(argv=None):
         'ffmpeg_location': opts.ffmpeg_location,
         'hls_prefer_native': opts.hls_prefer_native,
         'hls_use_mpegts': opts.hls_use_mpegts,
+        'hls_split_discontinuity': opts.hls_split_discontinuity,
         'external_downloader_args': opts.external_downloader_args,
         'postprocessor_args': opts.postprocessor_args,
         'cn_verification_proxy': opts.cn_verification_proxy,

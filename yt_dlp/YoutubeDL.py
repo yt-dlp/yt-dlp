@@ -189,11 +189,15 @@ class YoutubeDL(object):
                        into a single file
     allow_multiple_audio_streams:   Allow multiple audio streams to be merged
                        into a single file
+    paths:             Dictionary of output paths. The allowed keys are 'home'
+                       'temp' and the keys of OUTTMPL_TYPES (in utils.py)
     outtmpl:           Dictionary of templates for output names. Allowed keys
-                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py)
+                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py).
+                       A string a also accepted for backward compatibility
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
+    windowsfilenames:  Force the filenames to be windows compatible
     ignoreerrors:      Do not stop on download errors
                        (Default True when running yt-dlp,
                        but False when directly accessing YoutubeDL class)
@@ -372,11 +376,19 @@ class YoutubeDL(object):
                         postprocessor/executable. The dict can also have "PP+EXE" keys
                         which are used when the given exe is used by the given PP.
                         Use 'default' as the name for arguments to passed to all PP
-    The following options are used by the Youtube extractor:
+
+    The following options are used by the extractors:
+    dynamic_mpd:        Whether to process dynamic DASH manifests (default: True)
+    hls_split_discontinuity: Split HLS playlists to different formats at
+                        discontinuities such as ad breaks (default: False)
     youtube_include_dash_manifest: If True (default), DASH manifests and related
                         data will be downloaded and processed by extractor.
                         You can reduce network I/O by disabling it if you don't
-                        care about DASH.
+                        care about DASH. (only for youtube)
+    youtube_include_hls_manifest: If True (default), HLS manifests and related
+                        data will be downloaded and processed by extractor.
+                        You can reduce network I/O by disabling it if you don't
+                        care about HLS. (only for youtube)
     """
 
     _NUMERIC_FIELDS = set((

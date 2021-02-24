@@ -7,19 +7,21 @@ from .common import InfoExtractor
 from .gigya import GigyaBaseIE
 from ..compat import compat_HTTPError
 from ..utils import (
-    extract_attributes,
     ExtractorError,
-    strip_or_none,
+    clean_html,
+    extract_attributes,
     float_or_none,
+    get_element_by_class,
     int_or_none,
     merge_dicts,
     str_or_none,
+    strip_or_none,
     url_or_none,
 )
 
 
 class CanvasIE(InfoExtractor):
-    _VALID_URL = r'https?://mediazone\.vrt\.be/api/v1/(?P<site_id>canvas|een|ketnet|vrt(?:video|nieuws)|sporza)/assets/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://mediazone\.vrt\.be/api/v1/(?P<site_id>canvas|een|ketnet|vrt(?:video|nieuws)|sporza|dako)/assets/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://mediazone.vrt.be/api/v1/ketnet/assets/md-ast-4ac54990-ce66-4d00-a8ca-9eac86f4c475',
         'md5': '68993eda72ef62386a15ea2cf3c93107',
@@ -332,3 +334,51 @@ class VrtNUIE(GigyaBaseIE):
             'display_id': display_id,
             'season_number': int_or_none(page.get('episode_season')),
         })
+
+
+class DagelijkseKostIE(InfoExtractor):
+    IE_DESC = 'dagelijksekost.een.be'
+    _VALID_URL = r'https?://dagelijksekost\.een\.be/gerechten/(?P<id>[^/?#&]+)'
+    _TEST = {
+        'url': 'https://dagelijksekost.een.be/gerechten/hachis-parmentier-met-witloof',
+        'md5': '30bfffc323009a3e5f689bef6efa2365',
+        'info_dict': {
+            'id': 'md-ast-27a4d1ff-7d7b-425e-b84f-a4d227f592fa',
+            'display_id': 'hachis-parmentier-met-witloof',
+            'ext': 'mp4',
+            'title': 'Hachis parmentier met witloof',
+            'description': 'md5:9960478392d87f63567b5b117688cdc5',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 283.02,
+        },
+        'expected_warnings': ['is not a supported codec'],
+    }
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+
+        title = strip_or_none(get_element_by_class(
+            'dish-metadata__title', webpage
+        ) or self._html_search_meta(
+            'twitter:title', webpage))
+
+        description = clean_html(get_element_by_class(
+            'dish-description', webpage)
+        ) or self._html_search_meta(
+            ('description', 'twitter:description', 'og:description'),
+            webpage)
+
+        video_id = self._html_search_regex(
+            r'data-url=(["\'])(?P<id>(?:(?!\1).)+)\1', webpage, 'video id',
+            group='id')
+
+        return {
+            '_type': 'url_transparent',
+            'url': 'https://mediazone.vrt.be/api/v1/dako/assets/%s' % video_id,
+            'ie_key': CanvasIE.ie_key(),
+            'id': video_id,
+            'display_id': display_id,
+            'title': title,
+            'description': description,
+        }
