@@ -655,11 +655,6 @@ def parseOpts(overrideArguments=None):
             'Use the mpegts container for HLS videos, allowing to play the '
             'video while downloading (some players may not be able to play it)'))
     downloader.add_option(
-        '--hls-ignore-discontinuity',
-        dest='hls_ignore_discontinuity', action='store_true', default=None,
-        help='Ignore media discontinuity on HLS playlists (do not split ad breaks)'
-    )
-    downloader.add_option(
         '--external-downloader',
         dest='external_downloader', metavar='NAME',
         help=(
@@ -1231,6 +1226,15 @@ def parseOpts(overrideArguments=None):
         '--ignore-dynamic-mpd', '--no-allow-dynamic-mpd',
         action='store_false', dest='dynamic_mpd',
         help='Do not process dynamic DASH manifests (Alias: --no-allow-dynamic-mpd)')
+    extractor.add_option(
+        '--hls-split-discontinuity',
+        dest='hls_split_discontinuity', action='store_true', default=False,
+        help='Split discontinuity on HLS playlists to different formats (split ad breaks)'
+    )
+    extractor.add_option(
+        '--no-hls-split-discontinuity',
+        dest='hls_split_discontinuity', action='store_false',
+        help='Ignore discontinuity on HLS playlists (do not split ad breaks) (default)')
 
     parser.add_option_group(general)
     parser.add_option_group(network)

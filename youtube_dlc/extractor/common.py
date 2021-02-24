@@ -1870,7 +1870,7 @@ class InfoExtractor(object):
             if re.match(r'^https?://', u)
             else compat_urlparse.urljoin(m3u8_url, u))
 
-        ignore_discontinuity = self._downloader.params.get('hls_ignore_discontinuity')
+        split_discontinuity = self._downloader.params.get('hls_split_discontinuity', False)
 
         # References:
         # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-21
@@ -1905,7 +1905,7 @@ class InfoExtractor(object):
             playlist_formats = []
             i = (
                 0
-                if not ignore_discontinuity
+                if split_discontinuity
                 else None)
             format_info = {
                 'index': i,
@@ -1915,7 +1915,7 @@ class InfoExtractor(object):
             for line in m3u8_doc.splitlines():
                 if not line.startswith('#'):
                     format_info['files'].append(line)
-                elif not ignore_discontinuity and line.startswith('#EXT-X-DISCONTINUITY'):
+                elif split_discontinuity and line.startswith('#EXT-X-DISCONTINUITY'):
                     i += 1
                     playlist_formats.append(format_info)
                     format_info = {
