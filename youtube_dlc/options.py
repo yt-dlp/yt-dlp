@@ -1071,10 +1071,12 @@ def parseOpts(overrideArguments=None):
             'SponSkrub, ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, '
             'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor and EmbedThumbnail. '
             'The supported executables are: SponSkrub, FFmpeg, FFprobe, and AtomicParsley. '
-            'You can use this option multiple times to give different arguments to different postprocessors. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
-            'only when being used by the specified postprocessor. '
-            'You can use this option multiple times (Alias: --ppa)'))
+            'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
+            'a number can be appended to the exe name seperated by "_i" to pass the argument '
+            'before the specified input file. Eg: --ppa "Merger+ffmpeg_i1:-v quiet". '
+            'You can use this option multiple times to give different arguments to different '
+            'postprocessors. (Alias: --ppa)'))
     postproc.add_option(
         '-k', '--keep-video',
         action='store_true', dest='keepvideo', default=False,

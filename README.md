@@ -611,13 +611,17 @@ Then simply type this
                                      SubtitlesConvertor and EmbedThumbnail. The
                                      supported executables are: SponSkrub,
                                      FFmpeg, FFprobe, and AtomicParsley. You can
-                                     use this option multiple times to give
+                                     also specify "PP+EXE:ARGS" to give the
+                                     arguments to the specified executable only
+                                     when being used by the specified
+                                     postprocessor. Additionally, for
+                                     ffmpeg/ffprobe, a number can be appended to
+                                     the exe name seperated by "_i" to pass the
+                                     argument before the specified input file.
+                                     Eg: --ppa "Merger+ffmpeg_i1:-v quiet". You
+                                     can use this option multiple times to give
                                      different arguments to different
-                                     postprocessors. You can also specify
-                                     "PP+EXE:ARGS" to give the arguments to the
-                                     specified executable only when being used
-                                     by the specified postprocessor. You can use
-                                     this option multiple times (Alias: --ppa)
+                                     postprocessors. (Alias: --ppa)
     -k, --keep-video                 Keep the intermediate video file on disk
                                      after post-processing
     --no-keep-video                  Delete the intermediate video file after

@@ -91,11 +91,10 @@ class PostProcessor(object):
         except Exception:
             self.report_warning(errnote)
 
-    def _configuration_args(self, default=[], exe=None):
-        key = self.pp_key().lower()
-        args, is_compat = cli_configuration_args(
-            self._downloader.params, 'postprocessor_args', key, default, exe)
-        return args if not is_compat or key != 'sponskrub' else default
+    def _configuration_args(self, *args, **kwargs):
+        return cli_configuration_args(
+            self._downloader.params.get('postprocessor_args'),
+            self.pp_key().lower(), *args, **kwargs)
 
 
 class AudioConversionError(PostProcessingError):

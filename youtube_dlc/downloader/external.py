@@ -105,9 +105,10 @@ class ExternalFD(FileDownloader):
     def _valueless_option(self, command_option, param, expected_value=True):
         return cli_valueless_option(self.params, command_option, param, expected_value)
 
-    def _configuration_args(self, default=[]):
+    def _configuration_args(self, *args, **kwargs):
         return cli_configuration_args(
-            self.params, 'external_downloader_args', self.get_basename(), default)[0]
+            self.params.get('external_downloader_args'),
+            self.get_basename(), *args, **kwargs)
 
     def _call_downloader(self, tmpfilename, info_dict):
         """ Either overwrite this or implement _make_cmd """

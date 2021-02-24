@@ -239,21 +239,20 @@ class FFmpegPostProcessor(PostProcessor):
         oldest_mtime = min(
             os.stat(encodeFilename(path)).st_mtime for path in input_paths)
 
-        opts += self._configuration_args(exe=self.basename)
-
-        files_cmd = []
-        for path in input_paths:
-            files_cmd.extend([
-                encodeArgument('-i'),
-                encodeFilename(self._ffmpeg_filename_argument(path), True)
-            ])
         cmd = [encodeFilename(self.executable, True), encodeArgument('-y')]
         # avconv does not have repeat option
         if self.basename == 'ffmpeg':
             cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info')]
-        cmd += (files_cmd
-                + [encodeArgument(o) for o in opts]
-                + [encodeFilename(self._ffmpeg_filename_argument(out_path), True)])
+
+        def make_args(file, pre=[], post=[], *args, **kwargs):
+            args = pre + self._configuration_args(*args, **kwargs) + post
+            return (
+                [encodeArgument(o) for o in args]
+                + [encodeFilename(self._ffmpeg_filename_argument(file), True)])
+
+        for i, path in enumerate(input_paths):
+            cmd += make_args(path, post=['-i'], exe='%s_i%d' % (self.basename, i+1), use_default_arg=False)
+        cmd += make_args(out_path, pre=opts, exe=self.basename)
 
         self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
