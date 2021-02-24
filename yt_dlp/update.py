@@ -38,7 +38,7 @@ def update_self(to_screen, verbose, opener):
     Returns whether the program should terminate
     """
 
-    JSON_URL = 'https://api.github.com/repos/pukkandan/yt-dlp/releases/latest'
+    JSON_URL = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest'
 
     def calc_sha256sum(path):
         h = hashlib.sha256()
@@ -63,7 +63,7 @@ def update_self(to_screen, verbose, opener):
         if verbose:
             to_screen(encode_compat_str(traceback.format_exc()))
         to_screen('ERROR: can\'t obtain versions info. Please try again later.')
-        to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+        to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
         return
 
     def version_tuple(version_str):
@@ -87,8 +87,8 @@ def update_self(to_screen, verbose, opener):
     def get_bin_info(bin_or_exe, version):
         label = version_labels['%s_%s' % (bin_or_exe, version)]
         return next(
-            (i for i in version_info['assets']
-                if i['name'] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label)), {})
+            (i for i in version_info['assets'] if i['name'] == 'yt-dlp%s' % label),
+            {})
 
     def get_sha256sum(bin_or_exe, version):
         label = version_labels['%s_%s' % (bin_or_exe, version)]
@@ -100,8 +100,8 @@ def update_self(to_screen, verbose, opener):
         hash_data = opener.open(urlh).read().decode('utf-8')
         hashes = list(map(lambda x: x.split(':'), hash_data.splitlines()))
         return next(
-            (i[1] for i in hashes
-                if i[0] in ('yt-dlp%s' % label, 'youtube-dlc%s' % label)), None)
+            (i[1] for i in hashes if i[0] == 'yt-dlp%s' % label),
+            None)
 
     # sys.executable is set to the full pathname of the exe-file for py2exe
     # though symlinks are not followed so that we need to do this manually
@@ -125,7 +125,7 @@ def update_self(to_screen, verbose, opener):
             url = get_bin_info('exe', arch).get('browser_download_url')
             if not url:
                 to_screen('ERROR: unable to fetch updates')
-                to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+                to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
                 return
             urlh = opener.open(url)
             newcontent = urlh.read()
@@ -134,7 +134,7 @@ def update_self(to_screen, verbose, opener):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
-            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+            to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
             return
 
         try:
@@ -151,7 +151,7 @@ def update_self(to_screen, verbose, opener):
             to_screen('WARNING: no hash information found for the release')
         elif calc_sha256sum(exe + '.new') != expected_sum:
             to_screen('ERROR: unable to verify the new executable')
-            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+            to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
             try:
                 os.remove(exe + '.new')
             except OSError:
@@ -186,7 +186,7 @@ def update_self(to_screen, verbose, opener):
             url = get_bin_info('zip', py_ver).get('browser_download_url')
             if not url:
                 to_screen('ERROR: unable to fetch updates')
-                to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+                to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
                 return
             urlh = opener.open(url)
             newcontent = urlh.read()
@@ -195,7 +195,7 @@ def update_self(to_screen, verbose, opener):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
             to_screen('ERROR: unable to download latest version')
-            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+            to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
             return
 
         try:
@@ -210,7 +210,7 @@ def update_self(to_screen, verbose, opener):
         expected_sum = get_sha256sum('zip', py_ver)
         if expected_sum and calc_sha256sum(filename + '.new') != expected_sum:
             to_screen('ERROR: unable to verify the new zip')
-            to_screen('Visit https://github.com/pukkandan/yt-dlp/releases/latest')
+            to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
             try:
                 os.remove(filename + '.new')
             except OSError:
