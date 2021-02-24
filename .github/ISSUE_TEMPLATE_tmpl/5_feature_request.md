@@ -20,9 +20,9 @@ assignees: ''
 ## Checklist
 
 <!--
-Carefully read and work through this check list in order to prevent the most common mistakes and misuse of youtube-dlc:
-- First of, make sure you are using the latest version of yt-dlp. Run `youtube-dlc --version` and ensure your version is %(version)s. If it's not, see https://github.com/pukkandan/yt-dlp on how to update. Issues with outdated version will be REJECTED.
-- Search the bugtracker for similar feature requests: https://github.com/pukkandan/yt-dlp. DO NOT post duplicates.
+Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
+- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is %(version)s. If it's not, see https://github.com/yt-dlp/yt-dlp on how to update. Issues with outdated version will be REJECTED.
+- Search the bugtracker for similar feature requests: https://github.com/yt-dlp/yt-dlp. DO NOT post duplicates.
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 

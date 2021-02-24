@@ -5,10 +5,10 @@ import sys
 import os
 import textwrap
 
-# We must be able to import youtube_dlc
+# We must be able to import yt_dlp
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-import youtube_dlc
+import yt_dlp
 
 
 def main():
@@ -16,7 +16,7 @@ def main():
         template = tmplf.read()
 
     ie_htmls = []
-    for ie in youtube_dlc.list_extractors(age_limit=None):
+    for ie in yt_dlp.list_extractors(age_limit=None):
         ie_html = '<b>{}</b>'.format(ie.IE_NAME)
         ie_desc = getattr(ie, 'IE_DESC', None)
         if ie_desc is False:

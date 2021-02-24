@@ -8,7 +8,7 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from youtube_dlc.postprocessor import MetadataFromFieldPP, MetadataFromTitlePP
+from yt_dlp.postprocessor import MetadataFromFieldPP, MetadataFromTitlePP
 
 
 class TestMetadataFromField(unittest.TestCase):

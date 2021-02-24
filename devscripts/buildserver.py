@@ -12,7 +12,7 @@ import traceback
 import os.path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname((os.path.abspath(__file__)))))
-from youtube_dlc.compat import (
+from yt_dlp.compat import (
     compat_input,
     compat_http_server,
     compat_str,
@@ -325,7 +325,7 @@ class YoutubeDLBuilder(object):
     authorizedUsers = ['fraca7', 'phihag', 'rg3', 'FiloSottile', 'ytdl-org']
 
     def __init__(self, **kwargs):
-        if self.repoName != 'youtube-dlc':
+        if self.repoName != 'yt-dlp':
             raise BuildError('Invalid repository "%s"' % self.repoName)
         if self.user not in self.authorizedUsers:
             raise HTTPError('Unauthorized user "%s"' % self.user, 401)

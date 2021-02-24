@@ -7,10 +7,10 @@ from os.path import dirname as dirn
 import sys
 
 sys.path.insert(0, dirn(dirn((os.path.abspath(__file__)))))
-import youtube_dlc
-from youtube_dlc.utils import shell_quote
+import yt_dlp
+from yt_dlp.utils import shell_quote
 
-FISH_COMPLETION_FILE = 'youtube-dlc.fish'
+FISH_COMPLETION_FILE = 'yt-dlp.fish'
 FISH_COMPLETION_TEMPLATE = 'devscripts/fish-completion.in'
 
 EXTRA_ARGS = {
@@ -31,7 +31,7 @@ def build_completion(opt_parser):
     for group in opt_parser.option_groups:
         for option in group.option_list:
             long_option = option.get_opt_string().strip('-')
-            complete_cmd = ['complete', '--command', 'youtube-dlc', '--long-option', long_option]
+            complete_cmd = ['complete', '--command', 'yt-dlp', '--long-option', long_option]
             if option._short_opts:
                 complete_cmd += ['--short-option', option._short_opts[0].strip('-')]
             if option.help != optparse.SUPPRESS_HELP:
@@ -46,5 +46,5 @@ def build_completion(opt_parser):
         f.write(filled_template)
 
 
-parser = youtube_dlc.parseOpts()[0]
+parser = yt_dlp.parseOpts()[0]
 build_completion(parser)

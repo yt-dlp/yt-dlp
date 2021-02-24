@@ -10,7 +10,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-from youtube_dlc.compat import (
+from yt_dlp.compat import (
     compat_getenv,
     compat_setenv,
     compat_etree_Element,
@@ -30,11 +30,11 @@ from youtube_dlc.compat import (
 class TestCompat(unittest.TestCase):
     def test_compat_getenv(self):
         test_str = 'тест'
-        compat_setenv('youtube_dlc_COMPAT_GETENV', test_str)
-        self.assertEqual(compat_getenv('youtube_dlc_COMPAT_GETENV'), test_str)
+        compat_setenv('yt_dlp_COMPAT_GETENV', test_str)
+        self.assertEqual(compat_getenv('yt_dlp_COMPAT_GETENV'), test_str)
 
     def test_compat_setenv(self):
-        test_var = 'youtube_dlc_COMPAT_SETENV'
+        test_var = 'yt_dlp_COMPAT_SETENV'
         test_str = 'тест'
         compat_setenv(test_var, test_str)
         compat_getenv(test_var)
@@ -48,11 +48,11 @@ class TestCompat(unittest.TestCase):
         compat_setenv('HOME', old_home or '')
 
     def test_all_present(self):
-        import youtube_dlc.compat
-        all_names = youtube_dlc.compat.__all__
+        import yt_dlp.compat
+        all_names = yt_dlp.compat.__all__
         present_names = set(filter(
             lambda c: '_' in c and not c.startswith('_'),
-            dir(youtube_dlc.compat))) - set(['unicode_literals'])
+            dir(yt_dlp.compat))) - set(['unicode_literals'])
         self.assertEqual(all_names, sorted(present_names))
 
     def test_compat_urllib_parse_quote(self):

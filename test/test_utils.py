@@ -15,7 +15,7 @@ import io
 import json
 import xml.etree.ElementTree
 
-from youtube_dlc.utils import (
+from yt_dlp.utils import (
     age_restricted,
     args_to_str,
     encode_base_n,
@@ -107,7 +107,7 @@ from youtube_dlc.utils import (
     parse_codecs,
     iri_to_uri,
 )
-from youtube_dlc.compat import (
+from yt_dlp.compat import (
     compat_chr,
     compat_etree_fromstring,
     compat_getenv,
@@ -242,12 +242,12 @@ class TestUtil(unittest.TestCase):
         def env(var):
             return '%{0}%'.format(var) if sys.platform == 'win32' else '${0}'.format(var)
 
-        compat_setenv('youtube_dlc_EXPATH_PATH', 'expanded')
-        self.assertEqual(expand_path(env('youtube_dlc_EXPATH_PATH')), 'expanded')
+        compat_setenv('yt_dlp_EXPATH_PATH', 'expanded')
+        self.assertEqual(expand_path(env('yt_dlp_EXPATH_PATH')), 'expanded')
         self.assertEqual(expand_path(env('HOME')), compat_getenv('HOME'))
         self.assertEqual(expand_path('~'), compat_getenv('HOME'))
         self.assertEqual(
-            expand_path('~/%s' % env('youtube_dlc_EXPATH_PATH')),
+            expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
             '%s/expanded' % compat_getenv('HOME'))
 
     def test_prepend_extension(self):
@@ -1425,8 +1425,8 @@ Line 1
         self.assertEqual(caesar('ebg', 'acegik', -2), 'abc')
 
     def test_rot47(self):
-        self.assertEqual(rot47('youtube-dlc'), r'J@FEF36\5=4')
-        self.assertEqual(rot47('YOUTUBE-DLC'), r'*~&%&qt\s{r')
+        self.assertEqual(rot47('yt-dlp'), r'JE\5=A')
+        self.assertEqual(rot47('YT-DLP'), r'*%\s{!')
 
     def test_urshift(self):
         self.assertEqual(urshift(3, 1), 1)

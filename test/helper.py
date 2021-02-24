@@ -10,13 +10,13 @@ import types
 import ssl
 import sys
 
-import youtube_dlc.extractor
-from youtube_dlc import YoutubeDL
-from youtube_dlc.compat import (
+import yt_dlp.extractor
+from yt_dlp import YoutubeDL
+from yt_dlp.compat import (
     compat_os_name,
     compat_str,
 )
-from youtube_dlc.utils import (
+from yt_dlp.utils import (
     preferredencoding,
     write_string,
 )
@@ -90,7 +90,7 @@ class FakeYDL(YoutubeDL):
 
 
 def gettestcases(include_onlymatching=False):
-    for ie in youtube_dlc.extractor.gen_extractors():
+    for ie in yt_dlp.extractor.gen_extractors():
         for tc in ie.get_testcases(include_onlymatching):
             yield tc
 

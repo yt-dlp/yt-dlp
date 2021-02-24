@@ -1,13 +1,13 @@
 # YT-DLP
 
-[![Release version](https://img.shields.io/github/v/release/pukkandan/yt-dlp?color=brightgreen&label=Release)](https://github.com/pukkandan/yt-dlp/releases/latest)
+[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Release)](https://github.com/yt-dlp/yt-dlp/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](LICENSE)
-[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions)
+[![CI Status](https://github.com/yt-dlp/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/yt-dlp/yt-dlp/actions)
 [![Discord](https://img.shields.io/discord/807245652072857610?color=blue&label=discord&logo=discord)](https://discord.gg/S75JaBna)  
 
-[![Commits](https://img.shields.io/github/commit-activity/m/pukkandan/yt-dlp?label=commits)](https://github.com/pukkandan/yt-dlp/commits)
-[![Last Commit](https://img.shields.io/github/last-commit/pukkandan/yt-dlp/master)](https://github.com/pukkandan/yt-dlp/commits)
-[![Downloads](https://img.shields.io/github/downloads/pukkandan/yt-dlp/total)](https://github.com/pukkandan/yt-dlp/releases/latest)
+[![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits)](https://github.com/yt-dlp/yt-dlp/commits)
+[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master)](https://github.com/yt-dlp/yt-dlp/commits)
+[![Downloads](https://img.shields.io/github/downloads/yt-dlp/yt-dlp/total)](https://github.com/yt-dlp/yt-dlp/releases/latest)
 [![PyPi Downloads](https://img.shields.io/pypi/dm/yt-dlp?label=PyPi)](https://pypi.org/project/yt-dlp)
 
 A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
@@ -52,13 +52,13 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
 # NEW FEATURES
 The major new features from the latest release of [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc) are:
 
-* **[SponSkrub Integration](#sponskrub-sponsorblock-options)**: You can use [SponSkrub](https://github.com/pukkandan/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
+* **[SponSkrub Integration](#sponskrub-sponsorblock-options)**: You can use [SponSkrub](https://github.com/yt-dlp/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
 * **Merged with youtube-dl v2021.02.10**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
-* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/pukkandan/yt-dlp/pull/31) for details.
+* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
 * **Youtube improvements**:
     * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and supports downloading multiple pages of content
@@ -73,7 +73,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Plugin support**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
 
-* **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to. See [`--paths`](https://github.com/pukkandan/yt-dlp/#:~:text=-P,%20--paths%20TYPE:PATH) for details
+* **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to. See [`--paths`](https://github.com/yt-dlp/yt-dlp/#:~:text=-P,%20--paths%20TYPE:PATH) for details
 
 <!-- Relative link doesn't work for "#:~:text=" -->
 
@@ -83,10 +83,10 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Improvements**: Multiple `--postprocessor-args` and `--external-downloader-args`, Date/time formatting in `-o`, faster archive checking, more [format selection options](#format-selection) etc
 
-* **Self-updater**: The releases can be updated using `youtube-dlc -U`
+* **Self-updater**: The releases can be updated using `yt-dlp -U`
 
 
-See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
+See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
 
 
 **PS**: Some of these changes are already in youtube-dlc, but are still unreleased. See [this](Changelog.md#unreleased-changes-in-blackjack4494yt-dlc) for details
@@ -97,13 +97,13 @@ If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the
 # INSTALLATION
 
 You can install yt-dlp using one of the following methods:
-* Download the binary from the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest) (recommended method)
+* Download the binary from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest) (recommended method)
 * Use [PyPI package](https://pypi.org/project/yt-dlp): `python -m pip install --upgrade yt-dlp`
-* Use pip+git: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp.git@release`
-* Install master branch: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp`
+* Use pip+git: `python -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
+* Install master branch: `python -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp`
 
 ### UPDATE
-Starting from version `2021.02.09`, you can use `youtube-dlc -U` to update if you are using the provided release.
+Starting from version `2021.02.09`, you can use `yt-dlp -U` to update if you are using the provided release.
 If you are using `pip`, simply re-run the same command that was used to install the program.
 
 ### COMPILE
@@ -117,7 +117,7 @@ Once you have all the necessary dependancies installed, just run `py pyinst.py`.
 
 You can also build the executable without any version info or metadata by using:
 
-    pyinstaller.exe youtube_dlc\__main__.py --onefile --name youtube-dlc
+    pyinstaller.exe yt_dlp\__main__.py --onefile --name yt-dlp
 
 **For Unix**:
 You will need the required build tools  
@@ -129,9 +129,9 @@ Then simply type this
 **Note**: In either platform, `devscripts\update-version.py` can be used to automatically update the version number
 
 # DESCRIPTION
-**youtube-dlc** is a command-line program to download videos from youtube.com many other [video platforms](docs/supportedsites.md). It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
+**yt-dlp** is a command-line program to download videos from youtube.com many other [video platforms](docs/supportedsites.md). It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
 
-    youtube-dlc [OPTIONS] [--] URL [URL...]
+    yt-dlp [OPTIONS] [--] URL [URL...]
 
 
 # OPTIONS
@@ -561,7 +561,7 @@ Then simply type this
 ## Authentication Options:
     -u, --username USERNAME          Login with this account ID
     -p, --password PASSWORD          Account password. If this option is left
-                                     out, youtube-dlc will ask interactively
+                                     out, yt-dlp will ask interactively
     -2, --twofactor TWOFACTOR        Two-factor authentication code
     -n, --netrc                      Use .netrc authentication data
     --video-password PASSWORD        Video password (vimeo, youku)
@@ -572,7 +572,7 @@ Then simply type this
                                      a list of available MSOs
     --ap-username USERNAME           Multiple-system operator account login
     --ap-password PASSWORD           Multiple-system operator account password.
-                                     If this option is left out, youtube-dlc
+                                     If this option is left out, yt-dlp
                                      will ask interactively
     --ap-list-mso                    List all supported multiple-system
                                      operators
@@ -667,7 +667,7 @@ Then simply type this
                                      (currently supported: srt|ass|vtt|lrc)
 
 ## SponSkrub (SponsorBlock) Options:
-[SponSkrub](https://github.com/pukkandan/SponSkrub) is a utility to
+[SponSkrub](https://github.com/yt-dlp/SponSkrub) is a utility to
     mark/remove sponsor segments from downloaded YouTube videos using
     [SponsorBlock API](https://sponsor.ajay.app)
 
@@ -712,11 +712,11 @@ Then simply type this
 
 # CONFIGURATION
 
-You can configure youtube-dlc by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
+You can configure yt-dlp by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
 
 1. **Main Configuration**: The file given by `--config-location`
-1. **Portable Configuration**: `yt-dlp.conf` or `youtube-dlc.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/youtube_dlc/__main__.py`), the root directory is used instead.
-1. **Home Configuration**: `yt-dlp.conf` or `youtube-dlc.conf` in the home path given by `-P "home:<path>"`, or in the current directory if no such path is given
+1. **Portable Configuration**: `yt-dlp.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/yt_dlp/__main__.py`), the root directory is used instead.
+1. **Home Configuration**: `yt-dlp.conf` in the home path given by `-P "home:<path>"`, or in the current directory if no such path is given
 1. **User Configuration**:
     * `%XDG_CONFIG_HOME%/yt-dlp/config` (recommended on Linux/macOS)
     * `%XDG_CONFIG_HOME%/yt-dlp.conf`
@@ -725,10 +725,10 @@ You can configure youtube-dlc by placing any supported command line option to a 
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
 
-    If none of these files are found, the search is performed again by replacing `yt-dlp` with `youtube-dlc`. Note that `~` points to `C:\Users\<user name>` on windows. Also, `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined
-1. **System Configuration**: `/etc/yt-dlp.conf` or `/etc/youtube-dlc.conf`
+    Note that `~` points to `C:\Users\<user name>` on windows. Also, `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined
+1. **System Configuration**: `/etc/yt-dlp.conf` or `/etc/yt-dlp.conf`
 
-For example, with the following configuration file youtube-dlc will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
+For example, with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
 # Lines starting with # are comments
 
@@ -747,11 +747,11 @@ For example, with the following configuration file youtube-dlc will always extra
 
 Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
 
-You can use `--ignore-config` if you want to disable all configuration files for a particular youtube-dlc run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of user and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
+You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of user and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
 ### Authentication with `.netrc` file
 
-You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every youtube-dlc execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per extractor basis. For that you will need to create a `.netrc` file in your `$HOME` and restrict permissions to read/write by only you:
+You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per extractor basis. For that you will need to create a `.netrc` file in your `$HOME` and restrict permissions to read/write by only you:
 ```
 touch $HOME/.netrc
 chmod a-rwx,u+rw $HOME/.netrc
@@ -765,7 +765,7 @@ For example:
 machine youtube login myaccount@gmail.com password my_youtube_password
 machine twitch login my_twitch_account_name password my_twitch_password
 ```
-To activate authentication with the `.netrc` file you should pass `--netrc` to youtube-dlc or place it in the [configuration file](#configuration).
+To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
 On Windows you may also need to setup the `%HOME%` environment variable manually. For example:
 ```
@@ -778,7 +778,7 @@ The `-o` option is used to indicate a template for the output file names while `
 
 **tl;dr:** [navigate me to examples](#output-template-examples).
 
-The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `youtube-dlc -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Date/time fields can also be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses seperated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
+The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Date/time fields can also be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses seperated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
 
 Additionally, you can set different output templates for the various metadata files seperately from the general output template by specifying the type of file followed by the template seperated by a colon ":". The different filetypes supported are `subtitle|thumbnail|description|annotation|infojson|pl_description|pl_infojson`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
 
@@ -873,7 +873,7 @@ Available for the media that is a track or a part of a music album:
 
 Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
-For example for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `youtube-dlc test video` and id `BaW_jenozKcj`, this will result in a `youtube-dlc test video-BaW_jenozKcj.mp4` file created in the current directory.
+For example for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKcj`, this will result in a `yt-dlp test video-BaW_jenozKcj.mp4` file created in the current directory.
 
 For numeric sequences you can use numeric related formatting, for example, `%(view_count)05d` will result in a string with view count padded with zeros up to 5 characters, like in `00042`.
 
@@ -894,35 +894,35 @@ If you are using an output template inside a Windows batch file then you must es
 Note that on Windows you need to use double quotes instead of single.
 
 ```bash
-$ youtube-dlc --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc
-youtube-dlc test video ''_ä↭𝕐.mp4    # All kinds of weird characters
+$ yt-dlp --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc
+youtube-dl test video ''_ä↭𝕐.mp4    # All kinds of weird characters
 
-$ youtube-dlc --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc --restrict-filenames
-youtube-dlc_test_video_.mp4          # A simple file name
+$ yt-dlp --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc --restrict-filenames
+youtube-dl_test_video_.mp4          # A simple file name
 
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
-$ youtube-dlc -o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
+$ yt-dlp -o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
 
 # Download YouTube playlist videos in seperate directories according to their uploaded year
-$ youtube-dlc -o '%(upload_date>%Y)s/%(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
+$ yt-dlp -o '%(upload_date>%Y)s/%(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
 
 # Download all playlists of YouTube channel/user keeping each playlist in separate directory:
-$ youtube-dlc -o '%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/user/TheLinuxFoundation/playlists
+$ yt-dlp -o '%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/user/TheLinuxFoundation/playlists
 
 # Download Udemy course keeping each chapter in separate directory under MyVideos directory in your home
-$ youtube-dlc -u user -p password -P '~/MyVideos' -o '%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s' https://www.udemy.com/java-tutorial/
+$ yt-dlp -u user -p password -P '~/MyVideos' -o '%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s' https://www.udemy.com/java-tutorial/
 
 # Download entire series season keeping each series and each season in separate directory under C:/MyVideos
-$ youtube-dlc -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" https://videomore.ru/kino_v_detalayah/5_sezon/367617
+$ yt-dlp -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" https://videomore.ru/kino_v_detalayah/5_sezon/367617
 
 # Stream the video being downloaded to stdout
-$ youtube-dlc -o - BaW_jenozKc
+$ yt-dlp -o - BaW_jenozKc
 ```
 
 # FORMAT SELECTION
 
-By default, youtube-dlc tries to download the best available quality if you **don't** pass any options.
-This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg is unavailable, or if you use youtube-dlc to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
+By default, yt-dlp tries to download the best available quality if you **don't** pass any options.
+This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg is unavailable, or if you use yt-dlp to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
 
 The general syntax for format selection is `--f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
 
@@ -1034,19 +1034,19 @@ Note that on Windows you may need to use double quotes instead of single.
 ```bash
 # Download and merge the best best video-only format and the best audio-only format,
 # or download the best combined format if video-only format is not available
-$ youtube-dlc -f 'bv+ba/b'
+$ yt-dlp -f 'bv+ba/b'
 
 # Download best format that contains video,
 # and if it doesn't already have an audio stream, merge it with best audio-only format
-$ youtube-dlc -f 'bv*+ba/b'
+$ yt-dlp -f 'bv*+ba/b'
 
 # Same as above
-$ youtube-dlc
+$ yt-dlp
 
 # Download the best video-only format and the best audio-only format without merging them
 # For this case, an output template should be used since
 # by default, bestvideo and bestaudio will have the same file name.
-$ youtube-dlc -f 'bv,ba' -o '%(title)s.f%(format_id)s.%(ext)s'
+$ yt-dlp -f 'bv,ba' -o '%(title)s.f%(format_id)s.%(ext)s'
 
 
 
@@ -1054,74 +1054,74 @@ $ youtube-dlc -f 'bv,ba' -o '%(title)s.f%(format_id)s.%(ext)s'
 # and how to use -S to achieve a similar but better result
 
 # Download the worst video available (old method)
-$ youtube-dlc -f 'wv*+wa/w'
+$ yt-dlp -f 'wv*+wa/w'
 
 # Download the best video available but with the smallest resolution
-$ youtube-dlc -S '+res'
+$ yt-dlp -S '+res'
 
 # Download the smallest video available
-$ youtube-dlc -S '+size,+br'
+$ yt-dlp -S '+size,+br'
 
 
 
 # Download the best mp4 video available, or the best video if no mp4 available
-$ youtube-dlc -f 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b'
+$ yt-dlp -f 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b'
 
 # Download the best video with the best extension
 # (For video, mp4 > webm > flv. For audio, m4a > aac > mp3 ...)
-$ youtube-dlc -S 'ext'
+$ yt-dlp -S 'ext'
 
 
 
 # Download the best video available but no better than 480p,
 # or the worst video if there is no video under 480p
-$ youtube-dlc -f 'bv*[height<=480]+ba/b[height<=480] / wv*+ba/w'
+$ yt-dlp -f 'bv*[height<=480]+ba/b[height<=480] / wv*+ba/w'
 
 # Download the best video available with the largest height but no better than 480p,
 # or the best video with the smallest resolution if there is no video under 480p
-$ youtube-dlc -S 'height:480'
+$ yt-dlp -S 'height:480'
 
 # Download the best video available with the largest resolution but no better than 480p,
 # or the best video with the smallest resolution if there is no video under 480p
 # Resolution is determined by using the smallest dimension.
 # So this works correctly for vertical videos as well
-$ youtube-dlc -S 'res:480'
+$ yt-dlp -S 'res:480'
 
 
 
 # Download the best video (that also has audio) but no bigger than 50 MB,
 # or the worst video (that also has audio) if there is no video under 50 MB
-$ youtube-dlc -f 'b[filesize<50M] / w'
+$ yt-dlp -f 'b[filesize<50M] / w'
 
 # Download largest video (that also has audio) but no bigger than 50 MB,
 # or the smallest video (that also has audio) if there is no video under 50 MB
-$ youtube-dlc -f 'b' -S 'filesize:50M'
+$ yt-dlp -f 'b' -S 'filesize:50M'
 
 # Download best video (that also has audio) that is closest in size to 50 MB
-$ youtube-dlc -f 'b' -S 'filesize~50M'
+$ yt-dlp -f 'b' -S 'filesize~50M'
 
 
 
 # Download best video available via direct link over HTTP/HTTPS protocol,
 # or the best video available via any protocol if there is no such video
-$ youtube-dlc -f '(bv*+ba/b)[protocol^=http][protocol!*=dash] / (bv*+ba/b)'
+$ yt-dlp -f '(bv*+ba/b)[protocol^=http][protocol!*=dash] / (bv*+ba/b)'
 
 # Download best video available via the best protocol
 # (https/ftps > http/ftp > m3u8_native > m3u8 > http_dash_segments ...)
-$ youtube-dlc -S 'proto'
+$ yt-dlp -S 'proto'
 
 
 
 # Download the best video with h264 codec, or the best video if there is no such video
-$ youtube-dlc -f '(bv*+ba/b)[vcodec^=avc1] / (bv*+ba/b)'
+$ yt-dlp -f '(bv*+ba/b)[vcodec^=avc1] / (bv*+ba/b)'
 
 # Download the best video with best codec no better than h264,
 # or the best video with worst codec if there is no such video
-$ youtube-dlc -S 'codec:h264'
+$ yt-dlp -S 'codec:h264'
 
 # Download the best video with worst codec no worse than h264,
 # or the best video with best codec if there is no such video
-$ youtube-dlc -S '+codec:h264'
+$ yt-dlp -S '+codec:h264'
 
 
 
@@ -1129,26 +1129,26 @@ $ youtube-dlc -S '+codec:h264'
 
 # Download the best video no better than 720p prefering framerate greater than 30,
 # or the worst video (still prefering framerate greater than 30) if there is no such video
-$ youtube-dlc -f '((bv*[fps>30]/bv*)[height<=720]/(wv*[fps>30]/wv*)) + ba / (b[fps>30]/b)[height<=720]/(w[fps>30]/w)'
+$ yt-dlp -f '((bv*[fps>30]/bv*)[height<=720]/(wv*[fps>30]/wv*)) + ba / (b[fps>30]/b)[height<=720]/(w[fps>30]/w)'
 
 # Download the video with the largest resolution no better than 720p,
 # or the video with the smallest resolution available  if there is no such video,
 # prefering larger framerate for formats with the same resolution
-$ youtube-dlc -S 'res:720,fps'
+$ yt-dlp -S 'res:720,fps'
 
 
 
 # Download the video with smallest resolution no worse than 480p,
 # or the video with the largest resolution available if there is no such video,
 # prefering better codec and then larger total bitrate for the same resolution
-$ youtube-dlc -S '+res:480,codec,br'
+$ yt-dlp -S '+res:480,codec,br'
 ```
 
 # PLUGINS
 
 Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently only `extractor` plugins are supported. Support for `downloader` and `postprocessor` plugins may be added in the future. See [ytdlp_plugins](ytdlp_plugins) for example.
 
-**Note**: `<root-dir>` is the directory of the binary (`<root-dir>/youtube-dlc`), or the root directory of the module if you are running directly from source-code (`<root dir>/youtube_dlc/__main__.py`)
+**Note**: `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`)
 
 # MORE
 For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl#faq)

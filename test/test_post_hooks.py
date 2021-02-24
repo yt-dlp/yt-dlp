@@ -8,11 +8,11 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import get_params, try_rm
-import youtube_dlc.YoutubeDL
-from youtube_dlc.utils import DownloadError
+import yt_dlp.YoutubeDL
+from yt_dlp.utils import DownloadError
 
 
-class YoutubeDL(youtube_dlc.YoutubeDL):
+class YoutubeDL(yt_dlp.YoutubeDL):
     def __init__(self, *args, **kwargs):
         super(YoutubeDL, self).__init__(*args, **kwargs)
         self.to_stderr = self.to_screen

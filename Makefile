@@ -1,10 +1,10 @@
-all: youtube-dlc doc man
+all: yt-dlp doc man
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
-man: README.txt youtube-dlc.1 youtube-dlc.bash-completion youtube-dlc.zsh youtube-dlc.fish
+man: README.txt yt-dlp.1 yt-dlp.bash-completion yt-dlp.zsh yt-dlp.fish
 
 
 clean:
-	rm -rf youtube-dlc.1.temp.md youtube-dlc.1 youtube-dlc.bash-completion README.txt MANIFEST build/ dist/ .coverage cover/ youtube-dlc.tar.gz youtube-dlc.zsh youtube-dlc.fish youtube_dlc/extractor/lazy_extractors.py *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.spec *.frag *.frag.urls *.frag.aria2 CONTRIBUTING.md.tmp youtube-dlc youtube-dlc.exe
+	rm -rf yt-dlp.1.temp.md yt-dlp.1 yt-dlp.bash-completion README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz yt-dlp.zsh yt-dlp.fish yt_dlp/extractor/lazy_extractors.py *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.spec *.frag *.frag.urls *.frag.aria2 CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe
 	find . -name "*.pyc" -delete
 	find . -name "*.class" -delete
 
@@ -21,23 +21,23 @@ SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then ech
 # set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
 MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
-install: youtube-dlc youtube-dlc.1 youtube-dlc.bash-completion youtube-dlc.zsh youtube-dlc.fish
+install: yt-dlp yt-dlp.1 yt-dlp.bash-completion yt-dlp.zsh yt-dlp.fish
 	install -d $(DESTDIR)$(BINDIR)
-	install -m 755 youtube-dlc $(DESTDIR)$(BINDIR)
+	install -m 755 yt-dlp $(DESTDIR)$(BINDIR)
 	install -d $(DESTDIR)$(MANDIR)/man1
-	install -m 644 youtube-dlc.1 $(DESTDIR)$(MANDIR)/man1
+	install -m 644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1
 	install -d $(DESTDIR)$(SYSCONFDIR)/bash_completion.d
-	install -m 644 youtube-dlc.bash-completion $(DESTDIR)$(SYSCONFDIR)/bash_completion.d/youtube-dlc
+	install -m 644 yt-dlp.bash-completion $(DESTDIR)$(SYSCONFDIR)/bash_completion.d/yt-dlp
 	install -d $(DESTDIR)$(SHAREDIR)/zsh/site-functions
-	install -m 644 youtube-dlc.zsh $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_youtube-dlc
+	install -m 644 yt-dlp.zsh $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
 	install -d $(DESTDIR)$(SYSCONFDIR)/fish/completions
-	install -m 644 youtube-dlc.fish $(DESTDIR)$(SYSCONFDIR)/fish/completions/youtube-dlc.fish
+	install -m 644 yt-dlp.fish $(DESTDIR)$(SYSCONFDIR)/fish/completions/yt-dlp.fish
 
 codetest:
 	flake8 .
 
 test:
-	#nosetests --with-coverage --cover-package=youtube_dlc --cover-html --verbose --processes 4 test
+	#nosetests --with-coverage --cover-package=yt_dlp --cover-html --verbose --processes 4 test
 	nosetests --verbose test
 	$(MAKE) codetest
 
@@ -57,34 +57,34 @@ offlinetest: codetest
 		--exclude test_youtube_signature.py \
 		--exclude test_post_hooks.py
 
-tar: youtube-dlc.tar.gz
+tar: yt-dlp.tar.gz
 
 .PHONY: all clean install test tar bash-completion pypi-files zsh-completion fish-completion ot offlinetest codetest supportedsites
 
-pypi-files: youtube-dlc.bash-completion README.txt youtube-dlc.1 youtube-dlc.fish
+pypi-files: yt-dlp.bash-completion README.txt yt-dlp.1 yt-dlp.fish
 
-youtube-dlc: youtube_dlc/*.py youtube_dlc/*/*.py
+yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
-	for d in youtube_dlc youtube_dlc/downloader youtube_dlc/extractor youtube_dlc/postprocessor ; do \
+	for d in yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor ; do \
 	  mkdir -p zip/$$d ;\
 	  cp -pPR $$d/*.py zip/$$d/ ;\
 	done
-	touch -t 200001010101 zip/youtube_dlc/*.py zip/youtube_dlc/*/*.py
-	mv zip/youtube_dlc/__main__.py zip/
-	cd zip ; zip -q ../youtube-dlc youtube_dlc/*.py youtube_dlc/*/*.py __main__.py
+	touch -t 200001010101 zip/yt_dlp/*.py zip/yt_dlp/*/*.py
+	mv zip/yt_dlp/__main__.py zip/
+	cd zip ; zip -q ../yt-dlp yt_dlp/*.py yt_dlp/*/*.py __main__.py
 	rm -rf zip
-	echo '#!$(PYTHON)' > youtube-dlc
-	cat youtube-dlc.zip >> youtube-dlc
-	rm youtube-dlc.zip
-	chmod a+x youtube-dlc
+	echo '#!$(PYTHON)' > yt-dlp
+	cat yt-dlp.zip >> yt-dlp
+	rm yt-dlp.zip
+	chmod a+x yt-dlp
 
-README.md: youtube_dlc/*.py youtube_dlc/*/*.py
-	COLUMNS=80 $(PYTHON) youtube_dlc/__main__.py --help | $(PYTHON) devscripts/make_readme.py
+README.md: yt_dlp/*.py yt_dlp/*/*.py
+	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --help | $(PYTHON) devscripts/make_readme.py
 
 CONTRIBUTING.md: README.md
 	$(PYTHON) devscripts/make_contributing.py README.md CONTRIBUTING.md
 
-issuetemplates: devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.md .github/ISSUE_TEMPLATE_tmpl/2_site_support_request.md .github/ISSUE_TEMPLATE_tmpl/3_site_feature_request.md .github/ISSUE_TEMPLATE_tmpl/4_bug_report.md .github/ISSUE_TEMPLATE_tmpl/5_feature_request.md youtube_dlc/version.py
+issuetemplates: devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.md .github/ISSUE_TEMPLATE_tmpl/2_site_support_request.md .github/ISSUE_TEMPLATE_tmpl/3_site_feature_request.md .github/ISSUE_TEMPLATE_tmpl/4_bug_report.md .github/ISSUE_TEMPLATE_tmpl/5_feature_request.md yt_dlp/version.py
 	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.md .github/ISSUE_TEMPLATE/1_broken_site.md
 	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/2_site_support_request.md .github/ISSUE_TEMPLATE/2_site_support_request.md
 	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/3_site_feature_request.md .github/ISSUE_TEMPLATE/3_site_feature_request.md
@@ -97,34 +97,34 @@ supportedsites:
 README.txt: README.md
 	pandoc -f $(MARKDOWN) -t plain README.md -o README.txt
 
-youtube-dlc.1: README.md
-	$(PYTHON) devscripts/prepare_manpage.py youtube-dlc.1.temp.md
-	pandoc -s -f $(MARKDOWN) -t man youtube-dlc.1.temp.md -o youtube-dlc.1
-	rm -f youtube-dlc.1.temp.md
+yt-dlp.1: README.md
+	$(PYTHON) devscripts/prepare_manpage.py yt-dlp.1.temp.md
+	pandoc -s -f $(MARKDOWN) -t man yt-dlp.1.temp.md -o yt-dlp.1
+	rm -f yt-dlp.1.temp.md
 
-youtube-dlc.bash-completion: youtube_dlc/*.py youtube_dlc/*/*.py devscripts/bash-completion.in
+yt-dlp.bash-completion: yt_dlp/*.py yt_dlp/*/*.py devscripts/bash-completion.in
 	$(PYTHON) devscripts/bash-completion.py
 
-bash-completion: youtube-dlc.bash-completion
+bash-completion: yt-dlp.bash-completion
 
-youtube-dlc.zsh: youtube_dlc/*.py youtube_dlc/*/*.py devscripts/zsh-completion.in
+yt-dlp.zsh: yt_dlp/*.py yt_dlp/*/*.py devscripts/zsh-completion.in
 	$(PYTHON) devscripts/zsh-completion.py
 
-zsh-completion: youtube-dlc.zsh
+zsh-completion: yt-dlp.zsh
 
-youtube-dlc.fish: youtube_dlc/*.py youtube_dlc/*/*.py devscripts/fish-completion.in
+yt-dlp.fish: yt_dlp/*.py yt_dlp/*/*.py devscripts/fish-completion.in
 	$(PYTHON) devscripts/fish-completion.py
 
-fish-completion: youtube-dlc.fish
+fish-completion: yt-dlp.fish
 
-lazy-extractors: youtube_dlc/extractor/lazy_extractors.py
+lazy-extractors: yt_dlp/extractor/lazy_extractors.py
 
-_EXTRACTOR_FILES = $(shell find youtube_dlc/extractor -iname '*.py' -and -not -iname 'lazy_extractors.py')
-youtube_dlc/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
+_EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 'lazy_extractors.py')
+yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
-youtube-dlc.tar.gz: youtube-dlc README.md README.txt youtube-dlc.1 youtube-dlc.bash-completion youtube-dlc.zsh youtube-dlc.fish ChangeLog AUTHORS
-	@tar -czf youtube-dlc.tar.gz --transform "s|^|youtube-dlc/|" --owner 0 --group 0 \
+yt-dlp.tar.gz: yt-dlp README.md README.txt yt-dlp.1 yt-dlp.bash-completion yt-dlp.zsh yt-dlp.fish ChangeLog AUTHORS
+	@tar -czf yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
 		--exclude '*.pyc' \
@@ -134,8 +134,8 @@ youtube-dlc.tar.gz: youtube-dlc README.md README.txt youtube-dlc.1 youtube-dlc.b
 		--exclude '.git' \
 		--exclude 'docs/_build' \
 		-- \
-		bin devscripts test youtube_dlc docs \
+		bin devscripts test yt_dlp docs \
 		ChangeLog AUTHORS LICENSE README.md README.txt \
-		Makefile MANIFEST.in youtube-dlc.1 youtube-dlc.bash-completion \
-		youtube-dlc.zsh youtube-dlc.fish setup.py setup.cfg \
-		youtube-dlc
+		Makefile MANIFEST.in yt-dlp.1 yt-dlp.bash-completion \
+		yt-dlp.zsh yt-dlp.fish setup.py setup.cfg \
+		yt-dlp

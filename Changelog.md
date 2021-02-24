@@ -141,12 +141,12 @@
 
 ### 2021.01.24
 * **Merge youtube-dl:** Upto [2021.01.24](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.01.16)
-* Plugin support ([documentation](https://github.com/pukkandan/yt-dlp#plugins))
+* Plugin support ([documentation](https://github.com/yt-dlp/yt-dlp#plugins))
 * **Multiple paths**: New option `-P`/`--paths` to give different paths for different types of files
-    * The syntax is `-P "type:path" -P "type:path"` ([documentation](https://github.com/pukkandan/yt-dlp#:~:text=-P,%20--paths%20TYPE:PATH))
+    * The syntax is `-P "type:path" -P "type:path"` ([documentation](https://github.com/yt-dlp/yt-dlp#:~:text=-P,%20--paths%20TYPE:PATH))
     * Valid types are: home, temp, description, annotation, subtitle, infojson, thumbnail
-    * Additionally, configuration file is taken from home directory or current directory ([documentation](https://github.com/pukkandan/yt-dlp#:~:text=Home%20Configuration))
-* Allow passing different arguments to different external downloaders ([documentation](https://github.com/pukkandan/yt-dlp#:~:text=--downloader-args%20NAME:ARGS))
+    * Additionally, configuration file is taken from home directory or current directory ([documentation](https://github.com/yt-dlp/yt-dlp#:~:text=Home%20Configuration))
+* Allow passing different arguments to different external downloaders ([documentation](https://github.com/yt-dlp/yt-dlp#:~:text=--downloader-args%20NAME:ARGS))
 * [mildom] Add extractor by [nao20010128nao](https://github.com/nao20010128nao)
 * Warn when using old style `--external-downloader-args` and `--post-processor-args`
 * Fix `--no-overwrite` when using `--write-link`
@@ -172,7 +172,7 @@
 * **Merge youtube-dl:** Upto [2021.01.16](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.01.16)
 * **Configuration files:**
     * Portable configuration file: `./yt-dlp.conf`
-    * Allow the configuration files to be named `yt-dlp` instead of `youtube-dlc`. See [this](https://github.com/pukkandan/yt-dlp#configuration) for details
+    * Allow the configuration files to be named `yt-dlp` instead of `youtube-dlc`. See [this](https://github.com/yt-dlp/yt-dlp#configuration) for details
 * Add PyPI release
 
 
@@ -181,7 +181,7 @@
 * [roosterteeth.com] Fix for bonus episodes by [Zocker1999NET](https://github.com/Zocker1999NET)
 * [tiktok] Fix for when share_info is empty
 * [EmbedThumbnail] Fix bug due to incorrect function name
-* [documentation] Changed sponskrub links to point to [pukkandan/sponskrub](https://github.com/pukkandan/SponSkrub) since I am now providing both linux and windows releases
+* [documentation] Changed sponskrub links to point to [yt-dlp/SponSkrub](https://github.com/yt-dlp/SponSkrub) since I am now providing both linux and windows releases
 * [documentation] Change all links to correctly point to new fork URL
 * [documentation] Fixes typos
 

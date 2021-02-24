@@ -8,7 +8,7 @@ import re
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 README_FILE = os.path.join(ROOT_DIR, 'README.md')
 
-PREFIX = r'''%youtube-dlc(1)
+PREFIX = r'''%yt-dlp(1)
 
 # NAME
 
@@ -16,7 +16,7 @@ youtube\-dl \- download videos from youtube.com or other video platforms
 
 # SYNOPSIS
 
-**youtube-dlc** \[OPTIONS\] URL [URL...]
+**yt-dlp** \[OPTIONS\] URL [URL...]
 
 '''
 
@@ -33,7 +33,7 @@ def main():
         readme = f.read()
 
     readme = re.sub(r'(?s)^.*?(?=# DESCRIPTION)', '', readme)
-    readme = re.sub(r'\s+youtube-dlc \[OPTIONS\] URL \[URL\.\.\.\]', '', readme)
+    readme = re.sub(r'\s+yt-dlp \[OPTIONS\] URL \[URL\.\.\.\]', '', readme)
     readme = PREFIX + readme
 
     readme = filter_options(readme)

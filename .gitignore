@@ -36,7 +36,7 @@ README.txt
 # Binary
 youtube-dl
 youtube-dlc
-youtube-dlc.zip
+yt-dlp.zip
 *.exe
 
 # Downloaded
@@ -82,9 +82,7 @@ cookies.txt
 .idea
 *.iml
 .vscode
-*.sublime-workspace
-*.sublime-project
-!yt-dlp.sublime-project
+*.sublime-*
 
 # Lazy extractors
 */extractor/lazy_extractors.py
