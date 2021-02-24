@@ -73,15 +73,9 @@ highlight_language = 'none'
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ['_static']
 
-# Output file base name for HTML help builder.
-htmlhelp_basename = 'youtube-dlcdoc'
-
-github_root = 'https://github.com/yt-dlp/yt-dlp/tree/master/'
-
 
 def setup(app):
     app.add_config_value('recommonmark_config', {
-        # 'url_resolver': lambda url: github_root + url,
         'enable_math': False,
         'enable_inline_math': False,
         'enable_eval_rst': True,
