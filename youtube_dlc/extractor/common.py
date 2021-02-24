@@ -1963,8 +1963,8 @@ class InfoExtractor(object):
             if media_type not in ('VIDEO', 'AUDIO'):
                 return
             media_url = media.get('URI')
-            manifest_url = format_url(media_url)
             if media_url:
+                manifest_url = format_url(media_url)
                 format_id = []
                 playlist_formats = _extract_m3u8_playlist_formats(manifest_url)
 
