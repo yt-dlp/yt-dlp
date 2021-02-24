@@ -452,8 +452,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8',
                     'audio_ext': 'mp4',
-                },
-                {
+                }, {
                     'format_id': 'aud2-English',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a2/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -461,8 +460,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8',
                     'audio_ext': 'mp4',
-                },
-                {
+                }, {
                     'format_id': 'aud3-English',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/a3/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -470,8 +468,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'ext': 'mp4',
                     'protocol': 'm3u8',
                     'audio_ext': 'mp4',
-                },
-                {
+                }, {
                     'format_id': '530',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -480,8 +477,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 480,
                     'height': 270,
                     'vcodec': 'avc1.640015',
-                },
-                {
+                }, {
                     'format_id': '561',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -490,8 +486,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 480,
                     'height': 270,
                     'vcodec': 'avc1.640015',
-                },
-                {
+                }, {
                     'format_id': '753',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v2/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -500,8 +495,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 480,
                     'height': 270,
                     'vcodec': 'avc1.640015',
-                },
-                {
+                }, {
                     'format_id': '895',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v3/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -510,8 +504,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 640,
                     'height': 360,
                     'vcodec': 'avc1.64001e',
-                },
-                {
+                }, {
                     'format_id': '926',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v3/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -520,8 +513,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 640,
                     'height': 360,
                     'vcodec': 'avc1.64001e',
-                },
-                {
+                }, {
                     'format_id': '1118',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v3/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -530,8 +522,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 640,
                     'height': 360,
                     'vcodec': 'avc1.64001e',
-                },
-                {
+                }, {
                     'format_id': '1265',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v4/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -540,8 +531,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 768,
                     'height': 432,
                     'vcodec': 'avc1.64001e',
-                },
-                {
+                }, {
                     'format_id': '1295',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v4/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -550,8 +540,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 768,
                     'height': 432,
                     'vcodec': 'avc1.64001e',
-                },
-                {
+                }, {
                     'format_id': '1487',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v4/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -560,8 +549,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 768,
                     'height': 432,
                     'vcodec': 'avc1.64001e',
-                },
-                {
+                }, {
                     'format_id': '2168',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v5/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -570,8 +558,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 960,
                     'height': 540,
                     'vcodec': 'avc1.640020',
-                },
-                {
+                }, {
                     'format_id': '2198',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v5/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -580,8 +567,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 960,
                     'height': 540,
                     'vcodec': 'avc1.640020',
-                },
-                {
+                }, {
                     'format_id': '2390',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v5/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -590,8 +576,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 960,
                     'height': 540,
                     'vcodec': 'avc1.640020',
-                },
-                {
+                }, {
                     'format_id': '3168',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v6/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -600,8 +585,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1280,
                     'height': 720,
                     'vcodec': 'avc1.640020',
-                },
-                {
+                }, {
                     'format_id': '3199',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v6/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -610,8 +594,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1280,
                     'height': 720,
                     'vcodec': 'avc1.640020',
-                },
-                {
+                }, {
                     'format_id': '3391',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v6/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -620,8 +603,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1280,
                     'height': 720,
                     'vcodec': 'avc1.640020',
-                },
-                {
+                }, {
                     'format_id': '4670',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v7/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -630,8 +612,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1920,
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
-                },
-                {
+                }, {
                     'format_id': '4701',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v7/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -640,8 +621,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1920,
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
-                },
-                {
+                }, {
                     'format_id': '4893',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v7/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -650,8 +630,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1920,
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
-                },
-                {
+                }, {
                     'format_id': '6170',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v8/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -660,8 +639,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1920,
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
-                },
-                {
+                }, {
                     'format_id': '6200',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v8/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -670,8 +648,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1920,
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
-                },
-                {
+                }, {
                     'format_id': '6392',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v8/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -680,8 +657,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1920,
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
-                },
-                {
+                }, {
                     'format_id': '7968',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -690,8 +666,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1920,
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
-                },
-                {
+                }, {
                     'format_id': '7998',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
@@ -700,8 +675,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 1920,
                     'height': 1080,
                     'vcodec': 'avc1.64002a',
-                },
-                {
+                }, {
                     'format_id': '8190',
                     'url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/v9/prog_index.m3u8',
                     'manifest_url': 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
