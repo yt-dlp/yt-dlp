@@ -14,30 +14,34 @@
 
 import sys
 import os
-# Allows to import youtube_dlc
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Allows to import yt-dlp
+sys.path.insert(0, os.path.abspath('..'))
+import recommonmark
+from recommonmark.transform import AutoStructify
 
 # -- General configuration ------------------------------------------------
+
+# The suffix of source filenames.
+source_suffix = ['.rst', '.md']
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'recommonmark',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
-# The suffix of source filenames.
-source_suffix = '.rst'
-
 # The master toctree document.
 master_doc = 'index'
 
 # General information about the project.
-project = u'youtube-dlc'
-copyright = u'2014, Ricardo Garcia Gonzalez'
+project = u'yt-dlp'
+copyright = u'UNLICENSE'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -62,10 +66,24 @@ pygments_style = 'sphinx'
 # a list of builtin themes.
 html_theme = 'default'
 
+# Disable highlights
+highlight_language = 'none'
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'youtube-dlcdoc'
+
+github_root = 'https://github.com/yt-dlp/yt-dlp/tree/master/'
+def setup(app):
+    app.add_config_value('recommonmark_config', {
+        # 'url_resolver': lambda url: github_root + url,
+        'enable_math': False,
+        'enable_inline_math': False,
+        'enable_eval_rst': True,
+        'enable_auto_toc_tree': True,
+    }, True)
+    app.add_transform(AutoStructify)
