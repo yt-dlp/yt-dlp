@@ -16,7 +16,7 @@ exec(compile(open('yt_dlp/version.py').read(),
 DESCRIPTION = 'Command-line program to download videos from YouTube.com and many other other video platforms.'
 
 LONG_DESCRIPTION = '\n\n'.join((
-    'Official repository: <https://github.com/pukkandan/yt-dlp>',
+    'Official repository: <https://github.com/yt-dlp/yt-dlp>',
     '**PS**: Many links in this document will not work since this is a copy of the README.md from Github',
     open("README.md", "r", encoding="utf-8").read()))
 
@@ -72,17 +72,17 @@ setup(
     name="yt-dlp",
     version=__version__,
     maintainer="pukkandan",
-    maintainer_email="pukkandan@gmail.com",
+    maintainer_email="pukkandan.ytdlp@gmail.com",
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
-    url="https://github.com/pukkandan/yt-dlp",
+    url="https://github.com/yt-dlp/yt-dlp",
     packages=packages,
     install_requires=REQUIREMENTS,
     project_urls={
-        'Documentation': 'https://github.com/pukkandan/yt-dlp#yt-dlp',
-        'Source': 'https://github.com/pukkandan/yt-dlp',
-        'Tracker': 'https://github.com/pukkandan/yt-dlp/issues',
+        'Documentation': 'https://github.com/yt-dlp/yt-dlp#yt-dlp',
+        'Source': 'https://github.com/yt-dlp/yt-dlp',
+        'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
         #'Funding': 'https://donate.pypi.org',
     },
     classifiers=[

@@ -21,11 +21,11 @@ assignees: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
-- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is %(version)s. If it's not, see https://github.com/pukkandan/yt-dlp on how to update. Issues with outdated version will be REJECTED.
+- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is %(version)s. If it's not, see https://github.com/yt-dlp/yt-dlp on how to update. Issues with outdated version will be REJECTED.
 - Make sure that all provided video/audio/playlist URLs (if any) are alive and playable in a browser.
-- Make sure that all URLs and arguments with special characters are properly quoted or escaped as explained in https://github.com/pukkandan/yt-dlp.
-- Search the bugtracker for similar issues: https://github.com/pukkandan/yt-dlp. DO NOT post duplicates.
-- Read bugs section in FAQ: https://github.com/pukkandan/yt-dlp
+- Make sure that all URLs and arguments with special characters are properly quoted or escaped as explained in https://github.com/yt-dlp/yt-dlp.
+- Search the bugtracker for similar issues: https://github.com/yt-dlp/yt-dlp. DO NOT post duplicates.
+- Read bugs section in FAQ: https://github.com/yt-dlp/yt-dlp
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 

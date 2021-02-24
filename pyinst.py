@@ -48,13 +48,13 @@ VERSION_FILE = VSVersionInfo(
             StringTable(
                 '040904B0', [
                     StringStruct('Comments', 'yt-dlp%s Command Line Interface.' % _x86),
-                    StringStruct('CompanyName', 'https://github.com/pukkandan/yt-dlp'),
+                    StringStruct('CompanyName', 'https://github.com/yt-dlp'),
                     StringStruct('FileDescription', FILE_DESCRIPTION),
                     StringStruct('FileVersion', VERSION),
                     StringStruct('InternalName', 'yt-dlp%s' % _x86),
                     StringStruct(
                         'LegalCopyright',
-                        'pukkandan@gmail.com | UNLICENSE',
+                        'pukkandan.ytdlp@gmail.com | UNLICENSE',
                     ),
                     StringStruct('OriginalFilename', 'yt-dlp%s.exe' % _x86),
                     StringStruct('ProductName', 'yt-dlp%s' % _x86),

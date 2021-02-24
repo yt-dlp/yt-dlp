@@ -21,8 +21,8 @@ assignees: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
-- Look through the README (https://github.com/pukkandan/yt-dlp) and FAQ (https://github.com/pukkandan/yt-dlp) for similar questions
-- Search the bugtracker for similar questions: https://github.com/pukkandan/yt-dlp
+- Look through the README (https://github.com/yt-dlp/yt-dlp) and FAQ (https://github.com/yt-dlp/yt-dlp) for similar questions
+- Search the bugtracker for similar questions: https://github.com/yt-dlp/yt-dlp
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
@@ -34,7 +34,7 @@ Carefully read and work through this check list in order to prevent the most com
 ## Question
 
 <!--
-Ask your question in an arbitrary form. Please make sure it's worded well enough to be understood, see https://github.com/pukkandan/yt-dlp.
+Ask your question in an arbitrary form. Please make sure it's worded well enough to be understood, see https://github.com/yt-dlp/yt-dlp.
 -->
 
 WRITE QUESTION HERE

@@ -1,13 +1,13 @@
 # YT-DLP
 
-[![Release version](https://img.shields.io/github/v/release/pukkandan/yt-dlp?color=brightgreen&label=Release)](https://github.com/pukkandan/yt-dlp/releases/latest)
+[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Release)](https://github.com/yt-dlp/yt-dlp/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](LICENSE)
-[![CI Status](https://github.com/pukkandan/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/pukkandan/yt-dlp/actions)
+[![CI Status](https://github.com/yt-dlp/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/yt-dlp/yt-dlp/actions)
 [![Discord](https://img.shields.io/discord/807245652072857610?color=blue&label=discord&logo=discord)](https://discord.gg/S75JaBna)  
 
-[![Commits](https://img.shields.io/github/commit-activity/m/pukkandan/yt-dlp?label=commits)](https://github.com/pukkandan/yt-dlp/commits)
-[![Last Commit](https://img.shields.io/github/last-commit/pukkandan/yt-dlp/master)](https://github.com/pukkandan/yt-dlp/commits)
-[![Downloads](https://img.shields.io/github/downloads/pukkandan/yt-dlp/total)](https://github.com/pukkandan/yt-dlp/releases/latest)
+[![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits)](https://github.com/yt-dlp/yt-dlp/commits)
+[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master)](https://github.com/yt-dlp/yt-dlp/commits)
+[![Downloads](https://img.shields.io/github/downloads/yt-dlp/yt-dlp/total)](https://github.com/yt-dlp/yt-dlp/releases/latest)
 [![PyPi Downloads](https://img.shields.io/pypi/dm/yt-dlp?label=PyPi)](https://pypi.org/project/yt-dlp)
 
 A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
@@ -52,13 +52,13 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
 # NEW FEATURES
 The major new features from the latest release of [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc) are:
 
-* **[SponSkrub Integration](#sponskrub-sponsorblock-options)**: You can use [SponSkrub](https://github.com/pukkandan/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
+* **[SponSkrub Integration](#sponskrub-sponsorblock-options)**: You can use [SponSkrub](https://github.com/yt-dlp/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
 * **Merged with youtube-dl v2021.02.10**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
-* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/pukkandan/yt-dlp/pull/31) for details.
+* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
 * **Youtube improvements**:
     * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works correctly and supports downloading multiple pages of content
@@ -73,7 +73,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Plugin support**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
 
-* **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to. See [`--paths`](https://github.com/pukkandan/yt-dlp/#:~:text=-P,%20--paths%20TYPE:PATH) for details
+* **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to. See [`--paths`](https://github.com/yt-dlp/yt-dlp/#:~:text=-P,%20--paths%20TYPE:PATH) for details
 
 <!-- Relative link doesn't work for "#:~:text=" -->
 
@@ -86,7 +86,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 * **Self-updater**: The releases can be updated using `yt-dlp -U`
 
 
-See [changelog](Changelog.md) or [commits](https://github.com/pukkandan/yt-dlp/commits) for the full list of changes
+See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
 
 
 **PS**: Some of these changes are already in youtube-dlc, but are still unreleased. See [this](Changelog.md#unreleased-changes-in-blackjack4494yt-dlc) for details
@@ -97,10 +97,10 @@ If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the
 # INSTALLATION
 
 You can install yt-dlp using one of the following methods:
-* Download the binary from the [latest release](https://github.com/pukkandan/yt-dlp/releases/latest) (recommended method)
+* Download the binary from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest) (recommended method)
 * Use [PyPI package](https://pypi.org/project/yt-dlp): `python -m pip install --upgrade yt-dlp`
-* Use pip+git: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp.git@release`
-* Install master branch: `python -m pip install --upgrade git+https://github.com/pukkandan/yt-dlp`
+* Use pip+git: `python -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
+* Install master branch: `python -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp`
 
 ### UPDATE
 Starting from version `2021.02.09`, you can use `yt-dlp -U` to update if you are using the provided release.
@@ -667,7 +667,7 @@ Then simply type this
                                      (currently supported: srt|ass|vtt|lrc)
 
 ## SponSkrub (SponsorBlock) Options:
-[SponSkrub](https://github.com/pukkandan/SponSkrub) is a utility to
+[SponSkrub](https://github.com/yt-dlp/SponSkrub) is a utility to
     mark/remove sponsor segments from downloaded YouTube videos using
     [SponsorBlock API](https://sponsor.ajay.app)
 

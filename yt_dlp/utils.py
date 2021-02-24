@@ -2340,8 +2340,8 @@ def bug_reports_message():
     if ytdl_is_updateable():
         update_cmd = 'type  yt-dlp -U  to update'
     else:
-        update_cmd = 'see  https://github.com/pukkandan/yt-dlp  on how to update'
-    msg = '; please report this issue on https://github.com/pukkandan/yt-dlp .'
+        update_cmd = 'see  https://github.com/yt-dlp/yt-dlp  on how to update'
+    msg = '; please report this issue on https://github.com/yt-dlp/yt-dlp .'
     msg += ' Make sure you are using the latest version; %s.' % update_cmd
     msg += ' Be sure to call yt-dlp with the --verbose flag and include its complete output.'
     return msg

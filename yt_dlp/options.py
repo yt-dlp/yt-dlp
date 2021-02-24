@@ -1167,7 +1167,7 @@ def parseOpts(overrideArguments=None):
         help='Convert the subtitles to other format (currently supported: srt|ass|vtt|lrc)')
 
     sponskrub = optparse.OptionGroup(parser, 'SponSkrub (SponsorBlock) Options', description=(
-        'SponSkrub (https://github.com/pukkandan/SponSkrub) is a utility to mark/remove sponsor segments '
+        'SponSkrub (https://github.com/yt-dlp/SponSkrub) is a utility to mark/remove sponsor segments '
         'from downloaded YouTube videos using SponsorBlock API (https://sponsor.ajay.app)'))
     sponskrub.add_option(
         '--sponskrub',
