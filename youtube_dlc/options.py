@@ -655,6 +655,11 @@ def parseOpts(overrideArguments=None):
             'Use the mpegts container for HLS videos, allowing to play the '
             'video while downloading (some players may not be able to play it)'))
     downloader.add_option(
+        '--hls-ignore-discontinuity',
+        dest='hls_ignore_discontinuity', action='store_true', default=None,
+        help='Ignore media discontinuity on HLS playlists (do not split ad breaks)'
+    )
+    downloader.add_option(
         '--external-downloader',
         dest='external_downloader', metavar='NAME',
         help=(

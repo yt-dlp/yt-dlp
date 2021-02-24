@@ -43,7 +43,6 @@ class HlsFD(FragmentFD):
             # r'#EXT-X-PLAYLIST-TYPE:EVENT',  # media segments may be appended to the end of
             #                                 # event media playlists [4]
             # r'#EXT-X-MAP:',  # media initialization [5]
-            r'^\s*(?:[^#\s]|#EXT-X-MAP:).+?\n\s*#EXT-X-MAP:',  # media initialization [5]
             # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.4
             # 2. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.2
             # 3. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.3.2
@@ -129,6 +128,7 @@ class HlsFD(FragmentFD):
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
         test = self.params.get('test', False)
 
+        format_index = info_dict.get('format_index')
         extra_query = None
         extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
         if extra_param_to_segment_url:
@@ -138,6 +138,7 @@ class HlsFD(FragmentFD):
         decrypt_info = {'METHOD': 'NONE'}
         key_list = []
         byte_range = {}
+        discontinuity_count = 0
         frag_index = 0
         ad_frag_next = False
         for line in s.splitlines():
@@ -145,6 +146,8 @@ class HlsFD(FragmentFD):
             download_frag = False
             if line:
                 if not line.startswith('#'):
+                    if format_index and discontinuity_count != format_index:
+                        continue
                     if ad_frag_next:
                         continue
                     frag_index += 1
@@ -163,6 +166,8 @@ class HlsFD(FragmentFD):
                     download_frag = True
 
                 elif line.startswith('#EXT-X-MAP'):
+                    if format_index and discontinuity_count != format_index:
+                        continue
                     if frag_index > 0:
                         self.report_error(
                             'initialization fragment found after media fragments, unable to download')
@@ -218,6 +223,8 @@ class HlsFD(FragmentFD):
                     ad_frag_next = True
                 elif is_ad_fragment_end(line):
                     ad_frag_next = False
+                elif line.startswith('#EXT-X-DISCONTINUITY'):
+                    discontinuity_count += 1
 
                 if download_frag:
                     count = 0

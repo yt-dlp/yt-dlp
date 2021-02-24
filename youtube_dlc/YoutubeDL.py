@@ -364,7 +364,7 @@ class YoutubeDL(object):
     nopart, updatetime, buffersize, ratelimit, min_filesize, max_filesize, test,
     noresizebuffer, retries, continuedl, noprogress, consoletitle,
     xattr_set_filesize, external_downloader_args, hls_use_mpegts,
-    http_chunk_size.
+    hls_ignore_discontinuity, http_chunk_size.
 
     The following options are used by the post processors:
     prefer_ffmpeg:     If False, use avconv instead of ffmpeg if both are available,

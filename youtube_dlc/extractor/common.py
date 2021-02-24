@@ -1833,9 +1833,8 @@ class InfoExtractor(object):
 
     def _extract_m3u8_formats(self, m3u8_url, video_id, ext=None,
                               entry_protocol='m3u8', preference=None, quality=None,
-                              m3u8_id=None, note=None, errnote=None,
-                              fatal=True, live=False, data=None, headers={},
-                              query={}):
+                              m3u8_id=None, live=False, note=None, errnote=None,
+                              fatal=True, data=None, headers={}, query={}):
         res = self._download_webpage_handle(
             m3u8_url, video_id,
             note=note or 'Downloading m3u8 information',
@@ -1850,11 +1849,14 @@ class InfoExtractor(object):
 
         return self._parse_m3u8_formats(
             m3u8_doc, m3u8_url, ext=ext, entry_protocol=entry_protocol,
-            preference=preference, quality=quality, m3u8_id=m3u8_id, live=live)
+            preference=preference, quality=quality, m3u8_id=m3u8_id,
+            note=note, errnote=errnote, fatal=fatal, live=live, data=data,
+            headers=headers, query=query, video_id=video_id)
 
     def _parse_m3u8_formats(self, m3u8_doc, m3u8_url, ext=None,
                             entry_protocol='m3u8', preference=None, quality=None,
-                            m3u8_id=None, live=False):
+                            m3u8_id=None, live=False, note=None, errnote=None,
+                            fatal=True, data=None, headers={}, query={}, video_id=None):
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
             return []
 
@@ -1867,6 +1869,8 @@ class InfoExtractor(object):
             u
             if re.match(r'^https?://', u)
             else compat_urlparse.urljoin(m3u8_url, u))
+
+        ignore_discontinuity = self._downloader.params.get('hls_ignore_discontinuity')
 
         # References:
         # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-21
@@ -1884,15 +1888,67 @@ class InfoExtractor(object):
         # media playlist and MUST NOT appear in master playlist thus we can
         # clearly detect media playlist with this criterion.
 
+        def _extract_m3u8_playlist_formats(m3u8_url, m3u8_doc=None):
+            if not m3u8_doc:
+                res = self._download_webpage_handle(
+                    m3u8_url, video_id,
+                    note=note or 'Downloading m3u8 playlist information',
+                    errnote=errnote or 'Failed to download m3u8 playlist information',
+                    fatal=fatal, data=data, headers=headers, query=query)
+
+                if res is False:
+                    return []
+
+                m3u8_doc, urlh = res
+                m3u8_url = urlh.geturl()
+
+            playlist_formats = []
+            i = (
+                0
+                if not ignore_discontinuity
+                else None)
+            format_info = {
+                'index': i,
+                'key_data': None,
+                'files': [],
+            }
+            for line in m3u8_doc.splitlines():
+                if not line.startswith('#'):
+                    format_info['files'].append(line)
+                elif not ignore_discontinuity and line.startswith('#EXT-X-DISCONTINUITY'):
+                    i += 1
+                    playlist_formats.append(format_info)
+                    format_info = {
+                        'index': i,
+                        'url': m3u8_url,
+                        'files': [],
+                    }
+            playlist_formats.append(format_info)
+            return playlist_formats
+
         if '#EXT-X-TARGETDURATION' in m3u8_doc:  # media playlist, return as is
-            return [{
-                'url': m3u8_url,
-                'format_id': m3u8_id,
-                'ext': ext,
-                'protocol': entry_protocol,
-                'preference': preference,
-                'quality': quality,
-            }]
+
+            playlist_formats = _extract_m3u8_playlist_formats(m3u8_url)
+
+            for format in playlist_formats:
+                format_id = []
+                if m3u8_id:
+                    format_id.append(m3u8_id)
+                format_index = format.get('index', 0)
+                if format_index:
+                    format_id.append(str(format_index))
+                f = {
+                    'format_id': '-'.join(format_id),
+                    'format_index': format_index,
+                    'url': m3u8_url,
+                    'ext': ext,
+                    'protocol': entry_protocol,
+                    'preference': preference,
+                    'quality': quality,
+                }
+                formats.append(f)
+
+            return formats
 
         groups = {}
         last_stream_inf = {}
@@ -1908,23 +1964,29 @@ class InfoExtractor(object):
                 return
             media_url = media.get('URI')
             if media_url:
-                format_id = []
-                for v in (m3u8_id, group_id, name):
-                    if v:
-                        format_id.append(v)
-                f = {
-                    'format_id': '-'.join(format_id),
-                    'url': format_url(media_url),
-                    'manifest_url': m3u8_url,
-                    'language': media.get('LANGUAGE'),
-                    'ext': ext,
-                    'protocol': entry_protocol,
-                    'preference': preference,
-                    'quality': quality,
-                }
-                if media_type == 'AUDIO':
-                    f['vcodec'] = 'none'
-                formats.append(f)
+                playlist_formats = _extract_m3u8_playlist_formats(media_url)
+
+                for format in playlist_formats:
+                    format_index = format.get('index')
+                    for v in (m3u8_id, group_id, name):
+                        if v:
+                            format_id.append(v)
+                    if format_index:
+                        format_id.append(str(format_index))
+                    f = {
+                        'format_id': '-'.join(format_id),
+                        'format_index': format_index,
+                        'url': format_url(media_url),
+                        'manifest_url': m3u8_url,
+                        'language': media.get('LANGUAGE'),
+                        'ext': ext,
+                        'protocol': entry_protocol,
+                        'preference': preference,
+                        'quality': quality,
+                    }
+                    if media_type == 'AUDIO':
+                        f['vcodec'] = 'none'
+                    formats.append(f)
 
         def build_stream_name():
             # Despite specification does not mention NAME attribute for
@@ -1961,74 +2023,82 @@ class InfoExtractor(object):
                 tbr = float_or_none(
                     last_stream_inf.get('AVERAGE-BANDWIDTH')
                     or last_stream_inf.get('BANDWIDTH'), scale=1000)
-                format_id = []
-                if m3u8_id:
-                    format_id.append(m3u8_id)
-                stream_name = build_stream_name()
-                # Bandwidth of live streams may differ over time thus making
-                # format_id unpredictable. So it's better to keep provided
-                # format_id intact.
-                if not live:
-                    format_id.append(stream_name if stream_name else '%d' % (tbr if tbr else len(formats)))
                 manifest_url = format_url(line.strip())
-                f = {
-                    'format_id': '-'.join(format_id),
-                    'url': manifest_url,
-                    'manifest_url': m3u8_url,
-                    'tbr': tbr,
-                    'ext': ext,
-                    'fps': float_or_none(last_stream_inf.get('FRAME-RATE')),
-                    'protocol': entry_protocol,
-                    'preference': preference,
-                    'quality': quality,
-                }
-                resolution = last_stream_inf.get('RESOLUTION')
-                if resolution:
-                    mobj = re.search(r'(?P<width>\d+)[xX](?P<height>\d+)', resolution)
-                    if mobj:
-                        f['width'] = int(mobj.group('width'))
-                        f['height'] = int(mobj.group('height'))
-                # Unified Streaming Platform
-                mobj = re.search(
-                    r'audio.*?(?:%3D|=)(\d+)(?:-video.*?(?:%3D|=)(\d+))?', f['url'])
-                if mobj:
-                    abr, vbr = mobj.groups()
-                    abr, vbr = float_or_none(abr, 1000), float_or_none(vbr, 1000)
-                    f.update({
-                        'vbr': vbr,
-                        'abr': abr,
-                    })
-                codecs = parse_codecs(last_stream_inf.get('CODECS'))
-                f.update(codecs)
-                audio_group_id = last_stream_inf.get('AUDIO')
-                # As per [1, 4.3.4.1.1] any EXT-X-STREAM-INF tag which
-                # references a rendition group MUST have a CODECS attribute.
-                # However, this is not always respected, for example, [2]
-                # contains EXT-X-STREAM-INF tag which references AUDIO
-                # rendition group but does not have CODECS and despite
-                # referencing an audio group it represents a complete
-                # (with audio and video) format. So, for such cases we will
-                # ignore references to rendition groups and treat them
-                # as complete formats.
-                if audio_group_id and codecs and f.get('vcodec') != 'none':
-                    audio_group = groups.get(audio_group_id)
-                    if audio_group and audio_group[0].get('URI'):
-                        # TODO: update acodec for audio only formats with
-                        # the same GROUP-ID
-                        f['acodec'] = 'none'
-                formats.append(f)
 
-                # for DailyMotion
-                progressive_uri = last_stream_inf.get('PROGRESSIVE-URI')
-                if progressive_uri:
-                    http_f = f.copy()
-                    del http_f['manifest_url']
-                    http_f.update({
-                        'format_id': f['format_id'].replace('hls-', 'http-'),
-                        'protocol': 'http',
-                        'url': progressive_uri,
-                    })
-                    formats.append(http_f)
+                playlist_formats = _extract_m3u8_playlist_formats(manifest_url)
+
+                for format in playlist_formats:
+                    format_id = []
+                    if m3u8_id:
+                        format_id.append(m3u8_id)
+                    format_index = format.get('index')
+                    stream_name = build_stream_name()
+                    # Bandwidth of live streams may differ over time thus making
+                    # format_id unpredictable. So it's better to keep provided
+                    # format_id intact.
+                    if not live:
+                        format_id.append(stream_name if stream_name else '%d' % (tbr if tbr else len(formats)))
+                    if format_index:
+                        format_id.append(str(format_index))
+                    f = {
+                        'format_id': '-'.join(format_id),
+                        'format_index': format_index,
+                        'url': manifest_url,
+                        'manifest_url': m3u8_url,
+                        'tbr': tbr,
+                        'ext': ext,
+                        'fps': float_or_none(last_stream_inf.get('FRAME-RATE')),
+                        'protocol': entry_protocol,
+                        'preference': preference,
+                        'quality': quality,
+                    }
+                    resolution = last_stream_inf.get('RESOLUTION')
+                    if resolution:
+                        mobj = re.search(r'(?P<width>\d+)[xX](?P<height>\d+)', resolution)
+                        if mobj:
+                            f['width'] = int(mobj.group('width'))
+                            f['height'] = int(mobj.group('height'))
+                    # Unified Streaming Platform
+                    mobj = re.search(
+                        r'audio.*?(?:%3D|=)(\d+)(?:-video.*?(?:%3D|=)(\d+))?', f['url'])
+                    if mobj:
+                        abr, vbr = mobj.groups()
+                        abr, vbr = float_or_none(abr, 1000), float_or_none(vbr, 1000)
+                        f.update({
+                            'vbr': vbr,
+                            'abr': abr,
+                        })
+                    codecs = parse_codecs(last_stream_inf.get('CODECS'))
+                    f.update(codecs)
+                    audio_group_id = last_stream_inf.get('AUDIO')
+                    # As per [1, 4.3.4.1.1] any EXT-X-STREAM-INF tag which
+                    # references a rendition group MUST have a CODECS attribute.
+                    # However, this is not always respected, for example, [2]
+                    # contains EXT-X-STREAM-INF tag which references AUDIO
+                    # rendition group but does not have CODECS and despite
+                    # referencing an audio group it represents a complete
+                    # (with audio and video) format. So, for such cases we will
+                    # ignore references to rendition groups and treat them
+                    # as complete formats.
+                    if audio_group_id and codecs and f.get('vcodec') != 'none':
+                        audio_group = groups.get(audio_group_id)
+                        if audio_group and audio_group[0].get('URI'):
+                            # TODO: update acodec for audio only formats with
+                            # the same GROUP-ID
+                            f['acodec'] = 'none'
+                    formats.append(f)
+
+                    # for DailyMotion
+                    progressive_uri = last_stream_inf.get('PROGRESSIVE-URI')
+                    if progressive_uri:
+                        http_f = f.copy()
+                        del http_f['manifest_url']
+                        http_f.update({
+                            'format_id': f['format_id'].replace('hls-', 'http-'),
+                            'protocol': 'http',
+                            'url': progressive_uri,
+                        })
+                        formats.append(http_f)
 
                 last_stream_inf = {}
         return formats
