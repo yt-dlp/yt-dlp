@@ -4,9 +4,10 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
-    unified_strdate,
-    HEADRequest,
+    ExtractorError,
     int_or_none,
+    try_get,
+    unified_strdate,
 )
 
 
@@ -29,6 +30,7 @@ class WatIE(InfoExtractor):
                 'skip_download': True,
             },
             'expected_warnings': ['HTTP Error 404'],
+            'skip': 'This content is no longer available',
         },
         {
             'url': 'http://www.wat.tv/video/gregory-lemarchal-voix-ange-6z1v7_6ygkj_.html',
@@ -40,8 +42,10 @@ class WatIE(InfoExtractor):
                 'upload_date': '20140816',
             },
             'expected_warnings': ["Ce contenu n'est pas disponible pour l'instant."],
+            'skip': 'This content is no longer available',
         },
     ]
+    _GEO_BYPASS = False
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -49,71 +53,54 @@ class WatIE(InfoExtractor):
 
         # 'contentv4' is used in the website, but it also returns the related
         # videos, we don't need them
+        # video_data = self._download_json(
+        #     'http://www.wat.tv/interface/contentv4s/' + video_id, video_id)
         video_data = self._download_json(
-            'http://www.wat.tv/interface/contentv4s/' + video_id, video_id)
+            'https://mediainfo.tf1.fr/mediainfocombo/' + video_id,
+            video_id, query={'context': 'MYTF1'})
         video_info = video_data['media']
 
         error_desc = video_info.get('error_desc')
         if error_desc:
-            self.report_warning(
-                '%s returned error: %s' % (self.IE_NAME, error_desc))
+            if video_info.get('error_code') == 'GEOBLOCKED':
+                self.raise_geo_restricted(error_desc, video_info.get('geoList'))
+            raise ExtractorError(error_desc, expected=True)
 
-        chapters = video_info['chapters']
-        if chapters:
-            first_chapter = chapters[0]
-
-            def video_id_for_chapter(chapter):
-                return chapter['tc_start'].split('-')[0]
-
-            if video_id_for_chapter(first_chapter) != video_id:
-                self.to_screen('Multipart video detected')
-                entries = [self.url_result('wat:%s' % video_id_for_chapter(chapter)) for chapter in chapters]
-                return self.playlist_result(entries, video_id, video_info['title'])
-            # Otherwise we can continue and extract just one part, we have to use
-            # the video id for getting the video url
-        else:
-            first_chapter = video_info
-
-        title = first_chapter['title']
-
-        def extract_url(path_template, url_type):
-            req_url = 'http://www.wat.tv/get/%s' % (path_template % video_id)
-            head = self._request_webpage(HEADRequest(req_url), video_id, 'Extracting %s url' % url_type, fatal=False)
-            if head:
-                red_url = head.geturl()
-                if req_url != red_url:
-                    return red_url
-            return None
+        title = video_info['title']
 
         formats = []
-        manifest_urls = self._download_json(
-            'http://www.wat.tv/get/webhtml/' + video_id, video_id)
-        m3u8_url = manifest_urls.get('hls')
-        if m3u8_url:
-            formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, 'mp4',
-                'm3u8_native', m3u8_id='hls', fatal=False))
-        mpd_url = manifest_urls.get('mpd')
-        if mpd_url:
-            formats.extend(self._extract_mpd_formats(
-                mpd_url.replace('://das-q1.tf1.fr/', '://das-q1-ssl.tf1.fr/'),
-                video_id, mpd_id='dash', fatal=False))
-        self._sort_formats(formats)
 
-        date_diffusion = first_chapter.get('date_diffusion') or video_data.get('configv4', {}).get('estatS4')
-        upload_date = unified_strdate(date_diffusion) if date_diffusion else None
-        duration = None
-        files = video_info['files']
-        if files:
-            duration = int_or_none(files[0].get('duration'))
+        def extract_formats(manifest_urls):
+            for f, f_url in manifest_urls.items():
+                if not f_url:
+                    continue
+                if f in ('dash', 'mpd'):
+                    formats.extend(self._extract_mpd_formats(
+                        f_url.replace('://das-q1.tf1.fr/', '://das-q1-ssl.tf1.fr/'),
+                        video_id, mpd_id='dash', fatal=False))
+                elif f == 'hls':
+                    formats.extend(self._extract_m3u8_formats(
+                        f_url, video_id, 'mp4',
+                        'm3u8_native', m3u8_id='hls', fatal=False))
+
+        delivery = video_data.get('delivery') or {}
+        extract_formats({delivery.get('format'): delivery.get('url')})
+        if not formats:
+            if delivery.get('drm'):
+                raise ExtractorError('This video is DRM protected.', expected=True)
+            manifest_urls = self._download_json(
+                'http://www.wat.tv/get/webhtml/' + video_id, video_id, fatal=False)
+            if manifest_urls:
+                extract_formats(manifest_urls)
+
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
             'title': title,
-            'thumbnail': first_chapter.get('preview'),
-            'description': first_chapter.get('description'),
-            'view_count': int_or_none(video_info.get('views')),
-            'upload_date': upload_date,
-            'duration': duration,
+            'thumbnail': video_info.get('preview'),
+            'upload_date': unified_strdate(try_get(
+                video_data, lambda x: x['mediametrie']['chapters'][0]['estatS4'])),
+            'duration': int_or_none(video_info.get('duration')),
             'formats': formats,
         }

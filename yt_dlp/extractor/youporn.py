@@ -25,6 +25,7 @@ class YouPornIE(InfoExtractor):
             'title': 'Sex Ed: Is It Safe To Masturbate Daily?',
             'description': 'Love & Sex Answers: http://bit.ly/DanAndJenn -- Is It Unhealthy To Masturbate Daily?',
             'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 210,
             'uploader': 'Ask Dan And Jennifer',
             'upload_date': '20101217',
             'average_rating': int,
@@ -54,6 +55,7 @@ class YouPornIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': '404',
     }, {
         'url': 'https://www.youporn.com/embed/505835/sex-ed-is-it-safe-to-masturbate-daily/',
         'only_matching': True,
@@ -153,6 +155,8 @@ class YouPornIE(InfoExtractor):
         thumbnail = self._search_regex(
             r'(?:imageurl\s*=|poster\s*:)\s*(["\'])(?P<thumbnail>.+?)\1',
             webpage, 'thumbnail', fatal=False, group='thumbnail')
+        duration = int_or_none(self._html_search_meta(
+            'video:duration', webpage, 'duration', fatal=False))
 
         uploader = self._html_search_regex(
             r'(?s)<div[^>]+class=["\']submitByLink["\'][^>]*>(.+?)</div>',
@@ -194,6 +198,7 @@ class YouPornIE(InfoExtractor):
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
+            'duration': duration,
             'uploader': uploader,
             'upload_date': upload_date,
             'average_rating': average_rating,

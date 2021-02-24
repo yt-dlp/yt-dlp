@@ -1472,7 +1472,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'Refetching age-gated info webpage',
                     'unable to download video info webpage', query={
                         'video_id': video_id,
-                        'eurl': 'https://www.youtube.com/embed/' + video_id,
+                        'eurl': 'https://youtube.googleapis.com/v/' + video_id,
                     }, fatal=False)),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
@@ -1625,6 +1625,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Youtube throttles chunks >~10M
                     'http_chunk_size': 10485760,
                 }
+                if dct.get('ext'):
+                    dct['container'] = dct['ext'] + '_dash'
             formats.append(dct)
 
         hls_manifest_url = streaming_data.get('hlsManifestUrl')

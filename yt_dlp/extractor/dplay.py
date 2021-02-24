@@ -330,6 +330,7 @@ class DiscoveryPlusIE(DPlayIE):
                 'videoId': video_id,
                 'wisteriaProperties': {
                     'platform': 'desktop',
+                    'product': 'dplus_us',
                 },
             }).encode('utf-8'))['data']['attributes']['streaming']
 
