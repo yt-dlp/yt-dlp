@@ -5,7 +5,7 @@
 
 * Run `make doc`
 * Update Changelog.md and CONTRIBUTORS
-* Change "Merged with youtube-dl" version in Readme.md if needed
+* Change "Merged with ytdl" version in Readme.md if needed
 * Commit to master as `Release <version>`
 * Push to origin/release - build task will now run
 * Update version.py using devscripts\update-version.py
@@ -15,6 +15,26 @@
 * Update changelog in /releases
 
 -->
+
+
+### 2021.02.24
+* Moved project to an organization [yt-dlp](https://github.com/yt-dlp)
+* **Completely changed project name to yt-dlp** by [Pccode66](https://github.com/Pccode66) and [pukkandan](https://github.com/pukkandan)
+* **Merge youtube-dl:** Upto [commit/4460329](https://github.com/ytdl-org/youtube-dl/commit/44603290e5002153f3ebad6230cc73aef42cc2cd) (except tmz, gedi)
+* [Readthedocs](https://yt-dlp.readthedocs.io) support by [shirt](https://github.com/shirt-dev)
+* [youtube] Show if video was a live stream in info (`was_live`)
+* [Zee5] Add new extractor by [Ashish](https://github.com/Ashish) and [pukkandan](https://github.com/pukkandan)
+* [jwplatform] Add support for `hyland.com`
+* [tennistv] Fix extractor
+* [hls] Support media initialization by [shirt](https://github.com/shirt-dev)
+* [hls] Added options `--hls-split-discontinuity` to better support media discontinuity by [shirt](https://github.com/shirt-dev)
+* [ffmpeg] Allow passing custom arguments before -i using `--ppa "ffmpeg_i1:ARGS"` synatax
+* Fix `--windows-filenames` removing `/` from UNIX paths
+* [hls] Show warning if pycryptodome is not found
+* [documentation] Improvements
+    * Fix documentation of `Extractor Options`
+    * Document `all` in format selection (Closes #101)
+    * Document `playable_in_embed` in output templates
 
 
 ### 2021.02.19

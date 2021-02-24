@@ -68,9 +68,9 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use aria2c as the external downloader for DASH(mpd) and HLS(m3u8) formats. No more slow ffmpeg/native downloads
 
-* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius
+* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5
 
-* **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina, rumble
+* **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina, rumble, tennistv
 
 * **Plugin support**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
 
@@ -121,11 +121,8 @@ You can also build the executable without any version info or metadata by using:
     pyinstaller.exe yt_dlp\__main__.py --onefile --name yt-dlp
 
 **For Unix**:
-You will need the required build tools  
-python, make (GNU), pandoc, zip, nosetests  
-Then simply type this
-
-    make
+You will need the required build tools: `python`, `make` (GNU), `pandoc`, `zip`, `nosetests`  
+Then simply run `make`. You can also run `make youtube_dlc` instead to compile only the binary without updating any of the additional files
 
 **Note**: In either platform, `devscripts\update-version.py` can be used to automatically update the version number
 
@@ -573,8 +570,8 @@ Then simply type this
                                      a list of available MSOs
     --ap-username USERNAME           Multiple-system operator account login
     --ap-password PASSWORD           Multiple-system operator account password.
-                                     If this option is left out, yt-dlp
-                                     will ask interactively
+                                     If this option is left out, yt-dlp will ask
+                                     interactively
     --ap-list-mso                    List all supported multiple-system
                                      operators
 

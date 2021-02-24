@@ -836,6 +836,7 @@
  - **safari:course**: safaribooksonline.com online courses
  - **SAKTV**
  - **SaltTV**
+ - **SampleFocus**
  - **Sapo**: SAPO Vídeos
  - **savefrom.net**
  - **SBS**: sbs.com.au
@@ -1238,6 +1239,7 @@
  - **ZattooLive**
  - **ZDF-3sat**
  - **ZDFChannel**
+ - **Zee5**
  - **Zhihu**
  - **zingmp3**: mp3.zing.vn
  - **zoom**
