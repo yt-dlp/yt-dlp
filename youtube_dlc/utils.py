@@ -2128,6 +2128,7 @@ def sanitize_filename(s, restricted=False, is_id=False):
 def sanitize_path(s, force=False):
     """Sanitizes and normalizes path on Windows"""
     if sys.platform == 'win32':
+        force = False
         drive_or_unc, _ = os.path.splitdrive(s)
         if sys.version_info < (2, 7) and not drive_or_unc:
             drive_or_unc, _ = os.path.splitunc(s)
@@ -2144,6 +2145,8 @@ def sanitize_path(s, force=False):
         for path_part in norm_path]
     if drive_or_unc:
         sanitized_path.insert(0, drive_or_unc + os.path.sep)
+    elif force and s[0] == os.path.sep:
+        sanitized_path.insert(0, os.path.sep)
     return os.path.join(*sanitized_path)
 
 
