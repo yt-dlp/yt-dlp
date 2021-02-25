@@ -7,26 +7,21 @@ import os
 
 # Allows to import yt-dlp
 sys.path.insert(0, os.path.abspath('..'))
-from recommonmark.transform import AutoStructify
 
 # -- General configuration ------------------------------------------------
-
-# The suffix of source filenames.
-source_suffix = ['.rst', '.md']
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'recommonmark',
+    'myst_parser',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = 'README'
 
 # General information about the project.
 project = u'yt-dlp'
@@ -64,12 +59,10 @@ highlight_language = 'none'
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ['_static']
 
+# Enable heading anchors
+myst_heading_anchors = 4
 
-def setup(app):
-    app.add_config_value('recommonmark_config', {
-        'enable_math': False,
-        'enable_inline_math': False,
-        'enable_eval_rst': True,
-        'enable_auto_toc_tree': True,
-    }, True)
-    app.add_transform(AutoStructify)
+# Suppress heading warnings
+suppress_warnings = [
+    'myst.header',
+]

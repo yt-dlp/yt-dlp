@@ -1,2 +1,1 @@
-recommonmark>=0.6.0
-m2r2
+myst-parser

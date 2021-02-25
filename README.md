@@ -11,7 +11,7 @@
 [![PyPi Downloads](https://img.shields.io/pypi/dm/yt-dlp?label=PyPi)](https://pypi.org/project/yt-dlp)
 [![Doc Status](https://readthedocs.org/projects/yt-dlp/badge/?version=latest)](https://yt-dlp.readthedocs.io)
 
-A command-line program to download videos from youtube.com and many other [video platforms](docs/supportedsites.md)
+A command-line program to download videos from youtube.com and many other [video platforms](supportedsites.md)
 
 This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which is inturn a fork of [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
@@ -92,7 +92,7 @@ See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/comm
 
 **PS**: Some of these changes are already in youtube-dlc, but are still unreleased. See [this](Changelog.md#unreleased-changes-in-blackjack4494yt-dlc) for details
 
-If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the amount of changes are very large. Compare [options](#options) and [supported sites](docs/supportedsites.md) with youtube-dl's to get an idea of the massive number of features/patches [youtube-dlc](https://github.com/blackjack4494/yt-dlc) has accumulated.
+If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the amount of changes are very large. Compare [options](#options) and [supported sites](supportedsites.md) with youtube-dl's to get an idea of the massive number of features/patches [youtube-dlc](https://github.com/blackjack4494/yt-dlc) has accumulated.
 
 
 # INSTALLATION
@@ -127,7 +127,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
 **Note**: In either platform, `devscripts\update-version.py` can be used to automatically update the version number
 
 # DESCRIPTION
-**yt-dlp** is a command-line program to download videos from youtube.com many other [video platforms](docs/supportedsites.md). It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
+**yt-dlp** is a command-line program to download videos from youtube.com many other [video platforms](supportedsites.md). It requires the Python interpreter, version 2.6, 2.7, or 3.2+, and it is not platform specific. It should work on your Unix box, on Windows or on macOS. It is released to the public domain, which means you can modify it, redistribute it or use it however you like.
 
     yt-dlp [OPTIONS] [--] URL [URL...]
 
