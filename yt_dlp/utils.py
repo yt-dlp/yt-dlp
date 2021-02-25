@@ -5945,9 +5945,13 @@ def make_dir(path, to_screen=None):
 
 
 def get_executable_path():
-    path = os.path.dirname(sys.argv[0])
-    if os.path.basename(sys.argv[0]) == '__main__':  # Running from source
-        path = os.path.join(path, '..')
+    from zipimport import zipimporter
+    if hasattr(sys, 'frozen'):  # Running from PyInstaller
+        path = os.path.dirname(sys.executable)
+    elif isinstance(globals().get('__loader__'), zipimporter):  # Running from ZIP
+        path = os.path.join(os.path.dirname(__file__), '../..')
+    else:
+        path = os.path.join(os.path.dirname(__file__), '..')
     return os.path.abspath(path)
 
 
