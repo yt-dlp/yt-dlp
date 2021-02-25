@@ -20,6 +20,7 @@
 ### 2021.02.24
 * Moved project to an organization [yt-dlp](https://github.com/yt-dlp)
 * **Completely changed project name to yt-dlp** by [Pccode66](https://github.com/Pccode66) and [pukkandan](https://github.com/pukkandan)
+    * Also, `youtube-dlc` config files are no longer loaded
 * **Merge youtube-dl:** Upto [commit/4460329](https://github.com/ytdl-org/youtube-dl/commit/44603290e5002153f3ebad6230cc73aef42cc2cd) (except tmz, gedi)
 * [Readthedocs](https://yt-dlp.readthedocs.io) support by [shirt](https://github.com/shirt-dev)
 * [youtube] Show if video was a live stream in info (`was_live`)
@@ -28,12 +29,12 @@
 * [tennistv] Fix extractor
 * [hls] Support media initialization by [shirt](https://github.com/shirt-dev)
 * [hls] Added options `--hls-split-discontinuity` to better support media discontinuity by [shirt](https://github.com/shirt-dev)
-* [ffmpeg] Allow passing custom arguments before -i using `--ppa "ffmpeg_i1:ARGS"` synatax
+* [ffmpeg] Allow passing custom arguments before -i using `--ppa "ffmpeg_i1:ARGS"` syntax
 * Fix `--windows-filenames` removing `/` from UNIX paths
 * [hls] Show warning if pycryptodome is not found
 * [documentation] Improvements
     * Fix documentation of `Extractor Options`
-    * Document `all` in format selection (Closes #101)
+    * Document `all` in format selection
     * Document `playable_in_embed` in output templates
 
 
