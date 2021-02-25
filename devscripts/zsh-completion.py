@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, dirn(dirn((os.path.abspath(__file__)))))
 import yt_dlp
 
-ZSH_COMPLETION_FILE = "yt-dlp.zsh"
+ZSH_COMPLETION_FILE = "completions/zsh/_yt-dlp"
 ZSH_COMPLETION_TEMPLATE = "devscripts/zsh-completion.in"
 
 
