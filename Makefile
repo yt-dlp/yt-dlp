@@ -92,7 +92,7 @@ issuetemplates: devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_
 	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/5_feature_request.md .github/ISSUE_TEMPLATE/5_feature_request.md
 
 supportedsites:
-	$(PYTHON) devscripts/make_supportedsites.py docs/supportedsites.md
+	$(PYTHON) devscripts/make_supportedsites.py supportedsites.md
 
 README.txt: README.md
 	pandoc -f $(MARKDOWN) -t plain README.md -o README.txt
@@ -135,7 +135,7 @@ yt-dlp.tar.gz: yt-dlp README.md README.txt yt-dlp.1 yt-dlp.bash-completion yt-dl
 		--exclude 'docs/_build' \
 		-- \
 		bin devscripts test yt_dlp docs \
-		ChangeLog AUTHORS LICENSE README.md README.txt \
+		ChangeLog AUTHORS LICENSE README.md supportedsites.md README.txt \
 		Makefile MANIFEST.in yt-dlp.1 yt-dlp.bash-completion \
 		yt-dlp.zsh yt-dlp.fish setup.py setup.cfg \
 		yt-dlp
