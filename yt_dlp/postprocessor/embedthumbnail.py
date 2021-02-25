@@ -193,4 +193,6 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 info['__thumbnail_filename'], os.path.splitext(original_thumbnail)[1][1:])
             if original_thumbnail == thumbnail_filename:
                 files_to_delete = []
+        elif original_thumbnail != thumbnail_filename:
+            files_to_delete.append(original_thumbnail)
         return files_to_delete, info
