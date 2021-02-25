@@ -20,4 +20,3 @@ python:
     version: 3
     install:
     - requirements: docs/requirements.txt
-    - requirements: requirements.txt
