@@ -255,15 +255,8 @@ class VikiIE(VikiBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        resp = self._download_json(
-            'https://www.viki.com/api/videos/' + video_id,
-            video_id, 'Downloading video JSON', headers={
-                'x-client-user-agent': std_headers['User-Agent'],
-                'x-viki-as-id': self._APP,
-                'x-viki-app-ver': self._APP_VERSION,
-            })
-        video = resp['video']
-
+        video = self._call_api(
+            'videos/%s.json' % video_id, video_id, 'Downloading video JSON')
         self._check_errors(video)
 
         title = self.dict_selection(video.get('titles', {}), 'en', allow_fallback=False)
@@ -286,30 +279,12 @@ class VikiIE(VikiBaseIE):
             })
 
         subtitles = {}
-        try:
-            # New way to fetch subtitles
-            new_video = self._download_json(
-                'https://www.viki.com/api/videos/%s' % video_id, video_id,
-                'Downloading new video JSON to get subtitles', fatal=False,
-                headers={
-                    'x-client-user-agent': std_headers['User-Agent'],
-                    'x-viki-as-id': self._APP,
-                    'x-viki-app-ver': self._APP_VERSION,
-                })
-            for sub in new_video.get('streamSubtitles').get('dash'):
-                subtitles[sub.get('srclang')] = [{
-                    'ext': 'vtt',
-                    'url': sub.get('src'),
-                    'completion': sub.get('percentage'),
-                }]
-        except AttributeError:
-            # fall-back to the old way if there isn't a streamSubtitles attribute
-            for subtitle_lang, _ in (video.get('subtitle_completions') or {}).items():
-                subtitles[subtitle_lang] = [{
-                    'ext': subtitles_format,
-                    'url': self._prepare_call(
-                        'videos/%s/subtitles/%s.%s' % (video_id, subtitle_lang, subtitles_format)),
-                } for subtitles_format in ('srt', 'vtt')]
+        for subtitle_lang, _ in (video.get('subtitle_completions') or {}).items():
+            subtitles[subtitle_lang] = [{
+                'ext': subtitles_format,
+                'url': self._prepare_call(
+                    'videos/%s/subtitles/%s.%s' % (video_id, subtitle_lang, subtitles_format)),
+            } for subtitles_format in ('srt', 'vtt')]
 
         result = {
             'id': video_id,
@@ -386,23 +361,20 @@ class VikiIE(VikiBaseIE):
                     'filesize': int_or_none(urlh.headers.get('Content-Length')),
                 })
 
-        for format_id, format_dict in (resp.get('streams') or {}).items():
-            add_format(format_id, format_dict)
-        if not formats:
-            streams = self._call_api(
-                'videos/%s/streams.json' % video_id, video_id,
-                'Downloading video streams JSON')
+        streams = self._call_api(
+            'videos/%s/streams.json' % video_id, video_id,
+            'Downloading video streams JSON')
 
-            if 'external' in streams:
-                result.update({
-                    '_type': 'url_transparent',
-                    'url': streams['external']['url'],
-                })
-                return result
+        if 'external' in streams:
+            result.update({
+                '_type': 'url_transparent',
+                'url': streams['external']['url'],
+            })
+            return result
 
-            for format_id, stream_dict in streams.items():
-                for protocol, format_dict in stream_dict.items():
-                    add_format(format_id, format_dict, protocol)
+        for format_id, stream_dict in streams.items():
+            for protocol, format_dict in stream_dict.items():
+                add_format(format_id, format_dict, protocol)
         self._sort_formats(formats)
 
         result['formats'] = formats
