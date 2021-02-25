@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, dirn(dirn((os.path.abspath(__file__)))))
 import yt_dlp
 
-BASH_COMPLETION_FILE = "yt-dlp.bash-completion"
+BASH_COMPLETION_FILE = "completions/bash/yt-dlp"
 BASH_COMPLETION_TEMPLATE = "devscripts/bash-completion.in"
 
 

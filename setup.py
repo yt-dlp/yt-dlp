@@ -27,8 +27,9 @@ if len(sys.argv) >= 2 and sys.argv[1] == 'py2exe':
     print("inv")
 else:
     files_spec = [
-        ('etc/bash_completion.d', ['yt-dlp.bash-completion']),
-        ('etc/fish/completions', ['yt-dlp.fish']),
+        ('share/bash-completion/completions', ['completions/bash/*']),
+        ('share/zsh/site-functions', ['completions/zsh/*']),
+        ('share/fish/vendor_completions.d', ['completions/fish/*']),
         ('share/doc/yt_dlp', ['README.txt']),
         ('share/man/man1', ['yt-dlp.1'])
     ]
@@ -86,7 +87,7 @@ setup(
         #'Funding': 'https://donate.pypi.org',
     },
     classifiers=[
-	    "Topic :: Multimedia :: Video",
+        "Topic :: Multimedia :: Video",
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Programming Language :: Python",
@@ -110,7 +111,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=2.6',
-	
-	cmdclass={'build_lazy_extractors': build_lazy_extractors},
+
+    cmdclass={'build_lazy_extractors': build_lazy_extractors},
     **params
 )
