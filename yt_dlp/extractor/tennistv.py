@@ -86,6 +86,7 @@ class TennisTVIE(InfoExtractor):
             'https://www.tennistv.com/api/users/v1/entitlementchecknondiva',
             video_id, note='Checking video authorization', headers=headers, data=check_json)
         formats = self._extract_m3u8_formats(check_result['contentUrl'], video_id, ext='mp4')
+        self._sort_formats(formats)
 
         vdata = self._download_json(
             'https://www.tennistv.com/api/en/v2/none/common/video/%s' % video_id,
