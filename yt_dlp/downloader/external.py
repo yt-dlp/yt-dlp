@@ -398,7 +398,10 @@ class FFmpegFD(ExternalFD):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
 
         if protocol in ('m3u8', 'm3u8_native'):
-            if self.params.get('hls_use_mpegts', False) or tmpfilename == '-':
+            use_mpegts = (tmpfilename == '-') or self.params.get('hls_use_mpegts')
+            if use_mpegts is None:
+                use_mpegts = info_dict.get('is_live')
+            if use_mpegts:
                 args += ['-f', 'mpegts']
             else:
                 args += ['-f', 'mp4']

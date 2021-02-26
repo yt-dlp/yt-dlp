@@ -634,10 +634,18 @@ def parseOpts(overrideArguments=None):
         help='Use ffmpeg instead of the native HLS downloader')
     downloader.add_option(
         '--hls-use-mpegts',
-        dest='hls_use_mpegts', action='store_true',
+        dest='hls_use_mpegts', action='store_true', default=None,
         help=(
-            'Use the mpegts container for HLS videos, allowing to play the '
-            'video while downloading (some players may not be able to play it)'))
+            'Use the mpegts container for HLS videos; '
+            'allowing some players to play the video while downloading, '
+            'and reducing the chance of file corruption if download is interrupted. '
+            'This is enabled by default for live streams'))
+    downloader.add_option(
+        '--no-hls-use-mpegts',
+        dest='hls_use_mpegts', action='store_false',
+        help=(
+            'Do not use the mpegts container for HLS videos. '
+            'This is default when not downloading live streams'))
     downloader.add_option(
         '--external-downloader',
         dest='external_downloader', metavar='NAME',

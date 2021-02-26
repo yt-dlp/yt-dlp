@@ -317,10 +317,15 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      ffmpeg
     --hls-prefer-ffmpeg              Use ffmpeg instead of the native HLS
                                      downloader
-    --hls-use-mpegts                 Use the mpegts container for HLS videos,
-                                     allowing to play the video while
-                                     downloading (some players may not be able
-                                     to play it)
+    --hls-use-mpegts                 Use the mpegts container for HLS videos;
+                                     allowing some players to play the video
+                                     while downloading, and reducing the chance
+                                     of file corruption if download is
+                                     interrupted. This is enabled by default for
+                                     live streams
+    --no-hls-use-mpegts              Do not use the mpegts container for HLS
+                                     videos. This is default when not
+                                     downloading live streams
     --external-downloader NAME       Use the specified external downloader.
                                      Currently supports aria2c, avconv, axel,
                                      curl, ffmpeg, httpie, wget
