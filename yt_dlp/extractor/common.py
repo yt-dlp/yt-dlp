@@ -1888,8 +1888,10 @@ class InfoExtractor(object):
         # media playlist and MUST NOT appear in master playlist thus we can
         # clearly detect media playlist with this criterion.
 
-        def _extract_m3u8_playlist_formats(format_url, m3u8_doc=None):
+        def _extract_m3u8_playlist_formats(format_url=None, m3u8_doc=None):
             if not m3u8_doc:
+                if not format_url:
+                    return []
                 res = self._download_webpage_handle(
                     format_url, video_id,
                     note=False,
@@ -1928,7 +1930,7 @@ class InfoExtractor(object):
 
         if '#EXT-X-TARGETDURATION' in m3u8_doc:  # media playlist, return as is
 
-            playlist_formats = _extract_m3u8_playlist_formats(m3u8_doc, True)
+            playlist_formats = _extract_m3u8_playlist_formats(m3u8_doc=m3u8_doc)
 
             for format in playlist_formats:
                 format_id = []
