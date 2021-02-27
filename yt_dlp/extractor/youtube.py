@@ -1452,8 +1452,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
         base_url = self.http_scheme() + '//www.youtube.com/'
-        webpage_url = base_url + 'watch?v=' + video_id + '&has_verified=1&bpctr=9999999999'
-        webpage = self._download_webpage(webpage_url, video_id, fatal=False)
+        webpage_url = base_url + 'watch?v=' + video_id
+        webpage = self._download_webpage(
+            webpage_url + '&has_verified=1&bpctr=9999999999',
+            video_id, fatal=False)
 
         player_response = None
         if webpage:
