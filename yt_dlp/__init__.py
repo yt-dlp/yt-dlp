@@ -169,6 +169,12 @@ def _real_main(argv=None):
             parser.error('max sleep interval must be greater than or equal to min sleep interval')
     else:
         opts.max_sleep_interval = opts.sleep_interval
+    if opts.sleep_interval_subtitles is not None:
+        if opts.sleep_interval_subtitles < 0:
+            parser.error('subtitles sleep interval must be positive or 0')
+    if opts.sleep_interval_requests is not None:
+        if opts.sleep_interval_requests < 0:
+            parser.error('requests sleep interval must be positive or 0')
     if opts.ap_mso and opts.ap_mso not in MSO_INFO:
         parser.error('Unsupported TV Provider, use --ap-list-mso to get a list of supported TV Providers')
     if opts.overwrites:
@@ -524,6 +530,7 @@ def _real_main(argv=None):
         'fixup': opts.fixup,
         'source_address': opts.source_address,
         'call_home': opts.call_home,
+        'sleep_interval_requests': opts.sleep_interval_requests,
         'sleep_interval': opts.sleep_interval,
         'max_sleep_interval': opts.max_sleep_interval,
         'sleep_interval_subtitles': opts.sleep_interval_subtitles,

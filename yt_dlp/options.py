@@ -697,6 +697,10 @@ def parseOpts(overrideArguments=None):
         dest='bidi_workaround', action='store_true',
         help='Work around terminals that lack bidirectional text support. Requires bidiv or fribidi executable in PATH')
     workarounds.add_option(
+        '--sleep-requests', metavar='SECONDS',
+        dest='sleep_interval_requests', type=float,
+        help='Number of seconds to sleep between requests during data extraction')
+    workarounds.add_option(
         '--sleep-interval', '--min-sleep-interval', metavar='SECONDS',
         dest='sleep_interval', type=float,
         help=(
@@ -714,7 +718,7 @@ def parseOpts(overrideArguments=None):
     workarounds.add_option(
         '--sleep-subtitles', metavar='SECONDS',
         dest='sleep_interval_subtitles', default=0, type=int,
-        help='Enforce sleep interval on subtitles as well')
+        help='Number of seconds to sleep before each subtitle download')
 
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(

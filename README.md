@@ -491,6 +491,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --bidi-workaround                Work around terminals that lack
                                      bidirectional text support. Requires bidiv
                                      or fribidi executable in PATH
+    --sleep-requests SECONDS         Number of seconds to sleep between requests
+                                     during data extraction
     --sleep-interval SECONDS         Number of seconds to sleep before each
                                      download when used alone or a lower bound
                                      of a range for randomized sleep before each
@@ -501,7 +503,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      before each download (maximum possible
                                      number of seconds to sleep). Must only be
                                      used along with --min-sleep-interval
-    --sleep-subtitles SECONDS        Enforce sleep interval on subtitles as well
+    --sleep-subtitles SECONDS        Number of seconds to sleep before each
+                                     subtitle download
 
 ## Video Format Options:
     -f, --format FORMAT              Video format code, see "FORMAT SELECTION"

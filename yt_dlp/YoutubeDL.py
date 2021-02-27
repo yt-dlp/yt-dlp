@@ -324,6 +324,8 @@ class YoutubeDL(object):
     source_address:    Client-side IP address to bind to.
     call_home:         Boolean, true iff we are allowed to contact the
                        yt-dlp servers for debugging. (BROKEN)
+    sleep_interval_requests: Number of seconds to sleep between requests
+                       during extraction
     sleep_interval:    Number of seconds to sleep before each download when
                        used alone or a lower bound of a range for randomized
                        sleep before each download (minimum possible number
@@ -334,6 +336,7 @@ class YoutubeDL(object):
                        Must only be used along with sleep_interval.
                        Actual sleep time will be a random float from range
                        [sleep_interval; max_sleep_interval].
+    sleep_interval_subtitles: Number of seconds to sleep before each subtitle download
     listformats:       Print an overview of available video formats and exit.
     list_thumbnails:   Print a table of all thumbnails and exit.
     match_filter:      A function that gets called with the info_dict of
@@ -406,6 +409,7 @@ class YoutubeDL(object):
     _ies = []
     _pps = {'beforedl': [], 'aftermove': [], 'normal': []}
     __prepare_filename_warned = False
+    _first_webpage_request = True
     _download_retcode = None
     _num_downloads = None
     _playlist_level = 0
@@ -420,6 +424,7 @@ class YoutubeDL(object):
         self._ies_instances = {}
         self._pps = {'beforedl': [], 'aftermove': [], 'normal': []}
         self.__prepare_filename_warned = False
+        self._first_webpage_request = True
         self._post_hooks = []
         self._progress_hooks = []
         self._download_retcode = 0
@@ -2166,15 +2171,6 @@ class YoutubeDL(object):
                     else:
                         try:
                             dl(sub_filename, sub_info, subtitle=True)
-                            '''
-                            if self.params.get('sleep_interval_subtitles', False):
-                                dl(sub_filename, sub_info)
-                            else:
-                                sub_data = ie._request_webpage(
-                                    sub_info['url'], info_dict['id'], note=False).read()
-                                with io.open(encodeFilename(sub_filename), 'wb') as subfile:
-                                    subfile.write(sub_data)
-                            '''
                             files_to_move[sub_filename] = sub_filename_final
                         except (ExtractorError, IOError, OSError, ValueError, compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                             self.report_warning('Unable to download subtitle for "%s": %s' %
