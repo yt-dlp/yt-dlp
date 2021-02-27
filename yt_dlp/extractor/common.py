@@ -299,7 +299,7 @@ class InfoExtractor(object):
                     must return a dict which will be added to the info_dict.
                     This is usefull for additional information that is
                     time-consuming to extract. Note that the fields thus
-                    extracted will not be available to output template and 
+                    extracted will not be available to output template and
                     match_filter. So, only "comments" and "comment_count" are
                     currently allowed to be extracted via this method.
 

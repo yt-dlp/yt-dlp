@@ -275,7 +275,6 @@ class BiliBiliIE(InfoExtractor):
 
             top_level_info['__post_extractor'] = get_comments
 
-
         '''
         # Requires https://github.com/m13253/danmaku2ass which is licenced under GPL3
         # See https://github.com/animelover1984/youtube-dl

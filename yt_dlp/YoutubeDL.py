@@ -2499,7 +2499,7 @@ class YoutubeDL(object):
                 raise
             else:
                 if self.params.get('dump_single_json', False):
-                    self.post_extract(info_dict)
+                    self.post_extract(res)
                     self.to_stdout(json.dumps(res))
 
         return self._download_retcode
