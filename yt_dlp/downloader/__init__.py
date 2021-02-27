@@ -53,7 +53,7 @@ def get_suitable_downloader(info_dict, params={}, default=HttpFD):
     external_downloader = params.get('external_downloader')
     if external_downloader is not None:
         ed = get_external_downloader(external_downloader)
-        if ed.can_download(info_dict):
+        if ed.can_download(info_dict, external_downloader):
             return ed
 
     if protocol.startswith('m3u8'):

@@ -326,9 +326,10 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-hls-use-mpegts              Do not use the mpegts container for HLS
                                      videos. This is default when not
                                      downloading live streams
-    --external-downloader NAME       Use the specified external downloader.
-                                     Currently supports aria2c, avconv, axel,
-                                     curl, ffmpeg, httpie, wget
+    --external-downloader NAME       Name or path of the external downloader to
+                                     use. Currently supports aria2c, avconv,
+                                     axel, curl, ffmpeg, httpie, wget
+                                     (Recommended: aria2c)
     --downloader-args NAME:ARGS      Give these arguments to the external
                                      downloader. Specify the downloader name and
                                      the arguments separated by a colon ":". You

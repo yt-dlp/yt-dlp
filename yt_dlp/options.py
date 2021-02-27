@@ -650,8 +650,8 @@ def parseOpts(overrideArguments=None):
         '--external-downloader',
         dest='external_downloader', metavar='NAME',
         help=(
-            'Use the specified external downloader. '
-            'Currently supports %s' % ', '.join(list_external_downloaders())))
+            'Name or path of the external downloader to use. '
+            'Currently supports %s (Recommended: aria2c)' % ', '.join(list_external_downloaders())))
     downloader.add_option(
         '--downloader-args', '--external-downloader-args',
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',

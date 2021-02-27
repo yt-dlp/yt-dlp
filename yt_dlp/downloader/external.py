@@ -85,16 +85,16 @@ class ExternalFD(FileDownloader):
         return self.params.get('external_downloader')
 
     @classmethod
-    def available(cls):
-        return check_executable(cls.get_basename(), [cls.AVAILABLE_OPT])
+    def available(cls, path=None):
+        return check_executable(path or cls.get_basename(), [cls.AVAILABLE_OPT])
 
     @classmethod
     def supports(cls, info_dict):
         return info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS
 
     @classmethod
-    def can_download(cls, info_dict):
-        return cls.available() and cls.supports(info_dict)
+    def can_download(cls, info_dict, path=None):
+        return cls.available(path) and cls.supports(info_dict)
 
     def _option(self, command_option, param):
         return cli_option(self.params, command_option, param)
