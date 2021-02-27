@@ -2012,9 +2012,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Get comments
         # TODO: Refactor and move to seperate function
-        if get_comments:
+        def extract_comments():
             expected_video_comment_count = 0
             video_comments = []
+            comment_xsrf = xsrf_token
 
             def find_value(html, key, num_chars=2, separator='"'):
                 pos_begin = html.find(key) + len(key) + num_chars
@@ -2083,7 +2084,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.to_screen('Downloading comments')
             while continuations:
                 continuation = continuations.pop()
-                comment_response = get_continuation(continuation, xsrf_token)
+                comment_response = get_continuation(continuation, comment_xsrf)
                 if not comment_response:
                     continue
                 if list(search_dict(comment_response, 'externalErrorMessage')):
@@ -2094,7 +2095,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
                 # not sure if this actually helps
                 if 'xsrf_token' in comment_response:
-                    xsrf_token = comment_response['xsrf_token']
+                    comment_xsrf = comment_response['xsrf_token']
 
                 item_section = comment_response['response']['continuationContents']['itemSectionContinuation']
                 if first_continuation:
@@ -2123,7 +2124,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     while reply_continuations:
                         time.sleep(1)
                         continuation = reply_continuations.pop()
-                        replies_data = get_continuation(continuation, xsrf_token, True)
+                        replies_data = get_continuation(continuation, comment_xsrf, True)
                         if not replies_data or 'continuationContents' not in replies_data[1]['response']:
                             continue
 
@@ -2152,10 +2153,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 time.sleep(1)
 
             self.to_screen('Total comments downloaded: %d of ~%d' % (len(video_comments), expected_video_comment_count))
-            info.update({
+            return {
                 'comments': video_comments,
                 'comment_count': expected_video_comment_count
-            })
+            }
+
+        if get_comments:
+            info['__post_extractor'] = extract_comments
 
         self.mark_watched(video_id, player_response)
 

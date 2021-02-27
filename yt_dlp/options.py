@@ -347,7 +347,7 @@ def parseOpts(overrideArguments=None):
             'Specify any key (see "OUTPUT TEMPLATE" for a list of available keys) to '
             'match if the key is present, '
             '!key to check if the key is not present, '
-            'key>NUMBER (like "comment_count > 12", also works with '
+            'key>NUMBER (like "view_count > 12", also works with '
             '>=, <, <=, !=, =) to compare against a number, '
             'key = \'LITERAL\' (like "uploader = \'Mike Smith\'", also works with !=) '
             'to match against a string literal '
@@ -985,7 +985,9 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--get-comments',
         action='store_true', dest='getcomments', default=False,
-        help='Retrieve video comments to be placed in the .info.json file')
+        help=(
+            'Retrieve video comments to be placed in the .info.json file. '
+            'The comments are fetched even without this option if the extraction is known to be quick'))
     filesystem.add_option(
         '--load-info-json', '--load-info',
         dest='load_info_filename', metavar='FILE',

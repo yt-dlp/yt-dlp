@@ -245,7 +245,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      "OUTPUT TEMPLATE" for a list of available
                                      keys) to match if the key is present, !key
                                      to check if the key is not present,
-                                     key>NUMBER (like "comment_count > 12", also
+                                     key>NUMBER (like "view_count > 12", also
                                      works with >=, <, <=, !=, =) to compare
                                      against a number, key = 'LITERAL' (like
                                      "uploader = 'Mike Smith'", also works with
@@ -403,7 +403,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-write-playlist-metafiles    Do not write playlist metadata when using
                                      --write-info-json, --write-description etc.
     --get-comments                   Retrieve video comments to be placed in the
-                                     .info.json file
+                                     .info.json file. The comments are fetched
+                                     even without this option if the extraction
+                                     is known to be quick
     --load-info-json FILE            JSON file containing the video information
                                      (created with the "--write-info-json"
                                      option)
@@ -814,7 +816,7 @@ The available fields are:
  - `dislike_count` (numeric): Number of negative ratings of the video
  - `repost_count` (numeric): Number of reposts of the video
  - `average_rating` (numeric): Average rating give by users, the scale used depends on the webpage
- - `comment_count` (numeric): Number of comments on the video
+ - `comment_count` (numeric): Number of comments on the video (For some extractors, comments are only downloaded at the end, and so this field cannot be used)
  - `age_limit` (numeric): Age restriction for the video (years)
  - `is_live` (boolean): Whether this video is a live stream or a fixed-length video
  - `was_live` (boolean): Whether this video was originally a live stream

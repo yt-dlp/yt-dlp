@@ -2041,6 +2041,7 @@ class YoutubeDL(object):
             self.to_stdout(formatSeconds(info_dict['duration']))
         print_mandatory('format')
         if self.params.get('forcejson', False):
+            self.post_extract(info_dict)
             self.to_stdout(json.dumps(info_dict))
 
     def process_info(self, info_dict):
@@ -2064,6 +2065,7 @@ class YoutubeDL(object):
         if self._match_entry(info_dict, incomplete=False) is not None:
             return
 
+        self.post_extract(info_dict)
         self._num_downloads += 1
 
         info_dict = self.pre_process(info_dict)
@@ -2497,6 +2499,7 @@ class YoutubeDL(object):
                 raise
             else:
                 if self.params.get('dump_single_json', False):
+                    self.post_extract(info_dict)
                     self.to_stdout(json.dumps(res))
 
         return self._download_retcode
@@ -2544,6 +2547,15 @@ class YoutubeDL(object):
                 if old_filename in files_to_move:
                     del files_to_move[old_filename]
         return files_to_move, infodict
+
+    @staticmethod
+    def post_extract(info_dict):
+        if '__post_extractor' not in info_dict:
+            return
+        post_extractor = info_dict['__post_extractor']
+        if post_extractor:
+            info_dict.update(post_extractor(info_dict).items())
+        del info_dict['__post_extractor']
 
     def pre_process(self, ie_info):
         info = dict(ie_info)

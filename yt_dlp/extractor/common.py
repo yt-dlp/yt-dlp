@@ -294,6 +294,14 @@ class InfoExtractor(object):
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
                     specifying the criteria for embedability (Eg: 'whitelist').
+    __post_extractor: A function to be called just before the metadata is
+                    written to either disk, logger or console. The function
+                    must return a dict which will be added to the info_dict.
+                    This is usefull for additional information that is
+                    time-consuming to extract. Note that the fields thus
+                    extracted will not be available to output template and 
+                    match_filter. So, only "comments" and "comment_count" are
+                    currently allowed to be extracted via this method.
 
     The following fields should only be used when the video belongs to some logical
     chapter or section:
