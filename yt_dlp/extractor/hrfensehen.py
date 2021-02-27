@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import json
 import re
 
-from yt_dlp.utils import int_or_none, unified_timestamp, unescapeHTML
+from ..utils import int_or_none, unified_timestamp, unescapeHTML
 from .common import InfoExtractor
 
 
