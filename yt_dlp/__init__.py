@@ -181,19 +181,21 @@ def _real_main(argv=None):
         # --yes-overwrites implies --no-continue
         opts.continue_dl = False
 
-    def parse_retries(retries):
+    def parse_retries(retries, name=''):
         if retries in ('inf', 'infinite'):
             parsed_retries = float('inf')
         else:
             try:
                 parsed_retries = int(retries)
             except (TypeError, ValueError):
-                parser.error('invalid retry count specified')
+                parser.error('invalid %sretry count specified' % name)
         return parsed_retries
     if opts.retries is not None:
         opts.retries = parse_retries(opts.retries)
     if opts.fragment_retries is not None:
-        opts.fragment_retries = parse_retries(opts.fragment_retries)
+        opts.fragment_retries = parse_retries(opts.fragment_retries, 'fragment ')
+    if opts.extractor_retries is not None:
+        opts.extractor_retries = parse_retries(opts.extractor_retries, 'extractor ')
     if opts.buffersize is not None:
         numeric_buffersize = FileDownloader.parse_bytes(opts.buffersize)
         if numeric_buffersize is None:
@@ -458,6 +460,7 @@ def _real_main(argv=None):
         'overwrites': opts.overwrites,
         'retries': opts.retries,
         'fragment_retries': opts.fragment_retries,
+        'extractor_retries': opts.extractor_retries,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,
         'keep_fragments': opts.keep_fragments,
         'buffersize': opts.buffersize,

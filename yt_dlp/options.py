@@ -1219,6 +1219,10 @@ def parseOpts(overrideArguments=None):
 
     extractor = optparse.OptionGroup(parser, 'Extractor Options')
     extractor.add_option(
+        '--extractor-retries',
+        dest='extractor_retries', metavar='RETRIES', default=10,
+        help='Number of retries for known extractor errors (default is %default), or "infinite"')
+    extractor.add_option(
         '--allow-dynamic-mpd', '--no-ignore-dynamic-mpd',
         action='store_true', dest='dynamic_mpd', default=True,
         help='Process dynamic DASH manifests (default) (Alias: --no-ignore-dynamic-mpd)')

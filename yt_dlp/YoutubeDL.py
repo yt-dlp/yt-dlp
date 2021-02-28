@@ -381,17 +381,18 @@ class YoutubeDL(object):
                         Use 'default' as the name for arguments to passed to all PP
 
     The following options are used by the extractors:
-    dynamic_mpd:        Whether to process dynamic DASH manifests (default: True)
+    extractor_retries: Number of times to retry for known errors
+    dynamic_mpd:       Whether to process dynamic DASH manifests (default: True)
     hls_split_discontinuity: Split HLS playlists to different formats at
-                        discontinuities such as ad breaks (default: False)
+                       discontinuities such as ad breaks (default: False)
     youtube_include_dash_manifest: If True (default), DASH manifests and related
-                        data will be downloaded and processed by extractor.
-                        You can reduce network I/O by disabling it if you don't
-                        care about DASH. (only for youtube)
+                       data will be downloaded and processed by extractor.
+                       You can reduce network I/O by disabling it if you don't
+                       care about DASH. (only for youtube)
     youtube_include_hls_manifest: If True (default), HLS manifests and related
-                        data will be downloaded and processed by extractor.
-                        You can reduce network I/O by disabling it if you don't
-                        care about HLS. (only for youtube)
+                       data will be downloaded and processed by extractor.
+                       You can reduce network I/O by disabling it if you don't
+                       care about HLS. (only for youtube)
     """
 
     _NUMERIC_FIELDS = set((
