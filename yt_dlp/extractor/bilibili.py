@@ -266,7 +266,7 @@ class BiliBiliIE(InfoExtractor):
             'raw_tags': raw_tags,
         }
         if self._downloader.params.get('getcomments', False):
-            def get_comments(video_id):
+            def get_comments():
                 comments = self._get_all_comment_pages(video_id)
                 return {
                     'comments': comments,
