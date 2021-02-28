@@ -2550,12 +2550,21 @@ class YoutubeDL(object):
 
     @staticmethod
     def post_extract(info_dict):
-        if '__post_extractor' not in info_dict:
+        def actual_post_extract(info_dict):
+            if info_dict.get('_type') in ('playlist', 'multi_video'):
+                for video_dict in info_dict.get('entries', {}):
+                    actual_post_extract(video_dict)
+                return
+
+            if '__post_extractor' not in info_dict:
+                return
+            post_extractor = info_dict['__post_extractor']
+            if post_extractor:
+                info_dict.update(post_extractor().items())
+            del info_dict['__post_extractor']
             return
-        post_extractor = info_dict['__post_extractor']
-        if post_extractor:
-            info_dict.update(post_extractor(info_dict).items())
-        del info_dict['__post_extractor']
+
+        actual_post_extract(info_dict)
 
     def pre_process(self, ie_info):
         info = dict(ie_info)
