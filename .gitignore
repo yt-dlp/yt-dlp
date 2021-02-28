@@ -8,6 +8,7 @@ dist/
 zip/
 tmp/
 venv/
+completions/
 
 # Misc
 *~
@@ -34,8 +35,9 @@ README.txt
 *.spec
 
 # Binary
-youtube-dl
-youtube-dlc
+/youtube-dl
+/youtube-dlc
+/yt-dlp
 yt-dlp.zip
 *.exe
 
@@ -50,12 +52,14 @@ yt-dlp.zip
 *.m4v
 *.mp3
 *.3gp
+*.webm
 *.wav
 *.ape
 *.mkv
 *.swf
 *.part
 *.ytdl
+*.dump
 *.frag
 *.frag.urls
 *.aria2

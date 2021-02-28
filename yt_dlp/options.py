@@ -369,7 +369,7 @@ def parseOpts(overrideArguments=None):
         help='Download only the video, if the URL refers to a video and a playlist')
     selection.add_option(
         '--yes-playlist',
-        action='store_false', dest='noplaylist', default=False,
+        action='store_false', dest='noplaylist',
         help='Download the playlist, if the URL refers to a video and a playlist')
     selection.add_option(
         '--age-limit',
@@ -1143,7 +1143,7 @@ def parseOpts(overrideArguments=None):
             'Give field name to extract data from, and format of the field seperated by a ":". '
             'Either regular expression with named capture groups or a '
             'similar syntax to the output template can also be used. '
-            'The parsed parameters replace any existing values and can be use in output template'
+            'The parsed parameters replace any existing values and can be use in output template. '
             'This option can be used multiple times. '
             'Example: --parse-metadata "title:%(artist)s - %(title)s" matches a title like '
             '"Coldplay - Paradise". '

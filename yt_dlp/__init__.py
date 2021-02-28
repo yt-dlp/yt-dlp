@@ -268,6 +268,11 @@ def _real_main(argv=None):
     any_printing = opts.print_json
     download_archive_fn = expand_path(opts.download_archive) if opts.download_archive is not None else opts.download_archive
 
+    # If JSON is not printed anywhere, but comments are requested, save it to file
+    printing_json = opts.dumpjson or opts.print_json or opts.dump_single_json
+    if opts.getcomments and not printing_json:
+        opts.writeinfojson = True
+
     def report_conflict(arg1, arg2):
         write_string('WARNING: %s is ignored since %s was given\n' % (arg2, arg1), out=sys.stderr)
     if opts.remuxvideo and opts.recodevideo:
@@ -472,7 +477,7 @@ def _real_main(argv=None):
         'updatetime': opts.updatetime,
         'writedescription': opts.writedescription,
         'writeannotations': opts.writeannotations,
-        'writeinfojson': opts.writeinfojson or opts.getcomments,
+        'writeinfojson': opts.writeinfojson,
         'allow_playlist_files': opts.allow_playlist_files,
         'getcomments': opts.getcomments,
         'writethumbnail': opts.writethumbnail,
@@ -548,7 +553,6 @@ def _real_main(argv=None):
         'postprocessor_args': opts.postprocessor_args,
         'cn_verification_proxy': opts.cn_verification_proxy,
         'geo_verification_proxy': opts.geo_verification_proxy,
-        'config_location': opts.config_location,
         'geo_bypass': opts.geo_bypass,
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,

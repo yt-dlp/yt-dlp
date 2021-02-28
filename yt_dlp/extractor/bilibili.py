@@ -558,6 +558,7 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
         formats = [{
             'url': play_data['cdns'][0],
             'filesize': int_or_none(play_data.get('size')),
+            'vcodec': 'none'
         }]
 
         song = self._call_api('song/info', au_id)

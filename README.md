@@ -652,7 +652,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      similar syntax to the output template can
                                      also be used. The parsed parameters replace
                                      any existing values and can be use in
-                                     output templateThis option can be used
+                                     output template. This option can be used
                                      multiple times. Example: --parse-metadata
                                      "title:%(artist)s - %(title)s" matches a
                                      title like "Coldplay - Paradise". Example
