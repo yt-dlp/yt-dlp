@@ -2,6 +2,11 @@ all: yt-dlp doc man
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
 man: README.txt yt-dlp.1 bash-completion zsh-completion fish-completion
 
+# Keep this list in sync with MANIFEST.in
+# intended use: when building a source distribution,
+# make pypi-files && python setup.py sdist
+pypi-files: man AUTHORS LICENSE Changelog.md docs/Makefile docs/conf.py docs/*.md test/*
+
 
 clean:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.spec *.frag *.frag.urls *.frag.aria2 CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
@@ -56,7 +61,6 @@ tar: yt-dlp.tar.gz
 
 .PHONY: all clean install test tar bash-completion pypi-files zsh-completion fish-completion ot offlinetest codetest supportedsites
 
-pypi-files: README.txt yt-dlp.1 bash-completion zsh-completion fish-completion
 
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
