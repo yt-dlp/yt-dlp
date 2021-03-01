@@ -4,7 +4,7 @@ man: README.txt yt-dlp.1 bash-completion zsh-completion fish-completion
 
 
 clean:
-	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.spec *.frag *.frag.urls *.frag.aria2 CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe
+	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.spec *.frag *.frag.urls *.frag.aria2 CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
 	find . -name "*.pyc" -delete
 	find . -name "*.class" -delete
 
@@ -136,3 +136,9 @@ yt-dlp.tar.gz: yt-dlp README.md README.txt yt-dlp.1 bash-completion zsh-completi
 		ChangeLog AUTHORS LICENSE README.md supportedsites.md README.txt \
 		Makefile MANIFEST.in yt-dlp.1 completions \
 		setup.py setup.cfg yt-dlp
+
+AUTHORS: .mailmap
+	git shortlog -s -n | cut -f2 | sort > AUTHORS
+
+.mailmap:
+	git shortlog -s -e -n | awk '!(out[$$NF]++) { $$1="";sub(/^[ \t]+/,""); print}' > .mailmap
