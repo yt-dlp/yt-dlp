@@ -2958,7 +2958,7 @@ class YoutubeDL(object):
                 self.to_screen('[%s] %s: Thumbnail %sis already present' %
                                (info_dict['extractor'], info_dict['id'], thumb_display_id))
             else:
-                self.to_screen('[%s] %s: Downloading thumbnail %s...' %
+                self.to_screen('[%s] %s: Downloading thumbnail %s ...' %
                                (info_dict['extractor'], info_dict['id'], thumb_display_id))
                 try:
                     uf = self.urlopen(t['url'])

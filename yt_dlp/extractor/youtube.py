@@ -3020,7 +3020,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             # See: https://github.com/yt-dlp/yt-dlp/issues/116
             if count:
                 self.report_warning('Incomplete yt initial data recieved. Retrying ...')
-            webpage = self._download_webpage(url, item_id,
+            webpage = self._download_webpage(
+                url, item_id,
                 'Downloading webpage%s' % ' (retry #%d)' % count if count else '')
             identity_token = self._extract_identity_token(webpage, item_id)
             data = self._extract_yt_initial_data(item_id, webpage)

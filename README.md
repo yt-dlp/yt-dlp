@@ -697,6 +697,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      directory
 
 ## Extractor Options:
+    --extractor-retries RETRIES      Number of retries for known extractor
+                                     errors (default is 10), or "infinite"
     --allow-dynamic-mpd              Process dynamic DASH manifests (default)
                                      (Alias: --no-ignore-dynamic-mpd)
     --ignore-dynamic-mpd             Do not process dynamic DASH manifests

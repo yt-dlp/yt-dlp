@@ -55,11 +55,11 @@ class FragmentFD(FileDownloader):
 
     def report_retry_fragment(self, err, frag_index, count, retries):
         self.to_screen(
-            '[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s)...'
+            '[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
             % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
 
     def report_skip_fragment(self, frag_index):
-        self.to_screen('[download] Skipping fragment %d...' % frag_index)
+        self.to_screen('[download] Skipping fragment %d ...' % frag_index)
 
     def _prepare_url(self, info_dict, url):
         headers = info_dict.get('http_headers')
@@ -174,7 +174,7 @@ class FragmentFD(FileDownloader):
                         '.ytdl file is corrupt' if is_corrupt else
                         'Inconsistent state of incomplete fragment download')
                     self.report_warning(
-                        '%s. Restarting from the beginning...' % message)
+                        '%s. Restarting from the beginning ...' % message)
                     ctx['fragment_index'] = resume_len = 0
                     if 'ytdl_corrupt' in ctx:
                         del ctx['ytdl_corrupt']

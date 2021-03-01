@@ -17,6 +17,27 @@
 -->
 
 
+### 2021.03.01
+* Allow specifying path in `--external-downloader`
+* Add option `--sleep-requests` to sleep b/w requests
+* Add option `--extractor-retries` to retry on known extractor errors
+* Extract comments only when needed
+* `--get-comments` doesn't imply `--write-info-json` if `-J`, `-j` or `--print-json` are used
+* [youtube] Retry on more known errors than just HTTP-5xx
+* [tennistv] Fix format sorting
+* [readthedocs] Improvements by [shirt](https://github.com/shirt-dev)
+* [hls] Fix bug with m3u8 format extraction
+* [bilibiliaudio] Recognize the file as audio-only
+* [hrfensehen] Fix wrong import
+* [youtube] Fix inconsistent `webpage_url`
+* [hls] Enable `--hls-use-mpegts` by default when downloading live-streams
+* [viki] Fix viki play pass authentication by [RobinD42](https://github.com/RobinD42)
+* [embedthumbnail] Fix bug with deleting original thumbnail
+* [build] Fix completion paths, zsh pip completion install by [hseg](https://github.com/hseg)
+* [ci] Disable download tests unless specifically invoked
+* Cleanup some code and fix typos
+
+
 ### 2021.02.24
 * Moved project to an organization [yt-dlp](https://github.com/yt-dlp)
 * **Completely changed project name to yt-dlp** by [Pccode66](https://github.com/Pccode66) and [pukkandan](https://github.com/pukkandan)

@@ -29,7 +29,7 @@ class NiconicoDmcFD(FileDownloader):
         heartbeat_url = heartbeat_info_dict['url']
         heartbeat_data = heartbeat_info_dict['data']
         heartbeat_interval = heartbeat_info_dict.get('interval', 30)
-        self.to_screen('[%s] Heartbeat with %s second interval...' % (self.FD_NAME, heartbeat_interval))
+        self.to_screen('[%s] Heartbeat with %s second interval ...' % (self.FD_NAME, heartbeat_interval))
 
         def heartbeat():
             try:
