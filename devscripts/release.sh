@@ -61,7 +61,7 @@ if ! type pandoc >/dev/null 2>/dev/null; then echo 'ERROR: pandoc is missing'; e
 if ! python3 -c 'import rsa' 2>/dev/null; then echo 'ERROR: python3-rsa is missing'; exit 1; fi
 if ! python3 -c 'import wheel' 2>/dev/null; then echo 'ERROR: wheel is missing'; exit 1; fi
 
-read -p "Is ChangeLog up to date? (y/n) " -n 1
+read -p "Is Changelog up to date? (y/n) " -n 1
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then exit 1; fi
 
 /bin/echo -e "\n### First of all, testing..."
@@ -75,12 +75,12 @@ fi
 /bin/echo -e "\n### Changing version in version.py..."
 sed -i "s/__version__ = '.*'/__version__ = '$version'/" yt_dlp/version.py
 
-/bin/echo -e "\n### Changing version in ChangeLog..."
-sed -i "s/<unreleased>/$version/" ChangeLog
+/bin/echo -e "\n### Changing version in Changelog..."
+sed -i "s/<unreleased>/$version/" Changelog.md
 
 /bin/echo -e "\n### Committing documentation, templates and yt_dlp/version.py..."
 make README.md CONTRIBUTING.md issuetemplates supportedsites
-git add README.md CONTRIBUTING.md .github/ISSUE_TEMPLATE/1_broken_site.md .github/ISSUE_TEMPLATE/2_site_support_request.md .github/ISSUE_TEMPLATE/3_site_feature_request.md .github/ISSUE_TEMPLATE/4_bug_report.md .github/ISSUE_TEMPLATE/5_feature_request.md .github/ISSUE_TEMPLATE/6_question.md docs/supportedsites.md yt_dlp/version.py ChangeLog
+git add README.md CONTRIBUTING.md .github/ISSUE_TEMPLATE/1_broken_site.md .github/ISSUE_TEMPLATE/2_site_support_request.md .github/ISSUE_TEMPLATE/3_site_feature_request.md .github/ISSUE_TEMPLATE/4_bug_report.md .github/ISSUE_TEMPLATE/5_feature_request.md .github/ISSUE_TEMPLATE/6_question.md docs/supportedsites.md yt_dlp/version.py Changelog.md
 git commit $gpg_sign_commits -m "release $version"
 
 /bin/echo -e "\n### Now tagging, signing and pushing..."
@@ -111,7 +111,7 @@ RELEASE_FILES="yt-dlp yt-dlp.exe yt-dlp-$version.tar.gz"
 for f in $RELEASE_FILES; do gpg --passphrase-repeat 5 --detach-sig "build/$version/$f"; done
 
 ROOT=$(pwd)
-python devscripts/create-github-release.py ChangeLog $version "$ROOT/build/$version"
+python devscripts/create-github-release.py Changelog.md $version "$ROOT/build/$version"
 
 ssh ytdl@yt-dl.org "sh html/update_latest.sh $version"
 

@@ -1,7 +1,7 @@
 include README.md
 include LICENSE
 include AUTHORS
-include ChangeLog
+include Changelog.md
 include completions/*/*
 include yt-dlp.1
 recursive-include docs Makefile conf.py *.rst
