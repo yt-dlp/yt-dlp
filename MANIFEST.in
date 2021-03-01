@@ -2,8 +2,7 @@ include README.md
 include LICENSE
 include AUTHORS
 include ChangeLog
-include yt-dlp.bash-completion
-include yt-dlp.fish
+include completions/*/*
 include yt-dlp.1
 recursive-include docs Makefile conf.py *.rst
 recursive-include test *
