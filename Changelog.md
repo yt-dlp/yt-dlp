@@ -23,15 +23,16 @@
 * Add option `--extractor-retries` to retry on known extractor errors
 * Extract comments only when needed
 * `--get-comments` doesn't imply `--write-info-json` if `-J`, `-j` or `--print-json` are used
+* Fix `get_executable_path` by [shirt](https://github.com/shirt-dev)
 * [youtube] Retry on more known errors than just HTTP-5xx
+* [youtube] Fix inconsistent `webpage_url`
 * [tennistv] Fix format sorting
-* [readthedocs] Improvements by [shirt](https://github.com/shirt-dev)
-* [hls] Fix bug with m3u8 format extraction
 * [bilibiliaudio] Recognize the file as audio-only
 * [hrfensehen] Fix wrong import
-* [youtube] Fix inconsistent `webpage_url`
-* [hls] Enable `--hls-use-mpegts` by default when downloading live-streams
 * [viki] Fix viki play pass authentication by [RobinD42](https://github.com/RobinD42)
+* [readthedocs] Improvements by [shirt](https://github.com/shirt-dev)
+* [hls] Fix bug with m3u8 format extraction
+* [hls] Enable `--hls-use-mpegts` by default when downloading live-streams
 * [embedthumbnail] Fix bug with deleting original thumbnail
 * [build] Fix completion paths, zsh pip completion install by [hseg](https://github.com/hseg)
 * [ci] Disable download tests unless specifically invoked
