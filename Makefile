@@ -121,7 +121,7 @@ _EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
-yt-dlp.tar.gz: yt-dlp README.md README.txt yt-dlp.1 bash-completion zsh-completion fish-completion Changelog.md AUTHORS
+yt-dlp.tar.gz: README.md README.txt yt-dlp.1 bash-completion zsh-completion fish-completion Changelog.md AUTHORS
 	@tar -czf $(DESTDIR)/yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
@@ -132,7 +132,7 @@ yt-dlp.tar.gz: yt-dlp README.md README.txt yt-dlp.1 bash-completion zsh-completi
 		--exclude '.git' \
 		--exclude 'docs/_build' \
 		-- \
-		bin devscripts test yt_dlp docs \
+		devscripts test \
 		Changelog.md AUTHORS LICENSE README.md supportedsites.md README.txt \
 		Makefile MANIFEST.in yt-dlp.1 completions \
 		setup.py setup.cfg yt-dlp
