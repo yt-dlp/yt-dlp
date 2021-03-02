@@ -2791,6 +2791,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     if response.get('continuationContents') or response.get('onResponseReceivedActions'):
                         break
                     last_error = 'Incomplete data recieved'
+                    if count >= retries:
+                        self._downloader.report_error(last_error)
             if not browse or not response:
                 break
 
@@ -3014,12 +3016,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
         retries = self._downloader.params.get('extractor_retries', 3)
         count = -1
+        last_error = 'Incomplete yt initial data recieved'
         while count < retries:
             count += 1
             # Sometimes youtube returns a webpage with incomplete ytInitialData
             # See: https://github.com/yt-dlp/yt-dlp/issues/116
             if count:
-                self.report_warning('Incomplete yt initial data recieved. Retrying ...')
+                self.report_warning('%s. Retrying ...' % last_error)
             webpage = self._download_webpage(
                 url, item_id,
                 'Downloading webpage%s' % ' (retry #%d)' % count if count else '')
@@ -3037,6 +3040,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 raise ExtractorError('YouTube said: %s' % err_msg, expected=True)
             if data.get('contents') or data.get('currentVideoEndpoint'):
                 break
+            if count >= retries:
+                self._downloader.report_error(last_error)
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
