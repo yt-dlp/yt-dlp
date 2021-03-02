@@ -1,12 +1,11 @@
 all: yt-dlp doc man
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
-man: README.txt yt-dlp.1 completions
 completions: bash-completion zsh-completion fish-completion
 
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
 # make pypi-files && python setup.py sdist
-pypi-files: man AUTHORS Changelog.md LICENSE README.md supportedsites devscripts/* test/*
+pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites completions yt-dlp.1 devscripts/* test/*
 
 
 clean:
