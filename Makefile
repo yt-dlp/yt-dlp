@@ -1,6 +1,7 @@
 all: yt-dlp doc man
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
-man: README.txt yt-dlp.1 bash-completion zsh-completion fish-completion
+man: README.txt yt-dlp.1 completions
+completions: bash-completion zsh-completion fish-completion
 
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
@@ -26,7 +27,7 @@ SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then ech
 # set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
 MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
-install: yt-dlp yt-dlp.1 bash-completion zsh-completion fish-completion
+install: yt-dlp yt-dlp.1 completions
 	install -Dm755 yt-dlp $(DESTDIR)$(BINDIR)
 	install -Dm644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1
 	install -Dm644 completions/bash/yt-dlp $(DESTDIR)$(SHAREDIR)/bash-completion/completions/yt-dlp
@@ -59,8 +60,7 @@ offlinetest: codetest
 
 tar: yt-dlp.tar.gz
 
-.PHONY: all clean install test tar bash-completion pypi-files zsh-completion fish-completion ot offlinetest codetest supportedsites
-
+.PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
@@ -125,7 +125,7 @@ _EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
-yt-dlp.tar.gz: README.md README.txt yt-dlp.1 bash-completion zsh-completion fish-completion Changelog.md AUTHORS
+yt-dlp.tar.gz: README.md README.txt yt-dlp.1 completions Changelog.md AUTHORS
 	@tar -czf $(DESTDIR)/yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
