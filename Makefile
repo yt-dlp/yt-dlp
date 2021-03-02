@@ -1,13 +1,16 @@
 all: yt-dlp doc man
-doc: README.md CONTRIBUTING.md issuetemplates supportedsites
 clean: clean-test clean-dist clean-cache
-completions: bash-completion zsh-completion fish-completion
+completions: completion-bash completion-fish completion-zsh
+doc: README.md CONTRIBUTING.md issuetemplates supportedsites
+ot: offlinetest
+tar: yt-dlp.tar.gz
 
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
 # make pypi-files && python setup.py sdist
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites completions yt-dlp.1 devscripts/* test/*
 
+.PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
 clean-test:
 	rm -rf *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.frag *.frag.urls *.frag.aria2
@@ -15,6 +18,11 @@ clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
 clean-cache:
 	find . -name "*.pyc" -o -name "*.class" -delete
+
+completion-bash: completions/bash/yt-dlp
+completion-fish: completions/fish/yt-dlp.fish
+completion-zsh: completions/zsh/_yt-dlp
+lazy-extractors: yt_dlp/extractor/lazy_extractors.py
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
@@ -44,8 +52,6 @@ test:
 	nosetests --verbose test
 	$(MAKE) codetest
 
-ot: offlinetest
-
 # Keep this list in sync with devscripts/run_tests.sh
 offlinetest: codetest
 	$(PYTHON) -m nose --verbose test \
@@ -59,10 +65,6 @@ offlinetest: codetest
 		--exclude test_youtube_lists.py \
 		--exclude test_youtube_signature.py \
 		--exclude test_post_hooks.py
-
-tar: yt-dlp.tar.gz
-
-.PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
@@ -107,21 +109,13 @@ completions/bash/yt-dlp: yt_dlp/*.py yt_dlp/*/*.py devscripts/bash-completion.in
 	mkdir -p completions/bash
 	$(PYTHON) devscripts/bash-completion.py
 
-bash-completion: completions/bash/yt-dlp
-
 completions/zsh/_yt-dlp: yt_dlp/*.py yt_dlp/*/*.py devscripts/zsh-completion.in
 	mkdir -p completions/zsh
 	$(PYTHON) devscripts/zsh-completion.py
 
-zsh-completion: completions/zsh/_yt-dlp
-
 completions/fish/yt-dlp.fish: yt_dlp/*.py yt_dlp/*/*.py devscripts/fish-completion.in
 	mkdir -p completions/fish
 	$(PYTHON) devscripts/fish-completion.py
-
-fish-completion: completions/fish/yt-dlp.fish
-
-lazy-extractors: yt_dlp/extractor/lazy_extractors.py
 
 _EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 'lazy_extractors.py')
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
