@@ -25,7 +25,9 @@ updates_key.pem
 *.class
 
 # Generated
+AUTHORS
 README.txt
+.mailmap
 *.1
 *.bash-completion
 *.fish

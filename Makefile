@@ -1,12 +1,28 @@
 all: yt-dlp doc man
+clean: clean-test clean-dist clean-cache
+completions: completion-bash completion-fish completion-zsh
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
-man: README.txt yt-dlp.1 bash-completion zsh-completion fish-completion
+ot: offlinetest
+tar: yt-dlp.tar.gz
 
+# Keep this list in sync with MANIFEST.in
+# intended use: when building a source distribution,
+# make pypi-files && python setup.py sdist
+pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites completions yt-dlp.1 devscripts/* test/*
 
-clean:
-	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.spec *.frag *.frag.urls *.frag.aria2 CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe
-	find . -name "*.pyc" -delete
-	find . -name "*.class" -delete
+.PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
+
+clean-test:
+	rm -rf *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.frag *.frag.urls *.frag.aria2
+clean-dist:
+	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
+clean-cache:
+	find . -name "*.pyc" -o -name "*.class" -delete
+
+completion-bash: completions/bash/yt-dlp
+completion-fish: completions/fish/yt-dlp.fish
+completion-zsh: completions/zsh/_yt-dlp
+lazy-extractors: yt_dlp/extractor/lazy_extractors.py
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
@@ -21,7 +37,7 @@ SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then ech
 # set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
 MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
-install: yt-dlp yt-dlp.1 bash-completion zsh-completion fish-completion
+install: yt-dlp yt-dlp.1 completions
 	install -Dm755 yt-dlp $(DESTDIR)$(BINDIR)
 	install -Dm644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1
 	install -Dm644 completions/bash/yt-dlp $(DESTDIR)$(SHAREDIR)/bash-completion/completions/yt-dlp
@@ -36,8 +52,6 @@ test:
 	nosetests --verbose test
 	$(MAKE) codetest
 
-ot: offlinetest
-
 # Keep this list in sync with devscripts/run_tests.sh
 offlinetest: codetest
 	$(PYTHON) -m nose --verbose test \
@@ -51,12 +65,6 @@ offlinetest: codetest
 		--exclude test_youtube_lists.py \
 		--exclude test_youtube_signature.py \
 		--exclude test_post_hooks.py
-
-tar: yt-dlp.tar.gz
-
-.PHONY: all clean install test tar bash-completion pypi-files zsh-completion fish-completion ot offlinetest codetest supportedsites
-
-pypi-files: README.txt yt-dlp.1 bash-completion zsh-completion fish-completion
 
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
@@ -101,28 +109,20 @@ completions/bash/yt-dlp: yt_dlp/*.py yt_dlp/*/*.py devscripts/bash-completion.in
 	mkdir -p completions/bash
 	$(PYTHON) devscripts/bash-completion.py
 
-bash-completion: completions/bash/yt-dlp
-
 completions/zsh/_yt-dlp: yt_dlp/*.py yt_dlp/*/*.py devscripts/zsh-completion.in
 	mkdir -p completions/zsh
 	$(PYTHON) devscripts/zsh-completion.py
-
-zsh-completion: completions/zsh/_yt-dlp
 
 completions/fish/yt-dlp.fish: yt_dlp/*.py yt_dlp/*/*.py devscripts/fish-completion.in
 	mkdir -p completions/fish
 	$(PYTHON) devscripts/fish-completion.py
 
-fish-completion: completions/fish/yt-dlp.fish
-
-lazy-extractors: yt_dlp/extractor/lazy_extractors.py
-
 _EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 'lazy_extractors.py')
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
-yt-dlp.tar.gz: yt-dlp README.md README.txt yt-dlp.1 bash-completion zsh-completion fish-completion ChangeLog AUTHORS
-	@tar -czf yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
+yt-dlp.tar.gz: README.md yt-dlp.1 completions Changelog.md AUTHORS
+	@tar -czf $(DESTDIR)/yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
 		--exclude '*.pyc' \
@@ -132,7 +132,13 @@ yt-dlp.tar.gz: yt-dlp README.md README.txt yt-dlp.1 bash-completion zsh-completi
 		--exclude '.git' \
 		--exclude 'docs/_build' \
 		-- \
-		bin devscripts test yt_dlp docs \
-		ChangeLog AUTHORS LICENSE README.md supportedsites.md README.txt \
+		devscripts test \
+		Changelog.md AUTHORS LICENSE README.md supportedsites.md \
 		Makefile MANIFEST.in yt-dlp.1 completions \
 		setup.py setup.cfg yt-dlp
+
+AUTHORS: .mailmap
+	git shortlog -s -n | cut -f2 | sort > AUTHORS
+
+.mailmap:
+	git shortlog -s -e -n | awk '!(out[$$NF]++) { $$1="";sub(/^[ \t]+/,""); print}' > .mailmap

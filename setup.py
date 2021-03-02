@@ -27,9 +27,9 @@ if len(sys.argv) >= 2 and sys.argv[1] == 'py2exe':
     print("inv")
 else:
     files_spec = [
-        ('share/bash-completion/completions', ['completions/bash/*']),
-        ('share/zsh/site-functions', ['completions/zsh/*']),
-        ('share/fish/vendor_completions.d', ['completions/fish/*']),
+        ('share/bash-completion/completions', ['completions/bash/yt-dlp']),
+        ('share/zsh/site-functions', ['completions/zsh/_yt-dlp']),
+        ('share/fish/vendor_completions.d', ['completions/fish/yt-dlp.fish']),
         ('share/doc/yt_dlp', ['README.txt']),
         ('share/man/man1', ['yt-dlp.1'])
     ]
@@ -39,7 +39,7 @@ else:
         resfiles = []
         for fn in files:
             if not os.path.exists(fn):
-                warnings.warn('Skipping file %s since it is not present. Type  make  to build all automatically generated files.' % fn)
+                warnings.warn('Skipping file %s since it is not present. Try running `make pypi-files` first.' % fn)
             else:
                 resfiles.append(fn)
         data_files.append((dirname, resfiles))
