@@ -6,7 +6,7 @@ completions: bash-completion zsh-completion fish-completion
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
 # make pypi-files && python setup.py sdist
-pypi-files: man AUTHORS LICENSE Changelog.md docs/Makefile docs/conf.py docs/*.md test/*
+pypi-files: man AUTHORS Changelog.md LICENSE README.md supportedsites devscripts/* test/*
 
 
 clean:
