@@ -1,5 +1,6 @@
 all: yt-dlp doc man
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
+clean: clean-test clean-dist clean-cache
 completions: bash-completion zsh-completion fish-completion
 
 # Keep this list in sync with MANIFEST.in
@@ -8,10 +9,12 @@ completions: bash-completion zsh-completion fish-completion
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites completions yt-dlp.1 devscripts/* test/*
 
 
-clean:
-	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.spec *.frag *.frag.urls *.frag.aria2 CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
-	find . -name "*.pyc" -delete
-	find . -name "*.class" -delete
+clean-test:
+	rm -rf *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.frag *.frag.urls *.frag.aria2
+clean-dist:
+	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
+clean-cache:
+	find . -name "*.pyc" -o -name "*.class" -delete
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
