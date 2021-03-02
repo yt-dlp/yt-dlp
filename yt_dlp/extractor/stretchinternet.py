@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import int_or_none
 
 
 class StretchInternetIE(InfoExtractor):
@@ -11,22 +10,28 @@ class StretchInternetIE(InfoExtractor):
         'info_dict': {
             'id': '573272',
             'ext': 'mp4',
-            'title': 'University of Mary Wrestling vs. Upper Iowa',
-            'timestamp': 1575668361,
-            'upload_date': '20191206',
+            'title': 'UNIVERSITY OF MARY WRESTLING VS UPPER IOWA',
+            # 'timestamp': 1575668361,
+            # 'upload_date': '20191206',
+            'uploader_id': '99997',
         }
     }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
+        media_url = self._download_json(
+            'https://core.stretchlive.com/trinity/event/tcg/' + video_id,
+            video_id)[0]['media'][0]['url']
         event = self._download_json(
-            'https://api.stretchinternet.com/trinity/event/tcg/' + video_id,
-            video_id)[0]
+            'https://neo-client.stretchinternet.com/portal-ws/getEvent.json',
+            video_id, query={'eventID': video_id, 'token': 'asdf'})['event']
 
         return {
             'id': video_id,
             'title': event['title'],
-            'timestamp': int_or_none(event.get('dateCreated'), 1000),
-            'url': 'https://' + event['media'][0]['url'],
+            # TODO: parse US timezone abbreviations
+            # 'timestamp': event.get('dateTimeString'),
+            'url': 'https://' + media_url,
+            'uploader_id': event.get('ownerID'),
         }

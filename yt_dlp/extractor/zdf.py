@@ -7,7 +7,9 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     determine_ext,
+    float_or_none,
     int_or_none,
+    merge_dicts,
     NO_DEFAULT,
     orderedSet,
     parse_codecs,
@@ -21,61 +23,17 @@ from ..utils import (
 
 
 class ZDFBaseIE(InfoExtractor):
-    def _call_api(self, url, player, referrer, video_id, item):
-        return self._download_json(
-            url, video_id, 'Downloading JSON %s' % item,
-            headers={
-                'Referer': referrer,
-                'Api-Auth': 'Bearer %s' % player['apiToken'],
-            })
-
-    def _extract_player(self, webpage, video_id, fatal=True):
-        return self._parse_json(
-            self._search_regex(
-                r'(?s)data-zdfplayer-jsb=(["\'])(?P<json>{.+?})\1', webpage,
-                'player JSON', default='{}' if not fatal else NO_DEFAULT,
-                group='json'),
-            video_id)
-
-
-class ZDFIE(ZDFBaseIE):
-    IE_NAME = "ZDF-3sat"
-    _VALID_URL = r'https?://www\.(zdf|3sat)\.de/(?:[^/]+/)*(?P<id>[^/?]+)\.html'
-    _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd')
     _GEO_COUNTRIES = ['DE']
+    _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd')
 
-    _TESTS = [{
-        'url': 'https://www.3sat.de/wissen/wissenschaftsdoku/luxusgut-lebensraum-100.html',
-        'info_dict': {
-            'id': 'luxusgut-lebensraum-100',
-            'ext': 'mp4',
-            'title': 'Luxusgut Lebensraum',
-            'description': 'md5:5c09b2f45ac3bc5233d1b50fc543d061',
-            'duration': 2601,
-            'timestamp': 1566497700,
-            'upload_date': '20190822',
-        }
-    }, {
-        'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
-        'info_dict': {
-            'id': 'die-magie-der-farben-von-koenigspurpur-und-jeansblau-100',
-            'ext': 'mp4',
-            'title': 'Die Magie der Farben (2/2)',
-            'description': 'md5:a89da10c928c6235401066b60a6d5c1a',
-            'duration': 2615,
-            'timestamp': 1465021200,
-            'upload_date': '20160604',
-        },
-    }, {
-        'url': 'https://www.zdf.de/service-und-hilfe/die-neue-zdf-mediathek/zdfmediathek-trailer-100.html',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.zdf.de/filme/taunuskrimi/die-lebenden-und-die-toten-1---ein-taunuskrimi-100.html',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.zdf.de/dokumentation/planet-e/planet-e-uebersichtsseite-weitere-dokumentationen-von-planet-e-100.html',
-        'only_matching': True,
-    }]
+    def _call_api(self, url, video_id, item, api_token=None, referrer=None):
+        headers = {}
+        if api_token:
+            headers['Api-Auth'] = 'Bearer %s' % api_token
+        if referrer:
+            headers['Referer'] = referrer
+        return self._download_json(
+            url, video_id, 'Downloading JSON %s' % item, headers=headers)
 
     @staticmethod
     def _extract_subtitles(src):
@@ -121,20 +79,11 @@ class ZDFIE(ZDFBaseIE):
             })
             formats.append(f)
 
-    def _extract_entry(self, url, player, content, video_id):
-        title = content.get('title') or content['teaserHeadline']
-
-        t = content['mainVideoContent']['http://zdf.de/rels/target']
-
-        ptmd_path = t.get('http://zdf.de/rels/streams/ptmd')
-
-        if not ptmd_path:
-            ptmd_path = t[
-                'http://zdf.de/rels/streams/ptmd-template'].replace(
-                '{playerId}', 'ngplayer_2_4')
-
+    def _extract_ptmd(self, ptmd_url, video_id, api_token, referrer):
         ptmd = self._call_api(
-            urljoin(url, ptmd_path), player, url, video_id, 'metadata')
+            ptmd_url, video_id, 'metadata', api_token, referrer)
+
+        content_id = ptmd.get('basename') or ptmd_url.split('/')[-1]
 
         formats = []
         track_uris = set()
@@ -152,7 +101,7 @@ class ZDFIE(ZDFBaseIE):
                         continue
                     for track in tracks:
                         self._extract_format(
-                            video_id, formats, track_uris, {
+                            content_id, formats, track_uris, {
                                 'url': track.get('uri'),
                                 'type': f.get('type'),
                                 'mimeType': f.get('mimeType'),
@@ -160,6 +109,103 @@ class ZDFIE(ZDFBaseIE):
                                 'language': track.get('language'),
                             })
         self._sort_formats(formats)
+
+        duration = float_or_none(try_get(
+            ptmd, lambda x: x['attributes']['duration']['value']), scale=1000)
+
+        return {
+            'extractor_key': ZDFIE.ie_key(),
+            'id': content_id,
+            'duration': duration,
+            'formats': formats,
+            'subtitles': self._extract_subtitles(ptmd),
+        }
+
+    def _extract_player(self, webpage, video_id, fatal=True):
+        return self._parse_json(
+            self._search_regex(
+                r'(?s)data-zdfplayer-jsb=(["\'])(?P<json>{.+?})\1', webpage,
+                'player JSON', default='{}' if not fatal else NO_DEFAULT,
+                group='json'),
+            video_id)
+
+
+class ZDFIE(ZDFBaseIE):
+    _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
+    _TESTS = [{
+        # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
+        'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
+        'md5': '34ec321e7eb34231fd88616c65c92db0',
+        'info_dict': {
+            'id': '210222_phx_nachgehakt_corona_protest',
+            'ext': 'mp4',
+            'title': 'Wohin führt der Protest in der Pandemie?',
+            'description': 'md5:7d643fe7f565e53a24aac036b2122fbd',
+            'duration': 1691,
+            'timestamp': 1613948400,
+            'upload_date': '20210221',
+        },
+    }, {
+        # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
+        'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
+        'md5': '0aff3e7bc72c8813f5e0fae333316a1d',
+        'info_dict': {
+            'id': '141007_ab18_10wochensommer_film',
+            'ext': 'mp4',
+            'title': 'Ab 18! - 10 Wochen Sommer',
+            'description': 'md5:8253f41dc99ce2c3ff892dac2d65fe26',
+            'duration': 2660,
+            'timestamp': 1608604200,
+            'upload_date': '20201222',
+        },
+    }, {
+        'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
+        'info_dict': {
+            'id': '151025_magie_farben2_tex',
+            'ext': 'mp4',
+            'title': 'Die Magie der Farben (2/2)',
+            'description': 'md5:a89da10c928c6235401066b60a6d5c1a',
+            'duration': 2615,
+            'timestamp': 1465021200,
+            'upload_date': '20160604',
+        },
+    }, {
+        # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
+        'url': 'https://www.zdf.de/politik/phoenix-sendungen/die-gesten-der-maechtigen-100.html',
+        'only_matching': True,
+    }, {
+        # Same as https://www.3sat.de/film/spielfilm/der-hauptmann-100.html
+        'url': 'https://www.zdf.de/filme/filme-sonstige/der-hauptmann-112.html',
+        'only_matching': True,
+    }, {
+        # Same as https://www.3sat.de/wissen/nano/nano-21-mai-2019-102.html, equal media ids
+        'url': 'https://www.zdf.de/wissen/nano/nano-21-mai-2019-102.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.zdf.de/service-und-hilfe/die-neue-zdf-mediathek/zdfmediathek-trailer-100.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.zdf.de/filme/taunuskrimi/die-lebenden-und-die-toten-1---ein-taunuskrimi-100.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.zdf.de/dokumentation/planet-e/planet-e-uebersichtsseite-weitere-dokumentationen-von-planet-e-100.html',
+        'only_matching': True,
+    }]
+
+    def _extract_entry(self, url, player, content, video_id):
+        title = content.get('title') or content['teaserHeadline']
+
+        t = content['mainVideoContent']['http://zdf.de/rels/target']
+
+        ptmd_path = t.get('http://zdf.de/rels/streams/ptmd')
+
+        if not ptmd_path:
+            ptmd_path = t[
+                'http://zdf.de/rels/streams/ptmd-template'].replace(
+                '{playerId}', 'ngplayer_2_4')
+
+        info = self._extract_ptmd(
+            urljoin(url, ptmd_path), video_id, player['apiToken'], url)
 
         thumbnails = []
         layouts = try_get(
@@ -181,33 +227,33 @@ class ZDFIE(ZDFBaseIE):
                     })
                 thumbnails.append(thumbnail)
 
-        return {
-            'id': video_id,
+        return merge_dicts(info, {
             'title': title,
             'description': content.get('leadParagraph') or content.get('teasertext'),
             'duration': int_or_none(t.get('duration')),
             'timestamp': unified_timestamp(content.get('editorialDate')),
             'thumbnails': thumbnails,
-            'subtitles': self._extract_subtitles(ptmd),
-            'formats': formats,
-        }
+        })
 
     def _extract_regular(self, url, player, video_id):
         content = self._call_api(
-            player['content'], player, url, video_id, 'content')
+            player['content'], video_id, 'content', player['apiToken'], url)
         return self._extract_entry(player['content'], player, content, video_id)
 
     def _extract_mobile(self, video_id):
-        document = self._download_json(
+        video = self._download_json(
             'https://zdf-cdn.live.cellular.de/mediathekV2/document/%s' % video_id,
-            video_id)['document']
+            video_id)
+
+        document = video['document']
 
         title = document['titel']
+        content_id = document['basename']
 
         formats = []
         format_urls = set()
         for f in document['formitaeten']:
-            self._extract_format(video_id, formats, format_urls, f)
+            self._extract_format(content_id, formats, format_urls, f)
         self._sort_formats(formats)
 
         thumbnails = []
@@ -225,12 +271,12 @@ class ZDFIE(ZDFBaseIE):
                     })
 
         return {
-            'id': video_id,
+            'id': content_id,
             'title': title,
             'description': document.get('beschreibung'),
             'duration': int_or_none(document.get('length')),
-            'timestamp': unified_timestamp(try_get(
-                document, lambda x: x['meta']['editorialDate'], compat_str)),
+            'timestamp': unified_timestamp(document.get('date')) or unified_timestamp(
+                try_get(video, lambda x: x['meta']['editorialDate'], compat_str)),
             'thumbnails': thumbnails,
             'subtitles': self._extract_subtitles(document),
             'formats': formats,

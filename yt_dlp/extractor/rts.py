@@ -6,11 +6,12 @@ import re
 from .srgssr import SRGSSRIE
 from ..compat import compat_str
 from ..utils import (
+    determine_ext,
     int_or_none,
     parse_duration,
     parse_iso8601,
     unescapeHTML,
-    determine_ext,
+    urljoin,
 )
 
 
@@ -21,7 +22,7 @@ class RTSIE(SRGSSRIE):
     _TESTS = [
         {
             'url': 'http://www.rts.ch/archives/tv/divers/3449373-les-enfants-terribles.html',
-            'md5': 'ff7f8450a90cf58dacb64e29707b4a8e',
+            'md5': '753b877968ad8afaeddccc374d4256a5',
             'info_dict': {
                 'id': '3449373',
                 'display_id': 'les-enfants-terribles',
@@ -35,6 +36,7 @@ class RTSIE(SRGSSRIE):
                 'thumbnail': r're:^https?://.*\.image',
                 'view_count': int,
             },
+            'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
         },
         {
             'url': 'http://www.rts.ch/emissions/passe-moi-les-jumelles/5624067-entre-ciel-et-mer.html',
@@ -63,11 +65,12 @@ class RTSIE(SRGSSRIE):
                 # m3u8 download
                 'skip_download': True,
             },
+            'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
             'skip': 'Blocked outside Switzerland',
         },
         {
             'url': 'http://www.rts.ch/video/info/journal-continu/5745356-londres-cachee-par-un-epais-smog.html',
-            'md5': '1bae984fe7b1f78e94abc74e802ed99f',
+            'md5': '9bb06503773c07ce83d3cbd793cebb91',
             'info_dict': {
                 'id': '5745356',
                 'display_id': 'londres-cachee-par-un-epais-smog',
@@ -81,6 +84,7 @@ class RTSIE(SRGSSRIE):
                 'thumbnail': r're:^https?://.*\.image',
                 'view_count': int,
             },
+            'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
         },
         {
             'url': 'http://www.rts.ch/audio/couleur3/programmes/la-belle-video-de-stephane-laurenceau/5706148-urban-hippie-de-damien-krisl-03-04-2014.html',
@@ -160,7 +164,7 @@ class RTSIE(SRGSSRIE):
         media_type = 'video' if 'video' in all_info else 'audio'
 
         # check for errors
-        self.get_media_data('rts', media_type, media_id)
+        self._get_media_data('rts', media_type, media_id)
 
         info = all_info['video']['JSONinfo'] if 'video' in all_info else all_info['audio']
 
@@ -194,6 +198,7 @@ class RTSIE(SRGSSRIE):
                     'tbr': extract_bitrate(format_url),
                 })
 
+        download_base = 'http://rtsww%s-d.rts.ch/' % ('-a' if media_type == 'audio' else '')
         for media in info.get('media', []):
             media_url = media.get('url')
             if not media_url or re.match(r'https?://', media_url):
@@ -205,7 +210,7 @@ class RTSIE(SRGSSRIE):
                 format_id += '-%dk' % rate
             formats.append({
                 'format_id': format_id,
-                'url': 'http://download-video.rts.ch/' + media_url,
+                'url': urljoin(download_base, media_url),
                 'tbr': rate or extract_bitrate(media_url),
             })
 

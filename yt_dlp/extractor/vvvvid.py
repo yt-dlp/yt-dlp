@@ -75,12 +75,15 @@ class VVVVIDIE(InfoExtractor):
             'https://www.vvvvid.it/user/login',
             None, headers=self.geo_verification_headers())['data']['conn_id']
 
-    def _download_info(self, show_id, path, video_id, fatal=True):
+    def _download_info(self, show_id, path, video_id, fatal=True, query=None):
+        q = {
+            'conn_id': self._conn_id,
+        }
+        if query:
+            q.update(query)
         response = self._download_json(
             'https://www.vvvvid.it/vvvvid/ondemand/%s/%s' % (show_id, path),
-            video_id, headers=self.geo_verification_headers(), query={
-                'conn_id': self._conn_id,
-            }, fatal=fatal)
+            video_id, headers=self.geo_verification_headers(), query=q, fatal=fatal)
         if not (response or fatal):
             return
         if response.get('result') == 'error':
@@ -98,7 +101,8 @@ class VVVVIDIE(InfoExtractor):
         show_id, season_id, video_id = re.match(self._VALID_URL, url).groups()
 
         response = self._download_info(
-            show_id, 'season/%s' % season_id, video_id)
+            show_id, 'season/%s' % season_id,
+            video_id, query={'video_id': video_id})
 
         vid = int(video_id)
         video_data = list(filter(
@@ -247,9 +251,13 @@ class VVVVIDShowIE(VVVVIDIE):
         show_info = self._download_info(
             show_id, 'info/', show_title, fatal=False)
 
+        if not show_title:
+            base_url += "/title"
+
         entries = []
         for season in (seasons or []):
             episodes = season.get('episodes') or []
+            playlist_title = season.get('name') or show_info.get('title')
             for episode in episodes:
                 if episode.get('playable') is False:
                     continue
@@ -259,12 +267,13 @@ class VVVVIDShowIE(VVVVIDIE):
                     continue
                 info = self._extract_common_video_info(episode)
                 info.update({
-                    '_type': 'url',
+                    '_type': 'url_transparent',
                     'ie_key': VVVVIDIE.ie_key(),
                     'url': '/'.join([base_url, season_id, video_id]),
                     'title': episode.get('title'),
                     'description': episode.get('description'),
                     'season_id': season_id,
+                    'playlist_title': playlist_title,
                 })
                 entries.append(info)
 
