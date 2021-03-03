@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import hashlib
 import itertools
 import json
 import os.path
@@ -9,7 +10,6 @@ import random
 import re
 import time
 import traceback
-import hashlib
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -285,16 +285,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
     def _generate_sapisidhash_header(self):
-        sapisid_cookie = try_get(self._downloader.cookiejar._cookies, lambda x: x['.youtube.com']['/']['SAPISID'])
-        if not hasattr(sapisid_cookie, 'value'):
-            return  # TODO: Do something
+        sapisid_cookie = self._get_cookies('https://www.youtube.com').get('SAPISID')
+        if sapisid_cookie is None:
+            return
         time_now = round(time.time())
         sapisidhash = hashlib.sha1((str(time_now) + " " + sapisid_cookie.value + " " + "https://www.youtube.com").encode("utf-8")).hexdigest()
         return "SAPISIDHASH %s_%s" % (time_now, sapisidhash)
 
-    def _call_api(self, ep, query, video_id=None, fatal=True, headers=None,
+    def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page'):
-
         data = self._DEFAULT_API_DATA.copy()
         data.update(query)
         headers = headers or {}
@@ -2714,7 +2713,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             ctp = continuation_ep.get('clickTrackingParams')
             return YoutubeTabIE._build_continuation_query(continuation, ctp)
 
-    def _entries(self, tab, identity_token):
+    def _entries(self, tab, identity_token, item_id):
 
         def extract_entries(parent_renderer):  # this needs to called again for continuation to work with feeds
             contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
@@ -2786,7 +2785,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     self.report_warning('%s. Retrying ...' % last_error)
                 try:
                     response = self._call_api(
-                        ep="browse", fatal=True, headers=headers,
+                        ep="browse", fatal=True, headers=headers, video_id=item_id,
                         query={
                             'continuation': continuation['continuation'],
                             'clickTracking': {'clickTrackingParams': continuation['itct']},
@@ -2952,7 +2951,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'channel_id': metadata['uploader_id'],
             'channel_url': metadata['uploader_url']})
         return self.playlist_result(
-            self._entries(selected_tab, identity_token),
+            self._entries(selected_tab, identity_token, playlist_id),
             **metadata)
 
     def _extract_from_playlist(self, item_id, url, data, playlist):
@@ -3246,8 +3245,7 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
         for page_num in itertools.count(1):
             search = self._call_api(
                 ep='search', video_id='query "%s"' % query, fatal=False,
-                note='Downloading page %s' % page_num,
-                query=json.dumps(data).encode('utf8'))
+                note='Downloading page %s' % page_num, query=data)
             if not search:
                 break
             slr_contents = try_get(
@@ -3399,8 +3397,8 @@ class YoutubeSubscriptionsIE(YoutubeFeedsInfoExtractor):
 
 
 class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
-    IE_DESC = 'Youtube watch history, ":ythistory" for short (requires authentication)'
-    _VALID_URL = r':ythistory'
+    IE_DESC = 'Youtube watch history, ":ythis" for short (requires authentication)'
+    _VALID_URL = r':ythis(?:tory)?'
     _FEED_NAME = 'history'
     _TESTS = [{
         'url': ':ythistory',
