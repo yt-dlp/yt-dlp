@@ -17,16 +17,20 @@
 -->
 
 
+### 2021.03.03.2
+* [build] Fix bug
+
+
 ### 2021.03.03
-* [youtube] Use new browse API for continuation page extraction by @colethedj and @pukkandan
-* Fix HLS playlist downloading by @shirt
+* [youtube] Use new browse API for continuation page extraction by [colethedj](https://github.com/colethedj) and [pukkandan](https://github.com/pukkandan)
+* Fix HLS playlist downloading by [shirt](https://github.com/shirt-dev)
 * **Merge youtube-dl:** Upto [2021.03.03](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.03.03)
 * [mtv] Fix extractor
-* [nick] Fix extractor by @DennyDai
-* [mxplayer] Add new extractor by@codeasashu
+* [nick] Fix extractor by [DennyDai](https://github.com/DennyDai)
+* [mxplayer] Add new extractor by[codeasashu](https://github.com/codeasashu)
 * [youtube] Throw error when `--extractor-retries` are exhausted
 * Reduce default of `--extractor-retries` to 3
-* Fix packaging bugs by @hseg
+* Fix packaging bugs by [hseg](https://github.com/hseg)
 
 
 ### 2021.03.01
