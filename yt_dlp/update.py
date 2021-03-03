@@ -49,11 +49,15 @@ def update_self(to_screen, verbose, opener):
                 h.update(mv[:n])
         return h.hexdigest()
 
-    to_screen('Current Build Hash %s' % calc_sha256sum(sys.executable))
-
     if not isinstance(globals().get('__loader__'), zipimporter) and not hasattr(sys, 'frozen'):
         to_screen('It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Please use that to update.')
         return
+
+    # sys.executable is set to the full pathname of the exe-file for py2exe
+    # though symlinks are not followed so that we need to do this manually
+    # with help of realpath
+    filename = compat_realpath(sys.executable if hasattr(sys, 'frozen') else sys.argv[0])
+    to_screen('Current Build Hash %s' % calc_sha256sum(filename))
 
     # Download and check versions info
     try:
@@ -102,11 +106,6 @@ def update_self(to_screen, verbose, opener):
         return next(
             (i[1] for i in hashes if i[0] == 'yt-dlp%s' % label),
             None)
-
-    # sys.executable is set to the full pathname of the exe-file for py2exe
-    # though symlinks are not followed so that we need to do this manually
-    # with help of realpath
-    filename = compat_realpath(sys.executable if hasattr(sys, 'frozen') else sys.argv[0])
 
     if not os.access(filename, os.W_OK):
         to_screen('ERROR: no write permissions on %s' % filename)
