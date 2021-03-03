@@ -197,28 +197,18 @@ def update_self(to_screen, verbose, opener):
             to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
             return
 
+        expected_sum = get_sha256sum('zip', py_ver)
+        if expected_sum and hashlib.sha256(newcontent).hexdigest() != expected_sum:
+            to_screen('ERROR: unable to verify the new zip')
+            to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
+            return
+
         try:
-            with open(filename + '.new', 'wb') as outf:
+            with open(filename, 'wb') as outf:
                 outf.write(newcontent)
         except (IOError, OSError):
             if verbose:
                 to_screen(encode_compat_str(traceback.format_exc()))
-            to_screen('ERROR: unable to write the new version')
-            return
-
-        expected_sum = get_sha256sum('zip', py_ver)
-        if expected_sum and calc_sha256sum(filename + '.new') != expected_sum:
-            to_screen('ERROR: unable to verify the new zip')
-            to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
-            try:
-                os.remove(filename + '.new')
-            except OSError:
-                to_screen('ERROR: unable to remove corrupt zip')
-            return
-
-        try:
-            os.rename(filename + '.new', filename)
-        except OSError:
             to_screen('ERROR: unable to overwrite current version')
             return
 
