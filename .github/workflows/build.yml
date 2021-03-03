@@ -29,7 +29,7 @@ jobs:
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Run Make
-      run: make
+      run: make yt-dlp
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
