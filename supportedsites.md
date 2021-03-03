@@ -89,6 +89,7 @@
  - **awaan:video**
  - **AZMedien**: AZ Medien videos
  - **BaiduVideo**: 百度视频
+ - **bandaichannel**
  - **Bandcamp**
  - **Bandcamp:album**
  - **Bandcamp:weekly**
@@ -570,6 +571,7 @@
  - **mva:course**: Microsoft Virtual Academy courses
  - **Mwave**
  - **MwaveMeetGreet**
+ - **Mxplayer**
  - **MyChannels**
  - **MySpace**
  - **MySpace:album**
@@ -1223,7 +1225,7 @@
  - **YourUpload**
  - **youtube**: YouTube.com
  - **youtube:favorites**: YouTube.com liked videos, ":ytfav" for short (requires authentication)
- - **youtube:history**: Youtube watch history, ":ythistory" for short (requires authentication)
+ - **youtube:history**: Youtube watch history, ":ythis" for short (requires authentication)
  - **youtube:playlist**: YouTube.com playlists
  - **youtube:recommended**: YouTube.com recommended videos, ":ytrec" for short (requires authentication)
  - **youtube:search**: YouTube.com searches, "ytsearch" keyword
@@ -1237,7 +1239,7 @@
  - **Zapiks**
  - **Zattoo**
  - **ZattooLive**
- - **ZDF-3sat**
+ - **ZDF**
  - **ZDFChannel**
  - **Zee5**
  - **Zhihu**
