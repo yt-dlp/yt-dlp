@@ -27,7 +27,7 @@
 * **Merge youtube-dl:** Upto [2021.03.03](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.03.03)
 * [mtv] Fix extractor
 * [nick] Fix extractor by [DennyDai](https://github.com/DennyDai)
-* [mxplayer] Add new extractor by[codeasashu](https://github.com/codeasashu)
+* [mxplayer] Add new extractor by [codeasashu](https://github.com/codeasashu)
 * [youtube] Throw error when `--extractor-retries` are exhausted
 * Reduce default of `--extractor-retries` to 3
 * Fix packaging bugs by [hseg](https://github.com/hseg)
