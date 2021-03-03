@@ -275,7 +275,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'context': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20201021.03.00',
+                'clientVersion': '2.20210301.08.00',
             }
         },
     }
