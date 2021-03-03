@@ -23,11 +23,9 @@ class NineCNineMediaIE(InfoExtractor):
         destination_code, content_id = re.match(self._VALID_URL, url).groups()
         api_base_url = self._API_BASE_TEMPLATE % (destination_code, content_id)
         content = self._download_json(api_base_url, content_id, query={
-            '$include': '[Media,Season,ContentPackages]',
+            '$include': '[Media.Name,Season,ContentPackages.Duration,ContentPackages.Id]',
         })
         title = content['Name']
-        if len(content['ContentPackages']) > 1:
-            raise ExtractorError('multiple content packages')
         content_package = content['ContentPackages'][0]
         package_id = content_package['Id']
         content_package_url = api_base_url + 'contentpackages/%s/' % package_id

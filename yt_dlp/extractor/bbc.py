@@ -5,10 +5,15 @@ import itertools
 import re
 
 from .common import InfoExtractor
+from ..compat import (
+    compat_etree_Element,
+    compat_HTTPError,
+    compat_urlparse,
+)
 from ..utils import (
+    ExtractorError,
     clean_html,
     dict_get,
-    ExtractorError,
     float_or_none,
     get_element_by_class,
     int_or_none,
@@ -20,11 +25,6 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
-)
-from ..compat import (
-    compat_etree_Element,
-    compat_HTTPError,
-    compat_urlparse,
 )
 
 
@@ -793,6 +793,20 @@ class BBCIE(BBCCoUkIE):
             'description': 'Learn English words and phrases from this story',
         },
         'add_ie': [BBCCoUkIE.ie_key()],
+    }, {
+        # BBC Reel
+        'url': 'https://www.bbc.com/reel/video/p07c6sb6/how-positive-thinking-is-harming-your-happiness',
+        'info_dict': {
+            'id': 'p07c6sb9',
+            'ext': 'mp4',
+            'title': 'How positive thinking is harming your happiness',
+            'alt_title': 'The downsides of positive thinking',
+            'description': 'md5:fad74b31da60d83b8265954ee42d85b4',
+            'duration': 235,
+            'thumbnail': r're:https?://.+/p07c9dsr.jpg',
+            'upload_date': '20190604',
+            'categories': ['Psychology'],
+        },
     }]
 
     @classmethod
@@ -929,7 +943,7 @@ class BBCIE(BBCCoUkIE):
                                     else:
                                         entry['title'] = info['title']
                                         entry['formats'].extend(info['formats'])
-                                except Exception as e:
+                                except ExtractorError as e:
                                     # Some playlist URL may fail with 500, at the same time
                                     # the other one may work fine (e.g.
                                     # http://www.bbc.com/turkce/haberler/2015/06/150615_telabyad_kentin_cogu)
@@ -979,6 +993,37 @@ class BBCIE(BBCCoUkIE):
                 'formats': formats,
                 'subtitles': subtitles,
             }
+
+        # bbc reel (e.g. https://www.bbc.com/reel/video/p07c6sb6/how-positive-thinking-is-harming-your-happiness)
+        initial_data = self._parse_json(self._html_search_regex(
+            r'<script[^>]+id=(["\'])initial-data\1[^>]+data-json=(["\'])(?P<json>(?:(?!\2).)+)',
+            webpage, 'initial data', default='{}', group='json'), playlist_id, fatal=False)
+        if initial_data:
+            init_data = try_get(
+                initial_data, lambda x: x['initData']['items'][0], dict) or {}
+            smp_data = init_data.get('smpData') or {}
+            clip_data = try_get(smp_data, lambda x: x['items'][0], dict) or {}
+            version_id = clip_data.get('versionID')
+            if version_id:
+                title = smp_data['title']
+                formats, subtitles = self._download_media_selector(version_id)
+                self._sort_formats(formats)
+                image_url = smp_data.get('holdingImageURL')
+                display_date = init_data.get('displayDate')
+                topic_title = init_data.get('topicTitle')
+
+                return {
+                    'id': version_id,
+                    'title': title,
+                    'formats': formats,
+                    'alt_title': init_data.get('shortTitle'),
+                    'thumbnail': image_url.replace('$recipe', 'raw') if image_url else None,
+                    'description': smp_data.get('summary') or init_data.get('shortSummary'),
+                    'upload_date': display_date.replace('-', '') if display_date else None,
+                    'subtitles': subtitles,
+                    'duration': int_or_none(clip_data.get('duration')),
+                    'categories': [topic_title] if topic_title else None,
+                }
 
         # Morph based embed (e.g. http://www.bbc.co.uk/sport/live/olympics/36895975)
         # There are several setPayload calls may be present but the video
@@ -1041,7 +1086,7 @@ class BBCIE(BBCCoUkIE):
                 thumbnail = None
                 image_url = current_programme.get('image_url')
                 if image_url:
-                    thumbnail = image_url.replace('{recipe}', '1920x1920')
+                    thumbnail = image_url.replace('{recipe}', 'raw')
                 return {
                     'id': programme_id,
                     'title': title,
