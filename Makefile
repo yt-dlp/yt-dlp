@@ -1,4 +1,4 @@
-all: yt-dlp doc man
+all: yt-dlp doc pypi-files
 clean: clean-test clean-dist clean-cache
 completions: completion-bash completion-fish completion-zsh
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
