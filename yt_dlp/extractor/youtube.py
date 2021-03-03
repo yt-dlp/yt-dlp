@@ -283,13 +283,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
-    def _call_api(self, ep, query, video_id, fatal=True):
+    def _call_api(self, ep, query, video_id, fatal=True, note='Downloading API JSON',):
         data = self._DEFAULT_API_DATA.copy()
         data.update(query)
 
         return self._download_json(
             'https://www.youtube.com/youtubei/v1/%s' % ep, video_id=video_id,
-            note='Downloading API JSON', errnote='Unable to download API page',
+            note=note, errnote='Unable to download API page',
             data=json.dumps(data).encode('utf8'), fatal=fatal,
             headers={'content-type': 'application/json'},
             query={'key': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'})
@@ -2758,7 +2758,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         }
         if identity_token:
             headers['x-youtube-identity-token'] = identity_token
-
         for page_num in itertools.count(1):
             if not continuation:
                 break
@@ -2770,11 +2769,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 if last_error:
                     self.report_warning('%s. Retrying ...' % last_error)
                 try:
-                    browse = self._download_json(
-                        'https://www.youtube.com/browse_ajax', None,
-                        'Downloading page %d%s'
-                        % (page_num, ' (retry #%d)' % count if count else ''),
-                        headers=headers, query=continuation)
+                    response = self._call_api(ep="browse",
+                                              query=continuation,
+                                              video_id=None, fatal=True,
+                                              note='Downloading API Page %d%s' % (page_num, '(retry  # %d)' % count if count else ''))
                 except ExtractorError as e:
                     if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
                         # Downloading page may result in intermittent 5xx HTTP error
@@ -2784,8 +2782,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                             continue
                     raise
                 else:
-                    response = try_get(browse, lambda x: x[1]['response'], dict)
-
                     # Youtube sometimes sends incomplete data
                     # See: https://github.com/ytdl-org/youtube-dl/issues/28194
                     if response.get('continuationContents') or response.get('onResponseReceivedActions'):
@@ -2793,7 +2789,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     last_error = 'Incomplete data recieved'
                     if count >= retries:
                         self._downloader.report_error(last_error)
-            if not browse or not response:
+
+            if not response:
                 break
 
             known_continuation_renderers = {
