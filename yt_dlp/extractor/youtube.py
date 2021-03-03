@@ -9,6 +9,7 @@ import random
 import re
 import time
 import traceback
+import hashlib
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -283,12 +284,24 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
+    def _generate_sapisidhash_header(self):
+        sapisid_cookie = try_get(self._downloader.cookiejar._cookies, lambda x: x['.youtube.com']['/']['SAPISID'])
+        if not hasattr(sapisid_cookie, 'value'):
+            return  # TODO: Do something
+        time_now = round(time.time())
+        sapisidhash = hashlib.sha1((str(time_now) + " " + sapisid_cookie.value + " " + "https://www.youtube.com").encode("utf-8")).hexdigest()
+        return "SAPISIDHASH %s_%s" % (time_now, sapisidhash)
+
     def _call_api(self, ep, query, video_id=None, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page'):
+
         data = self._DEFAULT_API_DATA.copy()
         data.update(query)
         headers = headers or {}
         headers.update({'content-type': 'application/json'})
+        auth = self._generate_sapisidhash_header()
+        if auth is not None:
+            headers.update({'Authorization': auth, 'X-Origin': 'https://www.youtube.com'})
 
         return self._download_json(
             'https://www.youtube.com/youtubei/v1/%s' % ep,
