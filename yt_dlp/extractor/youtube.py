@@ -2785,12 +2785,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     self.report_warning('%s. Retrying ...' % last_error)
                 try:
                     response = self._call_api(
-                        ep="browse", fatal=True, headers=headers, video_id=item_id,
+                        ep="browse", fatal=True, headers=headers,
+                        video_id='%s page %s' % (item_id, page_num),
                         query={
                             'continuation': continuation['continuation'],
                             'clickTracking': {'clickTrackingParams': continuation['itct']},
                         },
-                        note='Downloading API JSON page %d%s' % (page_num, '(retry  # %d)' % count if count else ''))
+                        note='Downloading API JSON%s' % (' (retry #%d)' % count if count else ''))
                 except ExtractorError as e:
                     if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
                         # Downloading page may result in intermittent 5xx HTTP error
