@@ -283,15 +283,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
-    def _call_api(self, ep, query, video_id, fatal=True, note='Downloading API JSON',):
+    def _call_api(self, ep, query, video_id=None, fatal=True, headers=None,
+                  note='Downloading API JSON', errnote='Unable to download API page'):
         data = self._DEFAULT_API_DATA.copy()
         data.update(query)
+        headers = headers or {}
+        headers.update({'content-type': 'application/json'})
 
         return self._download_json(
-            'https://www.youtube.com/youtubei/v1/%s' % ep, video_id=video_id,
-            note=note, errnote='Unable to download API page',
-            data=json.dumps(data).encode('utf8'), fatal=fatal,
-            headers={'content-type': 'application/json'},
+            'https://www.youtube.com/youtubei/v1/%s' % ep,
+            video_id=video_id, fatal=fatal, note=note, errnote=errnote,
+            data=json.dumps(data).encode('utf8'), headers=headers,
             query={'key': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'})
 
     def _extract_yt_initial_data(self, video_id, webpage):
@@ -2758,6 +2760,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         }
         if identity_token:
             headers['x-youtube-identity-token'] = identity_token
+
         for page_num in itertools.count(1):
             if not continuation:
                 break
@@ -2769,10 +2772,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 if last_error:
                     self.report_warning('%s. Retrying ...' % last_error)
                 try:
-                    response = self._call_api(ep="browse",
-                                              query=continuation,
-                                              video_id=None, fatal=True,
-                                              note='Downloading API Page %d%s' % (page_num, '(retry  # %d)' % count if count else ''))
+                    response = self._call_api(
+                        ep="browse", fatal=True, headers=headers,
+                        query={
+                            'continuation': continuation['continuation'],
+                            'clickTracking': {'clickTrackingParams': continuation['itct']},
+                        },
+                        note='Downloading API JSON page %d%s' % (page_num, '(retry  # %d)' % count if count else ''))
                 except ExtractorError as e:
                     if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
                         # Downloading page may result in intermittent 5xx HTTP error
@@ -3220,26 +3226,15 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
     _TESTS = []
 
     def _entries(self, query, n):
-        data = {
-            'context': {
-                'client': {
-                    'clientName': 'WEB',
-                    'clientVersion': '2.20201021.03.00',
-                }
-            },
-            'query': query,
-        }
+        data = {'query': query}
         if self._SEARCH_PARAMS:
             data['params'] = self._SEARCH_PARAMS
         total = 0
         for page_num in itertools.count(1):
-            search = self._download_json(
-                'https://www.youtube.com/youtubei/v1/search?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-                video_id='query "%s"' % query,
+            search = self._call_api(
+                ep='search', video_id='query "%s"' % query, fatal=False,
                 note='Downloading page %s' % page_num,
-                errnote='Unable to download API page', fatal=False,
-                data=json.dumps(data).encode('utf8'),
-                headers={'content-type': 'application/json'})
+                query=json.dumps(data).encode('utf8'))
             if not search:
                 break
             slr_contents = try_get(
