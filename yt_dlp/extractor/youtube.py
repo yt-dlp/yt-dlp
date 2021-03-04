@@ -2946,6 +2946,24 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self._entries(selected_tab, identity_token, playlist_id),
             **metadata)
 
+    def _extract_mix_playlist(self, playlist, playlist_id):
+        page_num = 0
+        while True:
+            videos = list(self._playlist_entries(playlist))
+            if not videos:
+                return
+            video_count = len(videos)
+            start = min(video_count - 24, 26) if video_count > 25 else 0
+            for item in videos[start:]:
+                yield item
+
+            page_num += 1
+            _, data = self._extract_webpage(
+                'https://www.youtube.com/watch?list=%s&v=%s' % (playlist_id, videos[-1]['id']),
+                '%s page %d' % (playlist_id, page_num))
+            playlist = try_get(
+                data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
+
     def _extract_from_playlist(self, item_id, url, data, playlist):
         title = playlist.get('title') or try_get(
             data, lambda x: x['titleText']['simpleText'], compat_str)
@@ -2961,8 +2979,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 video_title=title)
 
         return self.playlist_result(
-            self._playlist_entries(playlist), playlist_id=playlist_id,
-            playlist_title=title)
+            self._extract_mix_playlist(playlist, playlist_id),
+            playlist_id=playlist_id, playlist_title=title)
 
     @staticmethod
     def _extract_alerts(data):
