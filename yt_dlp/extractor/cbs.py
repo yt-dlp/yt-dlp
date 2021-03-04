@@ -27,10 +27,10 @@ class CBSBaseIE(ThePlatformFeedIE):
 
 
 class CBSIE(CBSBaseIE):
-    _VALID_URL = r'(?:cbs:|https?://(?:www\.)?(?:cbs\.com/shows/[^/]+/video|colbertlateshow\.com/(?:video|podcasts))/)(?P<id>[\w-]+)'
+    _VALID_URL = r'(?:cbs:|https?://(?:www\.)?(?:(?:cbs\.com|paramountplus\.com)/shows/[^/]+/video|colbertlateshow\.com/(?:video|podcasts))/)(?P<id>[\w-]+)'
 
     _TESTS = [{
-        'url': 'http://www.cbs.com/shows/garth-brooks/video/_u7W953k6la293J7EPTd9oHkSPs6Xn6_/connect-chat-feat-garth-brooks/',
+        'url': 'http://www.paramountplus.com/shows/garth-brooks/video/_u7W953k6la293J7EPTd9oHkSPs6Xn6_/connect-chat-feat-garth-brooks/',
         'info_dict': {
             'id': '_u7W953k6la293J7EPTd9oHkSPs6Xn6_',
             'ext': 'mp4',
