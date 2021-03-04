@@ -14,6 +14,7 @@ from ..utils import (
 
 class TrovoBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.)?trovo\.live/'
+    _HEADERS = {'Origin': 'https://trovo.live'}
 
     def _extract_streamer_info(self, data):
         streamer_info = data.get('streamerInfo') or {}
@@ -68,6 +69,7 @@ class TrovoIE(TrovoBaseIE):
                 'format_id': format_id,
                 'height': int_or_none(format_id[:-1]) if format_id else None,
                 'url': play_url,
+                'http_headers': self._HEADERS,
             })
         self._sort_formats(formats)
 
@@ -153,6 +155,7 @@ class TrovoVodIE(TrovoBaseIE):
                 'protocol': 'm3u8_native',
                 'tbr': int_or_none(play_info.get('bitrate')),
                 'url': play_url,
+                'http_headers': self._HEADERS,
             })
         self._sort_formats(formats)
 
