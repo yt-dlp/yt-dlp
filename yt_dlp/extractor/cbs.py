@@ -30,7 +30,7 @@ class CBSIE(CBSBaseIE):
     _VALID_URL = r'(?:cbs:|https?://(?:www\.)?(?:(?:cbs\.com|paramountplus\.com)/shows/[^/]+/video|colbertlateshow\.com/(?:video|podcasts))/)(?P<id>[\w-]+)'
 
     _TESTS = [{
-        'url': 'https://www.paramountplus.com/shows/garth-brooks/video/_u7W953k6la293J7EPTd9oHkSPs6Xn6_/connect-chat-feat-garth-brooks/',
+        'url': 'https://www.cbs.com/shows/garth-brooks/video/_u7W953k6la293J7EPTd9oHkSPs6Xn6_/connect-chat-feat-garth-brooks/',
         'info_dict': {
             'id': '_u7W953k6la293J7EPTd9oHkSPs6Xn6_',
             'ext': 'mp4',
@@ -51,6 +51,9 @@ class CBSIE(CBSBaseIE):
         'only_matching': True,
     }, {
         'url': 'http://www.colbertlateshow.com/podcasts/dYSwjqPs_X1tvbV_P2FcPWRa_qT6akTC/in-the-bad-room-with-stephen/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.paramountplus.com/shows/star-trek-discovery/video/l5ANMH9wM7kxwV1qr4u1xn88XOhYMlZX/star-trek-discovery-the-vulcan-hello/',
         'only_matching': True,
     }]
 
