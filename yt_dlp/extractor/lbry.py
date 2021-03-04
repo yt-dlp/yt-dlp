@@ -21,9 +21,9 @@ from ..utils import (
 
 
 class LBRYBaseIE(InfoExtractor):
-    _BASE_URL_REGEX = r'https?://(?:www\.)?(?:lbry\.tv|odysee\.com)/'
+    _BASE_URL_REGEX = r'(?:https?://(?:www\.)?(?:lbry\.tv|odysee\.com)/|lbry://)'
     _CLAIM_ID_REGEX = r'[0-9a-f]{1,40}'
-    _OPT_CLAIM_ID = '[^:/?#&]+(?::%s)?' % _CLAIM_ID_REGEX
+    _OPT_CLAIM_ID = '[^:/?#&]+(?:[:#]%s)?' % _CLAIM_ID_REGEX
     _SUPPORTED_STREAM_TYPES = ['video', 'audio']
 
     def _call_api_proxy(self, method, display_id, params, resource):
@@ -41,7 +41,9 @@ class LBRYBaseIE(InfoExtractor):
             'resolve', display_id, {'urls': url}, resource)[url]
 
     def _permanent_url(self, url, claim_name, claim_id):
-        return urljoin(url, '/%s:%s' % (claim_name, claim_id))
+        return urljoin(
+            url.replace('lbry://', 'https://lbry.tv/'),
+            '/%s:%s' % (claim_name, claim_id))
 
     def _parse_stream(self, stream, url):
         stream_value = stream.get('value') or {}
@@ -137,6 +139,9 @@ class LBRYIE(LBRYBaseIE):
     }, {
         'url': 'https://lbry.tv/@lacajadepandora:a/TRUMP-EST%C3%81-BIEN-PUESTO-con-Pilar-Baselga,-Carlos-Senra,-Luis-Palacios-(720p_30fps_H264-192kbit_AAC):1',
         'only_matching': True,
+    }, {
+        'url': 'lbry://@lbry#3f/odysee#7',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -166,7 +171,7 @@ class LBRYIE(LBRYBaseIE):
 
 class LBRYChannelIE(LBRYBaseIE):
     IE_NAME = 'lbry:channel'
-    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'(?P<id>@%s)/?(?:[?#&]|$)' % LBRYBaseIE._OPT_CLAIM_ID
+    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'(?P<id>@%s)/?(?:[?&]|$)' % LBRYBaseIE._OPT_CLAIM_ID
     _TESTS = [{
         'url': 'https://lbry.tv/@LBRYFoundation:0',
         'info_dict': {
@@ -177,6 +182,9 @@ class LBRYChannelIE(LBRYBaseIE):
         'playlist_count': 29,
     }, {
         'url': 'https://lbry.tv/@LBRYFoundation',
+        'only_matching': True,
+    }, {
+        'url': 'lbry://@lbry#3f',
         'only_matching': True,
     }]
     _PAGE_SIZE = 50
