@@ -282,8 +282,8 @@ class Aria2cFD(ExternalFD):
 
 class HttpieFD(ExternalFD):
     @classmethod
-    def available(cls):
-        return check_executable('http', ['--version'])
+    def available(cls, path=None):
+        return check_executable(path or 'http', ['--version'])
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]
@@ -298,7 +298,7 @@ class FFmpegFD(ExternalFD):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'rtsp', 'rtmp', 'mms')
 
     @classmethod
-    def available(cls):
+    def available(cls, path=None):  # path is ignored for ffmpeg
         return FFmpegPostProcessor().available
 
     def _call_downloader(self, tmpfilename, info_dict):
