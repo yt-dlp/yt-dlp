@@ -2520,17 +2520,20 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             channel_url, 'channel id')
 
     @staticmethod
-    def _extract_grid_item_renderer(item):
-        for item_kind in ('Playlist', 'Video', 'Channel'):
-            renderer = item.get('grid%sRenderer' % item_kind)
-            if renderer:
-                return renderer
+    def _extract_basic_item_renderer(item):
+        for item_kind in ('playlist', 'video', 'channel'):
+            for renderer_prefix in ('', 'grid'):
+                if renderer_prefix:
+                    item_kind = item_kind.title()
+                renderer = item.get('%s%sRenderer' % (renderer_prefix, item_kind))
+                if renderer:
+                    return renderer
 
     def _grid_entries(self, grid_renderer):
         for item in grid_renderer['items']:
             if not isinstance(item, dict):
                 continue
-            renderer = self._extract_grid_item_renderer(item)
+            renderer = self._extract_basic_item_renderer(item)
             if not isinstance(renderer, dict):
                 continue
             title = try_get(
@@ -2559,7 +2562,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         content = shelf_renderer.get('content')
         if not isinstance(content, dict):
             return
-        renderer = content.get('gridRenderer')
+        renderer = content.get('gridRenderer') or content.get('expandedShelfContentsRenderer')
         if renderer:
             # TODO: add support for nested playlists so each shelf is processed
             # as separate playlist
