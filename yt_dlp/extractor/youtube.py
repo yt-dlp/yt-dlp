@@ -59,9 +59,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'embed|e|watch_popup|channel|c|user|playlist|watch|w|v|movies|results|shared|hashtag|'
-        r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout|'
-        r'feed/(?:watch_later|history|subscriptions|library|trending|recommended)')
+        r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|'
+        r'movies|results|shared|hashtag|trending|feed|feeds|'
+        r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 
     _NETRC_MACHINE = 'youtube'
     # If True it will raise an error if no login info is provided
@@ -2522,13 +2522,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     @staticmethod
     def _extract_basic_item_renderer(item):
         # Modified from _extract_grid_item_renderer
-        for item_kind in ('playlist', 'video', 'channel'):
-            for renderer_prefix in ('', 'grid'):
-                if renderer_prefix:
-                    item_kind = item_kind.title()
-                renderer = item.get('%s%sRenderer' % (renderer_prefix, item_kind))
-                if renderer:
-                    return renderer
+        known_renderers = (
+            'playlistRenderer', 'videoRenderer', 'channelRenderer'
+            'gridPlaylistRenderer', 'gridVideoRenderer', 'gridChannelRenderer'
+        )
+        for key, renderer in item.items():
+            if key not in known_renderers:
+                continue
+            return renderer
 
     def _grid_entries(self, grid_renderer):
         for item in grid_renderer['items']:
@@ -2949,9 +2950,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         title = playlist.get('title') or try_get(
             data, lambda x: x['titleText']['simpleText'], compat_str)
         playlist_id = playlist.get('playlistId') or item_id
-        # Inline playlist rendition continuation does not always work
-        # at Youtube side, so delegating regular tab-based playlist URL
-        # processing whenever possible.
+
+        # Delegating everything except mix playlists to regular tab-based playlist URL
         playlist_url = urljoin(url, try_get(
             playlist, lambda x: x['endpoint']['commandMetadata']['webCommandMetadata']['url'],
             compat_str))
@@ -2959,6 +2959,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             return self.url_result(
                 playlist_url, ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
                 video_title=title)
+
         return self.playlist_result(
             self._playlist_entries(playlist), playlist_id=playlist_id,
             playlist_title=title)
@@ -2991,35 +2992,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
             'identity token', default=None)
 
-    def _real_extract(self, url):
-        item_id = self._match_id(url)
-        url = compat_urlparse.urlunparse(
-            compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
-        is_home = re.match(r'(?P<pre>%s)(?P<post>/?(?![^#?]).*$)' % self._VALID_URL, url)
-        if is_home is not None and is_home.group('not_channel') is None and item_id != 'feed':
-            self._downloader.report_warning(
-                'A channel/user page was given. All the channel\'s videos will be downloaded. '
-                'To download only the videos in the home page, add a "/featured" to the URL')
-            url = '%s/videos%s' % (is_home.group('pre'), is_home.group('post') or '')
-
-        # Handle both video/playlist URLs
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
-        video_id = qs.get('v', [None])[0]
-        playlist_id = qs.get('list', [None])[0]
-
-        if is_home is not None and is_home.group('not_channel') is not None and is_home.group('not_channel').startswith('watch') and not video_id:
-            if playlist_id:
-                self._downloader.report_warning('%s is not a valid Youtube URL. Trying to download playlist %s' % (url, playlist_id))
-                url = 'https://www.youtube.com/playlist?list=%s' % playlist_id
-                # return self.url_result(playlist_id, ie=YoutubePlaylistIE.ie_key())
-            else:
-                raise ExtractorError('Unable to recognize tab page')
-        if video_id and playlist_id:
-            if self._downloader.params.get('noplaylist'):
-                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
-                return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
-            self.to_screen('Downloading playlist %s - add --no-playlist to just download video %s' % (playlist_id, video_id))
-
+    def _extract_webpage(self, url, item_id):
         retries = self._downloader.params.get('extractor_retries', 3)
         count = -1
         last_error = 'Incomplete yt initial data recieved'
@@ -3031,8 +3004,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 self.report_warning('%s. Retrying ...' % last_error)
             webpage = self._download_webpage(
                 url, item_id,
-                'Downloading webpage%s' % ' (retry #%d)' % count if count else '')
-            identity_token = self._extract_identity_token(webpage, item_id)
+                'Downloading webpage%s' % (' (retry #%d)' % count if count else ''))
             data = self._extract_yt_initial_data(item_id, webpage)
             err_msg = None
             for alert_type, alert_message in self._extract_alerts(data):
@@ -3048,23 +3020,61 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 break
             if count >= retries:
                 self._downloader.report_error(last_error)
+        return webpage, data
+
+    def _real_extract(self, url):
+        item_id = self._match_id(url)
+        url = compat_urlparse.urlunparse(
+            compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
+
+        # This is not matched in a channel page with a tab selected
+        mobj = re.match(r'(?P<pre>%s)(?P<post>/?(?![^#?]).*$)' % self._VALID_URL, url)
+        mobj = mobj.groupdict() if mobj else {}
+        if mobj and not mobj.get('not_channel'):
+            self._downloader.report_warning(
+                'A channel/user page was given. All the channel\'s videos will be downloaded. '
+                'To download only the videos in the home page, add a "/featured" to the URL')
+            url = '%s/videos%s' % (mobj.get('pre'), mobj.get('post') or '')
+
+        # Handle both video/playlist URLs
+        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        video_id = qs.get('v', [None])[0]
+        playlist_id = qs.get('list', [None])[0]
+
+        if not video_id and (mobj.get('not_channel') or '').startswith('watch'):
+            if not playlist_id:
+                # If there is neither video or playlist ids,
+                # youtube redirects to home page, which is undesirable
+                raise ExtractorError('Unable to recognize tab page')
+            self._downloader.report_warning('A video URL was given without video ID. Trying to download playlist %s' % playlist_id)
+            url = 'https://www.youtube.com/playlist?list=%s' % playlist_id
+
+        if video_id and playlist_id:
+            if self._downloader.params.get('noplaylist'):
+                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+                return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
+            self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
+
+        webpage, data = self._extract_webpage(url, item_id)
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
         if tabs:
+            identity_token = self._extract_identity_token(webpage, item_id)
             return self._extract_from_tabs(item_id, webpage, data, tabs, identity_token)
+
         playlist = try_get(
             data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
         if playlist:
             return self._extract_from_playlist(item_id, url, data, playlist)
-        # Fallback to video extraction if no playlist alike page is recognized.
-        # First check for the current video then try the v attribute of URL query.
+
         video_id = try_get(
             data, lambda x: x['currentVideoEndpoint']['watchEndpoint']['videoId'],
             compat_str) or video_id
         if video_id:
+            self._downloader.report_warning('Unable to recognize playlist. Downloading just video %s' % video_id)
             return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
-        # Failed to recognize
+
         raise ExtractorError('Unable to recognize tab page')
 
 
