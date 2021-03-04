@@ -2601,20 +2601,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 continue
             yield self._extract_video(renderer)
 
-    r""" # Not needed in the new implementation
-    def _itemSection_entries(self, item_sect_renderer):
-        for content in item_sect_renderer['contents']:
-            if not isinstance(content, dict):
-                continue
-            renderer = content.get('videoRenderer', {})
-            if not isinstance(renderer, dict):
-                continue
-            video_id = renderer.get('videoId')
-            if not video_id:
-                continue
-            yield self._extract_video(renderer)
-    """
-
     def _rich_entries(self, rich_grid_renderer):
         renderer = try_get(
             rich_grid_renderer, lambda x: x['content']['videoRenderer'], dict) or {}
@@ -2837,7 +2823,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 'gridPlaylistRenderer': (self._grid_entries, 'items'),
                 'gridVideoRenderer': (self._grid_entries, 'items'),
                 'playlistVideoRenderer': (self._playlist_entries, 'contents'),
-                'itemSectionRenderer': (self._playlist_entries, 'contents'),
+                'itemSectionRenderer': (extract_entries, 'contents'),  # for feeds
                 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
             }
             continuation_items = try_get(
@@ -3338,7 +3324,6 @@ class YoutubeFeedsInfoExtractor(YoutubeTabIE):
     Subclasses must define the _FEED_NAME property.
     """
     _LOGIN_REQUIRED = True
-    # _MAX_PAGES = 5
     _TESTS = []
 
     @property
