@@ -107,10 +107,9 @@ class MxplayerIE(InfoExtractor):
             for stream_name, stream_url in stream_urls:
                 if stream_name == 'dash':
                     format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
-                    if not format_url:
-                        continue
-                    formats.extend(self._extract_mpd_formats(
-                        format_url, video_id, mpd_id='dash', headers=headers))
+                    if format_url:
+                        formats.extend(self._extract_mpd_formats(
+                            format_url, video_id, mpd_id='dash', headers=headers))
                 elif stream_name == 'hls':
                     format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
                     if not format_url:
