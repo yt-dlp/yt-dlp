@@ -2703,7 +2703,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             ctp = continuation_ep.get('clickTrackingParams')
             return YoutubeTabIE._build_continuation_query(continuation, ctp)
 
-    def _entries(self, tab, identity_token, item_id, account_syncid):
+    def _entries(self, tab, item_id, identity_token, account_syncid):
 
         def extract_entries(parent_renderer):  # this needs to called again for continuation to work with feeds
             contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
@@ -2882,7 +2882,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], compat_str))
         return {k: v for k, v in uploader.items() if v is not None}
 
-    def _extract_from_tabs(self, item_id, webpage, data, tabs, identity_token, account_syncid):
+    def _extract_from_tabs(self, item_id, webpage, data, tabs):
         playlist_id = title = description = channel_url = channel_name = channel_id = None
         thumbnails_list = tags = []
 
@@ -2946,7 +2946,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'channel_id': metadata['uploader_id'],
             'channel_url': metadata['uploader_url']})
         return self.playlist_result(
-            self._entries(selected_tab, identity_token, playlist_id, account_syncid),
+            self._entries(
+                selected_tab, playlist_id,
+                self._extract_identity_token(webpage, item_id),
+                self._extract_account_syncid(data)),
             **metadata)
 
     def _extract_mix_playlist(self, playlist, playlist_id):
@@ -3015,13 +3018,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
     @staticmethod
     def _extract_account_syncid(data):
-        # Required for secondary accounts
-        datasyncid = try_get(data, lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'], str)
-        if datasyncid:
-            sync_ids = datasyncid.split("||")
-            if len(sync_ids) >= 2 and sync_ids[1]:
-                # First page_id is the current accounts
-                return sync_ids[0]
+        """Extract syncId required to download private playlists of secondary channels"""
+        sync_ids = (
+            try_get(data, lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'], compat_str)
+            or '').split("||")
+        if len(sync_ids) >= 2 and sync_ids[1]:
+            # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
+            # and just "user_syncid||" for primary channel. We only want the channel_syncid
+            return sync_ids[0]
 
     def _extract_webpage(self, url, item_id):
         retries = self._downloader.params.get('extractor_retries', 3)
@@ -3091,9 +3095,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
         if tabs:
-            identity_token = self._extract_identity_token(webpage, item_id)
-            account_syncid = self._extract_account_syncid(data)
-            return self._extract_from_tabs(item_id, webpage, data, tabs, identity_token, account_syncid)
+            return self._extract_from_tabs(item_id, webpage, data, tabs)
 
         playlist = try_get(
             data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
