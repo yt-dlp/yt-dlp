@@ -301,7 +301,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         auth = self._generate_sapisidhash_header()
         if auth is not None:
             headers.update({'Authorization': auth, 'X-Origin': 'https://www.youtube.com'})
-
         return self._download_json(
             'https://www.youtube.com/youtubei/v1/%s' % ep,
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
@@ -2704,7 +2703,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             ctp = continuation_ep.get('clickTrackingParams')
             return YoutubeTabIE._build_continuation_query(continuation, ctp)
 
-    def _entries(self, tab, identity_token, item_id):
+    def _entries(self, tab, identity_token, item_id, account_syncid):
 
         def extract_entries(parent_renderer):  # this needs to called again for continuation to work with feeds
             contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
@@ -2763,6 +2762,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         }
         if identity_token:
             headers['x-youtube-identity-token'] = identity_token
+
+        if account_syncid:
+            headers['X-Goog-PageId'] = account_syncid
+            headers['X-Goog-AuthUser'] = 0
 
         for page_num in itertools.count(1):
             if not continuation:
@@ -2879,7 +2882,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], compat_str))
         return {k: v for k, v in uploader.items() if v is not None}
 
-    def _extract_from_tabs(self, item_id, webpage, data, tabs, identity_token):
+    def _extract_from_tabs(self, item_id, webpage, data, tabs, identity_token, account_syncid):
         playlist_id = title = description = channel_url = channel_name = channel_id = None
         thumbnails_list = tags = []
 
@@ -2943,7 +2946,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'channel_id': metadata['uploader_id'],
             'channel_url': metadata['uploader_url']})
         return self.playlist_result(
-            self._entries(selected_tab, identity_token, playlist_id),
+            self._entries(selected_tab, identity_token, playlist_id, account_syncid),
             **metadata)
 
     def _extract_mix_playlist(self, playlist, playlist_id):
@@ -3009,6 +3012,16 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         return self._search_regex(
             r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
             'identity token', default=None)
+
+    @staticmethod
+    def _extract_account_syncid(data):
+        # Required for secondary accounts
+        datasyncid = try_get(data, lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'], str)
+        if datasyncid:
+            sync_ids = datasyncid.split("||")
+            if len(sync_ids) > 1:
+                # First page_id is the current accounts
+                return sync_ids[0]
 
     def _extract_webpage(self, url, item_id):
         retries = self._downloader.params.get('extractor_retries', 3)
@@ -3079,7 +3092,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
         if tabs:
             identity_token = self._extract_identity_token(webpage, item_id)
-            return self._extract_from_tabs(item_id, webpage, data, tabs, identity_token)
+            account_syncid = self._extract_account_syncid(data)
+            return self._extract_from_tabs(item_id, webpage, data, tabs, identity_token, account_syncid)
 
         playlist = try_get(
             data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
