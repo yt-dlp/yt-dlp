@@ -6,6 +6,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     js_to_json,
+    try_get,
     url_or_none,
     urljoin,
 )
@@ -41,43 +42,47 @@ class MxplayerIE(InfoExtractor):
         'params': {
             'skip_download': True,
         }
-
+    }, {
+        'url': 'https://www.mxplayer.in/show/watch-aashram/chapter-1/duh-swapna-online-d445579792b0135598ba1bc9088a84cb',
+        'info_dict': {
+            'id': 'd445579792b0135598ba1bc9088a84cb',
+            'ext': 'm3u8',
+            'title': 'Duh Swapna',
+            'description': 'md5:35ff39c4bdac403c53be1e16a04192d8',
+            'season': 'Chapter 1',
+            'series': 'Aashram'
+        },
+        'params': {
+            'skip_download': True,
+        }
     }]
 
     def _get_best_stream_url(self, stream):
         best_stream = list(filter(None, [v for k, v in stream.items()]))
         return best_stream.pop(0) if len(best_stream) else None
 
-    def _get_stream_urls_shows(self, video_dict):
+    def _get_stream_urls(self, video_dict, video_type):
         stream_dict = video_dict.get('stream', {'provider': {}})
         stream_provider = stream_dict.get('provider')
         stream_provider_dict = stream_dict.get(stream_provider)
-        if not stream_dict[stream_provider]:
+        if not stream_provider_dict:
             message = 'No stream provider found'
             raise ExtractorError('%s said: %s' % (self.IE_NAME, message), expected=True)
-
         streams = []
-        if stream_provider_dict['dashUrl']:
-            streams.append(('dash', stream_provider_dict['dashUrl']))
-        if stream_provider_dict['hlsUrl']:
-            streams.append(('hls', stream_provider_dict['hlsUrl']))
-        return streams
+        if try_get(stream_provider_dict, lambda x: x['dashUrl'], str) or try_get(stream_provider_dict, lambda x: x['hlsUrl'], str):
+            if stream_provider_dict['dashUrl']:
+                streams.append(('dash', stream_provider_dict['dashUrl']))
+            if stream_provider_dict['hlsUrl']:
+                streams.append(('hls', stream_provider_dict['hlsUrl']))
 
-    def _get_stream_urls(self, video_dict):
-        stream_dict = video_dict.get('stream', {'provider': {}})
-        stream_provider = stream_dict.get('provider')
+        else:
+            for stream_name, v in stream_provider_dict.items():
+                if stream_name in VALID_STREAMS:
+                    stream_url = self._get_best_stream_url(v)
+                    if stream_url is None:
+                        continue
+                    streams.append((stream_name, stream_url))
 
-        if not stream_dict[stream_provider]:
-            message = 'No stream provider found'
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, message), expected=True)
-
-        streams = []
-        for stream_name, v in stream_dict[stream_provider].items():
-            if stream_name in VALID_STREAMS:
-                stream_url = self._get_best_stream_url(v)
-                if stream_url is None:
-                    continue
-                streams.append((stream_name, stream_url))
         return streams
 
     def _real_extract(self, url):
@@ -98,53 +103,46 @@ class MxplayerIE(InfoExtractor):
 
         config_dict = source['config']
         video_dict = source['entities'][video_id]
+        stream_urls = self._get_stream_urls(video_dict, video_type)
 
         if video_type == 'movie':
             title = self._og_search_title(webpage, fatal=True, default=video_dict['title'])
-            stream_urls = self._get_stream_urls(video_dict)
+
             formats = []
             headers = {'Referer': url}
-            for stream_name, stream_url in stream_urls:
-                if stream_name == 'dash':
-                    format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
-                    if format_url:
-                        formats.extend(self._extract_mpd_formats(
-                            format_url, video_id, mpd_id='dash', headers=headers))
-                elif stream_name == 'hls':
-                    format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
-                    if not format_url:
-                        continue
-                    formats.extend(self._extract_m3u8_formats(format_url, video_id, fatal=False))
-                self._sort_formats(formats)
+
             info = {
                 'id': video_id,
                 'title': title,
                 'description': video_dict.get('description'),
-                'formats': formats
             }
 
         elif video_type == 'show':
             title = video_dict['title']
             season = video_dict['container']['title']
             series = video_dict['container']['container']['title']
-            stream_urls = self._get_stream_urls_shows(video_dict)
             formats = []
             headers = {'Referer': url}
-            for stream_name, stream_url in stream_urls:
-                if stream_name == 'dash':
-                    formats.extend(self._extract_mpd_formats(
-                        stream_url, video_id, mpd_id='dash', headers=headers))
-                elif stream_name == 'hls':
-                    formats.extend(self._extract_m3u8_formats(stream_url, video_id, fatal=False))
             info = {
                 'id': video_id,
                 'title': title,
                 'description': video_dict.get('description'),
-                'formats': formats,
                 'season': season,
                 'series': series
             }
-
+        for stream_name, stream_url in stream_urls:
+            if stream_name == 'dash':
+                format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
+                if format_url:
+                    formats.extend(self._extract_mpd_formats(
+                        format_url, video_id, mpd_id='dash', headers=headers))
+            elif stream_name == 'hls':
+                format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
+                if not format_url:
+                    continue
+                formats.extend(self._extract_m3u8_formats(format_url, video_id, fatal=False))
+            self._sort_formats(formats)
+        info['formats'] = formats
         if video_dict.get('imageInfo'):
             info['thumbnails'] = list(map(lambda i: dict(i, **{
                 'url': urljoin(config_dict['imageBaseUrl'], i['url'])
