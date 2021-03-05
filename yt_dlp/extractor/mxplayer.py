@@ -112,13 +112,10 @@ class MxplayerIE(InfoExtractor):
                     formats.extend(self._extract_mpd_formats(
                         format_url, video_id, mpd_id='dash', headers=headers))
                 elif stream_name == 'hls':
-                    if stream_url[:4] == 'https':
-                        formats.extend(self._extract_m3u8_formats(stream_url, video_id, fatal=False))
-                    else:
-                        format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
-                        if not format_url:
-                            continue
-                        formats.extend(self._extract_m3u8_formats(format_url, video_id, fatal=False))
+                    format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
+                    if not format_url:
+                        continue
+                    formats.extend(self._extract_m3u8_formats(format_url, video_id, fatal=False))
                 self._sort_formats(formats)
             info = {
                 'id': video_id,
