@@ -3019,7 +3019,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         datasyncid = try_get(data, lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'], str)
         if datasyncid:
             sync_ids = datasyncid.split("||")
-            if len(sync_ids) > 1:
+            if len(sync_ids) >= 2 and sync_ids[1]:
                 # First page_id is the current accounts
                 return sync_ids[0]
 
