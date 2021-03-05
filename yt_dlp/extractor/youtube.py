@@ -2798,9 +2798,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         break
 
                     # Youtube may send alerts if there was an issue with the continuation page
-                    last_error = self._process_alerts(self._extract_alerts(response))
-                    if last_error:
-                        raise ExtractorError('YouTube said: %s' % last_error, expected=True)
+                    self._extract_alerts(response, expected=False)
 
                     last_error = 'Incomplete data received'
                     if count >= retries:
@@ -2988,23 +2986,35 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self._extract_mix_playlist(playlist, playlist_id),
             playlist_id=playlist_id, playlist_title=title)
 
-    @staticmethod
-    def _extract_alerts(data):
-        for alert_dict in try_get(data, lambda x: x['alerts'], list) or []:
-            if not isinstance(alert_dict, dict):
-                continue
-            for renderer in alert_dict:
-                alert = alert_dict[renderer]
-                alert_type = alert.get('type')
-                if not alert_type:
+    def _extract_alerts(self, data, expected=False):
+
+        def _real_extract_alerts():
+            for alert_dict in try_get(data, lambda x: x['alerts'], list) or []:
+                if not isinstance(alert_dict, dict):
                     continue
-                message = try_get(alert, lambda x: x['text']['simpleText'], compat_str)
-                if message:
-                    yield alert_type, message
-                for run in try_get(alert, lambda x: x['text']['runs'], list) or []:
-                    message = try_get(run, lambda x: x['text'], compat_str)
+                for alert in alert_dict.values():
+                    alert_type = alert.get('type')
+                    if not alert_type:
+                        continue
+                    message = try_get(alert, lambda x: x['text']['simpleText'], compat_str)
                     if message:
                         yield alert_type, message
+                    for run in try_get(alert, lambda x: x['text']['runs'], list) or []:
+                        message = try_get(run, lambda x: x['text'], compat_str)
+                        if message:
+                            yield alert_type, message
+
+        err_msg = None
+        for alert_type, alert_message in _real_extract_alerts():
+            if alert_type.lower() == 'error':
+                if err_msg:
+                    self._downloader.report_warning('YouTube said: %s - %s' % ('ERROR', err_msg))
+                err_msg = alert_message
+            else:
+                self._downloader.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
+
+        if err_msg:
+            raise ExtractorError('YouTube said: %s' % err_msg, expected=expected)
 
     def _extract_identity_token(self, webpage, item_id):
         ytcfg = self._extract_ytcfg(item_id, webpage)
@@ -3015,18 +3025,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         return self._search_regex(
             r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
             'identity token', default=None)
-
-    def _process_alerts(self, alerts):
-        # TODO: better function name
-        err_msg = None
-        for alert_type, alert_message in alerts:
-            if alert_type.lower() == 'error':
-                if err_msg:
-                    self._downloader.report_warning('YouTube said: %s - %s' % ('ERROR', err_msg))
-                err_msg = alert_message
-            else:
-                self._downloader.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
-        return err_msg
 
     def _extract_webpage(self, url, item_id):
         retries = self._downloader.params.get('extractor_retries', 3)
@@ -3042,9 +3040,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 url, item_id,
                 'Downloading webpage%s' % (' (retry #%d)' % count if count else ''))
             data = self._extract_yt_initial_data(item_id, webpage)
-            err_msg = self._process_alerts(self._extract_alerts(data))
-            if err_msg:
-                raise ExtractorError('YouTube said: %s' % err_msg, expected=True)
+            self._extract_alerts(data, expected=True)
             if data.get('contents') or data.get('currentVideoEndpoint'):
                 break
             if count >= retries:
