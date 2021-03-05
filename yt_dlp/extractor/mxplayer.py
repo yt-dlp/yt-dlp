@@ -103,14 +103,11 @@ class MxplayerIE(InfoExtractor):
 
         config_dict = source['config']
         video_dict = source['entities'][video_id]
-        stream_urls = self._get_stream_urls(video_dict, video_type)
-
+        stream_urls = self._get_stream_urls(video_dict)
+        headers = {'Referer': url}
+        formats = []
         if video_type == 'movie':
             title = self._og_search_title(webpage, fatal=True, default=video_dict['title'])
-
-            formats = []
-            headers = {'Referer': url}
-
             info = {
                 'id': video_id,
                 'title': title,
@@ -121,8 +118,6 @@ class MxplayerIE(InfoExtractor):
             title = video_dict['title']
             season = video_dict['container']['title']
             series = video_dict['container']['container']['title']
-            formats = []
-            headers = {'Referer': url}
             info = {
                 'id': video_id,
                 'title': title,
