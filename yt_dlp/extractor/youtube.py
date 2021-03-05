@@ -2800,7 +2800,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     # Youtube may send alerts if there was an issue with the continuation page
                     last_error = self._process_alerts(self._extract_alerts(response))
                     if last_error:
-                        self._downloader.report_error(last_error)
+                        raise ExtractorError('YouTube said: %s' % last_error, expected=True)
 
                     last_error = 'Incomplete data received'
                     if count >= retries:
