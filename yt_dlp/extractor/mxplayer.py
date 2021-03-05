@@ -6,23 +6,21 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     js_to_json,
+    qualities,
     try_get,
     url_or_none,
     urljoin,
 )
 
 
-VALID_STREAMS = ('dash', 'hls')
-
-
 class MxplayerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/(?P<type>show/.*/|movie/)(?P<slug>[a-z0-9]+(?:-[a-z0-9]+)*)'
+    _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/(?:show|movie)/(?:(?P<display_id>[-/a-z0-9]+)-)?(?P<id>[a-z0-9]+)'
     _TESTS = [{
         'url': 'https://www.mxplayer.in/movie/watch-knock-knock-hindi-dubbed-movie-online-b9fa28df3bfb8758874735bbd7d2655a?watch=true',
         'info_dict': {
             'id': 'b9fa28df3bfb8758874735bbd7d2655a',
             'ext': 'mp4',
-            'title': 'Knock Knock Movie | Watch 2015 Knock Knock Full Movie Online- MX Player',
+            'title': 'Knock Knock (Hindi Dubbed)',
             'description': 'md5:b195ba93ff1987309cfa58e2839d2a5b'
         },
         'params': {
@@ -46,105 +44,84 @@ class MxplayerIE(InfoExtractor):
         'url': 'https://www.mxplayer.in/show/watch-aashram/chapter-1/duh-swapna-online-d445579792b0135598ba1bc9088a84cb',
         'info_dict': {
             'id': 'd445579792b0135598ba1bc9088a84cb',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'title': 'Duh Swapna',
             'description': 'md5:35ff39c4bdac403c53be1e16a04192d8',
             'season': 'Chapter 1',
             'series': 'Aashram'
         },
+        'expected_warnings': ['Unknown MIME type application/mp4 in DASH manifest'],
         'params': {
             'skip_download': True,
+            'format': 'bestvideo'
         }
     }]
 
-    def _get_best_stream_url(self, stream):
-        best_stream = list(filter(None, [v for k, v in stream.items()]))
-        return best_stream.pop(0) if len(best_stream) else None
-
-    def _get_stream_urls(self, video_dict, video_type):
-        stream_dict = video_dict.get('stream', {'provider': {}})
-        stream_provider = stream_dict.get('provider')
-        stream_provider_dict = stream_dict.get(stream_provider)
+    def _get_stream_urls(self, video_dict):
+        stream_provider_dict = try_get(
+            video_dict,
+            lambda x: x['stream'][x['stream']['provider']])
         if not stream_provider_dict:
-            message = 'No stream provider found'
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, message), expected=True)
-        streams = []
-        if try_get(stream_provider_dict, lambda x: x['dashUrl'], str) or try_get(stream_provider_dict, lambda x: x['hlsUrl'], str):
-            if stream_provider_dict['dashUrl']:
-                streams.append(('dash', stream_provider_dict['dashUrl']))
-            if stream_provider_dict['hlsUrl']:
-                streams.append(('hls', stream_provider_dict['hlsUrl']))
+            raise ExtractorError('No stream provider found', expected=True)
 
-        else:
-            for stream_name, v in stream_provider_dict.items():
-                if stream_name in VALID_STREAMS:
-                    stream_url = self._get_best_stream_url(v)
-                    if stream_url is None:
-                        continue
-                    streams.append((stream_name, stream_url))
-
-        return streams
+        for stream_name, stream in stream_provider_dict.items():
+            if stream_name in ('hls', 'dash', 'hlsUrl', 'dashUrl'):
+                stream_type = stream_name.replace('Url', '')
+                if isinstance(stream, dict):
+                    for quality, stream_url in stream.items():
+                        if stream_url:
+                            yield stream_type, quality, stream_url
+                else:
+                    yield stream_type, 'base', stream
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        video_slug = mobj.group('slug')
-        video_type = mobj.group('type').split('/')[0]
-        video_id = video_slug.split('-')[-1]
-
+        display_id, video_id = re.match(self._VALID_URL, url).groups()
         webpage = self._download_webpage(url, video_id)
 
-        window_state_json = self._html_search_regex(
-            r'(?s)<script>window\.state\s*[:=]\s(\{.+\})\n(\w+).*(</script>).*',
-            webpage, 'WindowState')
-
-        source = self._parse_json(js_to_json(window_state_json), video_id)
+        source = self._parse_json(
+            js_to_json(self._html_search_regex(
+                r'(?s)<script>window\.state\s*[:=]\s(\{.+\})\n(\w+).*(</script>).*',
+                webpage, 'WindowState')),
+            video_id)
         if not source:
             raise ExtractorError('Cannot find source', expected=True)
 
         config_dict = source['config']
         video_dict = source['entities'][video_id]
-        stream_urls = self._get_stream_urls(video_dict)
-        headers = {'Referer': url}
+
+        thumbnails = []
+        for i in video_dict.get('imageInfo') or []:
+            thumbnails.append({
+                'url': urljoin(config_dict['imageBaseUrl'], i['url']),
+                'width': i['width'],
+                'height': i['height'],
+            })
+
         formats = []
-        if video_type == 'movie':
-            title = self._og_search_title(webpage, fatal=True, default=video_dict['title'])
-            info = {
-                'id': video_id,
-                'title': title,
-                'description': video_dict.get('description'),
-            }
+        get_quality = qualities(['main', 'base', 'high'])
+        for stream_type, quality, stream_url in self._get_stream_urls(video_dict):
+            format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
+            if not format_url:
+                continue
+            if stream_type == 'dash':
+                dash_formats = self._extract_mpd_formats(
+                    format_url, video_id, mpd_id='dash-%s' % quality, headers={'Referer': url})
+                for frmt in dash_formats:
+                    frmt['quality'] = get_quality(quality)
+                formats.extend(dash_formats)
+            elif stream_type == 'hls':
+                formats.extend(self._extract_m3u8_formats(
+                    format_url, video_id, fatal=False,
+                    m3u8_id='hls-%s' % quality, quality=get_quality(quality)))
 
-        elif video_type == 'show':
-            title = video_dict['title']
-            season = video_dict['container']['title']
-            series = video_dict['container']['container']['title']
-            info = {
-                'id': video_id,
-                'title': title,
-                'description': video_dict.get('description'),
-                'season': season,
-                'series': series
-            }
-        for stream_name, stream_url in stream_urls:
-            if stream_name == 'dash':
-                format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
-                if format_url:
-                    formats.extend(self._extract_mpd_formats(
-                        format_url, video_id, mpd_id='dash', headers=headers))
-            elif stream_name == 'hls':
-                format_url = url_or_none(urljoin(config_dict['videoCdnBaseUrl'], stream_url))
-                if not format_url:
-                    continue
-                formats.extend(self._extract_m3u8_formats(format_url, video_id, fatal=False))
-            self._sort_formats(formats)
-        info['formats'] = formats
-        if video_dict.get('imageInfo'):
-            info['thumbnails'] = list(map(lambda i: dict(i, **{
-                'url': urljoin(config_dict['imageBaseUrl'], i['url'])
-            }), video_dict['imageInfo']))
-
-        if video_dict.get('webUrl'):
-            last_part = video_dict['webUrl'].split("/")[-1]
-            info['display_id'] = last_part.replace(video_id, "").rstrip("-")
-
-        return info
+        self._sort_formats(formats)
+        return {
+            'id': video_id,
+            'display_id': display_id.replace('/', '-'),
+            'title': video_dict['title'] or self._og_search_title(webpage),
+            'formats': formats,
+            'description': video_dict.get('description'),
+            'season': try_get(video_dict, lambda x: x['container']['title']),
+            'series': try_get(video_dict, lambda x: x['container']['container']['title']),
+            'thumbnails': thumbnails,
+        }
