@@ -127,7 +127,7 @@ from .expressen import ExpressenIE
 from .zype import ZypeIE
 from .odnoklassniki import OdnoklassnikiIE
 from .kinja import KinjaEmbedIE
-from .gedi import GediEmbedsIE
+from .gedidigital import GediDigitalIE
 from .rcs import RCSEmbedsIE
 from .bitchute import BitChuteIE
 from .rumble import RumbleEmbedIE
@@ -3339,12 +3339,12 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(
                 zype_urls, video_id, video_title, ie=ZypeIE.ie_key())
 
-        # Look for RCS media group embeds
-        gedi_urls = GediEmbedsIE._extract_urls(webpage)
+        gedi_urls = GediDigitalIE._extract_urls(webpage)
         if gedi_urls:
             return self.playlist_from_matches(
-                gedi_urls, video_id, video_title, ie=GediEmbedsIE.ie_key())
+                gedi_urls, video_id, video_title, ie=GediDigitalIE.ie_key())
 
+        # Look for RCS media group embeds
         rcs_urls = RCSEmbedsIE._extract_urls(webpage)
         if rcs_urls:
             return self.playlist_from_matches(
