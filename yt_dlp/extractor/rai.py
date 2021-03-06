@@ -158,6 +158,10 @@ class RaiPlayIE(RaiBaseIE):
         # subtitles at 'subtitlesArray' key (see #27698)
         'url': 'https://www.raiplay.it/video/2020/12/Report---04-01-2021-2e90f1de-8eee-4de4-ac0e-78d21db5b600.html',
         'only_matching': True,
+    }, {
+        # DRM protected
+        'url': 'https://www.raiplay.it/video/2020/09/Lo-straordinario-mondo-di-Zoey-S1E1-Lo-straordinario-potere-di-Zoey-ed493918-1d32-44b7-8454-862e473d00ff.html',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -165,6 +169,9 @@ class RaiPlayIE(RaiBaseIE):
 
         media = self._download_json(
             base + '.json', video_id, 'Downloading video JSON')
+
+        if try_get(media, lambda x: x['rights_management']['rights']['drm'], dict) or try_get(media, lambda x: x['program_info']['rights_management']['rights']['drm'], dict):
+            raise ExtractorError('This video is DRM protected.', expected=True)
 
         title = media['name']
         video = media['video']
