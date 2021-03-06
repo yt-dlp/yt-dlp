@@ -196,8 +196,8 @@ class GediDigitalIE(InfoExtractor):
                 elif n == 'videoDuration':
                     duration = int_or_none(v)
 
-        self._sort_formats(formats)
         self._clean_formats(formats)
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
