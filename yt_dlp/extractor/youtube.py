@@ -2961,19 +2961,24 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             **metadata)
 
     def _extract_mix_playlist(self, playlist, playlist_id):
-        page_num = 0
-        while True:
+        first_id = last_id = None
+        for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
             if not videos:
                 return
-            video_count = len(videos)
-            start = min(video_count - 24, 26) if video_count > 25 else 0
-            for item in videos[start:]:
-                yield item
+            start = next((i for i, v in enumerate(videos) if v['id'] == last_id), -1) + 1
+            if start >= len(videos):
+                return
+            for video in videos[start:]:
+                if video['id'] == first_id:
+                    self.to_screen('First video %s found again; Assuming end of Mix' % first_id)
+                    return
+                yield video
+            first_id = first_id or videos[0]['id']
+            last_id = videos[-1]['id']
 
-            page_num += 1
             _, data = self._extract_webpage(
-                'https://www.youtube.com/watch?list=%s&v=%s' % (playlist_id, videos[-1]['id']),
+                'https://www.youtube.com/watch?list=%s&v=%s' % (playlist_id, last_id),
                 '%s page %d' % (playlist_id, page_num))
             playlist = try_get(
                 data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
