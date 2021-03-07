@@ -1154,7 +1154,7 @@ def parseOpts(overrideArguments=None):
         help='Write metadata to the video file\'s xattrs (using dublin core and xdg standards)')
     postproc.add_option(
         '--fixup',
-        metavar='POLICY', dest='fixup', default='detect_or_warn',
+        metavar='POLICY', dest='fixup', default=None,
         help=(
             'Automatically correct known faults of the file. '
             'One of never (do nothing), warn (only emit a warning), '
