@@ -25,11 +25,11 @@
 * [mxplayer] Rewrite extractor with show support by [pukkandan](https://github.com/pukkandan) and [Ashish](https://github.com/Ashish)
 * [gedi] Improvements from youtube-dl by [nixxo](https://github.com/nixxo)
 * [vimeo] Fix videos with password by [teesid](https://github.com/teesid)
-* [lbry] Support lbry:// url by [nixxo](https://github.com/nixxo)
+* [lbry] Support `lbry://` url by [nixxo](https://github.com/nixxo)
 * [bilibili] Change `Accept` header by [pukkandan](https://github.com/pukkandan) and [animelover1984](https://github.com/animelover1984)
 * [trovo] Pass origin header
 * [rai] Check for DRM by [nixxo](https://github.com/nixxo)
-* [downloader] Fix bug for ffmpeg/httpie
+* [downloader] Fix bug for `ffmpeg`/`httpie`
 * [update] Fix updater removing the executable bit on some UNIX distros
 * [update] Fix current build hash for UNIX
 * [documentation] Include wget/curl/aria2c install instructions for Unix by [Ashish](https://github.com/Ashish)
