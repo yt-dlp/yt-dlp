@@ -26,6 +26,7 @@ from ..compat import (
 from ..jsinterp import JSInterpreter
 from ..utils import (
     clean_html,
+    dict_get,
     ExtractorError,
     format_field,
     float_or_none,
@@ -2797,7 +2798,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 else:
                     # Youtube sometimes sends incomplete data
                     # See: https://github.com/ytdl-org/youtube-dl/issues/28194
-                    if response.get('continuationContents') or response.get('onResponseReceivedActions'):
+                    if dict_get(response,
+                                ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints')):
                         break
 
                     # Youtube may send alerts if there was an issue with the continuation page
@@ -2837,9 +2839,11 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 'playlistVideoRenderer': (self._playlist_entries, 'contents'),
                 'itemSectionRenderer': (extract_entries, 'contents'),  # for feeds
                 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
+                'backstagePostThreadRenderer': (self._post_thread_continuation_entries, 'contents')
             }
             continuation_items = try_get(
-                response, lambda x: x['onResponseReceivedActions'][0]['appendContinuationItemsAction']['continuationItems'], list)
+                response,
+                lambda x: dict_get(x, ('onResponseReceivedActions', 'onResponseReceivedEndpoints'))[0]['appendContinuationItemsAction']['continuationItems'], list)
             continuation_item = try_get(continuation_items, lambda x: x[0], dict) or {}
             video_items_renderer = None
             for key, value in continuation_item.items():
