@@ -103,7 +103,7 @@ You can install yt-dlp using one of the following methods:
 * Use pip+git: `python -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
 * Install master branch: `python -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp`
 
-UNIX users (Linux, macOS, BSD) can also install the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest) one of the follwing ways:
+UNIX users (Linux, macOS, BSD) can also install the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest) one of the following ways:
 
 ```
 sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
