@@ -732,6 +732,8 @@ from .mtv import (
     MTVServicesEmbeddedIE,
     MTVDEIE,
     MTVJapanIE,
+    MTVItaliaIE,
+    MTVItaliaProgrammaIE,
 )
 from .muenchentv import MuenchenTVIE
 from .mwave import MwaveIE, MwaveMeetGreetIE
