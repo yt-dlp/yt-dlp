@@ -596,8 +596,7 @@ class MTVItaliaProgrammaIE(MTVItaliaIE):
         query = {'url': url}
         info_url = update_url_query(self._FEED_URL, query)
         video_id = self._match_id(url)
-        info = self._download_json(info_url, video_id)
-        info = info.get('manifest')
+        info = self._download_json(info_url, video_id).get('manifest')
 
         redirect = try_get(
             info, lambda x: x['newLocation']['url'], compat_str)
@@ -637,10 +636,9 @@ class MTVItaliaProgrammaIE(MTVItaliaIE):
         description = try_get(info, lambda x: x['content'], compat_str)
 
         if current_url:
-            season = self._download_json(
-                playlist_url, video_id, 'Seasons infos')
             season = try_get(
-                season, lambda x: x['result']['data'], dict)
+                self._download_json(playlist_url, video_id, 'Seasons infos'),
+                lambda x: x['result']['data'], dict)
             current = try_get(
                 season, lambda x: x['currentSeason'], compat_str)
             seasons = try_get(
