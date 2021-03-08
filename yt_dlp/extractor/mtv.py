@@ -576,8 +576,7 @@ class MTVItaliaProgrammaIE(MTVItaliaIE):
 
     def _get_entries(self, title, url):
         while True:
-            pg = re.search(r'/(\d+)$', url)
-            pg = pg.group(1) if pg else '1'
+            pg = self._search_regex(r'/(\d+)$', url, 'entries', '1')
             entries = self._download_json(url, title, 'page %s' % pg)
             url = try_get(
                 entries, lambda x: x['result']['nextPageURL'], compat_str)
@@ -610,14 +609,13 @@ class MTVItaliaProgrammaIE(MTVItaliaIE):
             info, lambda x: x['reporting']['parentId'], compat_str)
 
         playlist_url = current_url = None
-        zones = info.get('zones') or []
-        for z in zones:
-            if zones[z].get('moduleName') in {'INTL_M304', 'INTL_M209'}:
-                info_url = zones[z].get('feed')
-            if zones[z].get('moduleName') in {'INTL_M308', 'INTL_M317'}:
-                playlist_url = playlist_url or zones[z].get('feed')
-            if zones[z].get('moduleName') in {'INTL_M300'}:
-                current_url = current_url or zones[z].get('feed')
+        for z in (info.get('zones') or {}).values():
+            if z.get('moduleName') in ('INTL_M304', 'INTL_M209'):
+                info_url = z.get('feed')
+            if z.get('moduleName') in ('INTL_M308', 'INTL_M317'):
+                playlist_url = playlist_url or z.get('feed')
+            if z.get('moduleName') in ('INTL_M300',):
+                current_url = current_url or z.get('feed')
 
         if not info_url:
             raise ExtractorError('No info found')
@@ -637,7 +635,7 @@ class MTVItaliaProgrammaIE(MTVItaliaIE):
 
         if current_url:
             season = try_get(
-                self._download_json(playlist_url, video_id, 'Seasons infos'),
+                self._download_json(playlist_url, video_id, 'Seasons info'),
                 lambda x: x['result']['data'], dict)
             current = try_get(
                 season, lambda x: x['currentSeason'], compat_str)
