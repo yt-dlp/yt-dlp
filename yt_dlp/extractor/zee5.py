@@ -16,7 +16,7 @@ from ..utils import (
 
 
 class Zee5IE(InfoExtractor):
-    _VALID_URL = r'(?:zee5:|https?://(?:www\.)?zee5\.com/[^#?]*/(?P<display_id>[^#?]+)/)(?P<id>[^#?/]+)(?:$|[?#])'
+    _VALID_URL = r'(?:(?:https?://)(?:www\.)?zee5\.com/(?:global/)?(?:[^#/?]+/)?(?:(?:tvshows|kids)/(?:[^#/?]+/){3}|movies/[^#/?]+/)(?P<display_id>[^#/?]+)/|zee5:)(?P<id>[^#/?]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://www.zee5.com/movies/details/krishna-the-birth/0-0-63098',
         'info_dict': {
@@ -114,3 +114,45 @@ class Zee5IE(InfoExtractor):
             'episode_number': int_or_none(try_get(json_data, lambda x: x['index'])),
             'tags': try_get(json_data, lambda x: x['tags'], list)
         }
+
+
+class Zee5SeriesIE(InfoExtractor):
+    _VALID_URL = r'(?:https?://)(?:www\.)?zee5\.com/(?:global/)?(?:[^#/?]+/)?(?:(?:tvshows|kids)/[^#/?]+/)(?P<display_id>[^#/?]+)/(?P<id>[^#/?]+)/?(?:$|[?#])'
+    _TEST = {
+        'url': 'https://www.zee5.com/kids/kids-shows/krishna-balram/0-6-1871',
+        'playlist_mincount': 43,
+        'info_dict': {
+            'id': '0-6-1871',
+        },
+    }
+
+    def _entries(self, show_id):
+        video_ids = []
+        access_token_request = self._download_json(
+            'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
+            show_id, note="Downloading access token")
+        headers = {
+            'X-Access-Token': access_token_request['token'],
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36',
+            'Referer': 'https://www.zee5.com/',
+        }
+        showurl = 'https://gwapi.zee5.com/content/tvshow/{}?translation=en&country=IN'.format(show_id)
+
+        seasonid = try_get(self._download_json(showurl, video_id=show_id, headers=headers), lambda x: x['season']['id'], str)
+        nexturl = 'https://gwapi.zee5.com/content/tvshow/?season_id={}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=10'.format(seasonid)
+        while nexturl is not None:
+            episodesjson = self._download_json(nexturl, video_id=show_id, headers=headers)
+            episodes = try_get(episodesjson, lambda x: x['episode'], list)
+            for episode in episodes:
+                video_ids.append(episode.get('id'))
+            nexturl = str_or_none(episodesjson.get('next_episode_api'))
+
+        for video_id in video_ids:
+            yield self.url_result(
+                'zee5:%s' % video_id,
+                ie=Zee5IE.ie_key(), video_id=video_id)
+
+    def _real_extract(self, url):
+        show_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
+        return self.playlist_result(
+            self._entries(show_id), playlist_id=show_id)

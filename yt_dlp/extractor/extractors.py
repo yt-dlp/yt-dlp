@@ -1668,5 +1668,6 @@ from .zdf import ZDFIE, ZDFChannelIE
 from .zhihu import ZhihuIE
 from .zingmp3 import ZingMp3IE
 from .zee5 import Zee5IE
+from .zee5 import Zee5SeriesIE
 from .zoom import ZoomIE
 from .zype import ZypeIE
