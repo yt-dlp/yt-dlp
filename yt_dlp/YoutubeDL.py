@@ -1171,6 +1171,9 @@ class YoutubeDL(object):
         else:
             raise Exception('Invalid result type: %s' % result_type)
 
+    def _ensure_dir_exists(self, path):
+        return make_dir(path, self.report_error)
+
     def __process_playlist(self, ie_result, download):
         # We process each entry in the playlist
         playlist = ie_result.get('title') or ie_result.get('id')
@@ -1187,12 +1190,9 @@ class YoutubeDL(object):
             }
             ie_copy.update(dict(ie_result))
 
-            def ensure_dir_exists(path):
-                return make_dir(path, self.report_error)
-
             if self.params.get('writeinfojson', False):
                 infofn = self.prepare_filename(ie_copy, 'pl_infojson')
-                if not ensure_dir_exists(encodeFilename(infofn)):
+                if not self._ensure_dir_exists(encodeFilename(infofn)):
                     return
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
                     self.to_screen('[info] Playlist metadata is already present')
@@ -1208,7 +1208,7 @@ class YoutubeDL(object):
 
             if self.params.get('writedescription', False):
                 descfn = self.prepare_filename(ie_copy, 'pl_description')
-                if not ensure_dir_exists(encodeFilename(descfn)):
+                if not self._ensure_dir_exists(encodeFilename(descfn)):
                     return
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
                     self.to_screen('[info] Playlist description is already present')
@@ -2089,17 +2089,14 @@ class YoutubeDL(object):
         if full_filename is None:
             return
 
-        def ensure_dir_exists(path):
-            return make_dir(path, self.report_error)
-
-        if not ensure_dir_exists(encodeFilename(full_filename)):
+        if not self._ensure_dir_exists(encodeFilename(full_filename)):
             return
-        if not ensure_dir_exists(encodeFilename(temp_filename)):
+        if not self._ensure_dir_exists(encodeFilename(temp_filename)):
             return
 
         if self.params.get('writedescription', False):
             descfn = self.prepare_filename(info_dict, 'description')
-            if not ensure_dir_exists(encodeFilename(descfn)):
+            if not self._ensure_dir_exists(encodeFilename(descfn)):
                 return
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
                 self.to_screen('[info] Video description is already present')
@@ -2116,7 +2113,7 @@ class YoutubeDL(object):
 
         if self.params.get('writeannotations', False):
             annofn = self.prepare_filename(info_dict, 'annotation')
-            if not ensure_dir_exists(encodeFilename(annofn)):
+            if not self._ensure_dir_exists(encodeFilename(annofn)):
                 return
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(annofn)):
                 self.to_screen('[info] Video annotations are already present')
@@ -2204,7 +2201,7 @@ class YoutubeDL(object):
 
         if self.params.get('writeinfojson', False):
             infofn = self.prepare_filename(info_dict, 'infojson')
-            if not ensure_dir_exists(encodeFilename(infofn)):
+            if not self._ensure_dir_exists(encodeFilename(infofn)):
                 return
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
                 self.to_screen('[info] Video metadata is already present')
@@ -2360,7 +2357,7 @@ class YoutubeDL(object):
                             fname = prepend_extension(
                                 self.prepare_filename(new_info, 'temp'),
                                 'f%s' % f['format_id'], new_info['ext'])
-                            if not ensure_dir_exists(fname):
+                            if not self._ensure_dir_exists(fname):
                                 return
                             downloaded.append(fname)
                             partial_success, real_download = dl(fname, new_info)

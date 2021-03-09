@@ -139,7 +139,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                        encodeFilename(thumbnail_filename, True),
                        encodeArgument('-o'),
                        encodeFilename(temp_filename, True)]
-                cmd += [encodeArgument(o) for o in self._configuration_args(exe='AtomicParsley')]
+                cmd += [encodeArgument(o) for o in self._configuration_args('AtomicParsley')]
 
                 self.to_screen('Adding thumbnail to "%s"' % filename)
                 self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))

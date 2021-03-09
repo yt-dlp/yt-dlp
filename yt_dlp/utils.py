@@ -4692,36 +4692,26 @@ def cli_valueless_option(params, command_option, param, expected_value=True):
     return [command_option] if param == expected_value else []
 
 
-def cli_configuration_args(argdict, key, default=[], exe=None, use_default_arg=True):
-    # use_default_arg can be True, False, or 'no_compat'
+def cli_configuration_args(argdict, keys, default=[], use_compat=True):
     if isinstance(argdict, (list, tuple)):  # for backward compatibility
-        if use_default_arg is True:
+        if use_compat:
             return argdict
         else:
             argdict = None
-
     if argdict is None:
         return default
     assert isinstance(argdict, dict)
 
-    key = key.lower()
-    args = exe_args = None
-    if exe is not None:
-        assert isinstance(exe, compat_str)
-        exe = exe.lower()
-        args = argdict.get('%s+%s' % (key, exe))
-        if args is None:
-            exe_args = argdict.get(exe)
-
-    if args is None:
-        args = argdict.get(key) if key != exe else None
-    if args is None and exe_args is None:
-        args = argdict.get('default', default) if use_default_arg else default
-
-    args, exe_args = args or [], exe_args or []
-    assert isinstance(args, (list, tuple))
-    assert isinstance(exe_args, (list, tuple))
-    return args + exe_args
+    assert isinstance(keys, (list, tuple))
+    for key_list in keys:
+        if isinstance(key_list, compat_str):
+            key_list = (key_list,)
+        arg_list = list(filter(
+            lambda x: x is not None,
+            [argdict.get(key.lower()) for key in key_list]))
+        if arg_list:
+            return [arg for args in arg_list for arg in args]
+    return default
 
 
 class ISO639Utils(object):
