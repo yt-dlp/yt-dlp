@@ -16,7 +16,7 @@ from ..utils import (
 
 
 class Zee5IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?zee5\.com/[^#?]*/(?P<display_id>[-\w]+)/(?P<id>[-\d]+)'
+    _VALID_URL = r'(?:zee5:|https?://(?:www\.)?zee5\.com/[^#?]*/(?P<display_id>[^#?]+)/)(?P<id>[^#?/]+)(?:$|[?#])'
     _TESTS = [{
         'url': 'https://www.zee5.com/movies/details/krishna-the-birth/0-0-63098',
         'info_dict': {
@@ -62,6 +62,9 @@ class Zee5IE(InfoExtractor):
         'params': {
             'format': 'bv',
         },
+    }, {
+        'url': 'https://www.zee5.com/hi/tvshows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730?country=IN',
+        'only_matching': True
     }]
 
     def _real_extract(self, url):
