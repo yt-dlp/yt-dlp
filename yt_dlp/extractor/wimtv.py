@@ -29,7 +29,7 @@ class WimTVIE(InfoExtractor):
         'md5': 'db29fb32-bade-47b6-a3a6-cb69fe80267a',
         'info_dict': {
             'id': 'db29fb32-bade-47b6-a3a6-cb69fe80267a',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'title': 'AMA SUPERCROSS 2020 - R2 ST. LOUIS',
             'duration': 6481,
             'thumbnail': r're:https?://.+?/thumbnail/.+?/720$'
@@ -42,7 +42,7 @@ class WimTVIE(InfoExtractor):
         'url': 'https://platform.wim.tv/embed/?live=28e22c22-49db-40f3-8c37-8cbb0ff44556&autostart=true',
         'info_dict': {
             'id': '28e22c22-49db-40f3-8c37-8cbb0ff44556',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'title': 'Streaming MSmotorTV',
             'is_live': True,
         },
@@ -60,9 +60,9 @@ class WimTVIE(InfoExtractor):
     @staticmethod
     def _extract_urls(webpage):
         return [
-            mobj.group('emb')
+            mobj.group('url')
             for mobj in re.finditer(
-                r'<iframe[^>]+src=["\'](?P<emb>%s)' % WimTVIE._VALID_URL,
+                r'<iframe[^>]+src=["\'](?P<url>%s)' % WimTVIE._VALID_URL,
                 webpage)]
 
     def _real_initialize(self):
@@ -113,7 +113,7 @@ class WimTVIE(InfoExtractor):
             return None
         if not self._player.get('thumb_server_path'):
             self._player['thumb_server_path'] = ''
-        return "%s%s/asset/thumbnail/%s/%s" % (
+        return '%s%s/asset/thumbnail/%s/%s' % (
             self._player['thumb_server'],
             self._player['thumb_server_path'],
             thumb_id, width)
@@ -141,7 +141,7 @@ class WimTVIE(InfoExtractor):
             if src.get('mimeType') == 'application/x-mpegurl':
                 formats.extend(
                     self._extract_m3u8_formats(
-                        src.get('uniqueStreamer'), video_id))
+                        src.get('uniqueStreamer'), video_id, 'mp4'))
             if src.get('mimeType') == 'video/flash':
                 formats.append({
                     'format_id': 'rtmp',
