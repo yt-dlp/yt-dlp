@@ -24,12 +24,16 @@ from ..utils import (
 
 
 class HlsFD(FragmentFD):
-    """ A limited implementation that does not require ffmpeg """
+    """
+    Download segments in a m3u8 manifest. External downloaders can take over
+    the fragment downloads by supporting the 'frag_urls' protocol and
+    re-defining 'supports_manifest' function
+    """
 
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False, real_downloader=None, with_crypto=can_decrypt_frag):
+    def can_download(manifest, info_dict, allow_unplayable_formats=False, with_crypto=can_decrypt_frag):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -53,16 +57,15 @@ class HlsFD(FragmentFD):
             UNSUPPORTED_FEATURES += [
                 r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1]
             ]
-        if real_downloader:
-            UNSUPPORTED_FEATURES += [
-                r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
-            ]
-        check_results = [not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES]
-        is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
-        check_results.append(with_crypto or not is_aes128_enc)
-        check_results.append(not (is_aes128_enc and r'#EXT-X-BYTERANGE' in manifest))
-        check_results.append(not info_dict.get('is_live'))
-        return all(check_results)
+
+        def check_results():
+            yield not info_dict.get('is_live')
+            is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
+            yield with_crypto or not is_aes128_enc
+            yield not (is_aes128_enc and r'#EXT-X-BYTERANGE' in manifest)
+            for feature in UNSUPPORTED_FEATURES:
+                yield not re.search(feature, manifest)
+        return all(check_results())
 
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
@@ -72,9 +75,7 @@ class HlsFD(FragmentFD):
         man_url = urlh.geturl()
         s = urlh.read().decode('utf-8', 'ignore')
 
-        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
-
-        if not self.can_download(s, info_dict, self.params.get('allow_unplayable_formats'), real_downloader):
+        if not self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')):
             if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
                 self.report_error('pycryptodome not found. Please install it.')
                 return False
@@ -88,6 +89,10 @@ class HlsFD(FragmentFD):
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
+
+        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
+        if real_downloader and not real_downloader.supports_manifest(s):
+            real_downloader = None
 
         def is_ad_fragment_start(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s

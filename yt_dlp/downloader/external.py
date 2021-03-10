@@ -125,7 +125,7 @@ class ExternalFD(FileDownloader):
         if 'fragments' in info_dict:
             file_list = []
             dest, _ = sanitize_open(tmpfilename, 'wb')
-            for [i, fragment] in enumerate(info_dict['fragments']):
+            for i, fragment in enumerate(info_dict['fragments']):
                 file = '%s_%s.frag' % (tmpfilename, i)
                 decrypt_info = fragment.get('decrypt_info')
                 src, _ = sanitize_open(file, 'rb')
@@ -242,6 +242,15 @@ class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'frag_urls')
 
+    @staticmethod
+    def supports_manifest(manifest):
+        UNSUPPORTED_FEATURES = [
+            r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [1]
+            # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-17#section-4.3.2.2
+        ]
+        check_results = (not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES)
+        return all(check_results)
+
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c']
         dn = os.path.dirname(tmpfilename)
@@ -264,7 +273,7 @@ class Aria2cFD(ExternalFD):
             cmd += ['--uri-selector', 'inorder', '--download-result=hide']
             url_list_file = '%s.frag.urls' % tmpfilename
             url_list = []
-            for [i, fragment] in enumerate(info_dict['fragments']):
+            for i, fragment in enumerate(info_dict['fragments']):
                 tmpsegmentname = '%s_%s.frag' % (os.path.basename(tmpfilename), i)
                 url_list.append('%s\n\tout=%s' % (fragment['url'], tmpsegmentname))
             stream, _ = sanitize_open(url_list_file, 'wb')

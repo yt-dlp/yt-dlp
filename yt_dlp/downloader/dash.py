@@ -12,7 +12,8 @@ from ..utils import (
 
 class DashSegmentsFD(FragmentFD):
     """
-    Download segments in a DASH manifest
+    Download segments in a DASH manifest. External downloaders can take over
+    the fragment downloads by supporting the 'frag_urls' protocol
     """
 
     FD_NAME = 'dashsegments'
@@ -37,7 +38,7 @@ class DashSegmentsFD(FragmentFD):
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
-        fragments = []
+        fragments_to_download = []
         frag_index = 0
         for i, fragment in enumerate(fragments):
             frag_index += 1
@@ -49,7 +50,7 @@ class DashSegmentsFD(FragmentFD):
                 fragment_url = urljoin(fragment_base_url, fragment['path'])
 
             if real_downloader:
-                fragments.append({
+                fragments_to_download.append({
                     'url': fragment_url,
                 })
                 continue
@@ -92,7 +93,7 @@ class DashSegmentsFD(FragmentFD):
 
         if real_downloader:
             info_copy = info_dict.copy()
-            info_copy['fragments'] = fragments
+            info_copy['fragments'] = fragments_to_download
             fd = real_downloader(self.ydl, self.params)
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
