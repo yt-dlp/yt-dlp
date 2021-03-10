@@ -106,7 +106,7 @@ class PlutoTVIE(InfoExtractor):
     def _get_video_info(self, video_json, slug, series_name=None):
         video_id = video_json.get('_id', slug)
         formats = []
-        for video_url in try_get(video_json, lambda x: x['stitched']['urls'], list):
+        for video_url in try_get(video_json, lambda x: x['stitched']['urls'], list) or []:
             if video_url.get('type') != 'hls':
                 continue
             url = url_or_none(video_url.get('url'))
