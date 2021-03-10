@@ -122,18 +122,14 @@ class ExternalFD(FileDownloader):
         if p.returncode != 0:
             self.to_stderr(stderr.decode('utf-8', 'replace'))
 
-        if 'url_list' in info_dict:
+        if 'fragments' in info_dict:
             file_list = []
-            for [i, url] in enumerate(info_dict['url_list']):
-                tmpsegmentname = '%s_%s.frag' % (tmpfilename, i)
-                file_list.append(tmpsegmentname)
-            key_list = info_dict.get('key_list')
-            decrypt_info = None
             dest, _ = sanitize_open(tmpfilename, 'wb')
-            for i, file in enumerate(file_list):
+            for [i, fragment] in enumerate(info_dict['fragments']):
+                file = '%s_%s.frag' % (tmpfilename, i)
+                decrypt_info = fragment.get('decrypt_info')
                 src, _ = sanitize_open(file, 'rb')
-                if key_list:
-                    decrypt_info = next((x for x in key_list if x['INDEX'] == i), decrypt_info)
+                if decrypt_info:
                     if decrypt_info['METHOD'] == 'AES-128':
                         iv = decrypt_info.get('IV')
                         decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
@@ -149,6 +145,7 @@ class ExternalFD(FileDownloader):
                     fragment_data = src.read()
                     dest.write(fragment_data)
                 src.close()
+                file_list.append(file)
             dest.close()
             if not self.params.get('keep_fragments', False):
                 for file_path in file_list:
@@ -248,7 +245,7 @@ class Aria2cFD(ExternalFD):
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c']
         dn = os.path.dirname(tmpfilename)
-        if 'url_list' not in info_dict:
+        if 'fragments' not in info_dict:
             cmd += ['--out', os.path.basename(tmpfilename)]
         verbose_level_args = ['--console-log-level=warn', '--summary-interval=0']
         cmd += self._configuration_args(['--file-allocation=none', '-x16', '-j16', '-s16'] + verbose_level_args)
@@ -262,14 +259,14 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
         cmd += ['--auto-file-renaming=false']
-        if 'url_list' in info_dict:
+        if 'fragments' in info_dict:
             cmd += verbose_level_args
             cmd += ['--uri-selector', 'inorder', '--download-result=hide']
             url_list_file = '%s.frag.urls' % tmpfilename
             url_list = []
-            for [i, url] in enumerate(info_dict['url_list']):
+            for [i, fragment] in enumerate(info_dict['fragments']):
                 tmpsegmentname = '%s_%s.frag' % (os.path.basename(tmpfilename), i)
-                url_list.append('%s\n\tout=%s' % (url, tmpsegmentname))
+                url_list.append('%s\n\tout=%s' % (fragment['url'], tmpsegmentname))
             stream, _ = sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode('utf-8'))
             stream.close()
