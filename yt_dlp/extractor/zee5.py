@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
+from ..compat import compat_str
 from ..utils import (
     int_or_none,
     parse_age_limit,
@@ -20,20 +21,20 @@ class Zee5IE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.zee5.com/movies/details/krishna-the-birth/0-0-63098',
         'info_dict': {
-            "id": "0-0-63098",
-            "ext": "m3u8",
-            "display_id": "krishna-the-birth",
-            "title": "Krishna - The Birth",
-            "duration": 4368,
-            "average_rating": 4,
-            "description": str,
-            "alt_title": "Krishna - The Birth",
-            "uploader": "Zee Entertainment Enterprises Ltd",
-            "release_date": "20060101",
-            "upload_date": "20060101",
-            "timestamp": 1136073600,
-            "thumbnail": "https://akamaividz.zee5.com/resources/0-0-63098/list/270x152/0063098_list_80888170.jpg",
-            "tags": list
+            'id': '0-0-63098',
+            'ext': 'mp4',
+            'display_id': 'krishna-the-birth',
+            'title': 'Krishna - The Birth',
+            'duration': 4368,
+            'average_rating': 4,
+            'description': str,
+            'alt_title': 'Krishna - The Birth',
+            'uploader': 'Zee Entertainment Enterprises Ltd',
+            'release_date': '20060101',
+            'upload_date': '20060101',
+            'timestamp': 1136073600,
+            'thumbnail': 'https://akamaividz.zee5.com/resources/0-0-63098/list/270x152/0063098_list_80888170.jpg',
+            'tags': list
         },
         'params': {
             'format': 'bv',
@@ -41,23 +42,23 @@ class Zee5IE(InfoExtractor):
     }, {
         'url': 'https://zee5.com/tvshows/details/krishna-balram/0-6-1871/episode-1-the-test-of-bramha/0-1-233402',
         'info_dict': {
-            "id": "0-1-233402",
-            'ext': 'm3u8',
-            "display_id": "episode-1-the-test-of-bramha",
-            "title": "Episode 1 - The Test Of Bramha",
-            "duration": 1336,
-            "average_rating": 4,
-            "description": str,
-            "alt_title": "Episode 1 - The Test Of Bramha",
-            "uploader": "Green Gold",
-            "release_date": "20090101",
-            "upload_date": "20090101",
-            "timestamp": 1230768000,
-            "thumbnail": "https://akamaividz.zee5.com/resources/0-1-233402/list/270x152/01233402_list.jpg",
-            "series": "Krishna Balram",
-            "season_number": 1,
-            "episode_number": 1,
-            "tags": list,
+            'id': '0-1-233402',
+            'ext': 'mp4',
+            'display_id': 'episode-1-the-test-of-bramha',
+            'title': 'Episode 1 - The Test Of Bramha',
+            'duration': 1336,
+            'average_rating': 4,
+            'description': str,
+            'alt_title': 'Episode 1 - The Test Of Bramha',
+            'uploader': 'Green Gold',
+            'release_date': '20090101',
+            'upload_date': '20090101',
+            'timestamp': 1230768000,
+            'thumbnail': 'https://akamaividz.zee5.com/resources/0-1-233402/list/270x152/01233402_list.jpg',
+            'series': 'Krishna Balram',
+            'season_number': 1,
+            'episode_number': 1,
+            'tags': list,
         },
         'params': {
             'format': 'bv',
@@ -65,16 +66,19 @@ class Zee5IE(InfoExtractor):
     }, {
         'url': 'https://www.zee5.com/hi/tvshows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730?country=IN',
         'only_matching': True
+    }, {
+        'url': 'https://www.zee5.com/global/hi/tvshows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730',
+        'only_matching': True
     }]
 
     def _real_extract(self, url):
         video_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
         access_token_request = self._download_json(
             'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
-            video_id, note="Downloading access token")
+            video_id, note='Downloading access token')
         token_request = self._download_json(
             'https://useraction.zee5.com/tokennd',
-            video_id, note="Downloading video token")
+            video_id, note='Downloading video token')
         json_data = self._download_json(
             'https://gwapi.zee5.com/content/details/{}?translation=en&country=IN'.format(video_id),
             video_id, headers={'X-Access-Token': access_token_request['token']})
@@ -118,18 +122,43 @@ class Zee5IE(InfoExtractor):
 
 class Zee5SeriesIE(InfoExtractor):
     _VALID_URL = r'(?:https?://)(?:www\.)?zee5\.com/(?:global/)?(?:[^#/?]+/)?(?:(?:tvshows|kids)/[^#/?]+/)(?P<display_id>[^#/?]+)/(?P<id>[^#/?]+)/?(?:$|[?#])'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.zee5.com/kids/kids-shows/krishna-balram/0-6-1871',
         'playlist_mincount': 43,
         'info_dict': {
             'id': '0-6-1871',
         },
+    }, {
+        'url': 'https://www.zee5.com/tvshows/details/bhabi-ji-ghar-par-hai/0-6-199',
+        'playlist_mincount': 1500,
+        'info_dict': {
+            'id': '0-6-199',
+        },
+    }, {
+        'url': 'https://www.zee5.com/tvshows/details/agent-raghav-crime-branch/0-6-965',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': '0-6-965',
+        },
+    }, {
+        'url': 'https://www.zee5.com/ta/tvshows/details/nagabhairavi/0-6-3201',
+        'playlist_mincount': 3,
+        'info_dict': {
+            'id': '0-6-3201',
+        },
+    }, {
+        'url': 'https://www.zee5.com/global/hi/tvshows/details/khwaabon-ki-zamin-par/0-6-270',
+        'playlist_mincount': 150,
+        'info_dict': {
+            'id': '0-6-270',
+        },
     }
+    ]
 
     def _entries(self, show_id):
         access_token_request = self._download_json(
             'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
-            show_id, note="Downloading access token")
+            show_id, note='Downloading access token')
         headers = {
             'X-Access-Token': access_token_request['token'],
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36',
@@ -137,16 +166,17 @@ class Zee5SeriesIE(InfoExtractor):
         }
         showurl = 'https://gwapi.zee5.com/content/tvshow/{}?translation=en&country=IN'.format(show_id)
 
-        seasonid = try_get(self._download_json(showurl, video_id=show_id, headers=headers), lambda x: x['season']['id'], str)
-        nexturl = 'https://gwapi.zee5.com/content/tvshow/?season_id={}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=10'.format(seasonid)
-        while nexturl is not None:
-            episodesjson = self._download_json(nexturl, video_id=show_id, headers=headers)
-            for episode in try_get(episodesjson, lambda x: x['episode'], list) or []:
-                video_id = episode.get('id')
-                yield self.url_result(
-                    'zee5:%s' % video_id,
-                    ie=Zee5IE.ie_key(), video_id=video_id)
-            nexturl = url_or_none(episodesjson.get('next_episode_api'))
+        for season in try_get(self._download_json(showurl, video_id=show_id, headers=headers), lambda x: x['seasons'], list):
+            seasonid = try_get(season, lambda x: x['id'], compat_str)
+            nexturl = 'https://gwapi.zee5.com/content/tvshow/?season_id={}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=100'.format(seasonid)
+            while nexturl is not None:
+                episodesjson = self._download_json(nexturl, video_id=show_id, headers=headers)
+                for episode in try_get(episodesjson, lambda x: x['episode'], list) or []:
+                    video_id = episode.get('id')
+                    yield self.url_result(
+                        'zee5:%s' % video_id,
+                        ie=Zee5IE.ie_key(), video_id=video_id)
+                nexturl = url_or_none(episodesjson.get('next_episode_api'))
 
     def _real_extract(self, url):
         show_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
