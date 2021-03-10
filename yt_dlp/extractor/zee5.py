@@ -127,7 +127,6 @@ class Zee5SeriesIE(InfoExtractor):
     }
 
     def _entries(self, show_id):
-        video_ids = []
         access_token_request = self._download_json(
             'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
             show_id, note="Downloading access token")
