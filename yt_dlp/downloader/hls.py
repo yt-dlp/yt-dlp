@@ -29,7 +29,7 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False, with_crypto=can_decrypt_frag):
+    def can_download(manifest, info_dict, allow_unplayable_formats=False, real_downloader=None, with_crypto=can_decrypt_frag):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -53,6 +53,10 @@ class HlsFD(FragmentFD):
             UNSUPPORTED_FEATURES += [
                 r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1]
             ]
+        if real_downloader:
+            UNSUPPORTED_FEATURES += [
+                r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
+            ]
         check_results = [not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES]
         is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
         check_results.append(with_crypto or not is_aes128_enc)
@@ -68,7 +72,9 @@ class HlsFD(FragmentFD):
         man_url = urlh.geturl()
         s = urlh.read().decode('utf-8', 'ignore')
 
-        if not self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')):
+        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
+
+        if not self.can_download(s, info_dict, self.params.get('allow_unplayable_formats'), real_downloader):
             if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
                 self.report_error('pycryptodome not found. Please install it.')
                 return False
@@ -83,8 +89,6 @@ class HlsFD(FragmentFD):
             #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
 
-        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
-
         def is_ad_fragment_start(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s
                     or s.startswith('#UPLYNK-SEGMENT') and s.endswith(',ad'))
@@ -93,7 +97,7 @@ class HlsFD(FragmentFD):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=master' in s
                     or s.startswith('#UPLYNK-SEGMENT') and s.endswith(',segment'))
 
-        fragment_urls = []
+        fragments = []
 
         media_frags = 0
         ad_frags = 0
@@ -136,7 +140,6 @@ class HlsFD(FragmentFD):
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
-        key_list = []
         byte_range = {}
         discontinuity_count = 0
         frag_index = 0
@@ -161,7 +164,10 @@ class HlsFD(FragmentFD):
                         frag_url = update_url_query(frag_url, extra_query)
 
                     if real_downloader:
-                        fragment_urls.append(frag_url)
+                        fragments.append({
+                            'url': frag_url,
+                            'decrypt_info': decrypt_info,
+                        })
                         continue
                     download_frag = True
 
@@ -181,7 +187,10 @@ class HlsFD(FragmentFD):
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
                     if real_downloader:
-                        fragment_urls.append(frag_url)
+                        fragments.append({
+                            'url': frag_url,
+                            'decrypt_info': decrypt_info,
+                        })
                         continue
 
                     if map_info.get('BYTERANGE'):
@@ -206,9 +215,6 @@ class HlsFD(FragmentFD):
                             decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
                         if decrypt_url != decrypt_info['URI']:
                             decrypt_info['KEY'] = None
-                    key_data = decrypt_info.copy()
-                    key_data['INDEX'] = frag_index
-                    key_list.append(key_data)
 
                 elif line.startswith('#EXT-X-MEDIA-SEQUENCE'):
                     media_sequence = int(line[22:])
@@ -275,8 +281,7 @@ class HlsFD(FragmentFD):
 
         if real_downloader:
             info_copy = info_dict.copy()
-            info_copy['url_list'] = fragment_urls
-            info_copy['key_list'] = key_list
+            info_copy['fragments'] = fragments
             fd = real_downloader(self.ydl, self.params)
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:

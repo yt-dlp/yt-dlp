@@ -37,7 +37,7 @@ class DashSegmentsFD(FragmentFD):
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
-        fragment_urls = []
+        fragments = []
         frag_index = 0
         for i, fragment in enumerate(fragments):
             frag_index += 1
@@ -49,7 +49,9 @@ class DashSegmentsFD(FragmentFD):
                 fragment_url = urljoin(fragment_base_url, fragment['path'])
 
             if real_downloader:
-                fragment_urls.append(fragment_url)
+                fragments.append({
+                    'url': fragment_url,
+                })
                 continue
 
             # In DASH, the first segment contains necessary headers to
@@ -90,7 +92,7 @@ class DashSegmentsFD(FragmentFD):
 
         if real_downloader:
             info_copy = info_dict.copy()
-            info_copy['url_list'] = fragment_urls
+            info_copy['fragments'] = fragments
             fd = real_downloader(self.ydl, self.params)
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
