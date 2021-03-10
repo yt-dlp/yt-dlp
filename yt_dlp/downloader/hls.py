@@ -278,7 +278,6 @@ class HlsFD(FragmentFD):
                         break
                     i += 1
                     media_sequence += 1
-        info_dict['__m3u8_fixup'] = True
 
         if real_downloader:
             info_copy = info_dict.copy()
