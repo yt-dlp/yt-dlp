@@ -142,15 +142,12 @@ class Zee5SeriesIE(InfoExtractor):
         nexturl = 'https://gwapi.zee5.com/content/tvshow/?season_id={}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=10'.format(seasonid)
         while nexturl is not None:
             episodesjson = self._download_json(nexturl, video_id=show_id, headers=headers)
-            episodes = try_get(episodesjson, lambda x: x['episode'], list)
-            for episode in episodes:
-                video_ids.append(episode.get('id'))
-            nexturl = str_or_none(episodesjson.get('next_episode_api'))
-
-        for video_id in video_ids:
-            yield self.url_result(
-                'zee5:%s' % video_id,
-                ie=Zee5IE.ie_key(), video_id=video_id)
+            for episode in try_get(episodesjson, lambda x: x['episode'], list) or []:
+                video_id = episode.get('id')
+                yield self.url_result(
+                    'zee5:%s' % video_id,
+                    ie=Zee5IE.ie_key(), video_id=video_id)
+            nexturl = url_or_none(episodesjson.get('next_episode_api'))
 
     def _real_extract(self, url):
         show_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
