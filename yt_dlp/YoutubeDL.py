@@ -2438,6 +2438,7 @@ class YoutubeDL(object):
                         assert fixup_policy in ('ignore', 'never')
 
                 if (info_dict.get('protocol') == 'm3u8_native'
+                        or info_dict.get('__m3u8_fixup')
                         or info_dict.get('protocol') == 'm3u8'
                         and self.params.get('hls_prefer_native')):
                     if fixup_policy == 'warn':
