@@ -953,6 +953,7 @@ from .plays import PlaysTVIE
 from .playtvak import PlaytvakIE
 from .playvid import PlayvidIE
 from .playwire import PlaywireIE
+from .plutotv import PlutoTVIE
 from .pluralsight import (
     PluralsightIE,
     PluralsightCourseIE,
