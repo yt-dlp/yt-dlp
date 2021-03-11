@@ -179,22 +179,26 @@ class Zee5SeriesIE(InfoExtractor):
             show_id, note='Downloading access token')
         headers = {
             'X-Access-Token': access_token_request['token'],
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36',
             'Referer': 'https://www.zee5.com/',
         }
-        showurl = 'https://gwapi.zee5.com/content/tvshow/{}?translation=en&country=IN'.format(show_id)
+        show_url = 'https://gwapi.zee5.com/content/tvshow/{}?translation=en&country=IN'.format(show_id)
 
-        for season in try_get(self._download_json(showurl, video_id=show_id, headers=headers), lambda x: x['seasons'], list):
-            seasonid = try_get(season, lambda x: x['id'], compat_str)
-            nexturl = 'https://gwapi.zee5.com/content/tvshow/?season_id={}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=100'.format(seasonid)
-            while nexturl is not None:
-                episodesjson = self._download_json(nexturl, video_id=show_id, headers=headers)
-                for episode in try_get(episodesjson, lambda x: x['episode'], list) or []:
+        page_num = 0
+        show_json = self._download_json(show_url, video_id=show_id, headers=headers)
+        for season in show_json.get('seasons') or []:
+            season_id = try_get(season, lambda x: x['id'], compat_str)
+            next_url = 'https://gwapi.zee5.com/content/tvshow/?season_id={}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=100'.format(season_id)
+            while next_url:
+                page_num += 1
+                episodes_json = self._download_json(
+                    next_url, video_id=show_id, headers=headers,
+                    note='Downloading JSON metadata page %s' % page_num)
+                for episode in try_get(episodes_json, lambda x: x['episode'], list) or []:
                     video_id = episode.get('id')
                     yield self.url_result(
                         'zee5:%s' % video_id,
                         ie=Zee5IE.ie_key(), video_id=video_id)
-                nexturl = url_or_none(episodesjson.get('next_episode_api'))
+                next_url = url_or_none(episodes_json.get('next_episode_api'))
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
