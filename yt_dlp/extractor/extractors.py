@@ -1559,6 +1559,7 @@ from .weibo import (
     WeiboMobileIE
 )
 from .weiqitv import WeiqiTVIE
+from .wimtv import WimTVIE
 from .wistia import (
     WistiaIE,
     WistiaPlaylistIE,
