@@ -237,6 +237,7 @@ class AfreecaTVIE(InfoExtractor):
             r'nTitleNo\s*=\s*(\d+)', webpage, 'title', default=video_id)
 
         partial_view = False
+        adult_view = False
         for _ in range(2):
             query = {
                 'nTitleNo': video_id,
@@ -245,6 +246,8 @@ class AfreecaTVIE(InfoExtractor):
             }
             if partial_view:
                 query['partialView'] = 'SKIP_ADULT'
+            if adult_view:
+                query['adultView'] = 'ADULT_VIEW'
             video_xml = self._download_xml(
                 'http://afbbs.afreecatv.com:8080/api/video/get_video_info.php',
                 video_id, 'Downloading video info XML%s'
@@ -264,6 +267,9 @@ class AfreecaTVIE(InfoExtractor):
                 partial_view = True
                 continue
             elif flag == 'ADULT':
+                if not adult_view:
+                    adult_view = True
+                    continue
                 error = 'Only users older than 19 are able to watch this video. Provide account credentials to download this content.'
             else:
                 error = flag
