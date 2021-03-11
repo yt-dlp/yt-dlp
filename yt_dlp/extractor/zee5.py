@@ -17,7 +17,17 @@ from ..utils import (
 
 
 class Zee5IE(InfoExtractor):
-    _VALID_URL = r'(?:(?:https?://)(?:www\.)?zee5\.com/(?:global/)?(?:[^#/?]+/)?(?:(?:tvshows|kids)/(?:[^#/?]+/){3}|movies/[^#/?]+/)(?P<display_id>[^#/?]+)/|zee5:)(?P<id>[^#/?]+)/?(?:$|[?#])'
+    _VALID_URL = r'''(?x)
+                     (?:
+                        zee5:|
+                        (?:https?://)(?:www\.)?zee5\.com/(?:[^#?]+/)?
+                        (?:
+                            (?:tvshows|kids)(?:/[^#/?]+){3}
+                            |movies/[^#/?]+
+                        )/(?P<display_id>[^#/?]+)/
+                     )
+                     (?P<id>[^#/?]+)/?(?:$|[?#])
+                     '''
     _TESTS = [{
         'url': 'https://www.zee5.com/movies/details/krishna-the-birth/0-0-63098',
         'info_dict': {
@@ -121,7 +131,15 @@ class Zee5IE(InfoExtractor):
 
 
 class Zee5SeriesIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?zee5\.com/(?:global/)?(?:[^#/?]+/)?(?:(?:tvshows|kids)/[^#/?]+/)(?P<display_id>[^#/?]+)/(?P<id>[^#/?]+)/?(?:$|[?#])'
+    IE_NAME = 'zee5:series'
+    _VALID_URL = r'''(?x)
+                     (?:
+                        zee5:series:|
+                        (?:https?://)(?:www\.)?zee5\.com/(?:[^#?]+/)?
+                        (?:tvshows|kids)(?:/[^#/?]+){2}/
+                     )
+                     (?P<id>[^#/?]+)/?(?:$|[?#])
+                     '''
     _TESTS = [{
         'url': 'https://www.zee5.com/kids/kids-shows/krishna-balram/0-6-1871',
         'playlist_mincount': 43,
@@ -179,6 +197,6 @@ class Zee5SeriesIE(InfoExtractor):
                 nexturl = url_or_none(episodesjson.get('next_episode_api'))
 
     def _real_extract(self, url):
-        show_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
+        show_id = self._match_id(url)
         return self.playlist_result(
             self._entries(show_id), playlist_id=show_id)
