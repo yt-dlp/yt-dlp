@@ -1,11 +1,18 @@
 from __future__ import unicode_literals
 
+try:
+    import concurrent.futures
+    can_threaded_download = True
+except ImportError:
+    can_threaded_download = False
+
 from ..downloader import _get_real_downloader
 from .fragment import FragmentFD
 
 from ..compat import compat_urllib_error
 from ..utils import (
     DownloadError,
+    sanitize_open,
     urljoin,
 )
 
@@ -49,47 +56,50 @@ class DashSegmentsFD(FragmentFD):
                 assert fragment_base_url
                 fragment_url = urljoin(fragment_base_url, fragment['path'])
 
+            fragments_to_download.append({
+                'frag_index': frag_index,
+                'index': i,
+                'url': fragment_url,
+            })
+
             if real_downloader:
-                fragments_to_download.append({
-                    'url': fragment_url,
-                })
                 continue
 
-            # In DASH, the first segment contains necessary headers to
-            # generate a valid MP4 file, so always abort for the first segment
-            fatal = i == 0 or not skip_unavailable_fragments
-            count = 0
-            while count <= fragment_retries:
-                try:
-                    success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
-                    if not success:
-                        return False
-                    self._append_fragment(ctx, frag_content)
-                    break
-                except compat_urllib_error.HTTPError as err:
-                    # YouTube may often return 404 HTTP error for a fragment causing the
-                    # whole download to fail. However if the same fragment is immediately
-                    # retried with the same request data this usually succeeds (1-2 attempts
-                    # is usually enough) thus allowing to download the whole file successfully.
-                    # To be future-proof we will retry all fragments that fail with any
-                    # HTTP error.
-                    count += 1
-                    if count <= fragment_retries:
-                        self.report_retry_fragment(err, frag_index, count, fragment_retries)
-                except DownloadError:
-                    # Don't retry fragment if error occurred during HTTP downloading
-                    # itself since it has own retry settings
-                    if not fatal:
-                        self.report_skip_fragment(frag_index)
-                        break
-                    raise
+            # # In DASH, the first segment contains necessary headers to
+            # # generate a valid MP4 file, so always abort for the first segment
+            # fatal = i == 0 or not skip_unavailable_fragments
+            # count = 0
+            # while count <= fragment_retries:
+            #     try:
+            #         success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
+            #         if not success:
+            #             return False
+            #         self._append_fragment(ctx, frag_content)
+            #         break
+            #     except compat_urllib_error.HTTPError as err:
+            #         # YouTube may often return 404 HTTP error for a fragment causing the
+            #         # whole download to fail. However if the same fragment is immediately
+            #         # retried with the same request data this usually succeeds (1-2 attempts
+            #         # is usually enough) thus allowing to download the whole file successfully.
+            #         # To be future-proof we will retry all fragments that fail with any
+            #         # HTTP error.
+            #         count += 1
+            #         if count <= fragment_retries:
+            #             self.report_retry_fragment(err, frag_index, count, fragment_retries)
+            #     except DownloadError:
+            #         # Don't retry fragment if error occurred during HTTP downloading
+            #         # itself since it has own retry settings
+            #         if not fatal:
+            #             self.report_skip_fragment(frag_index)
+            #             break
+            #         raise
 
-            if count > fragment_retries:
-                if not fatal:
-                    self.report_skip_fragment(frag_index)
-                    continue
-                self.report_error('giving up after %s fragment retries' % fragment_retries)
-                return False
+            # if count > fragment_retries:
+            #     if not fatal:
+            #         self.report_skip_fragment(frag_index)
+            #         continue
+            #     self.report_error('giving up after %s fragment retries' % fragment_retries)
+            #     return False
 
         if real_downloader:
             info_copy = info_dict.copy()
@@ -102,5 +112,68 @@ class DashSegmentsFD(FragmentFD):
             if not success:
                 return False
         else:
+            def download_fragment(fragment):
+                i = fragment['index']
+                frag_index = fragment['frag_index']
+                fragment_url = fragment['url']
+
+                ctx['fragment_index'] = frag_index
+
+                # In DASH, the first segment contains necessary headers to
+                # generate a valid MP4 file, so always abort for the first segment
+                fatal = i == 0 or not skip_unavailable_fragments
+                count = 0
+                while count <= fragment_retries:
+                    try:
+                        success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
+                        if not success:
+                            return False
+                        break
+                    except compat_urllib_error.HTTPError as err:
+                        # YouTube may often return 404 HTTP error for a fragment causing the
+                        # whole download to fail. However if the same fragment is immediately
+                        # retried with the same request data this usually succeeds (1-2 attempts
+                        # is usually enough) thus allowing to download the whole file successfully.
+                        # To be future-proof we will retry all fragments that fail with any
+                        # HTTP error.
+                        count += 1
+                        if count <= fragment_retries:
+                            self.report_retry_fragment(err, frag_index, count, fragment_retries)
+                    except DownloadError:
+                        # Don't retry fragment if error occurred during HTTP downloading
+                        # itself since it has own retry settings
+                        if not fatal:
+                            self.report_skip_fragment(frag_index)
+                            break
+                        raise
+
+                if count > fragment_retries:
+                    if not fatal:
+                        self.report_skip_fragment(frag_index)
+                        return False
+                    self.report_error('giving up after %s fragment retries' % fragment_retries)
+                    return False
+
+                return frag_content
+
+            if can_threaded_download:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=12) as exectutor:
+                    futures = exectutor.map(download_fragment, fragments_to_download)
+                for i, frag_content in enumerate(futures, 1):
+                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], i)
+                    file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
+                    ctx['fragment_filename_sanitized'] = frag_sanitized
+                    file.close()
+                    self._append_fragment(ctx, frag_content)
+
+            else:
+                for i, fragment in enumerate(fragments_to_download, 1):
+                    frag_content = download_fragment(fragment)
+                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], i)
+                    file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
+                    ctx['fragment_filename_sanitized'] = frag_sanitized
+                    if frag_content:
+                        self._append_fragment(ctx, frag_content)
+
             self._finish_frag_download(ctx)
         return True
