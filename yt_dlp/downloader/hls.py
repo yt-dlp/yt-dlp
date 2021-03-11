@@ -242,6 +242,8 @@ class HlsFD(FragmentFD):
                     ad_frag_next = False
                 elif line.startswith('#EXT-X-DISCONTINUITY'):
                     discontinuity_count += 1
+                i += 1
+                media_sequence += 1
 
         # We only download the first fragment during the test
         if test:
@@ -276,7 +278,7 @@ class HlsFD(FragmentFD):
                         success, frag_content = self._download_fragment(
                             ctx, frag_url, info_dict, headers)
                         if not success:
-                            return False
+                            return False, frag_index
                         break
                     except compat_urllib_error.HTTPError as err:
                         # Unavailable (possibly temporary) fragments may be served.
@@ -287,13 +289,7 @@ class HlsFD(FragmentFD):
                         if count <= fragment_retries:
                             self.report_retry_fragment(err, frag_index, count, fragment_retries)
                 if count > fragment_retries:
-                    if skip_unavailable_fragments:
-                        media_sequence += 1
-                        self.report_skip_fragment(frag_index)
-                        return False
-                    self.report_error(
-                        'giving up after %s fragment retries' % fragment_retries)
-                    return False
+                    return False, frag_index
 
                 if decrypt_info['METHOD'] == 'AES-128':
                     iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', media_sequence)
@@ -306,25 +302,57 @@ class HlsFD(FragmentFD):
                         frag_content = AES.new(
                             decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
 
-                return frag_content
+                return frag_content, frag_index
 
             if can_threaded_download:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=12) as exectutor:
                     futures = exectutor.map(download_fragment, fragments)
-                for i, frag_content in enumerate(futures, 1):
-                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], i)
-                    file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
-                    ctx['fragment_filename_sanitized'] = frag_sanitized
-                    file.close()
-                    self._append_fragment(ctx, frag_content)
-            else:
-                for i, fragment in enumerate(fragments, 1):
-                    frag_content = download_fragment(fragment)
-                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], i)
-                    file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
-                    ctx['fragment_filename_sanitized'] = frag_sanitized
+                for frag_content, frag_index in futures:
                     if frag_content:
-                        self._append_fragment(ctx, frag_content)
+                        fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
+                        try:
+                            file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
+                            ctx['fragment_filename_sanitized'] = frag_sanitized
+                            file.close()
+                            self._append_fragment(ctx, frag_content)
+                        except FileNotFoundError:
+                            if skip_unavailable_fragments:
+                                self.report_skip_fragment(frag_index)
+                            else:
+                                self.report_error(
+                                    'fragment %s not found, unable to continue' % frag_index)
+                                return False
+                    else:
+                        if skip_unavailable_fragments:
+                            self.report_skip_fragment(frag_index)
+                        else:
+                            self.report_error(
+                                'fragment %s not found, unable to continue' % frag_index)
+                            return False
+            else:
+                for fragment in fragments:
+                    frag_content, frag_index = download_fragment(fragment)
+                    if frag_content:
+                        fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
+                        try:
+                            file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
+                            ctx['fragment_filename_sanitized'] = frag_sanitized
+                            file.close()
+                            self._append_fragment(ctx, frag_content)
+                        except FileNotFoundError:
+                            if skip_unavailable_fragments:
+                                self.report_skip_fragment(frag_index)
+                            else:
+                                self.report_error(
+                                    'fragment %s not found, unable to continue' % frag_index)
+                                return False
+                    else:
+                        if skip_unavailable_fragments:
+                            self.report_skip_fragment(frag_index)
+                        else:
+                            self.report_error(
+                                'fragment %s not found, unable to continue' % frag_index)
+                            return False
 
             self._finish_frag_download(ctx)
         return True

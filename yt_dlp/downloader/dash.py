@@ -88,7 +88,7 @@ class DashSegmentsFD(FragmentFD):
                     try:
                         success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
                         if not success:
-                            return False
+                            return False, frag_index
                         break
                     except compat_urllib_error.HTTPError as err:
                         # YouTube may often return 404 HTTP error for a fragment causing the
@@ -104,37 +104,66 @@ class DashSegmentsFD(FragmentFD):
                         # Don't retry fragment if error occurred during HTTP downloading
                         # itself since it has own retry settings
                         if not fatal:
-                            self.report_skip_fragment(frag_index)
                             break
                         raise
 
                 if count > fragment_retries:
                     if not fatal:
-                        self.report_skip_fragment(frag_index)
-                        return False
+                        return False, frag_index
                     self.report_error('giving up after %s fragment retries' % fragment_retries)
-                    return False
+                    return False, frag_index
 
-                return frag_content
+                return frag_content, frag_index
 
             if can_threaded_download:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=12) as exectutor:
                     futures = exectutor.map(download_fragment, fragments_to_download)
-                for i, frag_content in enumerate(futures, 1):
-                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], i)
-                    file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
-                    ctx['fragment_filename_sanitized'] = frag_sanitized
-                    file.close()
-                    self._append_fragment(ctx, frag_content)
-
-            else:
-                for i, fragment in enumerate(fragments_to_download, 1):
-                    frag_content = download_fragment(fragment)
-                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], i)
-                    file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
-                    ctx['fragment_filename_sanitized'] = frag_sanitized
+                for frag_content, frag_index in futures:
                     if frag_content:
-                        self._append_fragment(ctx, frag_content)
+                        fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
+                        try:
+                            file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
+                            ctx['fragment_filename_sanitized'] = frag_sanitized
+                            file.close()
+                            self._append_fragment(ctx, frag_content)
+                        except FileNotFoundError:
+                            if skip_unavailable_fragments:
+                                self.report_skip_fragment(frag_index)
+                            else:
+                                self.report_error(
+                                    'fragment %s not found, unable to continue' % frag_index)
+                                return False
+                    else:
+                        if skip_unavailable_fragments:
+                            self.report_skip_fragment(frag_index)
+                        else:
+                            self.report_error(
+                                'fragment %s not found, unable to continue' % frag_index)
+                            return False
+            else:
+                for fragment in fragments_to_download:
+                    frag_content, frag_index = download_fragment(fragment)
+                    if frag_content:
+                        fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
+                        try:
+                            file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
+                            ctx['fragment_filename_sanitized'] = frag_sanitized
+                            file.close()
+                            self._append_fragment(ctx, frag_content)
+                        except FileNotFoundError:
+                            if skip_unavailable_fragments:
+                                self.report_skip_fragment(frag_index)
+                            else:
+                                self.report_error(
+                                    'fragment %s not found, unable to continue' % frag_index)
+                                return False
+                    else:
+                        if skip_unavailable_fragments:
+                            self.report_skip_fragment(frag_index)
+                        else:
+                            self.report_error(
+                                'fragment %s not found, unable to continue' % frag_index)
+                            return False
 
             self._finish_frag_download(ctx)
         return True
