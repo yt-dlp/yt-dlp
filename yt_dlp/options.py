@@ -587,6 +587,14 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='keep_fragments',
         help='Delete downloaded fragments after downloading is finished (default)')
     downloader.add_option(
+        '--concurrent-downloads',
+        action='store_true', dest='concurrent_downloads', default=True,
+        help='Enable concurrent fragment downloads (default)')
+    downloader.add_option(
+        '--no-concurrent-downloads',
+        action='store_false', dest='concurrent_downloads',
+        help='Disable concurrent fragment downloads')
+    downloader.add_option(
         '--buffer-size',
         dest='buffersize', metavar='SIZE', default='1024',
         help='Size of download buffer (e.g. 1024 or 16K) (default is %default)')
