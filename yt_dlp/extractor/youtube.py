@@ -1635,11 +1635,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         break
 
                     # YouTube sometimes gives reload: true json if something went wrong (e.g. bad auth)
-                    if response.get('reload'):
+                    if browse.get('reload'):
                         raise ExtractorError("Invalid or missing params in continuation request", expected=False)
 
                     # TODO: not tested, merged from old extractor
-                    err_msg = response.get('externalErrorMessage')
+                    err_msg = browse.get('externalErrorMessage')
                     if err_msg:
                         raise ExtractorError('YouTube said: %s' % err_msg, expected=False)
 
