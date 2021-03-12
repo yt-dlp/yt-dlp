@@ -1516,7 +1516,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         votes = str_to_int(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
                                                       lambda x: x['likeCount']), compat_str)) or 0
         author_thumbnail = try_get(comment_renderer,
-                                   lambda x:x['authorThumbnail']['thumbnails'][-1]['url'], compat_str)
+                                   lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], compat_str)
 
         author_is_uploader = try_get(comment_renderer, lambda x: x['authorIsChannelOwner'], bool)
         is_liked = try_get(comment_renderer, lambda x: x['isLiked'], bool)
@@ -1634,7 +1634,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if response.get('continuationContents'):
                         break
 
-                    # YouTube sometimes gives reload: true json if something went wrong (e.g. bad auth)
+                    # YouTube sometimes gives reload: now json if something went wrong (e.g. bad auth)
                     if browse.get('reload'):
                         raise ExtractorError("Invalid or missing params in continuation request", expected=False)
 
@@ -1703,10 +1703,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 for comment in comment_iter:
                     comments.append(comment)
         self.to_screen("Downloaded %d comments" % len(comments))
-        return {
-                'comments': comments,
-                'comment_count': len(comments)
-            }
+        return {'comments': comments,
+                'comment_count': len(comments)}
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
