@@ -1591,8 +1591,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if last_error:
                     self.report_warning('%s. Retrying ...' % last_error)
                 try:
-                    query = continuation.copy()
-                    query['pbj'] = 1
+                    query = {
+                        'ctoken': continuation['ctoken'],
+                        'pbj': 1,
+                        'type': 'next',
+                    }
                     if parent:
                         query['action_get_comment_replies'] = 1
                     else:
