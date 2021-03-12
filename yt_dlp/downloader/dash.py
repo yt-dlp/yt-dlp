@@ -115,6 +115,32 @@ class DashSegmentsFD(FragmentFD):
 
                 return frag_content, frag_index
 
+            def append_fragment(frag_content, frag_index):
+                if frag_content:
+                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
+                    try:
+                        file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
+                        ctx['fragment_filename_sanitized'] = frag_sanitized
+                        file.close()
+                        self._append_fragment(ctx, frag_content)
+                        return True
+                    except FileNotFoundError:
+                        if skip_unavailable_fragments:
+                            self.report_skip_fragment(frag_index)
+                            return True
+                        else:
+                            self.report_error(
+                                'fragment %s not found, unable to continue' % frag_index)
+                            return False
+                else:
+                    if skip_unavailable_fragments:
+                        self.report_skip_fragment(frag_index)
+                        return True
+                    else:
+                        self.report_error(
+                            'fragment %s not found, unable to continue' % frag_index)
+                        return False
+
             max_workers = self.params.get('concurrent_fragment_downloads', 1)
             if can_threaded_download and max_workers > 1:
                 with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
@@ -135,51 +161,15 @@ class DashSegmentsFD(FragmentFD):
                 results = [future.result() for future in futures]
 
                 for frag_content, frag_index in results:
-                    if frag_content:
-                        fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
-                        try:
-                            file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
-                            ctx['fragment_filename_sanitized'] = frag_sanitized
-                            file.close()
-                            self._append_fragment(ctx, frag_content)
-                        except FileNotFoundError:
-                            if skip_unavailable_fragments:
-                                self.report_skip_fragment(frag_index)
-                            else:
-                                self.report_error(
-                                    'fragment %s not found, unable to continue' % frag_index)
-                                return False
-                    else:
-                        if skip_unavailable_fragments:
-                            self.report_skip_fragment(frag_index)
-                        else:
-                            self.report_error(
-                                'fragment %s not found, unable to continue' % frag_index)
-                            return False
+                    result = append_fragment(frag_content, frag_index)
+                    if not result:
+                        return False
             else:
                 for fragment in fragments_to_download:
                     frag_content, frag_index = download_fragment(fragment)
-                    if frag_content:
-                        fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
-                        try:
-                            file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
-                            ctx['fragment_filename_sanitized'] = frag_sanitized
-                            file.close()
-                            self._append_fragment(ctx, frag_content)
-                        except FileNotFoundError:
-                            if skip_unavailable_fragments:
-                                self.report_skip_fragment(frag_index)
-                            else:
-                                self.report_error(
-                                    'fragment %s not found, unable to continue' % frag_index)
-                                return False
-                    else:
-                        if skip_unavailable_fragments:
-                            self.report_skip_fragment(frag_index)
-                        else:
-                            self.report_error(
-                                'fragment %s not found, unable to continue' % frag_index)
-                            return False
+                    result = append_fragment(frag_content, frag_index)
+                    if not result:
+                        return False
 
             self._finish_frag_download(ctx)
         return True
