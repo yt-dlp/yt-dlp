@@ -320,8 +320,7 @@ class HlsFD(FragmentFD):
                             future.cancel()
                         # timeout must be none to cancel
                         concurrent.futures.wait(not_done, timeout=None)
-                        self.to_screen('[hls] interrupted by user')
-                        return False
+                        raise KeyboardInterrupt
                 results = [future.result() for future in futures]
 
                 for frag_content, frag_index in results:
