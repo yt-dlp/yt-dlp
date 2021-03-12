@@ -117,9 +117,25 @@ class DashSegmentsFD(FragmentFD):
 
             max_workers = self.params.get('concurrent_fragment_downloads', 1)
             if can_threaded_download and max_workers > 1:
-                with concurrent.futures.ThreadPoolExecutor(max_workers) as exectutor:
-                    futures = exectutor.map(download_fragment, fragments_to_download)
-                for frag_content, frag_index in futures:
+                with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
+                    futures = [pool.submit(download_fragment, fragment) for fragment in fragments_to_download]
+                    # timeout must be 0 to return instantly
+                    done, not_done = concurrent.futures.wait(futures, timeout=0)
+                    try:
+                        while not_done:
+                            # Check every 1 second for KeyboardInterrupt
+                            freshly_done, not_done = concurrent.futures.wait(not_done, timeout=1)
+                            done |= freshly_done
+                    except KeyboardInterrupt:
+                        for future in not_done:
+                            future.cancel()
+                        # timeout must be none to cancel
+                        concurrent.futures.wait(not_done, timeout=None)
+                        self.to_screen('[dash] interrupted by user')
+                        return False
+                results = [future.result() for future in futures]
+
+                for frag_content, frag_index in results:
                     if frag_content:
                         fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
                         try:
