@@ -304,8 +304,9 @@ class HlsFD(FragmentFD):
 
                 return frag_content, frag_index
 
-            if can_threaded_download and self.params.get('concurrent_downloads'):
-                with concurrent.futures.ThreadPoolExecutor(max_workers=12) as exectutor:
+            max_workers = self.params.get('concurrent_fragment_downloads', 1)
+            if can_threaded_download and max_workers > 1:
+                with concurrent.futures.ThreadPoolExecutor(max_workers) as exectutor:
                     futures = exectutor.map(download_fragment, fragments)
                 for frag_content, frag_index in futures:
                     if frag_content:

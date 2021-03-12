@@ -463,7 +463,7 @@ def _real_main(argv=None):
         'extractor_retries': opts.extractor_retries,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,
         'keep_fragments': opts.keep_fragments,
-        'concurrent_downloads': opts.concurrent_downloads,
+        'concurrent_fragment_downloads': opts.concurrent_fragment_downloads,
         'buffersize': opts.buffersize,
         'noresizebuffer': opts.noresizebuffer,
         'http_chunk_size': opts.http_chunk_size,
