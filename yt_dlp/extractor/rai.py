@@ -170,7 +170,7 @@ class RaiPlayIE(RaiBaseIE):
         media = self._download_json(
             base + '.json', video_id, 'Downloading video JSON')
 
-        if not self.params.get('allow_unplayable_formats'):
+        if not self._downloader.params.get('allow_unplayable_formats'):
             if try_get(
                     media,
                     (lambda x: x['rights_management']['rights']['drm'],
