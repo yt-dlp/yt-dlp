@@ -143,6 +143,7 @@ class DashSegmentsFD(FragmentFD):
 
             max_workers = self.params.get('concurrent_fragment_downloads', 1)
             if can_threaded_download and max_workers > 1:
+                self.report_warning('The download speed shown is only of one thread. This is a known issue')
                 with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                     futures = [pool.submit(download_fragment, fragment) for fragment in fragments_to_download]
                     # timeout must be 0 to return instantly

@@ -180,6 +180,8 @@ def _real_main(argv=None):
     if opts.overwrites:
         # --yes-overwrites implies --no-continue
         opts.continue_dl = False
+    if opts.concurrent_fragment_downloads <= 0:
+        raise ValueError('Concurrent fragments must be positive')
 
     def parse_retries(retries, name=''):
         if retries in ('inf', 'infinite'):

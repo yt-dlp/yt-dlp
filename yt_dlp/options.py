@@ -559,6 +559,10 @@ def parseOpts(overrideArguments=None):
 
     downloader = optparse.OptionGroup(parser, 'Download Options')
     downloader.add_option(
+        '-N', '--concurrent-fragments',
+        dest='concurrent_fragment_downloads', metavar='N', default=1, type=int,
+        help='Number of fragments to download concurrently (default is %default)')
+    downloader.add_option(
         '-r', '--limit-rate', '--rate-limit',
         dest='ratelimit', metavar='RATE',
         help='Maximum download rate in bytes per second (e.g. 50K or 4.2M)')
@@ -586,10 +590,6 @@ def parseOpts(overrideArguments=None):
         '--no-keep-fragments',
         action='store_false', dest='keep_fragments',
         help='Delete downloaded fragments after downloading is finished (default)')
-    downloader.add_option(
-        '--concurrent-fragment-downloads',
-        dest='concurrent_fragment_downloads', metavar='NUMBER', default=1, type=int,
-        help='Enable concurrent fragment downloads (default)')
     downloader.add_option(
         '--buffer-size',
         dest='buffersize', metavar='SIZE', default='1024',
