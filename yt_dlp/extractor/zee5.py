@@ -22,7 +22,7 @@ class Zee5IE(InfoExtractor):
                         zee5:|
                         (?:https?://)(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:
-                            (?:tvshows|kids)(?:/[^#/?]+){3}
+                            (?:tvshows|kids|zee5originals)(?:/[^#/?]+){3}
                             |movies/[^#/?]+
                         )/(?P<display_id>[^#/?]+)/
                      )
@@ -136,7 +136,7 @@ class Zee5SeriesIE(InfoExtractor):
                      (?:
                         zee5:series:|
                         (?:https?://)(?:www\.)?zee5\.com/(?:[^#?]+/)?
-                        (?:tvshows|kids)(?:/[^#/?]+){2}/
+                        (?:tvshows|kids|zee5originals)(?:/[^#/?]+){2}/
                      )
                      (?P<id>[^#/?]+)/?(?:$|[?#])
                      '''
