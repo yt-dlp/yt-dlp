@@ -450,10 +450,7 @@ from .gamestar import GameStarIE
 from .gaskrank import GaskrankIE
 from .gazeta import GazetaIE
 from .gdcvault import GDCVaultIE
-from .gedi import (
-    GediIE,
-    GediEmbedsIE,
-)
+from .gedidigital import GediDigitalIE
 from .generic import GenericIE
 from .gfycat import GfycatIE
 from .giantbomb import GiantBombIE
@@ -735,6 +732,8 @@ from .mtv import (
     MTVServicesEmbeddedIE,
     MTVDEIE,
     MTVJapanIE,
+    MTVItaliaIE,
+    MTVItaliaProgrammaIE,
 )
 from .muenchentv import MuenchenTVIE
 from .mwave import MwaveIE, MwaveMeetGreetIE
@@ -1560,6 +1559,7 @@ from .weibo import (
     WeiboMobileIE
 )
 from .weiqitv import WeiqiTVIE
+from .wimtv import WimTVIE
 from .wistia import (
     WistiaIE,
     WistiaPlaylistIE,
@@ -1669,5 +1669,6 @@ from .zdf import ZDFIE, ZDFChannelIE
 from .zhihu import ZhihuIE
 from .zingmp3 import ZingMp3IE
 from .zee5 import Zee5IE
+from .zee5 import Zee5SeriesIE
 from .zoom import ZoomIE
 from .zype import ZypeIE

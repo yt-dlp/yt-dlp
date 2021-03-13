@@ -127,13 +127,14 @@ from .expressen import ExpressenIE
 from .zype import ZypeIE
 from .odnoklassniki import OdnoklassnikiIE
 from .kinja import KinjaEmbedIE
-from .gedi import GediEmbedsIE
+from .gedidigital import GediDigitalIE
 from .rcs import RCSEmbedsIE
 from .bitchute import BitChuteIE
 from .rumble import RumbleEmbedIE
 from .arcpublishing import ArcPublishingIE
 from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
+from .wimtv import WimTVIE
 
 
 class GenericIE(InfoExtractor):
@@ -2250,6 +2251,15 @@ class GenericIE(InfoExtractor):
             },
             'playlist_mincount': 52,
         },
+        {
+            # WimTv embed player
+            'url': 'http://www.msmotor.tv/wearefmi-pt-2-2021/',
+            'info_dict': {
+                'id': 'wearefmi-pt-2-2021',
+                'title': '#WEAREFMI – PT.2 – 2021 – MsMotorTV',
+            },
+            'playlist_count': 1,
+        },
     ]
 
     def report_following_redirect(self, new_url):
@@ -3339,16 +3349,21 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(
                 zype_urls, video_id, video_title, ie=ZypeIE.ie_key())
 
-        # Look for RCS media group embeds
-        gedi_urls = GediEmbedsIE._extract_urls(webpage)
+        gedi_urls = GediDigitalIE._extract_urls(webpage)
         if gedi_urls:
             return self.playlist_from_matches(
-                gedi_urls, video_id, video_title, ie=GediEmbedsIE.ie_key())
+                gedi_urls, video_id, video_title, ie=GediDigitalIE.ie_key())
 
+        # Look for RCS media group embeds
         rcs_urls = RCSEmbedsIE._extract_urls(webpage)
         if rcs_urls:
             return self.playlist_from_matches(
                 rcs_urls, video_id, video_title, ie=RCSEmbedsIE.ie_key())
+
+        wimtv_urls = WimTVIE._extract_urls(webpage)
+        if wimtv_urls:
+            return self.playlist_from_matches(
+                wimtv_urls, video_id, video_title, ie=WimTVIE.ie_key())
 
         bitchute_urls = BitChuteIE._extract_urls(webpage)
         if bitchute_urls:

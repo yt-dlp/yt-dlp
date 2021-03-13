@@ -26,6 +26,7 @@ from ..compat import (
 from ..jsinterp import JSInterpreter
 from ..utils import (
     clean_html,
+    dict_get,
     ExtractorError,
     format_field,
     float_or_none,
@@ -2797,7 +2798,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 else:
                     # Youtube sometimes sends incomplete data
                     # See: https://github.com/ytdl-org/youtube-dl/issues/28194
-                    if response.get('continuationContents') or response.get('onResponseReceivedActions'):
+                    if dict_get(response,
+                                ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints')):
                         break
 
                     # Youtube may send alerts if there was an issue with the continuation page
@@ -2837,9 +2839,11 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 'playlistVideoRenderer': (self._playlist_entries, 'contents'),
                 'itemSectionRenderer': (extract_entries, 'contents'),  # for feeds
                 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
+                'backstagePostThreadRenderer': (self._post_thread_continuation_entries, 'contents')
             }
             continuation_items = try_get(
-                response, lambda x: x['onResponseReceivedActions'][0]['appendContinuationItemsAction']['continuationItems'], list)
+                response,
+                lambda x: dict_get(x, ('onResponseReceivedActions', 'onResponseReceivedEndpoints'))[0]['appendContinuationItemsAction']['continuationItems'], list)
             continuation_item = try_get(continuation_items, lambda x: x[0], dict) or {}
             video_items_renderer = None
             for key, value in continuation_item.items():
@@ -2957,19 +2961,24 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             **metadata)
 
     def _extract_mix_playlist(self, playlist, playlist_id):
-        page_num = 0
-        while True:
+        first_id = last_id = None
+        for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
             if not videos:
                 return
-            video_count = len(videos)
-            start = min(video_count - 24, 26) if video_count > 25 else 0
-            for item in videos[start:]:
-                yield item
+            start = next((i for i, v in enumerate(videos) if v['id'] == last_id), -1) + 1
+            if start >= len(videos):
+                return
+            for video in videos[start:]:
+                if video['id'] == first_id:
+                    self.to_screen('First video %s found again; Assuming end of Mix' % first_id)
+                    return
+                yield video
+            first_id = first_id or videos[0]['id']
+            last_id = videos[-1]['id']
 
-            page_num += 1
             _, data = self._extract_webpage(
-                'https://www.youtube.com/watch?list=%s&v=%s' % (playlist_id, videos[-1]['id']),
+                'https://www.youtube.com/watch?list=%s&v=%s' % (playlist_id, last_id),
                 '%s page %d' % (playlist_id, page_num))
             playlist = try_get(
                 data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)

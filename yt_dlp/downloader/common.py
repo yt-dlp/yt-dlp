@@ -326,6 +326,12 @@ class FileDownloader(object):
         """Report it was impossible to resume download."""
         self.to_screen('[download] Unable to resume')
 
+    @staticmethod
+    def supports_manifest(manifest):
+        """ Whether the downloader can download the fragments from the manifest.
+        Redefine in subclasses if needed. """
+        pass
+
     def download(self, filename, info_dict, subtitle=False):
         """Download to a filename using the info from info_dict
         Return True on success and False otherwise

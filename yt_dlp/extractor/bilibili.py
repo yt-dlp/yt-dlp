@@ -138,6 +138,11 @@ class BiliBiliIE(InfoExtractor):
         anime_id = mobj.group('anime_id')
         page_id = mobj.group('page')
         webpage = self._download_webpage(url, video_id)
+        headers = {
+            'Referer': url,
+            'Accept': '*/*'
+        }
+        headers.update(self.geo_verification_headers())
 
         if 'anime/' not in url:
             cid = self._search_regex(
@@ -155,12 +160,8 @@ class BiliBiliIE(InfoExtractor):
             if 'no_bangumi_tip' not in smuggled_data:
                 self.to_screen('Downloading episode %s. To download all videos in anime %s, re-run yt-dlp with %s' % (
                     video_id, anime_id, compat_urlparse.urljoin(url, '//bangumi.bilibili.com/anime/%s' % anime_id)))
-            headers = {
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Referer': url
-            }
-            headers.update(self.geo_verification_headers())
 
+            headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
             js = self._download_json(
                 'http://bangumi.bilibili.com/web_api/get_source', video_id,
                 data=urlencode_postdata({'episode_id': video_id}),
@@ -168,11 +169,6 @@ class BiliBiliIE(InfoExtractor):
             if 'result' not in js:
                 self._report_error(js)
             cid = js['result']['cid']
-
-        headers = {
-            'Referer': url
-        }
-        headers.update(self.geo_verification_headers())
 
         entries = []
 

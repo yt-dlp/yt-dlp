@@ -2437,9 +2437,8 @@ class YoutubeDL(object):
                     else:
                         assert fixup_policy in ('ignore', 'never')
 
-                if (info_dict.get('protocol') == 'm3u8_native'
-                        or info_dict.get('protocol') == 'm3u8'
-                        and self.params.get('hls_prefer_native')):
+                if ('protocol' in info_dict
+                        and get_suitable_downloader(info_dict, self.params).__name__ == 'HlsFD'):
                     if fixup_policy == 'warn':
                         self.report_warning('%s: malformed AAC bitstream detected.' % (
                             info_dict['id']))

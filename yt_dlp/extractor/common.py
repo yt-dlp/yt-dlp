@@ -1849,8 +1849,9 @@ class InfoExtractor(object):
 
     def _extract_m3u8_formats(self, m3u8_url, video_id, ext=None,
                               entry_protocol='m3u8', preference=None, quality=None,
-                              m3u8_id=None, live=False, note=None, errnote=None,
-                              fatal=True, data=None, headers={}, query={}):
+                              m3u8_id=None, note=None, errnote=None,
+                              fatal=True, live=False, data=None, headers={},
+                              query={}):
         res = self._download_webpage_handle(
             m3u8_url, video_id,
             note=note or 'Downloading m3u8 information',
@@ -2050,11 +2051,11 @@ class InfoExtractor(object):
                 playlist_formats = _extract_m3u8_playlist_formats(manifest_url, video_id=video_id,
                                                                   fatal=fatal, data=data, headers=headers)
 
-                for format in playlist_formats:
+                for frmt in playlist_formats:
                     format_id = []
                     if m3u8_id:
                         format_id.append(m3u8_id)
-                    format_index = format.get('index')
+                    format_index = frmt.get('index')
                     stream_name = build_stream_name()
                     # Bandwidth of live streams may differ over time thus making
                     # format_id unpredictable. So it's better to keep provided
@@ -2109,6 +2110,8 @@ class InfoExtractor(object):
                             # TODO: update acodec for audio only formats with
                             # the same GROUP-ID
                             f['acodec'] = 'none'
+                    if not f.get('ext'):
+                        f['ext'] = 'm4a' if f.get('vcodec') == 'none' else 'mp4'
                     formats.append(f)
 
                     # for DailyMotion

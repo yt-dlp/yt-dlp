@@ -60,6 +60,7 @@ yt-dlp.zip
 *.mkv
 *.swf
 *.part
+*.part-*
 *.ytdl
 *.dump
 *.frag
