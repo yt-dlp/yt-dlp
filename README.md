@@ -297,6 +297,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-include-ads                 Do not download advertisements (default)
 
 ## Download Options:
+    -N, --concurrent-fragments N     Number of fragments to download
+                                     concurrently (default is 1)
     -r, --limit-rate RATE            Maximum download rate in bytes per second
                                      (e.g. 50K or 4.2M)
     -R, --retries RETRIES            Number of retries (default is 10), or

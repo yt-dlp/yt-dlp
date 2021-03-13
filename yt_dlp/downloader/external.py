@@ -126,7 +126,7 @@ class ExternalFD(FileDownloader):
             file_list = []
             dest, _ = sanitize_open(tmpfilename, 'wb')
             for i, fragment in enumerate(info_dict['fragments']):
-                file = '%s_%s.frag' % (tmpfilename, i)
+                file = '%s-Frag%d' % (tmpfilename, i)
                 decrypt_info = fragment.get('decrypt_info')
                 src, _ = sanitize_open(file, 'rb')
                 if decrypt_info:
@@ -274,7 +274,7 @@ class Aria2cFD(ExternalFD):
             url_list_file = '%s.frag.urls' % tmpfilename
             url_list = []
             for i, fragment in enumerate(info_dict['fragments']):
-                tmpsegmentname = '%s_%s.frag' % (os.path.basename(tmpfilename), i)
+                tmpsegmentname = '%s-Frag%d' % (os.path.basename(tmpfilename), i)
                 url_list.append('%s\n\tout=%s' % (fragment['url'], tmpsegmentname))
             stream, _ = sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode('utf-8'))
