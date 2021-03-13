@@ -1556,13 +1556,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
                 yield comment
                 # Attempt to get the replies
-                comment_replies_renderer = try_get(comment_thread_renderer, lambda x: x['replies']['commentRepliesRenderer'], dict)
+                comment_replies_renderer = try_get(comment_thread_renderer,
+                        lambda x: x['replies']['commentRepliesRenderer'], dict)
+
                 if comment_replies_renderer:
-                    for reply_comment in self._comment_entries(comment_replies_renderer,
-                                                               identity_token,
-                                                               account_syncid,
-                                                               parent=comment.get('id'),
-                                                               session_token_list=session_token_list):
+                    comment_entries_iter = self._comment_entries(comment_replies_renderer,
+                           identity_token, account_syncid, parent=comment.get('id'),
+                           session_token_list=session_token_list)
+
+                    for reply_comment in comment_entries_iter:
                         yield reply_comment
 
         headers = self._DEFAULT_BASIC_API_HEADERS.copy()
@@ -1579,7 +1581,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if parent is None:
             first_continuation = True
 
-        for page_num in itertools.count(1):
+        for page_num in itertools.count(not int(first_continuation)):
             if not continuation:
                 break
             retries = self._downloader.params.get('extractor_retries', 3)
@@ -1601,13 +1603,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     else:
                         query['action_get_comments'] = 1
 
+                    if first_continuation:
+                        note_prefix = "initial comment continuation page"
+                    else:
+                        note_prefix = "comment%s page %d%s" % (' replies' if parent else '',
+                                page_num, ' (thread %s)' % parent if parent else '')
+
                     browse = self._download_json(
                         'https://www.youtube.com/comment_service_ajax', None,
-                        'Downloading comment%s page %d%s%s'
-                        % (' replies' if parent else '',
-                           page_num,
-                           ' (retry #%d)' % count if count else '',
-                           ' (thread %s)' % parent if parent else ''),
+                        'Downloading %s %s' % (note_prefix, '(retry #%d)' % count if count else ''),
                         headers=headers, query=query,
                         data=urlencode_postdata({
                             'session_token': session_token_list[0]
@@ -1670,16 +1674,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continuation_renderer = value
 
                 if first_continuation:
-                    expected_video_comment_count = try_get(continuation_renderer,
-                                                           (lambda x: x['header']['commentsHeaderRenderer']['countText']['runs'][0]['text'],
-                                                            lambda x: x['header']['commentsHeaderRenderer']['commentsCount']['runs'][0]['text']),
-                                                           compat_str)
-                    if expected_video_comment_count:
-                        # TODO: is this still needed?
-                        expected_video_comment_count = expected_video_comment_count.replace(' Comments', '').replace('1 Comment', '1').replace(',', '')
-                        expected_video_comment_count = str_to_int(expected_video_comment_count)
-                        self.to_screen("Downloading ~%d comments" % expected_video_comment_count)
-                        first_continuation = False
+                    first_continuation = False
+                    expected_comment_count = try_get(continuation_renderer,
+                           (lambda x: x['header']['commentsHeaderRenderer']['countText']['runs'][0]['text'],
+                            lambda x: x['header']['commentsHeaderRenderer']['commentsCount']['runs'][0]['text']),
+                           compat_str)
+                    if expected_comment_count:
+                        self.to_screen("Downloading ~%d comments" % str_to_int(expected_comment_count))
+
+                    # TODO: cli arg.
+                    # 1/True for newest, 0/False for popular (default)
+                    comment_sort_index = int(True)
+                    sort_continuation_renderer = try_get(continuation_renderer,
+                            lambda x: x['header']['commentsHeaderRenderer']['sortMenu']['sortFilterSubMenuRenderer']['subMenuItems']
+                                        [comment_sort_index]['continuation']['reloadContinuationData'], dict)
+                    # If this fails, the initial continuation page
+                    # starts off with popular anyways.
+                    if sort_continuation_renderer:
+                        continuation = YoutubeTabIE._build_continuation_query(
+                                continuation=sort_continuation_renderer.get('continuation'),
+                                ctp=sort_continuation_renderer.get('clickTrackingParams'))
+                        self.to_screen("Sorting comments by %s" % ('popular' if comment_sort_index == 0 else 'newest'))
+                        break
 
                 for entry in known_continuation_renderers[key](continuation_renderer):
                     yield entry
