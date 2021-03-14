@@ -4182,8 +4182,10 @@ def qualities(quality_ids):
 
 DEFAULT_OUTTMPL = {
     'default': '%(title)s [%(id)s].%(ext)s',
+    'chapter': '%(title)s - %(part_number)03d %(part_title)s [%(id)s].%(ext)s',
 }
 OUTTMPL_TYPES = {
+    'chapter': None,
     'subtitle': None,
     'thumbnail': None,
     'description': 'description',

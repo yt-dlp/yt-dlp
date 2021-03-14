@@ -1183,6 +1183,17 @@ def parseOpts(overrideArguments=None):
         '--convert-subs', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help='Convert the subtitles to other format (currently supported: srt|ass|vtt|lrc)')
+    postproc.add_option(
+        '--split-chapters', '--split-tracks',
+        dest='split_chapters', action='store_true', default=False,
+        help=(
+            'Split video into multiple files based on internal chapters. '
+            'The "chapter:" prefix can be used with "--paths" and "--output" to '
+            'set the output filename for the split files. See "OUTPUT TEMPLATE" for details'))
+    postproc.add_option(
+        '--no-split-chapters', '--no-split-tracks',
+        dest='split_chapters', action='store_false',
+        help='Do not split video based on chapters (default)')
 
     sponskrub = optparse.OptionGroup(parser, 'SponSkrub (SponsorBlock) Options', description=(
         'SponSkrub (https://github.com/yt-dlp/SponSkrub) is a utility to mark/remove sponsor segments '

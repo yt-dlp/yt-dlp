@@ -693,6 +693,13 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      push {} /sdcard/Music/ && rm {}'
     --convert-subs FORMAT            Convert the subtitles to other format
                                      (currently supported: srt|ass|vtt|lrc)
+    --split-chapters                 Split video into multiple files based on
+                                     internal chapters. The "chapter:" prefix
+                                     can be used with "--paths" and "--output"
+                                     to set the output filename for the split
+                                     files. See "OUTPUT TEMPLATE" for details
+    --no-split-chapters              Do not split video based on chapters
+                                     (default)
 
 ## SponSkrub (SponsorBlock) Options:
 [SponSkrub](https://github.com/yt-dlp/SponSkrub) is a utility to
@@ -810,7 +817,7 @@ The `-o` option is used to indicate a template for the output file names while `
 
 The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"`. However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Date/time fields can also be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses seperated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
 
-Additionally, you can set different output templates for the various metadata files seperately from the general output template by specifying the type of file followed by the template seperated by a colon ":". The different filetypes supported are `subtitle|thumbnail|description|annotation|infojson|pl_description|pl_infojson`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
+Additionally, you can set different output templates for the various metadata files seperately from the general output template by specifying the type of file followed by the template seperated by a colon ":". The different filetypes supported are `subtitle`, `thumbnail`, `description`, `annotation`, `infojson`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
 
 The available fields are:
 
@@ -900,6 +907,13 @@ Available for the media that is a track or a part of a music album:
  - `album_artist` (string): List of all artists appeared on the album
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
  - `release_year` (numeric): Year (YYYY) when the album was released
+
+Available when using `--split-chapters` for videos with internal chapters:
+
+ - `section_title` (string): Title of the chapter
+ - `section_number` (numeric): Number of the chapter within the file
+ - `section_start` (numeric): Start time of the chapter in seconds
+ - `section_end` (numeric): End time of the chapter in seconds
 
 Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
