@@ -1537,11 +1537,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
     def _comment_entries(self, root_continuation_data, identity_token, account_syncid,
-                         session_token_list, parent=None, comment_count=None):
+                         session_token_list, parent=None, comment_counts=None):
 
         def extract_thread(parent_renderer):
             contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
-
+            if not parent:
+                comment_counts[2] = 0
             for content in contents:
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
                 comment_renderer = try_get(
@@ -1553,23 +1554,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
-                comment_count[0] += 1
+                comment_counts[0] += 1
                 yield comment
                 # Attempt to get the replies
                 comment_replies_renderer = try_get(
                     comment_thread_renderer, lambda x: x['replies']['commentRepliesRenderer'], dict)
 
                 if comment_replies_renderer:
+                    comment_counts[2] += 1
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, identity_token, account_syncid,
                         parent=comment.get('id'), session_token_list=session_token_list,
-                        comment_count=comment_count)
+                        comment_counts=comment_counts)
 
                     for reply_comment in comment_entries_iter:
                         yield reply_comment
 
-        if not comment_count:
-            comment_count = [0, 0]  # [ comment so far, est. total comments]
+        if not comment_counts:
+            # comment so far, est. total comments, current comment thread #
+            comment_counts = [0, 0, 0]
         headers = self._DEFAULT_BASIC_API_HEADERS.copy()
 
         if identity_token:
@@ -1584,7 +1587,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if parent is None:
             first_continuation = True
 
-        for page_num in itertools.count(not int(first_continuation)):
+        for page_num in itertools.count(0):
             if not continuation:
                 break
             retries = self._downloader.params.get('extractor_retries', 3)
@@ -1606,20 +1609,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     else:
                         query['action_get_comments'] = 1
 
-                    if first_continuation:
-                        note_prefix = "Downloading initial comment continuation page"
+                    comment_prog_str = '(%d/%d)' % (comment_counts[0], comment_counts[1])
+                    if page_num == 0:
+                        if first_continuation:
+                            note_prefix = "Downloading initial comment continuation page"
+                        else:
+                            note_prefix = "    Downloading comment reply thread %d %s" % (comment_counts[2], comment_prog_str)
                     else:
-                        note_subpage_prefix = ""
-                        if parent:
-                            if page_num > 1:
-                                note_subpage_prefix += "  "
-                            else:
-                                note_subpage_prefix += "└ "
-                        note_prefix = "%sDownloading comment%s page %s%s" % (
-                            note_subpage_prefix,
+                        note_prefix = "%sDownloading comment%s page %d %s" % (
+                            "       " if parent else "",
                             ' replies' if parent else '',
                             page_num,
-                            ' (%d/%d)' % (comment_count[0], comment_count[1]))
+                            comment_prog_str)
 
                     browse = self._download_json(
                         'https://www.youtube.com/comment_service_ajax', None,
@@ -1694,8 +1695,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         compat_str)
 
                     if expected_comment_count:
-                        comment_count[1] = str_to_int(expected_comment_count)
+                        comment_counts[1] = str_to_int(expected_comment_count)
                         self.to_screen("Downloading ~%d comments" % str_to_int(expected_comment_count))
+                        yield comment_counts[1]
 
                     # TODO: cli arg.
                     # 1/True for newest, 0/False for popular (default)
@@ -1725,6 +1727,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         known_entry_comment_renderers = (
             'itemSectionRenderer',
         )
+        estimated_total = 0
         for entry in contents:
             for key, renderer in entry.items():
                 if key not in known_entry_comment_renderers:
@@ -1737,8 +1740,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     session_token_list=[xsrf_token])
 
                 for comment in comment_iter:
+                    if isinstance(comment, int):
+                        estimated_total = comment
+                        continue
                     comments.append(comment)
-        self.to_screen("Downloaded %d comments" % len(comments))
+                break
+        self.to_screen("Downloaded %d/%d comments" % (len(comments), estimated_total))
         return {'comments': comments,
                 'comment_count': len(comments)}
 
