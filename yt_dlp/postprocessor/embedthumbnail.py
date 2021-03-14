@@ -85,6 +85,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             thumbnail_filename = thumbnail_jpg_filename
             thumbnail_ext = 'jpg'
 
+        mtime = os.stat(encodeFilename(filename)).st_mtime
+
         success = True
         if info['ext'] == 'mp3':
             options = [
@@ -186,6 +188,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         if success and temp_filename != filename:
             os.remove(encodeFilename(filename))
             os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+
+        self.try_utime(filename, mtime, mtime)
 
         files_to_delete = [thumbnail_filename]
         if self._already_have_thumbnail:
