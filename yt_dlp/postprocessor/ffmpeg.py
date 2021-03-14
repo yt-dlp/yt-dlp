@@ -782,7 +782,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
             'section_start': chapter.get('start_time'),
             'section_end': chapter.get('end_time'),
         })
-        return self._downloader.prepare_filename(info, 'split')
+        return self._downloader.prepare_filename(info, 'chapter')
 
     def _ffmpeg_args_for_chapter(self, number, chapter, info):
         destination = self._prepare_filename(number, chapter, info)
