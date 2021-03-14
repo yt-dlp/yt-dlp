@@ -51,13 +51,16 @@ class ShahidIE(ShahidBaseIE):
     _NETRC_MACHINE = 'shahid'
     _VALID_URL = r'https?://shahid\.mbc\.net/ar/(?:serie|show|movie)s/[^/]+/(?P<type>episode|clip|movie)-(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://shahid.mbc.net/ar/shows/%D9%85%D8%AC%D9%84%D8%B3-%D8%A7%D9%84%D8%B4%D8%A8%D8%A7%D8%A8-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D9%83%D9%84%D9%8A%D8%A8-1/clip-275286',
+        'url': 'https://shahid.mbc.net/ar/shows/%D9%85%D8%AA%D8%AD%D9%81-%D8%A7%D9%84%D8%AF%D8%AD%D9%8A%D8%AD-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D9%83%D9%84%D9%8A%D8%A8-1/clip-816924',
         'info_dict': {
-            'id': '275286',
+            'id': '816924',
             'ext': 'mp4',
-            'title': 'مجلس الشباب الموسم 1 كليب 1',
-            'timestamp': 1506988800,
-            'upload_date': '20171003',
+            'title': 'متحف الدحيح الموسم 1 كليب 1',
+            'timestamp': 1602806400,
+            'upload_date': '20201016',
+            'description': 'برومو',
+            'duration': 22,
+            'categories': ['كوميديا'],
         },
         'params': {
             # m3u8 download
@@ -109,12 +112,15 @@ class ShahidIE(ShahidBaseIE):
             page_type = 'episode'
 
         playout = self._call_api(
-            'playout/url/' + video_id, video_id)['playout']
+            'playout/new/url/' + video_id, video_id)['playout']
 
         if not self._downloader.params.get('allow_unplayable_formats') and playout.get('drm'):
             raise ExtractorError('This video is DRM protected.', expected=True)
 
-        formats = self._extract_m3u8_formats(playout['url'], video_id, 'mp4')
+        formats = self._extract_m3u8_formats(re.sub(
+            # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
+            r'aws\.manifestfilter=[\w:;,-]+&?',
+            '', playout['url']), video_id, 'mp4')
         self._sort_formats(formats)
 
         # video = self._call_api(

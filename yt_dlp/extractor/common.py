@@ -231,8 +231,9 @@ class InfoExtractor(object):
     uploader:       Full name of the video uploader.
     license:        License name the video is licensed under.
     creator:        The creator of the video.
+    release_timestamp: UNIX timestamp of the moment the video was released.
     release_date:   The date (YYYYMMDD) when the video was released.
-    timestamp:      UNIX timestamp of the moment the video became available.
+    timestamp:      UNIX timestamp of the moment the video was uploaded
     upload_date:    Video upload date (YYYYMMDD).
                     If not explicitly set, calculated from timestamp.
     uploader_id:    Nickname or id of the video uploader.

@@ -42,6 +42,7 @@ class ApplePodcastsIE(InfoExtractor):
         ember_data = self._parse_json(self._search_regex(
             r'id="shoebox-ember-data-store"[^>]*>\s*({.+?})\s*<',
             webpage, 'ember data'), episode_id)
+        ember_data = ember_data.get(episode_id) or ember_data
         episode = ember_data['data']['attributes']
         description = episode.get('description') or {}
 

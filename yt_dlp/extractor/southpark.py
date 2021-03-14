@@ -6,9 +6,9 @@ from .mtv import MTVServicesInfoExtractor
 
 class SouthParkIE(MTVServicesInfoExtractor):
     IE_NAME = 'southpark.cc.com'
-    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.cc\.com/(?:clips|(?:full-)?episodes|collections)/(?P<id>.+?)(\?|#|$))'
+    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark(?:\.cc|studios)\.com/(?:clips|(?:full-)?episodes|collections)/(?P<id>.+?)(\?|#|$))'
 
-    _FEED_URL = 'http://www.southparkstudios.com/feeds/video-player/mrss'
+    _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
 
     _TESTS = [{
         'url': 'http://southpark.cc.com/clips/104437/bat-daded#tab=featured',
@@ -23,7 +23,19 @@ class SouthParkIE(MTVServicesInfoExtractor):
     }, {
         'url': 'http://southpark.cc.com/collections/7758/fan-favorites/1',
         'only_matching': True,
+    }, {
+        'url': 'https://www.southparkstudios.com/episodes/h4o269/south-park-stunning-and-brave-season-19-ep-1',
+        'only_matching': True,
     }]
+
+    def _get_feed_query(self, uri):
+        return {
+            'accountOverride': 'intl.mtvi.com',
+            'arcEp': 'shared.southpark.global',
+            'ep': '90877963',
+            'imageEp': 'shared.southpark.global',
+            'mgid': uri,
+        }
 
 
 class SouthParkEsIE(SouthParkIE):

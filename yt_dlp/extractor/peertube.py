@@ -599,11 +599,13 @@ class PeerTubeIE(InfoExtractor):
         else:
             age_limit = None
 
+        webpage_url = 'https://%s/videos/watch/%s' % (host, video_id)
+
         return {
             'id': video_id,
             'title': title,
             'description': description,
-            'thumbnail': urljoin(url, video.get('thumbnailPath')),
+            'thumbnail': urljoin(webpage_url, video.get('thumbnailPath')),
             'timestamp': unified_timestamp(video.get('publishedAt')),
             'uploader': account_data('displayName', compat_str),
             'uploader_id': str_or_none(account_data('id', int)),
@@ -621,5 +623,6 @@ class PeerTubeIE(InfoExtractor):
             'tags': try_get(video, lambda x: x['tags'], list),
             'categories': categories,
             'formats': formats,
-            'subtitles': subtitles
+            'subtitles': subtitles,
+            'webpage_url': webpage_url,
         }

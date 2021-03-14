@@ -7,6 +7,8 @@ from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     int_or_none,
+    try_get,
+    unified_timestamp,
 )
 
 
@@ -19,14 +21,17 @@ class VoxMediaVolumeIE(OnceIE):
 
         setup = self._parse_json(self._search_regex(
             r'setup\s*=\s*({.+});', webpage, 'setup'), video_id)
-        video_data = setup.get('video') or {}
+        player_setup = setup.get('player_setup') or setup
+        video_data = player_setup.get('video') or {}
+        formatted_metadata = video_data.get('formatted_metadata') or {}
         info = {
             'id': video_id,
-            'title': video_data.get('title_short'),
+            'title': player_setup.get('title') or video_data.get('title_short'),
             'description': video_data.get('description_long') or video_data.get('description_short'),
-            'thumbnail': video_data.get('brightcove_thumbnail')
+            'thumbnail': formatted_metadata.get('thumbnail') or video_data.get('brightcove_thumbnail'),
+            'timestamp': unified_timestamp(formatted_metadata.get('video_publish_date')),
         }
-        asset = setup.get('asset') or setup.get('params') or {}
+        asset = try_get(setup, lambda x: x['embed_assets']['chorus'], dict) or {}
 
         formats = []
         hls_url = asset.get('hls_url')
@@ -47,6 +52,7 @@ class VoxMediaVolumeIE(OnceIE):
         if formats:
             self._sort_formats(formats)
             info['formats'] = formats
+            info['duration'] = int_or_none(asset.get('duration'))
             return info
 
         for provider_video_type in ('ooyala', 'youtube', 'brightcove'):
@@ -84,7 +90,7 @@ class VoxMediaIE(InfoExtractor):
     }, {
         # Volume embed, Youtube
         'url': 'http://www.theverge.com/2014/10/21/7025853/google-nexus-6-hands-on-photos-video-android-phablet',
-        'md5': '4c8f4a0937752b437c3ebc0ed24802b5',
+        'md5': 'fd19aa0cf3a0eea515d4fd5c8c0e9d68',
         'info_dict': {
             'id': 'Gy8Md3Eky38',
             'ext': 'mp4',
@@ -93,6 +99,7 @@ class VoxMediaIE(InfoExtractor):
             'uploader_id': 'TheVerge',
             'upload_date': '20141021',
             'uploader': 'The Verge',
+            'timestamp': 1413907200,
         },
         'add_ie': ['Youtube'],
         'skip': 'similar to the previous test',
@@ -100,13 +107,13 @@ class VoxMediaIE(InfoExtractor):
         # Volume embed, Youtube
         'url': 'http://www.vox.com/2016/3/31/11336640/mississippi-lgbt-religious-freedom-bill',
         'info_dict': {
-            'id': 'YCjDnX-Xzhg',
+            'id': '22986359b',
             'ext': 'mp4',
             'title': "Mississippi's laws are so bad that its anti-LGBTQ law isn't needed to allow discrimination",
             'description': 'md5:fc1317922057de31cd74bce91eb1c66c',
-            'uploader_id': 'voxdotcom',
             'upload_date': '20150915',
-            'uploader': 'Vox',
+            'timestamp': 1442332800,
+            'duration': 285,
         },
         'add_ie': ['Youtube'],
         'skip': 'similar to the previous test',
@@ -160,6 +167,9 @@ class VoxMediaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Post-Post-PC CEO: The Full Code Conference Video of Microsoft\'s Satya Nadella',
             'description': 'The longtime veteran was chosen earlier this year as the software giant\'s third leader in its history.',
+            'timestamp': 1402938000,
+            'upload_date': '20140616',
+            'duration': 4114,
         },
         'add_ie': ['VoxMediaVolume'],
     }]

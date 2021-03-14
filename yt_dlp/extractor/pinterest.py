@@ -31,6 +31,7 @@ class PinterestBaseIE(InfoExtractor):
 
         title = (data.get('title') or data.get('grid_title') or video_id).strip()
 
+        urls = []
         formats = []
         duration = None
         if extract_formats:
@@ -38,8 +39,9 @@ class PinterestBaseIE(InfoExtractor):
                 if not isinstance(format_dict, dict):
                     continue
                 format_url = url_or_none(format_dict.get('url'))
-                if not format_url:
+                if not format_url or format_url in urls:
                     continue
+                urls.append(format_url)
                 duration = float_or_none(format_dict.get('duration'), scale=1000)
                 ext = determine_ext(format_url)
                 if 'hls' in format_id.lower() or ext == 'm3u8':

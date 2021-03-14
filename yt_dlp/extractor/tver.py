@@ -9,6 +9,7 @@ from ..utils import (
     int_or_none,
     remove_start,
     smuggle_url,
+    strip_or_none,
     try_get,
 )
 
@@ -24,6 +25,10 @@ class TVerIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://tver.jp/episode/79622438',
+        'only_matching': True,
+    }, {
+        # subtitle = ' '
+        'url': 'https://tver.jp/corner/f0068870',
         'only_matching': True,
     }]
     _TOKEN = None
@@ -47,8 +52,12 @@ class TVerIE(InfoExtractor):
         }
 
         if service == 'cx':
+            title = main['title']
+            subtitle = strip_or_none(main.get('subtitle'))
+            if subtitle:
+                title += ' - ' + subtitle
             info.update({
-                'title': main.get('subtitle') or main['title'],
+                'title': title,
                 'url': 'https://i.fod.fujitv.co.jp/plus7/web/%s/%s.html' % (p_id[:4], p_id),
                 'ie_key': 'FujiTVFODPlus7',
             })
