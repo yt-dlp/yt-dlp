@@ -1536,7 +1536,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'parent': parent or 'root'
         }
 
-    def _comment_entries(self, root_continuation_data, identity_token, account_syncid, session_token_list, parent=None):
+    def _comment_entries(self, root_continuation_data, identity_token, account_syncid,
+                         session_token_list, parent=None, comment_count=None):
 
         def extract_thread(parent_renderer):
             contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
@@ -1552,6 +1553,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
+                comment_count[0] += 1
                 yield comment
                 # Attempt to get the replies
                 comment_replies_renderer = try_get(
@@ -1560,11 +1562,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if comment_replies_renderer:
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, identity_token, account_syncid,
-                        parent=comment.get('id'), session_token_list=session_token_list)
+                        parent=comment.get('id'), session_token_list=session_token_list,
+                        comment_count=comment_count)
 
                     for reply_comment in comment_entries_iter:
                         yield reply_comment
 
+        if not comment_count:
+            comment_count = [0,0] # [ comment so far, est. total comments]
         headers = self._DEFAULT_BASIC_API_HEADERS.copy()
 
         if identity_token:
@@ -1602,15 +1607,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         query['action_get_comments'] = 1
 
                     if first_continuation:
-                        note_prefix = "initial comment continuation page"
+                        note_prefix = "Downloading initial comment continuation page"
                     else:
-                        note_prefix = "comment%s page %d%s" % (
+                        note_subpage_prefix = ""
+                        if parent:
+                            if page_num > 1:
+                                note_subpage_prefix += "  "
+                            else:
+                                note_subpage_prefix += "└ "
+                        note_prefix = "%sDownloading comment%s page %s%s" % (
+                            note_subpage_prefix,
                             ' replies' if parent else '',
-                            page_num, ' (thread %s)' % parent if parent else '')
+                            page_num,
+                            ' (%d/%d)' % (comment_count[0], comment_count[1]))
 
                     browse = self._download_json(
                         'https://www.youtube.com/comment_service_ajax', None,
-                        'Downloading %s %s' % (note_prefix, '(retry #%d)' % count if count else ''),
+                        '%s %s' % (note_prefix, '(retry #%d)' % count if count else ''),
                         headers=headers, query=query,
                         data=urlencode_postdata({
                             'session_token': session_token_list[0]
@@ -1681,6 +1694,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         compat_str)
 
                     if expected_comment_count:
+                        comment_count[1] = str_to_int(expected_comment_count)
                         self.to_screen("Downloading ~%d comments" % str_to_int(expected_comment_count))
 
                     # TODO: cli arg.
