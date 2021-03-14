@@ -1569,7 +1569,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         yield reply_comment
 
         if not comment_count:
-            comment_count = [0,0] # [ comment so far, est. total comments]
+            comment_count = [0, 0]  # [ comment so far, est. total comments]
         headers = self._DEFAULT_BASIC_API_HEADERS.copy()
 
         if identity_token:
