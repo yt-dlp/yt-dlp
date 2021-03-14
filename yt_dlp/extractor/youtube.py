@@ -1526,9 +1526,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {
             'id': comment_id,
             'text': text,
+            # TODO: This should be parsed to timestamp
             'time_text': time_text,
-            'votes': votes,
-            'is_liked': is_liked,
+            'like_count': votes,
+            'is_favorited': is_liked,
             'author': author,
             'author_id': author_id,
             'author_thumbnail': author_thumbnail,
@@ -1575,6 +1576,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             comment_counts = [0, 0, 0]
         headers = self._DEFAULT_BASIC_API_HEADERS.copy()
 
+        # TODO: Generalize the download code with TabIE
         if identity_token:
             headers['x-youtube-identity-token'] = identity_token
 
@@ -1746,8 +1748,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comments.append(comment)
                 break
         self.to_screen("Downloaded %d/%d comments" % (len(comments), estimated_total))
-        return {'comments': comments,
-                'comment_count': len(comments)}
+        return {
+            'comments': comments,
+            'comment_count': len(comments),
+        }
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})

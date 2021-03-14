@@ -264,6 +264,7 @@ class InfoExtractor(object):
                     properties (all but one of text or html optional):
                         * "author" - human-readable name of the comment author
                         * "author_id" - user ID of the comment author
+                        * "author_thumbnail" - The thumbnail of the comment author
                         * "id" - Comment ID
                         * "html" - Comment as HTML
                         * "text" - Plain text of the comment
@@ -271,6 +272,12 @@ class InfoExtractor(object):
                         * "parent" - ID of the comment this one is replying to.
                                      Set to "root" to indicate that this is a
                                      comment to the original video.
+                        * "like_count" - Number of positive ratings of the comment
+                        * "dislike_count" - Number of negative ratings of the comment
+                        * "is_favorited" - Whether the comment is marked as
+                                           favorite by the video uploader
+                        * "author_is_uploader" - Whether the comment is made by
+                                                 the video uploader
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
