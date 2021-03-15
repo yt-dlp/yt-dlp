@@ -15,7 +15,9 @@ from ..utils import (
 
 
 class RCSBaseIE(InfoExtractor):
-    # class converted from the js player
+    # based on VideoPlayerLoader.prototype.getVideoSrc
+    # and VideoPlayerLoader.prototype.transformSrc from
+    # https://js2.corriereobjects.it/includes2013/LIBS/js/corriere_video.sjs
     _ALL_REPLACE = {
         'media2vam.corriere.it.edgesuite.net':
             'media2vam-corriere-it.akamaized.net',
@@ -235,14 +237,12 @@ class RCSBaseIE(InfoExtractor):
                 r'[\s;]video\s*=\s*({[\s\S]+?})(?:;|,playlist=)',
                 page, video_id, default=None)
             if not json and 'video-embed' in url:
-                # RCSEmbeds_2 test
                 page = self._download_webpage(url.replace('video-embed', 'video-json'), video_id)
                 json = self._search_regex(
                     r'##start-video##({[\s\S]+?})##end-video##',
                     page, video_id, default=None)
             if not json:
                 # if no video data found try search for iframes
-                # RCS_1 test
                 emb = RCSEmbedsIE._extract_url(page)
                 if emb:
                     return {
@@ -295,6 +295,7 @@ class RCSEmbedsIE(RCSBaseIE):
             'uploader': 'rcs.it',
         }
     }, {
+        # redownload the page changing 'video-embed' in 'video-json'
         'url': 'https://video.gazzanet.gazzetta.it/video-embed/gazzanet-mo05-0000260789',
         'md5': 'a043e3fecbe4d9ed7fc5d888652a5440',
         'info_dict': {
@@ -371,6 +372,7 @@ class RCSIE(RCSBaseIE):
             'uploader': 'Corriere Tv',
         }
     }, {
+        # video data inside iframe
         'url': 'https://viaggi.corriere.it/video/norvegia-il-nuovo-ponte-spettacolare-sopra-la-cascata-di-voringsfossen/',
         'md5': 'da378e4918d2afbf7d61c35abb948d4c',
         'info_dict': {
