@@ -15,6 +15,9 @@ from ..utils import (
 
 
 class RCSBaseIE(InfoExtractor):
+    # based on VideoPlayerLoader.prototype.getVideoSrc
+    # and VideoPlayerLoader.prototype.transformSrc from
+    # https://js2.corriereobjects.it/includes2013/LIBS/js/corriere_video.sjs
     _ALL_REPLACE = {
         'media2vam.corriere.it.edgesuite.net':
             'media2vam-corriere-it.akamaized.net',
@@ -191,10 +194,10 @@ class RCSBaseIE(InfoExtractor):
             urls.get('m3u8'), video_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls', fatal=False)
 
-        if not formats:
+        if urls.get('mp4'):
             formats.append({
                 'format_id': 'http-mp4',
-                'url': urls.get('mp4')
+                'url': urls['mp4']
             })
         self._sort_formats(formats)
         return formats
@@ -216,10 +219,12 @@ class RCSBaseIE(InfoExtractor):
         video_data = None
         # look for json video data url
         json = self._search_regex(
-            r'''(?x)var url\s*=\s*["']((?:https?:)?
-                //video\.rcs\.it
-                /fragment-includes/video-includes/.+?\.json)["'];''',
-            page, video_id, default=None)
+            r'''(?x)url\s*=\s*(["'])
+            (?P<url>
+                (?:https?:)?//video\.rcs\.it
+                /fragment-includes/video-includes/.+?\.json
+            )\1;''',
+            page, video_id, group='url', default=None)
         if json:
             if json.startswith('//'):
                 json = 'https:%s' % json
@@ -227,13 +232,16 @@ class RCSBaseIE(InfoExtractor):
 
         # if json url not found, look for json video data directly in the page
         else:
+            # RCS normal pages and most of the embeds
             json = self._search_regex(
                 r'[\s;]video\s*=\s*({[\s\S]+?})(?:;|,playlist=)',
                 page, video_id, default=None)
-            if json:
-                video_data = self._parse_json(
-                    json, video_id, transform_source=js_to_json)
-            else:
+            if not json and 'video-embed' in url:
+                page = self._download_webpage(url.replace('video-embed', 'video-json'), video_id)
+                json = self._search_regex(
+                    r'##start-video##({[\s\S]+?})##end-video##',
+                    page, video_id, default=None)
+            if not json:
                 # if no video data found try search for iframes
                 emb = RCSEmbedsIE._extract_url(page)
                 if emb:
@@ -242,6 +250,9 @@ class RCSBaseIE(InfoExtractor):
                         'url': emb,
                         'ie_key': RCSEmbedsIE.ie_key()
                     }
+            if json:
+                video_data = self._parse_json(
+                    json, video_id, transform_source=js_to_json)
 
         if not video_data:
             raise ExtractorError('Video data not found in the page')
@@ -250,7 +261,8 @@ class RCSBaseIE(InfoExtractor):
             self._get_video_src(video_data), video_id)
 
         description = (video_data.get('description')
-                       or clean_html(video_data.get('htmlDescription')))
+                       or clean_html(video_data.get('htmlDescription'))
+                       or self._html_search_meta('description', page))
         uploader = video_data.get('provider') or mobj.group('cdn')
 
         return {
@@ -283,6 +295,7 @@ class RCSEmbedsIE(RCSBaseIE):
             'uploader': 'rcs.it',
         }
     }, {
+        # redownload the page changing 'video-embed' in 'video-json'
         'url': 'https://video.gazzanet.gazzetta.it/video-embed/gazzanet-mo05-0000260789',
         'md5': 'a043e3fecbe4d9ed7fc5d888652a5440',
         'info_dict': {
@@ -359,6 +372,7 @@ class RCSIE(RCSBaseIE):
             'uploader': 'Corriere Tv',
         }
     }, {
+        # video data inside iframe
         'url': 'https://viaggi.corriere.it/video/norvegia-il-nuovo-ponte-spettacolare-sopra-la-cascata-di-voringsfossen/',
         'md5': 'da378e4918d2afbf7d61c35abb948d4c',
         'info_dict': {
@@ -389,15 +403,15 @@ class RCSVariousIE(RCSBaseIE):
                     (?P<cdn>
                         leitv\.it|
                         youreporter\.it
-                    )/(?:video/)?(?P<id>[^/]+?)(?:$|\?|/)'''
+                    )/(?:[^/]+/)?(?P<id>[^/]+?)(?:$|\?|/)'''
     _TESTS = [{
-        'url': 'https://www.leitv.it/video/marmellata-di-ciliegie-fatta-in-casa/',
-        'md5': '618aaabac32152199c1af86784d4d554',
+        'url': 'https://www.leitv.it/benessere/mal-di-testa-come-combatterlo-ed-evitarne-la-comparsa/',
+        'md5': '92b4e63667b8f95acb0a04da25ae28a1',
         'info_dict': {
-            'id': 'marmellata-di-ciliegie-fatta-in-casa',
+            'id': 'mal-di-testa-come-combatterlo-ed-evitarne-la-comparsa',
             'ext': 'mp4',
-            'title': 'Marmellata di ciliegie fatta in casa',
-            'description': 'md5:89133864d6aad456dbcf6e7a29f86263',
+            'title': 'Cervicalgia e mal di testa, il video con i suggerimenti dell\'esperto',
+            'description': 'md5:ae21418f34cee0b8d02a487f55bcabb5',
             'uploader': 'leitv.it',
         }
     }, {
