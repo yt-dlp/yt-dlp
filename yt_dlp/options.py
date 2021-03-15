@@ -214,12 +214,11 @@ def parseOpts(overrideArguments=None):
         help='Mark videos watched (YouTube only)')
     general.add_option(
         '--no-mark-watched',
-        action='store_false', dest='mark_watched', default=False,
-        help='Do not mark videos watched')
+        action='store_false', dest='mark_watched',
+        help='Do not mark videos watched (default)')
     general.add_option(
         '--no-colors',
-        action='store_true', dest='no_color',
-        default=False,
+        action='store_true', dest='no_color', default=False,
         help='Do not emit color codes in output')
 
     network = optparse.OptionGroup(parser, 'Network Options')
@@ -1091,8 +1090,8 @@ def parseOpts(overrideArguments=None):
             'The supported executables are: SponSkrub, FFmpeg, FFprobe, and AtomicParsley. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
-            'a number can be appended to the exe name seperated by "_i" to pass the argument '
-            'before the specified input file. Eg: --ppa "Merger+ffmpeg_i1:-v quiet". '
+            '"_i"/"_o" can be appended to the prefix optionally followed by a number to pass the argument '
+            'before the specified input/output file. Eg: --ppa "Merger+ffmpeg_i1:-v quiet". '
             'You can use this option multiple times to give different arguments to different '
             'postprocessors. (Alias: --ppa)'))
     postproc.add_option(

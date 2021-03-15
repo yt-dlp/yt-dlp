@@ -17,6 +17,24 @@
 -->
 
 
+### 2021.03.15
+* **Split video by chapters**: using option `--split-chapters`
+    * The output file of the split files can be set with `-o`/`-P` using the prefix `chapter:`
+    * Additional keys `section_title`, `section_number`, `section_start`, `section_end` are available in the output template
+* **Parallel fragment downloads** by [shirt](https://github.com/shirt-dev)
+    * Use option `--concurrent-fragments` (`-N`) to set the number of threads (default 1)
+* Merge youtube-dl: Upto [commit/3be0980](https://github.com/ytdl-org/youtube-dl/commit/3be098010f667b14075e3dfad1e74e5e2becc8ea)
+* [Zee5] Add Show Extractor by [Ashish](https://github.com/Ashish) and [pukkandan](https://github.com/pukkandan)
+* [rai] fix drm check [nixxo](https://github.com/nixxo)
+* [zee5] Support zee5originals
+* [wimtv] Add extractor by [nixxo](https://github.com/nixxo)
+* [mtv] Add mtv.it and extract series metadata by [nixxo](https://github.com/nixxo)
+* [pluto.tv] Add extractor by [kevinoconnor7](https://github.com/kevinoconnor7)
+* [Youtube] Rewrite comment extraction by [colethedj](https://github.com/colethedj)
+* [embedthumbnail] Set mtime correctly
+* Refactor some postprocessor/downloader code by [pukkandan](https://github.com/pukkandan) and [shirt](https://github.com/shirt-dev)
+
+
 ### 2021.03.07
 * [youtube] Fix history, mixes, community pages and trending by [pukkandan](https://github.com/pukkandan) and [colethedj](https://github.com/colethedj)
 * [youtube] Fix private feeds/playlists on multi-channel accounts by [colethedj](https://github.com/colethedj)
@@ -348,31 +366,33 @@
 * Cleaned up the fork for public use
 
 
+**PS**: All uncredited changes above this point are authored by [pukkandan](https://github.com/pukkandan)
+
 ### Unreleased changes in [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc)
-* Updated to youtube-dl release 2020.11.26
-* [youtube]
+* Updated to youtube-dl release 2020.11.26 by [pukkandan](https://github.com/pukkandan)
+* Youtube improvements by [pukkandan](https://github.com/pukkandan)
     * Implemented all Youtube Feeds (ytfav, ytwatchlater, ytsubs, ythistory, ytrec) and SearchURL
-    * Fix ytsearch not returning results sometimes due to promoted content
-    * Temporary fix for automatic captions - disable json3
     * Fix some improper Youtube URLs
     * Redirect channel home to /video
     * Print youtube's warning message
-    * Multiple pages are handled better for feeds
+    * Handle Multiple pages for feeds better
+* [youtube] Fix ytsearch not returning results sometimes due to promoted content by [colethedj](https://github.com/colethedj)
+* [youtube] Temporary fix for automatic captions - disable json3 by [blackjack4494](https://github.com/blackjack4494)
 * Add --break-on-existing by [gergesh](https://github.com/gergesh)
-* Pre-check video IDs in the archive before downloading
-* [bitwave.tv] New extractor
-* [Gedi] Add extractor
-* [Rcs] Add new extractor
-* [skyit] Add support for multiple Sky Italia website and removed old skyitalia extractor
-* [france.tv] Fix thumbnail URL
-* [ina] support mobile links
-* [instagram] Fix extractor
-* [itv] BTCC new pages' URL update (articles instead of races)
-* [SouthparkDe] Support for English URLs
-* [spreaker] fix SpreakerShowIE test URL
-* [Vlive] Fix playlist handling when downloading a channel
-* [generic] Detect embedded bitchute videos
-* [generic] Extract embedded youtube and twitter videos
-* [ffmpeg] Ensure all streams are copied
-* Fix for os.rename error when embedding thumbnail to video in a different drive
-* make_win.bat: don't use UPX to pack vcruntime140.dll
+* Pre-check video IDs in the archive before downloading by [pukkandan](https://github.com/pukkandan)
+* [bitwave.tv] New extractor by [lorpus](https://github.com/lorpus)
+* [Gedi] Add extractor by [nixxo](https://github.com/nixxo)
+* [Rcs] Add new extractor by [nixxo](https://github.com/nixxo)
+* [skyit] New skyitalia extractor by [nixxo](https://github.com/nixxo)
+* [france.tv] Fix thumbnail URL by [renalid](https://github.com/renalid)
+* [ina] support mobile links by [B0pol](https://github.com/B0pol)
+* [instagram] Fix thumbnail extractor by [nao20010128nao](https://github.com/nao20010128nao)
+* [SouthparkDe] Support for English URLs by [xypwn](https://github.com/xypwn)
+* [spreaker] fix SpreakerShowIE test URL by [pukkandan](https://github.com/pukkandan)
+* [Vlive] Fix playlist handling when downloading a channel by [kyuyeunk](https://github.com/kyuyeunk)
+* [tmz] Fix extractor by [diegorodriguezv](https://github.com/diegorodriguezv)
+* [generic] Detect embedded bitchute videos by [pukkandan](https://github.com/pukkandan)
+* [generic] Extract embedded youtube and twitter videos by [diegorodriguezv](https://github.com/diegorodriguezv)
+* [ffmpeg] Ensure all streams are copied by [pukkandan](https://github.com/pukkandan)
+* [embedthumbnail] Fix for os.rename error by [pukkandan](https://github.com/pukkandan)
+* make_win.bat: don't use UPX to pack vcruntime140.dll by [jbruchon](https://github.com/jbruchon)
