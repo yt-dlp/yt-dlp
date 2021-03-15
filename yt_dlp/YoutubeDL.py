@@ -2141,7 +2141,10 @@ class YoutubeDL(object):
                 fd.add_progress_hook(ph)
             if self.params.get('verbose'):
                 self.to_screen('[debug] Invoking downloader on %r' % info.get('url'))
-            return fd.download(name, info, subtitle)
+            new_info = dict(info)
+            if new_info.get('http_headers') is None:
+                new_info['http_headers'] = self._calc_headers(new_info)
+            return fd.download(name, new_info, subtitle)
 
         subtitles_are_requested = any([self.params.get('writesubtitles', False),
                                        self.params.get('writeautomaticsub')])
