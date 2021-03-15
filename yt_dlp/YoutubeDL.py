@@ -1644,7 +1644,7 @@ class YoutubeDL(object):
                         new_dict.update({
                             'width': the_only_video.get('width'),
                             'height': the_only_video.get('height'),
-                            'resolution': the_only_video.get('resolution'),
+                            'resolution': the_only_video.get('resolution') or self.format_resolution(the_only_video),
                             'fps': the_only_video.get('fps'),
                             'vcodec': the_only_video.get('vcodec'),
                             'vbr': the_only_video.get('vbr'),
@@ -2651,12 +2651,11 @@ class YoutubeDL(object):
             return 'audio only'
         if format.get('resolution') is not None:
             return format['resolution']
-        if format.get('height') is not None:
-            if format.get('width') is not None:
-                res = '%sx%s' % (format['width'], format['height'])
-            else:
-                res = '%sp' % format['height']
-        elif format.get('width') is not None:
+        if format.get('width') and format.get('height'):
+            res = '%dx%d' % (format['width'], format['height'])
+        elif format.get('height'):
+            res = '%sp' % format['height']
+        elif format.get('width'):
             res = '%dx?' % format['width']
         else:
             res = default
