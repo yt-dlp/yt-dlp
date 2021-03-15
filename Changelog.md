@@ -24,13 +24,12 @@
 * **Parallel fragment downloads** by [shirt](https://github.com/shirt-dev)
     * Use option `--concurrent-fragments` (`-N`) to set the number of threads (default 1)
 * Merge youtube-dl: Upto [commit/3be0980](https://github.com/ytdl-org/youtube-dl/commit/3be098010f667b14075e3dfad1e74e5e2becc8ea)
-* [Zee5] Add Show Extractor by [Ashish](https://github.com/Ashish) and [pukkandan](https://github.com/pukkandan)
+* [zee5] Add Show Extractor by [Ashish](https://github.com/Ashish) and [pukkandan](https://github.com/pukkandan)
 * [rai] fix drm check [nixxo](https://github.com/nixxo)
-* [zee5] Support zee5originals
 * [wimtv] Add extractor by [nixxo](https://github.com/nixxo)
 * [mtv] Add mtv.it and extract series metadata by [nixxo](https://github.com/nixxo)
 * [pluto.tv] Add extractor by [kevinoconnor7](https://github.com/kevinoconnor7)
-* [Youtube] Rewrite comment extraction by [colethedj](https://github.com/colethedj)
+* [youtube] Rewrite comment extraction by [colethedj](https://github.com/colethedj)
 * [embedthumbnail] Set mtime correctly
 * Refactor some postprocessor/downloader code by [pukkandan](https://github.com/pukkandan) and [shirt](https://github.com/shirt-dev)
 
