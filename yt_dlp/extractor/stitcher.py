@@ -1,19 +1,61 @@
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
+from ..compat import compat_str
 from ..utils import (
     clean_html,
+    clean_podcast_url,
     ExtractorError,
     int_or_none,
     str_or_none,
     try_get,
+    url_or_none,
 )
 
 
-class StitcherIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?stitcher\.com/(?:podcast|show)/(?:[^/]+/)+e(?:pisode)?/(?:(?P<display_id>[^/#?&]+?)-)?(?P<id>\d+)(?:[/#?&]|$)'
+class StitcherBaseIE(InfoExtractor):
+    _VALID_URL_BASE = r'https?://(?:www\.)?stitcher\.com/(?:podcast|show)/'
+
+    def _call_api(self, path, video_id, query):
+        resp = self._download_json(
+            'https://api.prod.stitcher.com/' + path,
+            video_id, query=query)
+        error_massage = try_get(resp, lambda x: x['errors'][0]['message'])
+        if error_massage:
+            raise ExtractorError(error_massage, expected=True)
+        return resp['data']
+
+    def _extract_description(self, data):
+        return clean_html(data.get('html_description') or data.get('description'))
+
+    def _extract_audio_url(self, episode):
+        return url_or_none(episode.get('audio_url') or episode.get('guid'))
+
+    def _extract_show_info(self, show):
+        return {
+            'thumbnail': show.get('image_base_url'),
+            'series': show.get('title'),
+        }
+
+    def _extract_episode(self, episode, audio_url, show_info):
+        info = {
+            'id': compat_str(episode['id']),
+            'display_id': episode.get('slug'),
+            'title': episode['title'].strip(),
+            'description': self._extract_description(episode),
+            'duration': int_or_none(episode.get('duration')),
+            'url': clean_podcast_url(audio_url),
+            'vcodec': 'none',
+            'timestamp': int_or_none(episode.get('date_published')),
+            'season_number': int_or_none(episode.get('season')),
+            'season_id': str_or_none(episode.get('season_id')),
+        }
+        info.update(show_info)
+        return info
+
+
+class StitcherIE(StitcherBaseIE):
+    _VALID_URL = StitcherBaseIE._VALID_URL_BASE + r'(?:[^/]+/)+e(?:pisode)?/(?:[^/#?&]+-)?(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.stitcher.com/podcast/the-talking-machines/e/40789481?autoplay=true',
         'md5': 'e9635098e0da10b21a0e2b85585530f6',
@@ -24,8 +66,9 @@ class StitcherIE(InfoExtractor):
             'description': 'md5:547adb4081864be114ae3831b4c2b42f',
             'duration': 1604,
             'thumbnail': r're:^https?://.*\.jpg',
-            'upload_date': '20180126',
-            'timestamp': 1516989316,
+            'upload_date': '20151008',
+            'timestamp': 1444285800,
+            'series': 'Talking Machines',
         },
     }, {
         'url': 'http://www.stitcher.com/podcast/panoply/vulture-tv/e/the-rare-hourlong-comedy-plus-40846275?autoplay=true',
@@ -55,33 +98,47 @@ class StitcherIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id, audio_id = re.match(self._VALID_URL, url).groups()
+        audio_id = self._match_id(url)
+        data = self._call_api(
+            'shows/episodes', audio_id, {'episode_ids': audio_id})
+        episode = data['episodes'][0]
+        audio_url = self._extract_audio_url(episode)
+        if not audio_url:
+            self.raise_login_required()
+        show = try_get(data, lambda x: x['shows'][0], dict) or {}
+        return self._extract_episode(
+            episode, audio_url, self._extract_show_info(show))
 
-        resp = self._download_json(
-            'https://api.prod.stitcher.com/episode/' + audio_id,
-            display_id or audio_id)
-        episode = try_get(resp, lambda x: x['data']['episodes'][0], dict)
-        if not episode:
-            raise ExtractorError(resp['errors'][0]['message'], expected=True)
 
-        title = episode['title'].strip()
-        audio_url = episode['audio_url']
+class StitcherShowIE(StitcherBaseIE):
+    _VALID_URL = StitcherBaseIE._VALID_URL_BASE + r'(?P<id>[^/#?&]+)/?(?:[?#&]|$)'
+    _TESTS = [{
+        'url': 'http://www.stitcher.com/podcast/the-talking-machines',
+        'info_dict': {
+            'id': 'the-talking-machines',
+            'title': 'Talking Machines',
+            'description': 'md5:831f0995e40f26c10231af39cf1ebf0b',
+        },
+        'playlist_mincount': 106,
+    }, {
+        'url': 'https://www.stitcher.com/show/the-talking-machines',
+        'only_matching': True,
+    }]
 
-        thumbnail = None
-        show_id = episode.get('show_id')
-        if show_id and episode.get('classic_id') != -1:
-            thumbnail = 'https://stitcher-classic.imgix.net/feedimages/%s.jpg' % show_id
+    def _real_extract(self, url):
+        show_slug = self._match_id(url)
+        data = self._call_api(
+            'search/show/%s/allEpisodes' % show_slug, show_slug, {'count': 10000})
+        show = try_get(data, lambda x: x['shows'][0], dict) or {}
+        show_info = self._extract_show_info(show)
 
-        return {
-            'id': audio_id,
-            'display_id': display_id,
-            'title': title,
-            'description': clean_html(episode.get('html_description') or episode.get('description')),
-            'duration': int_or_none(episode.get('duration')),
-            'thumbnail': thumbnail,
-            'url': audio_url,
-            'vcodec': 'none',
-            'timestamp': int_or_none(episode.get('date_created')),
-            'season_number': int_or_none(episode.get('season')),
-            'season_id': str_or_none(episode.get('season_id')),
-        }
+        entries = []
+        for episode in (data.get('episodes') or []):
+            audio_url = self._extract_audio_url(episode)
+            if not audio_url:
+                continue
+            entries.append(self._extract_episode(episode, audio_url, show_info))
+
+        return self.playlist_result(
+            entries, show_slug, show.get('title'),
+            self._extract_description(show))
