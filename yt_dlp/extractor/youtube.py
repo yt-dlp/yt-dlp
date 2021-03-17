@@ -2666,7 +2666,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     def _extract_basic_item_renderer(item):
         # Modified from _extract_grid_item_renderer
         known_renderers = (
-            'playlistRenderer', 'videoRenderer', 'channelRenderer'
+            'playlistRenderer', 'videoRenderer', 'channelRenderer',
             'gridPlaylistRenderer', 'gridVideoRenderer', 'gridChannelRenderer'
         )
         for key, renderer in item.items():
