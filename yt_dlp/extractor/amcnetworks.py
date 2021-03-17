@@ -85,7 +85,7 @@ class AMCNetworksIE(ThePlatformIE):
                     media_url = 'https://link.theplatform.com/s/' + tp_path
                     has_releasePid = True
                     video_player_count += 1
-        except:
+        except KeyError:
             pass
         if video_player_count > 1:
             self.report_warning ('The JSON data has more than one video player.')
@@ -119,7 +119,7 @@ class AMCNetworksIE(ThePlatformIE):
         for thumbnail_url in thumbnail_temp:
             if not thumbnail_url:
                 continue
-            i = { 'url': thumbnail_url }
+            i = {'url': thumbnail_url}
             mobj = re.search(r'(\d+)x(\d+)', thumbnail_url)
             if mobj:
                 i.update({
@@ -130,7 +130,7 @@ class AMCNetworksIE(ThePlatformIE):
         # Sometimes these thumbnails are the same image despite having
         # different URLs.  Sometimes they're entirely different images,
         # not just different resolutions of one image.
- 
+
         info.update({
             'id': video_id,
             'subtitles': subtitles,
