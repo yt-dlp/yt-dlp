@@ -88,7 +88,10 @@ class AMCNetworksIE(ThePlatformIE):
         except KeyError:
             pass
         if video_player_count > 1:
-            self.report_warning('The JSON data has more than one video player.')
+            self.report_warning(
+                'The JSON data has ' + str(video_player_count)
+                + ' video players.'
+                )
         # This extractor originally used videoPid instead of releasePid
         # but some of those resulting manifests have DRM.
         if not has_releasePid:
