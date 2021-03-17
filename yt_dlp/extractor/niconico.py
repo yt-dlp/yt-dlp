@@ -8,6 +8,7 @@ import datetime
 from .common import InfoExtractor
 from ..postprocessor.ffmpeg import FFmpegPostProcessor
 from ..compat import (
+    compat_str,
     compat_parse_qs,
     compat_urllib_parse_urlparse,
 )
@@ -20,6 +21,7 @@ from ..utils import (
     parse_duration,
     parse_iso8601,
     PostProcessingError,
+    str_or_none,
     remove_start,
     try_get,
     unified_timestamp,
@@ -34,7 +36,7 @@ class NiconicoIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/watch/sm22312215',
-        'md5': 'd1a75c0823e2f629128c43e1212760f9',
+        'md5': 'a5bad06f1347452102953f323c69da34s',
         'info_dict': {
             'id': 'sm22312215',
             'ext': 'mp4',
@@ -203,7 +205,7 @@ class NiconicoIE(InfoExtractor):
             'data-api-data="([^"]+)"', webpage,
             'API data', default='{}'), video_id)
 
-        session_api_data = try_get(api_data, lambda x: x['video']['dmcInfo']['session_api'])
+        session_api_data = try_get(api_data, lambda x: x['media']['delivery']['movie']['session'])
         session_api_endpoint = try_get(session_api_data, lambda x: x['urls'][0])
 
         # ping
@@ -220,7 +222,7 @@ class NiconicoIE(InfoExtractor):
         yesno = lambda x: 'yes' if x else 'no'
 
         # m3u8 (encryption)
-        if 'encryption' in try_get(api_data, lambda x: x['video']['dmcInfo']) or {}:
+        if 'encryption' in (try_get(api_data, lambda x: x['media']['delivery']['movie']) or {}):
             protocol = 'm3u8'
             session_api_http_parameters = {
                 'parameters': {
@@ -244,8 +246,8 @@ class NiconicoIE(InfoExtractor):
             session_api_http_parameters = {
                 'parameters': {
                     'http_output_download_parameters': {
-                        'use_ssl': yesno(session_api_endpoint['is_ssl']),
-                        'use_well_known_port': yesno(session_api_endpoint['is_well_known_port']),
+                        'use_ssl': yesno(session_api_endpoint['isSsl']),
+                        'use_well_known_port': yesno(session_api_endpoint['isWellKnownPort']),
                     }
                 }
             }
@@ -258,15 +260,15 @@ class NiconicoIE(InfoExtractor):
             data=json.dumps({
                 'session': {
                     'client_info': {
-                        'player_id': session_api_data.get('player_id'),
+                        'player_id': session_api_data.get('playerId'),
                     },
                     'content_auth': {
-                        'auth_type': try_get(session_api_data, lambda x: x['auth_types'][session_api_data['protocols'][0]]),
-                        'content_key_timeout': session_api_data.get('content_key_timeout'),
+                        'auth_type': try_get(session_api_data, lambda x: x['authTypes'][session_api_data['protocols'][0]]),
+                        'content_key_timeout': session_api_data.get('contentKeyTimeout'),
                         'service_id': 'nicovideo',
-                        'service_user_id': session_api_data.get('service_user_id')
+                        'service_user_id': session_api_data.get('serviceUserId')
                     },
-                    'content_id': session_api_data.get('content_id'),
+                    'content_id': session_api_data.get('contentId'),
                     'content_src_id_sets': [{
                         'content_src_ids': [{
                             'src_id_to_mux': {
@@ -279,7 +281,7 @@ class NiconicoIE(InfoExtractor):
                     'content_uri': '',
                     'keep_method': {
                         'heartbeat': {
-                            'lifetime': session_api_data.get('heartbeat_lifetime')
+                            'lifetime': session_api_data.get('heartbeatLifetime')
                         }
                     },
                     'priority': session_api_data.get('priority'),
@@ -289,7 +291,7 @@ class NiconicoIE(InfoExtractor):
                             'http_parameters': session_api_http_parameters
                         }
                     },
-                    'recipe_id': session_api_data.get('recipe_id'),
+                    'recipe_id': session_api_data.get('recipeId'),
                     'session_operation_auth': {
                         'session_operation_auth_by_signature': {
                             'signature': session_api_data.get('signature'),
@@ -308,7 +310,7 @@ class NiconicoIE(InfoExtractor):
             'url': session_api_endpoint['url'] + '/' + session_response['data']['session']['id'] + '?_format=json&_method=PUT',
             'data': json.dumps(session_response['data']),
             # interval, convert milliseconds to seconds, then halve to make a buffer.
-            'interval': float_or_none(session_api_data.get('heartbeat_lifetime'), scale=2000),
+            'interval': float_or_none(session_api_data.get('heartbeatLifetime'), scale=2000),
         }
 
         return info_dict, heartbeat_info_dict
@@ -327,15 +329,17 @@ class NiconicoIE(InfoExtractor):
         format_id = '-'.join(map(lambda s: remove_start(s['id'], 'archive_'), [video_quality, audio_quality]))
         vdict = parse_format_id(video_quality['id'])
         adict = parse_format_id(audio_quality['id'])
-        resolution = video_quality.get('resolution', {'height': vdict.get('res')})
+        resolution = try_get(video_quality, lambda x: x['metadata']['resolution'], dict) or {'height': vdict.get('res')}
+        vbr = try_get(video_quality, lambda x: x['metadata']['bitrate'], float)
 
         return {
             'url': '%s:%s/%s/%s' % (protocol, video_id, video_quality['id'], audio_quality['id']),
             'format_id': format_id,
+            'format_note': 'DMC %s' % try_get(video_quality, lambda x: x['metadata']['label'], compat_str),
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'vcodec': vdict.get('codec'),
             'acodec': adict.get('codec'),
-            'vbr': float_or_none(video_quality.get('bitrate'), 1000) or float_or_none(vdict.get('br')),
+            'vbr': float_or_none(vbr, 1000) or float_or_none(vdict.get('br')),
             'abr': float_or_none(audio_quality.get('bitrate'), 1000) or float_or_none(adict.get('br')),
             'height': int_or_none(resolution.get('height', vdict.get('res'))),
             'width': int_or_none(resolution.get('width')),
@@ -394,92 +398,93 @@ class NiconicoIE(InfoExtractor):
         formats = []
 
         # Get HTML5 videos info
-        try:
-            dmc_info = api_data['video']['dmcInfo']
-        except KeyError:
-            raise ExtractorError('The video can\'t downloaded.',
-                                 expected=True)
+        quality_info = try_get(api_data, lambda x: x['media']['delivery']['movie'])
+        if not quality_info:
+            raise ExtractorError('The video can\'t downloaded.', expected=True)
 
-        quality_info = dmc_info.get('quality')
         for audio_quality in quality_info.get('audios') or {}:
             for video_quality in quality_info.get('videos') or {}:
-                if not audio_quality.get('available') or not video_quality.get('available'):
+                if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
                     continue
                 formats.append(self._extract_format_for_quality(
                     api_data, video_id, audio_quality, video_quality))
 
         # Get flv/swf info
+        timestamp = None
         video_real_url = try_get(api_data, lambda x: x['video']['smileInfo']['url'])
-        is_economy = video_real_url.endswith('low')
+        if not video_real_url:
+            self.report_warning('Unable to obtain smile video information')
+        else:
+            is_economy = video_real_url.endswith('low')
 
-        if is_economy:
-            self.report_warning('Site is currently in economy mode! You will only have access to lower quality streams')
+            if is_economy:
+                self.report_warning('Site is currently in economy mode! You will only have access to lower quality streams')
 
-        # Invoking ffprobe to determine resolution
-        pp = FFmpegPostProcessor(self._downloader)
-        cookies = self._get_cookies('https://nicovideo.jp').output(header='', sep='; path=/; domain=nicovideo.jp;\n')
+            # Invoking ffprobe to determine resolution
+            pp = FFmpegPostProcessor(self._downloader)
+            cookies = self._get_cookies('https://nicovideo.jp').output(header='', sep='; path=/; domain=nicovideo.jp;\n')
 
-        self.to_screen('%s: %s' % (video_id, 'Checking smile format with ffprobe'))
+            self.to_screen('%s: %s' % (video_id, 'Checking smile format with ffprobe'))
 
-        try:
-            metadata = pp.get_metadata_object(video_real_url, ['-cookies', cookies])
-        except PostProcessingError as err:
-            raise ExtractorError(err.msg, expected=True)
+            try:
+                metadata = pp.get_metadata_object(video_real_url, ['-cookies', cookies])
+            except PostProcessingError as err:
+                raise ExtractorError(err.msg, expected=True)
 
-        v_stream = a_stream = {}
+            v_stream = a_stream = {}
 
-        # Some complex swf files doesn't have video stream (e.g. nm4809023)
-        for stream in metadata['streams']:
-            if stream['codec_type'] == 'video':
-                v_stream = stream
-            elif stream['codec_type'] == 'audio':
-                a_stream = stream
+            # Some complex swf files doesn't have video stream (e.g. nm4809023)
+            for stream in metadata['streams']:
+                if stream['codec_type'] == 'video':
+                    v_stream = stream
+                elif stream['codec_type'] == 'audio':
+                    a_stream = stream
 
-        # Community restricted videos seem to have issues with the thumb API not returning anything at all
-        filesize = int(
-            (get_video_info_xml('size_high') if not is_economy else get_video_info_xml('size_low'))
-            or metadata['format']['size']
-        )
-        extension = (
-            get_video_info_xml('movie_type')
-            or 'mp4' if 'mp4' in metadata['format']['format_name'] else metadata['format']['format_name']
-        )
+            # Community restricted videos seem to have issues with the thumb API not returning anything at all
+            filesize = int(
+                (get_video_info_xml('size_high') if not is_economy else get_video_info_xml('size_low'))
+                or metadata['format']['size']
+            )
+            extension = (
+                get_video_info_xml('movie_type')
+                or 'mp4' if 'mp4' in metadata['format']['format_name'] else metadata['format']['format_name']
+            )
 
-        # 'creation_time' tag on video stream of re-encoded SMILEVIDEO mp4 files are '1970-01-01T00:00:00.000000Z'.
-        timestamp = (
-            parse_iso8601(get_video_info_web('first_retrieve'))
-            or unified_timestamp(get_video_info_web('postedDateTime'))
-        )
-        metadata_timestamp = (
-            parse_iso8601(try_get(v_stream, lambda x: x['tags']['creation_time']))
-            or timestamp if extension != 'mp4' else 0
-        )
+            # 'creation_time' tag on video stream of re-encoded SMILEVIDEO mp4 files are '1970-01-01T00:00:00.000000Z'.
+            timestamp = (
+                parse_iso8601(get_video_info_web('first_retrieve'))
+                or unified_timestamp(get_video_info_web('postedDateTime'))
+            )
+            metadata_timestamp = (
+                parse_iso8601(try_get(v_stream, lambda x: x['tags']['creation_time']))
+                or timestamp if extension != 'mp4' else 0
+            )
 
-        # According to compconf, smile videos from pre-2017 are always better quality than their DMC counterparts
-        smile_threshold_timestamp = parse_iso8601('2016-12-08T00:00:00+09:00')
+            # According to compconf, smile videos from pre-2017 are always better quality than their DMC counterparts
+            smile_threshold_timestamp = parse_iso8601('2016-12-08T00:00:00+09:00')
 
-        is_source = timestamp < smile_threshold_timestamp or metadata_timestamp > 0
+            is_source = timestamp < smile_threshold_timestamp or metadata_timestamp > 0
 
-        # If movie file size is unstable, old server movie is not source movie.
-        if filesize > 1:
-            formats.append({
-                'url': video_real_url,
-                'format_id': 'smile' if not is_economy else 'smile_low',
-                'format_note': 'SMILEVIDEO source' if not is_economy else 'SMILEVIDEO low quality',
-                'ext': extension,
-                'container': extension,
-                'vcodec': v_stream.get('codec_name'),
-                'acodec': a_stream.get('codec_name'),
-                # Some complex swf files doesn't have total bit rate metadata (e.g. nm6049209)
-                'tbr': int_or_none(metadata['format'].get('bit_rate'), scale=1000),
-                'vbr': int_or_none(v_stream.get('bit_rate'), scale=1000),
-                'abr': int_or_none(a_stream.get('bit_rate'), scale=1000),
-                'height': int_or_none(v_stream.get('height')),
-                'width': int_or_none(v_stream.get('width')),
-                'source_preference': 5 if not is_economy else -2,
-                'quality': 5 if is_source and not is_economy else None,
-                'filesize': filesize
-            })
+            # If movie file size is unstable, old server movie is not source movie.
+            if filesize > 1:
+                formats.append({
+                    'url': video_real_url,
+                    'format_id': 'smile' if not is_economy else 'smile_low',
+                    'format_note': 'SMILEVIDEO source' if not is_economy else 'SMILEVIDEO low quality',
+                    'ext': extension,
+                    'container': extension,
+                    'vcodec': v_stream.get('codec_name'),
+                    'acodec': a_stream.get('codec_name'),
+                    # Some complex swf files doesn't have total bit rate metadata (e.g. nm6049209)
+                    'tbr': int_or_none(metadata['format'].get('bit_rate'), scale=1000),
+                    'vbr': int_or_none(v_stream.get('bit_rate'), scale=1000),
+                    'abr': int_or_none(a_stream.get('bit_rate'), scale=1000),
+                    'height': int_or_none(v_stream.get('height')),
+                    'width': int_or_none(v_stream.get('width')),
+                    'source_preference': 5 if not is_economy else -2,
+                    'quality': 5 if is_source and not is_economy else None,
+                    'filesize': filesize
+                })
 
         if len(formats) == 0:
             raise ExtractorError('Unable to find video info.')
@@ -517,6 +522,7 @@ class NiconicoIE(InfoExtractor):
             timestamp = parse_iso8601(
                 video_detail['postedAt'].replace('/', '-'),
                 delimiter=' ', timezone=datetime.timedelta(hours=9))
+        timestamp = timestamp or try_get(api_data, lambda x: parse_iso8601(x['video']['registeredAt']))
 
         view_count = int_or_none(get_video_info_web(['view_counter', 'viewCount']))
         if not view_count:
@@ -525,11 +531,16 @@ class NiconicoIE(InfoExtractor):
                 webpage, 'view count', default=None)
             if match:
                 view_count = int_or_none(match.replace(',', ''))
-        view_count = view_count or video_detail.get('viewCount')
+        view_count = (
+            view_count
+            or video_detail.get('viewCount')
+            or try_get(api_data, lambda x: x['video']['count']['view']))
 
-        comment_count = (int_or_none(get_video_info_web('comment_num'))
-                         or video_detail.get('commentCount')
-                         or try_get(api_data, lambda x: x['thread']['commentCount']))
+        comment_count = (
+            int_or_none(get_video_info_web('comment_num'))
+            or video_detail.get('commentCount')
+            or try_get(api_data, lambda x: x['video']['count']['comment']))
+
         if not comment_count:
             match = self._html_search_regex(
                 r'>Comments: <strong[^>]*>([^<]+)</strong>',
@@ -559,7 +570,7 @@ class NiconicoIE(InfoExtractor):
         # Note: cannot use api_data.get('owner', {}) because owner may be set to "null"
         # in the JSON, which will cause None to be returned instead of {}.
         owner = try_get(api_data, lambda x: x.get('owner'), dict) or {}
-        uploader_id = (
+        uploader_id = str_or_none(
             get_video_info_web(['ch_id', 'user_id'])
             or owner.get('id')
             or channel_id
