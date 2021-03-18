@@ -986,6 +986,16 @@ def parseOpts(overrideArguments=None):
             'Do not write playlist metadata when using '
             '--write-info-json, --write-description etc.'))
     filesystem.add_option(
+        '--clean-infojson',
+        action='store_true', dest='clean_infojson', default=True,
+        help=(
+            'Remove some private fields such as filenames from the infojson. '
+            'Note that it could still contain some personal information (default)'))
+    filesystem.add_option(
+        '--no-clean-infojson',
+        action='store_false', dest='clean_infojson',
+        help='Write all fields to the infojson')
+    filesystem.add_option(
         '--get-comments',
         action='store_true', dest='getcomments', default=False,
         help=(

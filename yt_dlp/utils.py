@@ -1836,7 +1836,7 @@ def write_json_file(obj, fn):
 
     try:
         with tf:
-            json.dump(obj, tf)
+            json.dump(obj, tf, default=repr)
         if sys.platform == 'win32':
             # Need to remove existing file on Windows, else os.rename raises
             # WindowsError or FileExistsError.

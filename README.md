@@ -423,6 +423,11 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      --write-description etc. (default)
     --no-write-playlist-metafiles    Do not write playlist metadata when using
                                      --write-info-json, --write-description etc.
+    --clean-infojson                 Remove some private fields such as
+                                     filenames from the infojson. Note that it
+                                     could still contain some personal
+                                     information (default)
+    --no-clean-infojson              Write all fields to the infojson
     --get-comments                   Retrieve video comments to be placed in the
                                      .info.json file. The comments are fetched
                                      even without this option if the extraction
