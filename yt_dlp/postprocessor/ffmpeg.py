@@ -486,7 +486,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 self.report_warning('JSON subtitles cannot be embedded')
             elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
                 sub_langs.append(lang)
-                sub_filenames.append(subtitles_filename(filename, lang, sub_ext, ext))
+                sub_filenames.append(sub_info['filepath'])
             else:
                 if not webm_vtt_warn and ext == 'webm' and sub_ext != 'vtt':
                     webm_vtt_warn = True
@@ -732,9 +732,9 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                     'You have requested to convert json subtitles into another format, '
                     'which is currently not possible')
                 continue
-            old_file = subtitles_filename(filename, lang, ext, info.get('ext'))
+            old_file = sub['filepath']
             sub_filenames.append(old_file)
-            new_file = subtitles_filename(filename, lang, new_ext, info.get('ext'))
+            new_file = replace_extension(old_file, new_ext)
 
             if ext in ('dfxp', 'ttml', 'tt'):
                 self.report_warning(
@@ -742,7 +742,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                     'which results in style information loss')
 
                 dfxp_file = old_file
-                srt_file = subtitles_filename(filename, lang, 'srt', info.get('ext'))
+                srt_file = replace_extension(old_file, 'srt')
 
                 with open(dfxp_file, 'rb') as f:
                     srt_data = dfxp2srt(f.read())
@@ -753,7 +753,8 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
 
                 subs[lang] = {
                     'ext': 'srt',
-                    'data': srt_data
+                    'data': srt_data,
+                    'filepath': srt_file,
                 }
 
                 if new_ext == 'srt':
@@ -767,7 +768,11 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                 subs[lang] = {
                     'ext': new_ext,
                     'data': f.read(),
+                    'filepath': new_file,
                 }
+
+            info['__files_to_move'][new_file] = replace_extension(
+                info['__files_to_move'][old_file], new_ext)
 
         return sub_filenames, info
 
@@ -789,7 +794,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         if not self._downloader._ensure_dir_exists(encodeFilename(destination)):
             return
 
-        chapter['_filename'] = destination
+        chapter['filepath'] = destination
         self.to_screen('Chapter %03d; Destination: %s' % (number, destination))
         return (
             destination,
