@@ -13,7 +13,7 @@
 
 A command-line program to download videos from youtube.com and many other [video platforms](supportedsites.md)
 
-This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which is inturn a fork of [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+This is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc). The main focus of this project is adding new features and patches while also keeping up to date with the original project
 
 * [NEW FEATURES](#new-features)
 * [INSTALLATION](#installation)
@@ -77,7 +77,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, tiktok, akamai, ina, rumble, tennistv
 
-* **Plugin support**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
+* **Plugin extractors**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
 
 * **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to using `--paths` (`-P`)
 

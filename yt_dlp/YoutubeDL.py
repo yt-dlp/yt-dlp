@@ -2536,9 +2536,9 @@ class YoutubeDL(object):
         }
         keep_key = lambda k: k in exceptions['keep'] or not (k.startswith('_') or k in exceptions['remove'])
         filter_fn = lambda obj: (
-                list(map(filter_fn, obj)) if isinstance(obj, (list, tuple))
-                else obj if not isinstance(obj, dict)
-                else dict((k, filter_fn(v)) for k, v in obj.items() if keep_key(k)))
+            list(map(filter_fn, obj)) if isinstance(obj, (list, tuple))
+            else obj if not isinstance(obj, dict)
+            else dict((k, filter_fn(v)) for k, v in obj.items() if keep_key(k)))
         return filter_fn(info_dict)
 
     def run_pp(self, pp, infodict):
