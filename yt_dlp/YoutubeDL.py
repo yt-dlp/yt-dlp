@@ -2075,6 +2075,7 @@ class YoutubeDL(object):
 
         info_dict = self.pre_process(info_dict)
 
+        # info_dict['_filename'] needs to be set for backward compatibility
         info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
         temp_filename = self.prepare_filename(info_dict, 'temp')
         files_to_move = {}
@@ -2159,6 +2160,7 @@ class YoutubeDL(object):
                 sub_filename_final = subtitles_filename(sub_fn, sub_lang, sub_format, info_dict.get('ext'))
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(sub_filename)):
                     self.to_screen('[info] Video subtitle %s.%s is already present' % (sub_lang, sub_format))
+                    sub_info['filepath'] = sub_filename
                     files_to_move[sub_filename] = sub_filename_final
                 else:
                     self.to_screen('[info] Writing video subtitles to: ' + sub_filename)
@@ -2168,13 +2170,15 @@ class YoutubeDL(object):
                             # See https://github.com/ytdl-org/youtube-dl/issues/10268
                             with io.open(encodeFilename(sub_filename), 'w', encoding='utf-8', newline='') as subfile:
                                 subfile.write(sub_info['data'])
+                            sub_info['filepath'] = sub_filename
                             files_to_move[sub_filename] = sub_filename_final
                         except (OSError, IOError):
                             self.report_error('Cannot write subtitles file ' + sub_filename)
                             return
                     else:
                         try:
-                            dl(sub_filename, sub_info, subtitle=True)
+                            dl(sub_filename, sub_info.copy(), subtitle=True)
+                            sub_info['filepath'] = sub_filename
                             files_to_move[sub_filename] = sub_filename_final
                         except (ExtractorError, IOError, OSError, ValueError, compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                             self.report_warning('Unable to download subtitle for "%s": %s' %
@@ -2223,7 +2227,7 @@ class YoutubeDL(object):
         for thumb_ext in self._write_thumbnails(info_dict, thumb_fn_temp):
             thumb_filename_temp = replace_extension(thumb_fn_temp, thumb_ext, info_dict.get('ext'))
             thumb_filename = replace_extension(thumbfn, thumb_ext, info_dict.get('ext'))
-            files_to_move[thumb_filename_temp] = info_dict['__thumbnail_filename'] = thumb_filename
+            files_to_move[thumb_filename_temp] = thumb_filename
 
         # Write internet shortcut files
         url_link = webloc_link = desktop_link = False
@@ -2529,15 +2533,17 @@ class YoutubeDL(object):
             (k, v) for k, v in info_dict.items()
             if (k[0] != '_' or k == '_type') and k not in fields_to_remove)
 
-    def run_pp(self, pp, infodict, files_to_move={}):
+    def run_pp(self, pp, infodict):
         files_to_delete = []
+        if '__files_to_move' not in infodict:
+            infodict['__files_to_move'] = {}
         files_to_delete, infodict = pp.run(infodict)
         if not files_to_delete:
-            return files_to_move, infodict
+            return infodict
 
         if self.params.get('keepvideo', False):
             for f in files_to_delete:
-                files_to_move.setdefault(f, '')
+                infodict['__files_to_move'].setdefault(f, '')
         else:
             for old_filename in set(files_to_delete):
                 self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
@@ -2545,9 +2551,9 @@ class YoutubeDL(object):
                     os.remove(encodeFilename(old_filename))
                 except (IOError, OSError):
                     self.report_warning('Unable to remove downloaded original file')
-                if old_filename in files_to_move:
-                    del files_to_move[old_filename]
-        return files_to_move, infodict
+                if old_filename in infodict['__files_to_move']:
+                    del infodict['__files_to_move'][old_filename]
+        return infodict
 
     @staticmethod
     def post_extract(info_dict):
@@ -2570,20 +2576,21 @@ class YoutubeDL(object):
     def pre_process(self, ie_info):
         info = dict(ie_info)
         for pp in self._pps['beforedl']:
-            info = self.run_pp(pp, info)[1]
+            info = self.run_pp(pp, info)
         return info
 
-    def post_process(self, filename, ie_info, files_to_move={}):
+    def post_process(self, filename, ie_info, files_to_move=None):
         """Run all the postprocessors on the given file."""
         info = dict(ie_info)
         info['filepath'] = filename
-        info['__files_to_move'] = {}
+        info['__files_to_move'] = files_to_move or {}
 
         for pp in ie_info.get('__postprocessors', []) + self._pps['normal']:
-            files_to_move, info = self.run_pp(pp, info, files_to_move)
-        info = self.run_pp(MoveFilesAfterDownloadPP(self, files_to_move), info)[1]
+            info = self.run_pp(pp, info)
+        info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
+        del info['__files_to_move']
         for pp in self._pps['aftermove']:
-            info = self.run_pp(pp, info, {})[1]
+            info = self.run_pp(pp, info)
 
     def _make_archive_id(self, info_dict):
         video_id = info_dict.get('id')
@@ -2951,7 +2958,7 @@ class YoutubeDL(object):
             thumb_ext = determine_ext(t['url'], 'jpg')
             suffix = '%s.' % t['id'] if multiple else ''
             thumb_display_id = '%s ' % t['id'] if multiple else ''
-            t['filename'] = thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
+            t['filepath'] = thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
 
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
                 ret.append(suffix + thumb_ext)

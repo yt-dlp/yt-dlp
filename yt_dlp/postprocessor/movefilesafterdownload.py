@@ -13,10 +13,6 @@ from ..utils import (
 
 class MoveFilesAfterDownloadPP(PostProcessor):
 
-    def __init__(self, downloader, files_to_move):
-        PostProcessor.__init__(self, downloader)
-        self.files_to_move = files_to_move
-
     @classmethod
     def pp_key(cls):
         return 'MoveFiles'
@@ -25,11 +21,10 @@ class MoveFilesAfterDownloadPP(PostProcessor):
         dl_path, dl_name = os.path.split(encodeFilename(info['filepath']))
         finaldir = info.get('__finaldir', dl_path)
         finalpath = os.path.join(finaldir, dl_name)
-        self.files_to_move.update(info['__files_to_move'])
-        self.files_to_move[info['filepath']] = decodeFilename(finalpath)
+        info['__files_to_move'][info['filepath']] = decodeFilename(finalpath)
 
         make_newfilename = lambda old: decodeFilename(os.path.join(finaldir, os.path.basename(encodeFilename(old))))
-        for oldfile, newfile in self.files_to_move.items():
+        for oldfile, newfile in info['__files_to_move'].items():
             if not newfile:
                 newfile = make_newfilename(oldfile)
             if os.path.abspath(encodeFilename(oldfile)) == os.path.abspath(encodeFilename(newfile)):
