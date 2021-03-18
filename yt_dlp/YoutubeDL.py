@@ -216,6 +216,7 @@ class YoutubeDL(object):
     logtostderr:       Log messages to stderr instead of stdout.
     writedescription:  Write the video description to a .description file
     writeinfojson:     Write the video description to a .info.json file
+    clean_infojson:    Remove private fields from the infojson
     writecomments:     Extract video comments. This will not be written to disk
                        unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
@@ -1201,7 +1202,7 @@ class YoutubeDL(object):
                     # playlist_info['entries'] = list(playlist_info['entries'])  # Entries is a generator which shouldnot be resolved here
                     self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
                     try:
-                        write_json_file(self.filter_requested_info(playlist_info), infofn)
+                        write_json_file(self.filter_requested_info(playlist_info, self.params.get('clean_infojson', True)), infofn)
                     except (OSError, IOError):
                         self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
 
@@ -2046,7 +2047,7 @@ class YoutubeDL(object):
         print_mandatory('format')
         if self.params.get('forcejson', False):
             self.post_extract(info_dict)
-            self.to_stdout(json.dumps(info_dict))
+            self.to_stdout(json.dumps(info_dict, default=repr))
 
     def process_info(self, info_dict):
         """Process a single resolved IE result."""
@@ -2215,7 +2216,7 @@ class YoutubeDL(object):
             else:
                 self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
                 try:
-                    write_json_file(self.filter_requested_info(info_dict), infofn)
+                    write_json_file(self.filter_requested_info(info_dict, self.params.get('clean_infojson', True)), infofn)
                 except (OSError, IOError):
                     self.report_error('Cannot write video metadata to JSON file ' + infofn)
                     return
@@ -2504,7 +2505,7 @@ class YoutubeDL(object):
             else:
                 if self.params.get('dump_single_json', False):
                     self.post_extract(res)
-                    self.to_stdout(json.dumps(res))
+                    self.to_stdout(json.dumps(res, default=repr))
 
         return self._download_retcode
 
@@ -2526,7 +2527,9 @@ class YoutubeDL(object):
         return self._download_retcode
 
     @staticmethod
-    def filter_requested_info(info_dict):
+    def filter_requested_info(info_dict, actually_filter=True):
+        if not actually_filter:
+            return info_dict
         exceptions = {
             'remove': ['requested_formats', 'requested_subtitles', 'filepath', 'entries'],
             'keep': ['_type'],
