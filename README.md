@@ -47,6 +47,7 @@ This is a fork of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) which i
     * [Sorting Formats](#sorting-formats)
     * [Format Selection examples](#format-selection-examples)
 * [PLUGINS](#plugins)
+* [DEPRECATED OPTIONS](#deprecated-options)
 * [MORE](#more)
 
 
@@ -471,7 +472,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-warnings                    Ignore warnings
     -s, --simulate                   Do not download the video and do not write
                                      anything to disk
-    --skip-download                  Do not download the video
+    --skip-download                  Do not download the video but write all
+                                     related files (Alias: --no-download)
     -g, --get-url                    Simulate, quiet but print URL
     -e, --get-title                  Simulate, quiet but print title
     --get-id                         Simulate, quiet but print id
@@ -508,7 +510,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --encoding ENCODING              Force the specified encoding (experimental)
     --no-check-certificate           Suppress HTTPS certificate validation
     --prefer-insecure                Use an unencrypted connection to retrieve
-                                     information about the video. (Currently
+                                     information about the video (Currently
                                      supported only for YouTube)
     --user-agent UA                  Specify a custom user agent
     --referer URL                    Specify a custom referer, use if the video
@@ -522,15 +524,11 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --sleep-requests SECONDS         Number of seconds to sleep between requests
                                      during data extraction
     --sleep-interval SECONDS         Number of seconds to sleep before each
-                                     download when used alone or a lower bound
-                                     of a range for randomized sleep before each
-                                     download (minimum possible number of
-                                     seconds to sleep) when used along with
-                                     --max-sleep-interval
-    --max-sleep-interval SECONDS     Upper bound of a range for randomized sleep
-                                     before each download (maximum possible
-                                     number of seconds to sleep). Must only be
-                                     used along with --min-sleep-interval
+                                     download. This is the minimum time to sleep
+                                     when used along with --max-sleep-interval
+                                     (Alias: --min-sleep-interval)
+    --max-sleep-interval SECONDS     Maximum number of seconds to sleep. Can
+                                     only be used along with --min-sleep-interval
     --sleep-subtitles SECONDS        Number of seconds to sleep before each
                                      subtitle download
 
@@ -580,16 +578,16 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --write-subs                     Write subtitle file
     --no-write-subs                  Do not write subtitle file (default)
     --write-auto-subs                Write automatically generated subtitle file
-                                     (YouTube only)
-    --no-write-auto-subs             Do not write automatically generated
-                                     subtitle file (default)
+                                     (Alias: --write-automatic-subs)
+    --no-write-auto-subs             Do not write auto-generated subtitles
+                                     (default) (Alias: --no-write-automatic-subs)
     --all-subs                       Download all the available subtitles of the
                                      video
     --list-subs                      List all available subtitles for the video
     --sub-format FORMAT              Subtitle format, accepts formats
                                      preference, for example: "srt" or
                                      "ass/srt/best"
-    --sub-lang LANGS                 Languages of the subtitles to download
+    --sub-langs LANGS                Languages of the subtitles to download
                                      (optional) separated by commas, use --list-
                                      subs for available language tags
 
@@ -699,8 +697,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      downloading and post-processing, similar to
                                      find's -exec syntax. Example: --exec 'adb
                                      push {} /sdcard/Music/ && rm {}'
-    --convert-subs FORMAT            Convert the subtitles to other format
+    --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|ass|vtt|lrc)
+                                     (Alias: --convert-subtitles)
     --split-chapters                 Split video into multiple files based on
                                      internal chapters. The "chapter:" prefix
                                      can be used with "--paths" and "--output"
@@ -1202,6 +1201,40 @@ $ yt-dlp -S '+res:480,codec,br'
 Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently only `extractor` plugins are supported. Support for `downloader` and `postprocessor` plugins may be added in the future. See [ytdlp_plugins](ytdlp_plugins) for example.
 
 **Note**: `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`)
+
+# DEPRECATED OPTIONS
+
+These are all the deprecated options and the current alternative to achieve the same effect
+
+    --cn-verification-proxy URL      --geo-verification-proxy URL
+    --id                             -o "%(id)s.%(ext)s"
+    -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
+    -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
+    -l, --literal                    -o accepts literal names
+    --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
+    --metadata-from-title FORMAT     --parse-metadata "title:FORMAT"
+    --prefer-avconv                  avconv is no longer officially supported (Alias: --no-prefer-ffmpeg)
+    --prefer-ffmpeg                  Default (Alias: --no-prefer-avconv)
+    --avconv-location                avconv is no longer officially supported
+    -C, --call-home                  Not implemented
+    --no-call-home                   Default
+    --write-srt                      --write-subs
+    --no-write-srt                   --no-write-subs
+    --srt-lang LANGS                 --sub-langs LANGS
+    --prefer-unsecure                --prefer-insecure
+    --rate-limit RATE                --limit-rate RATE
+    --force-write-download-archive   --force-write-archive
+    --dump-intermediate-pages        --dump-pages
+    --dump-headers                   --print-traffic
+    --youtube-print-sig-code         No longer supported
+    --trim-file-names LENGTH         --trim-filenames LENGTH
+    --yes-overwrites                 --force-overwrites
+    --load-info                      --load-info-json
+    --split-tracks                   --split-chapters
+    --no-split-tracks                --no-split-chapters
+    --sponskrub-args ARGS            --ppa "sponskrub:ARGS"
+    --test                           Only used for testing extractors
+
 
 # MORE
 For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl#faq)
