@@ -1199,7 +1199,6 @@ class YoutubeDL(object):
                 else:
                     playlist_info = dict(ie_result)
                     # playlist_info['entries'] = list(playlist_info['entries'])  # Entries is a generator which shouldnot be resolved here
-                    del playlist_info['entries']
                     self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
                     try:
                         write_json_file(self.filter_requested_info(playlist_info), infofn)
@@ -2528,10 +2527,16 @@ class YoutubeDL(object):
 
     @staticmethod
     def filter_requested_info(info_dict):
-        fields_to_remove = ('requested_formats', 'requested_subtitles')
-        return dict(
-            (k, v) for k, v in info_dict.items()
-            if (k[0] != '_' or k == '_type') and k not in fields_to_remove)
+        exceptions = {
+            'remove': ['requested_formats', 'requested_subtitles', 'filepath', 'entries'],
+            'keep': ['_type'],
+        }
+        keep_key = lambda k: k in exceptions['keep'] or not (k.startswith('_') or k in exceptions['remove'])
+        filter_fn = lambda obj: (
+                list(map(filter_fn, obj)) if isinstance(obj, (list, tuple))
+                else obj if not isinstance(obj, dict)
+                else dict((k, filter_fn(v)) for k, v in obj.items() if keep_key(k)))
+        return filter_fn(info_dict)
 
     def run_pp(self, pp, infodict):
         files_to_delete = []
