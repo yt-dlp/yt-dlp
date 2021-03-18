@@ -19,7 +19,6 @@ from ..utils import (
     PostProcessingError,
     prepend_extension,
     shell_quote,
-    subtitles_filename,
     dfxp2srt,
     ISO639Utils,
     process_communicate_or_kill,
@@ -712,7 +711,6 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
 
     def run(self, info):
         subs = info.get('requested_subtitles')
-        filename = info['filepath']
         new_ext = self.format
         new_format = new_ext
         if new_format == 'vtt':

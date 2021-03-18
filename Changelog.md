@@ -24,7 +24,7 @@
 * **Parallel fragment downloads** by [shirt](https://github.com/shirt-dev)
     * Use option `--concurrent-fragments` (`-N`) to set the number of threads (default 1)
 * Merge youtube-dl: Upto [commit/3be0980](https://github.com/ytdl-org/youtube-dl/commit/3be098010f667b14075e3dfad1e74e5e2becc8ea)
-* [zee5] Add Show Extractor by [Ashish](https://github.com/Ashish) and [pukkandan](https://github.com/pukkandan)
+* [zee5] Add Show Extractor by [Ashish0804](https://github.com/Ashish0804) and [pukkandan](https://github.com/pukkandan)
 * [rai] fix drm check [nixxo](https://github.com/nixxo)
 * [wimtv] Add extractor by [nixxo](https://github.com/nixxo)
 * [mtv] Add mtv.it and extract series metadata by [nixxo](https://github.com/nixxo)
@@ -39,7 +39,7 @@
 * [youtube] Fix private feeds/playlists on multi-channel accounts by [colethedj](https://github.com/colethedj)
 * [youtube] Extract alerts from continuation by [colethedj](https://github.com/colethedj)
 * [cbs] Add support for ParamountPlus by [shirt](https://github.com/shirt-dev)
-* [mxplayer] Rewrite extractor with show support by [pukkandan](https://github.com/pukkandan) and [Ashish](https://github.com/Ashish)
+* [mxplayer] Rewrite extractor with show support by [pukkandan](https://github.com/pukkandan) and [Ashish0804](https://github.com/Ashish0804)
 * [gedi] Improvements from youtube-dl by [nixxo](https://github.com/nixxo)
 * [vimeo] Fix videos with password by [teesid](https://github.com/teesid)
 * [lbry] Support `lbry://` url by [nixxo](https://github.com/nixxo)
@@ -49,7 +49,7 @@
 * [downloader] Fix bug for `ffmpeg`/`httpie`
 * [update] Fix updater removing the executable bit on some UNIX distros
 * [update] Fix current build hash for UNIX
-* [documentation] Include wget/curl/aria2c install instructions for Unix by [Ashish](https://github.com/Ashish)
+* [documentation] Include wget/curl/aria2c install instructions for Unix by [Ashish0804](https://github.com/Ashish0804)
 * Fix some videos downloading with `m3u8` extension
 * Remove "fixup is ignored" warning when fixup wasn't passed by user
 
@@ -99,7 +99,7 @@
 * Merge youtube-dl: Upto [commit/4460329](https://github.com/ytdl-org/youtube-dl/commit/44603290e5002153f3ebad6230cc73aef42cc2cd) (except tmz, gedi)
 * [Readthedocs](https://yt-dlp.readthedocs.io) support by [shirt](https://github.com/shirt-dev)
 * [youtube] Show if video was a live stream in info (`was_live`)
-* [Zee5] Add new extractor by [Ashish](https://github.com/Ashish) and [pukkandan](https://github.com/pukkandan)
+* [Zee5] Add new extractor by [Ashish0804](https://github.com/Ashish0804) and [pukkandan](https://github.com/pukkandan)
 * [jwplatform] Add support for `hyland.com`
 * [tennistv] Fix extractor
 * [hls] Support media initialization by [shirt](https://github.com/shirt-dev)
