@@ -68,7 +68,7 @@ class AMCNetworksIE(ThePlatformIE):
         page_data = self._download_json(
             'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/%s/url/%s'
             % (requestor_id.lower(), display_id), display_id)['data']
-        properties = page_data.get('properties')
+        properties = page_data.get('properties') or {}
         query = {
             'mbr': 'true',
             'manifest': 'm3u',
