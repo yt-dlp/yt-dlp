@@ -144,9 +144,7 @@ class AMCNetworksIE(ThePlatformIE):
         ns_keys = theplatform_metadata.get('$xmlns', {}).keys()
         if ns_keys:
             ns = list(ns_keys)[0]
-            series = theplatform_metadata.get(ns + '$show')
-            if not series:
-                series = None  # Convert empty string to None
+            series = theplatform_metadata.get(ns + '$show') or None
             season_number = int_or_none(
                 theplatform_metadata.get(ns + '$season'))
             episode = theplatform_metadata.get(ns + '$episodeTitle')
