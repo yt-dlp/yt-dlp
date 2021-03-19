@@ -2459,13 +2459,13 @@ class YoutubeDL(object):
                         assert fixup_policy in ('ignore', 'never')
 
                 try:
-                    self.post_process(dl_filename, info_dict, files_to_move)
+                    info_dict = self.post_process(dl_filename, info_dict, files_to_move)
                 except PostProcessingError as err:
                     self.report_error('Postprocessing: %s' % str(err))
                     return
                 try:
                     for ph in self._post_hooks:
-                        ph(full_filename)
+                        ph(info_dict['filepath'])
                 except Exception as err:
                     self.report_error('post hooks: %s' % str(err))
                     return
@@ -2599,6 +2599,7 @@ class YoutubeDL(object):
         del info['__files_to_move']
         for pp in self._pps['aftermove']:
             info = self.run_pp(pp, info)
+        return info
 
     def _make_archive_id(self, info_dict):
         video_id = info_dict.get('id')
