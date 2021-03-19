@@ -147,9 +147,7 @@ class AMCNetworksIE(ThePlatformIE):
             series = theplatform_metadata.get(ns + '$show') or None
             season_number = int_or_none(
                 theplatform_metadata.get(ns + '$season'))
-            episode = theplatform_metadata.get(ns + '$episodeTitle')
-            if not episode:
-                episode = None
+            episode = theplatform_metadata.get(ns + '$episodeTitle') or None
             episode_number = int_or_none(
                 theplatform_metadata.get(ns + '$episode'))
             info.update({
