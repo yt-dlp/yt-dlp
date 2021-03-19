@@ -78,7 +78,7 @@ class AMCNetworksIE(ThePlatformIE):
         video_player_count = 0
         try:
             for v in page_data['children']:
-                if v['type'] == 'video-player':
+                if v.get('type') == 'video-player':
                     releasePid = \
                         v['properties']['currentVideo']['meta']['releasePid']
                     tp_path = 'M_UwQC/' + releasePid
@@ -92,8 +92,8 @@ class AMCNetworksIE(ThePlatformIE):
                 'The JSON data has ' + str(video_player_count)
                 + ' video players.'
             )
-        # This extractor originally used videoPid instead of releasePid
-        # but some of those resulting manifests have DRM.
+        # Fall back to videoPid if releasePid not found.
+        # To do: Fall back to videoPid if releasePid manifest uses DRM.
         if not has_releasePid:
             tp_path = 'M_UwQC/media/' + properties['videoPid']
             media_url = 'https://link.theplatform.com/s/' + tp_path
@@ -116,44 +116,39 @@ class AMCNetworksIE(ThePlatformIE):
         self._sort_formats(formats)
 
         thumbnails = []
-        thumbnail_temp = []
-        thumbnail_temp.append(info.get('thumbnail'))
-        thumbnail_temp.append(properties.get('imageDesktop'))
-        for thumbnail_url in thumbnail_temp:
+        thumbnail_urls = [properties.get('imageDesktop')]
+        if 'thumbnail' in info:
+            thumbnail_urls.append(info.pop('thumbnail'))
+        for thumbnail_url in thumbnail_urls:
             if not thumbnail_url:
                 continue
-            i = {'url': thumbnail_url}
             mobj = re.search(r'(\d+)x(\d+)', thumbnail_url)
-            if mobj:
-                i.update({
-                    'width': int(mobj.group(1)),
-                    'height': int(mobj.group(2)),
-                })
-            thumbnails.append(i)
-        # Sometimes these thumbnails are the same image despite having
-        # different URLs.  Sometimes they're entirely different images,
-        # not just different resolutions of one image.
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': int(mobj.group(1)) if mobj else None,
+                'height': int(mobj.group(2)) if mobj else None,
+            })
 
         info.update({
+            'age_limit': parse_age_limit(parse_age_limit(rating)),
+            'formats': formats,
             'id': video_id,
             'subtitles': subtitles,
-            'formats': formats,
-            'age_limit': parse_age_limit(parse_age_limit(rating)),
             'thumbnails': thumbnails,
         })
         ns_keys = theplatform_metadata.get('$xmlns', {}).keys()
         if ns_keys:
             ns = list(ns_keys)[0]
-            series = theplatform_metadata.get(ns + '$show') or None
-            season_number = int_or_none(
-                theplatform_metadata.get(ns + '$season'))
             episode = theplatform_metadata.get(ns + '$episodeTitle') or None
             episode_number = int_or_none(
                 theplatform_metadata.get(ns + '$episode'))
+            season_number = int_or_none(
+                theplatform_metadata.get(ns + '$season'))
+            series = theplatform_metadata.get(ns + '$show') or None
             info.update({
-                'series': series,
-                'season_number': season_number,
                 'episode': episode,
                 'episode_number': episode_number,
+                'season_number': season_number,
+                'series': series,
             })
         return info
