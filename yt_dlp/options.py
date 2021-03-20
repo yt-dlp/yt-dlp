@@ -1090,7 +1090,7 @@ def parseOpts(overrideArguments=None):
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
             'to give the argument to the specified postprocessor/executable. Supported postprocessors are: '
             'SponSkrub, ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, '
-            'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor and EmbedThumbnail. '
+            'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor, EmbedThumbnail and SplitChapters. '
             'The supported executables are: SponSkrub, FFmpeg, FFprobe, and AtomicParsley. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '

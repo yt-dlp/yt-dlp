@@ -641,19 +641,19 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      ExtractAudio, VideoRemuxer, VideoConvertor,
                                      EmbedSubtitle, Metadata, Merger,
                                      FixupStretched, FixupM4a, FixupM3u8,
-                                     SubtitlesConvertor and EmbedThumbnail. The
-                                     supported executables are: SponSkrub,
-                                     FFmpeg, FFprobe, and AtomicParsley. You can
-                                     also specify "PP+EXE:ARGS" to give the
-                                     arguments to the specified executable only
-                                     when being used by the specified
-                                     postprocessor. Additionally, for
-                                     ffmpeg/ffprobe, "_i"/"_o" can be appended
-                                     to the prefix optionally followed by a
-                                     number to pass the argument before the
-                                     specified input/output file. Eg: --ppa
-                                     "Merger+ffmpeg_i1:-v quiet". You can use
-                                     this option multiple times to give
+                                     SubtitlesConvertor, EmbedThumbnail and
+                                     SplitChapters. The supported executables
+                                     are: SponSkrub, FFmpeg, FFprobe, and
+                                     AtomicParsley. You can also specify
+                                     "PP+EXE:ARGS" to give the arguments to the
+                                     specified executable only when being used
+                                     by the specified postprocessor.
+                                     Additionally, for ffmpeg/ffprobe, "_i"/"_o"
+                                     can be appended to the prefix optionally
+                                     followed by a number to pass the argument
+                                     before the specified input/output file. Eg:
+                                     --ppa "Merger+ffmpeg_i1:-v quiet". You can
+                                     use this option multiple times to give
                                      different arguments to different
                                      postprocessors. (Alias: --ppa)
     -k, --keep-video                 Keep the intermediate video file on disk
