@@ -164,7 +164,7 @@ class NBCIE(ThePlatformIE):
             series = tpm.get('nbcu$seriesShortTitle')
         tags = video_data.get('keywords')
         if tags is None or len(tags) == 0:
-            tags = tpm.get('keywords'
+            tags = tpm.get('keywords')
 
         return {
             '_type': 'url_transparent',
