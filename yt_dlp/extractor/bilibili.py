@@ -7,6 +7,7 @@ import re
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
+    compat_str,
     compat_parse_qs,
     compat_urlparse,
 )
@@ -15,6 +16,7 @@ from ..utils import (
     int_or_none,
     float_or_none,
     parse_iso8601,
+    try_get,
     smuggle_url,
     str_or_none,
     strip_jsonp,
@@ -113,6 +115,13 @@ class BiliBiliIE(InfoExtractor):
         # new BV video id format
         'url': 'https://www.bilibili.com/video/BV1JE411F741',
         'only_matching': True,
+    }, {
+        # Anthology
+        'url': 'https://www.bilibili.com/video/BV1bK411W797',
+        'info_dict': {
+            'id': 'BV1bK411W797',
+        },
+        'playlist_count': 17,
     }]
 
     _APP_KEY = 'iVGUTjsxvpLeuDCf'
@@ -139,9 +148,19 @@ class BiliBiliIE(InfoExtractor):
         page_id = mobj.group('page')
         webpage = self._download_webpage(url, video_id)
 
+        # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
+        # If the video has no page argument, check to see if it's an anthology
+        if page_id is None:
+            if not self._downloader.params.get('noplaylist'):
+                r = self._extract_anthology_entries(bv_id, video_id, webpage)
+                if r is not None:
+                    self.to_screen('Downloading anthology %s - add --no-playlist to just download video' % video_id)
+                    return r
+            self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+
         if 'anime/' not in url:
             cid = self._search_regex(
-                r'\bcid(?:["\']:|=)(\d+),["\']page(?:["\']:|=)' + str(page_id), webpage, 'cid',
+                r'\bcid(?:["\']:|=)(\d+),["\']page(?:["\']:|=)' + compat_str(page_id), webpage, 'cid',
                 default=None
             ) or self._search_regex(
                 r'\bcid(?:["\']:|=)(\d+)', webpage, 'cid',
@@ -224,7 +243,18 @@ class BiliBiliIE(InfoExtractor):
         title = self._html_search_regex(
             (r'<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
              r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
-            group='title') + ('_p' + str(page_id) if page_id is not None else '')
+            group='title')
+
+        # Get part title for anthologies
+        if page_id is not None:
+            # TODO: The json is already downloaded by _extract_anthology_entries. Don't redownload for each video
+            part_title = try_get(
+                self._download_json(
+                    "https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp" % bv_id,
+                    video_id, note='Extracting videos in anthology'),
+                lambda x: x['data'][int(page_id) - 1]['part'])
+            title = part_title or title
+
         description = self._html_search_meta('description', webpage)
         timestamp = unified_timestamp(self._html_search_regex(
             r'<time[^>]+datetime="([^"]+)"', webpage, 'upload time',
@@ -234,7 +264,7 @@ class BiliBiliIE(InfoExtractor):
 
         # TODO 'view_count' requires deobfuscating Javascript
         info = {
-            'id': str(video_id) if page_id is None else '%s_p%s' % (video_id, page_id),
+            'id': compat_str(video_id) if page_id is None else '%s_p%s' % (video_id, page_id),
             'cid': cid,
             'title': title,
             'description': description,
@@ -300,7 +330,7 @@ class BiliBiliIE(InfoExtractor):
 
             global_info = {
                 '_type': 'multi_video',
-                'id': video_id,
+                'id': compat_str(video_id),
                 'bv_id': bv_id,
                 'title': title,
                 'description': description,
@@ -311,6 +341,20 @@ class BiliBiliIE(InfoExtractor):
             global_info.update(top_level_info)
 
             return global_info
+
+    def _extract_anthology_entries(self, bv_id, video_id, webpage):
+        title = self._html_search_regex(
+            (r'<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
+             r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
+            group='title')
+        json_data = self._download_json(
+            "https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp" % bv_id,
+            video_id, note='Extracting videos in anthology')
+
+        if len(json_data['data']) > 1:
+            return self.playlist_from_matches(
+                json_data['data'], bv_id, title, ie=BiliBiliIE.ie_key(),
+                getter=lambda entry: 'https://www.bilibili.com/video/%s?p=%d' % (bv_id, entry['page']))
 
     def _get_video_id_set(self, id, is_bv):
         query = {'bvid': id} if is_bv else {'aid': id}
@@ -506,7 +550,7 @@ class BiliBiliSearchIE(SearchInfoExtractor):
 
             videos = data['result']
             for video in videos:
-                e = self.url_result(video['arcurl'], 'BiliBili', str(video['aid']))
+                e = self.url_result(video['arcurl'], 'BiliBili', compat_str(video['aid']))
                 entries.append(e)
 
             if(len(entries) >= n or len(videos) >= BiliBiliSearchIE.MAX_NUMBER_OF_RESULTS):
