@@ -253,14 +253,12 @@ class Aria2cFD(ExternalFD):
         return all(check_results)
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-c']
-        dn = os.path.dirname(tmpfilename)
-        if 'fragments' not in info_dict:
-            cmd += ['--out', os.path.basename(tmpfilename)]
-        verbose_level_args = ['--console-log-level=warn', '--summary-interval=0']
-        cmd += self._configuration_args(['--file-allocation=none', '-x16', '-j16', '-s16'] + verbose_level_args)
-        if dn:
-            cmd += ['--dir', dn]
+        cmd = [self.exe, '-c',
+               '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
+               '--file-allocation=none', '-x16', '-j16', '-s16']
+        if 'fragments' in info_dict:
+            cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
+
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
@@ -268,7 +266,15 @@ class Aria2cFD(ExternalFD):
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
+        cmd += self._configuration_args()
+
+        dn = os.path.dirname(tmpfilename)
+        if dn:
+            cmd += ['--dir', dn]
+        if 'fragments' not in info_dict:
+            cmd += ['--out', os.path.basename(tmpfilename)]
         cmd += ['--auto-file-renaming=false']
+
         if 'fragments' in info_dict:
             cmd += verbose_level_args
             cmd += ['--uri-selector', 'inorder', '--download-result=hide']
