@@ -24,7 +24,6 @@ from ..utils import (
     cli_bool_option,
     cli_configuration_args,
     encodeFilename,
-    error_to_compat_str,
     encodeArgument,
     handle_youtubedl_headers,
     check_executable,
@@ -117,19 +116,42 @@ class ExternalFD(FileDownloader):
 
         self._debug_cmd(cmd)
 
-        p = subprocess.Popen(
-            cmd, stderr=subprocess.PIPE)
-        _, stderr = process_communicate_or_kill(p)
-        if p.returncode != 0:
-            self.to_stderr(stderr.decode('utf-8', 'replace'))
-
         if 'fragments' in info_dict:
-            file_list = []
+            fragment_retries = self.params.get('fragment_retries', 0)
+            skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
+
+            count = 0
+            while count <= fragment_retries:
+                p = subprocess.Popen(
+                    cmd, stderr=subprocess.PIPE)
+                _, stderr = process_communicate_or_kill(p)
+                if p.returncode == 0:
+                    break
+                # TODO: Decide whether to retry based on error code
+                # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
+                self.to_stderr(stderr.decode('utf-8', 'replace'))
+                count += 1
+                if count <= fragment_retries:
+                    self.to_screen(
+                        '[%s] Got error. Retrying fragments (attempt %d of %s)...'
+                        % (self.get_basename(), count, self.format_retries(fragment_retries)))
+            if count > fragment_retries:
+                if not skip_unavailable_fragments:
+                    self.report_error('Giving up after %s fragment retries' % fragment_retries)
+                    return -1
+
             dest, _ = sanitize_open(tmpfilename, 'wb')
-            for i, fragment in enumerate(info_dict['fragments']):
-                file = '%s-Frag%d' % (tmpfilename, i)
+            for frag_index, fragment in enumerate(info_dict['fragments']):
+                fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
+                try:
+                    src, _ = sanitize_open(fragment_filename, 'rb')
+                except IOError:
+                    if skip_unavailable_fragments and frag_index > 1:
+                        self.to_screen('[%s] Skipping fragment %d ...' % (self.get_basename(), frag_index))
+                        continue
+                    self.report_error('Unable to open fragment %d' % frag_index)
+                    return -1
                 decrypt_info = fragment.get('decrypt_info')
-                src, _ = sanitize_open(file, 'rb')
                 if decrypt_info:
                     if decrypt_info['METHOD'] == 'AES-128':
                         iv = decrypt_info.get('IV')
@@ -146,20 +168,16 @@ class ExternalFD(FileDownloader):
                     fragment_data = src.read()
                     dest.write(fragment_data)
                 src.close()
-                file_list.append(file)
+                if not self.params.get('keep_fragments', False):
+                    os.remove(encodeFilename(fragment_filename))
             dest.close()
-            if not self.params.get('keep_fragments', False):
-                for file_path in file_list:
-                    try:
-                        os.remove(file_path)
-                    except OSError as ose:
-                        self.report_error("Unable to delete file %s; %s" % (file_path, error_to_compat_str(ose)))
-                try:
-                    file_path = '%s.frag.urls' % tmpfilename
-                    os.remove(file_path)
-                except OSError as ose:
-                    self.report_error("Unable to delete file %s; %s" % (file_path, error_to_compat_str(ose)))
-
+            os.remove(encodeFilename('%s.frag.urls' % tmpfilename))
+        else:
+            p = subprocess.Popen(
+                cmd, stderr=subprocess.PIPE)
+            _, stderr = process_communicate_or_kill(p)
+            if p.returncode != 0:
+                self.to_stderr(stderr.decode('utf-8', 'replace'))
         return p.returncode
 
     def _prepare_url(self, info_dict, url):
@@ -253,14 +271,12 @@ class Aria2cFD(ExternalFD):
         return all(check_results)
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-c']
-        dn = os.path.dirname(tmpfilename)
-        if 'fragments' not in info_dict:
-            cmd += ['--out', os.path.basename(tmpfilename)]
-        verbose_level_args = ['--console-log-level=warn', '--summary-interval=0']
-        cmd += self._configuration_args(['--file-allocation=none', '-x16', '-j16', '-s16'] + verbose_level_args)
-        if dn:
-            cmd += ['--dir', dn]
+        cmd = [self.exe, '-c',
+               '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
+               '--file-allocation=none', '-x16', '-j16', '-s16']
+        if 'fragments' in info_dict:
+            cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
+
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
@@ -268,19 +284,25 @@ class Aria2cFD(ExternalFD):
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
+        cmd += self._configuration_args()
+
+        dn = os.path.dirname(tmpfilename)
+        if dn:
+            cmd += ['--dir', dn]
+        if 'fragments' not in info_dict:
+            cmd += ['--out', os.path.basename(tmpfilename)]
         cmd += ['--auto-file-renaming=false']
+
         if 'fragments' in info_dict:
-            cmd += verbose_level_args
-            cmd += ['--uri-selector', 'inorder', '--download-result=hide']
+            cmd += ['--file-allocation=none', '--uri-selector=inorder']
             url_list_file = '%s.frag.urls' % tmpfilename
             url_list = []
-            for i, fragment in enumerate(info_dict['fragments']):
-                tmpsegmentname = '%s-Frag%d' % (os.path.basename(tmpfilename), i)
-                url_list.append('%s\n\tout=%s' % (fragment['url'], tmpsegmentname))
+            for frag_index, fragment in enumerate(info_dict['fragments']):
+                fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
+                url_list.append('%s\n\tout=%s' % (fragment['url'], fragment_filename))
             stream, _ = sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode('utf-8'))
             stream.close()
-
             cmd += ['-i', url_list_file]
         else:
             cmd += ['--', info_dict['url']]

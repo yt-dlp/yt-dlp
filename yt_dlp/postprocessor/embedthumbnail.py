@@ -47,7 +47,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.to_screen('There aren\'t any thumbnails to embed')
             return [], info
 
-        original_thumbnail = thumbnail_filename = info['thumbnails'][-1]['filename']
+        initial_thumbnail = original_thumbnail = thumbnail_filename = info['thumbnails'][-1]['filepath']
 
         if not os.path.exists(encodeFilename(thumbnail_filename)):
             self.report_warning('Skipping embedding the thumbnail because the file is missing.')
@@ -65,6 +65,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if thumbnail_ext != 'webp' and is_webp(thumbnail_filename):
                 self.to_screen('Correcting extension to webp and escaping path for thumbnail "%s"' % thumbnail_filename)
                 thumbnail_webp_filename = replace_extension(thumbnail_filename, 'webp')
+                if os.path.exists(thumbnail_webp_filename):
+                    os.remove(thumbnail_webp_filename)
                 os.rename(encodeFilename(thumbnail_filename), encodeFilename(thumbnail_webp_filename))
                 original_thumbnail = thumbnail_filename = thumbnail_webp_filename
                 thumbnail_ext = 'webp'
@@ -133,7 +135,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     x for x in ['AtomicParsley', 'atomicparsley']
                     if check_executable(x, ['-v'])), None)
                 if atomicparsley is None:
-                    raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
+                    raise EmbedThumbnailPPError('AtomicParsley was not found. Please install')
 
                 cmd = [encodeFilename(atomicparsley, True),
                        encodeFilename(filename, True),
@@ -194,7 +196,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         files_to_delete = [thumbnail_filename]
         if self._already_have_thumbnail:
             info['__files_to_move'][original_thumbnail] = replace_extension(
-                info['__thumbnail_filename'], os.path.splitext(original_thumbnail)[1][1:])
+                info['__files_to_move'][initial_thumbnail],
+                os.path.splitext(original_thumbnail)[1][1:])
             if original_thumbnail == thumbnail_filename:
                 files_to_delete = []
         elif original_thumbnail != thumbnail_filename:

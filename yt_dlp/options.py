@@ -533,11 +533,11 @@ def parseOpts(overrideArguments=None):
     subtitles.add_option(
         '--write-auto-subs', '--write-automatic-subs',
         action='store_true', dest='writeautomaticsub', default=False,
-        help='Write automatically generated subtitle file (YouTube only)')
+        help='Write automatically generated subtitle file (Alias: --write-automatic-subs)')
     subtitles.add_option(
         '--no-write-auto-subs', '--no-write-automatic-subs',
         action='store_false', dest='writeautomaticsub', default=False,
-        help='Do not write automatically generated subtitle file (default)')
+        help='Do not write auto-generated subtitles (default) (Alias: --no-write-automatic-subs)')
     subtitles.add_option(
         '--all-subs',
         action='store_true', dest='allsubtitles', default=False,
@@ -551,7 +551,7 @@ def parseOpts(overrideArguments=None):
         action='store', dest='subtitlesformat', metavar='FORMAT', default='best',
         help='Subtitle format, accepts formats preference, for example: "srt" or "ass/srt/best"')
     subtitles.add_option(
-        '--sub-lang', '--sub-langs', '--srt-lang',
+        '--sub-langs', '--srt-langs',
         action='callback', dest='subtitleslangs', metavar='LANGS', type='str',
         default=[], callback=_comma_separated_values_options_callback,
         help='Languages of the subtitles to download (optional) separated by commas, use --list-subs for available language tags')
@@ -679,7 +679,7 @@ def parseOpts(overrideArguments=None):
     workarounds.add_option(
         '--prefer-insecure', '--prefer-unsecure',
         action='store_true', dest='prefer_insecure',
-        help='Use an unencrypted connection to retrieve information about the video. (Currently supported only for YouTube)')
+        help='Use an unencrypted connection to retrieve information about the video (Currently supported only for YouTube)')
     workarounds.add_option(
         '--user-agent',
         metavar='UA', dest='user_agent',
@@ -707,17 +707,13 @@ def parseOpts(overrideArguments=None):
         '--sleep-interval', '--min-sleep-interval', metavar='SECONDS',
         dest='sleep_interval', type=float,
         help=(
-            'Number of seconds to sleep before each download when used alone '
-            'or a lower bound of a range for randomized sleep before each download '
-            '(minimum possible number of seconds to sleep) when used along with '
-            '--max-sleep-interval'))
+            'Number of seconds to sleep before each download. '
+            'This is the minimum time to sleep when used along with --max-sleep-interval '
+            '(Alias: --min-sleep-interval)'))
     workarounds.add_option(
         '--max-sleep-interval', metavar='SECONDS',
         dest='max_sleep_interval', type=float,
-        help=(
-            'Upper bound of a range for randomized sleep before each download '
-            '(maximum possible number of seconds to sleep). Must only be used '
-            'along with --min-sleep-interval'))
+        help='Maximum number of seconds to sleep. Can only be used along with --min-sleep-interval')
     workarounds.add_option(
         '--sleep-subtitles', metavar='SECONDS',
         dest='sleep_interval_subtitles', default=0, type=int,
@@ -739,7 +735,7 @@ def parseOpts(overrideArguments=None):
     verbosity.add_option(
         '--skip-download', '--no-download',
         action='store_true', dest='skip_download', default=False,
-        help='Do not download the video')
+        help='Do not download the video but write all related files (Alias: --no-download)')
     verbosity.add_option(
         '-g', '--get-url',
         action='store_true', dest='geturl', default=False,
@@ -982,9 +978,17 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--no-write-playlist-metafiles',
         action='store_false', dest='allow_playlist_files',
+        help='Do not write playlist metadata when using --write-info-json, --write-description etc.')
+    filesystem.add_option(
+        '--clean-infojson',
+        action='store_true', dest='clean_infojson', default=True,
         help=(
-            'Do not write playlist metadata when using '
-            '--write-info-json, --write-description etc.'))
+            'Remove some private fields such as filenames from the infojson. '
+            'Note that it could still contain some personal information (default)'))
+    filesystem.add_option(
+        '--no-clean-infojson',
+        action='store_false', dest='clean_infojson',
+        help='Write all fields to the infojson')
     filesystem.add_option(
         '--get-comments',
         action='store_true', dest='getcomments', default=False,
@@ -1086,7 +1090,7 @@ def parseOpts(overrideArguments=None):
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
             'to give the argument to the specified postprocessor/executable. Supported postprocessors are: '
             'SponSkrub, ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, '
-            'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor and EmbedThumbnail. '
+            'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor, EmbedThumbnail and SplitChapters. '
             'The supported executables are: SponSkrub, FFmpeg, FFprobe, and AtomicParsley. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
@@ -1179,9 +1183,9 @@ def parseOpts(overrideArguments=None):
         metavar='CMD', dest='exec_cmd',
         help='Execute a command on the file after downloading and post-processing, similar to find\'s -exec syntax. Example: --exec \'adb push {} /sdcard/Music/ && rm {}\'')
     postproc.add_option(
-        '--convert-subs', '--convert-subtitles',
+        '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
-        help='Convert the subtitles to other format (currently supported: srt|ass|vtt|lrc)')
+        help='Convert the subtitles to another format (currently supported: srt|ass|vtt|lrc) (Alias: --convert-subtitles)')
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,

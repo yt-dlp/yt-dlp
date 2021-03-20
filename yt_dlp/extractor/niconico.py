@@ -600,7 +600,7 @@ class NiconicoIE(InfoExtractor):
 
 
 class NiconicoPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/(?:user/\d+/)?mylist/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/(?:user/\d+/|my/)?mylist/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/mylist/27411728',
@@ -658,3 +658,40 @@ class NiconicoPlaylistIE(InfoExtractor):
             'uploader_id': uploader_id,
             'entries': OnDemandPagedList(pagefunc, 25),
         }
+
+
+class NiconicoUserIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)/?(?:$|[#?])'
+    _TEST = {
+        'url': 'https://www.nicovideo.jp/user/419948',
+        'info_dict': {
+            'id': '419948',
+        },
+        'playlist_mincount': 101,
+    }
+    _API_URL = "https://nvapi.nicovideo.jp/v1/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s"
+    _api_headers = {
+        'X-Frontend-ID': '6',
+        'X-Frontend-Version': '0',
+        'X-Niconico-Language': 'en-us'
+    }
+    _PAGE_SIZE = 100
+
+    def _entries(self, list_id, ):
+        total_count = 1
+        count = page_num = 0
+        while count < total_count:
+            json_parsed = self._download_json(
+                self._API_URL % (list_id, self._PAGE_SIZE, page_num + 1), list_id,
+                headers=self._api_headers,
+                note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
+            if not page_num:
+                total_count = int_or_none(json_parsed['data'].get('totalCount'))
+            for entry in json_parsed["data"]["items"]:
+                count += 1
+                yield self.url_result('https://www.nicovideo.jp/watch/%s' % entry['id'])
+            page_num += 1
+
+    def _real_extract(self, url):
+        list_id = self._match_id(url)
+        return self.playlist_result(self._entries(list_id), list_id, ie=NiconicoIE.ie_key())

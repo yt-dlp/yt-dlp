@@ -252,8 +252,8 @@ class InfoExtractor(object):
                         * "data": The subtitles file contents
                         * "url": A URL pointing to the subtitles file
                     "ext" will be calculated from URL if missing
-    automatic_captions: Like 'subtitles', used by the YoutubeIE for
-                    automatically generated captions
+    automatic_captions: Like 'subtitles'; contains automatically generated
+                    captions instead of normal subtitles
     duration:       Length of the video in seconds, as an integer or float.
     view_count:     How many users have watched the video on the platform.
     like_count:     Number of positive ratings of the video

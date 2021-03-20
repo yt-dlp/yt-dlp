@@ -216,6 +216,7 @@ class YoutubeDL(object):
     logtostderr:       Log messages to stderr instead of stdout.
     writedescription:  Write the video description to a .description file
     writeinfojson:     Write the video description to a .info.json file
+    clean_infojson:    Remove private fields from the infojson
     writecomments:     Extract video comments. This will not be written to disk
                        unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
@@ -1199,10 +1200,9 @@ class YoutubeDL(object):
                 else:
                     playlist_info = dict(ie_result)
                     # playlist_info['entries'] = list(playlist_info['entries'])  # Entries is a generator which shouldnot be resolved here
-                    del playlist_info['entries']
                     self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
                     try:
-                        write_json_file(self.filter_requested_info(playlist_info), infofn)
+                        write_json_file(self.filter_requested_info(playlist_info, self.params.get('clean_infojson', True)), infofn)
                     except (OSError, IOError):
                         self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
 
@@ -1644,7 +1644,7 @@ class YoutubeDL(object):
                         new_dict.update({
                             'width': the_only_video.get('width'),
                             'height': the_only_video.get('height'),
-                            'resolution': the_only_video.get('resolution'),
+                            'resolution': the_only_video.get('resolution') or self.format_resolution(the_only_video),
                             'fps': the_only_video.get('fps'),
                             'vcodec': the_only_video.get('vcodec'),
                             'vbr': the_only_video.get('vbr'),
@@ -2047,7 +2047,7 @@ class YoutubeDL(object):
         print_mandatory('format')
         if self.params.get('forcejson', False):
             self.post_extract(info_dict)
-            self.to_stdout(json.dumps(info_dict))
+            self.to_stdout(json.dumps(info_dict, default=repr))
 
     def process_info(self, info_dict):
         """Process a single resolved IE result."""
@@ -2075,6 +2075,7 @@ class YoutubeDL(object):
 
         info_dict = self.pre_process(info_dict)
 
+        # info_dict['_filename'] needs to be set for backward compatibility
         info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
         temp_filename = self.prepare_filename(info_dict, 'temp')
         files_to_move = {}
@@ -2140,7 +2141,10 @@ class YoutubeDL(object):
                 fd.add_progress_hook(ph)
             if self.params.get('verbose'):
                 self.to_screen('[debug] Invoking downloader on %r' % info.get('url'))
-            return fd.download(name, info, subtitle)
+            new_info = dict(info)
+            if new_info.get('http_headers') is None:
+                new_info['http_headers'] = self._calc_headers(new_info)
+            return fd.download(name, new_info, subtitle)
 
         subtitles_are_requested = any([self.params.get('writesubtitles', False),
                                        self.params.get('writeautomaticsub')])
@@ -2159,6 +2163,7 @@ class YoutubeDL(object):
                 sub_filename_final = subtitles_filename(sub_fn, sub_lang, sub_format, info_dict.get('ext'))
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(sub_filename)):
                     self.to_screen('[info] Video subtitle %s.%s is already present' % (sub_lang, sub_format))
+                    sub_info['filepath'] = sub_filename
                     files_to_move[sub_filename] = sub_filename_final
                 else:
                     self.to_screen('[info] Writing video subtitles to: ' + sub_filename)
@@ -2168,13 +2173,15 @@ class YoutubeDL(object):
                             # See https://github.com/ytdl-org/youtube-dl/issues/10268
                             with io.open(encodeFilename(sub_filename), 'w', encoding='utf-8', newline='') as subfile:
                                 subfile.write(sub_info['data'])
+                            sub_info['filepath'] = sub_filename
                             files_to_move[sub_filename] = sub_filename_final
                         except (OSError, IOError):
                             self.report_error('Cannot write subtitles file ' + sub_filename)
                             return
                     else:
                         try:
-                            dl(sub_filename, sub_info, subtitle=True)
+                            dl(sub_filename, sub_info.copy(), subtitle=True)
+                            sub_info['filepath'] = sub_filename
                             files_to_move[sub_filename] = sub_filename_final
                         except (ExtractorError, IOError, OSError, ValueError, compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                             self.report_warning('Unable to download subtitle for "%s": %s' %
@@ -2212,7 +2219,7 @@ class YoutubeDL(object):
             else:
                 self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
                 try:
-                    write_json_file(self.filter_requested_info(info_dict), infofn)
+                    write_json_file(self.filter_requested_info(info_dict, self.params.get('clean_infojson', True)), infofn)
                 except (OSError, IOError):
                     self.report_error('Cannot write video metadata to JSON file ' + infofn)
                     return
@@ -2223,7 +2230,7 @@ class YoutubeDL(object):
         for thumb_ext in self._write_thumbnails(info_dict, thumb_fn_temp):
             thumb_filename_temp = replace_extension(thumb_fn_temp, thumb_ext, info_dict.get('ext'))
             thumb_filename = replace_extension(thumbfn, thumb_ext, info_dict.get('ext'))
-            files_to_move[thumb_filename_temp] = info_dict['__thumbnail_filename'] = thumb_filename
+            files_to_move[thumb_filename_temp] = thumb_filename
 
         # Write internet shortcut files
         url_link = webloc_link = desktop_link = False
@@ -2336,10 +2343,17 @@ class YoutubeDL(object):
 
                     requested_formats = info_dict['requested_formats']
                     old_ext = info_dict['ext']
-                    if self.params.get('merge_output_format') is None and not compatible_formats(requested_formats):
-                        info_dict['ext'] = 'mkv'
-                        self.report_warning(
-                            'Requested formats are incompatible for merge and will be merged into mkv.')
+                    if self.params.get('merge_output_format') is None:
+                        if not compatible_formats(requested_formats):
+                            info_dict['ext'] = 'mkv'
+                            self.report_warning(
+                                'Requested formats are incompatible for merge and will be merged into mkv.')
+                        if (info_dict['ext'] == 'webm'
+                                and self.params.get('writethumbnail', False)
+                                and info_dict.get('thumbnails')):
+                            info_dict['ext'] = 'mkv'
+                            self.report_warning(
+                                'webm doesn\'t support embedding a thumbnail, mkv will be used.')
 
                     def correct_ext(filename):
                         filename_real_ext = os.path.splitext(filename)[1][1:]
@@ -2455,13 +2469,13 @@ class YoutubeDL(object):
                         assert fixup_policy in ('ignore', 'never')
 
                 try:
-                    self.post_process(dl_filename, info_dict, files_to_move)
+                    info_dict = self.post_process(dl_filename, info_dict, files_to_move)
                 except PostProcessingError as err:
                     self.report_error('Postprocessing: %s' % str(err))
                     return
                 try:
                     for ph in self._post_hooks:
-                        ph(full_filename)
+                        ph(info_dict['filepath'])
                 except Exception as err:
                     self.report_error('post hooks: %s' % str(err))
                     return
@@ -2501,7 +2515,7 @@ class YoutubeDL(object):
             else:
                 if self.params.get('dump_single_json', False):
                     self.post_extract(res)
-                    self.to_stdout(json.dumps(res))
+                    self.to_stdout(json.dumps(res, default=repr))
 
         return self._download_retcode
 
@@ -2523,21 +2537,31 @@ class YoutubeDL(object):
         return self._download_retcode
 
     @staticmethod
-    def filter_requested_info(info_dict):
-        fields_to_remove = ('requested_formats', 'requested_subtitles')
-        return dict(
-            (k, v) for k, v in info_dict.items()
-            if (k[0] != '_' or k == '_type') and k not in fields_to_remove)
+    def filter_requested_info(info_dict, actually_filter=True):
+        if not actually_filter:
+            return info_dict
+        exceptions = {
+            'remove': ['requested_formats', 'requested_subtitles', 'filepath', 'entries'],
+            'keep': ['_type'],
+        }
+        keep_key = lambda k: k in exceptions['keep'] or not (k.startswith('_') or k in exceptions['remove'])
+        filter_fn = lambda obj: (
+            list(map(filter_fn, obj)) if isinstance(obj, (list, tuple))
+            else obj if not isinstance(obj, dict)
+            else dict((k, filter_fn(v)) for k, v in obj.items() if keep_key(k)))
+        return filter_fn(info_dict)
 
-    def run_pp(self, pp, infodict, files_to_move={}):
+    def run_pp(self, pp, infodict):
         files_to_delete = []
+        if '__files_to_move' not in infodict:
+            infodict['__files_to_move'] = {}
         files_to_delete, infodict = pp.run(infodict)
         if not files_to_delete:
-            return files_to_move, infodict
+            return infodict
 
         if self.params.get('keepvideo', False):
             for f in files_to_delete:
-                files_to_move.setdefault(f, '')
+                infodict['__files_to_move'].setdefault(f, '')
         else:
             for old_filename in set(files_to_delete):
                 self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
@@ -2545,9 +2569,9 @@ class YoutubeDL(object):
                     os.remove(encodeFilename(old_filename))
                 except (IOError, OSError):
                     self.report_warning('Unable to remove downloaded original file')
-                if old_filename in files_to_move:
-                    del files_to_move[old_filename]
-        return files_to_move, infodict
+                if old_filename in infodict['__files_to_move']:
+                    del infodict['__files_to_move'][old_filename]
+        return infodict
 
     @staticmethod
     def post_extract(info_dict):
@@ -2570,20 +2594,22 @@ class YoutubeDL(object):
     def pre_process(self, ie_info):
         info = dict(ie_info)
         for pp in self._pps['beforedl']:
-            info = self.run_pp(pp, info)[1]
+            info = self.run_pp(pp, info)
         return info
 
-    def post_process(self, filename, ie_info, files_to_move={}):
+    def post_process(self, filename, ie_info, files_to_move=None):
         """Run all the postprocessors on the given file."""
         info = dict(ie_info)
         info['filepath'] = filename
-        info['__files_to_move'] = {}
+        info['__files_to_move'] = files_to_move or {}
 
         for pp in ie_info.get('__postprocessors', []) + self._pps['normal']:
-            files_to_move, info = self.run_pp(pp, info, files_to_move)
-        info = self.run_pp(MoveFilesAfterDownloadPP(self, files_to_move), info)[1]
+            info = self.run_pp(pp, info)
+        info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
+        del info['__files_to_move']
         for pp in self._pps['aftermove']:
-            info = self.run_pp(pp, info, {})[1]
+            info = self.run_pp(pp, info)
+        return info
 
     def _make_archive_id(self, info_dict):
         video_id = info_dict.get('id')
@@ -2632,12 +2658,11 @@ class YoutubeDL(object):
             return 'audio only'
         if format.get('resolution') is not None:
             return format['resolution']
-        if format.get('height') is not None:
-            if format.get('width') is not None:
-                res = '%sx%s' % (format['width'], format['height'])
-            else:
-                res = '%sp' % format['height']
-        elif format.get('width') is not None:
+        if format.get('width') and format.get('height'):
+            res = '%dx%d' % (format['width'], format['height'])
+        elif format.get('height'):
+            res = '%sp' % format['height']
+        elif format.get('width'):
             res = '%dx?' % format['width']
         else:
             res = default
@@ -2951,7 +2976,7 @@ class YoutubeDL(object):
             thumb_ext = determine_ext(t['url'], 'jpg')
             suffix = '%s.' % t['id'] if multiple else ''
             thumb_display_id = '%s ' % t['id'] if multiple else ''
-            t['filename'] = thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
+            t['filepath'] = thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
 
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
                 ret.append(suffix + thumb_ext)

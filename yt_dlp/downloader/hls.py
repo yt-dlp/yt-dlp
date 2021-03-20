@@ -83,14 +83,13 @@ class HlsFD(FragmentFD):
 
         if not self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')):
             if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
-                self.report_error('pycryptodome not found. Please install it.')
+                self.report_error('pycryptodome not found. Please install')
                 return False
             if self.can_download(s, info_dict, with_crypto=True):
-                self.report_warning('pycryptodome is needed to download this file with hlsnative')
-            self.report_warning(
-                'hlsnative has detected features it does not support, '
-                'extraction will be delegated to ffmpeg')
+                self.report_warning('pycryptodome is needed to download this file natively')
             fd = FFmpegFD(self.ydl, self.params)
+            self.report_warning(
+                '%s detected unsupported features; extraction will be delegated to %s' % (self.FD_NAME, fd.get_basename()))
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
@@ -99,6 +98,9 @@ class HlsFD(FragmentFD):
         real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
+        if real_downloader:
+            self.to_screen(
+                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
 
         def is_ad_fragment_start(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s
@@ -186,7 +188,7 @@ class HlsFD(FragmentFD):
                         continue
                     if frag_index > 0:
                         self.report_error(
-                            'initialization fragment found after media fragments, unable to download')
+                            'Initialization fragment found after media fragments, unable to download')
                         return False
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
@@ -289,6 +291,7 @@ class HlsFD(FragmentFD):
                         if count <= fragment_retries:
                             self.report_retry_fragment(err, frag_index, count, fragment_retries)
                 if count > fragment_retries:
+                    self.report_error('Giving up after %s fragment retries' % fragment_retries)
                     return False, frag_index
 
                 if decrypt_info['METHOD'] == 'AES-128':

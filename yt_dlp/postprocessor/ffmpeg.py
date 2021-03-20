@@ -19,7 +19,6 @@ from ..utils import (
     PostProcessingError,
     prepend_extension,
     shell_quote,
-    subtitles_filename,
     dfxp2srt,
     ISO639Utils,
     process_communicate_or_kill,
@@ -62,7 +61,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     def check_version(self):
         if not self.available:
-            raise FFmpegPostProcessorError('ffmpeg not found. Please install')
+            raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
 
         required_version = '10-0' if self.basename == 'avconv' else '1.0'
         if is_outdated_version(
@@ -166,7 +165,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
-            raise PostProcessingError('ffprobe and ffmpeg not found. Please install')
+            raise PostProcessingError('ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location')
         try:
             if self.probe_available:
                 cmd = [
@@ -208,7 +207,7 @@ class FFmpegPostProcessor(PostProcessor):
         if self.probe_basename != 'ffprobe':
             if self.probe_available:
                 self.report_warning('Only ffprobe is supported for metadata extraction')
-            raise PostProcessingError('ffprobe not found. Please install.')
+            raise PostProcessingError('ffprobe not found. Please install or provide the path using --ffmpeg-location')
         self.check_version()
 
         cmd = [
@@ -486,7 +485,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 self.report_warning('JSON subtitles cannot be embedded')
             elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
                 sub_langs.append(lang)
-                sub_filenames.append(subtitles_filename(filename, lang, sub_ext, ext))
+                sub_filenames.append(sub_info['filepath'])
             else:
                 if not webm_vtt_warn and ext == 'webm' and sub_ext != 'vtt':
                     webm_vtt_warn = True
@@ -551,8 +550,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
         add('title', ('track', 'title'))
         add('date', 'upload_date')
-        add(('description', 'comment'), 'description')
-        add('purl', 'webpage_url')
+        add(('description', 'synopsis'), 'description')
+        add(('purl', 'comment'), 'webpage_url')
         add('track', 'track_number')
         add('artist', ('artist', 'creator', 'uploader', 'uploader_id'))
         add('genre')
@@ -712,7 +711,6 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
 
     def run(self, info):
         subs = info.get('requested_subtitles')
-        filename = info['filepath']
         new_ext = self.format
         new_format = new_ext
         if new_format == 'vtt':
@@ -732,9 +730,9 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                     'You have requested to convert json subtitles into another format, '
                     'which is currently not possible')
                 continue
-            old_file = subtitles_filename(filename, lang, ext, info.get('ext'))
+            old_file = sub['filepath']
             sub_filenames.append(old_file)
-            new_file = subtitles_filename(filename, lang, new_ext, info.get('ext'))
+            new_file = replace_extension(old_file, new_ext)
 
             if ext in ('dfxp', 'ttml', 'tt'):
                 self.report_warning(
@@ -742,7 +740,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                     'which results in style information loss')
 
                 dfxp_file = old_file
-                srt_file = subtitles_filename(filename, lang, 'srt', info.get('ext'))
+                srt_file = replace_extension(old_file, 'srt')
 
                 with open(dfxp_file, 'rb') as f:
                     srt_data = dfxp2srt(f.read())
@@ -753,7 +751,8 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
 
                 subs[lang] = {
                     'ext': 'srt',
-                    'data': srt_data
+                    'data': srt_data,
+                    'filepath': srt_file,
                 }
 
                 if new_ext == 'srt':
@@ -767,7 +766,11 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                 subs[lang] = {
                     'ext': new_ext,
                     'data': f.read(),
+                    'filepath': new_file,
                 }
+
+            info['__files_to_move'][new_file] = replace_extension(
+                info['__files_to_move'][old_file], new_ext)
 
         return sub_filenames, info
 
@@ -789,17 +792,17 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         if not self._downloader._ensure_dir_exists(encodeFilename(destination)):
             return
 
-        chapter['_filename'] = destination
+        chapter['filepath'] = destination
         self.to_screen('Chapter %03d; Destination: %s' % (number, destination))
         return (
             destination,
             ['-ss', compat_str(chapter['start_time']),
-             '-to', compat_str(chapter['end_time'])])
+             '-t', compat_str(chapter['end_time'] - chapter['start_time'])])
 
     def run(self, info):
         chapters = info.get('chapters') or []
         if not chapters:
-            self.report_warning('There are no tracks to extract')
+            self.report_warning('Chapter information is unavailable')
             return [], info
 
         self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
