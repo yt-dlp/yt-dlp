@@ -135,7 +135,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     x for x in ['AtomicParsley', 'atomicparsley']
                     if check_executable(x, ['-v'])), None)
                 if atomicparsley is None:
-                    raise EmbedThumbnailPPError('AtomicParsley was not found. Please install.')
+                    raise EmbedThumbnailPPError('AtomicParsley was not found. Please install')
 
                 cmd = [encodeFilename(atomicparsley, True),
                        encodeFilename(filename, True),

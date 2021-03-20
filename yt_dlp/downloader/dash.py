@@ -63,6 +63,8 @@ class DashSegmentsFD(FragmentFD):
             })
 
         if real_downloader:
+            self.to_screen(
+                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
             info_copy = info_dict.copy()
             info_copy['fragments'] = fragments_to_download
             fd = real_downloader(self.ydl, self.params)
@@ -110,7 +112,7 @@ class DashSegmentsFD(FragmentFD):
                 if count > fragment_retries:
                     if not fatal:
                         return False, frag_index
-                    self.report_error('giving up after %s fragment retries' % fragment_retries)
+                    self.report_error('Giving up after %s fragment retries' % fragment_retries)
                     return False, frag_index
 
                 return frag_content, frag_index

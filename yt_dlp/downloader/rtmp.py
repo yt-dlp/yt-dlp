@@ -117,7 +117,7 @@ class RtmpFD(FileDownloader):
 
         # Check for rtmpdump first
         if not check_executable('rtmpdump', ['-h']):
-            self.report_error('RTMP download detected but "rtmpdump" could not be run. Please install it.')
+            self.report_error('RTMP download detected but "rtmpdump" could not be run. Please install')
             return False
 
         # Download using rtmpdump. rtmpdump returns exit code 2 when
