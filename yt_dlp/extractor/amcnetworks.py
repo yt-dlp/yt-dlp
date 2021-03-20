@@ -74,27 +74,23 @@ class AMCNetworksIE(ThePlatformIE):
             'manifest': 'm3u',
         }
 
-        has_releasePid = False
         video_player_count = 0
         try:
             for v in page_data['children']:
                 if v.get('type') == 'video-player':
-                    releasePid = \
-                        v['properties']['currentVideo']['meta']['releasePid']
+                    releasePid = v['properties']['currentVideo']['meta']['releasePid']
                     tp_path = 'M_UwQC/' + releasePid
                     media_url = 'https://link.theplatform.com/s/' + tp_path
-                    has_releasePid = True
                     video_player_count += 1
         except KeyError:
             pass
         if video_player_count > 1:
             self.report_warning(
-                'The JSON data has ' + str(video_player_count)
-                + ' video players.'
-            )
+                'The JSON data has %d video players. Only one will be extracted' % video_player_count)
+
         # Fall back to videoPid if releasePid not found.
-        # To do: Fall back to videoPid if releasePid manifest uses DRM.
-        if not has_releasePid:
+        # TODO: Fall back to videoPid if releasePid manifest uses DRM.
+        if not video_player_count:
             tp_path = 'M_UwQC/media/' + properties['videoPid']
             media_url = 'https://link.theplatform.com/s/' + tp_path
 
