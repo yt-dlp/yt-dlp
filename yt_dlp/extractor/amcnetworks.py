@@ -65,15 +65,35 @@ class AMCNetworksIE(ThePlatformIE):
     def _real_extract(self, url):
         site, display_id = re.match(self._VALID_URL, url).groups()
         requestor_id = self._REQUESTOR_ID_MAP[site]
-        properties = self._download_json(
-            'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/%s/url/%s' % (requestor_id.lower(), display_id),
-            display_id)['data']['properties']
+        page_data = self._download_json(
+            'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/%s/url/%s'
+            % (requestor_id.lower(), display_id), display_id)['data']
+        properties = page_data.get('properties') or {}
         query = {
             'mbr': 'true',
             'manifest': 'm3u',
         }
-        tp_path = 'M_UwQC/media/' + properties['videoPid']
-        media_url = 'https://link.theplatform.com/s/' + tp_path
+
+        video_player_count = 0
+        try:
+            for v in page_data['children']:
+                if v.get('type') == 'video-player':
+                    releasePid = v['properties']['currentVideo']['meta']['releasePid']
+                    tp_path = 'M_UwQC/' + releasePid
+                    media_url = 'https://link.theplatform.com/s/' + tp_path
+                    video_player_count += 1
+        except KeyError:
+            pass
+        if video_player_count > 1:
+            self.report_warning(
+                'The JSON data has %d video players. Only one will be extracted' % video_player_count)
+
+        # Fall back to videoPid if releasePid not found.
+        # TODO: Fall back to videoPid if releasePid manifest uses DRM.
+        if not video_player_count:
+            tp_path = 'M_UwQC/media/' + properties['videoPid']
+            media_url = 'https://link.theplatform.com/s/' + tp_path
+
         theplatform_metadata = self._download_theplatform_metadata(tp_path, display_id)
         info = self._parse_theplatform_metadata(theplatform_metadata)
         video_id = theplatform_metadata['pid']
@@ -90,30 +110,41 @@ class AMCNetworksIE(ThePlatformIE):
         formats, subtitles = self._extract_theplatform_smil(
             media_url, video_id)
         self._sort_formats(formats)
+
+        thumbnails = []
+        thumbnail_urls = [properties.get('imageDesktop')]
+        if 'thumbnail' in info:
+            thumbnail_urls.append(info.pop('thumbnail'))
+        for thumbnail_url in thumbnail_urls:
+            if not thumbnail_url:
+                continue
+            mobj = re.search(r'(\d+)x(\d+)', thumbnail_url)
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': int(mobj.group(1)) if mobj else None,
+                'height': int(mobj.group(2)) if mobj else None,
+            })
+
         info.update({
+            'age_limit': parse_age_limit(rating),
+            'formats': formats,
             'id': video_id,
             'subtitles': subtitles,
-            'formats': formats,
-            'age_limit': parse_age_limit(parse_age_limit(rating)),
+            'thumbnails': thumbnails,
         })
         ns_keys = theplatform_metadata.get('$xmlns', {}).keys()
         if ns_keys:
             ns = list(ns_keys)[0]
-            series = theplatform_metadata.get(ns + '$show')
-            season_number = int_or_none(
-                theplatform_metadata.get(ns + '$season'))
-            episode = theplatform_metadata.get(ns + '$episodeTitle')
+            episode = theplatform_metadata.get(ns + '$episodeTitle') or None
             episode_number = int_or_none(
                 theplatform_metadata.get(ns + '$episode'))
-            if season_number:
-                title = 'Season %d - %s' % (season_number, title)
-            if series:
-                title = '%s - %s' % (series, title)
+            season_number = int_or_none(
+                theplatform_metadata.get(ns + '$season'))
+            series = theplatform_metadata.get(ns + '$show') or None
             info.update({
-                'title': title,
-                'series': series,
-                'season_number': season_number,
                 'episode': episode,
                 'episode_number': episode_number,
+                'season_number': season_number,
+                'series': series,
             })
         return info
