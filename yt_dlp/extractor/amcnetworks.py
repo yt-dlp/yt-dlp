@@ -130,7 +130,7 @@ class AMCNetworksIE(ThePlatformIE):
             })
 
         info.update({
-            'age_limit': parse_age_limit(parse_age_limit(rating)),
+            'age_limit': parse_age_limit(rating),
             'formats': formats,
             'id': video_id,
             'subtitles': subtitles,
