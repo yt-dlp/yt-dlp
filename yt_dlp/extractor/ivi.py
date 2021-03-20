@@ -146,7 +146,7 @@ class IviIE(InfoExtractor):
                         expected=True)
                 elif not pycryptodomex_found:
                     raise ExtractorError(
-                        'pycryptodomex not found. Please install it.',
+                        'pycryptodomex not found. Please install',
                         expected=True)
                 elif message:
                     extractor_msg += ': ' + message

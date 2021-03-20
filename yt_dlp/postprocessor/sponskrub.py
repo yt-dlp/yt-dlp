@@ -32,7 +32,7 @@ class SponSkrubPP(PostProcessor):
             if path:
                 raise PostProcessingError('sponskrub not found in "%s"' % path)
             else:
-                raise PostProcessingError('sponskrub not found. Please install or provide the path using --sponskrub-path.')
+                raise PostProcessingError('sponskrub not found. Please install or provide the path using --sponskrub-path')
 
     def get_exe(self, path=''):
         if not path or not check_executable(path, ['-h']):
