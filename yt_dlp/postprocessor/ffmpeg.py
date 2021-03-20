@@ -797,7 +797,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         return (
             destination,
             ['-ss', compat_str(chapter['start_time']),
-             '-to', compat_str(chapter['end_time'])])
+             '-t', compat_str(chapter['end_time'] - chapter['start_time'])])
 
     def run(self, info):
         chapters = info.get('chapters') or []
