@@ -25,6 +25,7 @@ from ..compat import (
 )
 from ..jsinterp import JSInterpreter
 from ..utils import (
+    bool_or_none,
     clean_html,
     dict_get,
     ExtractorError,
@@ -2036,14 +2037,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or parse_duration(search_meta('duration'))
         is_live = video_details.get('isLive')
         owner_profile_url = microformat.get('ownerProfileUrl')
-        if not isinstance(video_details.get('isPrivate'), bool) or not isinstance(microformat.get('isUnlisted'), bool):
-            availability = None
-        elif video_details.get('isPrivate'):
-            availability = "private"
-        elif microformat.get('isUnlisted'):
-            availability = "unlisted"
-        else:
-            availability = "public"
         info = {
             'id': video_id,
             'title': self._live_title(video_title) if is_live else video_title,
@@ -2074,7 +2067,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'is_live': is_live,
             'playable_in_embed': playability_status.get('playableInEmbed'),
             'was_live': video_details.get('isLiveContent'),
-            'availability': availability
         }
 
         pctr = try_get(
@@ -2290,6 +2282,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             v = info.get(s_k)
             if v:
                 info[d_k] = v
+
+        is_private = bool_or_none(video_details.get('isPrivate'))
+        is_unlisted = bool_or_none(microformat.get('isUnlisted'))
+        is_membersonly = None
+        is_premiumonly = None
+
+        info['availability'] = self._availability(
+            is_private=is_private,
+            needs_premium=is_premiumonly,
+            needs_subscription=is_membersonly,
+            needs_auth=info['age_limit'] >= 18,
+            is_unlisted=None if is_private is None else is_unlisted)
 
         # get xsrf for annotations or comments
         get_annotations = self._downloader.params.get('writeannotations', False)

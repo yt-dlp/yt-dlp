@@ -3332,6 +3332,19 @@ class InfoExtractor(object):
     def _generic_title(self, url):
         return compat_urllib_parse_unquote(os.path.splitext(url_basename(url))[0])
 
+    def _availability(self, is_private, needs_premium, needs_subscription, needs_auth, is_unlisted):
+        all_known = all(map(
+            lambda x: x is not None,
+            (is_private, needs_premium, needs_subscription, needs_auth, is_unlisted)))
+        return (
+            'private' if is_private
+            else 'premium_only' if needs_premium
+            else 'subscriber_only' if needs_subscription
+            else 'needs_auth' if needs_auth
+            else 'unlisted' if is_unlisted
+            else 'public' if all_known
+            else None)
+
 
 class SearchInfoExtractor(InfoExtractor):
     """
