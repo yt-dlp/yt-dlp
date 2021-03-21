@@ -146,7 +146,7 @@ class NBCIE(ThePlatformIE):
             'http://link.theplatform.com/s/NnzsPC/media/guid/%s/%s' % (video_data.get('mpxAccountId') or '2410887629', video_id),
             query), {'force_smil_url': True})
 
-        # fallbacks
+        # Empty string or 0 can be valid values for these. So the check must be `is None`
         description = video_data.get('description')
         if description is None:
             description = tpm.get('description')
