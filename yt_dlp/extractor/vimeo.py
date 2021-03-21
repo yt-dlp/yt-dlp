@@ -991,11 +991,15 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         }
         if hashed_pass:
             query['_hashed_pass'] = hashed_pass
-        videos = self._download_json(
-            'https://api.vimeo.com/albums/%s/videos' % album_id,
-            album_id, 'Downloading page %d' % api_page, query=query, headers={
-                'Authorization': 'jwt ' + authorization,
-            })['data']
+        try:
+            videos = self._download_json(
+                'https://api.vimeo.com/albums/%s/videos' % album_id,
+                album_id, 'Downloading page %d' % api_page, query=query, headers={
+                    'Authorization': 'jwt ' + authorization,
+                })['data']
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                return
         for video in videos:
             link = video.get('link')
             if not link:

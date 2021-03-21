@@ -146,18 +146,19 @@ class SVTPlayIE(SVTPlayBaseIE):
                         )
                         (?P<svt_id>[^/?#&]+)|
                         https?://(?:www\.)?(?:svtplay|oppetarkiv)\.se/(?:video|klipp|kanaler)/(?P<id>[^/?#&]+)
+                        (?:.*?modalId=(?P<modal_id>[\da-zA-Z-]+))?
                     )
                     '''
     _TESTS = [{
-        'url': 'https://www.svtplay.se/video/26194546/det-har-ar-himlen',
+        'url': 'https://www.svtplay.se/video/30479064',
         'md5': '2382036fd6f8c994856c323fe51c426e',
         'info_dict': {
-            'id': 'jNwpV9P',
+            'id': '8zVbDPA',
             'ext': 'mp4',
-            'title': 'Det här är himlen',
-            'timestamp': 1586044800,
-            'upload_date': '20200405',
-            'duration': 3515,
+            'title': 'Designdrömmar i Stenungsund',
+            'timestamp': 1615770000,
+            'upload_date': '20210315',
+            'duration': 3519,
             'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
             'age_limit': 0,
             'subtitles': {
@@ -173,6 +174,9 @@ class SVTPlayIE(SVTPlayBaseIE):
             # AssertionError: Expected test_SVTPlay_jNwpV9P.mp4 to be at least 9.77KiB, but it's only 864.00B
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.svtplay.se/video/30479064/husdrommar/husdrommar-sasong-8-designdrommar-i-stenungsund?modalId=8zVbDPA',
+        'only_matching': True,
     }, {
         # geo restricted to Sweden
         'url': 'http://www.oppetarkiv.se/video/5219710/trollflojten',
@@ -219,7 +223,8 @@ class SVTPlayIE(SVTPlayBaseIE):
 
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
-        video_id, svt_id = mobj.group('id', 'svt_id')
+        video_id = mobj.group('id')
+        svt_id = mobj.group('svt_id') or mobj.group('modal_id')
 
         if svt_id:
             return self._extract_by_video_id(svt_id)
@@ -254,6 +259,7 @@ class SVTPlayIE(SVTPlayBaseIE):
         if not svt_id:
             svt_id = self._search_regex(
                 (r'<video[^>]+data-video-id=["\']([\da-zA-Z-]+)',
+                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/%s/[^"\']*\bmodalId=([\da-zA-Z-]+)' % re.escape(video_id),
                  r'["\']videoSvtId["\']\s*:\s*["\']([\da-zA-Z-]+)',
                  r'["\']videoSvtId\\?["\']\s*:\s*\\?["\']([\da-zA-Z-]+)',
                  r'"content"\s*:\s*{.*?"id"\s*:\s*"([\da-zA-Z-]+)"',
