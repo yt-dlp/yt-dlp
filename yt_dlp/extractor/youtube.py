@@ -2037,6 +2037,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or parse_duration(search_meta('duration'))
         is_live = video_details.get('isLive')
         owner_profile_url = microformat.get('ownerProfileUrl')
+
         info = {
             'id': video_id,
             'title': self._live_title(video_title) if is_live else video_title,
@@ -2298,11 +2299,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         break
                 if is_membersonly:
                     break
-        is_premiumonly = None
 
+        # TODO: Add this for playlists
         info['availability'] = self._availability(
             is_private=is_private,
-            needs_premium=is_premiumonly,
+            needs_premium=False,  # Youtube no longer have premium-only videos?
             needs_subscription=is_membersonly,
             needs_auth=info['age_limit'] >= 18,
             is_unlisted=None if is_private is None else is_unlisted)
