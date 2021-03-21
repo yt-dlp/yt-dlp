@@ -2036,7 +2036,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or parse_duration(search_meta('duration'))
         is_live = video_details.get('isLive')
         owner_profile_url = microformat.get('ownerProfileUrl')
-
+        if not isinstance(video_details.get('isPrivate'), bool) or not isinstance(microformat.get('isUnlisted'), bool):
+            availability = None
+        elif video_details.get('isPrivate'):
+            availability = "private"
+        elif microformat.get('isUnlisted'):
+            availability = "unlisted"
+        else:
+            availability = "public"
         info = {
             'id': video_id,
             'title': self._live_title(video_title) if is_live else video_title,
@@ -2066,7 +2073,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'tags': keywords,
             'is_live': is_live,
             'playable_in_embed': playability_status.get('playableInEmbed'),
-            'was_live': video_details.get('isLiveContent')
+            'was_live': video_details.get('isLiveContent'),
+            'availability': availability
         }
 
         pctr = try_get(
