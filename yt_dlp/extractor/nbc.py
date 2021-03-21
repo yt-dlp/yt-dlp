@@ -10,6 +10,7 @@ from .adobepass import AdobePassIE
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     int_or_none,
+    parse_age_limit,
     parse_duration,
     smuggle_url,
     try_get,
@@ -18,7 +19,7 @@ from ..utils import (
 )
 
 
-class NBCIE(AdobePassIE):
+class NBCIE(ThePlatformIE):
     _VALID_URL = r'https?(?P<permalink>://(?:www\.)?nbc\.com/(?:classic-tv/)?[^/]+/video/[^/]+/(?P<id>n?\d+))'
 
     _TESTS = [
@@ -132,7 +133,9 @@ class NBCIE(AdobePassIE):
             'manifest': 'm3u',
         }
         video_id = video_data['mpxGuid']
-        title = video_data['secondaryTitle']
+        tp_path = 'NnzsPC/media/guid/%s/%s' % (video_data.get('mpxAccountId') or '2410887629', video_id)
+        tpm = self._download_theplatform_metadata(tp_path, video_id)
+        title = tpm.get('title') or video_data.get('secondaryTitle')
         if video_data.get('locked'):
             resource = self._get_mvpd_resource(
                 video_data.get('resourceId') or 'nbcentertainment',
@@ -142,18 +145,40 @@ class NBCIE(AdobePassIE):
         theplatform_url = smuggle_url(update_url_query(
             'http://link.theplatform.com/s/NnzsPC/media/guid/%s/%s' % (video_data.get('mpxAccountId') or '2410887629', video_id),
             query), {'force_smil_url': True})
+
+        # Empty string or 0 can be valid values for these. So the check must be `is None`
+        description = video_data.get('description')
+        if description is None:
+            description = tpm.get('description')
+        episode_number = int_or_none(video_data.get('episodeNumber'))
+        if episode_number is None:
+            episode_number = int_or_none(tpm.get('nbcu$airOrder'))
+        rating = video_data.get('rating')
+        if rating is None:
+            try_get(tpm, lambda x: x['ratings'][0]['rating'])
+        season_number = int_or_none(video_data.get('seasonNumber'))
+        if season_number is None:
+            season_number = int_or_none(tpm.get('nbcu$seasonNumber'))
+        series = video_data.get('seriesShortTitle')
+        if series is None:
+            series = tpm.get('nbcu$seriesShortTitle')
+        tags = video_data.get('keywords')
+        if tags is None or len(tags) == 0:
+            tags = tpm.get('keywords')
+
         return {
             '_type': 'url_transparent',
+            'age_limit': parse_age_limit(rating),
+            'description': description,
+            'episode': title,
+            'episode_number': episode_number,
             'id': video_id,
+            'ie_key': 'ThePlatform',
+            'season_number': season_number,
+            'series': series,
+            'tags': tags,
             'title': title,
             'url': theplatform_url,
-            'description': video_data.get('description'),
-            'tags': video_data.get('keywords'),
-            'season_number': int_or_none(video_data.get('seasonNumber')),
-            'episode_number': int_or_none(video_data.get('episodeNumber')),
-            'episode': title,
-            'series': video_data.get('seriesShortTitle'),
-            'ie_key': 'ThePlatform',
         }
 
 
