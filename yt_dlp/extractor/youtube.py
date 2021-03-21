@@ -25,6 +25,7 @@ from ..compat import (
 )
 from ..jsinterp import JSInterpreter
 from ..utils import (
+    bool_or_none,
     clean_html,
     dict_get,
     ExtractorError,
@@ -2066,7 +2067,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'tags': keywords,
             'is_live': is_live,
             'playable_in_embed': playability_status.get('playableInEmbed'),
-            'was_live': video_details.get('isLiveContent')
+            'was_live': video_details.get('isLiveContent'),
         }
 
         pctr = try_get(
@@ -2282,6 +2283,30 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             v = info.get(s_k)
             if v:
                 info[d_k] = v
+
+        is_private = bool_or_none(video_details.get('isPrivate'))
+        is_unlisted = bool_or_none(microformat.get('isUnlisted'))
+        is_membersonly = None
+        if initial_data and is_private is not None:
+            is_membersonly = False
+            contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list)
+            for content in contents or []:
+                badges = try_get(content, lambda x: x['videoPrimaryInfoRenderer']['badges'], list)
+                for badge in badges or []:
+                    label = try_get(badge, lambda x: x['metadataBadgeRenderer']['label']) or ''
+                    if label.lower() == 'members only':
+                        is_membersonly = True
+                        break
+                if is_membersonly:
+                    break
+
+        # TODO: Add this for playlists
+        info['availability'] = self._availability(
+            is_private=is_private,
+            needs_premium=False,  # Youtube no longer have premium-only videos?
+            needs_subscription=is_membersonly,
+            needs_auth=info['age_limit'] >= 18,
+            is_unlisted=None if is_private is None else is_unlisted)
 
         # get xsrf for annotations or comments
         get_annotations = self._downloader.params.get('writeannotations', False)
