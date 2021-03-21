@@ -2286,6 +2286,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         is_private = bool_or_none(video_details.get('isPrivate'))
         is_unlisted = bool_or_none(microformat.get('isUnlisted'))
         is_membersonly = None
+        if initial_data and is_private is not None:
+            is_membersonly = False
+            contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list)
+            for content in contents or []:
+                badges = try_get(content, lambda x: x['videoPrimaryInfoRenderer']['badges'], list)
+                for badge in badges or []:
+                    label = try_get(badge, lambda x: x['metadataBadgeRenderer']['label']) or ''
+                    if label.lower() == 'members only':
+                        is_membersonly = True
+                        break
+                if is_membersonly:
+                    break
         is_premiumonly = None
 
         info['availability'] = self._availability(
