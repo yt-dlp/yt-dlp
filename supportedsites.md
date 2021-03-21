@@ -543,6 +543,7 @@
  - **mixcloud:playlist**
  - **mixcloud:user**
  - **MLB**
+ - **MLBVideo**
  - **Mnet**
  - **MNetTV**
  - **MoeVideo**: LetitBit video services: moevideo.net, playreplay.net and videochart.net
@@ -634,6 +635,7 @@
  - **nicknight**
  - **niconico**: ニコニコ動画
  - **NiconicoPlaylist**
+ - **NiconicoUser**
  - **Nintendo**
  - **Nitter**
  - **njoy**: N-JOY
@@ -917,6 +919,7 @@
  - **stanfordoc**: Stanford Open ClassRoom
  - **Steam**
  - **Stitcher**
+ - **StitcherShow**
  - **StoryFire**
  - **StoryFireSeries**
  - **StoryFireUser**

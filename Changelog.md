@@ -17,6 +17,37 @@
 -->
 
 
+### 2021.03.21
+* Merge youtube-dl: Upto [commit/7e79ba7](https://github.com/ytdl-org/youtube-dl/commit/7e79ba7dd6e6649dd2ce3a74004b2044f2182881)
+* Option `--clean-infojson` to keep private keys in the infojson
+* [aria2c] Support retry/abort unavailable fragments by [damianoamatruda](https://github.com/damianoamatruda)
+* [aria2c] Better default arguments
+* [movefiles] Fix bugs and make more robust
+* [formatSort] Fix `quality` being ignored
+* [splitchapters] Fix for older ffmpeg
+* [sponskrub] Pass proxy to sponskrub
+* Make sure `post_hook` gets the final filename
+* Recursively remove any private keys from infojson
+* Embed video URL metadata inside `mp4` by [damianoamatruda](https://github.com/damianoamatruda) and [pukkandan](https://github.com/pukkandan)
+* Merge `webm` formats into `mkv` if thumbnails are to be embedded by [damianoamatruda](https://github.com/damianoamatruda)
+* Use headers and cookies when downloading subtitles by [damianoamatruda](https://github.com/damianoamatruda)
+* Parse resolution in info dictionary by [damianoamatruda](https://github.com/damianoamatruda)
+* More consistent warning messages by [damianoamatruda](https://github.com/damianoamatruda) and [pukkandan](https://github.com/pukkandan)
+* [documentation] Add deprecated options and aliases in readme
+* [documentation] Fix some minor mistakes
+
+* [niconico] Partial fix adapted from [animelover1984/youtube-dl@b5eff52](https://github.com/animelover1984/youtube-dl/commit/b5eff52dd9ed5565672ea1694b38c9296db3fade) (login and smile formats still don't work)
+* [niconico] Add user extractor by [animelover1984](https://github.com/animelover1984)
+* [bilibili] Add anthology support by [animelover1984](https://github.com/animelover1984)
+* [amcnetworks] Fix extractor by [2ShedsJackson](https://github.com/2ShedsJackson)
+* [stitcher] Merge from youtube-dl by [nixxo](https://github.com/nixxo)
+* [rcs] Improved extraction by [nixxo](https://github.com/nixxo)
+* [linuxacadamy] Improve regex
+* [youtube] Show if video is `private`, `unlisted` etc in info (`availability`) by [colethedj](https://github.com/colethedj) and [pukkandan](https://github.com/pukkandan)
+* [youtube] bugfix for channel playlist extraction
+* [nbc] Improve metadata extraction by [2ShedsJackson](https://github.com/2ShedsJackson)
+
+
 ### 2021.03.15
 * **Split video by chapters**: using option `--split-chapters`
     * The output file of the split files can be set with `-o`/`-P` using the prefix `chapter:`
@@ -295,7 +326,7 @@
 * [archive.org] Fix extractor and add support for audio and playlists by [wporr](https://github.com/wporr)
 * [Animelab] Added by [mariuszskon](https://github.com/mariuszskon)
 * [youtube:search] Fix view_count by [ohnonot](https://github.com/ohnonot)
-* [youtube] Show if video is embeddable in info
+* [youtube] Show if video is embeddable in info (`playable_in_embed`)
 * Update version badge automatically in README
 * Enable `test_youtube_search_matching`
 * Create `to_screen` and similar functions in postprocessor/common
