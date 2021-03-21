@@ -301,7 +301,11 @@ class InfoExtractor(object):
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
-                    specifying the criteria for embedability (Eg: 'whitelist').
+                    specifying the criteria for embedability (Eg: 'whitelist')
+    availability:   Under what condition the video is available. One of
+                    'private', 'premium_only', 'subscriber_only', 'needs_auth',
+                    'unlisted' or 'public'. Use 'InfoExtractor._availability'
+                    to set it
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
                     must return a dict which will be added to the info_dict.
@@ -3332,7 +3336,8 @@ class InfoExtractor(object):
     def _generic_title(self, url):
         return compat_urllib_parse_unquote(os.path.splitext(url_basename(url))[0])
 
-    def _availability(self, is_private, needs_premium, needs_subscription, needs_auth, is_unlisted):
+    @staticmethod
+    def _availability(is_private, needs_premium, needs_subscription, needs_auth, is_unlisted):
         all_known = all(map(
             lambda x: x is not None,
             (is_private, needs_premium, needs_subscription, needs_auth, is_unlisted)))
