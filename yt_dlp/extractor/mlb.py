@@ -1,15 +1,91 @@
 from __future__ import unicode_literals
 
-from .nhl import NHLBaseIE
+import re
+
+from .common import InfoExtractor
+from ..utils import (
+    determine_ext,
+    int_or_none,
+    parse_duration,
+    parse_iso8601,
+    try_get,
+)
 
 
-class MLBIE(NHLBaseIE):
+class MLBBaseIE(InfoExtractor):
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        video = self._download_video_data(display_id)
+        video_id = video['id']
+        title = video['title']
+        feed = self._get_feed(video)
+
+        formats = []
+        for playback in (feed.get('playbacks') or []):
+            playback_url = playback.get('url')
+            if not playback_url:
+                continue
+            name = playback.get('name')
+            ext = determine_ext(playback_url)
+            if ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(
+                    playback_url, video_id, 'mp4',
+                    'm3u8_native', m3u8_id=name, fatal=False))
+            else:
+                f = {
+                    'format_id': name,
+                    'url': playback_url,
+                }
+                mobj = re.search(r'_(\d+)K_(\d+)X(\d+)', name)
+                if mobj:
+                    f.update({
+                        'height': int(mobj.group(3)),
+                        'tbr': int(mobj.group(1)),
+                        'width': int(mobj.group(2)),
+                    })
+                mobj = re.search(r'_(\d+)x(\d+)_(\d+)_(\d+)K\.mp4', playback_url)
+                if mobj:
+                    f.update({
+                        'fps': int(mobj.group(3)),
+                        'height': int(mobj.group(2)),
+                        'tbr': int(mobj.group(4)),
+                        'width': int(mobj.group(1)),
+                    })
+                formats.append(f)
+        self._sort_formats(formats)
+
+        thumbnails = []
+        for cut in (try_get(feed, lambda x: x['image']['cuts'], list) or []):
+            src = cut.get('src')
+            if not src:
+                continue
+            thumbnails.append({
+                'height': int_or_none(cut.get('height')),
+                'url': src,
+                'width': int_or_none(cut.get('width')),
+            })
+
+        language = (video.get('language') or 'EN').lower()
+
+        return {
+            'id': video_id,
+            'title': title,
+            'formats': formats,
+            'description': video.get('description'),
+            'duration': parse_duration(feed.get('duration')),
+            'thumbnails': thumbnails,
+            'timestamp': parse_iso8601(video.get(self._TIMESTAMP_KEY)),
+            'subtitles': self._extract_mlb_subtitles(feed, language),
+        }
+
+
+class MLBIE(MLBBaseIE):
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:[\da-z_-]+\.)*(?P<site>mlb)\.com/
+                        (?:[\da-z_-]+\.)*mlb\.com/
                         (?:
                             (?:
-                                (?:[^/]+/)*c-|
+                                (?:[^/]+/)*video/[^/]+/c-|
                                 (?:
                                     shared/video/embed/(?:embed|m-internal-embed)\.html|
                                     (?:[^/]+/)+(?:play|index)\.jsp|
@@ -18,7 +94,6 @@ class MLBIE(NHLBaseIE):
                             (?P<id>\d+)
                         )
                     '''
-    _CONTENT_DOMAIN = 'content.mlb.com'
     _TESTS = [
         {
             'url': 'https://www.mlb.com/mariners/video/ackleys-spectacular-catch/c-34698933',
@@ -77,18 +152,6 @@ class MLBIE(NHLBaseIE):
             },
         },
         {
-            'url': 'https://www.mlb.com/news/blue-jays-kevin-pillar-goes-spidey-up-the-wall-to-rob-tim-beckham-of-a-homer/c-118550098',
-            'md5': 'e09e37b552351fddbf4d9e699c924d68',
-            'info_dict': {
-                'id': '75609783',
-                'ext': 'mp4',
-                'title': 'Must C: Pillar climbs for catch',
-                'description': '4/15/15: Blue Jays outfielder Kevin Pillar continues his defensive dominance by climbing the wall in left to rob Tim Beckham of a home run',
-                'timestamp': 1429139220,
-                'upload_date': '20150415',
-            }
-        },
-        {
             'url': 'https://www.mlb.com/video/hargrove-homers-off-caldwell/c-1352023483?tid=67793694',
             'only_matching': True,
         },
@@ -113,8 +176,92 @@ class MLBIE(NHLBaseIE):
             'url': 'http://mlb.mlb.com/shared/video/embed/m-internal-embed.html?content_id=75609783&property=mlb&autoplay=true&hashmode=false&siteSection=mlb/multimedia/article_118550098/article_embed&club=mlb',
             'only_matching': True,
         },
-        {
-            'url': 'https://www.mlb.com/cut4/carlos-gomez-borrowed-sunglasses-from-an-as-fan/c-278912842',
-            'only_matching': True,
-        }
     ]
+    _TIMESTAMP_KEY = 'date'
+
+    @staticmethod
+    def _get_feed(video):
+        return video
+
+    @staticmethod
+    def _extract_mlb_subtitles(feed, language):
+        subtitles = {}
+        for keyword in (feed.get('keywordsAll') or []):
+            keyword_type = keyword.get('type')
+            if keyword_type and keyword_type.startswith('closed_captions_location_'):
+                cc_location = keyword.get('value')
+                if cc_location:
+                    subtitles.setdefault(language, []).append({
+                        'url': cc_location,
+                    })
+        return subtitles
+
+    def _download_video_data(self, display_id):
+        return self._download_json(
+            'http://content.mlb.com/mlb/item/id/v1/%s/details/web-v1.json' % display_id,
+            display_id)
+
+
+class MLBVideoIE(MLBBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?mlb\.com/(?:[^/]+/)*video/(?P<id>[^/?&#]+)'
+    _TEST = {
+        'url': 'https://www.mlb.com/mariners/video/ackley-s-spectacular-catch-c34698933',
+        'md5': '632358dacfceec06bad823b83d21df2d',
+        'info_dict': {
+            'id': 'c04a8863-f569-42e6-9f87-992393657614',
+            'ext': 'mp4',
+            'title': "Ackley's spectacular catch",
+            'description': 'md5:7f5a981eb4f3cbc8daf2aeffa2215bf0',
+            'duration': 66,
+            'timestamp': 1405995000,
+            'upload_date': '20140722',
+            'thumbnail': r're:^https?://.+',
+        },
+    }
+    _TIMESTAMP_KEY = 'timestamp'
+
+    @classmethod
+    def suitable(cls, url):
+        return False if MLBIE.suitable(url) else super(MLBVideoIE, cls).suitable(url)
+
+    @staticmethod
+    def _get_feed(video):
+        return video['feeds'][0]
+
+    @staticmethod
+    def _extract_mlb_subtitles(feed, language):
+        subtitles = {}
+        for cc_location in (feed.get('closedCaptions') or []):
+            subtitles.setdefault(language, []).append({
+                'url': cc_location,
+            })
+
+    def _download_video_data(self, display_id):
+        # https://www.mlb.com/data-service/en/videos/[SLUG]
+        return self._download_json(
+            'https://fastball-gateway.mlb.com/graphql',
+            display_id, query={
+                'query': '''{
+  mediaPlayback(ids: "%s") {
+    description
+    feeds(types: CMS) {
+      closedCaptions
+      duration
+      image {
+        cuts {
+          width
+          height
+          src
+        }
+      }
+      playbacks {
+        name
+        url
+      }
+    }
+    id
+    timestamp
+    title
+  }
+}''' % display_id,
+            })['data']['mediaPlayback'][0]

@@ -182,17 +182,20 @@ class VVVVIDIE(InfoExtractor):
             if not embed_code:
                 continue
             embed_code = ds(embed_code)
-            if video_type in ('video/rcs', 'video/kenc'):
-                if video_type == 'video/kenc':
-                    kenc = self._download_json(
-                        'https://www.vvvvid.it/kenc', video_id, query={
-                            'action': 'kt',
-                            'conn_id': self._conn_id,
-                            'url': embed_code,
-                        }, fatal=False) or {}
-                    kenc_message = kenc.get('message')
-                    if kenc_message:
-                        embed_code += '?' + ds(kenc_message)
+            if video_type == 'video/kenc':
+                embed_code = re.sub(r'https?(://[^/]+)/z/', r'https\1/i/', embed_code).replace('/manifest.f4m', '/master.m3u8')
+                kenc = self._download_json(
+                    'https://www.vvvvid.it/kenc', video_id, query={
+                        'action': 'kt',
+                        'conn_id': self._conn_id,
+                        'url': embed_code,
+                    }, fatal=False) or {}
+                kenc_message = kenc.get('message')
+                if kenc_message:
+                    embed_code += '?' + ds(kenc_message)
+                formats.extend(self._extract_m3u8_formats(
+                    embed_code, video_id, 'mp4', m3u8_id='hls', fatal=False))
+            elif video_type == 'video/rcs':
                 formats.extend(self._extract_akamai_formats(embed_code, video_id))
             elif video_type == 'video/youtube':
                 info.update({
