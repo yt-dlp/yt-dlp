@@ -112,7 +112,7 @@ class LinuxAcademyIE(InfoExtractor):
             'client_id': self._CLIENT_ID,
             'redirect_uri': self._ORIGIN_URL,
             'tenant': 'lacausers',
-            'connection': 'Username-Password-Authentication',
+            'connection': 'Username-Password-ACG-Proxy',
             'username': username,
             'password': password,
             'sso': 'true',
