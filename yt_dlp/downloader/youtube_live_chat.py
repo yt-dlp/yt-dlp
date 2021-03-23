@@ -79,8 +79,7 @@ class YoutubeLiveChatReplayFD(FragmentFD):
 
         self._prepare_and_start_frag_download(ctx)
 
-        success, raw_fragment = dl_fragment(
-            'https://www.youtube.com/watch?v={}'.format(video_id))
+        success, raw_fragment = dl_fragment(info_dict['url'])
         if not success:
             return False
         try:
