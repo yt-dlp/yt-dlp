@@ -2539,6 +2539,7 @@ class YoutubeDL(object):
     @staticmethod
     def filter_requested_info(info_dict, actually_filter=True):
         if not actually_filter:
+            info_dict['epoch'] = int(time.time())
             return info_dict
         exceptions = {
             'remove': ['requested_formats', 'requested_subtitles', 'filepath', 'entries'],
