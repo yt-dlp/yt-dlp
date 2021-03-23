@@ -2423,6 +2423,15 @@ class DownloadError(YoutubeDLError):
         self.exc_info = exc_info
 
 
+class EntryNotInPlaylist(YoutubeDLError):
+    """Entry not in playlist exception.
+
+    This exception will be thrown by YoutubeDL when a requested entry
+    is not found in the playlist info_dict
+    """
+    pass
+
+
 class SameFileError(YoutubeDLError):
     """Same File exception.
 

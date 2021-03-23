@@ -60,6 +60,7 @@ from .utils import (
     encode_compat_str,
     encodeFilename,
     error_to_compat_str,
+    EntryNotInPlaylist,
     ExistingVideoReached,
     expand_path,
     ExtractorError,
@@ -1180,48 +1181,16 @@ class YoutubeDL(object):
         playlist = ie_result.get('title') or ie_result.get('id')
         self.to_screen('[download] Downloading playlist: %s' % playlist)
 
-        if self.params.get('allow_playlist_files', True):
-            ie_copy = {
-                'playlist': playlist,
-                'playlist_id': ie_result.get('id'),
-                'playlist_title': ie_result.get('title'),
-                'playlist_uploader': ie_result.get('uploader'),
-                'playlist_uploader_id': ie_result.get('uploader_id'),
-                'playlist_index': 0
-            }
-            ie_copy.update(dict(ie_result))
-
-            if self.params.get('writeinfojson', False):
-                infofn = self.prepare_filename(ie_copy, 'pl_infojson')
-                if not self._ensure_dir_exists(encodeFilename(infofn)):
-                    return
-                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                    self.to_screen('[info] Playlist metadata is already present')
-                else:
-                    playlist_info = dict(ie_result)
-                    # playlist_info['entries'] = list(playlist_info['entries'])  # Entries is a generator which shouldnot be resolved here
-                    self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
-                    try:
-                        write_json_file(self.filter_requested_info(playlist_info, self.params.get('clean_infojson', True)), infofn)
-                    except (OSError, IOError):
-                        self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
-
-            if self.params.get('writedescription', False):
-                descfn = self.prepare_filename(ie_copy, 'pl_description')
-                if not self._ensure_dir_exists(encodeFilename(descfn)):
-                    return
-                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
-                    self.to_screen('[info] Playlist description is already present')
-                elif ie_result.get('description') is None:
-                    self.report_warning('There\'s no playlist description to write.')
-                else:
-                    try:
-                        self.to_screen('[info] Writing playlist description to: ' + descfn)
-                        with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
-                            descfile.write(ie_result['description'])
-                    except (OSError, IOError):
-                        self.report_error('Cannot write playlist description file ' + descfn)
-                        return
+        if 'entries' not in ie_result:
+            raise EntryNotInPlaylist()
+        incomplete_entries = bool(ie_result.get('requested_entries'))
+        if incomplete_entries:
+            def fill_missing_entries(entries, indexes):
+                ret = [None] * max(*indexes)
+                for i, entry in zip(indexes, entries):
+                    ret[i - 1] = entry
+                return ret
+            ie_result['entries'] = fill_missing_entries(ie_result['entries'], ie_result['requested_entries'])
 
         playlist_results = []
 
@@ -1248,25 +1217,20 @@ class YoutubeDL(object):
 
         def make_playlistitems_entries(list_ie_entries):
             num_entries = len(list_ie_entries)
-            return [
-                list_ie_entries[i - 1] for i in playlistitems
-                if -num_entries <= i - 1 < num_entries]
-
-        def report_download(num_entries):
-            self.to_screen(
-                '[%s] playlist %s: Downloading %d videos' %
-                (ie_result['extractor'], playlist, num_entries))
+            for i in playlistitems:
+                if -num_entries < i <= num_entries:
+                    yield list_ie_entries[i - 1]
+                elif incomplete_entries:
+                    raise EntryNotInPlaylist()
 
         if isinstance(ie_entries, list):
             n_all_entries = len(ie_entries)
             if playlistitems:
-                entries = make_playlistitems_entries(ie_entries)
+                entries = list(make_playlistitems_entries(ie_entries))
             else:
                 entries = ie_entries[playliststart:playlistend]
             n_entries = len(entries)
-            self.to_screen(
-                '[%s] playlist %s: Collected %d video ids (downloading %d of them)' %
-                (ie_result['extractor'], playlist, n_all_entries, n_entries))
+            msg = 'Collected %d videos; downloading %d of them' % (n_all_entries, n_entries)
         elif isinstance(ie_entries, PagedList):
             if playlistitems:
                 entries = []
@@ -1278,25 +1242,73 @@ class YoutubeDL(object):
                 entries = ie_entries.getslice(
                     playliststart, playlistend)
             n_entries = len(entries)
-            report_download(n_entries)
+            msg = 'Downloading %d videos' % n_entries
         else:  # iterable
             if playlistitems:
-                entries = make_playlistitems_entries(list(itertools.islice(
-                    ie_entries, 0, max(playlistitems))))
+                entries = list(make_playlistitems_entries(list(itertools.islice(
+                    ie_entries, 0, max(playlistitems)))))
             else:
                 entries = list(itertools.islice(
                     ie_entries, playliststart, playlistend))
             n_entries = len(entries)
-            report_download(n_entries)
+            msg = 'Downloading %d videos' % n_entries
+
+        if any((entry is None for entry in entries)):
+            raise EntryNotInPlaylist()
+        if not playlistitems and (playliststart or playlistend):
+            playlistitems = list(range(1 + playliststart, 1 + playliststart + len(entries)))
+        ie_result['entries'] = entries
+        ie_result['requested_entries'] = playlistitems
+
+        if self.params.get('allow_playlist_files', True):
+            ie_copy = {
+                'playlist': playlist,
+                'playlist_id': ie_result.get('id'),
+                'playlist_title': ie_result.get('title'),
+                'playlist_uploader': ie_result.get('uploader'),
+                'playlist_uploader_id': ie_result.get('uploader_id'),
+                'playlist_index': 0
+            }
+            ie_copy.update(dict(ie_result))
+
+            if self.params.get('writeinfojson', False):
+                infofn = self.prepare_filename(ie_copy, 'pl_infojson')
+                if not self._ensure_dir_exists(encodeFilename(infofn)):
+                    return
+                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
+                    self.to_screen('[info] Playlist metadata is already present')
+                else:
+                    self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
+                    try:
+                        write_json_file(self.filter_requested_info(ie_result, self.params.get('clean_infojson', True)), infofn)
+                    except (OSError, IOError):
+                        self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
+
+            if self.params.get('writedescription', False):
+                descfn = self.prepare_filename(ie_copy, 'pl_description')
+                if not self._ensure_dir_exists(encodeFilename(descfn)):
+                    return
+                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
+                    self.to_screen('[info] Playlist description is already present')
+                elif ie_result.get('description') is None:
+                    self.report_warning('There\'s no playlist description to write.')
+                else:
+                    try:
+                        self.to_screen('[info] Writing playlist description to: ' + descfn)
+                        with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
+                            descfile.write(ie_result['description'])
+                    except (OSError, IOError):
+                        self.report_error('Cannot write playlist description file ' + descfn)
+                        return
 
         if self.params.get('playlistreverse', False):
             entries = entries[::-1]
-
         if self.params.get('playlistrandom', False):
             random.shuffle(entries)
 
         x_forwarded_for = ie_result.get('__x_forwarded_for_ip')
 
+        self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg))
         for i, entry in enumerate(entries, 1):
             self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
@@ -1310,7 +1322,7 @@ class YoutubeDL(object):
                 'playlist_title': ie_result.get('title'),
                 'playlist_uploader': ie_result.get('uploader'),
                 'playlist_uploader_id': ie_result.get('uploader_id'),
-                'playlist_index': playlistitems[i - 1] if playlistitems else i + playliststart,
+                'playlist_index': playlistitems[i - 1] if playlistitems else i,
                 'extractor': ie_result['extractor'],
                 'webpage_url': ie_result['webpage_url'],
                 'webpage_url_basename': url_basename(ie_result['webpage_url']),
@@ -2524,10 +2536,10 @@ class YoutubeDL(object):
                 [info_filename], mode='r',
                 openhook=fileinput.hook_encoded('utf-8'))) as f:
             # FileInput doesn't have a read method, we can't call json.load
-            info = self.filter_requested_info(json.loads('\n'.join(f)))
+            info = self.filter_requested_info(json.loads('\n'.join(f)), self.params.get('clean_infojson', True))
         try:
             self.process_ie_result(info, download=True)
-        except DownloadError:
+        except (DownloadError, EntryNotInPlaylist):
             webpage_url = info.get('webpage_url')
             if webpage_url is not None:
                 self.report_warning('The info failed to download, trying with "%s"' % webpage_url)
@@ -2542,7 +2554,7 @@ class YoutubeDL(object):
             info_dict['epoch'] = int(time.time())
             return info_dict
         exceptions = {
-            'remove': ['requested_formats', 'requested_subtitles', 'filepath', 'entries'],
+            'remove': ['requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries'],
             'keep': ['_type'],
         }
         keep_key = lambda k: k in exceptions['keep'] or not (k.startswith('_') or k in exceptions['remove'])
