@@ -17,6 +17,10 @@
 -->
 
 
+### 2021.03.24.1
+* Revert [commit/8562218](https://github.com/ytdl-org/youtube-dl/commit/8562218350a79d4709da8593bb0c538aa0824acf)
+
+
 ### 2021.03.24
 * Merge youtube-dl: Upto [commit/8562218](https://github.com/ytdl-org/youtube-dl/commit/8562218350a79d4709da8593bb0c538aa0824acf)
 * Parse metadata from multiple fields using `--parse-metadata`
