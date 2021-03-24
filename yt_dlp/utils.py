@@ -4205,6 +4205,20 @@ OUTTMPL_TYPES = {
     'pl_infojson': 'info.json',
 }
 
+# As of [1] format syntax is:
+#  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type
+# 1. https://docs.python.org/2/library/stdtypes.html#string-formatting
+FORMAT_RE = r'''(?x)
+    (?<!%)
+    %
+    \({0}\)  # mapping key
+    (?:[#0\-+ ]+)?  # conversion flags (optional)
+    (?:\d+)?  # minimum field width (optional)
+    (?:\.\d+)?  # precision (optional)
+    [hlL]?  # length modifier (optional)
+    (?P<type>[diouxXeEfFgGcrs%])  # conversion type
+'''
+
 
 def limit_length(s, length):
     """ Add ellipses to overly long strings """

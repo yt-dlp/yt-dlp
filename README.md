@@ -670,18 +670,24 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --add-metadata                   Write metadata to the video file
     --no-add-metadata                Do not write metadata (default)
     --parse-metadata FIELD:FORMAT    Parse additional metadata like title/artist
-                                     from other fields. Give field name to
-                                     extract data from, and format of the field
-                                     seperated by a ":". Either regular
-                                     expression with named capture groups or a
-                                     similar syntax to the output template can
-                                     also be used. The parsed parameters replace
-                                     any existing values and can be use in
-                                     output template. This option can be used
-                                     multiple times. Example: --parse-metadata
-                                     "title:%(artist)s - %(title)s" matches a
-                                     title like "Coldplay - Paradise". Example
-                                     (regex): --parse-metadata
+                                     from other fields. Give a template or field
+                                     name to extract data from and the format to
+                                     interpret it as, seperated by a ":". Either
+                                     regular expression with named capture
+                                     groups or a similar syntax to the output
+                                     template can be used for the FORMAT.
+                                     Similarly, the syntax for output template
+                                     can be used for FIELD to parse the data
+                                     from multiple fields. The parsed parameters
+                                     replace any existing values and can be used
+                                     in output templates. This option can be
+                                     used multiple times. Example: --parse-
+                                     metadata "title:%(artist)s - %(title)s"
+                                     matches a title like "Coldplay - Paradise".
+                                     Example: --parse-metadata "%(series)s
+                                     %(episode_number)s:%(title)s" sets the
+                                     title using series and episode number.
+                                     Example (regex): --parse-metadata
                                      "description:Artist - (?P<artist>.+?)"
     --xattrs                         Write metadata to the video file's xattrs
                                      (using dublin core and xdg standards)
