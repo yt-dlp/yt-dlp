@@ -4,7 +4,6 @@ import re
 
 from .common import PostProcessor
 from ..compat import compat_str
-from ..utils import str_or_none
 
 
 class MetadataFromFieldPP(PostProcessor):
