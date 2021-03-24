@@ -1947,7 +1947,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f['format_id'] = itag
                 formats.append(f)
 
-        if self._downloader.params.get('youtube_include_dash_manifest'):
+        if self._downloader.params.get('youtube_include_dash_manifest', True):
             dash_manifest_url = streaming_data.get('dashManifestUrl')
             if dash_manifest_url:
                 for f in self._extract_mpd_formats(

@@ -413,6 +413,12 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         # playlist of type 'sammlung'
         'url': 'https://www.ardmediathek.de/ard/sammlung/team-muenster/5JpTzLSbWUAK8184IOvEir/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.ardmediathek.de/video/coronavirus-update-ndr-info/astrazeneca-kurz-lockdown-und-pims-syndrom-81/ndr/Y3JpZDovL25kci5kZS84NzE0M2FjNi0wMWEwLTQ5ODEtOTE5NS1mOGZhNzdhOTFmOTI/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.ardmediathek.de/ard/player/Y3JpZDovL3dkci5kZS9CZWl0cmFnLWQ2NDJjYWEzLTMwZWYtNGI4NS1iMTI2LTU1N2UxYTcxOGIzOQ/tatort-duo-koeln-leipzig-ihr-kinderlein-kommet',
+        'only_matching': True,
     }]
 
     def _ARD_load_playlist_snipped(self, playlist_id, display_id, client, mode, pageNumber):
@@ -512,13 +518,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         return self.playlist_result(entries, playlist_title=display_id)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        video_id = mobj.group('video_id')
-        display_id = mobj.group('display_id')
-        if display_id:
-            display_id = display_id.rstrip('/')
-        if not display_id:
-            display_id = video_id
+        video_id = self._match_id(url)
 
         if mobj.group('mode') in ('sendung', 'sammlung'):
             # this is a playlist-URL
@@ -529,9 +529,9 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
 
         player_page = self._download_json(
             'https://api.ardmediathek.de/public-gateway',
-            display_id, data=json.dumps({
+            video_id, data=json.dumps({
                 'query': '''{
-  playerPage(client:"%s", clipId: "%s") {
+  playerPage(client: "ard", clipId: "%s") {
     blockedByFsk
     broadcastedOn
     maturityContentRating
@@ -561,7 +561,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
       }
     }
   }
-}''' % (mobj.group('client'), video_id),
+}''' % video_id,
             }).encode(), headers={
                 'Content-Type': 'application/json'
             })['data']['playerPage']
@@ -586,7 +586,6 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
                 r'\(FSK\s*(\d+)\)\s*$', description, 'age limit', default=None))
         info.update({
             'age_limit': age_limit,
-            'display_id': display_id,
             'title': title,
             'description': description,
             'timestamp': unified_timestamp(player_page.get('broadcastedOn')),

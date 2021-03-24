@@ -1,17 +1,22 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import functools
 import itertools
+import json
 import re
 
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_Element,
     compat_HTTPError,
+    compat_parse_qs,
+    compat_urllib_parse_urlparse,
     compat_urlparse,
 )
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     clean_html,
     dict_get,
     float_or_none,
@@ -811,7 +816,7 @@ class BBCIE(BBCCoUkIE):
 
     @classmethod
     def suitable(cls, url):
-        EXCLUDE_IE = (BBCCoUkIE, BBCCoUkArticleIE, BBCCoUkIPlayerPlaylistIE, BBCCoUkPlaylistIE)
+        EXCLUDE_IE = (BBCCoUkIE, BBCCoUkArticleIE, BBCCoUkIPlayerEpisodesIE, BBCCoUkIPlayerGroupIE, BBCCoUkPlaylistIE)
         return (False if any(ie.suitable(url) for ie in EXCLUDE_IE)
                 else super(BBCIE, cls).suitable(url))
 
@@ -1338,21 +1343,149 @@ class BBCCoUkPlaylistBaseIE(InfoExtractor):
             playlist_id, title, description)
 
 
-class BBCCoUkIPlayerPlaylistIE(BBCCoUkPlaylistBaseIE):
-    IE_NAME = 'bbc.co.uk:iplayer:playlist'
-    _VALID_URL = r'https?://(?:www\.)?bbc\.co\.uk/iplayer/(?:episodes|group)/(?P<id>%s)' % BBCCoUkIE._ID_REGEX
-    _URL_TEMPLATE = 'http://www.bbc.co.uk/iplayer/episode/%s'
-    _VIDEO_ID_TEMPLATE = r'data-ip-id=["\'](%s)'
+class BBCCoUkIPlayerPlaylistBaseIE(InfoExtractor):
+    _VALID_URL_TMPL = r'https?://(?:www\.)?bbc\.co\.uk/iplayer/%%s/(?P<id>%s)' % BBCCoUkIE._ID_REGEX
+
+    @staticmethod
+    def _get_default(episode, key, default_key='default'):
+        return try_get(episode, lambda x: x[key][default_key])
+
+    def _get_description(self, data):
+        synopsis = data.get(self._DESCRIPTION_KEY) or {}
+        return dict_get(synopsis, ('large', 'medium', 'small'))
+
+    def _fetch_page(self, programme_id, per_page, series_id, page):
+        elements = self._get_elements(self._call_api(
+            programme_id, per_page, page + 1, series_id))
+        for element in elements:
+            episode = self._get_episode(element)
+            episode_id = episode.get('id')
+            if not episode_id:
+                continue
+            thumbnail = None
+            image = self._get_episode_image(episode)
+            if image:
+                thumbnail = image.replace('{recipe}', 'raw')
+            category = self._get_default(episode, 'labels', 'category')
+            yield {
+                '_type': 'url',
+                'id': episode_id,
+                'title': self._get_episode_field(episode, 'subtitle'),
+                'url': 'https://www.bbc.co.uk/iplayer/episode/' + episode_id,
+                'thumbnail': thumbnail,
+                'description': self._get_description(episode),
+                'categories': [category] if category else None,
+                'series': self._get_episode_field(episode, 'title'),
+                'ie_key': BBCCoUkIE.ie_key(),
+            }
+
+    def _real_extract(self, url):
+        pid = self._match_id(url)
+        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        series_id = qs.get('seriesId', [None])[0]
+        page = qs.get('page', [None])[0]
+        per_page = 36 if page else self._PAGE_SIZE
+        fetch_page = functools.partial(self._fetch_page, pid, per_page, series_id)
+        entries = fetch_page(int(page) - 1) if page else OnDemandPagedList(fetch_page, self._PAGE_SIZE)
+        playlist_data = self._get_playlist_data(self._call_api(pid, 1))
+        return self.playlist_result(
+            entries, pid, self._get_playlist_title(playlist_data),
+            self._get_description(playlist_data))
+
+
+class BBCCoUkIPlayerEpisodesIE(BBCCoUkIPlayerPlaylistBaseIE):
+    IE_NAME = 'bbc.co.uk:iplayer:episodes'
+    _VALID_URL = BBCCoUkIPlayerPlaylistBaseIE._VALID_URL_TMPL % 'episodes'
     _TESTS = [{
         'url': 'http://www.bbc.co.uk/iplayer/episodes/b05rcz9v',
         'info_dict': {
             'id': 'b05rcz9v',
             'title': 'The Disappearance',
-            'description': 'French thriller serial about a missing teenager.',
+            'description': 'md5:58eb101aee3116bad4da05f91179c0cb',
         },
-        'playlist_mincount': 6,
-        'skip': 'This programme is not currently available on BBC iPlayer',
+        'playlist_mincount': 8,
     }, {
+        # all seasons
+        'url': 'https://www.bbc.co.uk/iplayer/episodes/b094m5t9/doctor-foster',
+        'info_dict': {
+            'id': 'b094m5t9',
+            'title': 'Doctor Foster',
+            'description': 'md5:5aa9195fad900e8e14b52acd765a9fd6',
+        },
+        'playlist_mincount': 10,
+    }, {
+        # explicit season
+        'url': 'https://www.bbc.co.uk/iplayer/episodes/b094m5t9/doctor-foster?seriesId=b094m6nv',
+        'info_dict': {
+            'id': 'b094m5t9',
+            'title': 'Doctor Foster',
+            'description': 'md5:5aa9195fad900e8e14b52acd765a9fd6',
+        },
+        'playlist_mincount': 5,
+    }, {
+        # all pages
+        'url': 'https://www.bbc.co.uk/iplayer/episodes/m0004c4v/beechgrove',
+        'info_dict': {
+            'id': 'm0004c4v',
+            'title': 'Beechgrove',
+            'description': 'Gardening show that celebrates Scottish horticulture and growing conditions.',
+        },
+        'playlist_mincount': 37,
+    }, {
+        # explicit page
+        'url': 'https://www.bbc.co.uk/iplayer/episodes/m0004c4v/beechgrove?page=2',
+        'info_dict': {
+            'id': 'm0004c4v',
+            'title': 'Beechgrove',
+            'description': 'Gardening show that celebrates Scottish horticulture and growing conditions.',
+        },
+        'playlist_mincount': 1,
+    }]
+    _PAGE_SIZE = 100
+    _DESCRIPTION_KEY = 'synopsis'
+
+    def _get_episode_image(self, episode):
+        return self._get_default(episode, 'image')
+
+    def _get_episode_field(self, episode, field):
+        return self._get_default(episode, field)
+
+    @staticmethod
+    def _get_elements(data):
+        return data['entities']['results']
+
+    @staticmethod
+    def _get_episode(element):
+        return element.get('episode') or {}
+
+    def _call_api(self, pid, per_page, page=1, series_id=None):
+        variables = {
+            'id': pid,
+            'page': page,
+            'perPage': per_page,
+        }
+        if series_id:
+            variables['sliceId'] = series_id
+        return self._download_json(
+            'https://graph.ibl.api.bbc.co.uk/', pid, headers={
+                'Content-Type': 'application/json'
+            }, data=json.dumps({
+                'id': '5692d93d5aac8d796a0305e895e61551',
+                'variables': variables,
+            }).encode('utf-8'))['data']['programme']
+
+    @staticmethod
+    def _get_playlist_data(data):
+        return data
+
+    def _get_playlist_title(self, data):
+        return self._get_default(data, 'title')
+
+
+class BBCCoUkIPlayerGroupIE(BBCCoUkIPlayerPlaylistBaseIE):
+    IE_NAME = 'bbc.co.uk:iplayer:group'
+    _VALID_URL = BBCCoUkIPlayerPlaylistBaseIE._VALID_URL_TMPL % 'group'
+    _TESTS = [{
         # Available for over a year unlike 30 days for most other programmes
         'url': 'http://www.bbc.co.uk/iplayer/group/p02tcc32',
         'info_dict': {
@@ -1361,14 +1494,56 @@ class BBCCoUkIPlayerPlaylistIE(BBCCoUkPlaylistBaseIE):
             'description': 'md5:683e901041b2fe9ba596f2ab04c4dbe7',
         },
         'playlist_mincount': 10,
+    }, {
+        # all pages
+        'url': 'https://www.bbc.co.uk/iplayer/group/p081d7j7',
+        'info_dict': {
+            'id': 'p081d7j7',
+            'title': 'Music in Scotland',
+            'description': 'Perfomances in Scotland and programmes featuring Scottish acts.',
+        },
+        'playlist_mincount': 47,
+    }, {
+        # explicit page
+        'url': 'https://www.bbc.co.uk/iplayer/group/p081d7j7?page=2',
+        'info_dict': {
+            'id': 'p081d7j7',
+            'title': 'Music in Scotland',
+            'description': 'Perfomances in Scotland and programmes featuring Scottish acts.',
+        },
+        'playlist_mincount': 11,
     }]
+    _PAGE_SIZE = 200
+    _DESCRIPTION_KEY = 'synopses'
 
-    def _extract_title_and_description(self, webpage):
-        title = self._search_regex(r'<h1>([^<]+)</h1>', webpage, 'title', fatal=False)
-        description = self._search_regex(
-            r'<p[^>]+class=(["\'])subtitle\1[^>]*>(?P<value>[^<]+)</p>',
-            webpage, 'description', fatal=False, group='value')
-        return title, description
+    def _get_episode_image(self, episode):
+        return self._get_default(episode, 'images', 'standard')
+
+    def _get_episode_field(self, episode, field):
+        return episode.get(field)
+
+    @staticmethod
+    def _get_elements(data):
+        return data['elements']
+
+    @staticmethod
+    def _get_episode(element):
+        return element
+
+    def _call_api(self, pid, per_page, page=1, series_id=None):
+        return self._download_json(
+            'http://ibl.api.bbc.co.uk/ibl/v1/groups/%s/episodes' % pid,
+            pid, query={
+                'page': page,
+                'per_page': per_page,
+            })['group_episodes']
+
+    @staticmethod
+    def _get_playlist_data(data):
+        return data['group']
+
+    def _get_playlist_title(self, data):
+        return data.get('title')
 
 
 class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):

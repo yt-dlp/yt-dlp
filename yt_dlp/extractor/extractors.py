@@ -108,7 +108,8 @@ from .bandcamp import BandcampIE, BandcampAlbumIE, BandcampWeeklyIE
 from .bbc import (
     BBCCoUkIE,
     BBCCoUkArticleIE,
-    BBCCoUkIPlayerPlaylistIE,
+    BBCCoUkIPlayerEpisodesIE,
+    BBCCoUkIPlayerGroupIE,
     BBCCoUkPlaylistIE,
     BBCIE,
 )
@@ -1673,9 +1674,14 @@ from .zattoo import (
     ZattooLiveIE,
 )
 from .zdf import ZDFIE, ZDFChannelIE
+from .zee5 import (
+    Zee5IE,
+    Zee5SeriesIE,
+)
 from .zhihu import ZhihuIE
-from .zingmp3 import ZingMp3IE
-from .zee5 import Zee5IE
-from .zee5 import Zee5SeriesIE
+from .zingmp3 import (
+    ZingMp3IE,
+    ZingMp3AlbumIE,
+)
 from .zoom import ZoomIE
 from .zype import ZypeIE
