@@ -98,11 +98,11 @@ class NebulaIE(InfoExtractor):
         response = self._download_json('https://api.watchnebula.com/api/v1/auth/login/',
                                        data=data,
                                        headers={
-                                         'content-type': 'application/json',
-                                         # Overwrite the cookie headers, because
-                                         # submitting the 'sessionid' cookie
-                                         # always causes a 403 on auth endpoint
-                                         'cookie': ''},
+                                           'content-type': 'application/json',
+                                           # Overwrite the cookie headers, because
+                                           # submitting the 'sessionid' cookie
+                                           # always causes a 403 on auth endpoint
+                                           'cookie': ''},
                                        fatal=False,
                                        video_id=video_id,
                                        note='Authenticating to Nebula with supplied credentials',
