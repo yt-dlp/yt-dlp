@@ -584,7 +584,7 @@ from .kuwo import (
 )
 from .la7 import (
     LA7IE,
-    LA7PodcastIE,
+    LA7PodcastEpisodeIE,
 )
 from .laola1tv import (
     Laola1TvEmbedIE,

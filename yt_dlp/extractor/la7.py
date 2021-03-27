@@ -63,8 +63,8 @@ class LA7IE(InfoExtractor):
         }
 
 
-class LA7PodcastIE(InfoExtractor):
-    IE_NAME = 'la7.it:podcast'
+class LA7PodcastEpisodeIE(InfoExtractor):
+    IE_NAME = 'la7.it:pod:episode'
     _VALID_URL = r'''(?x)(https?://)?
         (?:www\.)?la7\.it/[^/]+/podcast/([^/]+-)?(?P<id>\d+)'''
 
@@ -76,6 +76,7 @@ class LA7PodcastIE(InfoExtractor):
             'ext': 'mp3',
             'title': '"La carezza delle memoria" di Carlo Verdone',
             'description': 'md5:5abf07c3c551a687db80af3f9ceb7d52',
+            'thumbnail': 'https://www.la7.it/sites/default/files/podcast/371497.jpg',
             'upload_date': '20210323',
         },
     }, {
@@ -119,6 +120,11 @@ class LA7PodcastIE(InfoExtractor):
             webpage, video_id, default=None) or self._html_search_meta(
                 'description', webpage)
 
+        thumb = self._html_search_regex((
+            r'<div class="podcast-image"><img src="(.+?)"></div>',
+            r'<div class="container-embed"[^<]+url\((.+?)\);">'),
+            webpage, 'thumbnail', fatal=False, default=None)
+
         duration = parse_duration(self._html_search_regex(
             r'<span class="durata">([\d:]+)</span>',
             webpage, 'duration', fatal=False, default=None))
@@ -144,5 +150,6 @@ class LA7PodcastIE(InfoExtractor):
             'description': description,
             'duration': float_or_none(duration),
             'formats': formats,
+            'thumbnail': thumb,
             'upload_date': unified_strdate(date),
         }
