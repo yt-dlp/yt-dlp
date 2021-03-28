@@ -95,15 +95,15 @@ class LA7PodcastEpisodeIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _extract_infos(self, webpage, video_id=None, ppn=None):
+    def _extract_info(self, webpage, video_id=None, ppn=None):
         if not video_id:
             video_id = self._search_regex(
                 r'data-nid=([\'"])(?P<vid>\d+)\1',
                 webpage, 'video_id', group='vid')
 
-        media_url = self._search_regex((
-            r'src:\s*([\'"])(?P<url>.+?mp3.+?)\1',
-            r'data-podcast=([\'"])(?P<url>.+?mp3.+?)\1'),
+        media_url = self._search_regex(
+            (r'src:\s*([\'"])(?P<url>.+?mp3.+?)\1',
+             r'data-podcast=([\'"])(?P<url>.+?mp3.+?)\1'),
             webpage, 'media_url', group='url')
         ext = determine_ext(media_url)
         formats = [{
@@ -112,10 +112,10 @@ class LA7PodcastEpisodeIE(InfoExtractor):
             'ext': ext,
         }]
 
-        title = self._html_search_regex((
-            r'<div class="title">(?P<title>.+?)</',
-            r'<title>(?P<title>[^<]+)</title>',
-            r'title:\s*([\'"])(?P<title>.+?)\1'),
+        title = self._html_search_regex(
+            (r'<div class="title">(?P<title>.+?)</',
+             r'<title>(?P<title>[^<]+)</title>',
+             r'title:\s*([\'"])(?P<title>.+?)\1'),
             webpage, 'title', group='title')
 
         description = (
@@ -127,10 +127,10 @@ class LA7PodcastEpisodeIE(InfoExtractor):
                 webpage, 'description', default=None)
             or self._html_search_meta('description', webpage))
 
-        thumb = self._html_search_regex((
-            r'<div class="podcast-image"><img src="(.+?)"></div>',
-            r'<div class="container-embed"[^<]+url\((.+?)\);">',
-            r'<div class="field-content"><img src="(.+?)"'),
+        thumb = self._html_search_regex(
+            (r'<div class="podcast-image"><img src="(.+?)"></div>',
+             r'<div class="container-embed"[^<]+url\((.+?)\);">',
+             r'<div class="field-content"><img src="(.+?)"'),
             webpage, 'thumbnail', fatal=False, default=None)
 
         duration = parse_duration(self._html_search_regex(
@@ -165,12 +165,12 @@ class LA7PodcastEpisodeIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        return self._extract_infos(webpage, video_id)
+        return self._extract_info(webpage, video_id)
 
 
 class LA7PodcastIE(LA7PodcastEpisodeIE):
     IE_NAME = 'la7.it:podcast'
-    _VALID_URL = r'(https?://)?(www\.)?la7\.it/(?P<id>[^/]+)/podcast/?(?:$|[#?])'''
+    _VALID_URL = r'(https?://)?(www\.)?la7\.it/(?P<id>[^/]+)/podcast/?(?:$|[#?])'
 
     _TESTS = [{
         'url': 'https://www.la7.it/propagandalive/podcast',
@@ -185,8 +185,9 @@ class LA7PodcastIE(LA7PodcastEpisodeIE):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
 
-        title = (self._html_search_regex(
-            r'<h1.*?>(.+?)</h1>', webpage, 'title', fatal=False, default=None)
+        title = (
+            self._html_search_regex(
+                r'<h1.*?>(.+?)</h1>', webpage, 'title', fatal=False, default=None)
             or self._og_search_title(webpage))
         ppn = self._search_regex(
             r'window\.ppN\s*=\s*([\'"])(?P<ppn>.+?)\1',
@@ -196,6 +197,6 @@ class LA7PodcastIE(LA7PodcastEpisodeIE):
         for episode in re.finditer(
                 r'<div class="container-podcast-property">([\s\S]+?)(?:</div>\s*){3}',
                 webpage):
-            entries.append(self._extract_infos(episode.group(1), ppn=ppn))
+            entries.append(self._extract_info(episode.group(1), ppn=ppn))
 
         return self.playlist_result(entries, playlist_id, title)
