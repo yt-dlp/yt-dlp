@@ -149,7 +149,7 @@ class LA7PodcastEpisodeIE(InfoExtractor):
         # if the date is not in the title
         # and title is the same as the show_title
         # add the date to the title
-        if date and not date_alt and ppn == title.lower():
+        if date and not date_alt and ppn and ppn.lower() == title.lower():
             title += ' del %s' % date
         return {
             'id': video_id,
@@ -170,7 +170,7 @@ class LA7PodcastEpisodeIE(InfoExtractor):
 
 class LA7PodcastIE(LA7PodcastEpisodeIE):
     IE_NAME = 'la7.it:podcast'
-    _VALID_URL = r'(https?://)?(www\.)?la7\.it/(?P<id>[^/]+)/podcast$'''
+    _VALID_URL = r'(https?://)?(www\.)?la7\.it/(?P<id>[^/]+)/podcast/?(?:$|[#?])'''
 
     _TESTS = [{
         'url': 'https://www.la7.it/propagandalive/podcast',
