@@ -95,7 +95,7 @@ class LA7PodcastEpisodeIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _extract_infos(self, webpage, video_id=None):
+    def _extract_infos(self, webpage, video_id=None, ppn=None):
         if not video_id:
             video_id = self._search_regex(
                 r'data-nid=([\'"])(?P<vid>\d+)\1',
@@ -118,13 +118,14 @@ class LA7PodcastEpisodeIE(InfoExtractor):
             r'title:\s*([\'"])(?P<title>.+?)\1'),
             webpage, 'title', group='title')
 
-        description = self._html_search_regex((
-            r'<div class="description">(.+?)</div>',
-            r'<div class="description-mobile">(.+?)</div>',
-            r'<div class="box-txt">([^<]+?)</div>',
-            r'<div class="field-content"><p>(.+?)</p></div>'),
-            webpage, 'description', default=None) or self._html_search_meta(
-                'description', webpage)
+        description = (
+            self._html_search_regex(
+                (r'<div class="description">(.+?)</div>',
+                 r'<div class="description-mobile">(.+?)</div>',
+                 r'<div class="box-txt">([^<]+?)</div>',
+                 r'<div class="field-content"><p>(.+?)</p></div>'),
+                webpage, 'description', default=None)
+            or self._html_search_meta('description', webpage))
 
         thumb = self._html_search_regex((
             r'<div class="podcast-image"><img src="(.+?)"></div>',
@@ -137,12 +138,12 @@ class LA7PodcastEpisodeIE(InfoExtractor):
             webpage, 'duration', fatal=False, default=None))
 
         date = self._html_search_regex(
-            r'<div class="data">\s*(?:<span>)?([\d\.]+)\s*</',
+            r'class="data">\s*(?:<span>)?([\d\.]+)\s*</',
             webpage, 'date', default=None)
 
         date_alt = self._search_regex(
             r'(\d+[\./]\d+[\./]\d+)', title, 'date_alt', default=None)
-        ppn = self._search_regex(
+        ppn = ppn or self._search_regex(
             r'ppN:\s*([\'"])(?P<ppn>.+?)\1',
             webpage, 'ppn', group='ppn', default=None)
         # if the date is not in the title
@@ -184,13 +185,17 @@ class LA7PodcastIE(LA7PodcastEpisodeIE):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
 
+        title = (self._html_search_regex(
+            r'<h1.*?>(.+?)</h1>', webpage, 'title', fatal=False, default=None)
+            or self._og_search_title(webpage))
+        ppn = self._search_regex(
+            r'window\.ppN\s*=\s*([\'"])(?P<ppn>.+?)\1',
+            webpage, 'ppn', group='ppn', default=None)
+
         entries = []
         for episode in re.finditer(
                 r'<div class="container-podcast-property">([\s\S]+?)(?:</div>\s*){3}',
                 webpage):
-            entries.append(self._extract_infos(episode.group(1)))
+            entries.append(self._extract_infos(episode.group(1), ppn=ppn))
 
-        title = (self._html_search_regex(
-            r'<h1.*?>(.+?)</h1>', webpage, 'title', fatal=False, default=None)
-            or self._og_search_title(webpage))
         return self.playlist_result(entries, playlist_id, title)
