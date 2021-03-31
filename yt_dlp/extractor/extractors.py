@@ -315,6 +315,7 @@ from .douyutv import (
 from .dplay import (
     DPlayIE,
     DiscoveryPlusIE,
+    DiscoveryPlusIndiaIE,
     HGTVDeIE,
 )
 from .dreisat import DreiSatIE

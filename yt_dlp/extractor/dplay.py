@@ -296,6 +296,31 @@ class DPlayIE(InfoExtractor):
             url, display_id, host, 'dplay' + country, country)
 
 
+class DiscoveryPlusIndiaIE(DPlayIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/videos?' + DPlayIE._PATH_REGEX
+    _TESTS = [  # TODO
+    ]
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers['x-disco-params'] = 'realm=%s' % realm
+        headers['x-disco-client'] = 'WEB:UNKNOWN:dplus-india:17.0.0'
+
+    def _download_video_playback_info(self, disco_base, video_id, headers):
+        return self._download_json(
+            disco_base + 'playback/v3/videoPlaybackInfo',
+            video_id, headers=headers, data=json.dumps({
+                'deviceInfo': {
+                    'adBlocker': False,
+                },
+                'videoId': video_id,
+            }).encode('utf-8'))['data']['attributes']['streaming']
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        return self._get_disco_api_info(
+            url, display_id, 'ap2-prod-direct.discoveryplus.in', 'dplusindia', 'in')
+
+
 class DiscoveryPlusIE(DPlayIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/video' + DPlayIE._PATH_REGEX
     _TESTS = [{
