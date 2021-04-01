@@ -1148,7 +1148,7 @@ def parseOpts(overrideArguments=None):
         help=(
             'Parse additional metadata like title/artist from other fields. '
             'Give a template or field name to extract data from and the '
-            'format to interpret it as, seperated by a ":". '
+            'format to interpret it as, separated by a ":". '
             'Either regular expression with named capture groups or a '
             'similar syntax to the output template can be used for the FORMAT. '
             'Similarly, the syntax for output template can be used for FIELD '

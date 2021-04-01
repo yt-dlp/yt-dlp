@@ -2591,7 +2591,7 @@ class YoutubeDL(object):
         def actual_post_extract(info_dict):
             if info_dict.get('_type') in ('playlist', 'multi_video'):
                 for video_dict in info_dict.get('entries', {}):
-                    actual_post_extract(video_dict)
+                    actual_post_extract(video_dict or {})
                 return
 
             if '__post_extractor' not in info_dict:
@@ -2602,7 +2602,7 @@ class YoutubeDL(object):
             del info_dict['__post_extractor']
             return
 
-        actual_post_extract(info_dict)
+        actual_post_extract(info_dict or {})
 
     def pre_process(self, ie_info):
         info = dict(ie_info)

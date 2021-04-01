@@ -15,7 +15,6 @@ from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
     compat_chr,
     compat_HTTPError,
-    compat_kwargs,
     compat_parse_qs,
     compat_str,
     compat_urllib_parse_unquote_plus,

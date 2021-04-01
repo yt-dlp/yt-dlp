@@ -27,7 +27,7 @@
 * Ability to load playlist infojson using `--load-info-json`
 * Write current epoch to infojson when using `--no-clean-infojson`
 * [youtube_live_chat] fix bug when trying to set cookies
-* [niconico] Fix for when logged in by: [CXwudi](https://github.com/CXwudi) and [xtkoba](https://github.com/xtkoba)
+* [niconico] Fix for when logged in by [CXwudi](https://github.com/CXwudi) and [xtkoba](https://github.com/xtkoba)
 * [linuxacadamy] Fix login
 
 
@@ -357,7 +357,7 @@
 
 ### 2021.01.08
 * Merge youtube-dl: Upto [2021.01.08](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.01.08) except stitcher ([1](https://github.com/ytdl-org/youtube-dl/commit/bb38a1215718cdf36d73ff0a7830a64cd9fa37cc), [2](https://github.com/ytdl-org/youtube-dl/commit/a563c97c5cddf55f8989ed7ea8314ef78e30107f))
-* Moved changelog to seperate file
+* Moved changelog to separate file
 
 
 ### 2021.01.07-1

@@ -1398,7 +1398,7 @@ class InfoExtractor(object):
         return self._hidden_inputs(form)
 
     class FormatSort:
-        regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<seperator>[~:])(?P<limit>.*?))?)? *$'
+        regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
         default = ('hidden', 'hasvid', 'ie_pref', 'lang', 'quality',
                    'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
@@ -1558,7 +1558,7 @@ class InfoExtractor(object):
                 if self._get_field_setting(field, 'type') == 'alias':
                     field = self._get_field_setting(field, 'field')
                 reverse = match.group('reverse') is not None
-                closest = match.group('seperator') == '~'
+                closest = match.group('separator') == '~'
                 limit_text = match.group('limit')
 
                 has_limit = limit_text is not None
