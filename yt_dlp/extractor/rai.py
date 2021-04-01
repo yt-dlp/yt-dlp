@@ -5,7 +5,9 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
+    compat_http_client,
     compat_urlparse,
+    compat_urllib_parse_urlparse,
     compat_str,
 )
 from ..utils import (
@@ -96,11 +98,127 @@ class RaiBaseIE(InfoExtractor):
         if not formats and geoprotection is True:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
 
+        formats.extend(self._create_http_urls(relinker_url, formats))
+
         return dict((k, v) for k, v in {
             'is_live': is_live,
             'duration': duration,
             'formats': formats,
         }.items() if v is not None)
+
+    def _create_http_urls(self, relinker_url, fmts):
+        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\d+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
+        _MP4_REG = r'https?://(?P<cdn_id>creativemedia[x]?|download)(?P<cdn_num>\d+).+?/\d+(?:_\d+)?\.mp4$'
+        _MP4_TMPL = 'https://%s%s-rai-it.akamaized.net/%s%s/%s%s.mp4'
+        _QUALITY = {
+            # tbr: w, h
+            '250': [352, 198],
+            '400': [512, 288],
+            '700': [512, 288],
+            '800': [700, 394],
+            '1200': [736, 414],
+            '1800': [1024, 576],
+            '2400': [1280, 720],
+            '3200': [1440, 810],
+            '3600': [1440, 810],
+            '5000': [1920, 1080],
+            '10000': [1920, 1080],
+        }
+
+        def get_location(url, headers={}):
+            _url = compat_urllib_parse_urlparse(url)
+            conn = compat_http_client.HTTPConnection(_url.netloc)
+            headers.update({'Connection': 'close'})
+            try:
+                conn.request(
+                    'HEAD', '%s?%s' % (_url.path, _url.query),
+                    headers=headers)
+            except Exception:
+                return None
+
+            resp = conn.getresponse()
+
+            if resp.status == 200:
+                return True
+            elif resp.status == 302:
+                return resp.getheader('Location')
+            elif resp.status == 404:
+                return None
+            return None
+
+        def get_format_info(tbr):
+            br = int_or_none(tbr)
+            if len(fmts) == 1 and not br:
+                br = fmts[0].get('tbr')
+
+            for f in fmts:
+                if f.get('tbr'):
+                    if (br - br / 100 * 10) <= f.get('tbr') <= (br + br / 100 * 10):
+                        return [
+                            f.get('width'),
+                            f.get('height'),
+                            f.get('tbr'),
+                            f.get('format_id').split('-')[1],
+                        ]
+
+            return [None, None, None, tbr]
+
+        def quality_tag(q, qualities):
+            return '_%s' % q if (len(qualities) > 1 or int_or_none(q)) else ''
+
+        cdn_id, cdn_num = None, None
+        loc = get_location(relinker_url)
+        loc = loc if loc is not True else ''
+        mobj = re.match(_MP4_REG, loc or '')
+        if mobj:
+            cdn_id, cdn_num = mobj.groups()
+
+        mobj = re.match(
+            _RELINKER_REG,
+            get_location(relinker_url, {'User-Agent': 'Rai'}) or '')
+
+        if not mobj:
+            return []
+
+        mobj = mobj.groupdict()
+        mobj['quality'] = mobj['quality'].split(',') if mobj['quality'] else ['.']
+        mobj['quality'] = [i for i in mobj['quality'] if i]
+        mobj['extra'] = mobj['extra'] + '/' if 'akamai' in mobj['host'] else ''
+
+        if not cdn_id and not cdn_num:
+            found = False
+            quality = quality_tag(mobj['quality'][-1], mobj['quality'])
+            for cdn_num in range(1, 10):
+                for cdn_id in ['creativemedia', 'download']:
+                    temp = _MP4_TMPL % (
+                        cdn_id, str(cdn_num), mobj['extra'], mobj['path'],
+                        mobj['id'], quality)
+                    if get_location(temp) is True:
+                        found = True
+                        break
+                else:
+                    continue
+                break
+
+            if not found:
+                return []
+
+        formats = []
+        for q in mobj['quality']:
+            w, h, t = None, None, None
+            quality = quality_tag(q, mobj['quality'])
+            w, h, t, q = get_format_info(q)
+            formats.append({
+                'url': _MP4_TMPL % (
+                    cdn_id, str(cdn_num), mobj['extra'], mobj['path'],
+                    mobj['id'], quality),
+                'width': w or _QUALITY[q][0],
+                'height': h or _QUALITY[q][1],
+                'tbr': t or int(q),
+                'protocol': 'https',
+                'format_id': 'https-%s' % q,
+            })
+        return formats
 
     @staticmethod
     def _extract_subtitles(url, video_data):
@@ -150,6 +268,22 @@ class RaiPlayIE(RaiBaseIE):
         },
         'params': {
             'skip_download': True,
+        },
+    }, {
+        # 1080p direct mp4 url
+        'url': 'https://www.raiplay.it/video/2021/03/Leonardo-S1E1-b5703b02-82ee-475a-85b6-c9e4a8adf642.html',
+        'md5': '1955a87ffe625e913bff2dafc23e1143',
+        'info_dict': {
+            'id': 'b5703b02-82ee-475a-85b6-c9e4a8adf642',
+            'ext': 'mp4',
+            'title': 'Leonardo - S1E1',
+            'alt_title': 'St 1 Ep 1 - Episodio 1',
+            'description': 'md5:f5360cd267d2de146e4e3879a5a47d31',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'Rai 1',
+            'duration': 3230,
+            'series': 'Leonardo',
+            'season': 'Season 1',
         },
     }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
