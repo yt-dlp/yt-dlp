@@ -2296,8 +2296,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         is_private = bool_or_none(video_details.get('isPrivate'))
         is_unlisted = bool_or_none(microformat.get('isUnlisted'))
         is_membersonly = None
+        is_premium = None
         if initial_data and is_private is not None:
             is_membersonly = False
+            is_premium = False
             contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list)
             for content in contents or []:
                 badges = try_get(content, lambda x: x['videoPrimaryInfoRenderer']['badges'], list)
@@ -2306,13 +2308,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if label.lower() == 'members only':
                         is_membersonly = True
                         break
+                    elif label.lower() == 'premium':
+                        is_premium = True
+                        break
                 if is_membersonly:
                     break
 
         # TODO: Add this for playlists
         info['availability'] = self._availability(
             is_private=is_private,
-            needs_premium=False,  # Youtube no longer have premium-only videos?
+            needs_premium=is_premium,
             needs_subscription=is_membersonly,
             needs_auth=info['age_limit'] >= 18,
             is_unlisted=None if is_private is None else is_unlisted)
