@@ -452,7 +452,7 @@ class RaiIE(RaiBaseIE):
     }, {
         # with ContentItem in og:url
         'url': 'http://www.rai.it/dl/RaiTV/programmi/media/ContentItem-efb17665-691c-45d5-a60c-5301333cbb0c.html',
-        'md5': '6865dd00cf0bbf5772fdd89d59bd768a',
+        'md5': '7fc9308e97f57ba80a734f6998b1c92e',
         'info_dict': {
             'id': 'efb17665-691c-45d5-a60c-5301333cbb0c',
             'ext': 'mp4',
@@ -480,22 +480,6 @@ class RaiIE(RaiBaseIE):
             'id': '3156f2f2-dc70-4953-8e2f-70d7489d4ce9',
             'ext': 'mp4',
             'title': 'La diretta di Rainews24',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # ContentItem in iframe (see #12652) and subtitle at 'subtitlesUrl' key
-        'url': 'http://www.presadiretta.rai.it/dl/portali/site/puntata/ContentItem-3ed19d13-26c2-46ff-a551-b10828262f1b.html',
-        'info_dict': {
-            'id': '1ad6dc64-444a-42a4-9bea-e5419ad2f5fd',
-            'ext': 'mp4',
-            'title': 'Partiti acchiappavoti - Presa diretta del 13/09/2015',
-            'description': 'md5:d291b03407ec505f95f27970c0b025f4',
-            'upload_date': '20150913',
-            'subtitles': {
-                'it': 'count:2',
-            },
         },
         'params': {
             'skip_download': True,
