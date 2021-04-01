@@ -261,13 +261,23 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         return True
 
-    def _download_webpage_handle(self, *args, **kwargs):
-        query = kwargs.get('query', {}).copy()
-        kwargs['query'] = query
-        return super(YoutubeBaseInfoExtractor, self)._download_webpage_handle(
-            *args, **compat_kwargs(kwargs))
+    def _initialize_consent(self):
+        cookies = self._get_cookies('https://www.youtube.com/')
+        if cookies.get('__Secure-3PSID'):
+            return
+        consent_id = None
+        consent = cookies.get('CONSENT')
+        if consent:
+            if 'YES' in consent.value:
+                return
+            consent_id = self._search_regex(
+                r'PENDING\+(\d+)', consent.value, 'consent', default=None)
+        if not consent_id:
+            consent_id = random.randint(100, 999)
+        self._set_cookie('.youtube.com', 'CONSENT', 'YES+cb.20210328-17-p0.en+FX+%s' % consent_id)
 
     def _real_initialize(self):
+        self._initialize_consent()
         if self._downloader is None:
             return
         if not self._login():
@@ -1760,8 +1770,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
         webpage = self._download_webpage(
-            webpage_url + '&has_verified=1&bpctr=9999999999',
-            video_id, fatal=False)
+            webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
 
         player_response = None
         if webpage:
@@ -2244,7 +2253,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     info['channel'] = get_text(try_get(
                         vsir,
                         lambda x: x['owner']['videoOwnerRenderer']['title'],
-                        compat_str))
+                        dict))
                     rows = try_get(
                         vsir,
                         lambda x: x['metadataRowContainer']['metadataRowContainerRenderer']['rows'],
@@ -3010,9 +3019,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
                 'backstagePostThreadRenderer': (self._post_thread_continuation_entries, 'contents')
             }
+            on_response_received = dict_get(response, ('onResponseReceivedActions', 'onResponseReceivedEndpoints'))
             continuation_items = try_get(
-                response,
-                lambda x: dict_get(x, ('onResponseReceivedActions', 'onResponseReceivedEndpoints'))[0]['appendContinuationItemsAction']['continuationItems'], list)
+                on_response_received, lambda x: x[0]['appendContinuationItemsAction']['continuationItems'], list)
             continuation_item = try_get(continuation_items, lambda x: x[0], dict) or {}
             video_items_renderer = None
             for key, value in continuation_item.items():

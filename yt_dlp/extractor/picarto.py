@@ -1,22 +1,15 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-import time
-
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     js_to_json,
-    try_get,
-    update_url_query,
-    urlencode_postdata,
 )
 
 
 class PicartoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(?P<id>[a-zA-Z0-9]+)(?:/(?P<token>[a-zA-Z0-9]+))?'
+    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(?P<id>[a-zA-Z0-9]+)'
     _TEST = {
         'url': 'https://picarto.tv/Setz',
         'info_dict': {
@@ -34,65 +27,46 @@ class PicartoIE(InfoExtractor):
         return False if PicartoVodIE.suitable(url) else super(PicartoIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        channel_id = mobj.group('id')
+        channel_id = self._match_id(url)
 
-        metadata = self._download_json(
-            'https://api.picarto.tv/v1/channel/name/' + channel_id,
-            channel_id)
+        data = self._download_json(
+            'https://ptvintern.picarto.tv/ptvapi', channel_id, query={
+                'query': '''{
+  channel(name: "%s") {
+    adult
+    id
+    online
+    stream_name
+    title
+  }
+  getLoadBalancerUrl(channel_name: "%s") {
+    url
+  }
+}''' % (channel_id, channel_id),
+            })['data']
+        metadata = data['channel']
 
-        if metadata.get('online') is False:
+        if metadata.get('online') == 0:
             raise ExtractorError('Stream is offline', expected=True)
+        title = metadata['title']
 
         cdn_data = self._download_json(
-            'https://picarto.tv/process/channel', channel_id,
-            data=urlencode_postdata({'loadbalancinginfo': channel_id}),
-            note='Downloading load balancing info')
+            data['getLoadBalancerUrl']['url'] + '/stream/json_' + metadata['stream_name'] + '.js',
+            channel_id, 'Downloading load balancing info')
 
-        token = mobj.group('token') or 'public'
-        params = {
-            'con': int(time.time() * 1000),
-            'token': token,
-        }
-
-        prefered_edge = cdn_data.get('preferedEdge')
         formats = []
-
-        for edge in cdn_data['edges']:
-            edge_ep = edge.get('ep')
-            if not edge_ep or not isinstance(edge_ep, compat_str):
+        for source in (cdn_data.get('source') or []):
+            source_url = source.get('url')
+            if not source_url:
                 continue
-            edge_id = edge.get('id')
-            for tech in cdn_data['techs']:
-                tech_label = tech.get('label')
-                tech_type = tech.get('type')
-                preference = 0
-                if edge_id == prefered_edge:
-                    preference += 1
-                format_id = []
-                if edge_id:
-                    format_id.append(edge_id)
-                if tech_type == 'application/x-mpegurl' or tech_label == 'HLS':
-                    format_id.append('hls')
-                    formats.extend(self._extract_m3u8_formats(
-                        update_url_query(
-                            'https://%s/hls/%s/index.m3u8'
-                            % (edge_ep, channel_id), params),
-                        channel_id, 'mp4', quality=preference,
-                        m3u8_id='-'.join(format_id), fatal=False))
-                    continue
-                elif tech_type == 'video/mp4' or tech_label == 'MP4':
-                    format_id.append('mp4')
-                    formats.append({
-                        'url': update_url_query(
-                            'https://%s/mp4/%s.mp4' % (edge_ep, channel_id),
-                            params),
-                        'format_id': '-'.join(format_id),
-                        'quality': preference,
-                    })
-                else:
-                    # rtmp format does not seem to work
-                    continue
+            source_type = source.get('type')
+            if source_type == 'html5/application/vnd.apple.mpegurl':
+                formats.extend(self._extract_m3u8_formats(
+                    source_url, channel_id, 'mp4', m3u8_id='hls', fatal=False))
+            elif source_type == 'html5/video/mp4':
+                formats.append({
+                    'url': source_url,
+                })
         self._sort_formats(formats)
 
         mature = metadata.get('adult')
@@ -103,10 +77,10 @@ class PicartoIE(InfoExtractor):
 
         return {
             'id': channel_id,
-            'title': self._live_title(metadata.get('title') or channel_id),
+            'title': self._live_title(title.strip()),
             'is_live': True,
-            'thumbnail': try_get(metadata, lambda x: x['thumbnails']['web']),
             'channel': channel_id,
+            'channel_id': metadata.get('id'),
             'channel_url': 'https://picarto.tv/%s' % channel_id,
             'age_limit': age_limit,
             'formats': formats,
