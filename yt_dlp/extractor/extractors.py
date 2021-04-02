@@ -264,6 +264,7 @@ from .commonmistakes import CommonMistakesIE, UnicodeBOMIE
 from .commonprotocols import (
     MmsIE,
     RtmpIE,
+    ViewSourceIE,
 )
 from .condenast import CondeNastIE
 from .contv import CONtvIE

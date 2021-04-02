@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import re
+
 from .common import InfoExtractor
 from ..compat import (
     compat_urlparse,
@@ -58,3 +60,16 @@ class MmsIE(InfoExtractor):
             'title': title,
             'url': url,
         }
+
+
+class ViewSourceIE(InfoExtractor):
+    IE_DESC = False
+    _VALID_URL = r'view-source:(?P<url>.+)'
+
+    _TEST = {
+        'url': 'view-source:https://www.youtube.com/watch?v=BaW_jenozKc',
+        'only_matching': True
+    }
+
+    def _real_extract(self, url):
+        return self.url_result(re.match(self._VALID_URL, url).group('url'))
