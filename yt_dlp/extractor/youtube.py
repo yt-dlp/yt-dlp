@@ -2311,7 +2311,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     elif label.lower() == 'premium':
                         is_premium = True
                         break
-                if is_membersonly:
+                if is_membersonly or is_premium:
                     break
 
         # TODO: Add this for playlists
