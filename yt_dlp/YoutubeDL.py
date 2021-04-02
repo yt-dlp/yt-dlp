@@ -1576,21 +1576,25 @@ class YoutubeDL(object):
 
                 else:
                     format_fallback = False
-                    format_spec_obj = re.match(r'(best|worst|b|w)(video|audio|v|a)?(\*)?$', format_spec)
-                    if format_spec_obj is not None:
-                        format_idx = 0 if format_spec_obj.group(1)[0] == 'w' else -1
-                        format_type = format_spec_obj.group(2)[0] if format_spec_obj.group(2) else False
-                        not_format_type = 'v' if format_type == 'a' else 'a'
-                        format_modified = format_spec_obj.group(3) is not None
+                    mobj = re.match(
+                        r'(?P<bw>best|worst|b|w)(?P<type>video|audio|v|a)?(?P<mod>\*)?(?:\.(?P<n>[1-9]\d*))?$',
+                        format_spec)
+                    if mobj is not None:
+                        format_idx = int_or_none(mobj.group('n'), default=1)
+                        format_idx = format_idx - 1 if mobj.group('bw')[0] == 'w' else -format_idx
+                        format_type = (mobj.group('type') or [None])[0]
+                        not_format_type = {'v': 'a', 'a': 'v'}.get(format_type)
+                        format_modified = mobj.group('mod') is not None
 
                         format_fallback = not format_type and not format_modified  # for b, w
-                        filter_f = ((lambda f: f.get(format_type + 'codec') != 'none')
-                                    if format_type and format_modified  # bv*, ba*, wv*, wa*
-                                    else (lambda f: f.get(not_format_type + 'codec') == 'none')
-                                    if format_type  # bv, ba, wv, wa
-                                    else (lambda f: f.get('vcodec') != 'none' and f.get('acodec') != 'none')
-                                    if not format_modified  # b, w
-                                    else None)  # b*, w*
+                        filter_f = (
+                            (lambda f: f.get('%scodec' % format_type) != 'none')
+                            if format_type and format_modified  # bv*, ba*, wv*, wa*
+                            else (lambda f: f.get('%scodec' % not_format_type) == 'none')
+                            if format_type  # bv, ba, wv, wa
+                            else (lambda f: f.get('vcodec') != 'none' and f.get('acodec') != 'none')
+                            if not format_modified  # b, w
+                            else None)  # b*, w*
                     else:
                         format_idx = -1
                         filter_f = ((lambda f: f.get('ext') == format_spec)
@@ -1602,13 +1606,16 @@ class YoutubeDL(object):
                         if not formats:
                             return
                         matches = list(filter(filter_f, formats)) if filter_f is not None else formats
-                        if matches:
+                        n = len(matches)
+                        if -n <= format_idx < n:
                             yield matches[format_idx]
-                        elif format_fallback == 'force' or (format_fallback and ctx['incomplete_formats']):
+                        elif format_fallback and ctx['incomplete_formats']:
                             # for extractors with incomplete formats (audio only (soundcloud)
                             # or video only (imgur)) best/worst will fallback to
                             # best/worst {video,audio}-only format
-                            yield formats[format_idx]
+                            n = len(formats)
+                            if -n <= format_idx < n:
+                                yield formats[format_idx]
 
             elif selector.type == MERGE:        # +
                 def _merge(formats_pair):
