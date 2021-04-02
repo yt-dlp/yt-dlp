@@ -143,7 +143,10 @@ class TikTokIE(TikTokBaseIE):
         props_data = try_get(json_data, lambda x: x['props'], expected_type=dict)
 
         # Chech statusCode for success
-        if props_data.get('pageProps').get('statusCode') == 0:
+        status = props_data.get('pageProps').get('statusCode')
+        if status == 0:
             return self._extract_aweme(props_data, webpage, url)
+        elif status == 10216:
+            raise ExtractorError('This video is private', expected=True)
 
         raise ExtractorError('Video not available', video_id=video_id)

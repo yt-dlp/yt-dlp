@@ -23,6 +23,8 @@ class VGTVIE(XstreamIE):
         'fvn.no/fvntv': 'fvntv',
         'aftenposten.no/webtv': 'aptv',
         'ap.vgtv.no/webtv': 'aptv',
+        'tv.aftonbladet.se': 'abtv',
+        # obsolete URL schemas, kept in order to save one HTTP redirect
         'tv.aftonbladet.se/abtv': 'abtv',
         'www.aftonbladet.se/tv': 'abtv',
     }
@@ -138,6 +140,10 @@ class VGTVIE(XstreamIE):
         {
             # geoblocked
             'url': 'http://www.vgtv.no/#!/video/127205/inside-the-mind-of-favela-funk',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://tv.aftonbladet.se/video/36015/vulkanutbrott-i-rymden-nu-slapper-nasa-bilderna',
             'only_matching': True,
         },
         {

@@ -67,6 +67,7 @@ from .utils import (
     float_or_none,
     format_bytes,
     format_field,
+    FORMAT_RE,
     formatSeconds,
     GeoRestrictedError,
     int_or_none,
@@ -772,95 +773,93 @@ class YoutubeDL(object):
                     'Put  from __future__ import unicode_literals  at the top of your code file or consider switching to Python 3.x.')
         return outtmpl_dict
 
+    def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
+        """ Make the template and info_dict suitable for substitution (outtmpl % info_dict)"""
+        template_dict = dict(info_dict)
+
+        # duration_string
+        template_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
+            formatSeconds(info_dict['duration'], '-')
+            if info_dict.get('duration', None) is not None
+            else None)
+
+        # epoch
+        template_dict['epoch'] = int(time.time())
+
+        # autonumber
+        autonumber_size = self.params.get('autonumber_size')
+        if autonumber_size is None:
+            autonumber_size = 5
+        template_dict['autonumber'] = self.params.get('autonumber_start', 1) - 1 + self._num_downloads
+
+        # resolution if not defined
+        if template_dict.get('resolution') is None:
+            if template_dict.get('width') and template_dict.get('height'):
+                template_dict['resolution'] = '%dx%d' % (template_dict['width'], template_dict['height'])
+            elif template_dict.get('height'):
+                template_dict['resolution'] = '%sp' % template_dict['height']
+            elif template_dict.get('width'):
+                template_dict['resolution'] = '%dx?' % template_dict['width']
+
+        if sanitize is None:
+            sanitize = lambda k, v: v
+        template_dict = dict((k, v if isinstance(v, compat_numeric_types) else sanitize(k, v))
+                             for k, v in template_dict.items()
+                             if v is not None and not isinstance(v, (list, tuple, dict)))
+        na = self.params.get('outtmpl_na_placeholder', 'NA')
+        template_dict = collections.defaultdict(lambda: na, template_dict)
+
+        # For fields playlist_index and autonumber convert all occurrences
+        # of %(field)s to %(field)0Nd for backward compatibility
+        field_size_compat_map = {
+            'playlist_index': len(str(template_dict['n_entries'])),
+            'autonumber': autonumber_size,
+        }
+        FIELD_SIZE_COMPAT_RE = r'(?<!%)%\((?P<field>autonumber|playlist_index)\)s'
+        mobj = re.search(FIELD_SIZE_COMPAT_RE, outtmpl)
+        if mobj:
+            outtmpl = re.sub(
+                FIELD_SIZE_COMPAT_RE,
+                r'%%(\1)0%dd' % field_size_compat_map[mobj.group('field')],
+                outtmpl)
+
+        numeric_fields = list(self._NUMERIC_FIELDS)
+
+        # Format date
+        FORMAT_DATE_RE = FORMAT_RE.format(r'(?P<key>(?P<field>\w+)>(?P<format>.+?))')
+        for mobj in re.finditer(FORMAT_DATE_RE, outtmpl):
+            conv_type, field, frmt, key = mobj.group('type', 'field', 'format', 'key')
+            if key in template_dict:
+                continue
+            value = strftime_or_none(template_dict.get(field), frmt, na)
+            if conv_type in 'crs':  # string
+                value = sanitize(field, value)
+            else:  # number
+                numeric_fields.append(key)
+                value = float_or_none(value, default=None)
+            if value is not None:
+                template_dict[key] = value
+
+        # Missing numeric fields used together with integer presentation types
+        # in format specification will break the argument substitution since
+        # string NA placeholder is returned for missing fields. We will patch
+        # output template for missing fields to meet string presentation type.
+        for numeric_field in numeric_fields:
+            if numeric_field not in template_dict:
+                outtmpl = re.sub(
+                    FORMAT_RE.format(re.escape(numeric_field)),
+                    r'%({0})s'.format(numeric_field), outtmpl)
+
+        return outtmpl, template_dict
+
     def _prepare_filename(self, info_dict, tmpl_type='default'):
         try:
-            template_dict = dict(info_dict)
-
-            template_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
-                formatSeconds(info_dict['duration'], '-')
-                if info_dict.get('duration', None) is not None
-                else None)
-
-            template_dict['epoch'] = int(time.time())
-            autonumber_size = self.params.get('autonumber_size')
-            if autonumber_size is None:
-                autonumber_size = 5
-            template_dict['autonumber'] = self.params.get('autonumber_start', 1) - 1 + self._num_downloads
-            if template_dict.get('resolution') is None:
-                if template_dict.get('width') and template_dict.get('height'):
-                    template_dict['resolution'] = '%dx%d' % (template_dict['width'], template_dict['height'])
-                elif template_dict.get('height'):
-                    template_dict['resolution'] = '%sp' % template_dict['height']
-                elif template_dict.get('width'):
-                    template_dict['resolution'] = '%dx?' % template_dict['width']
-
             sanitize = lambda k, v: sanitize_filename(
                 compat_str(v),
                 restricted=self.params.get('restrictfilenames'),
                 is_id=(k == 'id' or k.endswith('_id')))
-            template_dict = dict((k, v if isinstance(v, compat_numeric_types) else sanitize(k, v))
-                                 for k, v in template_dict.items()
-                                 if v is not None and not isinstance(v, (list, tuple, dict)))
-            na = self.params.get('outtmpl_na_placeholder', 'NA')
-            template_dict = collections.defaultdict(lambda: na, template_dict)
-
             outtmpl = self.outtmpl_dict.get(tmpl_type, self.outtmpl_dict['default'])
-            force_ext = OUTTMPL_TYPES.get(tmpl_type)
-
-            # For fields playlist_index and autonumber convert all occurrences
-            # of %(field)s to %(field)0Nd for backward compatibility
-            field_size_compat_map = {
-                'playlist_index': len(str(template_dict['n_entries'])),
-                'autonumber': autonumber_size,
-            }
-            FIELD_SIZE_COMPAT_RE = r'(?<!%)%\((?P<field>autonumber|playlist_index)\)s'
-            mobj = re.search(FIELD_SIZE_COMPAT_RE, outtmpl)
-            if mobj:
-                outtmpl = re.sub(
-                    FIELD_SIZE_COMPAT_RE,
-                    r'%%(\1)0%dd' % field_size_compat_map[mobj.group('field')],
-                    outtmpl)
-
-            # As of [1] format syntax is:
-            #  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type
-            # 1. https://docs.python.org/2/library/stdtypes.html#string-formatting
-            FORMAT_RE = r'''(?x)
-                (?<!%)
-                %
-                \({0}\)  # mapping key
-                (?:[#0\-+ ]+)?  # conversion flags (optional)
-                (?:\d+)?  # minimum field width (optional)
-                (?:\.\d+)?  # precision (optional)
-                [hlL]?  # length modifier (optional)
-                (?P<type>[diouxXeEfFgGcrs%])  # conversion type
-            '''
-
-            numeric_fields = list(self._NUMERIC_FIELDS)
-
-            # Format date
-            FORMAT_DATE_RE = FORMAT_RE.format(r'(?P<key>(?P<field>\w+)>(?P<format>.+?))')
-            for mobj in re.finditer(FORMAT_DATE_RE, outtmpl):
-                conv_type, field, frmt, key = mobj.group('type', 'field', 'format', 'key')
-                if key in template_dict:
-                    continue
-                value = strftime_or_none(template_dict.get(field), frmt, na)
-                if conv_type in 'crs':  # string
-                    value = sanitize(field, value)
-                else:  # number
-                    numeric_fields.append(key)
-                    value = float_or_none(value, default=None)
-                if value is not None:
-                    template_dict[key] = value
-
-            # Missing numeric fields used together with integer presentation types
-            # in format specification will break the argument substitution since
-            # string NA placeholder is returned for missing fields. We will patch
-            # output template for missing fields to meet string presentation type.
-            for numeric_field in numeric_fields:
-                if numeric_field not in template_dict:
-                    outtmpl = re.sub(
-                        FORMAT_RE.format(re.escape(numeric_field)),
-                        r'%({0})s'.format(numeric_field), outtmpl)
+            outtmpl, template_dict = self.prepare_outtmpl(outtmpl, info_dict, sanitize)
 
             # expand_path translates '%%' into '%' and '$$' into '$'
             # correspondingly that is not what we want since we need to keep
@@ -875,6 +874,7 @@ class YoutubeDL(object):
             # title "Hello $PATH", we don't want `$PATH` to be expanded.
             filename = expand_path(outtmpl).replace(sep, '') % template_dict
 
+            force_ext = OUTTMPL_TYPES.get(tmpl_type)
             if force_ext is not None:
                 filename = replace_extension(filename, force_ext, template_dict.get('ext'))
 
@@ -2591,7 +2591,7 @@ class YoutubeDL(object):
         def actual_post_extract(info_dict):
             if info_dict.get('_type') in ('playlist', 'multi_video'):
                 for video_dict in info_dict.get('entries', {}):
-                    actual_post_extract(video_dict)
+                    actual_post_extract(video_dict or {})
                 return
 
             if '__post_extractor' not in info_dict:
@@ -2602,7 +2602,7 @@ class YoutubeDL(object):
             del info_dict['__post_extractor']
             return
 
-        actual_post_extract(info_dict)
+        actual_post_extract(info_dict or {})
 
     def pre_process(self, ie_info):
         info = dict(ie_info)

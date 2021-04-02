@@ -113,7 +113,7 @@ class VLiveIE(VLiveBaseIE):
             raise ExtractorError('Unable to log in', expected=True)
 
     def _call_api(self, path_template, video_id, fields=None, limit=None):
-        query = {'appId': self._APP_ID, 'gcc': 'KR'}
+        query = {'appId': self._APP_ID, 'gcc': 'KR', 'platformType': 'PC'}
         if fields:
             query['fields'] = fields
         if limit:

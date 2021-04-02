@@ -17,9 +17,23 @@
 -->
 
 
+### 2021.03.24.1
+* Revert [commit/8562218](https://github.com/ytdl-org/youtube-dl/commit/8562218350a79d4709da8593bb0c538aa0824acf)
+
+
+### 2021.03.24
+* Merge youtube-dl: Upto 2021.03.25 ([commit/8562218](https://github.com/ytdl-org/youtube-dl/commit/8562218350a79d4709da8593bb0c538aa0824acf))
+* Parse metadata from multiple fields using `--parse-metadata`
+* Ability to load playlist infojson using `--load-info-json`
+* Write current epoch to infojson when using `--no-clean-infojson`
+* [youtube_live_chat] fix bug when trying to set cookies
+* [niconico] Fix for when logged in by [CXwudi](https://github.com/CXwudi) and [xtkoba](https://github.com/xtkoba)
+* [linuxacadamy] Fix login
+
+
 ### 2021.03.21
 * Merge youtube-dl: Upto [commit/7e79ba7](https://github.com/ytdl-org/youtube-dl/commit/7e79ba7dd6e6649dd2ce3a74004b2044f2182881)
-* Option `--clean-infojson` to keep private keys in the infojson
+* Option `--no-clean-infojson` to keep private keys in the infojson
 * [aria2c] Support retry/abort unavailable fragments by [damianoamatruda](https://github.com/damianoamatruda)
 * [aria2c] Better default arguments
 * [movefiles] Fix bugs and make more robust
@@ -343,7 +357,7 @@
 
 ### 2021.01.08
 * Merge youtube-dl: Upto [2021.01.08](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.01.08) except stitcher ([1](https://github.com/ytdl-org/youtube-dl/commit/bb38a1215718cdf36d73ff0a7830a64cd9fa37cc), [2](https://github.com/ytdl-org/youtube-dl/commit/a563c97c5cddf55f8989ed7ea8314ef78e30107f))
-* Moved changelog to seperate file
+* Moved changelog to separate file
 
 
 ### 2021.01.07-1

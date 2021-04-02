@@ -1,82 +1,68 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    url_or_none,
+    js_to_json,
     parse_filesize,
-    urlencode_postdata
+    urlencode_postdata,
 )
 
 
 class ZoomIE(InfoExtractor):
     IE_NAME = 'zoom'
-    _VALID_URL = r'https://(?:.*).?zoom.us/rec(?:ording)?/(play|share)/(?P<id>[A-Za-z0-9\-_.]+)'
-
+    _VALID_URL = r'(?P<base_url>https?://(?:[^.]+\.)?zoom.us/)rec(?:ording)?/(?:play|share)/(?P<id>[A-Za-z0-9_.-]+)'
     _TEST = {
-        'url': 'https://zoom.us/recording/play/SILVuCL4bFtRwWTtOCFQQxAsBQsJljFtm9e4Z_bvo-A8B-nzUSYZRNuPl3qW5IGK',
+        'url': 'https://economist.zoom.us/rec/play/dUk_CNBETmZ5VA2BwEl-jjakPpJ3M1pcfVYAPRsoIbEByGsLjUZtaa4yCATQuOL3der8BlTwxQePl_j0.EImBkXzTIaPvdZO5',
+        'md5': 'ab445e8c911fddc4f9adc842c2c5d434',
         'info_dict': {
-            'md5': '031a5b379f1547a8b29c5c4c837dccf2',
-            'title': "GAZ Transformational Tuesdays W/ Landon & Stapes",
-            'id': "SILVuCL4bFtRwWTtOCFQQxAsBQsJljFtm9e4Z_bvo-A8B-nzUSYZRNuPl3qW5IGK",
-            'ext': "mp4"
+            'id': 'dUk_CNBETmZ5VA2BwEl-jjakPpJ3M1pcfVYAPRsoIbEByGsLjUZtaa4yCATQuOL3der8BlTwxQePl_j0.EImBkXzTIaPvdZO5',
+            'ext': 'mp4',
+            'title': 'China\'s "two sessions" and the new five-year plan',
         }
     }
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        base_url, play_id = re.match(self._VALID_URL, url).groups()
+        webpage = self._download_webpage(url, play_id)
 
-        password_protected = self._search_regex(r'<form[^>]+?id="(password_form)"', webpage, 'password field', fatal=False, default=None)
-        if password_protected is not None:
-            self._verify_video_password(url, display_id, webpage)
-            webpage = self._download_webpage(url, display_id)
+        try:
+            form = self._form_hidden_inputs('password_form', webpage)
+        except ExtractorError:
+            form = None
+        if form:
+            password = self._downloader.params.get('videopassword')
+            if not password:
+                raise ExtractorError(
+                    'This video is protected by a passcode, use the --video-password option', expected=True)
+            is_meeting = form.get('useWhichPasswd') == 'meeting'
+            validation = self._download_json(
+                base_url + 'rec/validate%s_passwd' % ('_meet' if is_meeting else ''),
+                play_id, 'Validating passcode', 'Wrong passcode', data=urlencode_postdata({
+                    'id': form[('meet' if is_meeting else 'file') + 'Id'],
+                    'passwd': password,
+                    'action': form.get('action'),
+                }))
+            if not validation.get('status'):
+                raise ExtractorError(validation['errorMessage'], expected=True)
+            webpage = self._download_webpage(url, play_id)
 
-        video_url = self._search_regex(r"viewMp4Url: \'(.*)\'", webpage, 'video url')
-        title = self._html_search_regex([r"topic: \"(.*)\",", r"<title>(.*) - Zoom</title>"], webpage, 'title')
-        viewResolvtionsWidth = self._search_regex(r"viewResolvtionsWidth: (\d*)", webpage, 'res width', fatal=False)
-        viewResolvtionsHeight = self._search_regex(r"viewResolvtionsHeight: (\d*)", webpage, 'res height', fatal=False)
-        fileSize = parse_filesize(self._search_regex(r"fileSize: \'(.+)\'", webpage, 'fileSize', fatal=False))
-
-        urlprefix = url.split("zoom.us")[0] + "zoom.us/"
-
-        formats = []
-        formats.append({
-            'url': url_or_none(video_url),
-            'width': int_or_none(viewResolvtionsWidth),
-            'height': int_or_none(viewResolvtionsHeight),
-            'http_headers': {'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
-                             'Referer': urlprefix},
-            'ext': "mp4",
-            'filesize_approx': int_or_none(fileSize)
-        })
-        self._sort_formats(formats)
+        data = self._parse_json(self._search_regex(
+            r'(?s)window\.__data__\s*=\s*({.+?});',
+            webpage, 'data'), play_id, js_to_json)
 
         return {
-            'id': display_id,
-            'title': title,
-            'formats': formats
+            'id': play_id,
+            'title': data['topic'],
+            'url': data['viewMp4Url'],
+            'width': int_or_none(data.get('viewResolvtionsWidth')),
+            'height': int_or_none(data.get('viewResolvtionsHeight')),
+            'http_headers': {
+                'Referer': base_url,
+            },
+            'filesize_approx': parse_filesize(data.get('fileSize')),
         }
-
-    def _verify_video_password(self, url, video_id, webpage):
-        password = self._downloader.params.get('videopassword')
-        if password is None:
-            raise ExtractorError('This video is protected by a password, use the --video-password option', expected=True)
-        meetId = self._search_regex(r'<input[^>]+?id="meetId" value="([^\"]+)"', webpage, 'meetId')
-        data = urlencode_postdata({
-            'id': meetId,
-            'passwd': password,
-            'action': "viewdetailedpage",
-            'recaptcha': ""
-        })
-        validation_url = url.split("zoom.us")[0] + "zoom.us/rec/validate_meet_passwd"
-        validation_response = self._download_json(
-            validation_url, video_id,
-            note='Validating Password...',
-            errnote='Wrong password?',
-            data=data)
-
-        if validation_response['errorCode'] != 0:
-            raise ExtractorError('Login failed, %s said: %r' % (self.IE_NAME, validation_response['errorMessage']))

@@ -1,93 +1,94 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    update_url_query,
 )
 
 
-class ZingMp3BaseInfoExtractor(InfoExtractor):
+class ZingMp3BaseIE(InfoExtractor):
+    _VALID_URL_TMPL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?:%s)/[^/]+/(?P<id>\w+)\.html'
+    _GEO_COUNTRIES = ['VN']
 
-    def _extract_item(self, item, page_type, fatal=True):
-        error_message = item.get('msg')
-        if error_message:
-            if not fatal:
-                return
-            raise ExtractorError(
-                '%s returned error: %s' % (self.IE_NAME, error_message),
-                expected=True)
+    def _extract_item(self, item, fatal):
+        item_id = item['id']
+        title = item.get('name') or item['title']
 
         formats = []
-        for quality, source_url in zip(item.get('qualities') or item.get('quality', []), item.get('source_list') or item.get('source', [])):
-            if not source_url or source_url == 'require vip':
+        for k, v in (item.get('source') or {}).items():
+            if not v:
                 continue
-            if not re.match(r'https?://', source_url):
-                source_url = '//' + source_url
-            source_url = self._proto_relative_url(source_url, 'http:')
-            quality_num = int_or_none(quality)
-            f = {
-                'format_id': quality,
-                'url': source_url,
-            }
-            if page_type == 'video':
-                f.update({
-                    'height': quality_num,
-                    'ext': 'mp4',
-                })
+            if k in ('mp4', 'hls'):
+                for res, video_url in v.items():
+                    if not video_url:
+                        continue
+                    if k == 'hls':
+                        formats.extend(self._extract_m3u8_formats(
+                            video_url, item_id, 'mp4',
+                            'm3u8_native', m3u8_id=k, fatal=False))
+                    elif k == 'mp4':
+                        formats.append({
+                            'format_id': 'mp4-' + res,
+                            'url': video_url,
+                            'height': int_or_none(self._search_regex(
+                                r'^(\d+)p', res, 'resolution', default=None)),
+                        })
             else:
-                f.update({
-                    'abr': quality_num,
+                formats.append({
                     'ext': 'mp3',
+                    'format_id': k,
+                    'tbr': int_or_none(k),
+                    'url': self._proto_relative_url(v),
+                    'vcodec': 'none',
                 })
-            formats.append(f)
+        if not formats:
+            if not fatal:
+                return
+            msg = item['msg']
+            if msg == 'Sorry, this content is not available in your country.':
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+            raise ExtractorError(msg, expected=True)
+        self._sort_formats(formats)
 
-        cover = item.get('cover')
+        subtitles = None
+        lyric = item.get('lyric')
+        if lyric:
+            subtitles = {
+                'origin': [{
+                    'url': lyric,
+                }],
+            }
+
+        album = item.get('album') or {}
 
         return {
-            'title': (item.get('name') or item.get('title')).strip(),
+            'id': item_id,
+            'title': title,
             'formats': formats,
-            'thumbnail': 'http:/' + cover if cover else None,
-            'artist': item.get('artist'),
+            'thumbnail': item.get('thumbnail'),
+            'subtitles': subtitles,
+            'duration': int_or_none(item.get('duration')),
+            'track': title,
+            'artist': item.get('artists_names'),
+            'album': album.get('name') or album.get('title'),
+            'album_artist': album.get('artists_names'),
         }
 
-    def _extract_player_json(self, player_json_url, id, page_type, playlist_title=None):
-        player_json = self._download_json(player_json_url, id, 'Downloading Player JSON')
-        items = player_json['data']
-        if 'item' in items:
-            items = items['item']
-
-        if len(items) == 1:
-            # one single song
-            data = self._extract_item(items[0], page_type)
-            data['id'] = id
-
-            return data
-        else:
-            # playlist of songs
-            entries = []
-
-            for i, item in enumerate(items, 1):
-                entry = self._extract_item(item, page_type, fatal=False)
-                if not entry:
-                    continue
-                entry['id'] = '%s-%d' % (id, i)
-                entries.append(entry)
-
-            return {
-                '_type': 'playlist',
-                'id': id,
-                'title': playlist_title,
-                'entries': entries,
-            }
+    def _real_extract(self, url):
+        page_id = self._match_id(url)
+        webpage = self._download_webpage(
+            url.replace('://zingmp3.vn/', '://mp3.zing.vn/'),
+            page_id, query={'play_song': 1})
+        data_path = self._search_regex(
+            r'data-xml="([^"]+)', webpage, 'data path')
+        return self._process_data(self._download_json(
+            'https://mp3.zing.vn/xhr' + data_path, page_id)['data'])
 
 
-class ZingMp3IE(ZingMp3BaseInfoExtractor):
-    _VALID_URL = r'https?://mp3\.zing\.vn/(?:bai-hat|album|playlist|video-clip)/[^/]+/(?P<id>\w+)\.html'
+class ZingMp3IE(ZingMp3BaseIE):
+    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'bai-hat|video-clip'
     _TESTS = [{
         'url': 'http://mp3.zing.vn/bai-hat/Xa-Mai-Xa-Bao-Thy/ZWZB9WAB.html',
         'md5': 'ead7ae13693b3205cbc89536a077daed',
@@ -95,49 +96,66 @@ class ZingMp3IE(ZingMp3BaseInfoExtractor):
             'id': 'ZWZB9WAB',
             'title': 'Xa Mãi Xa',
             'ext': 'mp3',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://.+\.jpg',
+            'subtitles': {
+                'origin': [{
+                    'ext': 'lrc',
+                }]
+            },
+            'duration': 255,
+            'track': 'Xa Mãi Xa',
+            'artist': 'Bảo Thy',
+            'album': 'Special Album',
+            'album_artist': 'Bảo Thy',
         },
     }, {
-        'url': 'http://mp3.zing.vn/video-clip/Let-It-Go-Frozen-OST-Sungha-Jung/ZW6BAEA0.html',
-        'md5': '870295a9cd8045c0e15663565902618d',
+        'url': 'https://mp3.zing.vn/video-clip/Suong-Hoa-Dua-Loi-K-ICM-RYO/ZO8ZF7C7.html',
+        'md5': 'e9c972b693aa88301ef981c8151c4343',
         'info_dict': {
-            'id': 'ZW6BAEA0',
-            'title': 'Let It Go (Frozen OST)',
+            'id': 'ZO8ZF7C7',
+            'title': 'Sương Hoa Đưa Lối',
             'ext': 'mp4',
+            'thumbnail': r're:^https?://.+\.jpg',
+            'duration': 207,
+            'track': 'Sương Hoa Đưa Lối',
+            'artist': 'K-ICM, RYO',
         },
     }, {
-        'url': 'http://mp3.zing.vn/album/Lau-Dai-Tinh-Ai-Bang-Kieu-Minh-Tuyet/ZWZBWDAF.html',
-        'info_dict': {
-            '_type': 'playlist',
-            'id': 'ZWZBWDAF',
-            'title': 'Lâu Đài Tình Ái - Bằng Kiều,Minh Tuyết | Album 320 lossless',
-        },
-        'playlist_count': 10,
-        'skip': 'removed at the request of the owner',
-    }, {
-        'url': 'http://mp3.zing.vn/playlist/Duong-Hong-Loan-apollobee/IWCAACCB.html',
+        'url': 'https://zingmp3.vn/bai-hat/Xa-Mai-Xa-Bao-Thy/ZWZB9WAB.html',
         'only_matching': True,
     }]
     IE_NAME = 'zingmp3'
     IE_DESC = 'mp3.zing.vn'
 
-    def _real_extract(self, url):
-        page_id = self._match_id(url)
+    def _process_data(self, data):
+        return self._extract_item(data, True)
 
-        webpage = self._download_webpage(url, page_id)
 
-        player_json_url = self._search_regex([
-            r'data-xml="([^"]+)',
-            r'&amp;xmlURL=([^&]+)&'
-        ], webpage, 'player xml url')
+class ZingMp3AlbumIE(ZingMp3BaseIE):
+    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'album|playlist'
+    _TESTS = [{
+        'url': 'http://mp3.zing.vn/album/Lau-Dai-Tinh-Ai-Bang-Kieu-Minh-Tuyet/ZWZBWDAF.html',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'ZWZBWDAF',
+            'title': 'Lâu Đài Tình Ái',
+        },
+        'playlist_count': 10,
+    }, {
+        'url': 'http://mp3.zing.vn/playlist/Duong-Hong-Loan-apollobee/IWCAACCB.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://zingmp3.vn/album/Lau-Dai-Tinh-Ai-Bang-Kieu-Minh-Tuyet/ZWZBWDAF.html',
+        'only_matching': True,
+    }]
+    IE_NAME = 'zingmp3:album'
 
-        playlist_title = None
-        page_type = self._search_regex(r'/(?:html5)?xml/([^/-]+)', player_json_url, 'page type')
-        if page_type == 'video':
-            player_json_url = update_url_query(player_json_url, {'format': 'json'})
-        else:
-            player_json_url = player_json_url.replace('/xml/', '/html5xml/')
-            if page_type == 'album':
-                playlist_title = self._og_search_title(webpage)
-
-        return self._extract_player_json(player_json_url, page_id, page_type, playlist_title)
+    def _process_data(self, data):
+        def entries():
+            for item in (data.get('items') or []):
+                entry = self._extract_item(item, False)
+                if entry:
+                    yield entry
+        info = data.get('info') or {}
+        return self.playlist_result(
+            entries(), info.get('id'), info.get('name') or info.get('title'))

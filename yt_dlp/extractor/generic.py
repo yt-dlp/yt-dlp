@@ -2659,6 +2659,15 @@ class GenericIE(InfoExtractor):
         if vid_me_embed_url is not None:
             return self.url_result(vid_me_embed_url, 'Vidme')
 
+        # Invidious Instances
+        # https://github.com/yt-dlp/yt-dlp/issues/195
+        # https://github.com/iv-org/invidious/pull/1730
+        youtube_url = self._search_regex(
+            r'<link rel="alternate" href="(https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"',
+            webpage, 'youtube link', default=None)
+        if youtube_url:
+            return self.url_result(youtube_url, YoutubeIE.ie_key())
+
         # Look for YouTube embeds
         youtube_urls = YoutubeIE._extract_urls(webpage)
         if youtube_urls:
@@ -2965,7 +2974,7 @@ class GenericIE(InfoExtractor):
             webpage)
         if not mobj:
             mobj = re.search(
-                r'data-video-link=["\'](?P<url>http://m.mlb.com/video/[^"\']+)',
+                r'data-video-link=["\'](?P<url>http://m\.mlb\.com/video/[^"\']+)',
                 webpage)
         if mobj is not None:
             return self.url_result(mobj.group('url'), 'MLB')

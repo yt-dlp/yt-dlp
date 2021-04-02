@@ -1147,13 +1147,18 @@ def parseOpts(overrideArguments=None):
         metavar='FIELD:FORMAT', dest='metafromfield', action='append',
         help=(
             'Parse additional metadata like title/artist from other fields. '
-            'Give field name to extract data from, and format of the field seperated by a ":". '
+            'Give a template or field name to extract data from and the '
+            'format to interpret it as, separated by a ":". '
             'Either regular expression with named capture groups or a '
-            'similar syntax to the output template can also be used. '
-            'The parsed parameters replace any existing values and can be use in output template. '
+            'similar syntax to the output template can be used for the FORMAT. '
+            'Similarly, the syntax for output template can be used for FIELD '
+            'to parse the data from multiple fields. '
+            'The parsed parameters replace any existing values and can be used in output templates. '
             'This option can be used multiple times. '
             'Example: --parse-metadata "title:%(artist)s - %(title)s" matches a title like '
             '"Coldplay - Paradise". '
+            'Example: --parse-metadata "%(series)s %(episode_number)s:%(title)s" '
+            'sets the title using series and episode number. '
             'Example (regex): --parse-metadata "description:Artist - (?P<artist>.+?)"'))
     postproc.add_option(
         '--xattrs',

@@ -340,7 +340,7 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
     @staticmethod
     def _extract_url(webpage):
         mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media.mtvnservices.com/embed/.+?)\1', webpage)
+            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1', webpage)
         if mobj:
             return mobj.group('url')
 

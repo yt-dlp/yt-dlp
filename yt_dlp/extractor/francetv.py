@@ -401,7 +401,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             (r'player\.load[^;]+src:\s*["\']([^"\']+)',
              r'id-video=([^@]+@[^"]+)',
              r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
-             r'data-id="([^"]+)"'),
+             r'data-id=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
             webpage, 'video id')
 
         return self._make_url_result(video_id)

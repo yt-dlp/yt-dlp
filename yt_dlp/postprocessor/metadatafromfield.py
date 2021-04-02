@@ -4,11 +4,10 @@ import re
 
 from .common import PostProcessor
 from ..compat import compat_str
-from ..utils import str_or_none
 
 
 class MetadataFromFieldPP(PostProcessor):
-    regex = r'(?P<field>\w+):(?P<format>.+)$'
+    regex = r'(?P<in>.+):(?P<out>.+)$'
 
     def __init__(self, downloader, formats):
         PostProcessor.__init__(self, downloader)
@@ -19,11 +18,20 @@ class MetadataFromFieldPP(PostProcessor):
             match = re.match(self.regex, f)
             assert match is not None
             self._data.append({
-                'field': match.group('field'),
-                'format': match.group('format'),
-                'regex': self.format_to_regex(match.group('format'))})
+                'in': match.group('in'),
+                'out': match.group('out'),
+                'tmpl': self.field_to_template(match.group('in')),
+                'regex': self.format_to_regex(match.group('out')),
+            })
 
-    def format_to_regex(self, fmt):
+    @staticmethod
+    def field_to_template(tmpl):
+        if re.match(r'\w+$', tmpl):
+            return '%%(%s)s' % tmpl
+        return tmpl
+
+    @staticmethod
+    def format_to_regex(fmt):
         r"""
         Converts a string like
            '%(title)s - %(artist)s'
@@ -37,7 +45,7 @@ class MetadataFromFieldPP(PostProcessor):
         # replace %(..)s with regex group and escape other string parts
         for match in re.finditer(r'%\((\w+)\)s', fmt):
             regex += re.escape(fmt[lastpos:match.start()])
-            regex += r'(?P<' + match.group(1) + r'>[^\r\n]+)'
+            regex += r'(?P<%s>[^\r\n]+)' % match.group(1)
             lastpos = match.end()
         if lastpos < len(fmt):
             regex += re.escape(fmt[lastpos:])
@@ -45,22 +53,16 @@ class MetadataFromFieldPP(PostProcessor):
 
     def run(self, info):
         for dictn in self._data:
-            field, regex = dictn['field'], dictn['regex']
-            if field not in info:
-                self.report_warning('Video doesnot have a %s' % field)
-                continue
-            data_to_parse = str_or_none(info[field])
-            if data_to_parse is None:
-                self.report_warning('Field %s cannot be parsed' % field)
-                continue
-            self.write_debug('Searching for r"%s" in %s' % (regex, field))
-            match = re.search(regex, data_to_parse)
+            tmpl, info_copy = self._downloader.prepare_outtmpl(dictn['tmpl'], info)
+            data_to_parse = tmpl % info_copy
+            self.write_debug('Searching for r"%s" in %s' % (dictn['regex'], tmpl))
+            match = re.search(dictn['regex'], data_to_parse)
             if match is None:
-                self.report_warning('Could not interpret video %s as "%s"' % (field, dictn['format']))
+                self.report_warning('Could not interpret video %s as "%s"' % (dictn['in'], dictn['out']))
                 continue
             for attribute, value in match.groupdict().items():
                 info[attribute] = value
-                self.to_screen('parsed %s from %s: %s' % (attribute, field, value if value is not None else 'NA'))
+                self.to_screen('parsed %s from "%s": %s' % (attribute, dictn['in'], value if value is not None else 'NA'))
         return [], info
 
 

@@ -368,15 +368,9 @@ def _real_main(argv=None):
     # this was the old behaviour if only --all-sub was given.
     if opts.allsubtitles and not opts.writeautomaticsub:
         opts.writesubtitles = True
-    if opts.embedthumbnail:
-        already_have_thumbnail = opts.writethumbnail or opts.write_all_thumbnails
-        postprocessors.append({
-            'key': 'EmbedThumbnail',
-            'already_have_thumbnail': already_have_thumbnail
-        })
-        if not already_have_thumbnail:
-            opts.writethumbnail = True
-    # This should be below most ffmpeg PP because it may cut parts out from the video
+    # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
+    # but must be below EmbedSubtitle and FFmpegMetadata
+    # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
     # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
     if opts.sponskrub is not False:
         postprocessors.append({
@@ -387,6 +381,14 @@ def _real_main(argv=None):
             'force': opts.sponskrub_force,
             'ignoreerror': opts.sponskrub is None,
         })
+    if opts.embedthumbnail:
+        already_have_thumbnail = opts.writethumbnail or opts.write_all_thumbnails
+        postprocessors.append({
+            'key': 'EmbedThumbnail',
+            'already_have_thumbnail': already_have_thumbnail
+        })
+        if not already_have_thumbnail:
+            opts.writethumbnail = True
     if opts.split_chapters:
         postprocessors.append({'key': 'FFmpegSplitChapters'})
     # XAttrMetadataPP should be run after post-processors that may change file contents

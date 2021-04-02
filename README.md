@@ -3,7 +3,7 @@
 [![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Release)](https://github.com/yt-dlp/yt-dlp/releases/latest)
 [![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg)](LICENSE)
 [![CI Status](https://github.com/yt-dlp/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/yt-dlp/yt-dlp/actions)
-[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&label=discord&logo=discord)](https://discord.gg/S75JaBna)  
+[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&label=discord&logo=discord)](https://discord.gg/H5MNcFW63r)  
 
 [![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits)](https://github.com/yt-dlp/yt-dlp/commits)
 [![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master)](https://github.com/yt-dlp/yt-dlp/commits)
@@ -58,7 +58,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl v2021.03.14**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl v2021.03.25**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
@@ -670,18 +670,24 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --add-metadata                   Write metadata to the video file
     --no-add-metadata                Do not write metadata (default)
     --parse-metadata FIELD:FORMAT    Parse additional metadata like title/artist
-                                     from other fields. Give field name to
-                                     extract data from, and format of the field
-                                     seperated by a ":". Either regular
-                                     expression with named capture groups or a
-                                     similar syntax to the output template can
-                                     also be used. The parsed parameters replace
-                                     any existing values and can be use in
-                                     output template. This option can be used
-                                     multiple times. Example: --parse-metadata
-                                     "title:%(artist)s - %(title)s" matches a
-                                     title like "Coldplay - Paradise". Example
-                                     (regex): --parse-metadata
+                                     from other fields. Give a template or field
+                                     name to extract data from and the format to
+                                     interpret it as, separated by a ":". Either
+                                     regular expression with named capture
+                                     groups or a similar syntax to the output
+                                     template can be used for the FORMAT.
+                                     Similarly, the syntax for output template
+                                     can be used for FIELD to parse the data
+                                     from multiple fields. The parsed parameters
+                                     replace any existing values and can be used
+                                     in output templates. This option can be
+                                     used multiple times. Example: --parse-
+                                     metadata "title:%(artist)s - %(title)s"
+                                     matches a title like "Coldplay - Paradise".
+                                     Example: --parse-metadata "%(series)s
+                                     %(episode_number)s:%(title)s" sets the
+                                     title using series and episode number.
+                                     Example (regex): --parse-metadata
                                      "description:Artist - (?P<artist>.+?)"
     --xattrs                         Write metadata to the video file's xattrs
                                      (using dublin core and xdg standards)
@@ -822,9 +828,9 @@ The `-o` option is used to indicate a template for the output file names while `
 
 **tl;dr:** [navigate me to examples](#output-template-examples).
 
-The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is not recommended). However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Date/time fields can also be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses seperated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
+The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is not recommended). However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Date/time fields can also be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses separated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
 
-Additionally, you can set different output templates for the various metadata files seperately from the general output template by specifying the type of file followed by the template seperated by a colon ":". The different filetypes supported are `subtitle`, `thumbnail`, `description`, `annotation`, `infojson`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
+Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon ":". The different filetypes supported are `subtitle`, `thumbnail`, `description`, `annotation`, `infojson`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
 
 The available fields are:
 
@@ -917,7 +923,7 @@ Available for the media that is a track or a part of a music album:
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
  - `release_year` (numeric): Year (YYYY) when the album was released
 
-Available when using `--split-chapters` for videos with internal chapters:
+Available for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
 
  - `section_title` (string): Title of the chapter
  - `section_number` (numeric): Number of the chapter within the file
@@ -956,7 +962,7 @@ youtube-dl_test_video_.mp4          # A simple file name
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
 $ yt-dlp -o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
 
-# Download YouTube playlist videos in seperate directories according to their uploaded year
+# Download YouTube playlist videos in separate directories according to their uploaded year
 $ yt-dlp -o '%(upload_date>%Y)s/%(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
 
 # Download all playlists of YouTube channel/user keeping each playlist in separate directory:
@@ -1072,7 +1078,7 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
  - `br`: Equivalent to using `tbr,vbr,abr`
  - `asr`: Audio sample rate in Hz
 
-Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a prefered value for the fields, seperated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
+Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in decending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a prefered value for the fields, separated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two prefered values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
 The fields `hasvid`, `ie_pref`, `lang` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. Note that the extractors may override this default order, but they cannot override the user-provided order.
 
