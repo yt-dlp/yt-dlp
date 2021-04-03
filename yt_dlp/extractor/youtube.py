@@ -379,7 +379,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             (lambda x: x['ownerText']['runs'][0]['text'],
              lambda x: x['shortBylineText']['runs'][0]['text']), compat_str)
         return {
-            '_type': 'url_transparent',
+            '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
             'id': video_id,
             'url': video_id,
@@ -2681,6 +2681,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/TheYoungTurks/live',
         'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/hashtag/cctv9',
+        'info_dict': {
+            'id': 'cctv9',
+            'title': '#cctv9',
+        },
+        'playlist_mincount': 350,
     }]
 
     @classmethod
@@ -2840,6 +2847,16 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 continue
             for entry in self._post_thread_entries(renderer):
                 yield entry
+
+    r''' # unused
+    def _rich_grid_entries(self, contents):
+        for content in contents:
+            video_renderer = try_get(content, lambda x: x['richItemRenderer']['content']['videoRenderer'], dict)
+            if video_renderer:
+                entry = self._video_entry(video_renderer)
+                if entry:
+                    yield entry
+    '''
 
     @staticmethod
     def _build_continuation_query(continuation, ctp=None):
@@ -3083,10 +3100,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             channel_name = renderer.get('title')
             channel_url = renderer.get('channelUrl')
             channel_id = renderer.get('externalId')
-
-        if not renderer:
+        else:
             renderer = try_get(
                 data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
+
         if renderer:
             title = renderer.get('title')
             description = renderer.get('description', '')
@@ -3112,11 +3129,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 'width': int_or_none(t.get('width')),
                 'height': int_or_none(t.get('height')),
             })
-
         if playlist_id is None:
             playlist_id = item_id
         if title is None:
-            title = playlist_id
+            title = (
+                try_get(data, lambda x: x['header']['hashtagHeaderRenderer']['hashtag']['simpleText'])
+                or playlist_id)
         title += format_field(selected_tab, 'title', ' - %s')
 
         metadata = {
