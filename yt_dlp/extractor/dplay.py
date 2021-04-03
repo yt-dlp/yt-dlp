@@ -296,8 +296,6 @@ class DPlayIE(InfoExtractor):
             url, display_id, host, 'dplay' + country, country)
 
 
-
-
 class DiscoveryPlusIE(DPlayIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/video' + DPlayIE._PATH_REGEX
     _TESTS = [{
