@@ -1,4 +1,18 @@
 # coding: utf-8
+from __future__ import unicode_literals
+
+import json
+
+from .common import InfoExtractor
+from ..compat import compat_str
+from ..utils import (
+    ExtractorError,
+    parse_iso8601,
+    try_get,
+    urljoin,
+)
+
+
 """
 # Nebula extractor
 
@@ -91,19 +105,6 @@ Basically, it finds the first (truthy) value in the category list and that's ass
 channel title. And then the channel details (e.g. the URL) are looked up by title (!) (not by any
 kind of ID) via an additional API call.
 """
-
-from __future__ import unicode_literals
-
-import json
-
-from .common import InfoExtractor
-from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    parse_iso8601,
-    try_get,
-    urljoin,
-)
 
 
 class NebulaIE(InfoExtractor):
