@@ -298,8 +298,28 @@ class DPlayIE(InfoExtractor):
 
 class DiscoveryPlusIndiaIE(DPlayIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/videos?' + DPlayIE._PATH_REGEX
-    _TESTS = [  # TODO
-    ]
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.in/videos/how-do-they-do-it/fugu-and-more?seasonId=8&type=EPISODE',
+        'info_dict': {
+            'id': '27104',
+            'ext': 'mp4',
+            'display_id': 'how-do-they-do-it/fugu-and-more',
+            'title': 'Fugu and More',
+            'description': 'The Japanese catch, prepare and eat the deadliest fish on the planet.',
+            'duration': 1319,
+            'timestamp': 1582309800,
+            'upload_date': '20200221',
+            'series': 'How Do They Do It?',
+            'season_number': 8,
+            'episode_number': 2,
+            'creator': 'Discovery Channel',
+        },
+        'params': {
+            'format': 'bestvideo',
+            'skip_download': True,
+        },
+        'skip': 'Cookies (not necessarily logged in) are needed'
+    }]
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers['x-disco-params'] = 'realm=%s' % realm
