@@ -82,7 +82,7 @@ class DiscoveryPlusIndiaShowIE(InfoExtractor):
             season_id = season.get('id')
             season_json = self._download_json(season_url.format(season_id, show_id, '1'), video_id=show_id, headers=headers)
             total_pages = int(season_json.get('meta').get('totalPages')) + 1
-            for page in range(1, total_pages + 1):
+            for page in range(1, total_pages):
                 episode_url = season_url.format(season_id, show_id, str(page))
                 episodes_json = self._download_json(
                     episode_url, video_id=show_id, headers=headers,
