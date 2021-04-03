@@ -45,7 +45,7 @@ class MetadataFromFieldPP(PostProcessor):
         # replace %(..)s with regex group and escape other string parts
         for match in re.finditer(r'%\((\w+)\)s', fmt):
             regex += re.escape(fmt[lastpos:match.start()])
-            regex += r'(?P<%s>[^\r\n]+)' % match.group(1)
+            regex += r'(?P<%s>.+)' % match.group(1)
             lastpos = match.end()
         if lastpos < len(fmt):
             regex += re.escape(fmt[lastpos:])

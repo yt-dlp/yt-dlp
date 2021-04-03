@@ -10,7 +10,7 @@ import json
 
 from .common import AudioConversionError, PostProcessor
 
-from ..compat import compat_str
+from ..compat import compat_str, compat_numeric_types
 from ..utils import (
     encodeArgument,
     encodeFilename,
@@ -530,6 +530,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         metadata = {}
 
         def add(meta_list, info_list=None):
+            if not meta_list:
+                return
             if not info_list:
                 info_list = meta_list
             if not isinstance(meta_list, (list, tuple)):
@@ -537,7 +539,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             if not isinstance(info_list, (list, tuple)):
                 info_list = (info_list,)
             for info_f in info_list:
-                if info.get(info_f) is not None:
+                if isinstance(info.get(info_f), (compat_str, compat_numeric_types)):
                     for meta_f in meta_list:
                         metadata[meta_f] = info[info_f]
                     break
@@ -563,6 +565,10 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add('episode_id', ('episode', 'episode_id'))
         add('episode_sort', 'episode_number')
 
+        prefix = 'meta_'
+        for key in filter(lambda k: k.startswith(prefix), info.keys()):
+            add(key[len(prefix):], key)
+
         if not metadata:
             self.to_screen('There isn\'t any metadata to add')
             return [], info
@@ -577,7 +583,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         else:
             options.extend(['-c', 'copy'])
 
-        for (name, value) in metadata.items():
+        for name, value in metadata.items():
             options.extend(['-metadata', '%s=%s' % (name, value)])
 
         chapters = info.get('chapters', [])
