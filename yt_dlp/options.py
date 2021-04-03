@@ -862,7 +862,7 @@ def parseOpts(overrideArguments=None):
         callback_kwargs={
             'allowed_keys': '|'.join(OUTTMPL_TYPES.keys()),
             'default_key': 'default', 'process': lambda x: x.strip()},
-        help='Output filename template, see "OUTPUT TEMPLATE" for details')
+        help='Output filename template; see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
         '--output-na-placeholder',
         dest='outtmpl_na_placeholder', metavar='TEXT', default='NA',
@@ -1144,22 +1144,10 @@ def parseOpts(overrideArguments=None):
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--parse-metadata',
-        metavar='FIELD:FORMAT', dest='metafromfield', action='append',
+        metavar='FROM:TO', dest='metafromfield', action='append',
         help=(
-            'Parse additional metadata like title/artist from other fields. '
-            'Give a template or field name to extract data from and the '
-            'format to interpret it as, separated by a ":". '
-            'Either regular expression with named capture groups or a '
-            'similar syntax to the output template can be used for the FORMAT. '
-            'Similarly, the syntax for output template can be used for FIELD '
-            'to parse the data from multiple fields. '
-            'The parsed parameters replace any existing values and can be used in output templates. '
-            'This option can be used multiple times. '
-            'Example: --parse-metadata "title:%(artist)s - %(title)s" matches a title like '
-            '"Coldplay - Paradise". '
-            'Example: --parse-metadata "%(series)s %(episode_number)s:%(title)s" '
-            'sets the title using series and episode number. '
-            'Example (regex): --parse-metadata "description:Artist - (?P<artist>.+?)"'))
+            'Parse additional metadata like title/artist from other fields; '
+            'see "MODIFYING METADATA" for details'))
     postproc.add_option(
         '--xattrs',
         action='store_true', dest='xattrs', default=False,

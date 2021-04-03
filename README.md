@@ -46,6 +46,8 @@ This is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on the
     * [Filtering Formats](#filtering-formats)
     * [Sorting Formats](#sorting-formats)
     * [Format Selection examples](#format-selection-examples)
+* [MODIFYING METADATA](#modifying-metadata)
+    * [Modifying metadata examples](#modifying-metadata-examples)
 * [PLUGINS](#plugins)
 * [DEPRECATED OPTIONS](#deprecated-options)
 * [MORE](#more)
@@ -669,26 +671,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-embed-thumbnail             Do not embed thumbnail (default)
     --add-metadata                   Write metadata to the video file
     --no-add-metadata                Do not write metadata (default)
-    --parse-metadata FIELD:FORMAT    Parse additional metadata like title/artist
-                                     from other fields. Give a template or field
-                                     name to extract data from and the format to
-                                     interpret it as, separated by a ":". Either
-                                     regular expression with named capture
-                                     groups or a similar syntax to the output
-                                     template can be used for the FORMAT.
-                                     Similarly, the syntax for output template
-                                     can be used for FIELD to parse the data
-                                     from multiple fields. The parsed parameters
-                                     replace any existing values and can be used
-                                     in output templates. This option can be
-                                     used multiple times. Example: --parse-
-                                     metadata "title:%(artist)s - %(title)s"
-                                     matches a title like "Coldplay - Paradise".
-                                     Example: --parse-metadata "%(series)s
-                                     %(episode_number)s:%(title)s" sets the
-                                     title using series and episode number.
-                                     Example (regex): --parse-metadata
-                                     "description:Artist - (?P<artist>.+?)"
+    --parse-metadata FROM:TO         Parse additional metadata like title/artist
+                                     from other fields; see "MODIFYING METADATA"
+                                     for details
     --xattrs                         Write metadata to the video file's xattrs
                                      (using dublin core and xdg standards)
     --fixup POLICY                   Automatically correct known faults of the
@@ -1205,6 +1190,33 @@ $ yt-dlp -S 'res:720,fps'
 $ yt-dlp -S '+res:480,codec,br'
 ```
 
+# MODIFYING METADATA
+
+The metadata obtained the the extractors can be modified by using `--parse-metadata FROM:TO`. The general syntax is to give the name of a field or a template (with similar syntax to [output template](#output-template)) to extract data from, and the format to interpret it as, separated by a ":". Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
+
+Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--add-metadata`.
+
+You can also use this to change only the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. You can use this to set a different "description" and "synopsis", for example.
+
+## Modifying metadata examples
+
+Note that on Windows you may need to use double quotes instead of single.
+
+```bash
+# Interpret the title as "Artist - Title"
+$ yt-dlp --parse-metadata "title:%(artist)s - %(title)s"
+
+# Regex example
+$ yt-dlp --parse-metadata "description:Artist - (?P<artist>.+)"
+
+# Set title as "Series name S01E05"
+$ yt-dlp --parse-metadata "%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s"
+
+# Set "comment" field in video metadata using description instead of webpage_url
+$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --add-metadata
+
+```
+
 # PLUGINS
 
 Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently only `extractor` plugins are supported. Support for `downloader` and `postprocessor` plugins may be added in the future. See [ytdlp_plugins](ytdlp_plugins) for example.
@@ -1221,7 +1233,7 @@ These are all the deprecated options and the current alternative to achieve the 
     -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
     -l, --literal                    -o accepts literal names
     --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
-    --metadata-from-title FORMAT     --parse-metadata "title:FORMAT"
+    --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"
     --prefer-avconv                  avconv is no longer officially supported (Alias: --no-prefer-ffmpeg)
     --prefer-ffmpeg                  Default (Alias: --no-prefer-avconv)
     --avconv-location                avconv is no longer officially supported
