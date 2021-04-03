@@ -60,7 +60,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl v2021.03.25**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl v2021.04.01**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
@@ -1192,7 +1192,7 @@ $ yt-dlp -S '+res:480,codec,br'
 
 # MODIFYING METADATA
 
-The metadata obtained the the extractors can be modified by using `--parse-metadata FROM:TO`. The general syntax is to give the name of a field or a template (with similar syntax to [output template](#output-template)) to extract data from, and the format to interpret it as, separated by a ":". Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
+The metadata obtained the the extractors can be modified by using `--parse-metadata FROM:TO`. The general syntax is to give the name of a field or a template (with similar syntax to [output template](#output-template)) to extract data from, and the format to interpret it as, separated by a colon ":". Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
 
 Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--add-metadata`.
 
@@ -1204,16 +1204,16 @@ Note that on Windows you may need to use double quotes instead of single.
 
 ```bash
 # Interpret the title as "Artist - Title"
-$ yt-dlp --parse-metadata "title:%(artist)s - %(title)s"
+$ yt-dlp --parse-metadata 'title:%(artist)s - %(title)s'
 
 # Regex example
-$ yt-dlp --parse-metadata "description:Artist - (?P<artist>.+)"
+$ yt-dlp --parse-metadata 'description:Artist - (?P<artist>.+)'
 
 # Set title as "Series name S01E05"
-$ yt-dlp --parse-metadata "%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s"
+$ yt-dlp --parse-metadata '%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s'
 
 # Set "comment" field in video metadata using description instead of webpage_url
-$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --add-metadata
+$ yt-dlp --parse-metadata 'description:(?s)(?P<meta_comment>.+)' --add-metadata
 
 ```
 
