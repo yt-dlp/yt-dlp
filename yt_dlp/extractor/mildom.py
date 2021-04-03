@@ -5,6 +5,7 @@ from datetime import datetime
 import itertools
 import json
 import base64
+import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -68,7 +69,7 @@ class MildomBaseIE(InfoExtractor):
                 self._DISPATCHER_CONFIG = self._parse_json(base64.b64decode(tmp['data']), 'initialization')
             except ExtractorError:
                 self._DISPATCHER_CONFIG = self._download_json(
-                    'https://bookish-octo-barnacle.vercel.app/api/dispatcher_config', 'initialization',
+                    'https://bookish-octo-barnacle.vercel.app/api/mildom/dispatcher_config', 'initialization',
                     note='Downloading dispatcher_config fallback')
         return self._DISPATCHER_CONFIG
 
@@ -110,6 +111,7 @@ class MildomIE(MildomBaseIE):
         enterstudio = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/live/enterstudio', video_id,
             note='Downloading live metadata', query={'user_id': video_id})
+        result_video_id = enterstudio.get('log_id', video_id)
 
         title = try_get(
             enterstudio, (
@@ -128,7 +130,7 @@ class MildomIE(MildomBaseIE):
             ), compat_str)
 
         servers = self._call_api(
-            'https://cloudac.mildom.com/nonolive/gappserv/live/liveserver', video_id,
+            'https://cloudac.mildom.com/nonolive/gappserv/live/liveserver', result_video_id,
             note='Downloading live server list', query={
                 'user_id': video_id,
                 'live_server_type': 'hls',
@@ -139,7 +141,7 @@ class MildomIE(MildomBaseIE):
             'is_lhls': '0',
         })
         m3u8_url = update_url_query(servers['stream_server'] + '/%s_master.m3u8' % video_id, stream_query)
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', headers={
+        formats = self._extract_m3u8_formats(m3u8_url, result_video_id, 'mp4', headers={
             'Referer': 'https://www.mildom.com/',
             'Origin': 'https://www.mildom.com',
         }, note='Downloading m3u8 information')
@@ -150,13 +152,13 @@ class MildomIE(MildomBaseIE):
             parsed = parsed._replace(
                 netloc='bookish-octo-barnacle.vercel.app',
                 query=compat_urllib_parse_urlencode(stream_query, True),
-                path='/api' + parsed.path)
+                path='/api/mildom' + parsed.path)
             fmt['url'] = compat_urlparse.urlunparse(parsed)
 
         self._sort_formats(formats)
 
         return {
-            'id': video_id,
+            'id': result_video_id,
             'title': title,
             'description': description,
             'uploader': uploader,
@@ -172,9 +174,8 @@ class MildomVodIE(MildomBaseIE):
     _VALID_URL = r'https?://(?:(?:www|m)\.)mildom\.com/playback/(?P<user_id>\d+)/(?P<id>(?P=user_id)-[a-zA-Z0-9]+)'
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        m = self._VALID_URL_RE.match(url)
-        user_id = m.group('user_id')
+        m = re.match(self._VALID_URL, url)
+        user_id, video_id = m.group('user_id'), m.group('id')
         url = 'https://www.mildom.com/playback/%s/%s' % (user_id, video_id)
 
         webpage = self._download_webpage(url, video_id)
@@ -230,7 +231,7 @@ class MildomVodIE(MildomBaseIE):
             parsed = parsed._replace(
                 netloc='bookish-octo-barnacle.vercel.app',
                 query=compat_urllib_parse_urlencode(stream_query, True),
-                path='/api/vod2/proxy')
+                path='/api/mildom/vod2/proxy')
             fmt['url'] = compat_urlparse.urlunparse(parsed)
 
         self._sort_formats(formats)
