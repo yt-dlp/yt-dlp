@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import json
 import re
 
+from ..compat import compat_str
 from .common import InfoExtractor
 from .dplay import DPlayIE
 
@@ -66,33 +67,32 @@ class DiscoveryPlusIndiaShowIE(InfoExtractor):
 
     def _entries(self, show_name):
         headers = {
-            'authority': 'ap2-prod-direct.discoveryplus.in',
             'x-disco-client': 'WEB:UNKNOWN:dplus-india:prod',
             'x-disco-params': 'realm=dplusindia',
-            'origin': 'https://www.discoveryplus.in',
             'referer': 'https://www.discoveryplus.in/',
         }
         show_url = 'https://ap2-prod-direct.discoveryplus.in/cms/routes/show/{}?include=default'.format(show_name)
         show_json = self._download_json(show_url,
                                         video_id=show_name,
-                                        headers=headers).get('included')[4].get('attributes').get('component')
-        show_id = show_json.get('mandatoryParams').split('=')[-1]
+                                        headers=headers)['included'][4]['attributes']['component']
+        show_id = show_json['mandatoryParams'].split('=')[-1]
         season_url = 'https://ap2-prod-direct.discoveryplus.in/content/videos?sort=episodeNumber&filter[seasonNumber]={}&filter[show.id]={}&page[size]=100&page[number]={}'
-        for season in show_json.get('filters')[0].get('options'):
-            season_id = season.get('id')
-            season_json = self._download_json(season_url.format(season_id, show_id, '1'), video_id=show_id, headers=headers)
-            total_pages = int(season_json.get('meta').get('totalPages')) + 1
-            for page in range(1, total_pages):
-                episode_url = season_url.format(season_id, show_id, str(page))
-                episodes_json = self._download_json(
-                    episode_url, video_id=show_id, headers=headers,
-                    note='Downloading JSON metadata page %s' % page).get('data')
+        for season in show_json['filters'][0]['options']:
+            season_id = season['id']
+            total_pages, page_num = 1, 0
+            while page_num < total_pages:
+                season_json = self._download_json(season_url.format(season_id, show_id, compat_str(page_num + 1)),
+                                                  video_id=show_id, headers=headers,
+                                                  note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
+                if page_num == 0:
+                    total_pages = int(season_json['meta']['totalPages'])
+                episodes_json = season_json['data']
                 for episode in episodes_json:
-
-                    video_id = episode.get('attributes').get('path')
+                    video_id = episode['attributes']['path']
                     yield self.url_result(
                         'https://discoveryplus.in/videos/%s' % video_id,
                         ie=DiscoveryPlusIndiaIE.ie_key(), video_id=video_id)
+                page_num += 1
 
     def _real_extract(self, url):
         show_name = re.match(self._VALID_URL, url).group('show_name')
