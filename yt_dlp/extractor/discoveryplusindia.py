@@ -56,7 +56,11 @@ class DiscoveryPlusIndiaIE(DPlayIE):
 class DiscoveryPlusIndiaShowIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/show/(?P<show_name>\S*)'
     _TESTS = [{
-        #TODO
+        'url': 'https://www.discoveryplus.in/show/how-do-they-do-it',
+        'playlist_mincount': 140,
+        'info_dict': {
+            'id': 'how-do-they-do-it',
+        },
     }
     ]
 
