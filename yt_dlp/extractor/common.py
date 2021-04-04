@@ -1889,7 +1889,8 @@ class InfoExtractor(object):
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
             return []
 
-        if re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc):  # Apple FairPlay
+        if (not self._downloader.params.get('allow_unplayable_formats')
+                and re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)):  # Apple FairPlay
             return []
 
         formats = []
