@@ -7,6 +7,7 @@ import re
 from ..compat import compat_str
 from .common import InfoExtractor
 from .dplay import DPlayIE
+from ..utils import try_get
 
 
 class DiscoveryPlusIndiaIE(DPlayIE):
@@ -55,7 +56,7 @@ class DiscoveryPlusIndiaIE(DPlayIE):
 
 
 class DiscoveryPlusIndiaShowIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/show/(?P<show_name>\S*)'
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/show/(?P<show_name>[^/]+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.discoveryplus.in/show/how-do-they-do-it',
         'playlist_mincount': 140,
@@ -85,7 +86,7 @@ class DiscoveryPlusIndiaShowIE(InfoExtractor):
                                                   video_id=show_id, headers=headers,
                                                   note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
                 if page_num == 0:
-                    total_pages = int(season_json['meta']['totalPages'])
+                    total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
                 episodes_json = season_json['data']
                 for episode in episodes_json:
                     video_id = episode['attributes']['path']
