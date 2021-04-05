@@ -112,9 +112,9 @@ class NFHSNetworkIE(InfoExtractor):
         title = title[:title.find('|') - 1]
 
         if broadcast.get('status') == 'complete':
-            m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/vods/' + publisher['vods'][0]['key'] + '/url', video_id)
+            m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/vods/' + broadcast.get('key') + '/url', video_id)
         else:
-            m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/broadcasts/' + broadcast['key'] + '/url', video_id)
+            m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/broadcasts/' + broadcast.get('key') + '/url', video_id)
 
         m3u8_url = m3u8_url.get('video_url')
 
