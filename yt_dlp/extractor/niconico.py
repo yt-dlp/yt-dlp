@@ -164,6 +164,11 @@ class NiconicoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.|secure\.|sp\.)?nicovideo\.jp/watch/(?P<id>(?:[a-z]{2})?[0-9]+)'
     _NETRC_MACHINE = 'niconico'
 
+    _API_HEADERS = {
+        'X-Frontend-ID': '6',
+        'X-Frontend-Version': '0'
+    }
+
     def _real_initialize(self):
         self._login()
 
@@ -197,46 +202,48 @@ class NiconicoIE(InfoExtractor):
 
         video_id, video_src_id, audio_src_id = info_dict['url'].split(':')[1].split('/')
 
-        # Get video webpage for API data.
-        webpage, handle = self._download_webpage_handle(
-            'http://www.nicovideo.jp/watch/' + video_id, video_id)
-
-        api_data = self._parse_json(self._html_search_regex(
-            'data-api-data="([^"]+)"', webpage,
-            'API data', default='{}'), video_id)
+        api_data = (
+            info_dict.get('_api_data')
+            or self._parse_json(
+                self._html_search_regex(
+                    'data-api-data="([^"]+)"',
+                    self._download_webpage('http://www.nicovideo.jp/watch/' + video_id, video_id),
+                    'API data', default='{}'),
+                video_id))
 
         session_api_data = try_get(api_data, lambda x: x['media']['delivery']['movie']['session'])
         session_api_endpoint = try_get(session_api_data, lambda x: x['urls'][0])
 
-        # ping
-        self._download_json(
-            'https://nvapi.nicovideo.jp/v1/2ab0cbaa/watch', video_id,
-            query={'t': try_get(api_data, lambda x: x['video']['dmcInfo']['tracking_id'])},
-            headers={
-                'Origin': 'https://www.nicovideo.jp',
-                'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
-                'X-Frontend-Id': '6',
-                'X-Frontend-Version': '0'
-            })
+        def ping():
+            status = try_get(
+                self._download_json(
+                    'https://nvapi.nicovideo.jp/v1/2ab0cbaa/watch', video_id,
+                    query={'t': try_get(api_data, lambda x: x['media']['delivery']['trackingId'])},
+                    note='Acquiring permission for downloading video',
+                    headers=self._API_HEADERS),
+                lambda x: x['meta']['status'])
+            if status != 200:
+                self.report_warning('Failed to acquire permission for playing video. The video may not download.')
 
         yesno = lambda x: 'yes' if x else 'no'
 
         # m3u8 (encryption)
-        if 'encryption' in (try_get(api_data, lambda x: x['media']['delivery']['movie']) or {}):
+        if try_get(api_data, lambda x: x['media']['delivery']['encryption']) is not None:
             protocol = 'm3u8'
+            encryption = self._parse_json(session_api_data['token'], video_id)['hls_encryption']
             session_api_http_parameters = {
                 'parameters': {
                     'hls_parameters': {
                         'encryption': {
-                            'hls_encryption_v1': {
-                                'encrypted_key': try_get(api_data, lambda x: x['video']['dmcInfo']['encryption']['hls_encryption_v1']['encrypted_key']),
-                                'key_uri': try_get(api_data, lambda x: x['video']['dmcInfo']['encryption']['hls_encryption_v1']['key_uri'])
+                            encryption: {
+                                'encrypted_key': try_get(api_data, lambda x: x['media']['delivery']['encryption']['encryptedKey']),
+                                'key_uri': try_get(api_data, lambda x: x['media']['delivery']['encryption']['keyUri'])
                             }
                         },
                         'transfer_preset': '',
-                        'use_ssl': yesno(session_api_endpoint['is_ssl']),
-                        'use_well_known_port': yesno(session_api_endpoint['is_well_known_port']),
-                        'segment_duration': 6000
+                        'use_ssl': yesno(session_api_endpoint['isSsl']),
+                        'use_well_known_port': yesno(session_api_endpoint['isWellKnownPort']),
+                        'segment_duration': 6000,
                     }
                 }
             }
@@ -310,7 +317,8 @@ class NiconicoIE(InfoExtractor):
             'url': session_api_endpoint['url'] + '/' + session_response['data']['session']['id'] + '?_format=json&_method=PUT',
             'data': json.dumps(session_response['data']),
             # interval, convert milliseconds to seconds, then halve to make a buffer.
-            'interval': float_or_none(session_api_data.get('heartbeatLifetime'), scale=2000),
+            'interval': float_or_none(session_api_data.get('heartbeatLifetime'), scale=3000),
+            'ping': ping
         }
 
         return info_dict, heartbeat_info_dict
@@ -400,7 +408,7 @@ class NiconicoIE(InfoExtractor):
         # Get HTML5 videos info
         quality_info = try_get(api_data, lambda x: x['media']['delivery']['movie'])
         if not quality_info:
-            raise ExtractorError('The video can\'t downloaded.', expected=True)
+            raise ExtractorError('The video can\'t be downloaded', expected=True)
 
         for audio_quality in quality_info.get('audios') or {}:
             for video_quality in quality_info.get('videos') or {}:
@@ -412,9 +420,7 @@ class NiconicoIE(InfoExtractor):
         # Get flv/swf info
         timestamp = None
         video_real_url = try_get(api_data, lambda x: x['video']['smileInfo']['url'])
-        if not video_real_url:
-            self.report_warning('Unable to obtain smile video information')
-        else:
+        if video_real_url:
             is_economy = video_real_url.endswith('low')
 
             if is_economy:
@@ -485,9 +491,6 @@ class NiconicoIE(InfoExtractor):
                     'quality': 5 if is_source and not is_economy else None,
                     'filesize': filesize
                 })
-
-        if len(formats) == 0:
-            raise ExtractorError('Unable to find video info.')
 
         self._sort_formats(formats)
 
@@ -585,6 +588,7 @@ class NiconicoIE(InfoExtractor):
 
         return {
             'id': video_id,
+            '_api_data': api_data,
             'title': title,
             'formats': formats,
             'thumbnail': thumbnail,
@@ -619,24 +623,19 @@ class NiconicoPlaylistIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _API_HEADERS = {
+        'X-Frontend-ID': '6',
+        'X-Frontend-Version': '0'
+    }
+
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        webpage = self._download_webpage(url, list_id)
-
-        header = self._parse_json(self._html_search_regex(
-            r'data-common-header="([^"]+)"', webpage,
-            'webpage header'), list_id)
-        frontendId = header.get('initConfig').get('frontendId')
-        frontendVersion = header.get('initConfig').get('frontendVersion')
 
         def get_page_data(pagenum, pagesize):
             return self._download_json(
                 'http://nvapi.nicovideo.jp/v2/mylists/' + list_id, list_id,
                 query={'page': 1 + pagenum, 'pageSize': pagesize},
-                headers={
-                    'X-Frontend-Id': frontendId,
-                    'X-Frontend-Version': frontendVersion,
-                }).get('data').get('mylist')
+                headers=self._API_HEADERS).get('data').get('mylist')
 
         data = get_page_data(0, 1)
         title = data.get('name')
@@ -672,12 +671,12 @@ class NiconicoUserIE(InfoExtractor):
         'playlist_mincount': 101,
     }
     _API_URL = "https://nvapi.nicovideo.jp/v1/users/%s/videos?sortKey=registeredAt&sortOrder=desc&pageSize=%s&page=%s"
-    _api_headers = {
-        'X-Frontend-ID': '6',
-        'X-Frontend-Version': '0',
-        'X-Niconico-Language': 'en-us'
-    }
     _PAGE_SIZE = 100
+
+    _API_HEADERS = {
+        'X-Frontend-ID': '6',
+        'X-Frontend-Version': '0'
+    }
 
     def _entries(self, list_id, ):
         total_count = 1
@@ -685,7 +684,7 @@ class NiconicoUserIE(InfoExtractor):
         while count < total_count:
             json_parsed = self._download_json(
                 self._API_URL % (list_id, self._PAGE_SIZE, page_num + 1), list_id,
-                headers=self._api_headers,
+                headers=self._API_HEADERS,
                 note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
             if not page_num:
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
