@@ -5,9 +5,9 @@ import json
 import re
 
 from ..compat import compat_str
+from ..utils import try_get
 from .common import InfoExtractor
 from .dplay import DPlayIE
-from ..utils import try_get
 
 
 class DiscoveryPlusIndiaIE(DPlayIE):
