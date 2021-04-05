@@ -99,8 +99,10 @@ class NFHSNetworkIE(InfoExtractor):
         timestamp = unified_timestamp(data.get('local_start_time'))
         upload_date = unified_strdate(data.get('local_start_time'))
 
-        title = self._og_search_title(webpage) or self._html_search_regex(r'<h1 class="sr-hidden">(.*?)</h1>', webpage, 'title')
-        title = title[:title.find('|') - 1]
+        title = (
+            self._og_search_title(webpage)
+            or self._html_search_regex(r'<h1 class="sr-hidden">(.*?)</h1>', webpage, 'title'))
+        title = title.split('|')[0].strip()
 
         video_type = 'broadcasts' if isLive else 'vods'
         key = broadcast.get('key') if isLive else try_get(publisher, lambda x: x['vods'][0]['key'])
