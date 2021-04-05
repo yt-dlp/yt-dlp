@@ -309,6 +309,10 @@ from .democracynow import DemocracynowIE
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE
+from .discoveryplusindia import (
+    DiscoveryPlusIndiaIE,
+    DiscoveryPlusIndiaShowIE,
+)
 from .dotsub import DotsubIE
 from .douyutv import (
     DouyuShowIE,
@@ -317,7 +321,6 @@ from .douyutv import (
 from .dplay import (
     DPlayIE,
     DiscoveryPlusIE,
-    DiscoveryPlusIndiaIE,
     HGTVDeIE,
 )
 from .dreisat import DreiSatIE
