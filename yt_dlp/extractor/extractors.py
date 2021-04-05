@@ -817,6 +817,7 @@ from .nexx import (
     NexxIE,
     NexxEmbedIE,
 )
+from .nfhsnetwork import NFHSNetworkIE
 from .nfl import (
     NFLIE,
     NFLArticleIE,
