@@ -110,10 +110,8 @@ class NFHSNetworkIE(InfoExtractor):
             'https://cfunity.nfhsnetwork.com/v2/%s/%s/url' % (video_type, key),
             video_id).get('video_url')
 
-        formats = []
-        formats.extend(self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4',
-            m3u8_id='hls', fatal=False))
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', live=isLive)
+        self._sort_formats(formats, ['res', 'tbr'])
 
         return {
             'id': video_id,
