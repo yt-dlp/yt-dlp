@@ -1,0 +1,137 @@
+# coding: utf-8
+from __future__ import unicode_literals
+
+from .common import InfoExtractor
+
+
+from ..utils import (
+    unified_strdate,
+    unified_timestamp
+)
+
+
+class NFHSNetworkIE(InfoExtractor):
+    IE_NAME = 'NFHSNetwork'
+    _VALID_URL = r'https?://(?:www\.)?nfhsnetwork\.com/events/[\w-]+/(?P<id>(?:gam|evt|dd|)?[\w\d]{0,10})'
+    _TESTS = [{
+        # Auto-generated two-team sport (pixellot)
+        'url': 'https://www.nfhsnetwork.com/events/rockford-high-school-rockford-mi/gamcf7e54cfbc',
+        # 'md5': 'ed2cb6931860ad1b6749591df4ce75e8',
+        'info_dict': {
+            'id': 'gamcf7e54cfbc',
+            'ext': 'mp4',
+            'title': 'Rockford vs Spring Lake - Girls Varsity Lacrosse 03/27/2021',
+            # 'url': 'https://dj61qgvno4s9v.cloudfront.net/playOnPoly/6058966300a36f1495880ced/venue_hls/hd_hls/hd_hls.m3u8',
+            'description': '',
+            'uploader': 'MHSAA - Michigan: Rockford High School, Rockford, MI',
+            'location': 'Rockford, Michigan',
+            'timestamp': 1616859000,
+            'upload_date': '20210327'
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        }
+    }, {
+        # Non-sport activity with description
+        'url': 'https://www.nfhsnetwork.com/events/limon-high-school-limon-co/evt4a30e3726c',
+        # 'md5': '6220983b27843c93f76c0e55df66f539',
+        'info_dict': {
+            'id': 'evt4a30e3726c',
+            'ext': 'mp4',
+            'title': 'Drama Performance Limon High School vs. Limon High School - 12/13/2020',
+            # 'url': 'https://hls.bcast.nfhsnetwork.com/broadcast/bdc8582dbf08d/vod.m3u8',
+            'description': 'Join the broadcast of the Limon High School Musical Performance at 2 PM.',
+            'uploader': 'CHSAA: Limon High School, Limon, CO',
+            'location': 'Limon, Colorado',
+            'timestamp': 1607893200,
+            'upload_date': '20201213'
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        }
+    }, {
+        # Postseason game
+        'url': 'https://www.nfhsnetwork.com/events/nfhs-network-special-events/dd8de71d45',
+        # 'md5': '07708e7b6408384aa93df279db253fad',
+        'info_dict': {
+            'id': 'dd8de71d45',
+            'ext': 'mp4',
+            'title': '2015 UA Holiday Classic Tournament: National Division  - 12/26/2015',
+            # 'url': 'https://cfhls.nfhsnetwork.com/155125/155125.m3u8',
+            'description': '',
+            'uploader': 'SoCal Sports Productions',
+            'location': 'San Diego, California',
+            'timestamp': 1451187000,
+            'upload_date': '20151226'
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        }
+    }, {
+        # Video with no broadcasts object
+        'url': 'https://www.nfhsnetwork.com/events/wiaa-wi/9aa2f92f82',
+        # 'md5': 'e9d5d94aa36f15ab7daf5a8488720c7f',
+        'info_dict': {
+            'id': '9aa2f92f82',
+            'ext': 'mp4',
+            'title': 'Competitive Equity  - 01/21/2015',
+            # 'url': 'https://cfhls.nfhsnetwork.com/121689/121689.m3u8',
+            'description': 'Committee members discuss points of their research regarding a competitive equity plan',
+            'uploader': 'WIAA - Wisconsin: Wisconsin Interscholastic Athletic Association',
+            'location': 'Stevens Point, Wisconsin',
+            'timestamp': 1421856000,
+            'upload_date': '20150121'
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        }
+    }
+    ]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        data = self._download_json(
+            'https://cfunity.nfhsnetwork.com/v2/game_or_event/' + video_id,
+            video_id)
+        publisher = data.get('publishers')[0]  # always exists
+        broadcast = (publisher.get('broadcasts') or publisher.get('vods'))[0]  # some (older) videos don't have a broadcasts object
+        uploader = publisher.get('formatted_name') or publisher.get('name') or ''
+        location = data.get('city') + ', ' + data.get('state_name')
+        description = broadcast.get('description') or ''
+        isLive = broadcast.get('on_air') or False
+
+        timestamp = unified_timestamp(data.get('local_start_time'))
+        upload_date = unified_strdate(data.get('local_start_time'))
+
+        title = self._og_search_title(webpage) or self._html_search_regex(r'<h1 class="sr-hidden">(.*?)</h1>', webpage, 'title')
+        title = title[:title.find('|') - 1]
+
+        if broadcast['status'] == 'complete':
+            m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/vods/' + publisher['vods'][0]['key'] + '/url', video_id)
+        else:
+            m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/broadcasts/' + broadcast['key'] + '/url', video_id)
+
+        m3u8_url = m3u8_url.get('video_url')
+
+        formats = []
+        formats.extend(self._extract_m3u8_formats(
+            m3u8_url, video_id, 'mp4',
+            m3u8_id='hls', fatal=False))
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'title': title,
+            'formats': formats,
+            'description': description,
+            'timestamp': timestamp,
+            'uploader': uploader,
+            'location': location,
+            'upload_date': upload_date,
+            'is_live': isLive
+        }
