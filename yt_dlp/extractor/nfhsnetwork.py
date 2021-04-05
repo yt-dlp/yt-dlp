@@ -5,6 +5,7 @@ from .common import InfoExtractor
 
 
 from ..utils import (
+    try_get,
     unified_strdate,
     unified_timestamp
 )
@@ -22,7 +23,6 @@ class NFHSNetworkIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Rockford vs Spring Lake - Girls Varsity Lacrosse 03/27/2021',
             # 'url': 'https://dj61qgvno4s9v.cloudfront.net/playOnPoly/6058966300a36f1495880ced/venue_hls/hd_hls/hd_hls.m3u8',
-            'description': '',
             'uploader': 'MHSAA - Michigan: Rockford High School, Rockford, MI',
             'location': 'Rockford, Michigan',
             'timestamp': 1616859000,
@@ -60,7 +60,6 @@ class NFHSNetworkIE(InfoExtractor):
             'ext': 'mp4',
             'title': '2015 UA Holiday Classic Tournament: National Division  - 12/26/2015',
             # 'url': 'https://cfhls.nfhsnetwork.com/155125/155125.m3u8',
-            'description': '',
             'uploader': 'SoCal Sports Productions',
             'location': 'San Diego, California',
             'timestamp': 1451187000,
@@ -100,9 +99,9 @@ class NFHSNetworkIE(InfoExtractor):
             video_id)
         publisher = data.get('publishers')[0]  # always exists
         broadcast = (publisher.get('broadcasts') or publisher.get('vods'))[0]  # some (older) videos don't have a broadcasts object
-        uploader = publisher.get('formatted_name') or publisher.get('name') or ''
+        uploader = publisher.get('formatted_name') or publisher.get('name') or None
         location = data.get('city') + ', ' + data.get('state_name')
-        description = broadcast.get('description') or ''
+        description = broadcast.get('description') or None
         isLive = broadcast.get('on_air') or broadcast.get('status') == 'on_air' or False
 
         timestamp = unified_timestamp(data.get('local_start_time'))
@@ -111,12 +110,11 @@ class NFHSNetworkIE(InfoExtractor):
         title = self._og_search_title(webpage) or self._html_search_regex(r'<h1 class="sr-hidden">(.*?)</h1>', webpage, 'title')
         title = title[:title.find('|') - 1]
 
-        if broadcast.get('status') == 'complete':
-            m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/vods/' + broadcast.get('key') + '/url', video_id)
-        else:
-            m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/broadcasts/' + broadcast.get('key') + '/url', video_id)
-
-        m3u8_url = m3u8_url.get('video_url')
+        video_type = 'broadcasts' if isLive else 'vods'
+        key = broadcast.get('key') if isLive else try_get(publisher, lambda x: x['vods'][0]['key'])
+        m3u8_url = self._download_json(
+            'https://cfunity.nfhsnetwork.com/v2/%s/%s/url' % (video_type, key),
+            video_id).get('video_url')
 
         formats = []
         formats.extend(self._extract_m3u8_formats(
