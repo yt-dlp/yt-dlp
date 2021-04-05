@@ -17,12 +17,10 @@ class NFHSNetworkIE(InfoExtractor):
     _TESTS = [{
         # Auto-generated two-team sport (pixellot)
         'url': 'https://www.nfhsnetwork.com/events/rockford-high-school-rockford-mi/gamcf7e54cfbc',
-        # 'md5': 'ed2cb6931860ad1b6749591df4ce75e8',
         'info_dict': {
             'id': 'gamcf7e54cfbc',
             'ext': 'mp4',
             'title': 'Rockford vs Spring Lake - Girls Varsity Lacrosse 03/27/2021',
-            # 'url': 'https://dj61qgvno4s9v.cloudfront.net/playOnPoly/6058966300a36f1495880ced/venue_hls/hd_hls/hd_hls.m3u8',
             'uploader': 'MHSAA - Michigan: Rockford High School, Rockford, MI',
             'location': 'Rockford, Michigan',
             'timestamp': 1616859000,
@@ -35,12 +33,10 @@ class NFHSNetworkIE(InfoExtractor):
     }, {
         # Non-sport activity with description
         'url': 'https://www.nfhsnetwork.com/events/limon-high-school-limon-co/evt4a30e3726c',
-        # 'md5': '6220983b27843c93f76c0e55df66f539',
         'info_dict': {
             'id': 'evt4a30e3726c',
             'ext': 'mp4',
             'title': 'Drama Performance Limon High School vs. Limon High School - 12/13/2020',
-            # 'url': 'https://hls.bcast.nfhsnetwork.com/broadcast/bdc8582dbf08d/vod.m3u8',
             'description': 'Join the broadcast of the Limon High School Musical Performance at 2 PM.',
             'uploader': 'CHSAA: Limon High School, Limon, CO',
             'location': 'Limon, Colorado',
@@ -54,12 +50,10 @@ class NFHSNetworkIE(InfoExtractor):
     }, {
         # Postseason game
         'url': 'https://www.nfhsnetwork.com/events/nfhs-network-special-events/dd8de71d45',
-        # 'md5': '07708e7b6408384aa93df279db253fad',
         'info_dict': {
             'id': 'dd8de71d45',
             'ext': 'mp4',
             'title': '2015 UA Holiday Classic Tournament: National Division  - 12/26/2015',
-            # 'url': 'https://cfhls.nfhsnetwork.com/155125/155125.m3u8',
             'uploader': 'SoCal Sports Productions',
             'location': 'San Diego, California',
             'timestamp': 1451187000,
@@ -72,12 +66,10 @@ class NFHSNetworkIE(InfoExtractor):
     }, {
         # Video with no broadcasts object
         'url': 'https://www.nfhsnetwork.com/events/wiaa-wi/9aa2f92f82',
-        # 'md5': 'e9d5d94aa36f15ab7daf5a8488720c7f',
         'info_dict': {
             'id': '9aa2f92f82',
             'ext': 'mp4',
             'title': 'Competitive Equity  - 01/21/2015',
-            # 'url': 'https://cfhls.nfhsnetwork.com/121689/121689.m3u8',
             'description': 'Committee members discuss points of their research regarding a competitive equity plan',
             'uploader': 'WIAA - Wisconsin: Wisconsin Interscholastic Athletic Association',
             'location': 'Stevens Point, Wisconsin',
