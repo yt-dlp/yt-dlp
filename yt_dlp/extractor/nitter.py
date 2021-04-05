@@ -131,10 +131,10 @@ class NitterIE(InfoExtractor):
         repost_count = parse_count(self._html_search_regex(r'<span[^>]+class="icon-retweet[^>]*></span>\s([^<]+)</div>', webpage, 'repost count', fatal=False))
         comment_count = parse_count(self._html_search_regex(r'<span[^>]+class="icon-comment[^>]*></span>\s([^<]+)</div>', webpage, 'repost count', fatal=False))
 
-        thumbnail = base_url + (self._html_search_meta('og:image', webpage, 'thumbnail url')
-                                or self._html_search_regex(r'<video[^>]+poster="([^"]+)"', webpage, 'thumbnail url', fatal=False))
-
-        thumbnail = remove_end(thumbnail, '%3Asmall')  # if parsed with regex, it should contain this
+        thumbnail = self._html_search_meta('og:image', webpage, 'thumbnail url')
+        if not thumbnail:
+            thumbnail = base_url + self._html_search_regex(r'<video[^>]+poster="([^"]+)"', webpage, 'thumbnail url', fatal=False)
+            thumbnail = remove_end(thumbnail, '%3Asmall')
 
         thumbnails = []
         thumbnail_ids = ('thumb', 'small', 'large', 'medium', 'orig')
