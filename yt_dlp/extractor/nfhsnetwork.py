@@ -103,7 +103,7 @@ class NFHSNetworkIE(InfoExtractor):
         uploader = publisher.get('formatted_name') or publisher.get('name') or ''
         location = data.get('city') + ', ' + data.get('state_name')
         description = broadcast.get('description') or ''
-        isLive = broadcast.get('on_air') or False
+        isLive = broadcast.get('on_air') or broadcast.get('status') == 'on_air' or False
 
         timestamp = unified_timestamp(data.get('local_start_time'))
         upload_date = unified_strdate(data.get('local_start_time'))
@@ -111,7 +111,7 @@ class NFHSNetworkIE(InfoExtractor):
         title = self._og_search_title(webpage) or self._html_search_regex(r'<h1 class="sr-hidden">(.*?)</h1>', webpage, 'title')
         title = title[:title.find('|') - 1]
 
-        if broadcast['status'] == 'complete':
+        if broadcast.get('status') == 'complete':
             m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/vods/' + publisher['vods'][0]['key'] + '/url', video_id)
         else:
             m3u8_url = self._download_json('https://cfunity.nfhsnetwork.com/v2/broadcasts/' + broadcast['key'] + '/url', video_id)
@@ -122,7 +122,6 @@ class NFHSNetworkIE(InfoExtractor):
         formats.extend(self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4',
             m3u8_id='hls', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
