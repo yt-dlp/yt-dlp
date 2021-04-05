@@ -92,7 +92,7 @@ class NFHSNetworkIE(InfoExtractor):
         publisher = data.get('publishers')[0]  # always exists
         broadcast = (publisher.get('broadcasts') or publisher.get('vods'))[0]  # some (older) videos don't have a broadcasts object
         uploader = publisher.get('formatted_name') or publisher.get('name') or None
-        location = data.get('city') + ', ' + data.get('state_name')
+        location = '%s, %s' % (data.get('city'), data.get('state_name'))
         description = broadcast.get('description') or None
         isLive = broadcast.get('on_air') or broadcast.get('status') == 'on_air' or False
 
