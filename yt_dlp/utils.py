@@ -3052,16 +3052,16 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
     return replace_extension(filename, sub_lang + '.' + sub_format, expected_real_ext)
 
 
-def date_from_str(date_str):
+def date_from_str(date_str, precision='day', format='%Y%m%d'):
     """
     Return a datetime object from a string in the format YYYYMMDD or
-    (now|today)[+-][0-9](day|week|month|year)(s)?"""
-    today = datetime.date.today()
+    (now|today)[+-][0-9](second|minute|hour|day|week|month|year/)(s)?"""
+    today = datetime_precision(datetime.datetime.now(), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
         return today - datetime.timedelta(days=1)
-    match = re.match(r'(now|today)(?P<sign>[+-])(?P<time>\d+)(?P<unit>day|week|month|year)(s)?', date_str)
+    match = re.match(r'(now|today)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)(s)?', date_str)
     if match is not None:
         sign = match.group('sign')
         time = int(match.group('time'))
@@ -3078,7 +3078,35 @@ def date_from_str(date_str):
         unit += 's'
         delta = datetime.timedelta(**{unit: time})
         return today + delta
-    return datetime.datetime.strptime(date_str, '%Y%m%d').date()
+    return datetime.datetime.strptime(date_str, format).date()
+
+def datetime_precision(dt, precision='day'):
+    """Modify datetime object to a certain unit precision"""
+    defaults = collections.OrderedDict(
+        year=1970,
+        month=1,
+        week=1,
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0)
+
+    if precision == 'day':
+        return dt.date()
+    elif precision == 'microsecond':
+        return dt
+
+    if_replacing = False
+    to_replace = {}
+    for unit in defaults:
+        if unit == precision.lower():
+            if_replacing = True
+            continue
+        if not if_replacing:
+            continue
+        to_replace[unit] = defaults[unit]
+    return dt.replace(**to_replace)
 
 
 def hyphenate_date(date_str):
