@@ -93,7 +93,7 @@ class NFHSNetworkIE(InfoExtractor):
         broadcast = (publisher.get('broadcasts') or publisher.get('vods'))[0]  # some (older) videos don't have a broadcasts object
         uploader = publisher.get('formatted_name') or publisher.get('name')
         location = '%s, %s' % (data.get('city'), data.get('state_name'))
-        description = broadcast.get('description') or None
+        description = broadcast.get('description')
         isLive = broadcast.get('on_air') or broadcast.get('status') == 'on_air' or False
 
         timestamp = unified_timestamp(data.get('local_start_time'))
