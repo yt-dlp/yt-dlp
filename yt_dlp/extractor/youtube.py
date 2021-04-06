@@ -1505,7 +1505,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def parse_time_text(time_text):
         time_text_split = time_text.split(" ")
         if len(time_text_split) >= 2:
-            return datetime_from_str("now-%s%s" % (time_text_split[0], time_text_split[1]), precision='second', relative_precision=True)
+            return datetime_from_str("now-%s%s" % (time_text_split[0], time_text_split[1]), precision='auto')
 
     @staticmethod
     def _join_text_entries(runs):
