@@ -48,7 +48,7 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
-    date_from_str
+    datetime_from_str
 )
 
 
@@ -1505,7 +1505,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def parse_time_text(time_text):
         time_text_split = time_text.split(" ")
         if len(time_text_split) >= 2:
-            return date_from_str("now-%s%s" % (time_text_split[0], time_text_split[1]), precision='second')
+            return datetime_from_str("now-%s%s" % (time_text_split[0], time_text_split[1]), precision='second', relative_precision=True)
 
     @staticmethod
     def _join_text_entries(runs):
@@ -1529,7 +1529,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         text = self._join_text_entries(comment_text_runs) or ''
         comment_time_text = try_get(comment_renderer, lambda x: x['publishedTimeText']['runs']) or []
         time_text = self._join_text_entries(comment_time_text)
-        timestamp = str(self.parse_time_text(time_text))
+        timestamp = (self.parse_time_text(time_text) - datetime(1970,1,1)).total_seconds()
         author = try_get(comment_renderer, lambda x: x['authorText']['simpleText'], compat_str)
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
@@ -1543,7 +1543,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {
             'id': comment_id,
             'text': text,
-            # TODO: This should be parsed to timestamp
             'timestamp': timestamp,
             'time_text': time_text,
             'like_count': votes,

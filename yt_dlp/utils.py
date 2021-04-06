@@ -3052,7 +3052,7 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
     return replace_extension(filename, sub_lang + '.' + sub_format, expected_real_ext)
 
 
-def date_from_str(date_str, precision='day', format='%Y%m%d'):
+def datetime_from_str(date_str, precision='day', relative_precision=False, format='%Y%m%d'):
     """
     Return a datetime object from a string in the format YYYYMMDD or
     (now|today)[+-][0-9](second|minute|hour|day|week|month|year/)(s)?"""
@@ -3075,38 +3075,41 @@ def date_from_str(date_str, precision='day', format='%Y%m%d'):
         elif unit == 'year':
             unit = 'day'
             time *= 365
+        elif unit == 'week':
+            unit = 'day'
+            time *= 7
+        if relative_precision:
+            today = datetime_precision(today, precision=unit)
         unit += 's'
         delta = datetime.timedelta(**{unit: time})
         return today + delta
-    return datetime.datetime.strptime(date_str, format).date()
+    return datetime.datetime.strptime(date_str, format)
+
+
+def date_from_str(date_str, format='%Y%m%d'):
+    """
+    Return a datetime object from a string in the format YYYYMMDD or
+    (now|today)[+-][0-9](second|minute|hour|day|week|month|year/)(s)?"""
+    return datetime_from_str(date_str ,format=format).date()
+
 
 def datetime_precision(dt, precision='day'):
     """Modify datetime object to a certain unit precision"""
+
+    if precision == 'microsecond':
+        return dt
+
     defaults = collections.OrderedDict(
         year=1970,
         month=1,
-        week=1,
         day=1,
         hour=0,
         minute=0,
         second=0,
-        microsecond=0)
-
-    if precision == 'day':
-        return dt.date()
-    elif precision == 'microsecond':
-        return dt
-
-    if_replacing = False
-    to_replace = {}
-    for unit in defaults:
-        if unit == precision.lower():
-            if_replacing = True
-            continue
-        if not if_replacing:
-            continue
-        to_replace[unit] = defaults[unit]
-    return dt.replace(**to_replace)
+        microsecond=0
+    )
+    units = list(defaults.keys())
+    return dt.replace(**{unit:defaults[unit] for unit in units[units.index(precision):]})
 
 
 def hyphenate_date(date_str):
