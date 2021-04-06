@@ -3052,33 +3052,83 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
     return replace_extension(filename, sub_lang + '.' + sub_format, expected_real_ext)
 
 
-def date_from_str(date_str):
+def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     """
     Return a datetime object from a string in the format YYYYMMDD or
-    (now|today)[+-][0-9](day|week|month|year)(s)?"""
-    today = datetime.date.today()
+    (now|today|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+
+    format: string date format used to return datetime object from
+    precision: round the time portion of a datetime object.
+                auto|microsecond|second|minute|hour|day.
+                auto: round to the unit provided in date_str (if applicable).
+    """
+    auto_precision = False
+    if precision == 'auto':
+        auto_precision = True
+        precision = 'microsecond'
+    today = datetime_round(datetime.datetime.now(), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
         return today - datetime.timedelta(days=1)
-    match = re.match(r'(now|today)(?P<sign>[+-])(?P<time>\d+)(?P<unit>day|week|month|year)(s)?', date_str)
+    match = re.match(
+        r'(?P<start>.+)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)(s)?',
+        date_str)
     if match is not None:
-        sign = match.group('sign')
-        time = int(match.group('time'))
-        if sign == '-':
-            time = -time
+        start_time = datetime_from_str(match.group('start'), precision, format)
+        time = int(match.group('time')) * (-1 if match.group('sign') == '-' else 1)
         unit = match.group('unit')
-        # A bad approximation?
-        if unit == 'month':
+        if unit == 'month' or unit == 'year':
+            new_date = datetime_add_months(start_time, time * 12 if unit == 'year' else time)
             unit = 'day'
-            time *= 30
-        elif unit == 'year':
-            unit = 'day'
-            time *= 365
-        unit += 's'
-        delta = datetime.timedelta(**{unit: time})
-        return today + delta
-    return datetime.datetime.strptime(date_str, '%Y%m%d').date()
+        else:
+            if unit == 'week':
+                unit = 'day'
+                time *= 7
+            delta = datetime.timedelta(**{unit + 's': time})
+            new_date = start_time + delta
+        if auto_precision:
+            return datetime_round(new_date, unit)
+        return new_date
+
+    return datetime_round(datetime.datetime.strptime(date_str, format), precision)
+
+
+def date_from_str(date_str, format='%Y%m%d'):
+    """
+    Return a datetime object from a string in the format YYYYMMDD or
+    (now|today|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+
+    format: string date format used to return datetime object from
+    """
+    return datetime_from_str(date_str, precision='microsecond', format=format).date()
+
+
+def datetime_add_months(dt, months):
+    """Increment/Decrement a datetime object by months."""
+    month = dt.month + months - 1
+    year = dt.year + month // 12
+    month = month % 12 + 1
+    day = min(dt.day, calendar.monthrange(year, month)[1])
+    return dt.replace(year, month, day)
+
+
+def datetime_round(dt, precision='day'):
+    """
+    Round a datetime object's time to a specific precision
+    """
+    if precision == 'microsecond':
+        return dt
+
+    unit_seconds = {
+        'day': 86400,
+        'hour': 3600,
+        'minute': 60,
+        'second': 1,
+    }
+    roundto = lambda x, n: ((x + n / 2) // n) * n
+    timestamp = calendar.timegm(dt.timetuple())
+    return datetime.datetime.utcfromtimestamp(roundto(timestamp, unit_seconds[precision]))
 
 
 def hyphenate_date(date_str):
