@@ -3109,7 +3109,7 @@ def datetime_precision(dt, precision='day'):
         microsecond=0
     )
     units = list(defaults.keys())
-    return dt.replace(**{unit:defaults[unit] for unit in units[units.index(precision):]})
+    return dt.replace(**{unit:defaults[unit] for unit in units[units.index(precision)+1:]})
 
 
 def hyphenate_date(date_str):
