@@ -22,6 +22,8 @@ class NFHSNetworkIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Rockford vs Spring Lake - Girls Varsity Lacrosse 03/27/2021',
             'uploader': 'MHSAA - Michigan: Rockford High School, Rockford, MI',
+            'uploader_id': 'cd2622cf76',
+            'uploader_url': 'https://www.nfhsnetwork.com/schools/rockford-high-school-rockford-mi',
             'location': 'Rockford, Michigan',
             'timestamp': 1616859000,
             'upload_date': '20210327'
@@ -39,6 +41,8 @@ class NFHSNetworkIE(InfoExtractor):
             'title': 'Drama Performance Limon High School vs. Limon High School - 12/13/2020',
             'description': 'Join the broadcast of the Limon High School Musical Performance at 2 PM.',
             'uploader': 'CHSAA: Limon High School, Limon, CO',
+            'uploader_id': '7d2d121332',
+            'uploader_url': 'https://www.nfhsnetwork.com/schools/limon-high-school-limon-co',
             'location': 'Limon, Colorado',
             'timestamp': 1607893200,
             'upload_date': '20201213'
@@ -55,6 +59,8 @@ class NFHSNetworkIE(InfoExtractor):
             'ext': 'mp4',
             'title': '2015 UA Holiday Classic Tournament: National Division  - 12/26/2015',
             'uploader': 'SoCal Sports Productions',
+            'uploader_id': '063dba0150',
+            'uploader_url': 'https://www.nfhsnetwork.com/affiliates/socal-sports-productions',
             'location': 'San Diego, California',
             'timestamp': 1451187000,
             'upload_date': '20151226'
@@ -72,6 +78,8 @@ class NFHSNetworkIE(InfoExtractor):
             'title': 'Competitive Equity  - 01/21/2015',
             'description': 'Committee members discuss points of their research regarding a competitive equity plan',
             'uploader': 'WIAA - Wisconsin: Wisconsin Interscholastic Athletic Association',
+            'uploader_id': 'a49f7d1002',
+            'uploader_url': 'https://www.nfhsnetwork.com/associations/wiaa-wi',
             'location': 'Stevens Point, Wisconsin',
             'timestamp': 1421856000,
             'upload_date': '20150121'
@@ -92,6 +100,10 @@ class NFHSNetworkIE(InfoExtractor):
         publisher = data.get('publishers')[0]  # always exists
         broadcast = (publisher.get('broadcasts') or publisher.get('vods'))[0]  # some (older) videos don't have a broadcasts object
         uploader = publisher.get('formatted_name') or publisher.get('name')
+        uploaderID = publisher.get('publisher_key')
+        pubType = publisher.get('type')
+        uploaderPrefix = ("schools" if pubType == "school" else "associations" if "association" in pubType else "affiliates" if (pubType == "publisher" or pubType == "affiliate") else "schools")
+        uploaderPage = 'https://www.nfhsnetwork.com/%s/%s' % (uploaderPrefix, publisher.get('slug'))
         location = '%s, %s' % (data.get('city'), data.get('state_name'))
         description = broadcast.get('description')
         isLive = broadcast.get('on_air') or broadcast.get('status') == 'on_air' or False
@@ -120,6 +132,8 @@ class NFHSNetworkIE(InfoExtractor):
             'description': description,
             'timestamp': timestamp,
             'uploader': uploader,
+            'uploader_id': uploaderID,
+            'uploader_url': uploaderPage,
             'location': location,
             'upload_date': upload_date,
             'is_live': isLive
