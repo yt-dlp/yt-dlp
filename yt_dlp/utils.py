@@ -3062,7 +3062,7 @@ def datetime_from_str(date_str, precision='microsecond', format='%Y%m%d'):
                 auto|microsecond|second|minute|hour|day.
                 auto: round to the unit provided in date_str (if applicable).
     """
-    today = round_time(datetime.datetime.now(), 'microsecond' if precision == 'auto' else precision)
+    today = datetime_round(datetime.datetime.now(), 'microsecond' if precision == 'auto' else precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -3084,7 +3084,7 @@ def datetime_from_str(date_str, precision='microsecond', format='%Y%m%d'):
             delta = datetime.timedelta(**{unit + 's': time})
             new_date = today + delta
         if precision == 'auto':
-            return round_time(new_date, precision=unit)
+            return datetime_round(new_date, precision=unit)
         return new_date
 
     return datetime.datetime.strptime(date_str, format)
@@ -3109,23 +3109,22 @@ def datetime_add_months(dt, months):
     return dt.replace(year, month, day)
 
 
-def round_time(dt, precision='day'):
+def datetime_round(dt, precision='day'):
     """
     Round a datetime object's time to a specific precision
     """
     if precision == 'microsecond':
         return dt
 
-    unit_seconds = dict(
-        day=86400,
-        hour=3600,
-        minute=60,
-        second=1,
-    )
-
-    delta = datetime.timedelta(hours=dt.hour, minutes=dt.minute, seconds=dt.second, microseconds=dt.microsecond)
-    rounded_delta = datetime.timedelta(**{precision + 's': round(delta.total_seconds() / unit_seconds[precision])})
-    return datetime.datetime.combine(dt, datetime.time(0)) + rounded_delta
+    unit_seconds = {
+        'day': 86400,
+        'hour': 3600,
+        'minute': 60,
+        'second': 1,
+    }
+    roundto = lambda x, n: ((x + n / 2) // n) * n
+    timestamp = calendar.timegm(dt.timetuple())
+    return datetime.datetime.utcfromtimestamp(roundto(timestamp, unit_seconds[precision]))
 
 
 def hyphenate_date(date_str):
