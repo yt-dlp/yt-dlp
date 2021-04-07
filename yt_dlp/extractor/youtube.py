@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import datetime
 import hashlib
 import itertools
 import json
@@ -10,7 +11,6 @@ import random
 import re
 import time
 import traceback
-from datetime import datetime
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -28,6 +28,7 @@ from ..utils import (
     bool_or_none,
     clean_html,
     dict_get,
+    datetime_from_str,
     ExtractorError,
     format_field,
     float_or_none,
@@ -47,8 +48,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlencode_postdata,
-    urljoin,
-    datetime_from_str
+    urljoin
 )
 
 
@@ -1503,8 +1503,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @staticmethod
     def parse_time_text(time_text):
+        """
+        Parse the comment time text
+        time_text is in the format 'X units ago (edited)'
+        """
         time_text_split = time_text.split(" ")
-        if len(time_text_split) >= 2:
+        if len(time_text_split) >= 3:
             return datetime_from_str("now-%s%s" % (time_text_split[0], time_text_split[1]), precision='auto')
 
     @staticmethod
@@ -1529,7 +1533,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         text = self._join_text_entries(comment_text_runs) or ''
         comment_time_text = try_get(comment_renderer, lambda x: x['publishedTimeText']['runs']) or []
         time_text = self._join_text_entries(comment_time_text)
-        timestamp = (self.parse_time_text(time_text) - datetime(1970,1,1)).total_seconds()
+        timestamp = (self.parse_time_text(time_text) - datetime.datetime(1970, 1, 1)).total_seconds()
         author = try_get(comment_renderer, lambda x: x['authorText']['simpleText'], compat_str)
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)

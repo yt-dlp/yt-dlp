@@ -23,6 +23,7 @@ from yt_dlp.utils import (
     clean_html,
     clean_podcast_url,
     date_from_str,
+    datetime_from_str,
     DateRange,
     detect_exe_version,
     determine_ext,
@@ -313,6 +314,16 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(date_from_str('now+14day'), date_from_str('now+2week'))
         self.assertEqual(date_from_str('now+365day'), date_from_str('now+1year'))
         self.assertEqual(date_from_str('now+30day'), date_from_str('now+1month'))
+
+    def test_datetime_from_str(self):
+        self.assertEqual(datetime_from_str('yesterday', precision='day'), datetime_from_str('now-1day', precision='auto'))
+        self.assertEqual(datetime_from_str('now+7day', precision='day'), datetime_from_str('now+1week', precision='auto'))
+        self.assertEqual(datetime_from_str('now+14day', precision='day'), datetime_from_str('now+2week', precision='auto'))
+        self.assertEqual(datetime_from_str('now+365day', precision='day'), datetime_from_str('now+1year', precision='auto'))
+        self.assertLessEqual(datetime_from_str('now+28day', precision='day'), datetime_from_str('now+1month', precision='auto'))
+        self.assertLessEqual(datetime_from_str('now+58day', precision='day'), datetime_from_str('now+2month', precision='auto'))
+        self.assertEqual(datetime_from_str('now+1day', precision='hour'), datetime_from_str('now+24hours', precision='auto'))
+        self.assertEqual(datetime_from_str('now+23hours', precision='hour'), datetime_from_str('now+23hours', precision='auto'))
 
     def test_daterange(self):
         _20century = DateRange("19000101", "20000101")
