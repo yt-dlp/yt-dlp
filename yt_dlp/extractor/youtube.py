@@ -1507,9 +1507,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         Parse the comment time text
         time_text is in the format 'X units ago (edited)'
         """
-        time_text_split = time_text.split(" ")
+        time_text_split = time_text.split(' ')
         if len(time_text_split) >= 3:
-            return datetime_from_str("now-%s%s" % (time_text_split[0], time_text_split[1]), precision='auto')
+            return datetime_from_str('now-%s%s' % (time_text_split[0], time_text_split[1]), precision='auto')
 
     @staticmethod
     def _join_text_entries(runs):
@@ -1635,12 +1635,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_prog_str = '(%d/%d)' % (comment_counts[0], comment_counts[1])
                     if page_num == 0:
                         if first_continuation:
-                            note_prefix = "Downloading initial comment continuation page"
+                            note_prefix = 'Downloading initial comment continuation page'
                         else:
-                            note_prefix = "    Downloading comment reply thread %d %s" % (comment_counts[2], comment_prog_str)
+                            note_prefix = '    Downloading comment reply thread %d %s' % (comment_counts[2], comment_prog_str)
                     else:
-                        note_prefix = "%sDownloading comment%s page %d %s" % (
-                            "       " if parent else "",
+                        note_prefix = '%sDownloading comment%s page %d %s' % (
+                            '       ' if parent else '',
                             ' replies' if parent else '',
                             page_num,
                             comment_prog_str)
@@ -1655,13 +1655,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 except ExtractorError as e:
                     if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404, 413):
                         if e.cause.code == 413:
-                            self.report_warning("Assumed end of comments (received HTTP Error 413)")
+                            self.report_warning('Assumed end of comments (received HTTP Error 413)')
                             return
                         # Downloading page may result in intermittent 5xx HTTP error
                         # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
                         last_error = 'HTTP Error %s' % e.cause.code
                         if e.cause.code == 404:
-                            last_error = last_error + " (this API is probably deprecated)"
+                            last_error = last_error + ' (this API is probably deprecated)'
                         if count < retries:
                             continue
                     raise
@@ -1679,7 +1679,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     # YouTube sometimes gives reload: now json if something went wrong (e.g. bad auth)
                     if browse.get('reload'):
-                        raise ExtractorError("Invalid or missing params in continuation request", expected=False)
+                        raise ExtractorError('Invalid or missing params in continuation request', expected=False)
 
                     # TODO: not tested, merged from old extractor
                     err_msg = browse.get('externalErrorMessage')
@@ -1719,7 +1719,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     if expected_comment_count:
                         comment_counts[1] = str_to_int(expected_comment_count)
-                        self.to_screen("Downloading ~%d comments" % str_to_int(expected_comment_count))
+                        self.to_screen('Downloading ~%d comments' % str_to_int(expected_comment_count))
                         yield comment_counts[1]
 
                     # TODO: cli arg.
@@ -1735,7 +1735,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continuation = YoutubeTabIE._build_continuation_query(
                             continuation=sort_continuation_renderer.get('continuation'),
                             ctp=sort_continuation_renderer.get('clickTrackingParams'))
-                        self.to_screen("Sorting comments by %s" % ('popular' if comment_sort_index == 0 else 'newest'))
+                        self.to_screen('Sorting comments by %s' % ('popular' if comment_sort_index == 0 else 'newest'))
                         break
 
                 for entry in known_continuation_renderers[key](continuation_renderer):
@@ -1768,7 +1768,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     comments.append(comment)
                 break
-        self.to_screen("Downloaded %d/%d comments" % (len(comments), estimated_total))
+        self.to_screen('Downloaded %d/%d comments' % (len(comments), estimated_total))
         return {
             'comments': comments,
             'comment_count': len(comments),
@@ -2990,7 +2990,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     self.report_warning('%s. Retrying ...' % last_error)
                 try:
                     response = self._call_api(
-                        ep="browse", fatal=True, headers=headers,
+                        ep='browse', fatal=True, headers=headers,
                         video_id='%s page %s' % (item_id, page_num),
                         query={
                             'continuation': continuation['continuation'],
