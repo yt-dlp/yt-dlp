@@ -3058,11 +3058,11 @@ def datetime_from_str(date_str, precision='microsecond', format='%Y%m%d'):
     (now|today)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
 
     format: string date format used to return datetime object from
-    precision: (floor) round the datetime object.
-                auto|microsecond|second|minute|hour|day|week|month|year.
+    precision: (floor) round the time portion of a datetime object.
+                auto|microsecond|second|minute|hour|day.
                 auto: round to the unit provided in date_str (if applicable).
     """
-    today = round_datetime(datetime.datetime.now(), 'microsecond' if precision == 'auto' else precision)
+    today = round_time(datetime.datetime.now(), 'microsecond' if precision == 'auto' else precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -3084,7 +3084,7 @@ def datetime_from_str(date_str, precision='microsecond', format='%Y%m%d'):
             delta = datetime.timedelta(**{unit + 's': time})
             new_date = today + delta
         if precision == 'auto':
-            return round_datetime(new_date, precision=unit)
+            return round_time(new_date, precision=unit)
         return new_date
 
     return datetime.datetime.strptime(date_str, format)
@@ -3109,25 +3109,23 @@ def datetime_add_months(dt, months):
     return dt.replace(year, month, day)
 
 
-def round_datetime(dt, precision='day'):
+def round_time(dt, precision='day'):
     """
-    Round a datetime object to a specific precision unit
-    Note: floor rounding
+    Round a datetime object's time to a specific precision
     """
-
     if precision == 'microsecond':
         return dt
-    ordered_units = ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond')
-    unit_defaults = dict(
-        year=1970,
-        month=1,
-        day=1,
-        hour=0,
-        minute=0,
-        second=0,
-        microsecond=0
+
+    unit_seconds = dict(
+        day=86400,
+        hour=3600,
+        minute=60,
+        second=1,
     )
-    return dt.replace(**{unit: unit_defaults[unit] for unit in ordered_units[ordered_units.index(precision) + 1:]})
+
+    delta = datetime.timedelta(hours=dt.hour, minutes=dt.minute, seconds=dt.second, microseconds=dt.microsecond)
+    rounded_delta = datetime.timedelta(**{precision+'s': round(delta.total_seconds() / unit_seconds[precision])})
+    return datetime.datetime.combine(dt, datetime.time(0)) + rounded_delta
 
 
 def hyphenate_date(date_str):
