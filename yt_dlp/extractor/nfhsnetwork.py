@@ -102,7 +102,11 @@ class NFHSNetworkIE(InfoExtractor):
         uploader = publisher.get('formatted_name') or publisher.get('name')
         uploaderID = publisher.get('publisher_key')
         pubType = publisher.get('type')
-        uploaderPrefix = ("schools" if pubType == "school" else "associations" if "association" in pubType else "affiliates" if (pubType == "publisher" or pubType == "affiliate") else "schools")
+        uploaderPrefix = (
+            "schools" if pubType == "school"
+            else "associations" if "association" in pubType
+            else "affiliates" if (pubType == "publisher" or pubType == "affiliate")
+            else "schools")
         uploaderPage = 'https://www.nfhsnetwork.com/%s/%s' % (uploaderPrefix, publisher.get('slug'))
         location = '%s, %s' % (data.get('city'), data.get('state_name'))
         description = broadcast.get('description')
