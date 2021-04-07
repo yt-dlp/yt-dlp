@@ -3101,7 +3101,7 @@ def date_from_str(date_str, format='%Y%m%d'):
 
     format: string date format used to return datetime object from
     """
-    return datetime_from_str(date_str, precision='day', format=format).date()
+    return datetime_from_str(date_str, precision='microsecond', format=format).date()
 
 
 def datetime_add_months(dt, months):
