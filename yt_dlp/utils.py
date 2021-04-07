@@ -3117,8 +3117,8 @@ def round_datetime(dt, precision='day'):
 
     if precision == 'microsecond':
         return dt
-
-    unit_defaults = collections.OrderedDict(
+    ordered_units = ('year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond')
+    unit_defaults = dict(
         year=1970,
         month=1,
         day=1,
@@ -3127,8 +3127,7 @@ def round_datetime(dt, precision='day'):
         second=0,
         microsecond=0
     )
-    units = list(unit_defaults.keys())
-    return dt.replace(**{unit: unit_defaults[unit] for unit in units[units.index(precision) + 1:]})
+    return dt.replace(**{unit: unit_defaults[unit] for unit in ordered_units[ordered_units.index(precision) + 1:]})
 
 
 def hyphenate_date(date_str):

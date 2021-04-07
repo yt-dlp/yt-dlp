@@ -312,8 +312,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(date_from_str('yesterday'), date_from_str('now-1day'))
         self.assertEqual(date_from_str('now+7day'), date_from_str('now+1week'))
         self.assertEqual(date_from_str('now+14day'), date_from_str('now+2week'))
-        self.assertEqual(date_from_str('now+365day'), date_from_str('now+1year'))
-        self.assertEqual(date_from_str('now+30day'), date_from_str('now+1month'))
+        self.assertLessEqual(date_from_str('now+365day'), date_from_str('now+1year'))
+        self.assertLessEqual(date_from_str('now+28day'), date_from_str('now+1month'))
 
     def test_datetime_from_str(self):
         self.assertEqual(datetime_from_str('yesterday', precision='day'), datetime_from_str('now-1day', precision='auto'))
