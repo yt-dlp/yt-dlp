@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-import datetime
+import calendar
 import hashlib
 import itertools
 import json
@@ -1533,7 +1533,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         text = self._join_text_entries(comment_text_runs) or ''
         comment_time_text = try_get(comment_renderer, lambda x: x['publishedTimeText']['runs']) or []
         time_text = self._join_text_entries(comment_time_text)
-        timestamp = (self.parse_time_text(time_text) - datetime.datetime(1970, 1, 1)).total_seconds()
+        timestamp = calendar.timegm(self.parse_time_text(time_text).timetuple())
         author = try_get(comment_renderer, lambda x: x['authorText']['simpleText'], compat_str)
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
