@@ -3124,7 +3124,7 @@ def round_time(dt, precision='day'):
     )
 
     delta = datetime.timedelta(hours=dt.hour, minutes=dt.minute, seconds=dt.second, microseconds=dt.microsecond)
-    rounded_delta = datetime.timedelta(**{precision+'s': round(delta.total_seconds() / unit_seconds[precision])})
+    rounded_delta = datetime.timedelta(**{precision + 's': round(delta.total_seconds() / unit_seconds[precision])})
     return datetime.datetime.combine(dt, datetime.time(0)) + rounded_delta
 
 
