@@ -126,7 +126,7 @@ class NitterIE(InfoExtractor):
                 'upload_date': '20201027',
                 'timestamp': 1603820982
             },
-        }, { # not the first tweet but main-tweet
+        }, {  # not the first tweet but main-tweet
             'url': 'https://%s/TheNaturalNu/status/1379050895539724290#m' % current_instance,
             'info_dict': {
                 'id': '1379050895539724290',
