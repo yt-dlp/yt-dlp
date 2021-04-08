@@ -120,6 +120,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'https://www.bilibili.com/video/BV1bK411W797',
         'info_dict': {
             'id': 'BV1bK411W797',
+            'title': '物语中的人物是如何吐槽自己的OP的'
         },
         'playlist_count': 17,
     }]
@@ -156,7 +157,8 @@ class BiliBiliIE(InfoExtractor):
                 if r is not None:
                     self.to_screen('Downloading anthology %s - add --no-playlist to just download video' % video_id)
                     return r
-            self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+            else:
+                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
         if 'anime/' not in url:
             cid = self._search_regex(
@@ -274,7 +276,7 @@ class BiliBiliIE(InfoExtractor):
         }
 
         uploader_mobj = re.search(
-            r'<a[^>]+href="(?:https?:)?//space\.bilibili\.com/(?P<id>\d+)"[^>]*>(?P<name>[^<]+)',
+            r'<a[^>]+href="(?:https?:)?//space\.bilibili\.com/(?P<id>\d+)"[^>]*>\s*(?P<name>[^<]+?)\s*<',
             webpage)
         if uploader_mobj:
             info.update({
