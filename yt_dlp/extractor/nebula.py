@@ -13,104 +13,7 @@ from ..utils import (
 )
 
 
-"""
-# Nebula extractor
-
-## Overview
-
-Nebula (https://watchnebula.com/) is a video platform created by the streamer community Standard. It hosts videos
-off-YouTube from a small hand-picked group of creators.
-
-## Access requirements
-
-All videos require a subscription to watch. There are no known freely available videos. Authentication credentials
-an account with a valid subscription are required, and can be supplied either via .netrc or on the command line via
---username and --password. The unit tests are expecting credentials in .netrc.
-
-## Video infrastructure
-
-Nebula uses the Zype video infrastructure and this extractor is using the 'url_transparent' mode to hand off
-video extraction to the Zype extractor.
-
-## Retrieving the Zype API key
-
-To access the videos on Zype, the Nebula frontend needs a Zype API key.
-
-The Nebula frontend stores this as a JS object literal in one of its JS chunks,
-looking somewhat like this (but minified):
-
-    return {
-        NODE_ENV: "production",
-        REACT_APP_NAME: "Nebula",
-        REACT_APP_NEBULA_API: "https://api.watchnebula.com/api/v1/",
-        REACT_APP_ZYPE_API: "https://api.zype.com/",
-        REACT_APP_ZYPE_API_KEY: "<redacted>",
-        REACT_APP_ZYPE_APP_KEY: "<redacted>",
-        // ...
-    }
-
-So we have to find the reference to the chunk in the video page (as it is hashed and the hash will
-change when they do a new release), then download the chunk and extract the API key from there,
-hoping they won't rename the constant.
-
-Alternatively, it is currently hardcoded and shared among all users. We haven't seen it
-change so far, so we could also just hardcode it in the extractor as a fallback.
-
-## Working with the Zype access token
-
-To access the videos, the Nebula frontend also needs a Zype access token. This appears to be
-user-specific and also have a limited lifetime.
-
-The Nebula backend appears to cache this access token. If a valid non-expired token is
-available, it readily returns it. If it isn't, the frontend will request a new one from
-the backend and then poll the backend until it is available.
-
-This can be witnessed in the browser's dev tools when accessing Nebula a certain time after
-not visiting the site (we're not sure about the exact time, but it appears to be in the
-'multiple days' range):
-
-- The frontend calls GET /auth/user/. If the access token is cached, the backend will return
-  an object including the token under the key 'zype_auth_info'.
-- If the frontend doesn't find that key, it will first GET /zype/auth-info/ and get a 404.
-  At this point, it is unclear what purpose this serves.
-- Next, it will POST /zype/auth-info/new/. This seems to be the request to the backend to
-  asynchronously request a new access token from the Zype API.
-- Finally, it will poll GET /zype/auth-info/ until it receives a new token set, which also
-  includes a working access token.
-
-Notably, the extractor currently does *not* support this entire flow. We should implement
-it, but it's hard to test as we haven't figured out a way to set the Nebula backend back
-into the 'expired access token' state.
-So instead, we're just expecting an access token to be returned on /auth/user/, and if it
-isn't, we're raising an error message asking the user to open a random video or channel in
-their browser, which 'primes' the Nebula backend to have all required data for the
-extractor.
-
-## Channel title detection
-
-To determine the channel title of a video, we need to go through the list of categories to find
-the first value of the category that has a value.
-
-I know this sounds like a terrible approach. But actually, it's just reproducing the behavior of the
-React code the Nebula frontend uses (as of 2020-04-07):
-
-    let channel;
-    if (video && video.categories && video.categories.length) {
-        const channelTitle = video.categories.map((category) => (category.value[0]))
-                                                .filter((title) => (!!title))[0];
-        channel = getChannelByTitle(state, { title: channelTitle });
-    }
-
-Basically, it finds the first (truthy) value in the category list and that's assumed to be the
-channel title. And then the channel details (e.g. the URL) are looked up by title (!) (not by any
-kind of ID) via an additional API call.
-"""
-
-
 class NebulaIE(InfoExtractor):
-    """
-    Extractor for the video platform Nebula, based on the Zype extractor.
-    """
 
     _VALID_URL = r'https?://(?:www\.)?watchnebula\.com/videos/(?P<id>[-\w]+)'   # the 'id' group is actually the display_id, but we misname it 'id' to be able to use _match_id()
     _TESTS = [
@@ -171,70 +74,45 @@ class NebulaIE(InfoExtractor):
     ]
     _NETRC_MACHINE = 'watchnebula'
 
-    def _perform_login(self, username, password, video_id):
-        """
-        Log in to Nebula, authenticating using a given username and password.
-
-        Returns a Nebula API token, just like the Nebula frontend would store it
-        in the nebula-auth cookie. Or False, if authentication fails.
-        """
-        data = json.dumps({'email': username, 'password': password}).encode('utf8')
-        response = self._download_json('https://api.watchnebula.com/api/v1/auth/login/',
-                                       data=data,
-                                       headers={
-                                           'content-type': 'application/json',
-                                           # Overwrite the cookie headers, because
-                                           # submitting the 'sessionid' cookie
-                                           # always causes a 403 on auth endpoint
-                                           'cookie': ''},
-                                       fatal=False,
-                                       video_id=video_id,
-                                       note='Authenticating to Nebula with supplied credentials',
-                                       errnote='Authentication failed or rejected')
-        if not response or 'key' not in response:
-            return False
-        return response['key']
-
     def _retrieve_nebula_auth(self, video_id):
         """
-        Authenticate to the Nebula API, either using credentials supplied via
-        .netrc, or on the command line via --username and --password.
-
-        Returns a Nebula API token, which subsequently can be used to make
-        authenticated calls to the Nebula API.
+        Log in to Nebula, and returns a Nebula API token
         """
-        nebula_token = None
 
-        # retrieve credentials, then log in to Nebula
         username, password = self._get_login_info()
-        if username and password:
-            self.to_screen('Authenticating to Nebula using .netrc or command line-supplied credentials')
-            nebula_token = self._perform_login(username, password, video_id)
-
-        # abort if we couldn't authenticate (all videos on Nebula require authentication!)
-        if not nebula_token:
+        if not (username and password):
             self.raise_login_required()
 
-        return nebula_token
+        self.report_login()
+        data = json.dumps({'email': username, 'password': password}).encode('utf8')
+        response = self._download_json(
+            'https://api.watchnebula.com/api/v1/auth/login/',
+            data=data, fatal=False, video_id=video_id,
+            headers={
+                'content-type': 'application/json',
+                # Submitting the 'sessionid' cookie always causes a 403 on auth endpoint
+                'cookie': ''
+            },
+            note='Authenticating to Nebula with supplied credentials',
+            errnote='Authentication failed or rejected')
+        if not response or not response.get('key'):
+            self.raise_login_required()
+        return response['key']
 
     def _retrieve_zype_api_key(self, page_url, display_id):
         """
         Retrieves the Zype API key
         """
-        # fetch the video page
-        webpage = self._download_webpage(page_url, video_id=display_id)
 
-        # find the script tag with a file named 'main.<hash>.chunk.js'
+        # Find the js that has the API key from the webpage and download it
+        webpage = self._download_webpage(page_url, video_id=display_id)
         main_script_relpath = self._search_regex(
             r'<script[^>]*src="(?P<script_relpath>[^"]*main.[0-9a-f]*.chunk.js)"[^>]*>', webpage,
             group='script_relpath', name='script relative path', fatal=True)
-
-        # fetch the JS chunk
         main_script_abspath = urljoin(page_url, main_script_relpath)
         main_script = self._download_webpage(main_script_abspath, video_id=display_id,
                                              note='Retrieving Zype API key')
 
-        # find the API key named 'REACT_APP_ZYPE_API_KEY'
         api_key = self._search_regex(
             r'REACT_APP_ZYPE_API_KEY\s*:\s*"(?P<api_key>[\w-]*)"', main_script,
             group='api_key', name='API key', fatal=True)
@@ -249,16 +127,6 @@ class NebulaIE(InfoExtractor):
         query.update(params)
         return self._download_json('https://api.zype.com' + path, video_id, query=query, note=note)
 
-    def _fetch_zype_video_data(self, display_id, api_key):
-        """
-        Fetch video meta data from the Zype API.
-        """
-        response = self._call_zype_api('/videos', {'friendly_title': display_id},
-                                       display_id, api_key, note='Retrieving metadata from Zype')
-        if 'response' not in response or len(response['response']) != 1:
-            raise ExtractorError('Unable to find video on Zype API')
-        return response['response'][0]
-
     def _call_nebula_api(self, path, video_id, access_token, note):
         """
         A helper for making calls to the Nebula API.
@@ -268,16 +136,16 @@ class NebulaIE(InfoExtractor):
         }, note=note)
 
     def _fetch_zype_access_token(self, video_id, nebula_token):
-        """
-        Requests a Zype access token from the Nebula API.
-
-        TODO: We should reimplement the same Zype token polling the Nebula frontend implements, see https://github.com/ytdl-org/youtube-dl/pull/24805#issuecomment-749231532
-        """
         user_object = self._call_nebula_api('/auth/user/', video_id, nebula_token, note='Retrieving Zype access token')
         access_token = try_get(user_object, lambda x: x['zype_auth_info']['access_token'], compat_str)
         if not access_token:
             if try_get(user_object, lambda x: x['is_subscribed'], bool):
-                raise ExtractorError('Unable to extract Zype access token from Nebula API authentication endpoint, please try loading an arbitrary video in a browser with this account to ''prime'' it for video downloading')
+                # TODO: Reimplement the same Zype token polling the Nebula frontend implements
+                # see https://github.com/ytdl-org/youtube-dl/pull/24805#issuecomment-749231532
+                raise ExtractorError(
+                    'Unable to extract Zype access token from Nebula API authentication endpoint. '
+                    'Open an arbitrary video in a browser with this account to generate a token',
+                    expected=True)
             raise ExtractorError('Unable to extract Zype access token from Nebula API authentication endpoint')
         return access_token
 
@@ -289,63 +157,48 @@ class NebulaIE(InfoExtractor):
             video_id=video_id,
             access_token=zype_access_token)
 
-    def _extract_channel(self, video_meta):
-        """
-        Extract the channel title. May return None of no category list could
-        be found or no category had a label.
-
-        TODO: Implement the API calls giving us the channel list, so that we can do the title lookup and then figure out the channel URL
-        """
+    def _extract_channel_title(self, video_meta):
+        # TODO: Implement the API calls giving us the channel list, so that we can do the title lookup and then figure out the channel URL
         categories = video_meta.get('categories', []) if video_meta else []
+        # the channel name is the value of the first category
         for category in categories:
-            if category.get('value'):   # we're intentionally not using "'value' in category" here, because the expression is supposed to be falsy for empty lists in category['value'] as well!
+            if category.get('value'):
                 return category['value'][0]
 
     def _real_extract(self, url):
-        # extract the video's display ID from the URL (we'll retrieve the video ID later)
         display_id = self._match_id(url)
-
-        # retrieve Nebula authentication information
         nebula_token = self._retrieve_nebula_auth(display_id)
-
-        # fetch video meta data from the Nebula API
         api_key = self._retrieve_zype_api_key(url, display_id)
-        video_meta = self._fetch_zype_video_data(display_id, api_key)
+
+        response = self._call_zype_api('/videos', {'friendly_title': display_id},
+                                       display_id, api_key, note='Retrieving metadata from Zype')
+        if len(response.get('response') or []) != 1:
+            raise ExtractorError('Unable to find video on Zype API')
+        video_meta = response['response'][0]
+
         video_id = video_meta['_id']
-
-        # extract additional info
-        channel_title = self._extract_channel(video_meta)
-
-        # fetch the access token for Zype, then construct the video URL
         zype_access_token = self._fetch_zype_access_token(display_id, nebula_token=nebula_token)
-        video_url = self._build_video_url(video_id, zype_access_token)
+
+        channel_title = self._extract_channel_title(video_meta)
 
         return {
             'id': video_id,
             'display_id': display_id,
-
-            # we're passing this video URL on to the 'Zype' extractor (that's the video infrastructure that Nebula is
-            # built on top of) and use the 'url_transparent' type to indicate that our meta data should be better than
-            # whatever the Zype extractor is able to identify
             '_type': 'url_transparent',
             'ie_key': 'Zype',
-            'url': video_url,
-
-            # the meta data we were able to extract from Nebula
+            'url': 'https://player.zype.com/embed/%s.html?access_token=%s' % (video_id, zype_access_token),
             'title': video_meta.get('title'),
             'description': video_meta.get('description'),
             'timestamp': parse_iso8601(video_meta.get('published_at')),
             'thumbnails': [
                 {
-                    'id': tn.get('name'),   # this appears to be null in all cases I've encountered
+                    'id': tn.get('name'),  # this appears to be null
                     'url': tn['url'],
                     'width': tn.get('width'),
                     'height': tn.get('height'),
                 } for tn in video_meta.get('thumbnails', [])],
             'duration': video_meta.get('duration'),
             'channel': channel_title,
-            'uploader': channel_title,   # we chose here to declare the channel name as the 'uploader' -- that's certainly arguable, as sometimes it's more of a series
-            # TODO: uploader_url: the video page clearly links to this (in the example case: /lindsayellis), but I cannot figure out where it gets it from!
-            # TODO: channel_id
-            # TODO: channel_url
+            'uploader': channel_title,  # we chose uploader = channel name
+            # TODO: uploader_url, channel_id, channel_url
         }
