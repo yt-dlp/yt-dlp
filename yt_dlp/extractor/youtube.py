@@ -3222,25 +3222,26 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     alert_type = alert.get('type')
                     if not alert_type:
                         continue
-                    message = try_get(alert, lambda x: x['text']['simpleText'], compat_str)
+                    message = try_get(alert, lambda x: x['text']['simpleText'], compat_str) or ''
                     if message:
                         yield alert_type, message
                     for run in try_get(alert, lambda x: x['text']['runs'], list) or []:
-                        message = try_get(run, lambda x: x['text'], compat_str)
-                        if message:
-                            yield alert_type, message
+                        message += try_get(run, lambda x: x['text'], compat_str)
+                    if message:
+                        yield alert_type, message
 
-        err_msg = None
+        errors = []
+        warnings = []
         for alert_type, alert_message in _real_extract_alerts():
             if alert_type.lower() == 'error':
-                if err_msg:
-                    self._downloader.report_warning('YouTube said: %s - %s' % ('ERROR', err_msg))
-                err_msg = alert_message
+                errors.append([alert_type, alert_message])
             else:
-                self._downloader.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
+                warnings.append([alert_type, alert_message])
 
-        if err_msg:
-            raise ExtractorError('YouTube said: %s' % err_msg, expected=expected)
+        for alert_type, alert_message in (warnings + errors[:-1]):
+            self._downloader.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
+        if errors:
+            raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
 
     def _extract_webpage(self, url, item_id):
         retries = self._downloader.params.get('extractor_retries', 3)
