@@ -15,7 +15,7 @@ from ..utils import (
 
 class NebulaIE(InfoExtractor):
 
-    _VALID_URL = r'https?://(?:www\.)?watchnebula\.com/videos/(?P<id>[-\w]+)'   # the 'id' group is actually the display_id, but we misname it 'id' to be able to use _match_id()
+    _VALID_URL = r'https?://(?:www\.)?watchnebula\.com/videos/(?P<id>[-\w]+)'
     _TESTS = [
         {
             'url': 'https://watchnebula.com/videos/that-time-disney-remade-beauty-and-the-beast',
@@ -158,7 +158,8 @@ class NebulaIE(InfoExtractor):
             access_token=zype_access_token)
 
     def _extract_channel_title(self, video_meta):
-        # TODO: Implement the API calls giving us the channel list, so that we can do the title lookup and then figure out the channel URL
+        # TODO: Implement the API calls giving us the channel list,
+        # so that we can do the title lookup and then figure out the channel URL
         categories = video_meta.get('categories', []) if video_meta else []
         # the channel name is the value of the first category
         for category in categories:
