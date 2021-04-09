@@ -794,8 +794,9 @@ from .ndr import (
     NJoyEmbedIE,
 )
 from .ndtv import NDTVIE
-from .netzkino import NetzkinoIE
+from .nebula import NebulaIE
 from .nerdcubed import NerdCubedFeedIE
+from .netzkino import NetzkinoIE
 from .neteasemusic import (
     NetEaseMusicIE,
     NetEaseMusicAlbumIE,
