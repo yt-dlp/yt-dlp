@@ -370,11 +370,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             context['client']['visitorData'] = visitor_data
         return context
 
-    def _generate_api_headers(self, ytcfg=None):
-        return {
+    def _generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None, visitor_data=None):
+        headers = {
             'X-YouTube-Client-Name': '1',
             'X-YouTube-Client-Version': self.__extract_client_version(ytcfg)
         }
+        if identity_token:
+            headers['x-youtube-identity-token'] = identity_token
+        if account_syncid:
+            headers['X-Goog-PageId'] = account_syncid
+            headers['X-Goog-AuthUser'] = 0
+        if visitor_data:
+            headers['x-goog-visitor-id'] = visitor_data
+        return headers
 
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
@@ -1613,17 +1621,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             comment_counts = [0, 0, 0]
 
         # TODO: Generalize the download code with TabIE
-        headers = self._generate_api_headers()
         context = self._extract_context(ytcfg)
         visitor_data = try_get(context, lambda x: x['client']['visitorData'], compat_str)
-
-        if identity_token:
-            headers['x-youtube-identity-token'] = identity_token
-
-        if account_syncid:
-            headers['X-Goog-PageId'] = account_syncid
-            headers['X-Goog-AuthUser'] = 0
-
         continuation = YoutubeTabIE._extract_continuation(root_continuation_data)  # TODO
         first_continuation = False
         if parent is None:
@@ -1632,8 +1631,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for page_num in itertools.count(0):
             if not continuation:
                 break
-            if visitor_data:
-                headers['x-goog-visitor-id'] = visitor_data
+            headers = self._generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
             retries = self._downloader.params.get('extractor_retries', 3)
             count = -1
             last_error = None
@@ -2990,23 +2988,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         for entry in extract_entries(parent_renderer):
             yield entry
         continuation = continuation_list[0]
-
-        headers = self._generate_api_headers(ytcfg)
-        if identity_token:
-            headers['x-youtube-identity-token'] = identity_token
-        if account_syncid:
-            headers['X-Goog-PageId'] = account_syncid
-            headers['X-Goog-AuthUser'] = 0
-
         context = self._extract_context(ytcfg)
         visitor_data = try_get(context, lambda x: x['client']['visitorData'], compat_str)
 
         for page_num in itertools.count(1):
             if not continuation:
                 break
-            if visitor_data:
-                headers['x-goog-visitor-id'] = visitor_data
-
+            headers = self._generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
             retries = self._downloader.params.get('extractor_retries', 3)
             count = -1
             last_error = None
