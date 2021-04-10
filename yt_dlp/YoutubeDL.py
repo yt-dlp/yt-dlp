@@ -1637,7 +1637,7 @@ class YoutubeDL(object):
                     return []
 
             elif selector.type == SINGLE:  # atom
-                format_spec = (selector.selector if selector.selector is not None else 'best').lower()
+                format_spec = (selector.selector or 'best').lower()
 
                 # TODO: Add allvideo, allaudio etc by generalizing the code with best/worst selector
                 if format_spec == 'all':
@@ -1649,6 +1649,8 @@ class YoutubeDL(object):
                 elif format_spec == 'mergeall':
                     def selector_function(ctx):
                         formats = list(ctx['formats'])
+                        if not formats:
+                            return
                         merged_format = formats[0]
                         for f in formats[1:]:
                             merged_format = _merge((merged_format, f))
