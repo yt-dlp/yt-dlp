@@ -1541,6 +1541,66 @@ class YoutubeDL(object):
                 selectors.append(current_selector)
             return selectors
 
+        def _merge(formats_pair):
+            format_1, format_2 = formats_pair
+
+            formats_info = []
+            formats_info.extend(format_1.get('requested_formats', (format_1,)))
+            formats_info.extend(format_2.get('requested_formats', (format_2,)))
+
+            if not allow_multiple_streams['video'] or not allow_multiple_streams['audio']:
+                get_no_more = {"video": False, "audio": False}
+                for (i, fmt_info) in enumerate(formats_info):
+                    for aud_vid in ["audio", "video"]:
+                        if not allow_multiple_streams[aud_vid] and fmt_info.get(aud_vid[0] + 'codec') != 'none':
+                            if get_no_more[aud_vid]:
+                                formats_info.pop(i)
+                            get_no_more[aud_vid] = True
+
+            if len(formats_info) == 1:
+                return formats_info[0]
+
+            video_fmts = [fmt_info for fmt_info in formats_info if fmt_info.get('vcodec') != 'none']
+            audio_fmts = [fmt_info for fmt_info in formats_info if fmt_info.get('acodec') != 'none']
+
+            the_only_video = video_fmts[0] if len(video_fmts) == 1 else None
+            the_only_audio = audio_fmts[0] if len(audio_fmts) == 1 else None
+
+            output_ext = self.params.get('merge_output_format')
+            if not output_ext:
+                if the_only_video:
+                    output_ext = the_only_video['ext']
+                elif the_only_audio and not video_fmts:
+                    output_ext = the_only_audio['ext']
+                else:
+                    output_ext = 'mkv'
+
+            new_dict = {
+                'requested_formats': formats_info,
+                'format': '+'.join(fmt_info.get('format') for fmt_info in formats_info),
+                'format_id': '+'.join(fmt_info.get('format_id') for fmt_info in formats_info),
+                'ext': output_ext,
+            }
+
+            if the_only_video:
+                new_dict.update({
+                    'width': the_only_video.get('width'),
+                    'height': the_only_video.get('height'),
+                    'resolution': the_only_video.get('resolution') or self.format_resolution(the_only_video),
+                    'fps': the_only_video.get('fps'),
+                    'vcodec': the_only_video.get('vcodec'),
+                    'vbr': the_only_video.get('vbr'),
+                    'stretched_ratio': the_only_video.get('stretched_ratio'),
+                })
+
+            if the_only_audio:
+                new_dict.update({
+                    'acodec': the_only_audio.get('acodec'),
+                    'abr': the_only_audio.get('abr'),
+                })
+
+            return new_dict
+
         def _build_selector_function(selector):
             if isinstance(selector, list):  # ,
                 fs = [_build_selector_function(s) for s in selector]
@@ -1565,14 +1625,22 @@ class YoutubeDL(object):
                     return []
 
             elif selector.type == SINGLE:  # atom
-                format_spec = selector.selector if selector.selector is not None else 'best'
+                format_spec = (selector.selector if selector.selector is not None else 'best').lower()
 
+                # TODO: Add allvideo, allaudio etc by generalizing the code with best/worst selector
                 if format_spec == 'all':
                     def selector_function(ctx):
                         formats = list(ctx['formats'])
                         if formats:
                             for f in formats:
                                 yield f
+                elif format_spec == 'mergeall':
+                    def selector_function(ctx):
+                        formats = list(ctx['formats'])
+                        merged_format = formats[0]
+                        for f in formats[1:]:
+                            merged_format = _merge((merged_format, f))
+                        yield merged_format
 
                 else:
                     format_fallback = False
@@ -1618,66 +1686,6 @@ class YoutubeDL(object):
                                 yield formats[format_idx]
 
             elif selector.type == MERGE:        # +
-                def _merge(formats_pair):
-                    format_1, format_2 = formats_pair
-
-                    formats_info = []
-                    formats_info.extend(format_1.get('requested_formats', (format_1,)))
-                    formats_info.extend(format_2.get('requested_formats', (format_2,)))
-
-                    if not allow_multiple_streams['video'] or not allow_multiple_streams['audio']:
-                        get_no_more = {"video": False, "audio": False}
-                        for (i, fmt_info) in enumerate(formats_info):
-                            for aud_vid in ["audio", "video"]:
-                                if not allow_multiple_streams[aud_vid] and fmt_info.get(aud_vid[0] + 'codec') != 'none':
-                                    if get_no_more[aud_vid]:
-                                        formats_info.pop(i)
-                                    get_no_more[aud_vid] = True
-
-                    if len(formats_info) == 1:
-                        return formats_info[0]
-
-                    video_fmts = [fmt_info for fmt_info in formats_info if fmt_info.get('vcodec') != 'none']
-                    audio_fmts = [fmt_info for fmt_info in formats_info if fmt_info.get('acodec') != 'none']
-
-                    the_only_video = video_fmts[0] if len(video_fmts) == 1 else None
-                    the_only_audio = audio_fmts[0] if len(audio_fmts) == 1 else None
-
-                    output_ext = self.params.get('merge_output_format')
-                    if not output_ext:
-                        if the_only_video:
-                            output_ext = the_only_video['ext']
-                        elif the_only_audio and not video_fmts:
-                            output_ext = the_only_audio['ext']
-                        else:
-                            output_ext = 'mkv'
-
-                    new_dict = {
-                        'requested_formats': formats_info,
-                        'format': '+'.join(fmt_info.get('format') for fmt_info in formats_info),
-                        'format_id': '+'.join(fmt_info.get('format_id') for fmt_info in formats_info),
-                        'ext': output_ext,
-                    }
-
-                    if the_only_video:
-                        new_dict.update({
-                            'width': the_only_video.get('width'),
-                            'height': the_only_video.get('height'),
-                            'resolution': the_only_video.get('resolution') or self.format_resolution(the_only_video),
-                            'fps': the_only_video.get('fps'),
-                            'vcodec': the_only_video.get('vcodec'),
-                            'vbr': the_only_video.get('vbr'),
-                            'stretched_ratio': the_only_video.get('stretched_ratio'),
-                        })
-
-                    if the_only_audio:
-                        new_dict.update({
-                            'acodec': the_only_audio.get('acodec'),
-                            'abr': the_only_audio.get('abr'),
-                        })
-
-                    return new_dict
-
                 selector_1, selector_2 = map(_build_selector_function, selector.selector)
 
                 def selector_function(ctx):

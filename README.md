@@ -979,8 +979,9 @@ You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, 
 You can also use special names to select particular edge case formats:
 
  - `all`: Select all formats
- - `b*`, `best*`: Select the best quality format irrespective of whether it contains video or audio.
- - `w*`, `worst*`: Select the worst quality format irrespective of whether it contains video or audio.
+ - `mergeall`: Select and merge all formats (Must be used with `--audio-multistreams`, `--video-multistreams` or both)
+ - `b*`, `best*`: Select the best quality format irrespective of whether it contains video or audio
+ - `w*`, `worst*`: Select the worst quality format irrespective of whether it contains video or audio
  - `b`, `best`: Select the best quality format that contains both video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
  - `w`, `worst`: Select the worst quality format that contains both video and audio. Equivalent to `worst*[vcodec!=none][acodec!=none]`
  - `bv`, `bestvideo`: Select the best quality video-only format. Equivalent to `best*[acodec=none]`
@@ -1094,10 +1095,17 @@ $ yt-dlp
 # by default, bestvideo and bestaudio will have the same file name.
 $ yt-dlp -f 'bv,ba' -o '%(title)s.f%(format_id)s.%(ext)s'
 
+# Download and merge the best format that has a video stream,
+# and all audio-only formats into one file
+$ yt-dlp -f 'bv*+mergeall[vcodec=none]' --audio-multistreams
+
+# Download and merge the best format that has a video stream,
+# and the best 2 audio-only formats into one file
+$ yt-dlp -f 'bv*+ba+ba.2' --audio-multistreams
 
 
 # The following examples show the old method (without -S) of format selection
-# and how to use -S to achieve a similar but better result
+# and how to use -S to achieve a similar but (generally) better result
 
 # Download the worst video available (old method)
 $ yt-dlp -f 'wv*+wa/w'
@@ -1178,7 +1186,7 @@ $ yt-dlp -S '+codec:h264'
 $ yt-dlp -f '((bv*[fps>30]/bv*)[height<=720]/(wv*[fps>30]/wv*)) + ba / (b[fps>30]/b)[height<=720]/(w[fps>30]/w)'
 
 # Download the video with the largest resolution no better than 720p,
-# or the video with the smallest resolution available  if there is no such video,
+# or the video with the smallest resolution available if there is no such video,
 # prefering larger framerate for formats with the same resolution
 $ yt-dlp -S 'res:720,fps'
 
