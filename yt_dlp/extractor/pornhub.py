@@ -398,6 +398,16 @@ class PornHubIE(PornHubBaseIE):
         formats = []
 
         def add_format(format_url, height=None):
+            ext = determine_ext(format_url)
+            if ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(
+                    format_url, video_id, mpd_id='dash', fatal=False))
+                return
+            if ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(
+                    format_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                    m3u8_id='hls', fatal=False))
+                return
             tbr = None
             mobj = re.search(r'(?P<height>\d+)[pP]?_(?P<tbr>\d+)[kK]', format_url)
             if mobj:
@@ -417,16 +427,6 @@ class PornHubIE(PornHubBaseIE):
                     r'/(\d{6}/\d{2})/', video_url, 'upload data', default=None)
                 if upload_date:
                     upload_date = upload_date.replace('/', '')
-            ext = determine_ext(video_url)
-            if ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    video_url, video_id, mpd_id='dash', fatal=False))
-                continue
-            elif ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    video_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False))
-                continue
             if '/video/get_media' in video_url:
                 medias = self._download_json(video_url, video_id, fatal=False)
                 if isinstance(medias, list):

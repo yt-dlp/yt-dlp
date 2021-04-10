@@ -17,7 +17,7 @@ import math
 
 from ..compat import (
     compat_cookiejar_Cookie,
-    compat_cookies,
+    compat_cookies_SimpleCookie,
     compat_etree_Element,
     compat_etree_fromstring,
     compat_getpass,
@@ -1308,6 +1308,7 @@ class InfoExtractor(object):
 
         def extract_video_object(e):
             assert e['@type'] == 'VideoObject'
+            author = e.get('author')
             info.update({
                 'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
@@ -1315,7 +1316,11 @@ class InfoExtractor(object):
                 'thumbnail': url_or_none(e.get('thumbnailUrl') or e.get('thumbnailURL')),
                 'duration': parse_duration(e.get('duration')),
                 'timestamp': unified_timestamp(e.get('uploadDate')),
-                'uploader': str_or_none(e.get('author')),
+                # author can be an instance of 'Organization' or 'Person' types.
+                # both types can have 'name' property(inherited from 'Thing' type). [1]
+                # however some websites are using 'Text' type instead.
+                # 1. https://schema.org/VideoObject
+                'uploader': author.get('name') if isinstance(author, dict) else author if isinstance(author, compat_str) else None,
                 'filesize': float_or_none(e.get('contentSize')),
                 'tbr': int_or_none(e.get('bitrate')),
                 'width': int_or_none(e.get('width')),
@@ -3219,13 +3224,10 @@ class InfoExtractor(object):
         self._downloader.cookiejar.set_cookie(cookie)
 
     def _get_cookies(self, url):
-        """ Return a compat_cookies.SimpleCookie with the cookies for the url """
+        """ Return a compat_cookies_SimpleCookie with the cookies for the url """
         req = sanitized_Request(url)
         self._downloader.cookiejar.add_cookie_header(req)
-        cookie = req.get_header('Cookie')
-        if cookie and sys.version_info[0] == 2:
-            cookie = str(cookie)
-        return compat_cookies.SimpleCookie(cookie)
+        return compat_cookies_SimpleCookie(req.get_header('Cookie'))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """

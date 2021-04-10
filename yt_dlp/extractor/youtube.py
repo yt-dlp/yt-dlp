@@ -1248,6 +1248,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'url': 'https://www.youtube.com/watch?v=nGC3D_FkCmg',
             'only_matching': True,
         },
+        {
+            # restricted location, https://github.com/ytdl-org/youtube-dl/issues/28685
+            'url': 'cBvYw8_A0vQ',
+            'info_dict': {
+                'id': 'cBvYw8_A0vQ',
+                'ext': 'mp4',
+                'title': '4K Ueno Okachimachi  Street  Scenes  上野御徒町歩き',
+                'description': 'md5:ea770e474b7cd6722b4c95b833c03630',
+                'upload_date': '20201120',
+                'uploader': 'Walk around Japan',
+                'uploader_id': 'UC3o_t8PzBmXf5S9b7GLx1Mw',
+                'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UC3o_t8PzBmXf5S9b7GLx1Mw',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
     ]
 
     def __init__(self, *args, **kwargs):
@@ -1817,7 +1834,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def get_text(x):
             if not x:
                 return
-            return x.get('simpleText') or ''.join([r['text'] for r in x['runs']])
+            text = x.get('simpleText')
+            if text and isinstance(text, compat_str):
+                return text
+            runs = x.get('runs')
+            if not isinstance(runs, list):
+                return
+            return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
 
         search_meta = (
             lambda x: self._html_search_meta(x, webpage, default=None)) \

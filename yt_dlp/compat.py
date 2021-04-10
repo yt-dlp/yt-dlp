@@ -78,6 +78,15 @@ try:
 except ImportError:  # Python 2
     import Cookie as compat_cookies
 
+if sys.version_info[0] == 2:
+    class compat_cookies_SimpleCookie(compat_cookies.SimpleCookie):
+        def load(self, rawdata):
+            if isinstance(rawdata, compat_str):
+                rawdata = str(rawdata)
+            return super(compat_cookies_SimpleCookie, self).load(rawdata)
+else:
+    compat_cookies_SimpleCookie = compat_cookies.SimpleCookie
+
 try:
     import html.entities as compat_html_entities
 except ImportError:  # Python 2
@@ -3020,6 +3029,7 @@ __all__ = [
     'compat_cookiejar',
     'compat_cookiejar_Cookie',
     'compat_cookies',
+    'compat_cookies_SimpleCookie',
     'compat_ctypes_WINFUNCTYPE',
     'compat_etree_Element',
     'compat_etree_fromstring',
