@@ -302,15 +302,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         data = {'context': context} if context else {'context': self._extract_context()}
         data.update(query)
-        headers = headers or self._generate_api_headers()
-        headers.update({'content-type': 'application/json'})
-        auth = self._generate_sapisidhash_header()
-        if auth is not None:
-            headers.update({'Authorization': auth, 'X-Origin': 'https://www.youtube.com'})
+        real_headers = self._generate_api_headers()
+        if headers:
+            real_headers.update(headers)
         return self._download_json(
             'https://www.youtube.com/youtubei/v1/%s' % ep,
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
-            data=json.dumps(data).encode('utf8'), headers=headers,
+            data=json.dumps(data).encode('utf8'), headers=real_headers,
             query={'key': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'})
 
     def _extract_yt_initial_data(self, video_id, webpage):
@@ -373,7 +371,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None, visitor_data=None):
         headers = {
             'X-YouTube-Client-Name': '1',
-            'X-YouTube-Client-Version': self.__extract_client_version(ytcfg)
+            'X-YouTube-Client-Version': self.__extract_client_version(ytcfg),
+            'content-type': 'application/json'
         }
         if identity_token:
             headers['x-youtube-identity-token'] = identity_token
@@ -382,6 +381,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers['X-Goog-AuthUser'] = 0
         if visitor_data:
             headers['x-goog-visitor-id'] = visitor_data
+        auth = self._generate_sapisidhash_header()
+        if auth is not None:
+            headers['Authorization'] = auth
+            headers['X-Origin'] = 'https://www.youtube.com'  # What about music.youtube.com etc.?
         return headers
 
     def _extract_video(self, renderer):
