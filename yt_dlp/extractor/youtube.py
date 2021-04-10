@@ -344,7 +344,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._parse_json(
             self._search_regex(
                 r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', webpage, 'ytcfg',
-                default='{}'), video_id, fatal=False)
+                default='{}'), video_id, fatal=False) or {}
 
     def __extract_client_version(self, ytcfg):
         return try_get(ytcfg, lambda x: x['INNERTUBE_CLIENT_VERSION'], compat_str) or self._YT_WEB_CLIENT_VERSION
