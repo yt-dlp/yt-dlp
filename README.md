@@ -337,10 +337,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --playlist-random                Download playlist videos in random order
     --xattr-set-filesize             Set file xattribute ytdl.filesize with
                                      expected file size
-    --hls-prefer-native              Use the native HLS downloader instead of
-                                     ffmpeg
-    --hls-prefer-ffmpeg              Use ffmpeg instead of the native HLS
-                                     downloader
     --hls-use-mpegts                 Use the mpegts container for HLS videos;
                                      allowing some players to play the video
                                      while downloading, and reducing the chance
@@ -350,10 +346,19 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-hls-use-mpegts              Do not use the mpegts container for HLS
                                      videos. This is default when not
                                      downloading live streams
-    --external-downloader NAME       Name or path of the external downloader to
-                                     use. Currently supports aria2c, avconv,
-                                     axel, curl, ffmpeg, httpie, wget
-                                     (Recommended: aria2c)
+    --downloader [PROTO:]NAME        Name or path of the external downloader to
+                                     use (optionally) prefixed by the protocols
+                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to
+                                     use it for. Currently supports native,
+                                     aria2c, avconv, axel, curl, ffmpeg, httpie,
+                                     wget (Recommended: aria2c). You can use
+                                     this option multiple times to set different
+                                     downloaders for different protocols. For
+                                     example, --downloader aria2c --downloader
+                                     "dash,m3u8:native" will use aria2c for
+                                     http/ftp downloads, and the native
+                                     downloader for dash/m3u8 downloads
+                                     (Alias: --external-downloader)
     --downloader-args NAME:ARGS      Give these arguments to the external
                                      downloader. Specify the downloader name and
                                      the arguments separated by a colon ":". You
@@ -1244,6 +1249,8 @@ These are all the deprecated options and the current alternative to achieve the 
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"
     --prefer-avconv                  avconv is no longer officially supported (Alias: --no-prefer-ffmpeg)
     --prefer-ffmpeg                  Default (Alias: --no-prefer-avconv)
+    --hls-prefer-native              --downloader "m3u8:native"
+    --hls-prefer-ffmpeg              --downloader "m3u8:ffmpeg"
     --avconv-location                avconv is no longer officially supported
     -C, --call-home                  Not implemented
     --no-call-home                   Default

@@ -111,9 +111,17 @@ from .utils import (
     process_communicate_or_kill,
 )
 from .cache import Cache
-from .extractor import get_info_extractor, gen_extractor_classes, _LAZY_LOADER, _PLUGIN_CLASSES
+from .extractor import (
+    gen_extractor_classes,
+    get_info_extractor,
+    _LAZY_LOADER,
+    _PLUGIN_CLASSES
+)
 from .extractor.openload import PhantomJSwrapper
-from .downloader import get_suitable_downloader
+from .downloader import (
+    get_suitable_downloader,
+    shorten_protocol_name
+)
 from .downloader.rtmp import rtmpdump_version
 from .postprocessor import (
     FFmpegFixupM3u8PP,
@@ -359,9 +367,13 @@ class YoutubeDL(object):
                        geo_bypass_country
 
     The following options determine which downloader is picked:
-    external_downloader: Executable of the external downloader to call.
-                       None or unset for standard (built-in) downloader.
-    hls_prefer_native: Use the native HLS downloader instead of ffmpeg/avconv
+    external_downloader: A dictionary of protocol keys and the executable of the
+                       external downloader to use for it. The allowed protocols
+                       are default|http|ftp|m3u8|dash|rtsp|rtmp|mms.
+                       Set the value to 'native' to use the native downloader
+    hls_prefer_native: Deprecated - Use external_downloader = {'m3u8': 'native'}
+                       or {'m3u8': 'ffmpeg'} instead.
+                       Use the native HLS downloader instead of ffmpeg/avconv
                        if True, otherwise use ffmpeg/avconv if False, otherwise
                        use downloader suggested by extractor if None.
 
@@ -2776,7 +2788,7 @@ class YoutubeDL(object):
                     '|',
                     format_field(f, 'filesize', ' %s', func=format_bytes) + format_field(f, 'filesize_approx', '~%s', func=format_bytes),
                     format_field(f, 'tbr', '%4dk'),
-                    f.get('protocol').replace('http_dash_segments', 'dash').replace("native", "n").replace('niconico_', ''),
+                    shorten_protocol_name(f.get('protocol', '').replace("native", "n")),
                     '|',
                     format_field(f, 'vcodec', default='unknown').replace('none', ''),
                     format_field(f, 'vbr', '%4dk'),

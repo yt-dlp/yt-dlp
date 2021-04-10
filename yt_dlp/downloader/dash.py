@@ -20,7 +20,7 @@ from ..utils import (
 class DashSegmentsFD(FragmentFD):
     """
     Download segments in a DASH manifest. External downloaders can take over
-    the fragment downloads by supporting the 'frag_urls' protocol
+    the fragment downloads by supporting the 'dash_frag_urls' protocol
     """
 
     FD_NAME = 'dashsegments'
@@ -30,7 +30,7 @@ class DashSegmentsFD(FragmentFD):
         fragments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']
 
-        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
+        real_downloader = _get_real_downloader(info_dict, 'dash_frag_urls', self.params, None)
 
         ctx = {
             'filename': filename,

@@ -639,11 +639,11 @@ def parseOpts(overrideArguments=None):
     downloader.add_option(
         '--hls-prefer-native',
         dest='hls_prefer_native', action='store_true', default=None,
-        help='Use the native HLS downloader instead of ffmpeg')
+        help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--hls-prefer-ffmpeg',
         dest='hls_prefer_native', action='store_false', default=None,
-        help='Use ffmpeg instead of the native HLS downloader')
+        help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--hls-use-mpegts',
         dest='hls_use_mpegts', action='store_true', default=None,
@@ -659,11 +659,20 @@ def parseOpts(overrideArguments=None):
             'Do not use the mpegts container for HLS videos. '
             'This is default when not downloading live streams'))
     downloader.add_option(
-        '--external-downloader',
-        dest='external_downloader', metavar='NAME',
+        '--downloader', '--external-downloader',
+        dest='external_downloader', metavar='[PROTO:]NAME', default={}, type='str',
+        action='callback', callback=_dict_from_multiple_values_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'http|ftp|m3u8|dash|rtsp|rtmp|mms',
+            'default_key': 'default', 'process': lambda x: x.strip()},
         help=(
-            'Name or path of the external downloader to use. '
-            'Currently supports %s (Recommended: aria2c)' % ', '.join(list_external_downloaders())))
+            'Name or path of the external downloader to use (optionally) prefixed by '
+            'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
+            'Currently supports native, %s (Recommended: aria2c). '
+            'You can use this option multiple times to set different downloaders for different protocols. '
+            'For example, --downloader aria2c --downloader "dash,m3u8:native" will use '
+            'aria2c for http/ftp downloads, and the native downloader for dash/m3u8 downloads '
+            '(Alias: --external-downloader)' % ', '.join(list_external_downloaders())))
     downloader.add_option(
         '--downloader-args', '--external-downloader-args',
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',

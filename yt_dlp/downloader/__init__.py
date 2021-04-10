@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from ..compat import compat_str
 from ..utils import (
     determine_protocol,
 )
@@ -42,6 +43,23 @@ PROTOCOL_MAP = {
 }
 
 
+def shorten_protocol_name(proto, simplify=False):
+    short_protocol_names = {
+        'm3u8_native': 'm3u8_n',
+        'http_dash_segments': 'dash',
+        'niconico_dmc': 'dmc',
+    }
+    if simplify:
+        short_protocol_names.update({
+            'https': 'http',
+            'ftps': 'ftp',
+            'm3u8_native': 'm3u8',
+            'm3u8_frag_urls': 'm3u8',
+            'dash_frag_urls': 'dash',
+        })
+    return short_protocol_names.get(proto, proto)
+
+
 def get_suitable_downloader(info_dict, params={}, default=HttpFD):
     """Get the downloader class that can handle the info dict."""
     protocol = determine_protocol(info_dict)
@@ -50,8 +68,14 @@ def get_suitable_downloader(info_dict, params={}, default=HttpFD):
     # if (info_dict.get('start_time') or info_dict.get('end_time')) and not info_dict.get('requested_formats') and FFmpegFD.can_download(info_dict):
     #     return FFmpegFD
 
-    external_downloader = params.get('external_downloader')
-    if external_downloader is not None:
+    downloaders = params.get('external_downloader')
+    external_downloader = (
+        downloaders if isinstance(downloaders, compat_str)
+        else downloaders.get(shorten_protocol_name(protocol, True), downloaders.get('default')))
+    if external_downloader and external_downloader.lower() == 'native':
+        external_downloader = 'native'
+
+    if external_downloader not in (None, 'native'):
         ed = get_external_downloader(external_downloader)
         if ed.can_download(info_dict, external_downloader):
             return ed
@@ -59,6 +83,8 @@ def get_suitable_downloader(info_dict, params={}, default=HttpFD):
     if protocol.startswith('m3u8'):
         if info_dict.get('is_live'):
             return FFmpegFD
+        elif external_downloader == 'native':
+            return HlsFD
         elif _get_real_downloader(info_dict, 'frag_urls', params, None):
             return HlsFD
         elif params.get('hls_prefer_native') is True:
@@ -70,6 +96,7 @@ def get_suitable_downloader(info_dict, params={}, default=HttpFD):
 
 
 __all__ = [
-    'get_suitable_downloader',
     'FileDownloader',
+    'get_suitable_downloader',
+    'shorten_protocol_name',
 ]

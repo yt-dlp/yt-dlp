@@ -32,7 +32,7 @@ from ..utils import (
 class HlsFD(FragmentFD):
     """
     Download segments in a m3u8 manifest. External downloaders can take over
-    the fragment downloads by supporting the 'frag_urls' protocol and
+    the fragment downloads by supporting the 'm3u8_frag_urls' protocol and
     re-defining 'supports_manifest' function
     """
 
@@ -95,7 +95,7 @@ class HlsFD(FragmentFD):
             #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
 
-        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
+        real_downloader = _get_real_downloader(info_dict, 'm3u8_frag_urls', self.params, None)
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:

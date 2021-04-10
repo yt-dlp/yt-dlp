@@ -81,11 +81,15 @@ class ExternalFD(FileDownloader):
 
     @property
     def exe(self):
-        return self.params.get('external_downloader')
+        return self.get_basename()
 
     @classmethod
     def available(cls, path=None):
-        return check_executable(path or cls.get_basename(), [cls.AVAILABLE_OPT])
+        path = check_executable(path or cls.get_basename(), [cls.AVAILABLE_OPT])
+        if path:
+            cls.exe = path
+            return path
+        return False
 
     @classmethod
     def supports(cls, info_dict):
@@ -259,7 +263,7 @@ class WgetFD(ExternalFD):
 
 class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
-    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'frag_urls')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'dash_frag_urls', 'm3u8_frag_urls')
 
     @staticmethod
     def supports_manifest(manifest):
@@ -310,9 +314,11 @@ class Aria2cFD(ExternalFD):
 
 
 class HttpieFD(ExternalFD):
+    AVAILABLE_OPT = '--version'
+
     @classmethod
     def available(cls, path=None):
-        return check_executable(path or 'http', ['--version'])
+        return ExternalFD.available(cls, path or 'http')
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]
@@ -327,7 +333,8 @@ class FFmpegFD(ExternalFD):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'rtsp', 'rtmp', 'mms')
 
     @classmethod
-    def available(cls, path=None):  # path is ignored for ffmpeg
+    def available(cls, path=None):
+        # TODO: Fix path for ffmpeg
         return FFmpegPostProcessor().available
 
     def _call_downloader(self, tmpfilename, info_dict):
@@ -484,4 +491,4 @@ def get_external_downloader(external_downloader):
         downloader . """
     # Drop .exe extension on Windows
     bn = os.path.splitext(os.path.basename(external_downloader))[0]
-    return _BY_NAME[bn]
+    return _BY_NAME.get(bn)
