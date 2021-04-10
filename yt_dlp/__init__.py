@@ -228,7 +228,7 @@ def _real_main(argv=None):
         if not re.match(remux_regex, opts.remuxvideo):
             parser.error('invalid video remux format specified')
     if opts.convertsubtitles is not None:
-        if opts.convertsubtitles not in ['srt', 'vtt', 'ass', 'lrc']:
+        if opts.convertsubtitles not in ('srt', 'vtt', 'ass', 'lrc'):
             parser.error('invalid subtitle format specified')
 
     if opts.date is not None:
@@ -322,7 +322,15 @@ def _real_main(argv=None):
         postprocessors.append({
             'key': 'MetadataFromField',
             'formats': opts.metafromfield,
-            'when': 'beforedl'
+            # Run this immediately after extraction is complete
+            'when': 'pre_process'
+        })
+    if opts.convertsubtitles:
+        postprocessors.append({
+            'key': 'FFmpegSubtitlesConvertor',
+            'format': opts.convertsubtitles,
+            # Run this before the actual video download
+            'when': 'before_dl'
         })
     if opts.extractaudio:
         postprocessors.append({
@@ -351,15 +359,11 @@ def _real_main(argv=None):
     # so metadata can be added here.
     if opts.addmetadata:
         postprocessors.append({'key': 'FFmpegMetadata'})
-    if opts.convertsubtitles:
-        postprocessors.append({
-            'key': 'FFmpegSubtitlesConvertor',
-            'format': opts.convertsubtitles,
-        })
     if opts.embedsubtitles:
         already_have_subtitle = opts.writesubtitles
         postprocessors.append({
             'key': 'FFmpegEmbedSubtitle',
+            # already_have_subtitle = True prevents the file from being deleted after embedding
             'already_have_subtitle': already_have_subtitle
         })
         if not already_have_subtitle:
@@ -385,6 +389,7 @@ def _real_main(argv=None):
         already_have_thumbnail = opts.writethumbnail or opts.write_all_thumbnails
         postprocessors.append({
             'key': 'EmbedThumbnail',
+            # already_have_thumbnail = True prevents the file from being deleted after embedding
             'already_have_thumbnail': already_have_thumbnail
         })
         if not already_have_thumbnail:
@@ -399,7 +404,8 @@ def _real_main(argv=None):
         postprocessors.append({
             'key': 'ExecAfterDownload',
             'exec_cmd': opts.exec_cmd,
-            'when': 'aftermove'
+            # Run this only after the files have been moved to their final locations
+            'when': 'after_move'
         })
 
     def report_args_compat(arg, name):
@@ -425,7 +431,6 @@ def _real_main(argv=None):
         else match_filter_func(opts.match_filter))
 
     ydl_opts = {
-        'convertsubtitles': opts.convertsubtitles,
         'usenetrc': opts.usenetrc,
         'username': opts.username,
         'password': opts.password,

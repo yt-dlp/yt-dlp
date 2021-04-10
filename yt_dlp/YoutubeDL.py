@@ -291,10 +291,9 @@ class YoutubeDL(object):
     postprocessors:    A list of dictionaries, each with an entry
                        * key:  The name of the postprocessor. See
                                yt_dlp/postprocessor/__init__.py for a list.
-                       * _after_move: Optional. If True, run this post_processor
-                               after 'MoveFilesAfterDownload'
-                       as well as any further keyword arguments for the
-                       postprocessor.
+                       * when: When to run the postprocessor. Can be one of
+                               pre_process|before_dl|post_process|after_move.
+                               Assumed to be 'post_process' if not given
     post_hooks:        A list of functions that get called as the final step
                        for each video file, after all postprocessors have been
                        called. The filename will be passed as the only argument.
@@ -423,7 +422,7 @@ class YoutubeDL(object):
 
     params = None
     _ies = []
-    _pps = {'beforedl': [], 'aftermove': [], 'normal': []}
+    _pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
     __prepare_filename_warned = False
     _first_webpage_request = True
     _download_retcode = None
@@ -438,7 +437,7 @@ class YoutubeDL(object):
             params = {}
         self._ies = []
         self._ies_instances = {}
-        self._pps = {'beforedl': [], 'aftermove': [], 'normal': []}
+        self._pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
         self.__prepare_filename_warned = False
         self._first_webpage_request = True
         self._post_hooks = []
@@ -551,7 +550,7 @@ class YoutubeDL(object):
                 when = pp_def['when']
                 del pp_def['when']
             else:
-                when = 'normal'
+                when = 'post_process'
             pp = pp_class(self, **compat_kwargs(pp_def))
             self.add_post_processor(pp, when=when)
 
@@ -605,7 +604,7 @@ class YoutubeDL(object):
         for ie in gen_extractor_classes():
             self.add_info_extractor(ie)
 
-    def add_post_processor(self, pp, when='normal'):
+    def add_post_processor(self, pp, when='post_process'):
         """Add a PostProcessor object to the end of the chain."""
         self._pps[when].append(pp)
         pp.set_downloader(self)
@@ -2114,13 +2113,12 @@ class YoutubeDL(object):
         self.post_extract(info_dict)
         self._num_downloads += 1
 
-        info_dict = self.pre_process(info_dict)
+        info_dict, _ = self.pre_process(info_dict)
 
         # info_dict['_filename'] needs to be set for backward compatibility
         info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
         temp_filename = self.prepare_filename(info_dict, 'temp')
         files_to_move = {}
-        skip_dl = self.params.get('skip_download', False)
 
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=False)
@@ -2197,11 +2195,9 @@ class YoutubeDL(object):
             # ie = self.get_info_extractor(info_dict['extractor_key'])
             for sub_lang, sub_info in subtitles.items():
                 sub_format = sub_info['ext']
-                sub_fn = self.prepare_filename(info_dict, 'subtitle')
-                sub_filename = subtitles_filename(
-                    temp_filename if not skip_dl else sub_fn,
-                    sub_lang, sub_format, info_dict.get('ext'))
-                sub_filename_final = subtitles_filename(sub_fn, sub_lang, sub_format, info_dict.get('ext'))
+                sub_filename = subtitles_filename(temp_filename, sub_lang, sub_format, info_dict.get('ext'))
+                sub_filename_final = subtitles_filename(
+                    self.prepare_filename(info_dict, 'subtitle'), sub_lang, sub_format, info_dict.get('ext'))
                 if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(sub_filename)):
                     self.to_screen('[info] Video subtitle %s.%s is already present' % (sub_lang, sub_format))
                     sub_info['filepath'] = sub_filename
@@ -2229,28 +2225,6 @@ class YoutubeDL(object):
                                                 (sub_lang, error_to_compat_str(err)))
                             continue
 
-        if skip_dl:
-            if self.params.get('convertsubtitles', False):
-                # subconv = FFmpegSubtitlesConvertorPP(self, format=self.params.get('convertsubtitles'))
-                filename_real_ext = os.path.splitext(full_filename)[1][1:]
-                filename_wo_ext = (
-                    os.path.splitext(full_filename)[0]
-                    if filename_real_ext == info_dict['ext']
-                    else full_filename)
-                afilename = '%s.%s' % (filename_wo_ext, self.params.get('convertsubtitles'))
-                # if subconv.available:
-                #     info_dict['__postprocessors'].append(subconv)
-                if os.path.exists(encodeFilename(afilename)):
-                    self.to_screen(
-                        '[download] %s has already been downloaded and '
-                        'converted' % afilename)
-                else:
-                    try:
-                        self.post_process(full_filename, info_dict, files_to_move)
-                    except PostProcessingError as err:
-                        self.report_error('Postprocessing: %s' % str(err))
-                        return
-
         if self.params.get('writeinfojson', False):
             infofn = self.prepare_filename(info_dict, 'infojson')
             if not self._ensure_dir_exists(encodeFilename(infofn)):
@@ -2266,11 +2240,10 @@ class YoutubeDL(object):
                     return
             info_dict['__infojson_filename'] = infofn
 
-        thumbfn = self.prepare_filename(info_dict, 'thumbnail')
-        thumb_fn_temp = temp_filename if not skip_dl else thumbfn
-        for thumb_ext in self._write_thumbnails(info_dict, thumb_fn_temp):
-            thumb_filename_temp = replace_extension(thumb_fn_temp, thumb_ext, info_dict.get('ext'))
-            thumb_filename = replace_extension(thumbfn, thumb_ext, info_dict.get('ext'))
+        for thumb_ext in self._write_thumbnails(info_dict, temp_filename):
+            thumb_filename_temp = replace_extension(temp_filename, thumb_ext, info_dict.get('ext'))
+            thumb_filename = replace_extension(
+                self.prepare_filename(info_dict, 'thumbnail'), thumb_ext, info_dict.get('ext'))
             files_to_move[thumb_filename_temp] = thumb_filename
 
         # Write internet shortcut files
@@ -2322,9 +2295,20 @@ class YoutubeDL(object):
             if not _write_link_file('desktop', DOT_DESKTOP_LINK_TEMPLATE, '\n', embed_filename=True):
                 return
 
-        # Download
+        try:
+            info_dict, files_to_move = self.pre_process(info_dict, 'before_dl', files_to_move)
+        except PostProcessingError as err:
+            self.report_error('Preprocessing: %s' % str(err))
+            return
+
         must_record_download_archive = False
-        if not skip_dl:
+        if self.params.get('skip_download', False):
+            info_dict['filepath'] = temp_filename
+            info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
+            info_dict['__files_to_move'] = files_to_move
+            info_dict = self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict)
+        else:
+            # Download
             try:
 
                 def existing_file(*filepaths):
@@ -2633,11 +2617,12 @@ class YoutubeDL(object):
 
         actual_post_extract(info_dict or {})
 
-    def pre_process(self, ie_info):
+    def pre_process(self, ie_info, key='pre_process', files_to_move=None):
         info = dict(ie_info)
-        for pp in self._pps['beforedl']:
+        info['__files_to_move'] = files_to_move or {}
+        for pp in self._pps[key]:
             info = self.run_pp(pp, info)
-        return info
+        return info, info.pop('__files_to_move', None)
 
     def post_process(self, filename, ie_info, files_to_move=None):
         """Run all the postprocessors on the given file."""
@@ -2645,11 +2630,11 @@ class YoutubeDL(object):
         info['filepath'] = filename
         info['__files_to_move'] = files_to_move or {}
 
-        for pp in ie_info.get('__postprocessors', []) + self._pps['normal']:
+        for pp in ie_info.get('__postprocessors', []) + self._pps['post_process']:
             info = self.run_pp(pp, info)
         info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
         del info['__files_to_move']
-        for pp in self._pps['aftermove']:
+        for pp in self._pps['after_move']:
             info = self.run_pp(pp, info)
         return info
 
