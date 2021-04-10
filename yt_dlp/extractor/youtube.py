@@ -363,7 +363,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             }
         }
         visitor_data = try_get(ytcfg, lambda x: x['VISITOR_DATA'],
-                                 compat_str)
+                               compat_str)
         if visitor_data:
             context['client']['visitorData'] = visitor_data
         return context
@@ -3189,8 +3189,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 selected_tab, playlist_id,
                 self._extract_identity_token(webpage, item_id),
                 self._extract_account_syncid(data),
-                self._extract_ytcfg(item_id, webpage)
-                ),
+                self._extract_ytcfg(item_id, webpage)),
             **metadata)
 
     def _extract_mix_playlist(self, playlist, playlist_id):
