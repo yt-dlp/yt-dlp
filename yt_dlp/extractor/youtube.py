@@ -303,6 +303,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         data = {'context': context} if context else {'context': self._extract_context()}
         data.update(query)
         real_headers = self._generate_api_headers()
+        real_headers.update({'content-type': 'application/json'})
         if headers:
             real_headers.update(headers)
         return self._download_json(
@@ -372,7 +373,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         headers = {
             'X-YouTube-Client-Name': '1',
             'X-YouTube-Client-Version': self.__extract_client_version(ytcfg),
-            'content-type': 'application/json'
         }
         if identity_token:
             headers['x-youtube-identity-token'] = identity_token
