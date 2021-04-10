@@ -107,22 +107,31 @@ def parseOpts(overrideArguments=None):
 
         return ''.join(opts)
 
-    def _comma_separated_values_options_callback(option, opt_str, value, parser):
-        setattr(parser.values, option.dest, value.split(','))
+    def _comma_separated_values_options_callback(option, opt_str, value, parser, prepend=True):
+        setattr(
+            parser.values, option.dest,
+            value.split(',') if not prepend
+            else value.split(',') + getattr(parser.values, option.dest))
 
     def _dict_from_multiple_values_options_callback(
-            option, opt_str, value, parser, allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None):
+            option, opt_str, value, parser,
+            allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True):
 
         out_dict = getattr(parser.values, option.dest)
-        mobj = re.match(r'(?i)(?P<key>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
+        if multiple_keys:
+            allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
+        mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
         if mobj is not None:
-            key, val = mobj.group('key').lower(), mobj.group('val')
+            keys = [k.strip() for k in mobj.group('keys').lower().split(',')]
+            val = mobj.group('val')
         elif default_key is not None:
-            key, val = default_key, value
+            keys, val = [default_key], value
         else:
             raise optparse.OptionValueError(
                 'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
-        out_dict[key] = process(val) if callable(process) else val
+        val = process(val) if callable(process) else val
+        for key in keys:
+            out_dict[key] = val
 
     # No need to wrap help messages if we're on a wide console
     columns = compat_get_terminal_size().columns
@@ -693,6 +702,7 @@ def parseOpts(overrideArguments=None):
         '--add-header',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_multiple_values_options_callback,
+        callback_kwargs={'multiple_keys': False},
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(
@@ -842,7 +852,7 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-P', '--paths',
-        metavar='TYPE:PATH', dest='paths', default={}, type='str',
+        metavar='TYPES:PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_multiple_values_options_callback,
         callback_kwargs={
             'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys()),
@@ -857,7 +867,7 @@ def parseOpts(overrideArguments=None):
             'This option is ignored if --output is an absolute path'))
     filesystem.add_option(
         '-o', '--output',
-        metavar='[TYPE:]TEMPLATE', dest='outtmpl', default={}, type='str',
+        metavar='[TYPES:]TEMPLATE', dest='outtmpl', default={}, type='str',
         action='callback', callback=_dict_from_multiple_values_options_callback,
         callback_kwargs={
             'allowed_keys': '|'.join(OUTTMPL_TYPES.keys()),
@@ -1084,7 +1094,9 @@ def parseOpts(overrideArguments=None):
         '--postprocessor-args', '--ppa',
         metavar='NAME:ARGS', dest='postprocessor_args', default={}, type='str',
         action='callback', callback=_dict_from_multiple_values_options_callback,
-        callback_kwargs={'default_key': 'default-compat', 'allowed_keys': r'\w+(?:\+\w+)?', 'process': compat_shlex_split},
+        callback_kwargs={
+            'allowed_keys': r'\w+(?:\+\w+)?', 'default_key': 'default-compat',
+            'process': compat_shlex_split, 'multiple_keys': False},
         help=(
             'Give these arguments to the postprocessors. '
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '

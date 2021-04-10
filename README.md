@@ -365,7 +365,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      stdin), one URL per line. Lines starting
                                      with '#', ';' or ']' are considered as
                                      comments and ignored
-    -P, --paths TYPE:PATH            The paths where the files should be
+    -P, --paths TYPES:PATH           The paths where the files should be
                                      downloaded. Specify the type of file and
                                      the path separated by a colon ":". All the
                                      same types as --output are supported.
@@ -376,7 +376,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      home path after download is finished. This
                                      option is ignored if --output is an
                                      absolute path
-    -o, --output [TYPE:]TEMPLATE     Output filename template, see "OUTPUT
+    -o, --output [TYPES:]TEMPLATE    Output filename template; see "OUTPUT
                                      TEMPLATE" for details
     --output-na-placeholder TEXT     Placeholder value for unavailable meta
                                      fields in output filename template
