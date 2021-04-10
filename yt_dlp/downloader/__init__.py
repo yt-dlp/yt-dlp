@@ -70,7 +70,7 @@ def get_suitable_downloader(info_dict, params={}, default=HttpFD):
 
     downloaders = params.get('external_downloader')
     external_downloader = (
-        downloaders if isinstance(downloaders, compat_str)
+        downloaders if isinstance(downloaders, compat_str) or downloaders is None
         else downloaders.get(shorten_protocol_name(protocol, True), downloaders.get('default')))
     if external_downloader and external_downloader.lower() == 'native':
         external_downloader = 'native'
