@@ -639,24 +639,24 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      Specify the postprocessor/executable name
                                      and the arguments separated by a colon ":"
                                      to give the argument to the specified
-                                     postprocessor/executable. Supported
-                                     postprocessors are: SponSkrub,
-                                     ExtractAudio, VideoRemuxer, VideoConvertor,
-                                     EmbedSubtitle, Metadata, Merger,
-                                     FixupStretched, FixupM4a, FixupM3u8,
-                                     SubtitlesConvertor, EmbedThumbnail and
-                                     SplitChapters. The supported executables
-                                     are: SponSkrub, FFmpeg, FFprobe, and
-                                     AtomicParsley. You can also specify
-                                     "PP+EXE:ARGS" to give the arguments to the
-                                     specified executable only when being used
-                                     by the specified postprocessor.
-                                     Additionally, for ffmpeg/ffprobe, "_i"/"_o"
-                                     can be appended to the prefix optionally
-                                     followed by a number to pass the argument
-                                     before the specified input/output file. Eg:
-                                     --ppa "Merger+ffmpeg_i1:-v quiet". You can
-                                     use this option multiple times to give
+                                     postprocessor/executable. Supported PP are:
+                                     Merger, ExtractAudio, SplitChapters,
+                                     Metadata, EmbedSubtitle, EmbedThumbnail,
+                                     SubtitlesConvertor, ThumbnailsConvertor,
+                                     VideoRemuxer, VideoConvertor, SponSkrub,
+                                     FixupStretched, FixupM4a and FixupM3u8. The
+                                     supported executables are: AtomicParsley,
+                                     FFmpeg, FFprobe, and SponSkrub. You can
+                                     also specify "PP+EXE:ARGS" to give the
+                                     arguments to the specified executable only
+                                     when being used by the specified
+                                     postprocessor. Additionally, for
+                                     ffmpeg/ffprobe, "_i"/"_o" can be appended
+                                     to the prefix optionally followed by a
+                                     number to pass the argument before the
+                                     specified input/output file. Eg: --ppa
+                                     "Merger+ffmpeg_i1:-v quiet". You can use
+                                     this option multiple times to give
                                      different arguments to different
                                      postprocessors. (Alias: --ppa)
     -k, --keep-video                 Keep the intermediate video file on disk
@@ -697,6 +697,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|ass|vtt|lrc)
                                      (Alias: --convert-subtitles)
+    --convert-thumbnails FORMAT      Convert the thumbnails to another format
+                                     (currently supported: jpg)
     --split-chapters                 Split video into multiple files based on
                                      internal chapters. The "chapter:" prefix
                                      can be used with "--paths" and "--output"

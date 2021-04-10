@@ -1109,10 +1109,11 @@ def parseOpts(overrideArguments=None):
         help=(
             'Give these arguments to the postprocessors. '
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
-            'to give the argument to the specified postprocessor/executable. Supported postprocessors are: '
-            'SponSkrub, ExtractAudio, VideoRemuxer, VideoConvertor, EmbedSubtitle, Metadata, Merger, '
-            'FixupStretched, FixupM4a, FixupM3u8, SubtitlesConvertor, EmbedThumbnail and SplitChapters. '
-            'The supported executables are: SponSkrub, FFmpeg, FFprobe, and AtomicParsley. '
+            'to give the argument to the specified postprocessor/executable. Supported PP are: '
+            'Merger, ExtractAudio, SplitChapters, Metadata, EmbedSubtitle, EmbedThumbnail, '
+            'SubtitlesConvertor, ThumbnailsConvertor, VideoRemuxer, VideoConvertor, '
+            'SponSkrub, FixupStretched, FixupM4a and FixupM3u8. '
+            'The supported executables are: AtomicParsley, FFmpeg, FFprobe, and SponSkrub. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
             '"_i"/"_o" can be appended to the prefix optionally followed by a number to pass the argument '
@@ -1204,6 +1205,10 @@ def parseOpts(overrideArguments=None):
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help='Convert the subtitles to another format (currently supported: srt|ass|vtt|lrc) (Alias: --convert-subtitles)')
+    postproc.add_option(
+        '--convert-thumbnails',
+        metavar='FORMAT', dest='convertthumbnails', default=None,
+        help='Convert the thumbnails to another format (currently supported: jpg)')
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,

@@ -230,6 +230,9 @@ def _real_main(argv=None):
     if opts.convertsubtitles is not None:
         if opts.convertsubtitles not in ('srt', 'vtt', 'ass', 'lrc'):
             parser.error('invalid subtitle format specified')
+    if opts.convertthumbnails is not None:
+        if opts.convertthumbnails not in ('jpg', ):
+            parser.error('invalid thumbnail format specified')
 
     if opts.date is not None:
         date = DateRange.day(opts.date)
@@ -329,6 +332,13 @@ def _real_main(argv=None):
         postprocessors.append({
             'key': 'FFmpegSubtitlesConvertor',
             'format': opts.convertsubtitles,
+            # Run this before the actual video download
+            'when': 'before_dl'
+        })
+    if opts.convertthumbnails:
+        postprocessors.append({
+            'key': 'FFmpegThumbnailsConvertor',
+            'format': opts.convertthumbnails,
             # Run this before the actual video download
             'when': 'before_dl'
         })

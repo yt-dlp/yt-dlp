@@ -13,6 +13,7 @@ from .ffmpeg import (
     FFmpegVideoConvertorPP,
     FFmpegVideoRemuxerPP,
     FFmpegSubtitlesConvertorPP,
+    FFmpegThumbnailsConvertorPP,
     FFmpegSplitChaptersPP,
 )
 from .xattrpp import XAttrMetadataPP
@@ -40,6 +41,7 @@ __all__ = [
     'FFmpegMetadataPP',
     'FFmpegPostProcessor',
     'FFmpegSubtitlesConvertorPP',
+    'FFmpegThumbnailsConvertorPP',
     'FFmpegVideoConvertorPP',
     'FFmpegVideoRemuxerPP',
     'MetadataFromFieldPP',
