@@ -297,9 +297,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --break-on-reject                Stop the download process when encountering
                                      a file that has been filtered out
     --no-download-archive            Do not use archive file (default)
-    --include-ads                    Download advertisements as well
-                                     (experimental)
-    --no-include-ads                 Do not download advertisements (default)
 
 ## Download Options:
     -N, --concurrent-fragments N     Number of fragments to download
@@ -558,7 +555,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      into a single file
     --no-audio-multistreams          Only one audio stream is downloaded for
                                      each output file (default)
-    --all-formats                    Download all available video formats
     --prefer-free-formats            Prefer video formats with free containers
                                      over non-free ones of same quality. Use
                                      with "-S ext" to strictly prefer free
@@ -1245,6 +1241,7 @@ These are all the deprecated options and the current alternative to achieve the 
     -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
     -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
     -l, --literal                    -o accepts literal names
+    --all-formats                    -f all
     --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"
     --prefer-avconv                  avconv is no longer officially supported (Alias: --no-prefer-ffmpeg)
@@ -1254,6 +1251,8 @@ These are all the deprecated options and the current alternative to achieve the 
     --avconv-location                avconv is no longer officially supported
     -C, --call-home                  Not implemented
     --no-call-home                   Default
+    --include-ads                    Not implemented
+    --no-include-ads                 Default
     --write-srt                      --write-subs
     --no-write-srt                   --no-write-subs
     --srt-lang LANGS                 --sub-langs LANGS

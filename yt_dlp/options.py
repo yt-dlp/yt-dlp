@@ -402,11 +402,11 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--include-ads',
         dest='include_ads', action='store_true',
-        help='Download advertisements as well (experimental)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--no-include-ads',
         dest='include_ads', action='store_false',
-        help='Do not download advertisements (default)')
+        help=optparse.SUPPRESS_HELP)
 
     authentication = optparse.OptionGroup(parser, 'Authentication Options')
     authentication.add_option(
@@ -489,7 +489,7 @@ def parseOpts(overrideArguments=None):
     video_format.add_option(
         '--all-formats',
         action='store_const', dest='format', const='all',
-        help='Download all available video formats')
+        help=optparse.SUPPRESS_HELP)
     video_format.add_option(
         '--prefer-free-formats',
         action='store_true', dest='prefer_free_formats', default=False,
