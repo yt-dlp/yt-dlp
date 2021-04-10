@@ -363,8 +363,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 'clientVersion': client_version,
             }
         }
-        visitor_data = try_get(ytcfg, lambda x: x['VISITOR_DATA'],
-                               compat_str)
+        visitor_data = try_get(ytcfg, lambda x: x['VISITOR_DATA'], compat_str)
         if visitor_data:
             context['client']['visitorData'] = visitor_data
         return context
@@ -384,7 +383,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         auth = self._generate_sapisidhash_header()
         if auth is not None:
             headers['Authorization'] = auth
-            headers['X-Origin'] = 'https://www.youtube.com'  # What about music.youtube.com etc.?
+            headers['X-Origin'] = 'https://www.youtube.com'
         return headers
 
     def _extract_video(self, renderer):
@@ -1717,7 +1716,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not response:
                 break
             visitor_data = try_get(
-                response, lambda x: x['responseContext']['webResponseContextExtensionData']['ytConfigData']['visitorData'], compat_str) or visitor_data
+                response,
+                lambda x: x['responseContext']['webResponseContextExtensionData']['ytConfigData']['visitorData'],
+                compat_str) or visitor_data
 
             known_continuation_renderers = {
                 'itemSectionContinuation': extract_thread,
