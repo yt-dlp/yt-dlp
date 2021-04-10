@@ -2407,7 +2407,7 @@ class InfoExtractor(object):
             http://standards.iso.org/ittf/PubliclyAvailableStandards/c065274_ISO_IEC_23009-1_2014.zip
          2. https://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP
         """
-        if not self._downloader.params.get('dynamic_mpd'):
+        if not self._downloader.params.get('dynamic_mpd', True):
             if mpd_doc.get('type') == 'dynamic':
                 return []
 
