@@ -3,6 +3,7 @@
  - **20min**
  - **220.ro**
  - **23video**
+ - **247sports**
  - **24video**
  - **3qsdn**: 3Q SDN
  - **3sat**
@@ -171,7 +172,8 @@
  - **cbsnews**: CBS News
  - **cbsnews:embed**
  - **cbsnews:livevideo**: CBS News Live Videos
- - **CBSSports**
+ - **cbssports**
+ - **cbssports:embed**
  - **CCMA**
  - **CCTV**: 央视网
  - **CDA**
@@ -250,6 +252,7 @@
  - **DiscoveryNetworksDe**
  - **DiscoveryPlus**
  - **DiscoveryPlusIndia**
+ - **DiscoveryPlusIndiaShow**
  - **DiscoveryVR**
  - **Disney**
  - **dlive:stream**
@@ -483,6 +486,8 @@
  - **limelight**
  - **limelight:channel**
  - **limelight:channel_list**
+ - **LineLive**
+ - **LineLiveChannel**
  - **LineTV**
  - **linkedin:learning**
  - **linkedin:learning:course**
@@ -509,6 +514,7 @@
  - **mangomolo:live**
  - **mangomolo:video**
  - **ManyVids**
+ - **MaoriTV**
  - **Markiza**
  - **MarkizaPage**
  - **massengeschmack.tv**
@@ -609,6 +615,7 @@
  - **ndr:embed**
  - **ndr:embed:base**
  - **NDTV**
+ - **Nebula**
  - **NerdCubedFeed**
  - **netease:album**: 网易云音乐 - 专辑
  - **netease:djradio**: 网易云音乐 - 电台
@@ -627,6 +634,7 @@
  - **NextTV**: 壹電視
  - **Nexx**
  - **NexxEmbed**
+ - **NFHSNetwork**
  - **nfl.com** (Currently broken)
  - **nfl.com:article** (Currently broken)
  - **NhkVod**
