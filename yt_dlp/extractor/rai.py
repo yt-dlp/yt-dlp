@@ -149,19 +149,21 @@ class RaiBaseIE(InfoExtractor):
                 tbr = '250'
 
             # try extracting info from available m3u8 formats
-            c = None
+            format_copy = None
             for f in fmts:
                 if f.get('tbr'):
-                    if math.floor(f['tbr'] / 100) == math.floor(br / 100):
-                        c = f.copy()
+                    br_limit = math.floor(br / 100)
+                    if br_limit - 1 <= math.floor(f['tbr'] / 100) <= br_limit + 1:
+                        format_copy = f.copy()
             return [
-                c.get('width'),
-                c.get('height'),
-                c.get('tbr'),
-                c.get('vcodec'),
-                c.get('acodec'),
+                format_copy.get('width'),
+                format_copy.get('height'),
+                format_copy.get('tbr'),
+                format_copy.get('vcodec'),
+                format_copy.get('acodec'),
+                format_copy.get('fps'),
                 tbr,
-            ] if c else [None, None, None, None, None, tbr]
+            ] if format_copy else [None, None, None, None, None, None, tbr]
 
         loc = test_url(relinker_url)
         if not isinstance(loc, compat_str):
@@ -184,17 +186,17 @@ class RaiBaseIE(InfoExtractor):
 
         formats = []
         for q in available_qualities:
-            w, h, t = None, None, None
-            quality = '_%s' % q if int_or_none(q) else ''
-            w, h, t, vc, ac, q = get_format_info(q)
+            quality_tag = '_%s' % q if int_or_none(q) else ''
+            width, height, tbr, vcodec, acodec, fps, q = get_format_info(q)
             formats.append({
-                'url': _MP4_TMPL % (base_url, vid, quality),
-                'width': w or _QUALITY[q][0],
-                'height': h or _QUALITY[q][1],
-                'tbr': t or int(q),
+                'url': _MP4_TMPL % (base_url, vid, quality_tag),
+                'width': width or _QUALITY[q][0],
+                'height': height or _QUALITY[q][1],
+                'tbr': tbr or int(q),
                 'protocol': 'https',
-                'vcodec': vc,
-                'acodec': ac,
+                'vcodec': vcodec,
+                'acodec': acodec,
+                'fps': fps,
                 'format_id': 'https-%s' % q,
             })
         return formats
@@ -295,7 +297,7 @@ class RaiPlayIE(RaiBaseIE):
         video = media['video']
 
         relinker_info = self._extract_relinker_info(video['content_url'], video_id)
-        self._sort_formats(relinker_info['formats'], ('tbr', 'proto'))
+        self._sort_formats(relinker_info['formats'])
 
         thumbnails = []
         for _, value in media.get('images', {}).items():
@@ -493,7 +495,7 @@ class RaiIE(RaiBaseIE):
         else:
             raise ExtractorError('not a media file')
 
-        self._sort_formats(relinker_info['formats'], ('tbr', 'proto'))
+        self._sort_formats(relinker_info['formats'])
 
         thumbnails = []
         for image_type in ('image', 'image_medium', 'image_300'):
