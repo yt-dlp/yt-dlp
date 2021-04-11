@@ -106,6 +106,7 @@ class RaiBaseIE(InfoExtractor):
         }.items() if v is not None)
 
     def _create_http_urls(self, relinker_url, fmts):
+        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\d+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
         _MP4_REG = r'(?P<base_url>https?://(?:creativemedia[x]?|download)\d+.+?)/(?P<vid>\d+)(?P<quality>_\d+)?\.mp4$'
         _MP4_TMPL = '%s/%s%s.mp4'
         _QUALITY = {
@@ -123,19 +124,16 @@ class RaiBaseIE(InfoExtractor):
             '10000': [1920, 1080],
         }
 
-        def test_url(url):
+        def test_url(url, headers={'User-Agent': 'raiweb'}):
             resp = self._request_webpage(
-                HEADRequest(url), None, expected_status=(200, 404),
-                fatal=False, errnote=False, note=False,
-                headers={'User-Agent': 'raiweb'})
+                HEADRequest(url), None, headers=headers,
+                fatal=False, errnote=False, note=False)
 
             if resp is False:
                 return False
 
             if resp.code == 200:
-                return True if resp.url == url else resp.url
-            elif resp.code == 404:
-                return None
+                return False if resp.url == url else resp.url
             return None
 
         def get_format_info(tbr):
@@ -165,24 +163,22 @@ class RaiBaseIE(InfoExtractor):
                 tbr,
             ] if format_copy else [None, None, None, None, None, None, tbr]
 
-        loc = test_url(relinker_url)
-        if not isinstance(loc, compat_str):
-            return []
-
         base_url, vid, quality = None, None, None
-        mobj = re.match(_MP4_REG, loc or '')
+        mobj = re.match(_MP4_REG, test_url(relinker_url) or '')
         if mobj:
             base_url, vid, quality = mobj.groups()
         else:
             return []
 
-        available_qualities = []
-        if quality:
-            for q in _QUALITY:
-                if test_url(_MP4_TMPL % (base_url, vid, '_%s' % q)):
-                    available_qualities.append(q)
-        else:
-            available_qualities.append('')
+        mobj = re.match(
+            _RELINKER_REG,
+            test_url(relinker_url, {'User-Agent': 'Rai'}) or '')
+        if not mobj:
+            return []
+
+        available_qualities = mobj.group('quality')
+        available_qualities = available_qualities.split(',') if available_qualities else ['.']
+        available_qualities = [i for i in available_qualities if i]
 
         formats = []
         for q in available_qualities:
