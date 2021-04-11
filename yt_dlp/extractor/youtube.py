@@ -285,6 +285,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return
 
     _YT_WEB_CLIENT_VERSION = '2.20210407.08.00'
+    _YT_INNERTUBE_API_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
@@ -298,7 +299,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return "SAPISIDHASH %s_%s" % (time_now, sapisidhash)
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
-                  note='Downloading API JSON', errnote='Unable to download API page', context=None):
+                  note='Downloading API JSON', errnote='Unable to download API page', context=None, api_key=None):
 
         data = {'context': context} if context else {'context': self._extract_context()}
         data.update(query)
@@ -310,7 +311,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'https://www.youtube.com/youtubei/v1/%s' % ep,
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
             data=json.dumps(data).encode('utf8'), headers=real_headers,
-            query={'key': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'})
+            query={'key': api_key or self._extract_api_key()})
+
+    def _extract_api_key(self, ytcfg=None):
+        return try_get(ytcfg, lambda x: x['INNERTUBE_API_KEY'], compat_str) or self._YT_INNERTUBE_API_KEY
 
     def _extract_yt_initial_data(self, video_id, webpage):
         return self._parse_json(
@@ -1813,9 +1817,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_response = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
+
+        ytcfg = self._extract_ytcfg(video_id, webpage)
         if not player_response:
             player_response = self._call_api(
-                'player', {'videoId': video_id}, video_id)
+                'player', {'videoId': video_id}, video_id, api_key=self._extract_api_key(ytcfg))
 
         playability_status = player_response.get('playabilityStatus') or {}
         if playability_status.get('reason') == 'Sign in to confirm your age':
@@ -2188,7 +2194,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'yt initial data')
         if not initial_data:
             initial_data = self._call_api(
-                'next', {'videoId': video_id}, video_id, fatal=False)
+                'next', {'videoId': video_id}, video_id, fatal=False, api_key=self._extract_api_key(ytcfg))
 
         if not is_live:
             try:
@@ -3015,6 +3021,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                             'clickTracking': {'clickTrackingParams': continuation['itct']},
                         },
                         context=context,
+                        api_key=self._extract_api_key(ytcfg),
                         note='Downloading API JSON%s' % (' (retry #%d)' % count if count else ''))
                 except ExtractorError as e:
                     if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
