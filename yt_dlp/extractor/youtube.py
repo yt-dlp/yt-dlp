@@ -2057,6 +2057,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 thumbnail_url = thumbnail.get('url')
                 if not thumbnail_url:
                     continue
+                # Sometimes youtube gives a wrong thumbnail URL. See:
+                # https://github.com/yt-dlp/yt-dlp/issues/233
+                # https://github.com/ytdl-org/youtube-dl/issues/28023
+                if 'maxresdefault' in thumbnail_url:
+                    thumbnail_url = thumbnail_url.split('?')[0]
                 thumbnails.append({
                     'height': int_or_none(thumbnail.get('height')),
                     'url': thumbnail_url,
