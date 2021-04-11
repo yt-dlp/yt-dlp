@@ -299,7 +299,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return "SAPISIDHASH %s_%s" % (time_now, sapisidhash)
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
-                  note='Downloading API JSON', errnote='Unable to download API page', context=None, api_key=None):
+                  note='Downloading API JSON', errnote='Unable to download API page',
+                  context=None, api_key=None):
 
         data = {'context': context} if context else {'context': self._extract_context()}
         data.update(query)
