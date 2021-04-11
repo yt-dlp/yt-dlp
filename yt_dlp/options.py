@@ -1195,7 +1195,11 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--exec',
         metavar='CMD', dest='exec_cmd',
-        help='Execute a command on the file after downloading and post-processing, similar to find\'s -exec syntax. Example: --exec \'adb push {} /sdcard/Music/ && rm {}\'')
+        help=(
+            'Execute a command on the file after downloading and post-processing. '
+            'Similar syntax to the output template can be used to pass any field as arguments to the command. '
+            'An additional field "filepath" that contains the final path of the downloaded file is also available. '
+            'If no fields are passed, "%(filepath)s" is appended to the end of the command'))
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,

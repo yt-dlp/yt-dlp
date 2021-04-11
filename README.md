@@ -686,9 +686,14 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      path to the binary or its containing
                                      directory
     --exec CMD                       Execute a command on the file after
-                                     downloading and post-processing, similar to
-                                     find's -exec syntax. Example: --exec 'adb
-                                     push {} /sdcard/Music/ && rm {}'
+                                     downloading and post-processing. Similar
+                                     syntax to the output template can be used
+                                     to pass any field as arguments to the
+                                     command. An additional field "filepath"
+                                     that contains the final path of the
+                                     downloaded file is also available. If no
+                                     fields are passed, "%(filepath)s" is
+                                     appended to the end of the command
     --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|ass|vtt|lrc)
                                      (Alias: --convert-subtitles)
