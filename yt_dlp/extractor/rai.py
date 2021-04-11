@@ -107,8 +107,7 @@ class RaiBaseIE(InfoExtractor):
 
     def _create_http_urls(self, relinker_url, fmts):
         _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\d+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
-        _MP4_REG = r'(?P<base_url>https?://(?:creativemedia[x]?|download)\d+.+?)/(?P<vid>\d+)(?P<quality>_\d+)?\.mp4$'
-        _MP4_TMPL = '%s/%s%s.mp4'
+        _MP4_TMPL = '%s&overrideUserAgentRule=mp4-%s'
         _QUALITY = {
             # tbr: w, h
             '250': [352, 198],
@@ -124,9 +123,9 @@ class RaiBaseIE(InfoExtractor):
             '10000': [1920, 1080],
         }
 
-        def test_url(url, headers={'User-Agent': 'raiweb'}):
+        def test_url(url):
             resp = self._request_webpage(
-                HEADRequest(url), None, headers=headers,
+                HEADRequest(url), None, headers={'User-Agent': 'Rai'},
                 fatal=False, errnote=False, note=False)
 
             if resp is False:
@@ -153,48 +152,42 @@ class RaiBaseIE(InfoExtractor):
                     br_limit = math.floor(br / 100)
                     if br_limit - 1 <= math.floor(f['tbr'] / 100) <= br_limit + 1:
                         format_copy = f.copy()
-            return [
-                format_copy.get('width'),
-                format_copy.get('height'),
-                format_copy.get('tbr'),
-                format_copy.get('vcodec'),
-                format_copy.get('acodec'),
-                format_copy.get('fps'),
-                tbr,
-            ] if format_copy else [None, None, None, None, None, None, tbr]
+            return {
+                'width': format_copy.get('width'),
+                'height': format_copy.get('height'),
+                'tbr': format_copy.get('tbr'),
+                'vcodec': format_copy.get('vcodec'),
+                'acodec': format_copy.get('acodec'),
+                'fps': format_copy.get('fps'),
+                'format_id': 'https-%s' % tbr,
+            } if format_copy else {
+                'width': _QUALITY[tbr][0],
+                'height': _QUALITY[tbr][1],
+                'format_id': 'https-%s' % tbr,
+                'tbr': int(tbr),
+            }
 
-        base_url, vid, quality = None, None, None
-        mobj = re.match(_MP4_REG, test_url(relinker_url) or '')
-        if mobj:
-            base_url, vid, quality = mobj.groups()
-        else:
+        loc = test_url(_MP4_TMPL % (relinker_url, '*'))
+        if not isinstance(loc, compat_str):
             return []
 
         mobj = re.match(
             _RELINKER_REG,
-            test_url(relinker_url, {'User-Agent': 'Rai'}) or '')
+            test_url(relinker_url) or '')
         if not mobj:
             return []
 
-        available_qualities = mobj.group('quality')
-        available_qualities = available_qualities.split(',') if available_qualities else ['.']
+        available_qualities = mobj.group('quality').split(',') if mobj.group('quality') else ['*']
         available_qualities = [i for i in available_qualities if i]
 
         formats = []
         for q in available_qualities:
-            quality_tag = '_%s' % q if int_or_none(q) else ''
-            width, height, tbr, vcodec, acodec, fps, q = get_format_info(q)
-            formats.append({
-                'url': _MP4_TMPL % (base_url, vid, quality_tag),
-                'width': width or _QUALITY[q][0],
-                'height': height or _QUALITY[q][1],
-                'tbr': tbr or int(q),
-                'protocol': 'https',
-                'vcodec': vcodec,
-                'acodec': acodec,
-                'fps': fps,
-                'format_id': 'https-%s' % q,
-            })
+            fmt = {}
+            fmt['url'] = _MP4_TMPL % (relinker_url, q)
+            fmt['protocol'] = 'https'
+            fmt['ext'] = 'mp4'
+            fmt.update(get_format_info(q))
+            formats.append(fmt)
         return formats
 
     @staticmethod
