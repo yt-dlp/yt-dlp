@@ -35,7 +35,7 @@
 * [youtube] Fix thumbnail URL
 * [youtube] Parse API parameters from initial webpage by [colethedj](https://github.com/colethedj)
 * [youtube] Extract comments' approximate timestamp by [colethedj](https://github.com/colethedj)
-* [youtube] Fix `\_extract_alerts`
+* [youtube] Fix alert extraction
 * [bilibili] Fix uploader
 * [utils] Add `datetime_from_str` and `datetime_add_months` by [colethedj](https://github.com/colethedj)
 * Run some `postprocessors` before actual download
