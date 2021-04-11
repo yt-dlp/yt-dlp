@@ -1580,7 +1580,8 @@ class InfoExtractor(object):
                              else None)
 
         def print_verbose_info(self, to_screen):
-            to_screen('[debug] Sort order given by user: %s' % ','.join(self._sort_user))
+            if self._sort_user:
+                to_screen('[debug] Sort order given by user: %s' % ','.join(self._sort_user))
             if self._sort_extractor:
                 to_screen('[debug] Sort order given by extractor: %s' % ', '.join(self._sort_extractor))
             to_screen('[debug] Formats sorted by: %s' % ', '.join(['%s%s%s' % (

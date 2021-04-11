@@ -6,6 +6,7 @@
 * Run `make doc`
 * Update Changelog.md and CONTRIBUTORS
 * Change "Merged with ytdl" version in Readme.md if needed
+* Add new/fixed extractors in "new features" section of Readme.md
 * Commit to master as `Release <version>`
 * Push to origin/release using `git push origin master:release`
     build task will now run
@@ -19,7 +20,7 @@
 
 
 ### 2021.04.03
-* Merge youtube-dl: Upto 2021.04.01 ([commit/654b4f4](https://github.com/ytdl-org/youtube-dl/commit/654b4f4ff2718f38b3182c1188c5d569c14cc70a))
+* Merge youtube-dl: Upto [commit/654b4f4](https://github.com/ytdl-org/youtube-dl/commit/654b4f4ff2718f38b3182c1188c5d569c14cc70a)
 * Ability to set a specific field in the file's metadata using `--parse-metadata`
 * Ability to select n'th best format like `-f bv*.2`
 * [DiscoveryPlus] Add discoveryplus.in
