@@ -85,7 +85,7 @@ def get_suitable_downloader(info_dict, params={}, default=HttpFD):
             return FFmpegFD
         elif external_downloader == 'native':
             return HlsFD
-        elif _get_real_downloader(info_dict, 'frag_urls', params, None):
+        elif _get_real_downloader(info_dict, 'm3u8_frag_urls', params, None):
             return HlsFD
         elif params.get('hls_prefer_native') is True:
             return HlsFD
