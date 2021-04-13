@@ -1650,8 +1650,8 @@ class YoutubeDL(object):
                         formats = list(ctx['formats'])
                         if not formats:
                             return
-                        merged_format = formats[0]
-                        for f in formats[1:]:
+                        merged_format = formats[-1]
+                        for f in formats[-2::-1]:
                             merged_format = _merge((merged_format, f))
                         yield merged_format
 
