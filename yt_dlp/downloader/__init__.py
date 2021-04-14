@@ -80,7 +80,7 @@ def get_suitable_downloader(info_dict, params={}, default=HttpFD):
         if ed.can_download(info_dict, external_downloader):
             return ed
 
-    if protocol.startswith('m3u8'):
+    if protocol in ('m3u8', 'm3u8_native'):
         if info_dict.get('is_live'):
             return FFmpegFD
         elif external_downloader == 'native':
