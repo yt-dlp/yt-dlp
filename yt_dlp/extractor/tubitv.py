@@ -117,7 +117,7 @@ class TubiTvIE(InfoExtractor):
 
 
 class TubiTvShowIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/series/[0-9]+/(?P<show_name>\S*)(?:\?\S*)'
+    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/series/[0-9]+/(?P<show_name>[^/?#]+)'
     _TESTS = [{
         'url': 'https://tubitv.com/series/3936/the-joy-of-painting-with-bob-ross?start=true',
         'playlist_mincount': 390,
