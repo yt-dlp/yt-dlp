@@ -7,9 +7,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    js_to_json,
     sanitized_Request,
     urlencode_postdata,
-    js_to_json
 )
 
 
