@@ -3278,15 +3278,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
-                          ytcfg=None, check_get_keys=None, check_get_functions=None, ep='browse'):
+                          ytcfg=None, check_get_keys=None, ep='browse'):
         response = None
         last_error = None
         count = -1
         retries = self._downloader.params.get('extractor_retries', 3)
         if check_get_keys is None:
             check_get_keys = []
-        if check_get_functions is None:
-            check_get_functions = []
         while count < retries:
             count += 1
             if last_error:
@@ -3310,12 +3308,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             else:
                 # Youtube may send alerts if there was an issue with the continuation page
                 self._extract_alerts(response, expected=False)
-
-                if not check_get_keys and not check_get_functions:
+                if not check_get_keys or dict_get(response, check_get_keys):
                     break
-                if dict_get(response, check_get_keys) or try_get(response, check_get_functions):
-                    break
-
                 # Youtube sometimes sends incomplete data
                 # See: https://github.com/ytdl-org/youtube-dl/issues/28194
                 last_error = 'Incomplete data received'
