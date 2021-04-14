@@ -3040,46 +3040,15 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         for page_num in itertools.count(1):
             if not continuation:
                 break
+            query = {
+                'continuation': continuation['continuation'],
+                'clickTracking': {'clickTrackingParams': continuation['itct']}
+            }
             headers = self._generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
-            retries = self._downloader.params.get('extractor_retries', 3)
-            count = -1
-            last_error = None
-            while count < retries:
-                count += 1
-                if last_error:
-                    self.report_warning('%s. Retrying ...' % last_error)
-                try:
-                    response = self._call_api(
-                        ep='browse', fatal=True, headers=headers,
-                        video_id='%s page %s' % (item_id, page_num),
-                        query={
-                            'continuation': continuation['continuation'],
-                            'clickTracking': {'clickTrackingParams': continuation['itct']},
-                        },
-                        context=context,
-                        api_key=self._extract_api_key(ytcfg),
-                        note='Downloading API JSON%s' % (' (retry #%d)' % count if count else ''))
-                except ExtractorError as e:
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
-                        # Downloading page may result in intermittent 5xx HTTP error
-                        # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
-                        last_error = 'HTTP Error %s' % e.cause.code
-                        if count < retries:
-                            continue
-                    raise
-                else:
-                    # Youtube sometimes sends incomplete data
-                    # See: https://github.com/ytdl-org/youtube-dl/issues/28194
-                    if dict_get(response,
-                                ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints')):
-                        break
-
-                    # Youtube may send alerts if there was an issue with the continuation page
-                    self._extract_alerts(response, expected=False)
-
-                    last_error = 'Incomplete data received'
-                    if count >= retries:
-                        self._downloader.report_error(last_error)
+            response = self._extract_response(
+                item_id='%s page %s' % (item_id, page_num),
+                query=query, headers=headers, ytcfg=ytcfg,
+                check_get_keys=('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints'))
 
             if not response:
                 break
@@ -3308,6 +3277,52 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if errors:
             raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
 
+    def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
+                          ytcfg=None, check_get_keys=None, check_get_functions=None, ep='browse'):
+        response = None
+        last_error = None
+        count = -1
+        retries = self._downloader.params.get('extractor_retries', 3)
+        if check_get_keys is None:
+            check_get_keys = []
+        if check_get_functions is None:
+            check_get_functions = []
+        while count < retries:
+            count += 1
+            if last_error:
+                self.report_warning('%s. Retrying ...' % last_error)
+            try:
+                response = self._call_api(
+                    ep=ep, fatal=True, headers=headers,
+                    video_id=item_id,
+                    query=query,
+                    context=self._extract_context(ytcfg),
+                    api_key=self._extract_api_key(ytcfg),
+                    note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
+                    # Downloading page may result in intermittent 5xx HTTP error
+                    # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
+                    last_error = 'HTTP Error %s' % e.cause.code
+                    if count < retries:
+                        continue
+                raise
+            else:
+                # Youtube may send alerts if there was an issue with the continuation page
+                self._extract_alerts(response, expected=False)
+
+                if not check_get_keys and not check_get_functions:
+                    break
+                if dict_get(response, check_get_keys) or try_get(response, check_get_functions):
+                    break
+
+                # Youtube sometimes sends incomplete data
+                # See: https://github.com/ytdl-org/youtube-dl/issues/28194
+                last_error = 'Incomplete data received'
+                if count >= retries:
+                    self._downloader.report_error(last_error)
+        return response
+
     def _extract_webpage(self, url, item_id):
         retries = self._downloader.params.get('extractor_retries', 3)
         count = -1
@@ -3534,7 +3549,7 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
             ie=YoutubeTabIE.ie_key())
 
 
-class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
+class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
     IE_DESC = 'YouTube.com searches, "ytsearch" keyword'
     # there doesn't appear to be a real limit, for example if you search for
     # 'python' you get more than 8.000.000 results
@@ -3550,9 +3565,10 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
             data['params'] = self._SEARCH_PARAMS
         total = 0
         for page_num in itertools.count(1):
-            search = self._call_api(
-                ep='search', video_id='query "%s"' % query, fatal=False,
-                note='Downloading page %s' % page_num, query=data)
+            search = self._extract_response(
+                item_id='query "%s" page %s' % (query, page_num), ep='search', query=data,
+                check_get_keys=('contents', 'onResponseReceivedCommands')
+            )
             if not search:
                 break
             slr_contents = try_get(
