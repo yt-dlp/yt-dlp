@@ -338,8 +338,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_account_syncid(data):
         """
         Extract syncId required to download private playlists of secondary channels
-        params:
-        - data: can be either response or ytcfg
+        @param data Either response or ytcfg
         """
         sync_ids = (try_get(
             data, (lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'],
