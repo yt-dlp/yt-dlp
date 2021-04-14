@@ -13,7 +13,12 @@ from ..utils import (
 
 
 class TubiTvIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?:video|movies|tv-shows)/(?P<id>[0-9]+)'
+    _VALID_URL = r'''(?x)
+                    (?:
+                        tubi:|
+                        https?://(?:www\.)?tubitv\.com/(?:video|movies|tv-shows)/
+                    )
+                    (?P<id>[0-9]+)'''
     _LOGIN_URL = 'http://tubitv.com/login'
     _NETRC_MACHINE = 'tubitv'
     _GEO_COUNTRIES = ['US']
@@ -108,3 +113,30 @@ class TubiTvIE(InfoExtractor):
             'uploader_id': video_data.get('publisher_id'),
             'release_year': int_or_none(video_data.get('year')),
         }
+
+
+class TubiTvShowIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?tubitv\.com/series/[0-9]+/(?P<show_name>\S*)(?:\?\S*)'
+    _TESTS = [{
+        'url': 'https://tubitv.com/series/3936/the-joy-of-painting-with-bob-ross?start=true',
+        'playlist_mincount': 390,
+        'info_dict': {
+            'id': 'the-joy-of-painting-with-bob-ross',
+        }
+    }
+    ]
+
+    def _entries(self, show_url, show_name):
+        show_webpage = self._download_webpage(show_url, show_name).replace('undefined', '\"undefined\"')
+        show_json = self._parse_json(self._search_regex(
+            r"window\.__data\s*=\s*({.+?});\s*</script>",
+            show_webpage, 'data'), show_name)['video']
+        for episode_id in show_json['fullContentById'].keys():
+            yield self.url_result(
+                'tubi:%s' % episode_id,
+                ie=TubiTvIE.ie_key(), video_id=episode_id)
+
+    def _real_extract(self, url):
+        show_name = re.match(self._VALID_URL, url).group('show_name')
+        show_url = url
+        return self.playlist_result(self._entries(show_url, show_name), playlist_id=show_name)
