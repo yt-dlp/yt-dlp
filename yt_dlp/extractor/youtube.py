@@ -341,10 +341,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         params:
         - data: can be either response or ytcfg
         """
-        sync_ids = (
-                try_get(data, (lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'],
-                               lambda x: x['DATASYNC_ID']), compat_str)
-                or '').split("||")
+        sync_ids = (try_get(
+            data, (lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'],
+                   lambda x: x['DATASYNC_ID']), compat_str) or '').split("||")
         if len(sync_ids) >= 2 and sync_ids[1]:
             # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
             # and just "user_syncid||" for primary channel. We only want the channel_syncid
