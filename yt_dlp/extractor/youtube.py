@@ -2079,8 +2079,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 for m in re.finditer(self._meta_regex('og:video:tag'), webpage)]
         for keyword in keywords:
             if keyword.startswith('yt:stretch='):
-                w, h = keyword.split('=')[1].split(':')
-                w, h = int(w), int(h)
+                stretch_ratio = map(
+                    lambda x: int_or_none(x, default=0),
+                    keyword.split('=')[1].split(':'))
+                w, h = (list(stretch_ratio) + [0])[:2]
                 if w > 0 and h > 0:
                     ratio = w / h
                     for f in formats:
