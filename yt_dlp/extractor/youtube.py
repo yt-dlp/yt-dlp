@@ -3205,8 +3205,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 self._extract_ytcfg(item_id, webpage)),
             **metadata)
 
-    def _extract_mix_playlist(self, playlist, playlist_id):
+    def _extract_mix_playlist(self, playlist, playlist_id, data, webpage):
         first_id = last_id = None
+        ytcfg = self._extract_ytcfg(playlist_id, webpage)
+        headers = self._generate_api_headers(
+            ytcfg, account_syncid=self._extract_account_syncid(data),
+            identity_token=self._extract_identity_token(webpage, item_id=playlist_id),
+            visitor_data=try_get(self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
         for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
             if not videos:
@@ -3221,14 +3226,25 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 yield video
             first_id = first_id or videos[0]['id']
             last_id = videos[-1]['id']
-
-            _, data = self._extract_webpage(
-                'https://www.youtube.com/watch?list=%s&v=%s' % (playlist_id, last_id),
-                '%s page %d' % (playlist_id, page_num))
+            watch_endpoint = try_get(
+                playlist, lambda x: x['contents'][-1]['playlistPanelVideoRenderer']['navigationEndpoint']['watchEndpoint'])
+            query = {
+                'playlistId': playlist_id,
+                'videoId': watch_endpoint.get('videoId') or last_id,
+                'index': watch_endpoint.get('index') or start,
+                'params': watch_endpoint.get('params') or 'OAE%3D'
+            }
+            response = self._extract_response(
+                item_id='%s page %d' % (playlist_id, page_num),
+                query=query,
+                ep='next',
+                headers=headers,
+                check_get_keys='contents'
+            )
             playlist = try_get(
-                data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
+                response, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
 
-    def _extract_from_playlist(self, item_id, url, data, playlist):
+    def _extract_from_playlist(self, item_id, url, data, playlist, webpage):
         title = playlist.get('title') or try_get(
             data, lambda x: x['titleText']['simpleText'], compat_str)
         playlist_id = playlist.get('playlistId') or item_id
@@ -3243,7 +3259,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 video_title=title)
 
         return self.playlist_result(
-            self._extract_mix_playlist(playlist, playlist_id),
+            self._extract_mix_playlist(playlist, playlist_id, data, webpage),
             playlist_id=playlist_id, playlist_title=title)
 
     def _extract_alerts(self, data, expected=False):
@@ -3381,7 +3397,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         playlist = try_get(
             data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
         if playlist:
-            return self._extract_from_playlist(item_id, url, data, playlist)
+            return self._extract_from_playlist(item_id, url, data, playlist, webpage)
 
         video_id = try_get(
             data, lambda x: x['currentVideoEndpoint']['watchEndpoint']['videoId'],
