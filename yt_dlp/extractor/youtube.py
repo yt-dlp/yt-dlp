@@ -3231,7 +3231,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             query = {
                 'playlistId': playlist_id,
                 'videoId': watch_endpoint.get('videoId') or last_id,
-                'index': watch_endpoint.get('index') or start,
+                'index': watch_endpoint.get('index') or len(videos),
                 'params': watch_endpoint.get('params') or 'OAE%3D'
             }
             response = self._extract_response(
