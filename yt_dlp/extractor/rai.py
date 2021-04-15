@@ -5,12 +5,12 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_urlparse,
     compat_str,
+    compat_urlparse,
 )
 from ..utils import (
-    ExtractorError,
     determine_ext,
+    ExtractorError,
     find_xpath_attr,
     fix_xml_ampersands,
     GeoRestrictedError,
@@ -182,10 +182,11 @@ class RaiBaseIE(InfoExtractor):
 
         formats = []
         for q in available_qualities:
-            fmt = {}
-            fmt['url'] = _MP4_TMPL % (relinker_url, q)
-            fmt['protocol'] = 'https'
-            fmt['ext'] = 'mp4'
+            fmt = {
+                'url': _MP4_TMPL % (relinker_url, q),
+                'protocol': 'https',
+                'ext': 'mp4',
+            }
             fmt.update(get_format_info(q))
             formats.append(fmt)
         return formats
@@ -242,7 +243,7 @@ class RaiPlayIE(RaiBaseIE):
     }, {
         # 1080p direct mp4 url
         'url': 'https://www.raiplay.it/video/2021/03/Leonardo-S1E1-b5703b02-82ee-475a-85b6-c9e4a8adf642.html',
-        'md5': '1955a87ffe625e913bff2dafc23e1143',
+        'md5': '2e501e8651d72f05ffe8f5d286ad560b',
         'info_dict': {
             'id': 'b5703b02-82ee-475a-85b6-c9e4a8adf642',
             'ext': 'mp4',
@@ -251,7 +252,7 @@ class RaiPlayIE(RaiBaseIE):
             'description': 'md5:f5360cd267d2de146e4e3879a5a47d31',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Rai 1',
-            'duration': 3230,
+            'duration': 3229,
             'series': 'Leonardo',
             'season': 'Season 1',
         },
