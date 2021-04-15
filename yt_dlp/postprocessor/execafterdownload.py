@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 
+import re
 import subprocess
 
 from .common import PostProcessor
 from ..compat import compat_shlex_quote
 from ..utils import (
     encodeArgument,
+    FORMAT_RE,
     PostProcessingError,
 )
 
@@ -20,18 +22,20 @@ class ExecAfterDownloadPP(PostProcessor):
     def pp_key(cls):
         return 'Exec'
 
-    def run(self, info):
-        tmpl, info_copy = self._downloader.prepare_outtmpl(self.exec_cmd, info)
-        cmd = tmpl % info_copy
-        if cmd == self.exec_cmd:  # No replacements were made
-            if '{}' not in self.exec_cmd:
-                self.exec_cmd += ' {}'
-            cmd = self.exec_cmd.replace('{}', compat_shlex_quote(info['filepath']))
+    def parse_cmd(self, cmd, info):
+        # If no %(key)s is found, replace {} for backard compatibility
+        if not re.search(FORMAT_RE.format(r'[-\w>.+]+'), cmd):
+            if '{}' not in cmd:
+                cmd += ' {}'
+            return cmd.replace('{}', compat_shlex_quote(info['filepath']))
 
+        tmpl, info_copy = self._downloader.prepare_outtmpl(cmd, info)
+        return tmpl % info_copy
+
+    def run(self, info):
+        cmd = self.parse_cmd(self.exec_cmd, info)
         self.to_screen('Executing command: %s' % cmd)
         retCode = subprocess.call(encodeArgument(cmd), shell=True)
         if retCode != 0:
-            raise PostProcessingError(
-                'Command returned error code %d' % retCode)
-
+            raise PostProcessingError('Command returned error code %d' % retCode)
         return [], info
