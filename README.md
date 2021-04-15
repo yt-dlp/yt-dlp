@@ -395,8 +395,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --output-na-placeholder TEXT     Placeholder value for unavailable meta
                                      fields in output filename template
                                      (default: "NA")
-    --autonumber-start NUMBER        Specify the start value for %(autonumber)s
-                                     (default is 1)
     --restrict-filenames             Restrict filenames to only ASCII
                                      characters, and avoid "&" and spaces in
                                      filenames
@@ -833,7 +831,19 @@ The `-o` option is used to indicate a template for the output file names while `
 
 **tl;dr:** [navigate me to examples](#output-template-examples).
 
-The basic usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is not recommended). However, it may contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations. Date/time fields can also be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it inside the parantheses separated from the field name using a `>`. For example, `%(duration>%H-%M-%S)s`.
+The simplest usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is _not_ recommended and could break certain postprocessing).
+
+It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
+
+The field names themselves (the part inside the parenthesis) can also have some special formatting:
+1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s` or `%(upload_date>%Y-%m-%d)s`
+2. **Offset numbers**: Numeric fields can have an initial offset specified by using a `+` seperator. Eg: `%(playlist_index+10)03d`. This can also be used in conjunction with the datetime formatting. Eg: `%(epoch+-3600>%H-%M-%S)s`
+3. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) seperator. Eg: `%(tags.0)s` or `%(subtitles.en.-1.ext)`. Note that the fields that become available using this method are not listed below. Use `-j` to see such fields
+
+To summarize, the general syntax for a field is:
+```
+%(name[.keys][+offset][>strf])[flags][width][.precision][length]type
+```
 
 Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different filetypes supported are `subtitle`, `thumbnail`, `description`, `annotation`, `infojson`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
 
@@ -992,7 +1002,7 @@ The general syntax for format selection is `-f FORMAT` (or `--format FORMAT`) wh
 
 **tl;dr:** [navigate me to examples](#format-selection-examples).
 
-The simplest case is requesting a specific format, for example with `-f 22` you can download the format with format code equal to 22. You can get the list of available format codes for particular video using `--list-formats` or `-F`. Note that these format codes are extractor specific. 
+The simplest case is requesting a specific format, for example with `-f 22` you can download the format with format code equal to 22. You can get the list of available format codes for particular video using `--list-formats` or `-F`. Note that these format codes are extractor specific.
 
 You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, `mp4`, `ogg`, `wav`, `webm` are supported) to download the best quality format of a particular file extension served as a single file, e.g. `-f webm` will download the best quality format with the `webm` extension served as a single file.
 
@@ -1263,6 +1273,7 @@ These are all the deprecated options and the current alternative to achieve the 
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
     --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
+    --autonumber-start NUMBER        Use internal field formatting like %(autonumber+NUMBER)s
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"
     --prefer-avconv                  avconv is no longer officially supported (Alias: --no-prefer-ffmpeg)
     --prefer-ffmpeg                  Default (Alias: --no-prefer-avconv)

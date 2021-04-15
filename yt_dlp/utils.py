@@ -6092,11 +6092,20 @@ def load_plugins(name, type, namespace):
 
 
 def traverse_dict(dictn, keys, casesense=True):
-    if not isinstance(dictn, dict):
-        return None
-    first_key = keys[0]
-    if not casesense:
-        dictn = {key.lower(): val for key, val in dictn.items()}
-        first_key = first_key.lower()
-    value = dictn.get(first_key, None)
-    return value if len(keys) < 2 else traverse_dict(value, keys[1:], casesense)
+    keys = list(keys)[::-1]
+    while keys:
+        key = keys.pop()
+        if isinstance(dictn, dict):
+            if not casesense:
+                dictn = {k.lower(): v for k, v in dictn.items()}
+                key = key.lower()
+            dictn = dictn.get(key)
+        elif isinstance(dictn, (list, tuple, compat_str)):
+            key, n = int_or_none(key), len(dictn)
+            if key is not None and -n <= key < n:
+                dictn = dictn[key]
+            else:
+                dictn = None
+        else:
+            return None
+    return dictn

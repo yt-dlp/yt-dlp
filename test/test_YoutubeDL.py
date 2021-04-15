@@ -655,6 +655,8 @@ class TestYoutubeDL(unittest.TestCase):
             'height': 1080,
             'title1': '$PATH',
             'title2': '%PATH%',
+            'timestamp': 1618488000,
+            'formats': [{'id': 'id1'}, {'id': 'id2'}]
         }
 
         def fname(templ, na_placeholder='NA'):
@@ -671,6 +673,7 @@ class TestYoutubeDL(unittest.TestCase):
         # Or by provided placeholder
         self.assertEqual(fname(NA_TEST_OUTTMPL, na_placeholder='none'), 'none-none-1234.mp4')
         self.assertEqual(fname(NA_TEST_OUTTMPL, na_placeholder=''), '--1234.mp4')
+        self.assertEqual(fname('%(height)s.%(ext)s'), '1080.mp4')
         self.assertEqual(fname('%(height)d.%(ext)s'), '1080.mp4')
         self.assertEqual(fname('%(height)6d.%(ext)s'), '  1080.mp4')
         self.assertEqual(fname('%(height)-6d.%(ext)s'), '1080  .mp4')
@@ -688,6 +691,12 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(fname('%%(width)06d.%(ext)s'), '%(width)06d.mp4')
         self.assertEqual(fname('Hello %(title1)s'), 'Hello $PATH')
         self.assertEqual(fname('Hello %(title2)s'), 'Hello %PATH%')
+        self.assertEqual(fname('%(timestamp+-1000>%H-%M-%S)s'), '11-43-20')
+        self.assertEqual(fname('%(id+1)05d'), '01235')
+        self.assertEqual(fname('%(width+100)05d'), 'NA')
+        self.assertEqual(fname('%(formats.0)s').replace("u", ""), "{'id' - 'id1'}")
+        self.assertEqual(fname('%(formats.-1.id)s'), 'id2')
+        self.assertEqual(fname('%(formats.2)s'), 'NA')
 
     def test_format_note(self):
         ydl = YoutubeDL()
