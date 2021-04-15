@@ -3040,46 +3040,15 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         for page_num in itertools.count(1):
             if not continuation:
                 break
+            query = {
+                'continuation': continuation['continuation'],
+                'clickTracking': {'clickTrackingParams': continuation['itct']}
+            }
             headers = self._generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
-            retries = self._downloader.params.get('extractor_retries', 3)
-            count = -1
-            last_error = None
-            while count < retries:
-                count += 1
-                if last_error:
-                    self.report_warning('%s. Retrying ...' % last_error)
-                try:
-                    response = self._call_api(
-                        ep='browse', fatal=True, headers=headers,
-                        video_id='%s page %s' % (item_id, page_num),
-                        query={
-                            'continuation': continuation['continuation'],
-                            'clickTracking': {'clickTrackingParams': continuation['itct']},
-                        },
-                        context=context,
-                        api_key=self._extract_api_key(ytcfg),
-                        note='Downloading API JSON%s' % (' (retry #%d)' % count if count else ''))
-                except ExtractorError as e:
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
-                        # Downloading page may result in intermittent 5xx HTTP error
-                        # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
-                        last_error = 'HTTP Error %s' % e.cause.code
-                        if count < retries:
-                            continue
-                    raise
-                else:
-                    # Youtube sometimes sends incomplete data
-                    # See: https://github.com/ytdl-org/youtube-dl/issues/28194
-                    if dict_get(response,
-                                ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints')):
-                        break
-
-                    # Youtube may send alerts if there was an issue with the continuation page
-                    self._extract_alerts(response, expected=False)
-
-                    last_error = 'Incomplete data received'
-                    if count >= retries:
-                        self._downloader.report_error(last_error)
+            response = self._extract_response(
+                item_id='%s page %s' % (item_id, page_num),
+                query=query, headers=headers, ytcfg=ytcfg,
+                check_get_keys=('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints'))
 
             if not response:
                 break
@@ -3236,8 +3205,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 self._extract_ytcfg(item_id, webpage)),
             **metadata)
 
-    def _extract_mix_playlist(self, playlist, playlist_id):
+    def _extract_mix_playlist(self, playlist, playlist_id, data, webpage):
         first_id = last_id = None
+        ytcfg = self._extract_ytcfg(playlist_id, webpage)
+        headers = self._generate_api_headers(
+            ytcfg, account_syncid=self._extract_account_syncid(data),
+            identity_token=self._extract_identity_token(webpage, item_id=playlist_id),
+            visitor_data=try_get(self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
         for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
             if not videos:
@@ -3252,14 +3226,25 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 yield video
             first_id = first_id or videos[0]['id']
             last_id = videos[-1]['id']
-
-            _, data = self._extract_webpage(
-                'https://www.youtube.com/watch?list=%s&v=%s' % (playlist_id, last_id),
-                '%s page %d' % (playlist_id, page_num))
+            watch_endpoint = try_get(
+                playlist, lambda x: x['contents'][-1]['playlistPanelVideoRenderer']['navigationEndpoint']['watchEndpoint'])
+            query = {
+                'playlistId': playlist_id,
+                'videoId': watch_endpoint.get('videoId') or last_id,
+                'index': watch_endpoint.get('index') or len(videos),
+                'params': watch_endpoint.get('params') or 'OAE%3D'
+            }
+            response = self._extract_response(
+                item_id='%s page %d' % (playlist_id, page_num),
+                query=query,
+                ep='next',
+                headers=headers,
+                check_get_keys='contents'
+            )
             playlist = try_get(
-                data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
+                response, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
 
-    def _extract_from_playlist(self, item_id, url, data, playlist):
+    def _extract_from_playlist(self, item_id, url, data, playlist, webpage):
         title = playlist.get('title') or try_get(
             data, lambda x: x['titleText']['simpleText'], compat_str)
         playlist_id = playlist.get('playlistId') or item_id
@@ -3274,7 +3259,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 video_title=title)
 
         return self.playlist_result(
-            self._extract_mix_playlist(playlist, playlist_id),
+            self._extract_mix_playlist(playlist, playlist_id, data, webpage),
             playlist_id=playlist_id, playlist_title=title)
 
     def _extract_alerts(self, data, expected=False):
@@ -3307,6 +3292,46 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self._downloader.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
         if errors:
             raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
+
+    def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
+                          ytcfg=None, check_get_keys=None, ep='browse'):
+        response = None
+        last_error = None
+        count = -1
+        retries = self._downloader.params.get('extractor_retries', 3)
+        if check_get_keys is None:
+            check_get_keys = []
+        while count < retries:
+            count += 1
+            if last_error:
+                self.report_warning('%s. Retrying ...' % last_error)
+            try:
+                response = self._call_api(
+                    ep=ep, fatal=True, headers=headers,
+                    video_id=item_id,
+                    query=query,
+                    context=self._extract_context(ytcfg),
+                    api_key=self._extract_api_key(ytcfg),
+                    note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
+                    # Downloading page may result in intermittent 5xx HTTP error
+                    # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
+                    last_error = 'HTTP Error %s' % e.cause.code
+                    if count < retries:
+                        continue
+                raise
+            else:
+                # Youtube may send alerts if there was an issue with the continuation page
+                self._extract_alerts(response, expected=False)
+                if not check_get_keys or dict_get(response, check_get_keys):
+                    break
+                # Youtube sometimes sends incomplete data
+                # See: https://github.com/ytdl-org/youtube-dl/issues/28194
+                last_error = 'Incomplete data received'
+                if count >= retries:
+                    self._downloader.report_error(last_error)
+        return response
 
     def _extract_webpage(self, url, item_id):
         retries = self._downloader.params.get('extractor_retries', 3)
@@ -3372,7 +3397,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         playlist = try_get(
             data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
         if playlist:
-            return self._extract_from_playlist(item_id, url, data, playlist)
+            return self._extract_from_playlist(item_id, url, data, playlist, webpage)
 
         video_id = try_get(
             data, lambda x: x['currentVideoEndpoint']['watchEndpoint']['videoId'],
@@ -3534,7 +3559,7 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
             ie=YoutubeTabIE.ie_key())
 
 
-class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
+class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
     IE_DESC = 'YouTube.com searches, "ytsearch" keyword'
     # there doesn't appear to be a real limit, for example if you search for
     # 'python' you get more than 8.000.000 results
@@ -3550,9 +3575,10 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeBaseInfoExtractor):
             data['params'] = self._SEARCH_PARAMS
         total = 0
         for page_num in itertools.count(1):
-            search = self._call_api(
-                ep='search', video_id='query "%s"' % query, fatal=False,
-                note='Downloading page %s' % page_num, query=data)
+            search = self._extract_response(
+                item_id='query "%s" page %s' % (query, page_num), ep='search', query=data,
+                check_get_keys=('contents', 'onResponseReceivedCommands')
+            )
             if not search:
                 break
             slr_contents = try_get(
