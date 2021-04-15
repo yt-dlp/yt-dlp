@@ -93,18 +93,31 @@ class TV4IE(InfoExtractor):
                 'device': 'browser',
                 'protocol': 'hls',
             })['playbackItem']['manifestUrl']
-        formats = self._extract_m3u8_formats(
+        formats = []
+        subtitles = {}
+
+        fmts, subs = self._extract_m3u8_formats_and_subtitles(
             manifest_url, video_id, 'mp4',
             'm3u8_native', m3u8_id='hls', fatal=False)
-        formats.extend(self._extract_mpd_formats(
+        formats.extend(fmts)
+        subtitles = self._merge_subtitles(subtitles, subs)
+
+        fmts, subs = self._extract_mpd_formats_and_subtitles(
             manifest_url.replace('.m3u8', '.mpd'),
-            video_id, mpd_id='dash', fatal=False))
-        formats.extend(self._extract_f4m_formats(
+            video_id, mpd_id='dash', fatal=False)
+        formats.extend(fmts)
+        subtitles = self._merge_subtitles(subtitles, subs)
+
+        fmts = self._extract_f4m_formats(
             manifest_url.replace('.m3u8', '.f4m'),
-            video_id, f4m_id='hds', fatal=False))
-        formats.extend(self._extract_ism_formats(
+            video_id, f4m_id='hds', fatal=False)
+        formats.extend(fmts)
+
+        fmts, subs = self._extract_ism_formats_and_subtitles(
             re.sub(r'\.ism/.*?\.m3u8', r'.ism/Manifest', manifest_url),
-            video_id, ism_id='mss', fatal=False))
+            video_id, ism_id='mss', fatal=False)
+        formats.extend(fmts)
+        subtitles = self._merge_subtitles(subtitles, subs)
 
         if not formats and info.get('is_geo_restricted'):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
@@ -115,7 +128,7 @@ class TV4IE(InfoExtractor):
             'id': video_id,
             'title': title,
             'formats': formats,
-            # 'subtitles': subtitles,
+            'subtitles': subtitles,
             'description': info.get('description'),
             'timestamp': parse_iso8601(info.get('broadcast_date_time')),
             'duration': int_or_none(info.get('duration')),
