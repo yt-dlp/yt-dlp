@@ -2444,8 +2444,9 @@ class GenericIE(InfoExtractor):
         m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             format_id = compat_str(m.group('format_id'))
+            subtitles = {}
             if format_id.endswith('mpegurl'):
-                formats = self._extract_m3u8_formats(url, video_id, 'mp4')
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
             elif format_id == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id)
             else:
@@ -2457,6 +2458,7 @@ class GenericIE(InfoExtractor):
                 info_dict['direct'] = True
             self._sort_formats(formats)
             info_dict['formats'] = formats
+            info_dict['subtitles'] = subtitles
             return info_dict
 
         if not self._downloader.params.get('test', False) and not is_intentional:
