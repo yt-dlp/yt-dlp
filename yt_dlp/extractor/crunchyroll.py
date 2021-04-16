@@ -428,7 +428,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             r'<div class="showmedia-trailer-notice">(.+?)</div>',
             webpage, 'trailer-notice', default='')
         if note_m:
-            raise ExtractorError(note_m)
+            raise ExtractorError(note_m, expected=True)
 
         mobj = re.search(r'Page\.messaging_box_controller\.addItems\(\[(?P<msg>{.+?})\]\)', webpage)
         if mobj:

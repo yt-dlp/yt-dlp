@@ -311,8 +311,8 @@ class TestFormatSelection(unittest.TestCase):
         self.assertRaises(ExtractorError, ydl.process_ie_result, info_dict.copy())
 
     def test_youtube_format_selection(self):
+        # FIXME: Rewrite in accordance with the new format sorting options
         return
-        # disabled for now - this needs some changes
 
         order = [
             '38', '37', '46', '22', '45', '35', '44', '18', '34', '43', '6', '5', '17', '36', '13',

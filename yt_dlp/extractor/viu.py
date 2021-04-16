@@ -14,6 +14,7 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     int_or_none,
+    try_get,
     smuggle_url,
     unsmuggle_url,
 )
@@ -344,7 +345,7 @@ class ViuOTTIE(InfoExtractor):
                         video_id, 'Downloading stream info', query=query, headers=headers)
                     try:
                         stream_data = self._detect_error(stream_data)['stream']
-                    except (ExtractorError, KeyError): # if still not working, give up
+                    except (ExtractorError, KeyError):  # if still not working, give up
                         self._raise_login_required()
 
         if not stream_data:
