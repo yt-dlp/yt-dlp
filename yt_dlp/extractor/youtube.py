@@ -29,6 +29,7 @@ from ..utils import (
     clean_html,
     dict_get,
     datetime_from_str,
+    error_to_compat_str,
     ExtractorError,
     format_field,
     float_or_none,
@@ -3337,11 +3338,11 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     }
                     return self._extract_response(
                         item_id=item_id, headers=headers, query=query,
-                        check_get_keys='contents',
+                        check_get_keys='contents', fatal=False,
                         note='Downloading API JSON with unavailable videos')
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
-                          ytcfg=None, check_get_keys=None, ep='browse'):
+                          ytcfg=None, check_get_keys=None, ep='browse', fatal=True):
         response = None
         last_error = None
         count = -1
@@ -3355,8 +3356,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             try:
                 response = self._call_api(
                     ep=ep, fatal=True, headers=headers,
-                    video_id=item_id,
-                    query=query,
+                    video_id=item_id, query=query,
                     context=self._extract_context(ytcfg),
                     api_key=self._extract_api_key(ytcfg),
                     note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
@@ -3367,7 +3367,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     last_error = 'HTTP Error %s' % e.cause.code
                     if count < retries:
                         continue
-                raise
+                if fatal:
+                    raise
+                else:
+                    self.report_warning(error_to_compat_str(e))
+                    return None
+
             else:
                 # Youtube may send alerts if there was an issue with the continuation page
                 self._extract_alerts(response, expected=False)
@@ -3377,7 +3382,11 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 # See: https://github.com/ytdl-org/youtube-dl/issues/28194
                 last_error = 'Incomplete data received'
                 if count >= retries:
-                    self._downloader.report_error(last_error)
+                    if fatal:
+                        raise ExtractorError(last_error)
+                    else:
+                        self.report_warning(last_error)
+                    return None
         return response
 
     def _extract_webpage(self, url, item_id):
