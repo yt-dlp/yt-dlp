@@ -2630,6 +2630,19 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 21,
     }, {
+        'note': 'Playlist with "show unavailable videos" button',
+        'url': 'https://www.youtube.com/playlist?list=UUTYLiWFZy8xtPwxFwX9rV7Q',
+        'info_dict': {
+            'title': 'Uploads from Phim Siêu Nhân Nhật Bản',
+            'id': 'UUTYLiWFZy8xtPwxFwX9rV7Q',
+            'uploader': 'Phim Siêu Nhân Nhật Bản',
+            'uploader_id': 'UCTYLiWFZy8xtPwxFwX9rV7Q',
+        },
+        'playlist_mincount': 1400,
+        'expected_warnings': [
+            'YouTube said: INFO - Unavailable videos are hidden',
+        ]
+    }, {
         # https://github.com/ytdl-org/youtube-dl/issues/21844
         'url': 'https://www.youtube.com/playlist?list=PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
         'info_dict': {
@@ -3294,52 +3307,46 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if errors:
             raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
 
-    def _playlist_reload_unavailable(self, item_id, data, webpage):
+    def _reload_with_unavailable_videos(self, item_id, data, webpage):
         """
         Get playlist with unavailable videos if the 'show unavailable videos' button exists.
         """
-
         sidebar_renderer = try_get(
-            data, lambda x: x['sidebar']['playlistSidebarRenderer']['items'], list)
-        if not sidebar_renderer:
-            return
+            data, lambda x: x['sidebar']['playlistSidebarRenderer']['items'], list) or []
         for item in sidebar_renderer:
             if not isinstance(item, dict):
                 continue
             renderer = item.get('playlistSidebarPrimaryInfoRenderer')
             menu_renderer = try_get(
-                renderer, lambda x: x['menu']['menuRenderer']['items'], list)
-            if not menu_renderer:
-                continue
+                renderer, lambda x: x['menu']['menuRenderer']['items'], list) or []
             for menu_item in menu_renderer:
                 if not isinstance(menu_item, dict):
                     continue
                 nav_item_renderer = menu_item.get('menuNavigationItemRenderer')
                 text = try_get(
                     nav_item_renderer, lambda x: x['text']['simpleText'], compat_str)
-                if not text:
+                if not text or text.lower() != 'show unavailable videos':
                     continue
-                if text.lower() == 'show unavailable videos':
-                    browse_endpoint = try_get(
-                        nav_item_renderer, lambda x: x['navigationEndpoint']['browseEndpoint'], dict)
-                    browse_id = browse_endpoint.get('browseId')
-                    params = browse_endpoint.get('params')
-                    if not browse_id or not params:
-                        return
-                    ytcfg = self._extract_ytcfg(item_id, webpage)
-                    headers = self._generate_api_headers(
-                        ytcfg, account_syncid=self._extract_account_syncid(data),
-                        identity_token=self._extract_identity_token(webpage, item_id=item_id),
-                        visitor_data=try_get(
-                            self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
-                    query = {
-                        'params': params,
-                        'browseId': browse_id
-                    }
-                    return self._extract_response(
-                        item_id=item_id, headers=headers, query=query,
-                        check_get_keys='contents', fatal=False,
-                        note='Downloading API JSON with unavailable videos')
+                browse_endpoint = try_get(
+                    nav_item_renderer, lambda x: x['navigationEndpoint']['browseEndpoint'], dict) or {}
+                browse_id = browse_endpoint.get('browseId')
+                params = browse_endpoint.get('params')
+                if not browse_id or not params:
+                    return
+                ytcfg = self._extract_ytcfg(item_id, webpage)
+                headers = self._generate_api_headers(
+                    ytcfg, account_syncid=self._extract_account_syncid(ytcfg),
+                    identity_token=self._extract_identity_token(webpage, item_id=item_id),
+                    visitor_data=try_get(
+                        self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
+                query = {
+                    'params': params,
+                    'browseId': browse_id
+                }
+                return self._extract_response(
+                    item_id=item_id, headers=headers, query=query,
+                    check_get_keys='contents', fatal=False,
+                    note='Downloading API JSON with unavailable videos')
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True):
@@ -3386,7 +3393,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         raise ExtractorError(last_error)
                     else:
                         self.report_warning(last_error)
-                    return
+                        return
         return response
 
     def _extract_webpage(self, url, item_id):
@@ -3446,7 +3453,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         webpage, data = self._extract_webpage(url, item_id)
 
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
-        data = self._playlist_reload_unavailable(item_id, data, webpage) or data
+        data = self._reload_with_unavailable_videos(item_id, data, webpage) or data
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
