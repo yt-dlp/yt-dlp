@@ -3316,8 +3316,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 nav_item_renderer = menu_item.get('menuNavigationItemRenderer')
                 text = try_get(
                     nav_item_renderer, lambda x: x['text']['simpleText'], compat_str)
-
-                if text and text.lower() == 'show unavailable videos':
+                if not text:
+                    continue
+                if text.lower() == 'show unavailable videos':
                     browse_endpoint = try_get(
                         nav_item_renderer, lambda x: x['navigationEndpoint']['browseEndpoint'], dict)
                     browse_id = browse_endpoint.get('browseId')
