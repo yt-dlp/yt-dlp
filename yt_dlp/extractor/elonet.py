@@ -79,7 +79,7 @@ class ElonetIE(InfoExtractor):
         elif fmt == 'mpd':
             subs = self._parse_mpd_subtitles(doc)
         else:
-            self._downloader.report_warning(
+            self.report_warning(
                 "Cannot download subtitles from '%s' streams." % (fmt))
             subs = {}
         return subs

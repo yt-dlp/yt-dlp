@@ -312,7 +312,7 @@ class SoundcloudIE(InfoExtractor):
                     self._update_client_id()
                     continue
                 elif non_fatal:
-                    self._downloader.report_warning(error_to_compat_str(e))
+                    self.report_warning(error_to_compat_str(e))
                     return False
                 raise
 

@@ -348,7 +348,7 @@ class FacebookIE(InfoExtractor):
                     login_results, 'login error', default=None, group='error')
                 if error:
                     raise ExtractorError('Unable to login: %s' % error, expected=True)
-                self._downloader.report_warning('unable to log in: bad username/password, or exceeded login rate limit (~3/min). Check credentials or wait.')
+                self.report_warning('unable to log in: bad username/password, or exceeded login rate limit (~3/min). Check credentials or wait.')
                 return
 
             fb_dtsg = self._search_regex(
@@ -369,9 +369,9 @@ class FacebookIE(InfoExtractor):
             check_response = self._download_webpage(check_req, None,
                                                     note='Confirming login')
             if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
-                self._downloader.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
+                self.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
         except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
-            self._downloader.report_warning('unable to log in: %s' % error_to_compat_str(err))
+            self.report_warning('unable to log in: %s' % error_to_compat_str(err))
             return
 
     def _real_initialize(self):

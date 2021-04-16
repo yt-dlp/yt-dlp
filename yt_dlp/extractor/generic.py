@@ -2376,7 +2376,7 @@ class GenericIE(InfoExtractor):
 
             if default_search in ('auto', 'auto_warning', 'fixup_error'):
                 if re.match(r'^[^\s/]+\.[^\s/]+/', url):
-                    self._downloader.report_warning('The url doesn\'t specify the protocol, trying with http')
+                    self.report_warning('The url doesn\'t specify the protocol, trying with http')
                     return self.url_result('http://' + url)
                 elif default_search != 'fixup_error':
                     if default_search == 'auto_warning':
@@ -2385,7 +2385,7 @@ class GenericIE(InfoExtractor):
                                 'Invalid URL:  %r . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ' % url,
                                 expected=True)
                         else:
-                            self._downloader.report_warning(
+                            self.report_warning(
                                 'Falling back to youtube search for  %s . Set --default-search "auto" to suppress this warning.' % url)
                     return self.url_result('ytsearch:' + url)
 
@@ -2461,7 +2461,7 @@ class GenericIE(InfoExtractor):
 
         if not self._downloader.params.get('test', False) and not is_intentional:
             force = self._downloader.params.get('force_generic_extractor', False)
-            self._downloader.report_warning(
+            self.report_warning(
                 '%s on generic information extractor.' % ('Forcing' if force else 'Falling back'))
 
         if not full_response:
@@ -2488,7 +2488,7 @@ class GenericIE(InfoExtractor):
         # Maybe it's a direct link to a video?
         # Be careful not to download the whole thing!
         if not is_html(first_bytes):
-            self._downloader.report_warning(
+            self.report_warning(
                 'URL could be a direct video link, returning it as such.')
             info_dict.update({
                 'direct': True,

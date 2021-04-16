@@ -114,7 +114,7 @@ class BRIE(InfoExtractor):
             medias.append(media)
 
         if len(medias) > 1:
-            self._downloader.report_warning(
+            self.report_warning(
                 'found multiple medias; please '
                 'report this with the video URL to http://yt-dl.org/bug')
         if not medias:

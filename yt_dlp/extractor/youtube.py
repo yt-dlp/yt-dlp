@@ -128,7 +128,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 })
 
         def warn(message):
-            self._downloader.report_warning(message)
+            self.report_warning(message)
 
         lookup_req = [
             username,
@@ -1739,7 +1739,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # See: https://github.com/ytdl-org/youtube-dl/issues/28194
                     last_error = 'Incomplete data received'
                     if count >= retries:
-                        self._downloader.report_error(last_error)
+                        raise ExtractorError(last_error)
 
             if not response:
                 break
@@ -3303,7 +3303,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 warnings.append([alert_type, alert_message])
 
         for alert_type, alert_message in (warnings + errors[:-1]):
-            self._downloader.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
+            self.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
         if errors:
             raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
 
@@ -3414,7 +3414,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if data.get('contents') or data.get('currentVideoEndpoint'):
                 break
             if count >= retries:
-                self._downloader.report_error(last_error)
+                raise ExtractorError(last_error)
         return webpage, data
 
     def _real_extract(self, url):
@@ -3426,7 +3426,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         mobj = re.match(r'(?P<pre>%s)(?P<post>/?(?![^#?]).*$)' % self._VALID_URL, url)
         mobj = mobj.groupdict() if mobj else {}
         if mobj and not mobj.get('not_channel'):
-            self._downloader.report_warning(
+            self.report_warning(
                 'A channel/user page was given. All the channel\'s videos will be downloaded. '
                 'To download only the videos in the home page, add a "/featured" to the URL')
             url = '%s/videos%s' % (mobj.get('pre'), mobj.get('post') or '')
@@ -3441,7 +3441,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 # If there is neither video or playlist ids,
                 # youtube redirects to home page, which is undesirable
                 raise ExtractorError('Unable to recognize tab page')
-            self._downloader.report_warning('A video URL was given without video ID. Trying to download playlist %s' % playlist_id)
+            self.report_warning('A video URL was given without video ID. Trying to download playlist %s' % playlist_id)
             url = 'https://www.youtube.com/playlist?list=%s' % playlist_id
 
         if video_id and playlist_id:
@@ -3469,7 +3469,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             data, lambda x: x['currentVideoEndpoint']['watchEndpoint']['videoId'],
             compat_str) or video_id
         if video_id:
-            self._downloader.report_warning('Unable to recognize playlist. Downloading just video %s' % video_id)
+            self.report_warning('Unable to recognize playlist. Downloading just video %s' % video_id)
             return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
 
         raise ExtractorError('Unable to recognize tab page')

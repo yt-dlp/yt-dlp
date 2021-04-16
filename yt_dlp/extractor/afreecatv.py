@@ -257,7 +257,7 @@ class AfreecaTVIE(InfoExtractor):
             if flag and flag == 'SUCCEED':
                 break
             if flag == 'PARTIAL_ADULT':
-                self._downloader.report_warning(
+                self.report_warning(
                     'In accordance with local laws and regulations, underage users are restricted from watching adult content. '
                     'Only content suitable for all ages will be downloaded. '
                     'Provide account credentials if you wish to download restricted content.')

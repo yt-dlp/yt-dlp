@@ -262,7 +262,7 @@ class MildomUserVodIE(MildomBaseIE):
     def _real_extract(self, url):
         user_id = self._match_id(url)
 
-        self._downloader.report_warning('To download ongoing live, please use "https://www.mildom.com/%s" instead. This will list up VODs belonging to user.' % user_id)
+        self.report_warning('To download ongoing live, please use "https://www.mildom.com/%s" instead. This will list up VODs belonging to user.' % user_id)
 
         profile = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/user/profileV2', user_id,

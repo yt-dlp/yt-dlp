@@ -804,7 +804,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 video_description = self._html_search_meta(
                     'description', orig_webpage, default=None)
         if not video_description and not is_player:
-            self._downloader.report_warning('Cannot find video description')
+            self.report_warning('Cannot find video description')
 
         # Extract upload date
         if not timestamp:

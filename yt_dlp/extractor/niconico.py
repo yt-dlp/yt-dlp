@@ -190,7 +190,7 @@ class NiconicoIE(InfoExtractor):
             if compat_parse_qs(parts.query).get('message', [None])[0] == 'cant_login':
                 login_ok = False
         if not login_ok:
-            self._downloader.report_warning('unable to log in: bad username or password')
+            self.report_warning('unable to log in: bad username or password')
         return login_ok
 
     def _get_heartbeat_info(self, info_dict):
