@@ -3371,7 +3371,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     raise
                 else:
                     self.report_warning(error_to_compat_str(e))
-                    return None
+                    return
 
             else:
                 # Youtube may send alerts if there was an issue with the continuation page
@@ -3386,7 +3386,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         raise ExtractorError(last_error)
                     else:
                         self.report_warning(last_error)
-                    return None
+                    return
         return response
 
     def _extract_webpage(self, url, item_id):
