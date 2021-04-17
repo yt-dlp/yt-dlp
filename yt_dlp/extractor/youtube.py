@@ -53,6 +53,10 @@ from ..utils import (
 )
 
 
+def parse_qs(url):
+    return compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+
+
 class YoutubeBaseInfoExtractor(InfoExtractor):
     """Provide base functions for Youtube extractors"""
     _LOGIN_URL = 'https://accounts.google.com/ServiceLogin'
@@ -438,14 +442,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'(?:(?:www|dev)\.)?invidio\.us',
         # Invidious instances taken from https://github.com/iv-org/documentation/blob/master/Invidious-Instances.md
         r'(?:www\.)?invidious\.pussthecat\.org',
-        r'(?:www\.)?invidious\.048596\.xyz',
         r'(?:www\.)?invidious\.zee\.li',
-        r'(?:www\.)?vid\.puffyan\.us',
         r'(?:(?:www|au)\.)?ytprivate\.com',
         r'(?:www\.)?invidious\.namazso\.eu',
         r'(?:www\.)?invidious\.ethibox\.fr',
-        r'(?:www\.)?inv\.skyn3t\.in',
-        r'(?:www\.)?invidious\.himiko\.cloud',
         r'(?:www\.)?w6ijuptxiku4xpnnaetxvnkc5vqcdu7mgns2u77qefoixi63vbvnpnqd\.onion',
         r'(?:www\.)?kbjggqkzv65ivcqj6bumvp337z6264huv5kpkwuv6gu5yjiskvan7fad\.onion',
         r'(?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion',
@@ -454,25 +454,32 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'(?:(?:www|no)\.)?invidiou\.sh',
         r'(?:(?:www|fi)\.)?invidious\.snopyta\.org',
         r'(?:www\.)?invidious\.kabi\.tk',
-        r'(?:www\.)?invidious\.13ad\.de',
         r'(?:www\.)?invidious\.mastodon\.host',
         r'(?:www\.)?invidious\.zapashcanon\.fr',
         r'(?:www\.)?invidious\.kavin\.rocks',
+        r'(?:www\.)?invidious\.tinfoil-hat\.net',
+        r'(?:www\.)?invidious\.himiko\.cloud',
+        r'(?:www\.)?invidious\.reallyancient\.tech',
         r'(?:www\.)?invidious\.tube',
         r'(?:www\.)?invidiou\.site',
         r'(?:www\.)?invidious\.site',
         r'(?:www\.)?invidious\.xyz',
         r'(?:www\.)?invidious\.nixnet\.xyz',
+        r'(?:www\.)?invidious\.048596\.xyz',
         r'(?:www\.)?invidious\.drycat\.fr',
+        r'(?:www\.)?inv\.skyn3t\.in',
         r'(?:www\.)?tube\.poal\.co',
         r'(?:www\.)?tube\.connect\.cafe',
         r'(?:www\.)?vid\.wxzm\.sx',
         r'(?:www\.)?vid\.mint\.lgbt',
+        r'(?:www\.)?vid\.puffyan\.us',
         r'(?:www\.)?yewtu\.be',
         r'(?:www\.)?yt\.elukerio\.org',
         r'(?:www\.)?yt\.lelux\.fi',
         r'(?:www\.)?invidious\.ggc-project\.de',
         r'(?:www\.)?yt\.maisputain\.ovh',
+        r'(?:www\.)?ytprivate\.com',
+        r'(?:www\.)?invidious\.13ad\.de',
         r'(?:www\.)?invidious\.toot\.koeln',
         r'(?:www\.)?invidious\.fdn\.fr',
         r'(?:www\.)?watch\.nettohikari\.com',
@@ -515,16 +522,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                          |(?:www\.)?cleanvideosearch\.com/media/action/yt/watch\?videoId=
                          )
                      )?                                                       # all until now is optional -> you can pass the naked ID
-                     (?P<id>[0-9A-Za-z_-]{11})                                      # here is it! the YouTube video ID
-                     (?!.*?\blist=
-                        (?:
-                            %(playlist_id)s|                                  # combined list/video URLs are handled by the playlist IE
-                            WL                                                # WL are handled by the watch later IE
-                        )
-                     )
+                     (?P<id>[0-9A-Za-z_-]{11})                                # here is it! the YouTube video ID
                      (?(1).+)?                                                # if we found the ID, everything can follow
                      $""" % {
-        'playlist_id': YoutubeBaseInfoExtractor._PLAYLIST_ID_RE,
         'invidious': '|'.join(_INVIDIOUS_SITES),
     }
     _PLAYER_INFO_RE = (
@@ -1010,6 +1010,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'skip': 'This video does not exist.',
         },
         {
+            # Video with incomplete 'yt:stretch=16:'
+            'url': 'https://www.youtube.com/watch?v=FRhJzUSJbGI',
+            'only_matching': True,
+        },
+        {
             # Video licensed under Creative Commons
             'url': 'https://www.youtube.com/watch?v=M4gD1WSo5mA',
             'info_dict': {
@@ -1303,6 +1308,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
         },
     ]
+
+    @classmethod
+    def suitable(cls, url):
+        qs = parse_qs(url)
+        if qs.get('list', [None])[0]:
+            return False
+        return super(YoutubeIE, cls).suitable(url)
 
     def __init__(self, *args, **kwargs):
         super(YoutubeIE, self).__init__(*args, **kwargs)
@@ -2079,15 +2091,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 for m in re.finditer(self._meta_regex('og:video:tag'), webpage)]
         for keyword in keywords:
             if keyword.startswith('yt:stretch='):
-                stretch_ratio = map(
-                    lambda x: int_or_none(x, default=0),
-                    keyword.split('=')[1].split(':'))
-                w, h = (list(stretch_ratio) + [0])[:2]
-                if w > 0 and h > 0:
-                    ratio = w / h
-                    for f in formats:
-                        if f.get('vcodec') != 'none':
-                            f['stretched_ratio'] = ratio
+                mobj = re.search(r'(\d+)\s*:\s*(\d+)', keyword)
+                if mobj:
+                    # NB: float is intentional for forcing float division
+                    w, h = (float(v) for v in mobj.groups())
+                    if w > 0 and h > 0:
+                        ratio = w / h
+                        for f in formats:
+                            if f.get('vcodec') != 'none':
+                                f['stretched_ratio'] = ratio
+                        break
 
         thumbnails = []
         for container in (video_details, microformat):
@@ -2485,6 +2498,15 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader': 'Игорь Клейнер',
         },
     }, {
+        # playlists, series
+        'url': 'https://www.youtube.com/c/3blue1brown/playlists?view=50&sort=dd&shelf_id=3',
+        'playlist_mincount': 5,
+        'info_dict': {
+            'id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'title': '3Blue1Brown - Playlists',
+            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+        },
+    }, {
         # playlists, singlepage
         'url': 'https://www.youtube.com/user/ThirstForScience/playlists',
         'playlist_mincount': 4,
@@ -2790,6 +2812,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'title': '#cctv9',
         },
         'playlist_mincount': 350,
+    }, {
+        'url': 'https://www.youtube.com/watch?list=PLW4dVinRY435CBE_JD3t-0SRXKfnZHS1P&feature=youtu.be&v=M9cJMXmQ_ZU',
+        'only_matching': True,
     }]
 
     @classmethod
@@ -2813,14 +2838,16 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     @staticmethod
     def _extract_basic_item_renderer(item):
         # Modified from _extract_grid_item_renderer
-        known_renderers = (
-            'playlistRenderer', 'videoRenderer', 'channelRenderer',
-            'gridPlaylistRenderer', 'gridVideoRenderer', 'gridChannelRenderer'
+        known_basic_renderers = (
+            'playlistRenderer', 'videoRenderer', 'channelRenderer', 'showRenderer'
         )
         for key, renderer in item.items():
-            if key not in known_renderers:
+            if not isinstance(renderer, dict):
                 continue
-            return renderer
+            elif key in known_basic_renderers:
+                return renderer
+            elif key.startswith('grid') and key.endswith('Renderer'):
+                return renderer
 
     def _grid_entries(self, grid_renderer):
         for item in grid_renderer['items']:
@@ -2830,7 +2857,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if not isinstance(renderer, dict):
                 continue
             title = try_get(
-                renderer, lambda x: x['title']['runs'][0]['text'], compat_str)
+                renderer, (lambda x: x['title']['runs'][0]['text'],
+                           lambda x: x['title']['simpleText']), compat_str)
             # playlist
             playlist_id = renderer.get('playlistId')
             if playlist_id:
@@ -2838,10 +2866,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     'https://www.youtube.com/playlist?list=%s' % playlist_id,
                     ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
                     video_title=title)
+                continue
             # video
             video_id = renderer.get('videoId')
             if video_id:
                 yield self._extract_video(renderer)
+                continue
             # channel
             channel_id = renderer.get('channelId')
             if channel_id:
@@ -2850,6 +2880,17 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 yield self.url_result(
                     'https://www.youtube.com/channel/%s' % channel_id,
                     ie=YoutubeTabIE.ie_key(), video_title=title)
+                continue
+            # generic endpoint URL support
+            ep_url = urljoin('https://www.youtube.com/', try_get(
+                renderer, lambda x: x['navigationEndpoint']['commandMetadata']['webCommandMetadata']['url'],
+                compat_str))
+            if ep_url:
+                for ie in (YoutubeTabIE, YoutubePlaylistIE, YoutubeIE):
+                    if ie.suitable(ep_url):
+                        yield self.url_result(
+                            ep_url, ie=ie.ie_key(), video_id=ie._match_id(ep_url), video_title=title)
+                        break
 
     def _shelf_entries_from_content(self, shelf_renderer):
         content = shelf_renderer.get('content')
@@ -3444,7 +3485,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             url = '%s/videos%s' % (mobj.get('pre'), mobj.get('post') or '')
 
         # Handle both video/playlist URLs
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         video_id = qs.get('v', [None])[0]
         playlist_id = qs.get('list', [None])[0]
 
@@ -3550,12 +3591,16 @@ class YoutubePlaylistIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if YoutubeTabIE.suitable(url) else super(
-            YoutubePlaylistIE, cls).suitable(url)
+        if YoutubeTabIE.suitable(url):
+            return False
+        qs = parse_qs(url)
+        if qs.get('v', [None])[0]:
+            return False
+        return super(YoutubePlaylistIE, cls).suitable(url)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         if not qs:
             qs = {'list': playlist_id}
         return self.url_result(

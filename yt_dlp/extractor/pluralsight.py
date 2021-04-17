@@ -393,7 +393,7 @@ query viewClip {
                 # To somewhat reduce the probability of these consequences
                 # we will sleep random amount of time before each call to ViewClip.
                 self._sleep(
-                    random.randint(2, 5), display_id,
+                    random.randint(5, 10), display_id,
                     '%(video_id)s: Waiting for %(timeout)s seconds to avoid throttling')
 
                 if not viewclip:

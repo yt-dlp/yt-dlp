@@ -123,6 +123,26 @@ class LBRYIE(LBRYBaseIE):
             'vcodec': 'none',
         }
     }, {
+        # HLS
+        'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
+        'md5': 'fc82f45ea54915b1495dd7cb5cc1289f',
+        'info_dict': {
+            'id': 'e51671357333fe22ae88aad320bde2f6f96b1410',
+            'ext': 'mp4',
+            'title': 'PLANTS I WILL NEVER GROW AGAIN. THE BLACK LIST PLANTS FOR A CANADIAN GARDEN | Gardening in Canada 🍁',
+            'description': 'md5:9c539c6a03fb843956de61a4d5288d5e',
+            'timestamp': 1618254123,
+            'upload_date': '20210412',
+            'release_timestamp': 1618254002,
+            'release_date': '20210412',
+            'tags': list,
+            'duration': 554,
+            'channel': 'Gardening In Canada',
+            'channel_id': 'b8be0e93b423dad221abe29545fbe8ec36e806bc',
+            'channel_url': 'https://odysee.com/@gardeningincanada:b8be0e93b423dad221abe29545fbe8ec36e806bc',
+            'formats': 'mincount:3',
+        }
+    }, {
         'url': 'https://odysee.com/@BrodieRobertson:5/apple-is-tracking-everything-you-do-on:e',
         'only_matching': True,
     }, {
@@ -168,10 +188,18 @@ class LBRYIE(LBRYBaseIE):
         streaming_url = self._call_api_proxy(
             'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
         info = self._parse_stream(result, url)
+        urlh = self._request_webpage(
+            streaming_url, display_id, note='Downloading streaming redirect url info')
+        if determine_ext(urlh.geturl()) == 'm3u8':
+            info['formats'] = self._extract_m3u8_formats(
+                urlh.geturl(), display_id, 'mp4', entry_protocol='m3u8_native',
+                m3u8_id='hls')
+            self._sort_formats(info['formats'])
+        else:
+            info['url'] = streaming_url
         info.update({
             'id': claim_id,
             'title': title,
-            'url': streaming_url,
         })
         return info
 

@@ -40,6 +40,7 @@ import zlib
 from .compat import (
     compat_HTMLParseError,
     compat_HTMLParser,
+    compat_HTTPError,
     compat_basestring,
     compat_chr,
     compat_cookiejar,
@@ -2925,12 +2926,60 @@ class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
 
 
 class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
-    if sys.version_info[0] < 3:
-        def redirect_request(self, req, fp, code, msg, headers, newurl):
-            # On python 2 urlh.geturl() may sometimes return redirect URL
-            # as byte string instead of unicode. This workaround allows
-            # to force it always return unicode.
-            return compat_urllib_request.HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, headers, compat_str(newurl))
+    """YoutubeDL redirect handler
+
+    The code is based on HTTPRedirectHandler implementation from CPython [1].
+
+    This redirect handler solves two issues:
+     - ensures redirect URL is always unicode under python 2
+     - introduces support for experimental HTTP response status code
+       308 Permanent Redirect [2] used by some sites [3]
+
+    1. https://github.com/python/cpython/blob/master/Lib/urllib/request.py
+    2. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/308
+    3. https://github.com/ytdl-org/youtube-dl/issues/28768
+    """
+
+    http_error_301 = http_error_303 = http_error_307 = http_error_308 = compat_urllib_request.HTTPRedirectHandler.http_error_302
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        """Return a Request or None in response to a redirect.
+
+        This is called by the http_error_30x methods when a
+        redirection response is received.  If a redirection should
+        take place, return a new Request to allow http_error_30x to
+        perform the redirect.  Otherwise, raise HTTPError if no-one
+        else should try to handle this url.  Return None if you can't
+        but another Handler might.
+        """
+        m = req.get_method()
+        if (not (code in (301, 302, 303, 307, 308) and m in ("GET", "HEAD")
+                 or code in (301, 302, 303) and m == "POST")):
+            raise compat_HTTPError(req.full_url, code, msg, headers, fp)
+        # Strictly (according to RFC 2616), 301 or 302 in response to
+        # a POST MUST NOT cause a redirection without confirmation
+        # from the user (of urllib.request, in this case).  In practice,
+        # essentially all clients do redirect in this case, so we do
+        # the same.
+
+        # On python 2 urlh.geturl() may sometimes return redirect URL
+        # as byte string instead of unicode. This workaround allows
+        # to force it always return unicode.
+        if sys.version_info[0] < 3:
+            newurl = compat_str(newurl)
+
+        # Be conciliant with URIs containing a space.  This is mainly
+        # redundant with the more complete encoding done in http_error_302(),
+        # but it is kept for compatibility with other callers.
+        newurl = newurl.replace(' ', '%20')
+
+        CONTENT_HEADERS = ("content-length", "content-type")
+        # NB: don't use dict comprehension for python 2.6 compatibility
+        newheaders = dict((k, v) for k, v in req.headers.items()
+                          if k.lower() not in CONTENT_HEADERS)
+        return compat_urllib_request.Request(
+            newurl, headers=newheaders, origin_req_host=req.origin_req_host,
+            unverifiable=True)
 
 
 def extract_timezone(date_str):

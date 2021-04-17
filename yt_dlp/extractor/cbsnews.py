@@ -26,7 +26,7 @@ class CBSNewsEmbedIE(CBSIE):
     def _real_extract(self, url):
         item = self._parse_json(zlib.decompress(compat_b64decode(
             compat_urllib_parse_unquote(self._match_id(url))),
-            -zlib.MAX_WBITS), None)['video']['items'][0]
+            -zlib.MAX_WBITS).decode('utf-8'), None)['video']['items'][0]
         return self._extract_video_info(item['mpxRefId'], 'cbsnews')
 
 
