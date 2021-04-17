@@ -1852,6 +1852,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = self._download_webpage(
             webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
 
+        # define early for use
+        def get_text(x):
+            if not x:
+                return
+            text = x.get('simpleText')
+            if text and isinstance(text, compat_str):
+                return text
+            runs = x.get('runs')
+            if not isinstance(runs, list):
+                return
+            return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
+
         # check is music
         is_music = re.match(r'^https?://music\.youtube\.com/.+', url)
 
@@ -1875,9 +1887,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
             if pr:
-                self.to_screen("Parsed youtube music info!")
-                player_response = pr
-        elif webpage:
+                # check cookie works
+                playability_status = pr.get('playabilityStatus') or {}
+                pemr = try_get(
+                    playability_status,
+                    lambda x: x['errorScreen']['playerErrorMessageRenderer'],
+                    dict) or {}
+                reason = get_text(pemr.get('reason')) or playability_status.get('reason')
+                if reason != None and reason.find("This video is only available to Music Premium members") >= 0:
+                    # accept only music premium 
+                    self.report_warning(reason.replace("video", "URL") + ". Using youtube mode instead of yt-music mode.", video_id)
+                else:
+                    self.to_screen("Using yt-music.")
+                    player_response = pr
+
+
+        if player_response == None and webpage:
             player_response = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
@@ -1909,17 +1934,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if trailer_video_id:
             return self.url_result(
                 trailer_video_id, self.ie_key(), trailer_video_id)
-
-        def get_text(x):
-            if not x:
-                return
-            text = x.get('simpleText')
-            if text and isinstance(text, compat_str):
-                return text
-            runs = x.get('runs')
-            if not isinstance(runs, list):
-                return
-            return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
 
         search_meta = (
             lambda x: self._html_search_meta(x, webpage, default=None)) \
