@@ -2426,23 +2426,44 @@ class InfoExtractor(object):
             })
         return entries
 
-    def _extract_mpd_formats(self, mpd_url, video_id, mpd_id=None, note=None, errnote=None, fatal=True, data=None, headers={}, query={}):
+    def _extract_mpd_formats(self, *args, **kwargs):
+        fmts, subs = self._extract_mpd_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self.report_warning(bug_reports_message(
+                "Ignoring subtitle tracks found in the DASH manifest; "
+                "if any subtitle tracks are missing,"
+            ))
+        return fmts
+
+    def _extract_mpd_formats_and_subtitles(
+            self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
+            fatal=True, data=None, headers={}, query={}):
         res = self._download_xml_handle(
             mpd_url, video_id,
             note=note or 'Downloading MPD manifest',
             errnote=errnote or 'Failed to download MPD manifest',
             fatal=fatal, data=data, headers=headers, query=query)
         if res is False:
-            return []
+            return [], {}
         mpd_doc, urlh = res
         if mpd_doc is None:
-            return []
+            return [], {}
         mpd_base_url = base_url(urlh.geturl())
 
-        return self._parse_mpd_formats(
+        return self._parse_mpd_formats_and_subtitles(
             mpd_doc, mpd_id, mpd_base_url, mpd_url)
 
-    def _parse_mpd_formats(self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
+    def _parse_mpd_formats(self, *args, **kwargs):
+        fmts, subs = self._parse_mpd_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self.report_warning(bug_reports_message(
+                "Ignoring subtitle tracks found in the DASH manifest; "
+                "if any subtitle tracks are missing,"
+            ))
+        return fmts
+
+    def _parse_mpd_formats_and_subtitles(
+            self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
         """
         Parse formats from MPD manifest.
         References:
@@ -2452,7 +2473,7 @@ class InfoExtractor(object):
         """
         if not self._downloader.params.get('dynamic_mpd', True):
             if mpd_doc.get('type') == 'dynamic':
-                return []
+                return [], {}
 
         namespace = self._search_regex(r'(?i)^{([^}]+)?}MPD$', mpd_doc.tag, 'namespace', default=None)
 
@@ -2524,6 +2545,7 @@ class InfoExtractor(object):
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
         formats = []
+        subtitles = {}
         for period in mpd_doc.findall(_add_ns('Period')):
             period_duration = parse_duration(period.get('duration')) or mpd_duration
             period_ms_info = extract_multisegment_info(period, {
@@ -2541,11 +2563,9 @@ class InfoExtractor(object):
                     representation_attrib.update(representation.attrib)
                     # According to [1, 5.3.7.2, Table 9, page 41], @mimeType is mandatory
                     mime_type = representation_attrib['mimeType']
-                    content_type = mime_type.split('/')[0]
-                    if content_type == 'text':
-                        # TODO implement WebVTT downloading
-                        pass
-                    elif content_type in ('video', 'audio'):
+                    content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
+
+                    if content_type in ('video', 'audio', 'text'):
                         base_url = ''
                         for element in (representation, adaptation_set, period, mpd_doc):
                             base_url_e = element.find(_add_ns('BaseURL'))
@@ -2562,21 +2582,28 @@ class InfoExtractor(object):
                         url_el = representation.find(_add_ns('BaseURL'))
                         filesize = int_or_none(url_el.attrib.get('{http://youtube.com/yt/2012/10/10}contentLength') if url_el is not None else None)
                         bandwidth = int_or_none(representation_attrib.get('bandwidth'))
-                        f = {
-                            'format_id': '%s-%s' % (mpd_id, representation_id) if mpd_id else representation_id,
-                            'manifest_url': mpd_url,
-                            'ext': mimetype2ext(mime_type),
-                            'width': int_or_none(representation_attrib.get('width')),
-                            'height': int_or_none(representation_attrib.get('height')),
-                            'tbr': float_or_none(bandwidth, 1000),
-                            'asr': int_or_none(representation_attrib.get('audioSamplingRate')),
-                            'fps': int_or_none(representation_attrib.get('frameRate')),
-                            'language': lang if lang not in ('mul', 'und', 'zxx', 'mis') else None,
-                            'format_note': 'DASH %s' % content_type,
-                            'filesize': filesize,
-                            'container': mimetype2ext(mime_type) + '_dash',
-                        }
-                        f.update(parse_codecs(representation_attrib.get('codecs')))
+                        if content_type in ('video', 'audio'):
+                            f = {
+                                'format_id': '%s-%s' % (mpd_id, representation_id) if mpd_id else representation_id,
+                                'manifest_url': mpd_url,
+                                'ext': mimetype2ext(mime_type),
+                                'width': int_or_none(representation_attrib.get('width')),
+                                'height': int_or_none(representation_attrib.get('height')),
+                                'tbr': float_or_none(bandwidth, 1000),
+                                'asr': int_or_none(representation_attrib.get('audioSamplingRate')),
+                                'fps': int_or_none(representation_attrib.get('frameRate')),
+                                'language': lang if lang not in ('mul', 'und', 'zxx', 'mis') else None,
+                                'format_note': 'DASH %s' % content_type,
+                                'filesize': filesize,
+                                'container': mimetype2ext(mime_type) + '_dash',
+                            }
+                            f.update(parse_codecs(representation_attrib.get('codecs')))
+                        elif content_type == 'text':
+                            f = {
+                                'ext': mimetype2ext(mime_type),
+                                'manifest_url': mpd_url,
+                                'filesize': filesize,
+                            }
                         representation_ms_info = extract_multisegment_info(representation, adaption_set_ms_info)
 
                         def prepare_template(template_name, identifiers):
@@ -2726,7 +2753,7 @@ class InfoExtractor(object):
                         formats.append(f)
                     else:
                         self.report_warning('Unknown MIME type %s in DASH manifest' % mime_type)
-        return formats
+        return formats, subtitles
 
     def _extract_ism_formats(self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True, data=None, headers={}, query={}):
         res = self._download_xml_handle(
