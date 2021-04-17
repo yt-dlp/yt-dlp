@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     int_or_none,
 )
 
@@ -48,8 +47,8 @@ class ZingMp3BaseIE(InfoExtractor):
                 return
             msg = item['msg']
             if msg == 'Sorry, this content is not available in your country.':
-                self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
-            raise ExtractorError(msg, expected=True)
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+            self.raise_no_formats(msg, expected=True)
         self._sort_formats(formats)
 
         subtitles = None

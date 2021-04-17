@@ -36,12 +36,12 @@ class ARDMediathekBaseIE(InfoExtractor):
 
         if not formats:
             if fsk:
-                raise ExtractorError(
+                self.raise_no_formats(
                     'This video is only available after 20:00', expected=True)
             elif media_info.get('_geoblocked'):
                 self.raise_geo_restricted(
                     'This video is not available due to geoblocking',
-                    countries=self._GEO_COUNTRIES)
+                    countries=self._GEO_COUNTRIES, metadata_available=True)
 
         self._sort_formats(formats)
 

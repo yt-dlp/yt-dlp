@@ -6,7 +6,6 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
-    ExtractorError,
     int_or_none,
     js_to_json,
     str_or_none,
@@ -77,7 +76,7 @@ class LineTVIE(InfoExtractor):
 
         self._sort_formats(formats)
 
-        if not formats[0].get('width'):
+        if formats and not formats[0].get('width'):
             formats[0]['vcodec'] = 'none'
 
         title = self._og_search_title(webpage)
@@ -183,7 +182,7 @@ class LineLiveIE(LineLiveBaseIE):
         if not formats:
             archive_status = item.get('archiveStatus')
             if archive_status != 'ARCHIVED':
-                raise ExtractorError('this video has been ' + archive_status.lower(), expected=True)
+                self.raise_no_formats('this video has been ' + archive_status.lower(), expected=True)
         self._sort_formats(formats)
         info['formats'] = formats
         return info

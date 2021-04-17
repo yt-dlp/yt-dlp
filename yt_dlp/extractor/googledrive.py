@@ -253,7 +253,7 @@ class GoogleDriveIE(InfoExtractor):
                             or 'unable to extract confirmation code')
 
         if not formats and reason:
-            raise ExtractorError(reason, expected=True)
+            self.raise_no_formats(reason, expected=True)
 
         self._sort_formats(formats)
 

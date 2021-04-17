@@ -5,7 +5,6 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
-    ExtractorError,
     int_or_none,
     parse_iso8601,
     qualities,
@@ -187,14 +186,13 @@ class Channel9IE(InfoExtractor):
                     'quality': quality(q, q_url),
                 })
 
-            self._sort_formats(formats)
-
             slides = content_data.get('Slides')
             zip_file = content_data.get('ZipFile')
 
             if not formats and not slides and not zip_file:
-                raise ExtractorError(
+                self.raise_no_formats(
                     'None of recording, slides or zip are available for %s' % content_path)
+            self._sort_formats(formats)
 
             subtitles = {}
             for caption in content_data.get('Captions', []):

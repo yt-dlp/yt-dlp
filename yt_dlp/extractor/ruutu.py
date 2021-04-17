@@ -202,7 +202,7 @@ class RuutuIE(InfoExtractor):
         if not formats:
             if (not self._downloader.params.get('allow_unplayable_formats')
                     and xpath_text(video_xml, './Clip/DRM', default=None)):
-                raise ExtractorError('This video is DRM protected.', expected=True)
+                self.raise_no_formats('This video is DRM protected.', expected=True)
             ns_st_cds = pv('ns_st_cds')
             if ns_st_cds != 'free':
                 raise ExtractorError('This video is %s.' % ns_st_cds, expected=True)

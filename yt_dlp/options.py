@@ -750,6 +750,16 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='simulate', default=False,
         help='Do not download the video and do not write anything to disk')
     verbosity.add_option(
+        '--ignore-no-formats-error',
+        action='store_true', dest='ignore_no_formats_error', default=False,
+        help=(
+            'Ignore "No video formats" error. Usefull for extracting metadata '
+            'even if the video is not actually available for download (experimental)'))
+    verbosity.add_option(
+        '--no-ignore-no-formats-error',
+        action='store_false', dest='ignore_no_formats_error',
+        help='Throw error when no downloadable video formats are found (default)')
+    verbosity.add_option(
         '--skip-download', '--no-download',
         action='store_true', dest='skip_download', default=False,
         help='Do not download the video but write all related files (Alias: --no-download)')

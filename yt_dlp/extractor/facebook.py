@@ -625,8 +625,6 @@ class FacebookIE(InfoExtractor):
             subtitles_src = f[0].get('subtitles_src')
             if subtitles_src:
                 subtitles.setdefault('en', []).append({'url': subtitles_src})
-        if not formats:
-            raise ExtractorError('Cannot find video formats')
 
         process_formats(formats)
 

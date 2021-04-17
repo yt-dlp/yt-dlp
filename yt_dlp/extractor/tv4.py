@@ -107,7 +107,7 @@ class TV4IE(InfoExtractor):
             video_id, ism_id='mss', fatal=False))
 
         if not formats and info.get('is_geo_restricted'):
-            self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
         self._sort_formats(formats)
 

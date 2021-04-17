@@ -2050,7 +2050,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if not formats:
             if not self._downloader.params.get('allow_unplayable_formats') and streaming_data.get('licenseInfos'):
-                raise ExtractorError(
+                self.raise_no_formats(
                     'This video is DRM protected.', expected=True)
             pemr = try_get(
                 playability_status,
@@ -2065,11 +2065,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not countries:
                         regions_allowed = search_meta('regionsAllowed')
                         countries = regions_allowed.split(',') if regions_allowed else None
-                    self.raise_geo_restricted(
-                        subreason, countries)
+                    self.raise_geo_restricted(subreason, countries, metadata_available=True)
                 reason += '\n' + subreason
             if reason:
-                raise ExtractorError(reason, expected=True)
+                self.raise_no_formats(reason, expected=True)
 
         self._sort_formats(formats)
 

@@ -49,7 +49,7 @@ class SVTBaseIE(InfoExtractor):
         if not formats and rights.get('geoBlockedSweden'):
             self.raise_geo_restricted(
                 'This video is only available in Sweden',
-                countries=self._GEO_COUNTRIES)
+                countries=self._GEO_COUNTRIES, metadata_available=True)
         self._sort_formats(formats)
 
         subtitles = {}

@@ -191,6 +191,9 @@ class YoutubeDL(object):
     simulate:          Do not download the video files.
     format:            Video format code. see "FORMAT SELECTION" for more details.
     allow_unplayable_formats:   Allow unplayable formats to be extracted and downloaded.
+    ignore_no_formats_error: Ignore "No video formats" error. Usefull for
+                       extracting metadata even if the video is not actually
+                       available for download (experimental)
     format_sort:       How to sort the video formats. see "Sorting Formats"
                        for more details.
     format_sort_force: Force the given format_sort. see "Sorting Formats"
@@ -1884,7 +1887,10 @@ class YoutubeDL(object):
             formats = info_dict['formats']
 
         if not formats:
-            raise ExtractorError('No video formats found!')
+            if not self.params.get('ignore_no_formats_error'):
+                raise ExtractorError('No video formats found!')
+            else:
+                self.report_warning('No video formats found!')
 
         def is_wellformed(f):
             url = f.get('url')
@@ -1948,13 +1954,15 @@ class YoutubeDL(object):
 
         # TODO Central sorting goes here
 
-        if formats[0] is not info_dict:
+        if formats and formats[0] is not info_dict:
             # only set the 'formats' fields if the original info_dict list them
             # otherwise we end up with a circular reference, the first (and unique)
             # element in the 'formats' field in info_dict is info_dict itself,
             # which can't be exported to json
             info_dict['formats'] = formats
         if self.params.get('listformats'):
+            if not info_dict.get('formats'):
+                raise ExtractorError('No video formats found', expected=True)
             self.list_formats(info_dict)
             return
 
@@ -1994,19 +2002,25 @@ class YoutubeDL(object):
 
         formats_to_download = list(format_selector(ctx))
         if not formats_to_download:
-            raise ExtractorError('requested format not available',
-                                 expected=True)
-
-        if download:
-            self.to_screen('[info] Downloading format(s) %s' % ", ".join([f['format_id'] for f in formats_to_download]))
+            if not self.params.get('ignore_no_formats_error'):
+                raise ExtractorError('Requested format is not available', expected=True)
+            else:
+                self.report_warning('Requested format is not available')
+        elif download:
+            self.to_screen(
+                '[info] %s: Downloading format(s) %s'
+                % (info_dict['id'], ", ".join([f['format_id'] for f in formats_to_download])))
             if len(formats_to_download) > 1:
-                self.to_screen('[info] %s: downloading video in %s formats' % (info_dict['id'], len(formats_to_download)))
-            for format in formats_to_download:
+                self.to_screen(
+                    '[info] %s: Downloading video in %s formats'
+                    % (info_dict['id'], len(formats_to_download)))
+            for fmt in formats_to_download:
                 new_info = dict(info_dict)
-                new_info.update(format)
+                new_info.update(fmt)
                 self.process_info(new_info)
         # We update the info dict with the best quality format (backwards compatibility)
-        info_dict.update(formats_to_download[-1])
+        if formats_to_download:
+            info_dict.update(formats_to_download[-1])
         return info_dict
 
     def process_subtitles(self, video_id, normal_subtitles, automatic_captions):

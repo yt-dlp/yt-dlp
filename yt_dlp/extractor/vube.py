@@ -8,7 +8,6 @@ from ..compat import (
 )
 from ..utils import (
     int_or_none,
-    ExtractorError,
 )
 
 
@@ -125,12 +124,12 @@ class VubeIE(InfoExtractor):
                 })
             formats.append(fmt)
 
-        self._sort_formats(formats)
-
         if not formats and video.get('vst') == 'dmca':
-            raise ExtractorError(
+            self.raise_no_formats(
                 'This video has been removed in response to a complaint received under the US Digital Millennium Copyright Act.',
                 expected=True)
+
+        self._sort_formats(formats)
 
         title = video['title']
         description = video.get('description')

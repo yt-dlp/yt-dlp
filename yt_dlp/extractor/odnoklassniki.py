@@ -260,7 +260,7 @@ class OdnoklassnikiIE(InfoExtractor):
         if not formats:
             payment_info = metadata.get('paymentInfo')
             if payment_info:
-                raise ExtractorError('This video is paid, subscribe to download it', expected=True)
+                self.raise_no_formats('This video is paid, subscribe to download it', expected=True)
 
         self._sort_formats(formats)
 

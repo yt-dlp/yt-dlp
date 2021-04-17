@@ -10,7 +10,6 @@ from ..compat import (
 )
 from ..utils import (
     determine_ext,
-    ExtractorError,
     float_or_none,
     int_or_none,
     try_get,
@@ -85,7 +84,7 @@ class OoyalaBaseIE(InfoExtractor):
                     'fps': float_or_none(stream.get('framerate')),
                 })
         if not formats and not auth_data.get('authorized'):
-            raise ExtractorError('%s said: %s' % (
+            self.raise_no_formats('%s said: %s' % (
                 self.IE_NAME, auth_data['message']), expected=True)
         self._sort_formats(formats)
 

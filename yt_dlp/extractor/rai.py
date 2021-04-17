@@ -94,7 +94,7 @@ class RaiBaseIE(InfoExtractor):
                 })
 
         if not formats and geoprotection is True:
-            self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
         return dict((k, v) for k, v in {
             'is_live': is_live,

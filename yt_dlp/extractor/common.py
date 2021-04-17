@@ -968,15 +968,27 @@ class InfoExtractor(object):
         """Report attempt to log in."""
         self.to_screen('Logging in')
 
-    @staticmethod
-    def raise_login_required(msg='This video is only available for registered users'):
+    def raise_login_required(
+            self, msg='This video is only available for registered users', metadata_available=False):
+        if metadata_available and self._downloader.params.get('ignore_no_formats_error'):
+            self.report_warning(msg)
         raise ExtractorError(
-            '%s. Use --username and --password or --netrc to provide account credentials.' % msg,
+            '%s. Use --cookies, --username and --password or --netrc to provide account credentials' % msg,
             expected=True)
 
-    @staticmethod
-    def raise_geo_restricted(msg='This video is not available from your location due to geo restriction', countries=None):
-        raise GeoRestrictedError(msg, countries=countries)
+    def raise_geo_restricted(
+            self, msg='This video is not available from your location due to geo restriction',
+            countries=None, metadata_available=False):
+        if metadata_available and self._downloader.params.get('ignore_no_formats_error'):
+            self.report_warning(msg)
+        else:
+            raise GeoRestrictedError(msg, countries=countries)
+
+    def raise_no_formats(self, msg, expected=False, video_id=None):
+        if expected and self._downloader.params.get('ignore_no_formats_error'):
+            self.report_warning(msg, video_id)
+        else:
+            raise ExtractorError(msg, expected=expected, video_id=video_id)
 
     # Methods for following #608
     @staticmethod
@@ -1670,6 +1682,8 @@ class InfoExtractor(object):
 
     def _sort_formats(self, formats, field_preference=[]):
         if not formats:
+            if self._downloader.params.get('ignore_no_formats_error'):
+                return
             raise ExtractorError('No video formats found')
         format_sort = self.FormatSort()  # params and to_screen are taken from the downloader
         format_sort.evaluate_params(self._downloader.params, field_preference)

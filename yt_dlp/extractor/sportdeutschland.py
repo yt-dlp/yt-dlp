@@ -77,7 +77,7 @@ class SportDeutschlandIE(InfoExtractor):
                         continue
                     formats = self._extract_m3u8_formats(
                         video_url.replace('.smil', '.m3u8'), video_id, 'mp4', fatal=False)
-                    if not formats:
+                    if not formats and not self._downloader.params.get('ignore_no_formats'):
                         continue
                     yield {
                         'id': video_id,

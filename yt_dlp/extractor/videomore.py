@@ -10,7 +10,6 @@ from ..compat import (
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
-    ExtractorError,
     int_or_none,
 )
 
@@ -193,8 +192,8 @@ class VideomoreIE(InfoExtractor):
             error = item.get('error')
             if error:
                 if error in ('Данное видео недоступно для просмотра на территории этой страны', 'Данное видео доступно для просмотра только на территории России'):
-                    self.raise_geo_restricted(countries=['RU'])
-                raise ExtractorError(error, expected=True)
+                    self.raise_geo_restricted(countries=['RU'], metadata_available=True)
+                self.raise_no_formats(error, expected=True)
         self._sort_formats(formats)
 
         return {

@@ -466,6 +466,7 @@ def _real_main(argv=None):
         'skip_download': opts.skip_download,
         'format': opts.format,
         'allow_unplayable_formats': opts.allow_unplayable_formats,
+        'ignore_no_formats_error': opts.ignore_no_formats_error,
         'format_sort': opts.format_sort,
         'format_sort_force': opts.format_sort_force,
         'allow_multiple_video_streams': opts.allow_multiple_video_streams,

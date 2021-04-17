@@ -184,7 +184,7 @@ class HotStarIE(HotStarBaseIE):
                     geo_restricted = True
                 continue
         if not formats and geo_restricted:
-            self.raise_geo_restricted(countries=['IN'])
+            self.raise_geo_restricted(countries=['IN'], metadata_available=True)
         self._sort_formats(formats)
 
         for f in formats:

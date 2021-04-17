@@ -323,7 +323,7 @@ class AfreecaTVIE(InfoExtractor):
                         'url': file_url,
                         'format_id': 'http',
                     }]
-                if not formats:
+                if not formats and not self._downloader.params.get('ignore_no_formats'):
                     continue
                 self._sort_formats(formats)
                 file_info = common_entry.copy()

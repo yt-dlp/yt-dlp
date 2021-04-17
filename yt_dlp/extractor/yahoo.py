@@ -239,7 +239,7 @@ class YahooIE(InfoExtractor):
                 'm3u8_native', m3u8_id='hls', fatal=False))
 
         if not formats and msg == 'geo restricted':
-            self.raise_geo_restricted()
+            self.raise_geo_restricted(metadata_available=True)
 
         self._sort_formats(formats)
 

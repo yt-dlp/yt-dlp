@@ -498,7 +498,7 @@ class SoundcloudIE(InfoExtractor):
             f['vcodec'] = 'none'
 
         if not formats and info.get('policy') == 'BLOCK':
-            self.raise_geo_restricted()
+            self.raise_geo_restricted(metadata_available=True)
         self._sort_formats(formats)
 
         user = info.get('user') or {}

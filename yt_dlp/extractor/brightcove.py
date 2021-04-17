@@ -545,9 +545,9 @@ class BrightcoveNewIE(AdobePassIE):
             errors = json_data.get('errors')
             if errors:
                 error = errors[0]
-                raise ExtractorError(
+                self.raise_no_formats(
                     error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
-            if (not self._downloader.params.get('allow_unplayable_formats')
+            elif (not self._downloader.params.get('allow_unplayable_formats')
                     and sources and num_drm_sources == len(sources)):
                 raise ExtractorError('This video is DRM protected.', expected=True)
 

@@ -9,7 +9,6 @@ from ..utils import (
     unified_strdate,
     compat_str,
     determine_ext,
-    ExtractorError,
     update_url_query,
 )
 
@@ -140,7 +139,7 @@ class DisneyIE(InfoExtractor):
                 'vcodec': 'none' if (width == 0 and height == 0) else None,
             })
         if not formats and video_data.get('expired'):
-            raise ExtractorError(
+            self.raise_no_formats(
                 '%s said: %s' % (self.IE_NAME, page_data['translations']['video_expired']),
                 expected=True)
         self._sort_formats(formats)

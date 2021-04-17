@@ -101,7 +101,7 @@ class KeezMoviesIE(InfoExtractor):
 
         if not formats:
             if 'title="This video is no longer available"' in webpage:
-                raise ExtractorError(
+                self.raise_no_formats(
                     'Video %s is no longer available' % video_id, expected=True)
 
         try:

@@ -298,7 +298,8 @@ class TVPlayIE(InfoExtractor):
 
         if not formats and video.get('is_geo_blocked'):
             self.raise_geo_restricted(
-                'This content might not be available in your country due to copyright reasons')
+                'This content might not be available in your country due to copyright reasons',
+                metadata_available=True)
 
         self._sort_formats(formats)
 

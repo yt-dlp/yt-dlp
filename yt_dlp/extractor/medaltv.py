@@ -97,11 +97,11 @@ class MedalTVIE(InfoExtractor):
         error = clip.get('error')
         if not formats and error:
             if error == 404:
-                raise ExtractorError(
+                self.raise_no_formats(
                     'That clip does not exist.',
                     expected=True, video_id=video_id)
             else:
-                raise ExtractorError(
+                self.raise_no_formats(
                     'An unknown error occurred ({0}).'.format(error),
                     video_id=video_id)
 
