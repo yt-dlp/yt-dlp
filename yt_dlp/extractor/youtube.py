@@ -1890,15 +1890,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     lambda x: x['errorScreen']['playerErrorMessageRenderer'],
                     dict) or {}
                 reason = get_text(pemr.get('reason')) or playability_status.get('reason')
-                if reason != None and reason.find("This video is only available to Music Premium members") >= 0:
-                    # accept only music premium 
+                if reason is not None and reason.find("This video is only available to Music Premium members") >= 0:
+                    # accept only music premium
                     self.report_warning(reason.replace("video", "URL") + ". Using youtube mode instead of yt-music mode.", video_id)
                 else:
                     self.to_screen("Using yt-music.")
                     player_response = pr
 
-
-        if player_response == None and webpage:
+        if player_response is None and webpage:
             player_response = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
