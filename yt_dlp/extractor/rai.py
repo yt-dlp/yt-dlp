@@ -5,15 +5,16 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_urlparse,
     compat_str,
+    compat_urlparse,
 )
 from ..utils import (
-    ExtractorError,
     determine_ext,
+    ExtractorError,
     find_xpath_attr,
     fix_xml_ampersands,
     GeoRestrictedError,
+    HEADRequest,
     int_or_none,
     parse_duration,
     remove_start,
@@ -96,11 +97,99 @@ class RaiBaseIE(InfoExtractor):
         if not formats and geoprotection is True:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
+        formats.extend(self._create_http_urls(relinker_url, formats))
+
         return dict((k, v) for k, v in {
             'is_live': is_live,
             'duration': duration,
             'formats': formats,
         }.items() if v is not None)
+
+    def _create_http_urls(self, relinker_url, fmts):
+        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\d+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
+        _MP4_TMPL = '%s&overrideUserAgentRule=mp4-%s'
+        _QUALITY = {
+            # tbr: w, h
+            '250': [352, 198],
+            '400': [512, 288],
+            '700': [512, 288],
+            '800': [700, 394],
+            '1200': [736, 414],
+            '1800': [1024, 576],
+            '2400': [1280, 720],
+            '3200': [1440, 810],
+            '3600': [1440, 810],
+            '5000': [1920, 1080],
+            '10000': [1920, 1080],
+        }
+
+        def test_url(url):
+            resp = self._request_webpage(
+                HEADRequest(url), None, headers={'User-Agent': 'Rai'},
+                fatal=False, errnote=False, note=False)
+
+            if resp is False:
+                return False
+
+            if resp.code == 200:
+                return False if resp.url == url else resp.url
+            return None
+
+        def get_format_info(tbr):
+            import math
+            br = int_or_none(tbr)
+            if len(fmts) == 1 and not br:
+                br = fmts[0].get('tbr')
+            if br > 300:
+                tbr = compat_str(math.floor(br / 100) * 100)
+            else:
+                tbr = '250'
+
+            # try extracting info from available m3u8 formats
+            format_copy = None
+            for f in fmts:
+                if f.get('tbr'):
+                    br_limit = math.floor(br / 100)
+                    if br_limit - 1 <= math.floor(f['tbr'] / 100) <= br_limit + 1:
+                        format_copy = f.copy()
+            return {
+                'width': format_copy.get('width'),
+                'height': format_copy.get('height'),
+                'tbr': format_copy.get('tbr'),
+                'vcodec': format_copy.get('vcodec'),
+                'acodec': format_copy.get('acodec'),
+                'fps': format_copy.get('fps'),
+                'format_id': 'https-%s' % tbr,
+            } if format_copy else {
+                'width': _QUALITY[tbr][0],
+                'height': _QUALITY[tbr][1],
+                'format_id': 'https-%s' % tbr,
+                'tbr': int(tbr),
+            }
+
+        loc = test_url(_MP4_TMPL % (relinker_url, '*'))
+        if not isinstance(loc, compat_str):
+            return []
+
+        mobj = re.match(
+            _RELINKER_REG,
+            test_url(relinker_url) or '')
+        if not mobj:
+            return []
+
+        available_qualities = mobj.group('quality').split(',') if mobj.group('quality') else ['*']
+        available_qualities = [i for i in available_qualities if i]
+
+        formats = []
+        for q in available_qualities:
+            fmt = {
+                'url': _MP4_TMPL % (relinker_url, q),
+                'protocol': 'https',
+                'ext': 'mp4',
+            }
+            fmt.update(get_format_info(q))
+            formats.append(fmt)
+        return formats
 
     @staticmethod
     def _extract_subtitles(url, video_data):
@@ -150,6 +239,22 @@ class RaiPlayIE(RaiBaseIE):
         },
         'params': {
             'skip_download': True,
+        },
+    }, {
+        # 1080p direct mp4 url
+        'url': 'https://www.raiplay.it/video/2021/03/Leonardo-S1E1-b5703b02-82ee-475a-85b6-c9e4a8adf642.html',
+        'md5': '2e501e8651d72f05ffe8f5d286ad560b',
+        'info_dict': {
+            'id': 'b5703b02-82ee-475a-85b6-c9e4a8adf642',
+            'ext': 'mp4',
+            'title': 'Leonardo - S1E1',
+            'alt_title': 'St 1 Ep 1 - Episodio 1',
+            'description': 'md5:f5360cd267d2de146e4e3879a5a47d31',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'Rai 1',
+            'duration': 3229,
+            'series': 'Leonardo',
+            'season': 'Season 1',
         },
     }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
@@ -318,7 +423,7 @@ class RaiIE(RaiBaseIE):
     }, {
         # with ContentItem in og:url
         'url': 'http://www.rai.it/dl/RaiTV/programmi/media/ContentItem-efb17665-691c-45d5-a60c-5301333cbb0c.html',
-        'md5': '6865dd00cf0bbf5772fdd89d59bd768a',
+        'md5': '06345bd97c932f19ffb129973d07a020',
         'info_dict': {
             'id': 'efb17665-691c-45d5-a60c-5301333cbb0c',
             'ext': 'mp4',
@@ -346,22 +451,6 @@ class RaiIE(RaiBaseIE):
             'id': '3156f2f2-dc70-4953-8e2f-70d7489d4ce9',
             'ext': 'mp4',
             'title': 'La diretta di Rainews24',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # ContentItem in iframe (see #12652) and subtitle at 'subtitlesUrl' key
-        'url': 'http://www.presadiretta.rai.it/dl/portali/site/puntata/ContentItem-3ed19d13-26c2-46ff-a551-b10828262f1b.html',
-        'info_dict': {
-            'id': '1ad6dc64-444a-42a4-9bea-e5419ad2f5fd',
-            'ext': 'mp4',
-            'title': 'Partiti acchiappavoti - Presa diretta del 13/09/2015',
-            'description': 'md5:d291b03407ec505f95f27970c0b025f4',
-            'upload_date': '20150913',
-            'subtitles': {
-                'it': 'count:2',
-            },
         },
         'params': {
             'skip_download': True,
