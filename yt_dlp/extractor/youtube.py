@@ -1852,8 +1852,32 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = self._download_webpage(
             webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
 
+        # check is music
+        is_music = re.match(r'^https?://music\.youtube\.com/.+', url)
+
         player_response = None
-        if webpage:
+        if is_music:
+            # we are forcing to use parse_json because 141 only appeared in get_video_info.
+            # el, c, cver, cplayer field required for 141(aac 256kbps) codec
+            # maybe paramter of youtube music player?
+            pr = self._parse_json(try_get(compat_parse_qs(
+                self._download_webpage(
+                    base_url + 'get_video_info', video_id,
+                    'Fetching youtube-music info webpage',
+                    'unable to download video info webpage', query={
+                        'video_id': video_id,
+                        'eurl': 'https://youtube.googleapis.com/v/' + video_id,
+                        'el': 'detailpage',
+                        'c': 'WEB_REMIX',
+                        'cver': '0.1',
+                        'cplayer': 'UNIPLAYER'
+                    }, fatal=False)),
+                lambda x: x['player_response'][0],
+                compat_str) or '{}', video_id)
+            if pr:
+                self.to_screen("Parsed youtube music info!")
+                player_response = pr
+        elif webpage:
             player_response = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
