@@ -2642,6 +2642,16 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'YouTube said: INFO - Unavailable videos are hidden',
         ]
     }, {
+        'note': 'Playlist with unavailable videos in a later page',
+        'url': 'https://www.youtube.com/playlist?list=UU8l9frL61Yl5KFOl87nIm2w',
+        'info_dict': {
+            'title': 'Uploads from BlankTV',
+            'id': 'UU8l9frL61Yl5KFOl87nIm2w',
+            'uploader': 'BlankTV',
+            'uploader_id': 'UC8l9frL61Yl5KFOl87nIm2w',
+        },
+        'playlist_mincount': 20000,
+    }, {
         # https://github.com/ytdl-org/youtube-dl/issues/21844
         'url': 'https://www.youtube.com/playlist?list=PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
         'info_dict': {
@@ -3311,7 +3321,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         Get playlist with unavailable videos if the 'show unavailable videos' button exists.
         """
         sidebar_renderer = try_get(
-            data, lambda x: x['sidebar']['playlistSidebarRenderer']['items'], list) or []
+            data, lambda x: x['sidebar']['playlistSidebarRenderer']['items'], list)
+        if not sidebar_renderer:
+            return
+        browse_id = params = None
         for item in sidebar_renderer:
             if not isinstance(item, dict):
                 continue
@@ -3330,22 +3343,22 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     nav_item_renderer, lambda x: x['navigationEndpoint']['browseEndpoint'], dict) or {}
                 browse_id = browse_endpoint.get('browseId')
                 params = browse_endpoint.get('params')
-                if not browse_id or not params:
-                    return
-                ytcfg = self._extract_ytcfg(item_id, webpage)
-                headers = self._generate_api_headers(
-                    ytcfg, account_syncid=self._extract_account_syncid(ytcfg),
-                    identity_token=self._extract_identity_token(webpage, item_id=item_id),
-                    visitor_data=try_get(
-                        self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
-                query = {
-                    'params': params,
-                    'browseId': browse_id
-                }
-                return self._extract_response(
-                    item_id=item_id, headers=headers, query=query,
-                    check_get_keys='contents', fatal=False,
-                    note='Downloading API JSON with unavailable videos')
+                break
+
+            ytcfg = self._extract_ytcfg(item_id, webpage)
+            headers = self._generate_api_headers(
+                ytcfg, account_syncid=self._extract_account_syncid(ytcfg),
+                identity_token=self._extract_identity_token(webpage, item_id=item_id),
+                visitor_data=try_get(
+                    self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
+            query = {
+                'params': params or 'wgYCCAA=',
+                'browseId': browse_id or 'VL%s' % item_id
+            }
+            return self._extract_response(
+                item_id=item_id, headers=headers, query=query,
+                check_get_keys='contents', fatal=False,
+                note='Downloading API JSON with unavailable videos')
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True):
