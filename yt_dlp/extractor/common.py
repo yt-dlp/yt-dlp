@@ -2816,7 +2816,7 @@ class InfoExtractor(object):
             for track in stream.findall('QualityLevel'):
                 fourcc = track.get('FourCC', 'AACL' if track.get('AudioTag') == '255' else None)
                 # TODO: add support for WVC1 and WMAP
-                if fourcc not in ('H264', 'AVC1', 'AACL'):
+                if fourcc not in ('H264', 'AVC1', 'AACL', 'TTML'):
                     self.report_warning('%s is not a supported codec' % fourcc)
                     continue
                 tbr = int(track.attrib['Bitrate']) // 1000

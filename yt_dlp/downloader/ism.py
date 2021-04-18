@@ -118,8 +118,7 @@ def write_piff_header(stream, params):
         vmhd_payload += u16.pack(0) * 3  # opcolor
         media_header_box = full_box(b'vmhd', 0, 1, vmhd_payload)  # Video Media Header
     elif stream_type == 'text':
-        sthd_payload = u16.pack(0) * 2
-        media_header_box = full_box(b'sthd', 0, 1, sthd_payload)  # Subtitle Media Header
+        media_header_box = full_box(b'sthd', 0, 0, b'')  # Subtitle Media Header
     else:
         assert False
     minf_payload = media_header_box
@@ -171,6 +170,14 @@ def write_piff_header(stream, params):
             avcc_payload += pps
             sample_entry_payload += box(b'avcC', avcc_payload)  # AVC Decoder Configuration Record
             sample_entry_box = box(b'avc1', sample_entry_payload)  # AVC Simple Entry
+        else:
+            assert False
+    elif stream_type == 'text':
+        if fourcc == 'TTML':
+            sample_entry_payload += b'http://www.w3.org/ns/ttml\0'  # namespace
+            sample_entry_payload += b'\0'  # schema location
+            sample_entry_payload += b'\0'  # auxilary mime types(??)
+            sample_entry_box = box(b'stpp', sample_entry_payload)
         else:
             assert False
     else:
