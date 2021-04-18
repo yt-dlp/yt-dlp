@@ -65,7 +65,9 @@ class TwitCastingIE(InfoExtractor):
             request_data = urlencode_postdata({
                 'password': video_password,
             })
-        webpage = self._download_webpage(url, video_id, data=request_data)
+        webpage = self._download_webpage(
+            url, video_id, data=request_data,
+            headers={'Origin': 'https://twitcasting.tv'})
 
         title = clean_html(get_element_by_id(
             'movietitle', webpage)) or self._html_search_meta(
@@ -77,14 +79,15 @@ class TwitCastingIE(InfoExtractor):
             webpage, 'm3u8 url', group='url', default=None)
         if not m3u8_url:
             video_js_data = self._parse_json(self._search_regex(
-                r"data-movie-playlist='(\[[^']+\])'",
-                webpage, 'movie playlist'), video_id)[0]
+                r'data-movie-playlist=(["\'])(?P<url>(?:(?!\1).)+)',
+                webpage, 'movie playlist', group='url'), video_id)
+            if isinstance(video_js_data, dict):
+                video_js_data = list(video_js_data.values())[0]
+            video_js_data = video_js_data[0]
             m3u8_url = video_js_data['source']['url']
 
-        # use `m3u8` entry_protocol until EXT-X-MAP is properly supported by `m3u8_native` entry_protocol
         formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', m3u8_id='hls')
-
+            m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
         thumbnail = video_js_data.get('thumbnailUrl') or self._og_search_thumbnail(webpage)
         description = clean_html(get_element_by_id(
             'authorcomment', webpage)) or self._html_search_meta(
