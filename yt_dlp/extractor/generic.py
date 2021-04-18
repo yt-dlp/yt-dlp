@@ -2512,7 +2512,7 @@ class GenericIE(InfoExtractor):
             if doc.tag == 'rss':
                 return self._extract_rss(url, video_id, doc)
             elif doc.tag == 'SmoothStreamingMedia':
-                info_dict['formats'] = self._parse_ism_formats(doc, url)
+                info_dict['formats'], info_dict['subtitles'] = self._parse_ism_formats_and_subtitles(doc, url)
                 self._sort_formats(info_dict['formats'])
                 return info_dict
             elif re.match(r'^(?:{[^}]+})?smil$', doc.tag):
