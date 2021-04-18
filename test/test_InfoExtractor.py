@@ -949,7 +949,8 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'tbr': 5997.485,
                     'width': 1920,
                     'height': 1080,
-                }]
+                }],
+                {},
             ), (
                 # https://github.com/ytdl-org/youtube-dl/pull/14844
                 'urls_only',
@@ -1032,7 +1033,8 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'tbr': 4400,
                     'width': 1920,
                     'height': 1080,
-                }]
+                }],
+                {},
             ), (
                 # https://github.com/ytdl-org/youtube-dl/issues/20346
                 # Media considered unfragmented even though it contains
@@ -1078,18 +1080,137 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'width': 360,
                     'height': 360,
                     'fps': 30,
-                }]
+                }],
+                {},
+            ), (
+                'subtitles',
+                'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd',
+                'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/',
+                [{
+                    "format_id": "audio=128001",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "ext": "m4a",
+                    "tbr": 128.001,
+                    "asr": 48000,
+                    "format_note": "DASH audio",
+                    "container": "m4a_dash",
+                    "vcodec": "none",
+                    "acodec": "mp4a.40.2",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "fragment_base_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/dash/",
+                    "protocol": "http_dash_segments",
+                    "audio_ext": "m4a",
+                    "video_ext": "none",
+                    "abr": 128.001,
+                }, {
+                    "format_id": "video=100000",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "ext": "mp4",
+                    "width": 336,
+                    "height": 144,
+                    "tbr": 100,
+                    "format_note": "DASH video",
+                    "container": "mp4_dash",
+                    "vcodec": "avc1.4D401F",
+                    "acodec": "none",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "fragment_base_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/dash/",
+                    "protocol": "http_dash_segments",
+                    "video_ext": "mp4",
+                    "audio_ext": "none",
+                    "vbr": 100,
+                }, {
+                    "format_id": "video=326000",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "ext": "mp4",
+                    "width": 562,
+                    "height": 240,
+                    "tbr": 326,
+                    "format_note": "DASH video",
+                    "container": "mp4_dash",
+                    "vcodec": "avc1.4D401F",
+                    "acodec": "none",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "fragment_base_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/dash/",
+                    "protocol": "http_dash_segments",
+                    "video_ext": "mp4",
+                    "audio_ext": "none",
+                    "vbr": 326,
+                }, {
+                    "format_id": "video=698000",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "ext": "mp4",
+                    "width": 844,
+                    "height": 360,
+                    "tbr": 698,
+                    "format_note": "DASH video",
+                    "container": "mp4_dash",
+                    "vcodec": "avc1.4D401F",
+                    "acodec": "none",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "fragment_base_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/dash/",
+                    "protocol": "http_dash_segments",
+                    "video_ext": "mp4",
+                    "audio_ext": "none",
+                    "vbr": 698,
+                }, {
+                    "format_id": "video=1493000",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "ext": "mp4",
+                    "width": 1126,
+                    "height": 480,
+                    "tbr": 1493,
+                    "format_note": "DASH video",
+                    "container": "mp4_dash",
+                    "vcodec": "avc1.4D401F",
+                    "acodec": "none",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "fragment_base_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/dash/",
+                    "protocol": "http_dash_segments",
+                    "video_ext": "mp4",
+                    "audio_ext": "none",
+                    "vbr": 1493,
+                }, {
+                    "format_id": "video=4482000",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "ext": "mp4",
+                    "width": 1688,
+                    "height": 720,
+                    "tbr": 4482,
+                    "format_note": "DASH video",
+                    "container": "mp4_dash",
+                    "vcodec": "avc1.4D401F",
+                    "acodec": "none",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                    "fragment_base_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/dash/",
+                    "protocol": "http_dash_segments",
+                    "video_ext": "mp4",
+                    "audio_ext": "none",
+                    "vbr": 4482,
+                }],
+                {
+                    "en": [
+                        {
+                            "ext": "mp4",
+                            "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                            "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/manifest.mpd",
+                            "fragment_base_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/dash/",
+                            "protocol": "http_dash_segments",
+                        }
+                    ]
+                },
             )
         ]
 
-        for mpd_file, mpd_url, mpd_base_url, expected_formats in _TEST_CASES:
+        for mpd_file, mpd_url, mpd_base_url, expected_formats, expected_subtitles in _TEST_CASES:
             with io.open('./test/testdata/mpd/%s.mpd' % mpd_file,
                          mode='r', encoding='utf-8') as f:
-                formats = self.ie._parse_mpd_formats(
+                formats, subtitles = self.ie._parse_mpd_formats_and_subtitles(
                     compat_etree_fromstring(f.read().encode('utf-8')),
                     mpd_base_url=mpd_base_url, mpd_url=mpd_url)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
+                expect_value(self, subtitles, expected_subtitles, None)
 
     def test_parse_f4m_formats(self):
         _TEST_CASES = [
