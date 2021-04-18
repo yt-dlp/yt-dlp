@@ -86,18 +86,19 @@ class AtresPlayerIE(InfoExtractor):
         title = episode['titulo']
 
         formats = []
+        subtitles = {}
         for source in episode.get('sources', []):
             src = source.get('src')
             if not src:
                 continue
             src_type = source.get('type')
             if src_type == 'application/vnd.apple.mpegurl':
-                formats.extend(self._extract_m3u8_formats(
+                formats, subtitles = self._extract_m3u8_formats(
                     src, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
+                    m3u8_id='hls', fatal=False)
             elif src_type == 'application/dash+xml':
-                formats.extend(self._extract_mpd_formats(
-                    src, video_id, mpd_id='dash', fatal=False))
+                formats, subtitles = self._extract_mpd_formats(
+                    src, video_id, mpd_id='dash', fatal=False)
         self._sort_formats(formats)
 
         heartbeat = episode.get('heartbeat') or {}
@@ -115,4 +116,5 @@ class AtresPlayerIE(InfoExtractor):
             'channel': get_meta('channel'),
             'season': get_meta('season'),
             'episode_number': int_or_none(get_meta('episodeNumber')),
+            'subtitles': subtitles,
         }
