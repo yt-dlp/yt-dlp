@@ -2526,7 +2526,7 @@ class GenericIE(InfoExtractor):
                         xspf_base_url=full_response.geturl()),
                     video_id)
             elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
-                info_dict['formats'] = self._parse_mpd_formats(
+                info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
                     mpd_base_url=full_response.geturl().rpartition('/')[0],
                     mpd_url=url)
