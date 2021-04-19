@@ -594,15 +594,17 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (Alias: --write-automatic-subs)
     --no-write-auto-subs             Do not write auto-generated subtitles
                                      (default) (Alias: --no-write-automatic-subs)
-    --all-subs                       Download all the available subtitles of the
-                                     video
     --list-subs                      List all available subtitles for the video
     --sub-format FORMAT              Subtitle format, accepts formats
                                      preference, for example: "srt" or
                                      "ass/srt/best"
-    --sub-langs LANGS                Languages of the subtitles to download
-                                     (optional) separated by commas, use --list-
-                                     subs for available language tags
+    --sub-langs LANGS                Languages of the subtitles to download (can
+                                     be regex) or "all" separated by commas.
+                                     (Eg: --sub-langs en.*,ja) You can prefix
+                                     the language code with a "-" to exempt it
+                                     from the requested languages. (Eg: --sub-
+                                     langs all,-live_chat) Use --list-subs for a
+                                     list of available language tags
 
 ## Authentication Options:
     -u, --username USERNAME          Login with this account ID
@@ -1257,6 +1259,7 @@ These are all the deprecated options and the current alternative to achieve the 
     -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
     -l, --literal                    -o accepts literal names
     --all-formats                    -f all
+    --all-subs                       --sub-langs all --write-subs
     --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"
     --prefer-avconv                  avconv is no longer officially supported (Alias: --no-prefer-ffmpeg)

@@ -244,11 +244,15 @@ class YoutubeDL(object):
     writedesktoplink:  Write a Linux internet shortcut file (.desktop)
     writesubtitles:    Write the video subtitles to a file
     writeautomaticsub: Write the automatically generated subtitles to a file
-    allsubtitles:      Downloads all the subtitles of the video
+    allsubtitles:      Deprecated - Use subtitlelangs = ['all']
+                       Downloads all the subtitles of the video
                        (requires writesubtitles or writeautomaticsub)
     listsubtitles:     Lists all available subtitles for the video
     subtitlesformat:   The format code for subtitles
-    subtitleslangs:    List of languages of the subtitles to download
+    subtitleslangs:    List of languages of the subtitles to download (can be regex).
+                       The list may contain "all" to refer to all the available
+                       subtitles. The language can be prefixed with a "-" to
+                       exclude it from the requested languages. Eg: ['all', '-live_chat']
     keepvideo:         Keep the video file after post-processing
     daterange:         A DateRange object, download only if the upload_date is in the range.
     skip_download:     Skip the actual download of the video file
@@ -2038,15 +2042,28 @@ class YoutubeDL(object):
                 available_subs):
             return None
 
+        all_sub_langs = available_subs.keys()
         if self.params.get('allsubtitles', False):
-            requested_langs = available_subs.keys()
+            requested_langs = all_sub_langs
+        elif self.params.get('subtitleslangs', False):
+            requested_langs = set()
+            for lang in self.params.get('subtitleslangs'):
+                if lang == 'all':
+                    requested_langs.update(all_sub_langs)
+                    continue
+                discard = lang[0] == '-'
+                if discard:
+                    lang = lang[1:]
+                current_langs = filter(re.compile(lang + '$').match, all_sub_langs)
+                if discard:
+                    for lang in current_langs:
+                        requested_langs.discard(lang)
+                else:
+                    requested_langs.update(current_langs)
+        elif 'en' in available_subs:
+            requested_langs = ['en']
         else:
-            if self.params.get('subtitleslangs', False):
-                requested_langs = self.params.get('subtitleslangs')
-            elif 'en' in available_subs:
-                requested_langs = ['en']
-            else:
-                requested_langs = [list(available_subs.keys())[0]]
+            requested_langs = [list(all_sub_langs)[0]]
 
         formats_query = self.params.get('subtitlesformat', 'best')
         formats_preference = formats_query.split('/') if formats_query else []

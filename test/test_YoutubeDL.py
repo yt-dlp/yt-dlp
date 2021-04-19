@@ -601,6 +601,26 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertTrue(subs)
         self.assertEqual(set(subs.keys()), set(['es', 'fr']))
 
+        result = get_info({'writesubtitles': True, 'subtitleslangs': ['all', '-en']})
+        subs = result['requested_subtitles']
+        self.assertTrue(subs)
+        self.assertEqual(set(subs.keys()), set(['es', 'fr']))
+
+        result = get_info({'writesubtitles': True, 'subtitleslangs': ['en', 'fr', '-en']})
+        subs = result['requested_subtitles']
+        self.assertTrue(subs)
+        self.assertEqual(set(subs.keys()), set(['fr']))
+
+        result = get_info({'writesubtitles': True, 'subtitleslangs': ['-en', 'en']})
+        subs = result['requested_subtitles']
+        self.assertTrue(subs)
+        self.assertEqual(set(subs.keys()), set(['en']))
+
+        result = get_info({'writesubtitles': True, 'subtitleslangs': ['e.+']})
+        subs = result['requested_subtitles']
+        self.assertTrue(subs)
+        self.assertEqual(set(subs.keys()), set(['es', 'en']))
+
         result = get_info({'writesubtitles': True, 'writeautomaticsub': True, 'subtitleslangs': ['es', 'pt']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)

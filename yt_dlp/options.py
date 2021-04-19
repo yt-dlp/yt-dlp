@@ -548,7 +548,7 @@ def parseOpts(overrideArguments=None):
     subtitles.add_option(
         '--all-subs',
         action='store_true', dest='allsubtitles', default=False,
-        help='Download all the available subtitles of the video')
+        help=optparse.SUPPRESS_HELP)
     subtitles.add_option(
         '--list-subs',
         action='store_true', dest='listsubtitles', default=False,
@@ -561,7 +561,10 @@ def parseOpts(overrideArguments=None):
         '--sub-langs', '--srt-langs',
         action='callback', dest='subtitleslangs', metavar='LANGS', type='str',
         default=[], callback=_comma_separated_values_options_callback,
-        help='Languages of the subtitles to download (optional) separated by commas, use --list-subs for available language tags')
+        help=(
+            'Languages of the subtitles to download (can be regex) or "all" separated by commas. (Eg: --sub-langs en.*,ja) '
+            'You can prefix the language code with a "-" to exempt it from the requested languages. (Eg: --sub-langs all,-live_chat) '
+            'Use --list-subs for a list of available language tags'))
 
     downloader = optparse.OptionGroup(parser, 'Download Options')
     downloader.add_option(
