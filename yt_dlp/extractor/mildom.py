@@ -272,16 +272,7 @@ class MildomUserVodIE(MildomBaseIE):
         'playlist_mincount': 351,
     }]
 
-    def _real_extract(self, url):
-        user_id = self._match_id(url)
-
-        self.report_warning('To download ongoing live, please use "https://www.mildom.com/%s" instead. This will list up VODs belonging to user.' % user_id)
-
-        profile = self._call_api(
-            'https://cloudac.mildom.com/nonolive/gappserv/user/profileV2', user_id,
-            query={'user_id': user_id}, note='Downloading user profile')['user_info']
-
-        results = []
+    def _entries(self, user_id):
         for page in itertools.count(1):
             reply = self._call_api(
                 'https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList',
@@ -292,7 +283,16 @@ class MildomUserVodIE(MildomBaseIE):
                 })
             if not reply:
                 break
-            results.extend('https://www.mildom.com/playback/%s/%s' % (user_id, x['v_id']) for x in reply)
-        return self.playlist_result([
-            self.url_result(u, ie=MildomVodIE.ie_key()) for u in results
-        ], user_id, 'Uploads from %s' % profile['loginname'])
+            for x in reply:
+                yield self.url_result('https://www.mildom.com/playback/%s/%s' % (user_id, x['v_id']))
+
+    def _real_extract(self, url):
+        user_id = self._match_id(url)
+        self.to_screen('This will download all VODs belonging to user. To download ongoing live video, use "https://www.mildom.com/%s" instead' % user_id)
+
+        profile = self._call_api(
+            'https://cloudac.mildom.com/nonolive/gappserv/user/profileV2', user_id,
+            query={'user_id': user_id}, note='Downloading user profile')['user_info']
+
+        return self.playlist_result(
+            self._entries(user_id), user_id, 'Uploads from %s' % profile['loginname'])
