@@ -66,6 +66,7 @@ from yt_dlp.utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
+    sanitized_Request,
     expand_path,
     prepend_extension,
     replace_extension,
@@ -238,6 +239,15 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_url('httpss://foo.bar'), 'https://foo.bar')
         self.assertEqual(sanitize_url('rmtps://foo.bar'), 'rtmps://foo.bar')
         self.assertEqual(sanitize_url('https://foo.bar'), 'https://foo.bar')
+
+    def test_extract_basic_auth(self):
+        auth_header = lambda url: sanitized_Request(url).get_header('Authorization')
+        self.assertFalse(auth_header('http://foo.bar'))
+        self.assertFalse(auth_header('http://:foo.bar'))
+        self.assertEqual(auth_header('http://@foo.bar'), 'Basic Og==')
+        self.assertEqual(auth_header('http://:pass@foo.bar'), 'Basic OnBhc3M=')
+        self.assertEqual(auth_header('http://user:@foo.bar'), 'Basic dXNlcjo=')
+        self.assertEqual(auth_header('http://user:pass@foo.bar'), 'Basic dXNlcjpwYXNz')
 
     def test_expand_path(self):
         def env(var):
