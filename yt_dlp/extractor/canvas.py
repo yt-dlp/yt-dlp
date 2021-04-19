@@ -83,24 +83,31 @@ class CanvasIE(InfoExtractor):
         description = data.get('description')
 
         formats = []
+        subtitles = {}
         for target in data['targetUrls']:
             format_url, format_type = url_or_none(target.get('url')), str_or_none(target.get('type'))
             if not format_url or not format_type:
                 continue
             format_type = format_type.upper()
             if format_type in self._HLS_ENTRY_PROTOCOLS_MAP:
-                formats.extend(self._extract_m3u8_formats(
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     format_url, video_id, 'mp4', self._HLS_ENTRY_PROTOCOLS_MAP[format_type],
-                    m3u8_id=format_type, fatal=False))
+                    m3u8_id=format_type, fatal=False)
+                formats.extend(fmts)
+                subtitles = self._merge_subtitles(subtitles, subs)
             elif format_type == 'HDS':
                 formats.extend(self._extract_f4m_formats(
                     format_url, video_id, f4m_id=format_type, fatal=False))
             elif format_type == 'MPEG_DASH':
-                formats.extend(self._extract_mpd_formats(
-                    format_url, video_id, mpd_id=format_type, fatal=False))
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id=format_type, fatal=False)
+                formats.extend(fmts)
+                subtitles = self._merge_subtitles(subtitles, subs)
             elif format_type == 'HSS':
-                formats.extend(self._extract_ism_formats(
-                    format_url, video_id, ism_id='mss', fatal=False))
+                fmts, subs = self._extract_ism_formats_and_subtitles(
+                    format_url, video_id, ism_id='mss', fatal=False)
+                formats.extend(fmts)
+                subtitles = self._merge_subtitles(subtitles, subs)
             else:
                 formats.append({
                     'format_id': format_type,
@@ -108,7 +115,6 @@ class CanvasIE(InfoExtractor):
                 })
         self._sort_formats(formats)
 
-        subtitles = {}
         subtitle_urls = data.get('subtitleUrls')
         if isinstance(subtitle_urls, list):
             for subtitle in subtitle_urls:
