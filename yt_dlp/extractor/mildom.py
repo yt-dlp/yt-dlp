@@ -29,7 +29,7 @@ class MildomBaseIE(InfoExtractor):
     _MILDOM_PROXY_HOSTS = (
         # 'bookish-octo-barnacle.vercel.app',  # see #251 for reason
         'free-mountain-goal.glitch.me',
-        'lesmimonabb.dip.jp',
+        'lesmih0sted.f5.si',
     )
 
     def _call_api(self, url, video_id, query={}, note='Downloading JSON metadata', init=False):
