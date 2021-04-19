@@ -212,16 +212,16 @@ class MildomVodIE(MildomBaseIE):
                 lambda x: x['author_info']['login_name'],
             ), compat_str)
 
-        audio_formats = [{
+        formats = [{
             'url': autoplay['audio_url'],
             'format_id': 'audio',
             'protocol': 'm3u8_native',
             'vcodec': 'none',
             'acodec': 'aac',
+            'ext': 'm4a'
         }]
-        video_formats = []
         for fmt in autoplay['video_link']:
-            video_formats.append({
+            formats.append({
                 'format_id': 'video-%s' % fmt['name'],
                 'url': fmt['url'],
                 'protocol': 'm3u8_native',
@@ -229,15 +229,15 @@ class MildomVodIE(MildomBaseIE):
                 'height': fmt['level'],
                 'vcodec': 'h264',
                 'acodec': 'aac',
+                'ext': 'mp4'
             })
 
+        r''' # Proxy is not needed for VODs
         stream_query = self._common_queries({
             'is_lhls': '0',
         })
         del stream_query['timestamp']
-        formats = audio_formats + video_formats
         for fmt in formats:
-            fmt['ext'] = 'mp4'
             parsed = compat_urlparse.urlparse(fmt['url'])
             stream_query['path'] = parsed.path[5:]
             parsed = parsed._replace(
@@ -245,6 +245,7 @@ class MildomVodIE(MildomBaseIE):
                 query=compat_urllib_parse_urlencode(stream_query, True),
                 path='/api/mildom/vod2/proxy')
             fmt['url'] = compat_urlparse.urlunparse(parsed)
+        '''
 
         self._sort_formats(formats)
 
