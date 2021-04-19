@@ -3319,12 +3319,22 @@ class InfoExtractor(object):
         return ret
 
     @classmethod
-    def _merge_subtitles(cls, subtitle_dict1, subtitle_dict2):
-        """ Merge two subtitle dictionaries, language by language. """
-        ret = dict(subtitle_dict1)
-        for lang in subtitle_dict2:
-            ret[lang] = cls._merge_subtitle_items(subtitle_dict1.get(lang, []), subtitle_dict2[lang])
-        return ret
+    def _merge_subtitles(cls, *dicts, **kwargs):
+        """ Merge subtitle dictionaries, language by language. """
+
+        target = (lambda target=None: target)(**kwargs)
+        # The above lambda extracts the keyword argument 'target' from kwargs
+        # while ensuring there are no stray ones. When Python 2 support
+        # is dropped, remove it and change the function signature to:
+        #
+        #     def _merge_subtitles(cls, *dicts, target=None):
+
+        if target is None:
+            target = {}
+        for d in dicts:
+            for lang, subs in d.items():
+                target[lang] = cls._merge_subtitle_items(target.get(lang, []), subs)
+        return target
 
     def extract_automatic_captions(self, *args, **kwargs):
         if (self._downloader.params.get('writeautomaticsub', False)
