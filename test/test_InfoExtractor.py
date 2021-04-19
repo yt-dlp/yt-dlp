@@ -1212,6 +1212,197 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 expect_value(self, formats, expected_formats, None)
                 expect_value(self, subtitles, expected_subtitles, None)
 
+    def test_parse_ism_formats(self):
+        _TEST_CASES = [
+            (
+                'sintel',
+                'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
+                [{
+                    "format_id": "audio-128",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "ext": "isma",
+                    "tbr": 128,
+                    "asr": 48000,
+                    "vcodec": "none",
+                    "acodec": "AACL",
+                    "protocol": "ism",
+                    "_download_params": {
+                        "stream_type": "audio",
+                        "duration": 8880746666,
+                        "timescale": 10000000,
+                        "width": 0,
+                        "height": 0,
+                        "fourcc": "AACL",
+                        "codec_private_data": "1190",
+                        "sampling_rate": 48000,
+                        "channels": 2,
+                        "bits_per_sample": 16,
+                        "nal_unit_length_field": 4
+                    },
+                    "audio_ext": "isma",
+                    "video_ext": "none",
+                    "abr": 128,
+                }, {
+                    "format_id": "video-100",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "ext": "ismv",
+                    "width": 336,
+                    "height": 144,
+                    "tbr": 100,
+                    "vcodec": "AVC1",
+                    "acodec": "none",
+                    "protocol": "ism",
+                    "_download_params": {
+                        "stream_type": "video",
+                        "duration": 8880746666,
+                        "timescale": 10000000,
+                        "width": 336,
+                        "height": 144,
+                        "fourcc": "AVC1",
+                        "codec_private_data": "00000001674D401FDA0544EFFC2D002CBC40000003004000000C03C60CA80000000168EF32C8",
+                        "channels": 2,
+                        "bits_per_sample": 16,
+                        "nal_unit_length_field": 4
+                    },
+                    "video_ext": "ismv",
+                    "audio_ext": "none",
+                    "vbr": 100,
+                }, {
+                    "format_id": "video-326",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "ext": "ismv",
+                    "width": 562,
+                    "height": 240,
+                    "tbr": 326,
+                    "vcodec": "AVC1",
+                    "acodec": "none",
+                    "protocol": "ism",
+                    "_download_params": {
+                        "stream_type": "video",
+                        "duration": 8880746666,
+                        "timescale": 10000000,
+                        "width": 562,
+                        "height": 240,
+                        "fourcc": "AVC1",
+                        "codec_private_data": "00000001674D401FDA0241FE23FFC3BC83BA44000003000400000300C03C60CA800000000168EF32C8",
+                        "channels": 2,
+                        "bits_per_sample": 16,
+                        "nal_unit_length_field": 4
+                    },
+                    "video_ext": "ismv",
+                    "audio_ext": "none",
+                    "vbr": 326,
+                }, {
+                    "format_id": "video-698",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "ext": "ismv",
+                    "width": 844,
+                    "height": 360,
+                    "tbr": 698,
+                    "vcodec": "AVC1",
+                    "acodec": "none",
+                    "protocol": "ism",
+                    "_download_params": {
+                        "stream_type": "video",
+                        "duration": 8880746666,
+                        "timescale": 10000000,
+                        "width": 844,
+                        "height": 360,
+                        "fourcc": "AVC1",
+                        "codec_private_data": "00000001674D401FDA0350BFB97FF06AF06AD1000003000100000300300F1832A00000000168EF32C8",
+                        "channels": 2,
+                        "bits_per_sample": 16,
+                        "nal_unit_length_field": 4
+                    },
+                    "video_ext": "ismv",
+                    "audio_ext": "none",
+                    "vbr": 698,
+                }, {
+                    "format_id": "video-1493",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "ext": "ismv",
+                    "width": 1126,
+                    "height": 480,
+                    "tbr": 1493,
+                    "vcodec": "AVC1",
+                    "acodec": "none",
+                    "protocol": "ism",
+                    "_download_params": {
+                        "stream_type": "video",
+                        "duration": 8880746666,
+                        "timescale": 10000000,
+                        "width": 1126,
+                        "height": 480,
+                        "fourcc": "AVC1",
+                        "codec_private_data": "00000001674D401FDA011C3DE6FFF0D890D871000003000100000300300F1832A00000000168EF32C8",
+                        "channels": 2,
+                        "bits_per_sample": 16,
+                        "nal_unit_length_field": 4
+                    },
+                    "video_ext": "ismv",
+                    "audio_ext": "none",
+                    "vbr": 1493,
+                }, {
+                    "format_id": "video-4482",
+                    "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                    "ext": "ismv",
+                    "width": 1688,
+                    "height": 720,
+                    "tbr": 4482,
+                    "vcodec": "AVC1",
+                    "acodec": "none",
+                    "protocol": "ism",
+                    "_download_params": {
+                        "stream_type": "video",
+                        "duration": 8880746666,
+                        "timescale": 10000000,
+                        "width": 1688,
+                        "height": 720,
+                        "fourcc": "AVC1",
+                        "codec_private_data": "00000001674D401FDA01A816F97FFC1ABC1AB440000003004000000C03C60CA80000000168EF32C8",
+                        "channels": 2,
+                        "bits_per_sample": 16,
+                        "nal_unit_length_field": 4
+                    },
+                    "video_ext": "ismv",
+                    "audio_ext": "none",
+                    "vbr": 4482,
+                }],
+                {
+                    "eng": [
+                        {
+                            "ext": "ismt",
+                            "protocol": "ism",
+                            "url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                            "manifest_url": "https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest",
+                            "_download_params": {
+                                "stream_type": "text",
+                                "duration": 8880746666,
+                                "timescale": 10000000,
+                                "fourcc": "TTML",
+                                "codec_private_data": ""
+                            }
+                        }
+                    ]
+                },
+            ),
+        ]
+
+        for ism_file, ism_url, expected_formats, expected_subtitles in _TEST_CASES:
+            with io.open('./test/testdata/ism/%s.Manifest' % ism_file,
+                         mode='r', encoding='utf-8') as f:
+                formats, subtitles = self.ie._parse_ism_formats_and_subtitles(
+                    compat_etree_fromstring(f.read().encode('utf-8')), ism_url=ism_url)
+                self.ie._sort_formats(formats)
+                expect_value(self, formats, expected_formats, None)
+                expect_value(self, subtitles, expected_subtitles, None)
+
     def test_parse_f4m_formats(self):
         _TEST_CASES = [
             (
