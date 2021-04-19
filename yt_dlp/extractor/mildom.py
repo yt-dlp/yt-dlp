@@ -224,15 +224,6 @@ class MildomVodIE(MildomBaseIE):
         })
         del stream_query['timestamp']
         formats = audio_formats + video_formats
-        for fmt in formats:
-            fmt['ext'] = 'mp4'
-            parsed = compat_urlparse.urlparse(fmt['url'])
-            stream_query['path'] = parsed.path[5:]
-            parsed = parsed._replace(
-                netloc='bookish-octo-barnacle.vercel.app',
-                query=compat_urllib_parse_urlencode(stream_query, True),
-                path='/api/mildom/vod2/proxy')
-            fmt['url'] = compat_urlparse.urlunparse(parsed)
 
         self._sort_formats(formats)
 
