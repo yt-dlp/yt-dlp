@@ -356,6 +356,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return data.get('DELEGATED_SESSION_ID')
 
     def _extract_ytcfg(self, video_id, webpage):
+        if not webpage:
+            return {}
         return self._parse_json(
             self._search_regex(
                 r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', webpage, 'ytcfg',
