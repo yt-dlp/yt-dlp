@@ -305,6 +305,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      a file that is in the archive
     --break-on-reject                Stop the download process when encountering
                                      a file that has been filtered out
+    --skip-playlist-after-errors N   Number of allowed failures until the rest
+                                     of the playlist is skipped
     --no-download-archive            Do not use archive file (default)
 
 ## Download Options:

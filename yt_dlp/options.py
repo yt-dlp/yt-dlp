@@ -396,6 +396,10 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='break_on_reject', default=False,
         help='Stop the download process when encountering a file that has been filtered out')
     selection.add_option(
+        '--skip-playlist-after-errors', metavar='N',
+        dest='skip_playlist_after_errors', default=None, type=int,
+        help='Number of allowed failures until the rest of the playlist is skipped')
+    selection.add_option(
         '--no-download-archive',
         dest='download_archive', action="store_const", const=None,
         help='Do not use archive file (default)')

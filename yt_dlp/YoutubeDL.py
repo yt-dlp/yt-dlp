@@ -214,6 +214,8 @@ class YoutubeDL(object):
     ignoreerrors:      Do not stop on download errors
                        (Default True when running yt-dlp,
                        but False when directly accessing YoutubeDL class)
+    skip_playlist_after_errors: Number of allowed failures until the rest of
+                       the playlist is skipped
     force_generic_extractor: Force downloader to use the generic extractor
     overwrites:        Overwrite all video and metadata files if True,
                        overwrite only non-video files if None
@@ -1327,6 +1329,8 @@ class YoutubeDL(object):
         x_forwarded_for = ie_result.get('__x_forwarded_for_ip')
 
         self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg))
+        failures = 0
+        max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry in enumerate(entries, 1):
             self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
@@ -1351,6 +1355,12 @@ class YoutubeDL(object):
                 continue
 
             entry_result = self.__process_iterable_entry(entry, download, extra)
+            if not entry_result:
+                failures += 1
+            if failures >= max_failures:
+                self.report_error(
+                    'Skipping the remaining entries in playlist "%s" since %d items failed extraction' % (playlist, failures))
+                break
             # TODO: skip failed (empty) entries?
             playlist_results.append(entry_result)
         ie_result['entries'] = playlist_results
