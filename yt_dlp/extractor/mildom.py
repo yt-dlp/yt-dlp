@@ -118,6 +118,9 @@ class MildomIE(MildomBaseIE):
         video_id = self._match_id(url)
         url = 'https://www.mildom.com/%s' % video_id
 
+        self.to_screen(
+            'Live videos are downloaded using proxies based on "https://github.com/nao20010128nao/bookish-octo-barnacle"\n'
+            ' %s  If you do not trust these proxies, please refrain from downloading live %s videos ' % (' ' * len(self.IE_NAME), self.IE_NAME))
         webpage = self._download_webpage(url, video_id)
 
         enterstudio = self._call_api(
