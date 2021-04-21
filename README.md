@@ -1265,41 +1265,57 @@ Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently
 
 These are all the deprecated options and the current alternative to achieve the same effect
 
-    --cn-verification-proxy URL      --geo-verification-proxy URL
-    --id                             -o "%(id)s.%(ext)s"
-    -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
-    -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
-    -l, --literal                    -o accepts literal names
+#### Not recommended
+While these options still work, their use is not recommended since there are other alternatives to achieve the same effect
+
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
     --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
     --autonumber-start NUMBER        Use internal field formatting like %(autonumber+NUMBER)s
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"
-    --prefer-avconv                  avconv is no longer officially supported (Alias: --no-prefer-ffmpeg)
-    --prefer-ffmpeg                  Default (Alias: --no-prefer-avconv)
     --hls-prefer-native              --downloader "m3u8:native"
     --hls-prefer-ffmpeg              --downloader "m3u8:ffmpeg"
-    --avconv-location                avconv is no longer officially supported
-    -C, --call-home                  Not implemented
-    --no-call-home                   Default
-    --include-ads                    Not implemented
-    --no-include-ads                 Default
-    --write-srt                      --write-subs
+    --sponskrub-args ARGS            --ppa "sponskrub:ARGS"
+    --test                           Used by developers for testing extractors. Not intended for the end user
+
+
+#### Old aliases
+These are aliases that are no longer documented for various reasons
+
+    --avconv-location                --ffmpeg-location
+    --cn-verification-proxy URL      --geo-verification-proxy URL
+    --dump-headers                   --print-traffic
+    --dump-intermediate-pages        --dump-pages
+    --force-write-download-archive   --force-write-archive
+    --load-info                      --load-info-json
+    --no-split-tracks                --no-split-chapters
     --no-write-srt                   --no-write-subs
-    --srt-lang LANGS                 --sub-langs LANGS
     --prefer-unsecure                --prefer-insecure
     --rate-limit RATE                --limit-rate RATE
-    --force-write-download-archive   --force-write-archive
-    --dump-intermediate-pages        --dump-pages
-    --dump-headers                   --print-traffic
-    --youtube-print-sig-code         No longer supported
-    --trim-file-names LENGTH         --trim-filenames LENGTH
-    --yes-overwrites                 --force-overwrites
-    --load-info                      --load-info-json
     --split-tracks                   --split-chapters
-    --no-split-tracks                --no-split-chapters
-    --sponskrub-args ARGS            --ppa "sponskrub:ARGS"
-    --test                           Only used for testing extractors
+    --srt-lang LANGS                 --sub-langs LANGS
+    --trim-file-names LENGTH         --trim-filenames LENGTH
+    --write-srt                      --write-subs
+    --yes-overwrites                 --force-overwrites
+
+#### No longer supported
+These options may no longer work as intended
+
+    --prefer-avconv                  avconv is not officially supported by yt-dlp (Alias: --no-prefer-ffmpeg)
+    --prefer-ffmpeg                  Default (Alias: --no-prefer-avconv)
+    -C, --call-home                  Not implemented
+    --no-call-home                   Default
+    --include-ads                    No longer supported
+    --no-include-ads                 Default
+    --youtube-print-sig-code         No longer supported
+    --id                             -o "%(id)s.%(ext)s"
+    -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
+    -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
+    -l, --literal                    -o accepts literal names
+
+#### Removed
+Currently, there are no options that have been completely removed. But there are plans to remove the old output options `-A`,`-t`, `-l`, `--id` (which have been deprecated since 2014) in the near future. If you are still using these, please move to using `--output` instead
+
 
 
 # MORE
