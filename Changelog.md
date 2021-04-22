@@ -19,6 +19,45 @@
 -->
 
 
+### 2021.04.22
+* **Improve output template:**
+    * Objects can be traversed like `%(field.key1.key2)s`
+    * An offset can be added to numeric fields as `%(field+N)s`
+    * Deprecates `--autonumber-start`
+* **Improve `--sub-langs`:**
+    * Treat `--sub-langs` entries as regex
+    * `all` can be used to refer to all the subtitles
+    * language codes can be prefixed with `-` to exclude it
+    * Deprecates `--all-subs`
+* Add option `--ignore-no-formats-error` to ignore the "no video format" and similar errors
+* Add option `--skip-playlist-after-errors` to skip the rest of a playlist after a given number of errors are encountered
+* Merge youtube-dl: Upto [commit/7e8b3f9](https://github.com/ytdl-org/youtube-dl/commit/7e8b3f9439ebefb3a3a4e5da9c0bd2b595976438)
+* [downloader] Fix bug in downloader selection
+* [BilibiliChannel] Fix pagination by [nao20010128nao](https://github.com/nao20010128nao) and[pukkandan](https://github.com/pukkandan)
+* [rai] Add support for http formats by [nixxo](https://github.com/nixxo)
+* [TubiTv] Add TubiTvShowIE by [Ashish0804](https://github.com/Ashish0804)
+* [twitcasting] Fix extractor
+* [viu:ott] Fix extractor and support series by [lkho](https://github.com/lkho) and[pukkandan](https://github.com/pukkandan)
+* [youtube:tab] Show unavailable videos in playlists by [colethedj](https://github.com/colethedj)
+* [youtube:tab] Reload with unavailable videos for all playlists
+* [youtube] Ignore invalid stretch ratio
+* [youtube] Improve channel syncid extraction to support ytcfg by [colethedj](https://github.com/colethedj)
+* [youtube] Standardize API calls for tabs, mixes and search by [colethedj](https://github.com/colethedj)
+* [youtube] Bugfix in `_extract_ytcfg`
+* [mildom:user:vod] Download only necessary amount of pages
+* [mildom] Remove proxy completely by [fstirlitz](https://github.com/fstirlitz)
+* [go] Fix `_VALID_URL`
+* [MetadataFromField] Improve regex and add tests
+* [Exec] Ensure backward compatibility when the command contains `%`
+* [extractor] Fix inconsistent use of `report_warning`
+* Ensure `mergeall` selects best format when multistreams are disabled
+* Improve the yt-dlp.sh script by [fstirlitz](https://github.com/fstirlitz)
+* [lazy_extractor] Do not load plugins
+* [ci] Disable fail-fast
+* [documentation] Clarify which deprecated options still work
+* [documentation] Fix typos
+
+
 ### 2021.04.11
 * Add option `--convert-thumbnails` (only jpg currently supported)
 * Format selector `mergeall` to download and merge all formats

@@ -1016,6 +1016,7 @@
  - **TruTV**
  - **Tube8**
  - **TubiTv**
+ - **TubiTvShow**
  - **Tumblr**
  - **tunein:clip**
  - **tunein:program**
