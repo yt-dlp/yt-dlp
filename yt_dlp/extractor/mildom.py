@@ -6,18 +6,15 @@ from datetime import datetime
 import itertools
 import json
 import re
-import random
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError, std_headers,
+    std_headers,
     update_url_query,
     random_uuidv4,
     try_get,
 )
 from ..compat import (
-    compat_urlparse,
-    compat_urllib_parse_urlencode,
     compat_str,
 )
 
@@ -25,17 +22,6 @@ from ..compat import (
 class MildomBaseIE(InfoExtractor):
     _GUEST_ID = None
     _DISPATCHER_CONFIG = None
-
-    # Proxies provided by @nao20010128nao
-    # See https://github.com/nao20010128nao/bookish-octo-barnacle
-    _MILDOM_PROXY_HOSTS = (
-        # 'bookish-octo-barnacle.vercel.app',  # see https://github.com/yt-dlp/yt-dlp/issues/251
-        'free-mountain-goal.glitch.me',
-        'lesmih0sted.f5.si',
-    )
-
-    def _mildom_proxy_host(self):
-        return random.choice(self._MILDOM_PROXY_HOSTS)
 
     def _call_api(self, url, video_id, query={}, note='Downloading JSON metadata', init=False):
         url = update_url_query(url, self._common_queries(query, init=init))
@@ -60,29 +46,24 @@ class MildomBaseIE(InfoExtractor):
 
     def _fetch_dispatcher_config(self):
         if not self._DISPATCHER_CONFIG:
-            try:
-                tmp = self._download_json(
-                    'https://disp.mildom.com/serverListV2', 'initialization',
-                    note='Downloading dispatcher_config', data=json.dumps({
-                        'protover': 0,
-                        'data': base64.b64encode(json.dumps({
-                            'fr': 'web',
-                            'sfr': 'pc',
-                            'devi': 'Windows',
-                            'la': 'ja',
-                            'gid': None,
-                            'loc': '',
-                            'clu': '',
-                            'wh': '1919*810',
-                            'rtm': self.iso_timestamp(),
-                            'ua': std_headers['User-Agent'],
-                        }).encode('utf8')).decode('utf8').replace('\n', ''),
-                    }).encode('utf8'))
-                self._DISPATCHER_CONFIG = self._parse_json(base64.b64decode(tmp['data']), 'initialization')
-            except ExtractorError:
-                self._DISPATCHER_CONFIG = self._download_json(
-                    'https://%s/api/mildom/dispatcher_config' % self._mildom_proxy_host(), 'initialization',
-                    note='Downloading dispatcher_config fallback')
+            tmp = self._download_json(
+                'https://disp.mildom.com/serverListV2', 'initialization',
+                note='Downloading dispatcher_config', data=json.dumps({
+                    'protover': 0,
+                    'data': base64.b64encode(json.dumps({
+                        'fr': 'web',
+                        'sfr': 'pc',
+                        'devi': 'Windows',
+                        'la': 'ja',
+                        'gid': None,
+                        'loc': '',
+                        'clu': '',
+                        'wh': '1919*810',
+                        'rtm': self.iso_timestamp(),
+                        'ua': std_headers['User-Agent'],
+                    }).encode('utf8')).decode('utf8').replace('\n', ''),
+                }).encode('utf8'))
+            self._DISPATCHER_CONFIG = self._parse_json(base64.b64decode(tmp['data']), 'initialization')
         return self._DISPATCHER_CONFIG
 
     @staticmethod
@@ -163,12 +144,7 @@ class MildomIE(MildomBaseIE):
 
         del stream_query['streamReqId'], stream_query['timestamp']
         for fmt in formats:
-            parsed = compat_urlparse.urlparse(fmt['url'])
-            parsed = parsed._replace(
-                netloc=self._mildom_proxy_host(),
-                query=compat_urllib_parse_urlencode(stream_query, True),
-                path='/api/mildom' + parsed.path)
-            fmt['url'] = compat_urlparse.urlunparse(parsed)
+            fmt.setdefault('http_headers', {})['Referer'] = 'https://www.mildom.com/'
 
         self._sort_formats(formats)
 
@@ -234,21 +210,6 @@ class MildomVodIE(MildomBaseIE):
                 'acodec': 'aac',
                 'ext': 'mp4'
             })
-
-        r''' # Proxy is not needed for VODs
-        stream_query = self._common_queries({
-            'is_lhls': '0',
-        })
-        del stream_query['timestamp']
-        for fmt in formats:
-            parsed = compat_urlparse.urlparse(fmt['url'])
-            stream_query['path'] = parsed.path[5:]
-            parsed = parsed._replace(
-                netloc=self._mildom_proxy_host(),
-                query=compat_urllib_parse_urlencode(stream_query, True),
-                path='/api/mildom/vod2/proxy')
-            fmt['url'] = compat_urlparse.urlunparse(parsed)
-        '''
 
         self._sort_formats(formats)
 
