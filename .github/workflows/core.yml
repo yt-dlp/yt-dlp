@@ -6,7 +6,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'ci skip')"
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [ubuntu-18.04]
         # TODO: python 2.6
