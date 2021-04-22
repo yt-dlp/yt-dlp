@@ -8,6 +8,9 @@ from ..utils import (
     int_or_none,
     float_or_none,
     smuggle_url,
+    unified_timestamp,
+    unified_strdate,
+    try_get,
 )
 
 
@@ -16,27 +19,20 @@ class NineNowIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?9now\.com\.au/(?:[^/]+/){2}(?P<id>[^/?#]+)'
     _GEO_COUNTRIES = ['AU']
     _TESTS = [{
-        # clip
-        'url': 'https://www.9now.com.au/afl-footy-show/2016/clip-ciql02091000g0hp5oktrnytc',
-        'md5': '17cf47d63ec9323e562c9957a968b565',
+        # episode of series
+        'url': 'https://www.9now.com.au/lego-masters/season-3/episode-3',
+        'md5': '62feeb8d534697c2c1bee11b27bf020d',
         'info_dict': {
-            'id': '16801',
+            'id': '6249614030001',
+            'title': 'Episode 3',
             'ext': 'mp4',
-            'title': 'St. Kilda\'s Joey Montagna on the potential for a player\'s strike',
-            'description': 'Is a boycott of the NAB Cup "on the table"?',
+            'season_number': 3,
+            'episode_number': 3,
+            'description': 'In the first elimination of the competition, teams will have 10 hours to build a world inside a snow globe.',
             'uploader_id': '4460760524001',
-            'upload_date': '20160713',
-            'timestamp': 1468421266,
+            'timestamp': 1619002200,
+            'upload_date': '20210421',
         },
-        'skip': 'Only available in Australia',
-    }, {
-        # episode
-        'url': 'https://www.9now.com.au/afl-footy-show/2016/episode-19',
-        'only_matching': True,
-    }, {
-        # DRM protected
-        'url': 'https://www.9now.com.au/andrew-marrs-history-of-the-world/season-1/episode-1',
-        'only_matching': True,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId=%s'
 
@@ -59,26 +55,36 @@ class NineNowIE(InfoExtractor):
             cache = page_data.get(kind, {}).get('%sCache' % kind, {})
             if not cache:
                 continue
-            common_data = (cache.get(current_key) or list(cache.values())[0])[kind]
+            common_data = {
+                'episode': (cache.get(current_key) or list(cache.values())[0])[kind],
+                'season': (cache.get(current_key) or list(cache.values())[0]).get('season', None)
+            }
             break
         else:
             raise ExtractorError('Unable to find video data')
 
-        video_data = common_data['video']
+        # Video Data extraction
+        if try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
+            raise ExtractorError('This video is DRM protected.', expected=True)
+        brightcove_id = \
+            try_get(
+                common_data, 
+                lambda x: x['episode']['video']['brightcoveId'] or f"ref:{x['episode']['video']['referenceId']}"
+                , compat_str
+            ) 
+        video_id = try_get(common_data, lambda x: x['episode']['video']['id'] or brightcove_id, compat_str)
 
-        brightcove_id = video_data.get('brightcoveId') or 'ref:' + video_data['referenceId']
-        video_id = compat_str(video_data.get('id') or brightcove_id)
-
-        if not self.get_param('allow_unplayable_formats') and video_data.get('drm'):
-            self.report_drm(video_id)
-
-        title = common_data['name']
-
+        # Episode/Season data extraction
+        title = try_get(common_data, lambda x: x['episode']['name'], compat_str)
+        season_number = try_get(common_data, lambda x: x['season']['seasonNumber'], int)
+        episode_number = try_get(common_data, lambda x: x['episode']['episodeNumber'], int)
+        timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], compat_str) or None)
+        upload_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], compat_str) or None)
         thumbnails = [{
             'id': thumbnail_id,
             'url': thumbnail_url,
-            'width': int_or_none(thumbnail_id[1:])
-        } for thumbnail_id, thumbnail_url in common_data.get('image', {}).get('sizes', {}).items()]
+            'width': int_or_none(thumbnail_id[1:]),
+        } for thumbnail_id, thumbnail_url in try_get(common_data, lambda x: x['episode']['image']['sizes'], dict).items()]
 
         return {
             '_type': 'url_transparent',
@@ -87,8 +93,12 @@ class NineNowIE(InfoExtractor):
                 {'geo_countries': self._GEO_COUNTRIES}),
             'id': video_id,
             'title': title,
-            'description': common_data.get('description'),
-            'duration': float_or_none(video_data.get('duration'), 1000),
+            'description': try_get(common_data, lambda x: x['episode']['description'], compat_str),
+            'duration': float_or_none(try_get(common_data, lambda x: x['episode']['video']['duration'], float), 1000),
             'thumbnails': thumbnails,
             'ie_key': 'BrightcoveNew',
+            'season_number': season_number,
+            'episode_number': episode_number,
+            'timestamp': timestamp,
+            'upload_date': upload_date,
         }
