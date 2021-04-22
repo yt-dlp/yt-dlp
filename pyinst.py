@@ -69,6 +69,7 @@ PyInstaller.__main__.run([
     '--onefile',
     '--icon=devscripts/cloud.ico',
     '--exclude-module=youtube_dl',
+    '--exclude-module=youtube_dlc',
     '--exclude-module=test',
     '--exclude-module=ytdlp_plugins',
     '--hidden-import=mutagen',

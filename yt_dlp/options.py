@@ -526,7 +526,7 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='allow_unplayable_formats', default=False,
         help=(
             'Allow unplayable formats to be listed and downloaded. '
-            'All video postprocessing will also be turned off'))
+            'All video post-processing will also be turned off'))
     video_format.add_option(
         '--no-allow-unplayable-formats',
         action='store_false', dest='allow_unplayable_formats',
@@ -820,8 +820,8 @@ def parseOpts(overrideArguments=None):
         '--force-write-archive', '--force-write-download-archive', '--force-download-archive',
         action='store_true', dest='force_write_download_archive', default=False,
         help=(
-            'Force download archive entries to be written as far as no errors occur,'
-            'even if -s or another simulation switch is used (Alias: --force-download-archive)'))
+            'Force download archive entries to be written as far as no errors occur, '
+            'even if -s or another simulation option is used (Alias: --force-download-archive)'))
     verbosity.add_option(
         '--newline',
         action='store_true', dest='progress_with_newline', default=False,
@@ -962,7 +962,7 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='continue_dl',
         help=(
             'Do not resume partially downloaded fragments. '
-            'If the file is unfragmented, restart download of the entire file'))
+            'If the file is not fragmented, restart download of the entire file'))
     filesystem.add_option(
         '--part',
         action='store_false', dest='nopart', default=False,
