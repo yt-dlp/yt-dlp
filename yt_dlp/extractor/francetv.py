@@ -358,6 +358,22 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
         },
         'add_ie': [FranceTVIE.ie_key()],
     }, {
+        'note': 'Only an image exists in initial webpage instead of the video',
+        'url': 'https://www.francetvinfo.fr/sante/maladie/coronavirus/covid-19-en-inde-une-situation-catastrophique-a-new-dehli_4381095.html',
+        'info_dict': {
+            'id': '7d204c9e-a2d3-11eb-9e4c-000d3a23d482',
+            'ext': 'mp4',
+            'title': 'Covid-19 : une situation catastrophique à New Dehli',
+            'thumbnail': str,
+            'duration': 76,
+            'timestamp': 1619028518,
+            'upload_date': '20210421',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'add_ie': [FranceTVIE.ie_key()],
+    }, {
         'url': 'http://www.francetvinfo.fr/elections/europeennes/direct-europeennes-regardez-le-debat-entre-les-candidats-a-la-presidence-de-la-commission_600639.html',
         'only_matching': True,
     }, {
@@ -401,7 +417,8 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             (r'player\.load[^;]+src:\s*["\']([^"\']+)',
              r'id-video=([^@]+@[^"]+)',
              r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
-             r'data-id=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
+             r'data-id=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})',
+             r'<figure[^>]+id=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
             webpage, 'video id')
 
         return self._make_url_result(video_id)
