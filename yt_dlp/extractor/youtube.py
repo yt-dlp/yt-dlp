@@ -77,11 +77,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _PLAYLIST_ID_RE = r'(?:(?:PL|LL|EC|UU|FL|RD|UL|TL|PU|OLAK5uy_)[0-9A-Za-z-_]{10,}|RDMM|WL|LL|LM)'
 
-    def _ids_to_results(self, ids):
-        return [
-            self.url_result(vid_id, 'Youtube', video_id=vid_id)
-            for vid_id in ids]
-
     def _login(self):
         """
         Attempt to log in to YouTube.
@@ -1313,6 +1308,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @classmethod
     def suitable(cls, url):
+        # Hack for lazy extractors until more generic solution is implemented
+        # (see #28780)
+        from .youtube import parse_qs
         qs = parse_qs(url)
         if qs.get('list', [None])[0]:
             return False
@@ -3595,6 +3593,9 @@ class YoutubePlaylistIE(InfoExtractor):
     def suitable(cls, url):
         if YoutubeTabIE.suitable(url):
             return False
+        # Hack for lazy extractors until more generic solution is implemented
+        # (see #28780)
+        from .youtube import parse_qs
         qs = parse_qs(url)
         if qs.get('v', [None])[0]:
             return False

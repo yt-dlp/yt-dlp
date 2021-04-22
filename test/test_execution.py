@@ -39,6 +39,16 @@ class TestExecution(unittest.TestCase):
         _, stderr = p.communicate()
         self.assertFalse(stderr)
 
+    def test_lazy_extractors(self):
+        try:
+            subprocess.check_call([sys.executable, 'devscripts/make_lazy_extractors.py', 'yt_dlp/extractor/lazy_extractors.py'], cwd=rootDir, stdout=_DEV_NULL)
+            subprocess.check_call([sys.executable, 'test/test_all_urls.py'], cwd=rootDir, stdout=_DEV_NULL)
+        finally:
+            try:
+                os.remove('yt_dlp/extractor/lazy_extractors.py')
+            except (IOError, OSError):
+                pass
+
 
 if __name__ == '__main__':
     unittest.main()
