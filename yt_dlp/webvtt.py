@@ -322,6 +322,16 @@ class CueBlock(Block):
         stream.write(self.text)
         stream.write('\n')
 
+    @property
+    def as_json(self):
+        return {
+            'id': self.id,
+            'start': self.start,
+            'end': self.end,
+            'text': self.text,
+            'settings': self.settings,
+        }
+
 
 def parse_fragment(frag_content):
     """

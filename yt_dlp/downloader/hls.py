@@ -325,6 +325,31 @@ class HlsFD(FragmentFD):
                         if isinstance(block, webvtt.CueBlock):
                             block.start += adjust
                             block.end += adjust
+
+                            dedup_window = extra_state.setdefault('webvtt_dedup_window', [])
+                            cue = block.as_json
+
+                            # skip the cue if an identical one appears
+                            # in the window of potential duplicates
+                            # and prune the window of unviable candidates
+                            i = 0
+                            skip = True
+                            while i < len(dedup_window):
+                                window_cue = dedup_window[i]
+                                if window_cue == cue:
+                                    break
+                                if window_cue['end'] >= cue['start']:
+                                    i += 1
+                                    continue
+                                del dedup_window[i]
+                            else:
+                                skip = False
+
+                            if skip:
+                                continue
+
+                            # add the cue to the window
+                            dedup_window.append(cue)
                         elif isinstance(block, webvtt.Magic):
                             # XXX: we do not handle MPEGTS overflow
                             if frag_index == 1:
