@@ -351,7 +351,16 @@ class HlsFD(FragmentFD):
                             # add the cue to the window
                             dedup_window.append(cue)
                         elif isinstance(block, webvtt.Magic):
-                            # XXX: we do not handle MPEGTS overflow
+                            # take care of MPEG PES timestamp overflow
+                            if block.mpegts is None:
+                                block.mpegts = 0
+                            extra_state.setdefault('webvtt_mpegts_adjust', 0)
+                            block.mpegts += extra_state['webvtt_mpegts_adjust'] << 33
+                            if block.mpegts < extra_state.get('webvtt_mpegts_last', 0):
+                                extra_state['webvtt_mpegts_adjust'] += 1
+                                block.mpegts += 1 << 33
+                            extra_state['webvtt_mpegts_last'] = block.mpegts
+
                             if frag_index == 1:
                                 extra_state['webvtt_mpegts'] = block.mpegts or 0
                                 extra_state['webvtt_local'] = block.local or 0
