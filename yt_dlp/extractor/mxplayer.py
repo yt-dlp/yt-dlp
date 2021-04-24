@@ -127,6 +127,7 @@ class MxplayerIE(InfoExtractor):
             'thumbnails': thumbnails,
         }
 
+
 class MxplayerShowIE(InfoExtractor):
     _VALID_URL = r'(?:https?://)(?:www\.)?mxplayer\.in/show/(?P<display_id>[-\w]+)-(?P<id>\w+)/?(?:$|[#?])'
     _TESTS = [{
