@@ -15,7 +15,7 @@ from ..utils import (
 
 
 class MxplayerIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?mxplayer\.in/(?:show/[-\w]+/[-\w]+|movie)/(?P<display_id>[-\w]+)-(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/(?:movie|show/[-\w]+/[-\w]+)/(?P<display_id>[-\w]+)-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.mxplayer.in/movie/watch-knock-knock-hindi-dubbed-movie-online-b9fa28df3bfb8758874735bbd7d2655a?watch=true',
         'info_dict': {
@@ -129,7 +129,7 @@ class MxplayerIE(InfoExtractor):
 
 
 class MxplayerShowIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?mxplayer\.in/show/(?P<display_id>[-\w]+)-(?P<id>\w+)/?(?:$|[#?])'
+    _VALID_URL = r'(?:https?://)(?:www\.)?mxplayer\.in/show/[-\w]+-(?P<id>\w+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://www.mxplayer.in/show/watch-chakravartin-ashoka-samrat-series-online-a8f44e3cc0814b5601d17772cedf5417',
         'playlist_mincount': 440,
@@ -153,7 +153,7 @@ class MxplayerShowIE(InfoExtractor):
                                                   video_id=season_id,
                                                   headers={'Referer': 'https://mxplayer.in'},
                                                   note='Downloading JSON metadata page %d' % page_num)
-                next_url = season_json['next']
+                next_url = season_json.get('next')
                 for episode in season_json.get('items') or []:
                     video_id = episode['webUrl']
                     yield self.url_result(
