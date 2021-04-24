@@ -15,13 +15,7 @@ from ..utils import (
 
 
 class MxplayerIE(InfoExtractor):
-    _VALID_URL = r'''
-                    (?:https?://)(?:www\.)?mxplayer\.in/
-                        (?:
-                            show/(?P<show_name>[-\w]+)/(?P<season>[-\w]+)|
-                            movie)
-                    /(?P<display_id>[-\w]+)-(?P<id>\w+)
-                  '''
+    _VALID_URL = r'(?:https?://)(?:www\.)?mxplayer\.in/(?:show/[-\w]+/[-\w]+|movie)/(?P<display_id>[-\w]+)-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.mxplayer.in/movie/watch-knock-knock-hindi-dubbed-movie-online-b9fa28df3bfb8758874735bbd7d2655a?watch=true',
         'info_dict': {
