@@ -81,9 +81,13 @@ class TubiTvIE(InfoExtractor):
             'http://tubitv.com/oz/videos/%s/content' % video_id, video_id)
         title = video_data['title']
 
-        formats = self._extract_m3u8_formats(
-            self._proto_relative_url(video_data['url']),
-            video_id, 'mp4', 'm3u8_native')
+        formats = []
+        url = video_data['url']
+        # URL can be sometimes empty. Does this only happen when there is DRM?
+        if url:
+            formats = self._extract_m3u8_formats(
+                self._proto_relative_url(url),
+                video_id, 'mp4', 'm3u8_native')
         self._sort_formats(formats)
 
         thumbnails = []
