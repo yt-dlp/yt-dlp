@@ -2921,7 +2921,15 @@ class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
         #                 response.headers[set_cookie_header] = set_cookie_escaped
         return compat_urllib_request.HTTPCookieProcessor.http_response(self, request, response)
 
-    https_request = compat_urllib_request.HTTPCookieProcessor.http_request
+    def http_request(self, request):
+        # If the URL contains non-ASCII characters, the cookies
+        # are lost before the request reaches YoutubeDLHandler.
+        # So we percent encode the url before adding cookies
+        # See: https://github.com/yt-dlp/yt-dlp/issues/263
+        request = update_Request(request, url=escape_url(request.get_full_url()))
+        return compat_urllib_request.HTTPCookieProcessor.http_request(self, request)
+
+    https_request = http_request
     https_response = http_response
 
 
