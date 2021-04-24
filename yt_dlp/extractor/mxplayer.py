@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     js_to_json,
@@ -14,7 +15,13 @@ from ..utils import (
 
 
 class MxplayerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/(?:show|movie)/(?:(?P<display_id>[-/a-z0-9]+)-)?(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'''
+                    (?:https?://)(?:www\.)?mxplayer\.in/
+                        (?:
+                            show/(?P<show_name>[-\w]+)/(?P<season>[-\w]+)|
+                            movie)
+                    /(?P<display_id>[-\w]+)-(?P<id>\w+)
+                  '''
     _TESTS = [{
         'url': 'https://www.mxplayer.in/movie/watch-knock-knock-hindi-dubbed-movie-online-b9fa28df3bfb8758874735bbd7d2655a?watch=true',
         'info_dict': {
@@ -125,3 +132,39 @@ class MxplayerIE(InfoExtractor):
             'series': try_get(video_dict, lambda x: x['container']['container']['title']),
             'thumbnails': thumbnails,
         }
+
+class MxplayerShowIE(InfoExtractor):
+    _VALID_URL = r'(?:https?://)(?:www\.)?mxplayer\.in/show/(?P<display_id>[-\w]+)-(?P<id>\w+)/?(?:$|[#?])'
+    _TESTS = [{
+        'url': 'https://www.mxplayer.in/show/watch-chakravartin-ashoka-samrat-series-online-a8f44e3cc0814b5601d17772cedf5417',
+        'playlist_mincount': 440,
+        'info_dict': {
+            'id': 'a8f44e3cc0814b5601d17772cedf5417',
+        }
+    }]
+
+    def _entries(self, show_id):
+        show_url = "https://api.mxplay.com/v1/web/detail/tab/tvshowseasons?type=tv_show&id={}&device-density=2&platform=com.mxplay.desktop&content-languages=hi,en".format(
+            show_id)
+        episodes_url = "https://api.mxplay.com/v1/web/detail/tab/tvshowepisodes?type=season&id={}&device-density=1&platform=com.mxplay.desktop&content-languages=hi,en&{}"
+        show_json = self._download_json(show_url, video_id=show_id, headers={'Referer': 'https://mxplayer.in'})
+        page_num = 0
+        for season in show_json.get('items') or []:
+            season_id = try_get(season, lambda x: x['id'], compat_str)
+            next_url = ''
+            while next_url is not None:
+                page_num += 1
+                season_json = self._download_json(episodes_url.format(season_id, next_url),
+                                                  video_id=season_id,
+                                                  headers={'Referer': 'https://mxplayer.in'},
+                                                  note='Downloading JSON metadata page %d' % page_num)
+                next_url = season_json['next']
+                for episode in season_json.get('items') or []:
+                    video_id = episode['webUrl']
+                    yield self.url_result(
+                        'https://mxplayer.in%s' % video_id,
+                        ie=MxplayerIE.ie_key(), video_id=video_id)
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
+        return self.playlist_result(self._entries(show_id), playlist_id=show_id)
