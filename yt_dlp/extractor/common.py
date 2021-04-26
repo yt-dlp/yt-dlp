@@ -1439,7 +1439,7 @@ class InfoExtractor(object):
             'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'lang': {'priority': True, 'convert': 'ignore', 'field': 'language_preference'},
-            'quality': {'convert': 'float_none'},
+            'quality': {'convert': 'float_none', 'default': -1},
             'filesize': {'convert': 'bytes'},
             'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
             'id': {'convert': 'string', 'field': 'format_id'},
@@ -1621,7 +1621,7 @@ class InfoExtractor(object):
                 value = self._resolve_field_value(field, value, True)
 
             # try to convert to number
-            val_num = float_or_none(value)
+            val_num = float_or_none(value, default=self._get_field_setting(field, 'default'))
             is_num = self._get_field_setting(field, 'convert') != 'string' and val_num is not None
             if is_num:
                 value = val_num
