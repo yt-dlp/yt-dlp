@@ -1666,7 +1666,7 @@ class YoutubeDL(object):
                     return []
 
             elif selector.type == SINGLE:  # atom
-                format_spec = (selector.selector or 'best').lower()
+                format_spec = selector.selector or 'best'
 
                 # TODO: Add allvideo, allaudio etc by generalizing the code with best/worst selector
                 if format_spec == 'all':
