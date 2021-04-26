@@ -15,10 +15,10 @@ from ..utils import (
 
 class NebulaIE(InfoExtractor):
 
-    _VALID_URL = r'https?://(?:www\.)?watchnebula\.com/videos/(?P<id>[-\w]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/videos/(?P<id>[-\w]+)'
     _TESTS = [
         {
-            'url': 'https://watchnebula.com/videos/that-time-disney-remade-beauty-and-the-beast',
+            'url': 'https://nebula.app/videos/that-time-disney-remade-beauty-and-the-beast',
             'md5': 'fe79c4df8b3aa2fea98a93d027465c7e',
             'info_dict': {
                 'id': '5c271b40b13fd613090034fd',
@@ -36,7 +36,7 @@ class NebulaIE(InfoExtractor):
             'skip': 'All Nebula content requires authentication',
         },
         {
-            'url': 'https://watchnebula.com/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
+            'url': 'https://nebula.app/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
             'md5': '6d4edd14ce65720fa63aba5c583fb328',
             'info_dict': {
                 'id': '5e7e78171aaf320001fbd6be',
@@ -54,7 +54,7 @@ class NebulaIE(InfoExtractor):
             'skip': 'All Nebula content requires authentication',
         },
         {
-            'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
+            'url': 'https://nebula.app/videos/money-episode-1-the-draw',
             'md5': '8c7d272910eea320f6f8e6d3084eecf5',
             'info_dict': {
                 'id': '5e779ebdd157bc0001d1c75a',
@@ -70,6 +70,10 @@ class NebulaIE(InfoExtractor):
                 'usenetrc': True,
             },
             'skip': 'All Nebula content requires authentication',
+        },
+        {
+            'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
+            'only_matching': True,
         },
     ]
     _NETRC_MACHINE = 'watchnebula'
