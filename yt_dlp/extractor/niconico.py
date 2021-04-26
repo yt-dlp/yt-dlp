@@ -493,7 +493,8 @@ class NiconicoIE(InfoExtractor):
 
         # Start extracting information
         title = (
-            get_video_info_web(['originalTitle', 'title'])
+            get_video_info_xml('title')  # prefer to get the untranslated original title
+            or get_video_info_web(['originalTitle', 'title'])
             or self._og_search_title(webpage, default=None)
             or self._html_search_regex(
                 r'<span[^>]+class="videoHeaderTitle"[^>]*>([^<]+)</span>',
@@ -507,7 +508,9 @@ class NiconicoIE(InfoExtractor):
 
         thumbnail = (
             self._html_search_regex(r'<meta property="og:image" content="([^"]+)">', webpage, 'thumbnail data', default=None)
-            or get_video_info_web(['thumbnail_url', 'largeThumbnailURL', 'thumbnailURL'])
+            or try_get(  # choose highest from 720p to 240p
+                get_video_info_web('thumbnail'),
+                ['ogp', 'player', 'largeUrl', 'middleUrl', 'url'])
             or self._html_search_meta('image', webpage, 'thumbnail', default=None)
             or video_detail.get('thumbnail'))
 
