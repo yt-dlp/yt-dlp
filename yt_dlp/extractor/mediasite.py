@@ -26,7 +26,7 @@ _ID_RE = r'(?:[0-9a-f]{32,34}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0
 
 
 class MediasiteIE(InfoExtractor):
-    _VALID_URL = r'(?xi)https?://[^/]+/Mediasite/(?:Play|Showcase/(?:default|livebroadcast)/Presentation)/(?P<id>%s)(?P<query>\?[^#]+|)' % _ID_RE
+    _VALID_URL = r'(?xi)https?://[^/]+/Mediasite/(?:Play|Showcase/[^/#?]+/Presentation)/(?P<id>%s)(?P<query>\?[^#]+|)' % _ID_RE
     _TESTS = [
         {
             'url': 'https://hitsmediaweb.h-its.org/mediasite/Play/2db6c271681e4f199af3c60d1f82869b1d',
