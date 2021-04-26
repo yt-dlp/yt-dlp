@@ -139,7 +139,6 @@ class MxplayerShowIE(InfoExtractor):
         }
     }]
 
-
     _API_SHOW_URL = "https://api.mxplay.com/v1/web/detail/tab/tvshowseasons?type=tv_show&id={}&device-density=2&platform=com.mxplay.desktop&content-languages=hi,en"
     _API_EPISODES_URL = "https://api.mxplay.com/v1/web/detail/tab/tvshowepisodes?type=season&id={}&device-density=1&platform=com.mxplay.desktop&content-languages=hi,en&{}"
 
@@ -170,5 +169,3 @@ class MxplayerShowIE(InfoExtractor):
         return self.playlist_result(
             self._entries(show_id), playlist_id=show_id,
             playlist_title=display_id.replace('-', ' ').title())
-
-
