@@ -760,7 +760,10 @@ from .mtv import (
 )
 from .muenchentv import MuenchenTVIE
 from .mwave import MwaveIE, MwaveMeetGreetIE
-from .mxplayer import MxplayerIE
+from .mxplayer import (
+    MxplayerIE,
+    MxplayerShowIE,
+)
 from .mychannels import MyChannelsIE
 from .myspace import MySpaceIE, MySpaceAlbumIE
 from .myspass import MySpassIE
