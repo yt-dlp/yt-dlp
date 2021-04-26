@@ -129,12 +129,13 @@ class MxplayerIE(InfoExtractor):
 
 
 class MxplayerShowIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?mxplayer\.in/show/[-\w]+-(?P<id>\w+)/?(?:$|[#?])'
+    _VALID_URL = r'(?:https?://)(?:www\.)?mxplayer\.in/show/(?P<display_id>[-\w]+)-(?P<id>\w+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://www.mxplayer.in/show/watch-chakravartin-ashoka-samrat-series-online-a8f44e3cc0814b5601d17772cedf5417',
         'playlist_mincount': 440,
         'info_dict': {
             'id': 'a8f44e3cc0814b5601d17772cedf5417',
+            'title': 'Watch Chakravartin Ashoka Samrat Series Online',
         }
     }]
 
@@ -165,5 +166,9 @@ class MxplayerShowIE(InfoExtractor):
                 next_url = season_json.get('next')
 
     def _real_extract(self, url):
-        show_id = self._match_id(url)
-        return self.playlist_result(self._entries(show_id), playlist_id=show_id)
+        display_id, show_id = re.match(self._VALID_URL, url).groups()
+        return self.playlist_result(
+            self._entries(show_id), playlist_id=show_id,
+            playlist_title=display_id.replace('-', ' ').title())
+
+
