@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import errno
 try:
     import concurrent.futures
     can_threaded_download = True
@@ -126,7 +127,10 @@ class DashSegmentsFD(FragmentFD):
                         file.close()
                         self._append_fragment(ctx, frag_content)
                         return True
-                    except FileNotFoundError:
+                    except EnvironmentError as ose:
+                        if ose.errno != errno.ENOENT:
+                            raise
+                        # FileNotFoundError
                         if skip_unavailable_fragments:
                             self.report_skip_fragment(frag_index)
                             return True
