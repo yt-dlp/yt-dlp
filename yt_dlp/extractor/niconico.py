@@ -493,7 +493,7 @@ class NiconicoIE(InfoExtractor):
 
         # Start extracting information
         title = (
-            get_video_info_xml('title') # prefer to get the untranslated original title (e.g. 砂の惑星 instead of Sand Planet)
+            get_video_info_xml('title')  # prefer to get the untranslated original title
             or get_video_info_web(['originalTitle', 'title'])
             or self._og_search_title(webpage, default=None)
             or self._html_search_regex(
