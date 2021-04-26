@@ -138,27 +138,31 @@ class MxplayerShowIE(InfoExtractor):
         }
     }]
 
+
+    _API_SHOW_URL = "https://api.mxplay.com/v1/web/detail/tab/tvshowseasons?type=tv_show&id={}&device-density=2&platform=com.mxplay.desktop&content-languages=hi,en"
+    _API_EPISODES_URL = "https://api.mxplay.com/v1/web/detail/tab/tvshowepisodes?type=season&id={}&device-density=1&platform=com.mxplay.desktop&content-languages=hi,en&{}"
+
     def _entries(self, show_id):
-        show_url = "https://api.mxplay.com/v1/web/detail/tab/tvshowseasons?type=tv_show&id={}&device-density=2&platform=com.mxplay.desktop&content-languages=hi,en".format(
-            show_id)
-        episodes_url = "https://api.mxplay.com/v1/web/detail/tab/tvshowepisodes?type=season&id={}&device-density=1&platform=com.mxplay.desktop&content-languages=hi,en&{}"
-        show_json = self._download_json(show_url, video_id=show_id, headers={'Referer': 'https://mxplayer.in'})
+        show_json = self._download_json(
+            self._API_SHOW_URL.format(show_id),
+            video_id=show_id, headers={'Referer': 'https://mxplayer.in'})
         page_num = 0
         for season in show_json.get('items') or []:
             season_id = try_get(season, lambda x: x['id'], compat_str)
             next_url = ''
             while next_url is not None:
                 page_num += 1
-                season_json = self._download_json(episodes_url.format(season_id, next_url),
-                                                  video_id=season_id,
-                                                  headers={'Referer': 'https://mxplayer.in'},
-                                                  note='Downloading JSON metadata page %d' % page_num)
-                next_url = season_json.get('next')
+                season_json = self._download_json(
+                    self._API_EPISODES_URL.format(season_id, next_url),
+                    video_id=season_id,
+                    headers={'Referer': 'https://mxplayer.in'},
+                    note='Downloading JSON metadata page %d' % page_num)
                 for episode in season_json.get('items') or []:
                     video_id = episode['webUrl']
                     yield self.url_result(
                         'https://mxplayer.in%s' % video_id,
                         ie=MxplayerIE.ie_key(), video_id=video_id)
+                next_url = season_json.get('next')
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
