@@ -118,7 +118,7 @@ class MxplayerIE(InfoExtractor):
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'display_id': display_id.replace('/', '-'),
+            'display_id': display_id,
             'title': video_dict['title'] or self._og_search_title(webpage),
             'formats': formats,
             'description': video_dict.get('description'),
@@ -159,10 +159,10 @@ class MxplayerShowIE(InfoExtractor):
                     headers={'Referer': 'https://mxplayer.in'},
                     note='Downloading JSON metadata page %d' % page_num)
                 for episode in season_json.get('items') or []:
-                    video_id = episode['webUrl']
+                    video_url = episode['webUrl']
                     yield self.url_result(
-                        'https://mxplayer.in%s' % video_id,
-                        ie=MxplayerIE.ie_key(), video_id=video_id)
+                        'https://mxplayer.in%s' % video_url,
+                        ie=MxplayerIE.ie_key(), video_id=video_url.split('-')[-1])
                 next_url = season_json.get('next')
 
     def _real_extract(self, url):
