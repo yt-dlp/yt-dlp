@@ -160,7 +160,10 @@ class LimelightBaseIE(InfoExtractor):
         for mobile_url in mobile_item.get('mobileUrls', []):
             media_url = mobile_url.get('mobileUrl')
             format_id = mobile_url.get('targetMediaPlatform')
-            if not media_url or format_id in ('Widevine', 'SmoothStreaming') or media_url in urls:
+            if not media_url or media_url in urls:
+                continue
+            if (format_id in ('Widevine', 'SmoothStreaming')
+                    and not self._downloader.params.get('allow_unplayable_formats', False)):
                 continue
             urls.append(media_url)
             ext = determine_ext(media_url)
