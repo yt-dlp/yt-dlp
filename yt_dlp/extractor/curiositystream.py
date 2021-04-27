@@ -145,9 +145,9 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
 
 class CuriosityStreamCollectionIE(CuriosityStreamBaseIE):
     IE_NAME = 'curiositystream:collection'
-    _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/(?:collection|series)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/(?:collections|series)/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://app.curiositystream.com/collection/2',
+        'url': 'https://app.curiositystream.com/collections/2',
         'info_dict': {
             'id': '2',
             'title': 'Curious Minds: The Internet',
