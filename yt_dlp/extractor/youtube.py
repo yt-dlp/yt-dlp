@@ -2958,12 +2958,19 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             return
         # video attachment
         video_renderer = try_get(
-            post_renderer, lambda x: x['backstageAttachment']['videoRenderer'], dict)
-        video_id = None
-        if video_renderer:
-            entry = self._video_entry(video_renderer)
+            post_renderer, lambda x: x['backstageAttachment']['videoRenderer'], dict) or {}
+        video_id = video_renderer.get('videoId')
+        if video_id:
+            entry = self._extract_video(video_renderer)
             if entry:
                 yield entry
+        # playlist attachment
+        playlist_id = try_get(
+            post_renderer, lambda x: x['backstageAttachment']['playlistRenderer']['playlistId'], compat_str)
+        if playlist_id:
+            yield self.url_result(
+                    'https://www.youtube.com/playlist?list=%s' % playlist_id,
+                    ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
         # inline video links
         runs = try_get(post_renderer, lambda x: x['contentText']['runs'], list) or []
         for run in runs:
@@ -2978,7 +2985,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             ep_video_id = YoutubeIE._match_id(ep_url)
             if video_id == ep_video_id:
                 continue
-            yield self.url_result(ep_url, ie=YoutubeIE.ie_key(), video_id=video_id)
+            yield self.url_result(ep_url, ie=YoutubeIE.ie_key(), video_id=ep_video_id)
 
     def _post_thread_continuation_entries(self, post_thread_continuation):
         contents = post_thread_continuation.get('contents')
