@@ -82,6 +82,7 @@ class BYUtvIE(InfoExtractor):
 
         info = {}
         formats = []
+        subtitles = {}
         for format_id, ep in video.items():
             if not isinstance(ep, dict):
                 continue
@@ -90,12 +91,16 @@ class BYUtvIE(InfoExtractor):
                 continue
             ext = determine_ext(video_url)
             if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
+                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     video_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False))
+                    m3u8_id='hls', fatal=False)
+                formats.extend(m3u8_fmts)
+                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             elif ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    video_url, video_id, mpd_id='dash', fatal=False))
+                mpd_fmts, mpd_subs = self._extract_mpd_formats_and_subtitles(
+                    video_url, video_id, mpd_id='dash', fatal=False)
+                formats.extend(mpd_fmts)
+                subtitles = self._merge_subtitles(subtitles, mpd_subs)
             else:
                 formats.append({
                     'url': video_url,
@@ -114,4 +119,5 @@ class BYUtvIE(InfoExtractor):
             'display_id': display_id,
             'title': display_id,
             'formats': formats,
+            'subtitles': subtitles,
         })

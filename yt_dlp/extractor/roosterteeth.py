@@ -103,7 +103,7 @@ class RoosterTeethIE(InfoExtractor):
                 api_episode_url + '/videos', display_id,
                 'Downloading video JSON metadata')['data'][0]
             m3u8_url = video_data['attributes']['url']
-            subtitle_m3u8_url = video_data['links']['download']
+            # XXX: additional URL at video_data['links']['download']
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                 if self._parse_json(e.cause.read().decode(), display_id).get('access') is False:
@@ -111,7 +111,7 @@ class RoosterTeethIE(InfoExtractor):
                         '%s is only available for FIRST members' % display_id)
             raise
 
-        formats = self._extract_m3u8_formats(
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             m3u8_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls')
         self._sort_formats(formats)
 
@@ -133,33 +133,6 @@ class RoosterTeethIE(InfoExtractor):
                             'id': k,
                             'url': img_url,
                         })
-
-        subtitles = {}
-        res = self._download_webpage_handle(
-            subtitle_m3u8_url, display_id,
-            'Downloading m3u8 information',
-            'Failed to download m3u8 information',
-            fatal=True, data=None, headers={}, query={})
-        if res is not False:
-            subtitle_m3u8_doc, _ = res
-            for line in subtitle_m3u8_doc.split('\n'):
-                if 'EXT-X-MEDIA:TYPE=SUBTITLES' in line:
-                    parts = line.split(',')
-                    for part in parts:
-                        if 'LANGUAGE' in part:
-                            lang = part[part.index('=') + 2:-1]
-                        elif 'URI' in part:
-                            uri = part[part.index('=') + 2:-1]
-                    res = self._download_webpage_handle(
-                        uri, display_id,
-                        'Downloading m3u8 information',
-                        'Failed to download m3u8 information',
-                        fatal=True, data=None, headers={}, query={})
-                    doc, _ = res
-                    for l in doc.split('\n'):
-                        if not l.startswith('#'):
-                            subtitles[lang] = [{'url': uri[:-uri[::-1].index('/')] + l}]
-                            break
 
         return {
             'id': video_id,

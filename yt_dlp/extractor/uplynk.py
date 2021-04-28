@@ -30,7 +30,7 @@ class UplynkIE(InfoExtractor):
     def _extract_uplynk_info(self, uplynk_content_url):
         path, external_id, video_id, session_id = re.match(UplynkIE._VALID_URL, uplynk_content_url).groups()
         display_id = video_id or external_id
-        formats = self._extract_m3u8_formats(
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             'http://content.uplynk.com/%s.m3u8' % path,
             display_id, 'mp4', 'm3u8_native')
         if session_id:
@@ -48,6 +48,7 @@ class UplynkIE(InfoExtractor):
             'duration': float_or_none(asset.get('duration')),
             'uploader_id': asset.get('owner'),
             'formats': formats,
+            'subtitles': subtitles,
         }
 
     def _real_extract(self, url):

@@ -69,19 +69,24 @@ class WatIE(InfoExtractor):
         title = video_info['title']
 
         formats = []
+        subtitles = {}
 
         def extract_formats(manifest_urls):
             for f, f_url in manifest_urls.items():
                 if not f_url:
                     continue
                 if f in ('dash', 'mpd'):
-                    formats.extend(self._extract_mpd_formats(
+                    fmts, subs = self._extract_mpd_formats_and_subtitles(
                         f_url.replace('://das-q1.tf1.fr/', '://das-q1-ssl.tf1.fr/'),
-                        video_id, mpd_id='dash', fatal=False))
+                        video_id, mpd_id='dash', fatal=False)
                 elif f == 'hls':
-                    formats.extend(self._extract_m3u8_formats(
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
                         f_url, video_id, 'mp4',
-                        'm3u8_native', m3u8_id='hls', fatal=False))
+                        'm3u8_native', m3u8_id='hls', fatal=False)
+                else:
+                    continue
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
 
         delivery = video_data.get('delivery') or {}
         extract_formats({delivery.get('format'): delivery.get('url')})
@@ -103,4 +108,5 @@ class WatIE(InfoExtractor):
                 video_data, lambda x: x['mediametrie']['chapters'][0]['estatS4'])),
             'duration': int_or_none(video_info.get('duration')),
             'formats': formats,
+            'subtitles': subtitles,
         }

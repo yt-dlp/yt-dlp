@@ -36,9 +36,9 @@ class TwitterBaseIE(InfoExtractor):
     def _extract_variant_formats(self, variant, video_id):
         variant_url = variant.get('url')
         if not variant_url:
-            return []
+            return [], {}
         elif '.m3u8' in variant_url:
-            return self._extract_m3u8_formats(
+            return self._extract_m3u8_formats_and_subtitles(
                 variant_url, video_id, 'mp4', 'm3u8_native',
                 m3u8_id='hls', fatal=False)
         else:
@@ -49,22 +49,27 @@ class TwitterBaseIE(InfoExtractor):
                 'tbr': tbr,
             }
             self._search_dimensions_in_video_url(f, variant_url)
-            return [f]
+            return [f], {}
 
     def _extract_formats_from_vmap_url(self, vmap_url, video_id):
         vmap_data = self._download_xml(vmap_url, video_id)
         formats = []
+        subtitles = {}
         urls = []
         for video_variant in vmap_data.findall('.//{http://twitter.com/schema/videoVMapV2.xsd}videoVariant'):
             video_variant.attrib['url'] = compat_urllib_parse_unquote(
                 video_variant.attrib['url'])
             urls.append(video_variant.attrib['url'])
-            formats.extend(self._extract_variant_formats(
-                video_variant.attrib, video_id))
+            fmts, subs = self._extract_variant_formats(
+                video_variant.attrib, video_id)
+            formats.extend(fmts)
+            subtitles = self._merge_subtitles(subtitles, subs)
         video_url = strip_or_none(xpath_text(vmap_data, './/MediaFile'))
         if video_url not in urls:
-            formats.extend(self._extract_variant_formats({'url': video_url}, video_id))
-        return formats
+            fmts, subs = self._extract_variant_formats({'url': video_url}, video_id)
+            formats.extend(fmts)
+            subtitles = self._merge_subtitles(subtitles, subs)
+        return formats, subtitles
 
     @staticmethod
     def _search_dimensions_in_video_url(a_format, video_url):
@@ -471,8 +476,11 @@ class TwitterIE(TwitterBaseIE):
             video_info = media.get('video_info') or {}
 
             formats = []
+            subtitles = {}
             for variant in video_info.get('variants', []):
-                formats.extend(self._extract_variant_formats(variant, twid))
+                fmts, subs = self._extract_variant_formats(variant, twid)
+                subtitles = self._merge_subtitles(subtitles, subs)
+                formats.extend(fmts)
             self._sort_formats(formats)
 
             thumbnails = []
@@ -491,6 +499,7 @@ class TwitterIE(TwitterBaseIE):
 
             info.update({
                 'formats': formats,
+                'subtitles': subtitles,
                 'thumbnails': thumbnails,
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
             })
@@ -540,7 +549,7 @@ class TwitterIE(TwitterBaseIE):
                     is_amplify = card_name == 'amplify'
                     vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
                     content_id = get_binding_value('%s_content_id' % (card_name if is_amplify else 'player'))
-                    formats = self._extract_formats_from_vmap_url(vmap_url, content_id or twid)
+                    formats, subtitles = self._extract_formats_from_vmap_url(vmap_url, content_id or twid)
                     self._sort_formats(formats)
 
                     thumbnails = []
@@ -558,6 +567,7 @@ class TwitterIE(TwitterBaseIE):
 
                     info.update({
                         'formats': formats,
+                        'subtitles': subtitles,
                         'thumbnails': thumbnails,
                         'duration': int_or_none(get_binding_value(
                             'content_duration_seconds')),

@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import errno
 import re
+import io
 import binascii
 try:
     from Crypto.Cipher import AES
@@ -27,7 +28,9 @@ from ..utils import (
     parse_m3u8_attributes,
     sanitize_open,
     update_url_query,
+    bug_reports_message,
 )
+from .. import webvtt
 
 
 class HlsFD(FragmentFD):
@@ -77,6 +80,8 @@ class HlsFD(FragmentFD):
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
         self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
+
+        is_webvtt = info_dict['ext'] == 'vtt'
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
         man_url = urlh.geturl()
@@ -141,6 +146,8 @@ class HlsFD(FragmentFD):
             self._prepare_external_frag_download(ctx)
         else:
             self._prepare_and_start_frag_download(ctx)
+
+        extra_state = ctx.setdefault('extra_state', {})
 
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
@@ -308,6 +315,76 @@ class HlsFD(FragmentFD):
 
                 return frag_content, frag_index
 
+            pack_fragment = lambda frag_content, _: frag_content
+
+            if is_webvtt:
+                def pack_fragment(frag_content, frag_index):
+                    output = io.StringIO()
+                    adjust = 0
+                    for block in webvtt.parse_fragment(frag_content):
+                        if isinstance(block, webvtt.CueBlock):
+                            block.start += adjust
+                            block.end += adjust
+
+                            dedup_window = extra_state.setdefault('webvtt_dedup_window', [])
+                            cue = block.as_json
+
+                            # skip the cue if an identical one appears
+                            # in the window of potential duplicates
+                            # and prune the window of unviable candidates
+                            i = 0
+                            skip = True
+                            while i < len(dedup_window):
+                                window_cue = dedup_window[i]
+                                if window_cue == cue:
+                                    break
+                                if window_cue['end'] >= cue['start']:
+                                    i += 1
+                                    continue
+                                del dedup_window[i]
+                            else:
+                                skip = False
+
+                            if skip:
+                                continue
+
+                            # add the cue to the window
+                            dedup_window.append(cue)
+                        elif isinstance(block, webvtt.Magic):
+                            # take care of MPEG PES timestamp overflow
+                            if block.mpegts is None:
+                                block.mpegts = 0
+                            extra_state.setdefault('webvtt_mpegts_adjust', 0)
+                            block.mpegts += extra_state['webvtt_mpegts_adjust'] << 33
+                            if block.mpegts < extra_state.get('webvtt_mpegts_last', 0):
+                                extra_state['webvtt_mpegts_adjust'] += 1
+                                block.mpegts += 1 << 33
+                            extra_state['webvtt_mpegts_last'] = block.mpegts
+
+                            if frag_index == 1:
+                                extra_state['webvtt_mpegts'] = block.mpegts or 0
+                                extra_state['webvtt_local'] = block.local or 0
+                                # XXX: block.local = block.mpegts = None ?
+                            else:
+                                if block.mpegts is not None and block.local is not None:
+                                    adjust = (
+                                        (block.mpegts - extra_state.get('webvtt_mpegts', 0))
+                                        - (block.local - extra_state.get('webvtt_local', 0))
+                                    )
+                                continue
+                        elif isinstance(block, webvtt.HeaderBlock):
+                            if frag_index != 1:
+                                # XXX: this should probably be silent as well
+                                # or verify that all segments contain the same data
+                                self.report_warning(bug_reports_message(
+                                    'Discarding a %s block found in the middle of the stream; '
+                                    'if the subtitles display incorrectly,'
+                                    % (type(block).__name__)))
+                                continue
+                        block.write_into(output)
+
+                    return output.getvalue().encode('utf-8')
+
             def append_fragment(frag_content, frag_index):
                 if frag_content:
                     fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
@@ -315,6 +392,7 @@ class HlsFD(FragmentFD):
                         file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
                         ctx['fragment_filename_sanitized'] = frag_sanitized
                         file.close()
+                        frag_content = pack_fragment(frag_content, frag_index)
                         self._append_fragment(ctx, frag_content)
                         return True
                     except EnvironmentError as ose:
