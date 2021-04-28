@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import errno
 import re
+import io
 import binascii
 try:
     from Crypto.Cipher import AES
@@ -27,7 +28,9 @@ from ..utils import (
     parse_m3u8_attributes,
     sanitize_open,
     update_url_query,
+    bug_reports_message,
 )
+from .. import webvtt
 
 
 class HlsFD(FragmentFD):
@@ -77,6 +80,8 @@ class HlsFD(FragmentFD):
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
         self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
+
+        is_webvtt = info_dict['ext'] == 'vtt'
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
         man_url = urlh.geturl()
@@ -141,6 +146,8 @@ class HlsFD(FragmentFD):
             self._prepare_external_frag_download(ctx)
         else:
             self._prepare_and_start_frag_download(ctx)
+
+        extra_state = ctx.setdefault('extra_state', {})
 
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
@@ -308,6 +315,42 @@ class HlsFD(FragmentFD):
 
                 return frag_content, frag_index
 
+            pack_fragment = lambda frag_content, _: frag_content
+
+            if is_webvtt:
+                def pack_fragment(frag_content, frag_index):
+                    output = io.StringIO()
+                    adjust = 0
+                    for block in webvtt.parse_fragment(frag_content):
+                        if isinstance(block, webvtt.CueBlock):
+                            block.start += adjust
+                            block.end += adjust
+                        elif isinstance(block, webvtt.Magic):
+                            # XXX: we do not handle MPEGTS overflow
+                            if frag_index == 1:
+                                extra_state['webvtt_mpegts'] = block.mpegts or 0
+                                extra_state['webvtt_local'] = block.local or 0
+                                # XXX: block.local = block.mpegts = None ?
+                            else:
+                                if block.mpegts is not None and block.local is not None:
+                                    adjust = (
+                                        (block.mpegts - extra_state.get('webvtt_mpegts', 0))
+                                        - (block.local - extra_state.get('webvtt_local', 0))
+                                    )
+                                continue
+                        elif isinstance(block, webvtt.HeaderBlock):
+                            if frag_index != 1:
+                                # XXX: this should probably be silent as well
+                                # or verify that all segments contain the same data
+                                self.report_warning(bug_reports_message(
+                                    'Discarding a %s block found in the middle of the stream; '
+                                    'if the subtitles display incorrectly,'
+                                    % (type(block).__name__)))
+                                continue
+                        block.write_into(output)
+
+                    return output.getvalue().encode('utf-8')
+
             def append_fragment(frag_content, frag_index):
                 if frag_content:
                     fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
@@ -315,6 +358,7 @@ class HlsFD(FragmentFD):
                         file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
                         ctx['fragment_filename_sanitized'] = frag_sanitized
                         file.close()
+                        frag_content = pack_fragment(frag_content, frag_index)
                         self._append_fragment(ctx, frag_content)
                         return True
                     except EnvironmentError as ose:

@@ -3018,10 +3018,24 @@ else:
         return ctypes.WINFUNCTYPE(*args, **kwargs)
 
 
+try:
+    compat_Pattern = re.Pattern
+except AttributeError:
+    compat_Pattern = type(re.compile(''))
+
+
+try:
+    compat_Match = re.Match
+except AttributeError:
+    compat_Match = type(re.compile('').match(''))
+
+
 __all__ = [
     'compat_HTMLParseError',
     'compat_HTMLParser',
     'compat_HTTPError',
+    'compat_Match',
+    'compat_Pattern',
     'compat_Struct',
     'compat_b64decode',
     'compat_basestring',
