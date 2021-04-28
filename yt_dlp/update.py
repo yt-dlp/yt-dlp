@@ -50,7 +50,7 @@ def update_self(to_screen, verbose, opener):
         return h.hexdigest()
 
     if not isinstance(globals().get('__loader__'), zipimporter) and not hasattr(sys, 'frozen'):
-        to_screen('It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Please use that to update.')
+        to_screen('It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Please use that to update')
         return
 
     # sys.executable is set to the full pathname of the exe-file for py2exe
@@ -66,7 +66,7 @@ def update_self(to_screen, verbose, opener):
     except Exception:
         if verbose:
             to_screen(encode_compat_str(traceback.format_exc()))
-        to_screen('ERROR: can\'t obtain versions info. Please try again later.')
+        to_screen('ERROR: can\'t obtain versions info. Please try again later')
         to_screen('Visit https://github.com/yt-dlp/yt-dlp/releases/latest')
         return
 
@@ -165,7 +165,7 @@ def update_self(to_screen, verbose, opener):
     echo.Waiting for file handle to be closed ...
     ping 127.0.0.1 -n 5 -w 1000 > NUL
     move /Y "%s.new" "%s" > NUL
-    echo.Updated yt-dlp to version %s.
+    echo.Updated yt-dlp to version %s
 )
 @start /b "" cmd /c del "%%~f0"&exit /b
                 ''' % (exe, exe, version_id))
@@ -212,7 +212,7 @@ def update_self(to_screen, verbose, opener):
             to_screen('ERROR: unable to overwrite current version')
             return
 
-    to_screen('Updated yt-dlp. Restart yt-dlp to use the new version.')
+    to_screen('Updated yt-dlp. Restart yt-dlp to use the new version')
 
 
 '''  # UNUSED

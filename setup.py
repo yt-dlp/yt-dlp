@@ -18,13 +18,13 @@ DESCRIPTION = 'Command-line program to download videos from YouTube.com and many
 LONG_DESCRIPTION = '\n\n'.join((
     'Official repository: <https://github.com/yt-dlp/yt-dlp>',
     '**PS**: Many links in this document will not work since this is a copy of the README.md from Github',
-    open("README.md", "r", encoding="utf-8").read()))
+    open('README.md', 'r', encoding='utf-8').read()))
 
 REQUIREMENTS = ['mutagen', 'pycryptodome']
 
 
 if len(sys.argv) >= 2 and sys.argv[1] == 'py2exe':
-    print("inv")
+    print('inv')
 else:
     files_spec = [
         ('share/bash-completion/completions', ['completions/bash/yt-dlp']),
@@ -67,17 +67,17 @@ class build_lazy_extractors(Command):
         )
 
 
-packages = find_packages(exclude=("youtube_dl", "test", "ytdlp_plugins"))
+packages = find_packages(exclude=('youtube_dl', 'test', 'ytdlp_plugins'))
 
 setup(
-    name="yt-dlp",
+    name='yt-dlp',
     version=__version__,
-    maintainer="pukkandan",
-    maintainer_email="pukkandan.ytdlp@gmail.com",
+    maintainer='pukkandan',
+    maintainer_email='pukkandan.ytdlp@gmail.com',
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
-    long_description_content_type="text/markdown",
-    url="https://github.com/yt-dlp/yt-dlp",
+    long_description_content_type='text/markdown',
+    url='https://github.com/yt-dlp/yt-dlp',
     packages=packages,
     install_requires=REQUIREMENTS,
     project_urls={
@@ -87,28 +87,28 @@ setup(
         #'Funding': 'https://donate.pypi.org',
     },
     classifiers=[
-        "Topic :: Multimedia :: Video",
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: Console",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.6",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.2",
-        "Programming Language :: Python :: 3.3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: Implementation",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: IronPython",
-        "Programming Language :: Python :: Implementation :: Jython",
-        "Programming Language :: Python :: Implementation :: PyPy",
-        "License :: Public Domain",
-        "Operating System :: OS Independent",
+        'Topic :: Multimedia :: Video',
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: Console',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: Implementation',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: IronPython',
+        'Programming Language :: Python :: Implementation :: Jython',
+        'Programming Language :: Python :: Implementation :: PyPy',
+        'License :: Public Domain',
+        'Operating System :: OS Independent',
     ],
     python_requires='>=2.6',
 

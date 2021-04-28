@@ -33,11 +33,11 @@
 * Add option `--skip-playlist-after-errors` to skip the rest of a playlist after a given number of errors are encountered
 * Merge youtube-dl: Upto [commit/7e8b3f9](https://github.com/ytdl-org/youtube-dl/commit/7e8b3f9439ebefb3a3a4e5da9c0bd2b595976438)
 * [downloader] Fix bug in downloader selection
-* [BilibiliChannel] Fix pagination by [nao20010128nao](https://github.com/nao20010128nao) and[pukkandan](https://github.com/pukkandan)
+* [BilibiliChannel] Fix pagination by [nao20010128nao](https://github.com/nao20010128nao) and [pukkandan](https://github.com/pukkandan)
 * [rai] Add support for http formats by [nixxo](https://github.com/nixxo)
 * [TubiTv] Add TubiTvShowIE by [Ashish0804](https://github.com/Ashish0804)
 * [twitcasting] Fix extractor
-* [viu:ott] Fix extractor and support series by [lkho](https://github.com/lkho) and[pukkandan](https://github.com/pukkandan)
+* [viu:ott] Fix extractor and support series by [lkho](https://github.com/lkho) and [pukkandan](https://github.com/pukkandan)
 * [youtube:tab] Show unavailable videos in playlists by [colethedj](https://github.com/colethedj)
 * [youtube:tab] Reload with unavailable videos for all playlists
 * [youtube] Ignore invalid stretch ratio
