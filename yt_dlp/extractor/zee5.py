@@ -97,14 +97,14 @@ class Zee5IE(InfoExtractor):
             (lambda x: x['hls'][0], lambda x: x['video_details']['hls_url']),
             str)
         formats = self._extract_m3u8_formats(
-            'https://zee5vodnd.akamaized.net' + m3u8_url.replace('/drm1/', '/hls1/') + token_request['video_token'],
+            'https://zee5vodnd.akamaized.net' + m3u8_url.replace('/drm', '/hls', 1) + token_request['video_token'],
             video_id, fatal=False)
         mpd_url = try_get(
             json_data,
             (lambda x: x['video'][0], lambda x: x['video_details']['url']),
             str)
         formats += self._extract_mpd_formats(
-            'https://zee5vodnd.akamaized.net' + mpd_url + token_request['video_token'],
+            'https://zee5vod.akamaized.net' + mpd_url,
             video_id, fatal=False)
 
         self._sort_formats(formats)
