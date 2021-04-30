@@ -511,7 +511,7 @@ class NiconicoIE(InfoExtractor):
 
         thumbnail = (
             self._html_search_regex(r'<meta property="og:image" content="([^"]+)">', webpage, 'thumbnail data', default=None)
-            or try_get(  # choose highest from 720p to 240p
+            or dict_get(  # choose highest from 720p to 240p
                 get_video_info_web('thumbnail'),
                 ['ogp', 'player', 'largeUrl', 'middleUrl', 'url'])
             or self._html_search_meta('image', webpage, 'thumbnail', default=None)
