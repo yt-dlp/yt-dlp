@@ -68,7 +68,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _RESERVED_NAMES = (
         r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|'
-        r'movies|results|shared|hashtag|trending|feed|feeds|'
+        r'movies|results|shared|hashtag|trending|feed|feeds|oembed|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 
     _NETRC_MACHINE = 'youtube'
