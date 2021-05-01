@@ -669,7 +669,9 @@ def parseOpts(overrideArguments=None):
         action='callback', callback=_dict_from_multiple_values_options_callback,
         callback_kwargs={
             'allowed_keys': 'http|ftp|m3u8|dash|rtsp|rtmp|mms',
-            'default_key': 'default', 'process': lambda x: x.strip()},
+            'default_key': 'default',
+            'process': lambda x: x.strip()
+        },
         help=(
             'Name or path of the external downloader to use (optionally) prefixed by '
             'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
@@ -684,7 +686,9 @@ def parseOpts(overrideArguments=None):
         action='callback', callback=_dict_from_multiple_values_options_callback,
         callback_kwargs={
             'allowed_keys': '|'.join(list_external_downloaders()),
-            'default_key': 'default', 'process': compat_shlex_split},
+            'default_key': 'default',
+            'process': compat_shlex_split
+        },
         help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '
@@ -878,9 +882,7 @@ def parseOpts(overrideArguments=None):
         '-P', '--paths',
         metavar='TYPES:PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_multiple_values_options_callback,
-        callback_kwargs={
-            'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys()),
-            'process': lambda x: x.strip()},
+        callback_kwargs={'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys())},
         help=(
             'The paths where the files should be downloaded. '
             'Specify the type of file and the path separated by a colon ":". '
@@ -895,7 +897,8 @@ def parseOpts(overrideArguments=None):
         action='callback', callback=_dict_from_multiple_values_options_callback,
         callback_kwargs={
             'allowed_keys': '|'.join(OUTTMPL_TYPES.keys()),
-            'default_key': 'default', 'process': lambda x: x.strip()},
+            'default_key': 'default'
+        },
         help='Output filename template; see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
         '--output-na-placeholder',
@@ -1120,7 +1123,9 @@ def parseOpts(overrideArguments=None):
         action='callback', callback=_dict_from_multiple_values_options_callback,
         callback_kwargs={
             'allowed_keys': r'\w+(?:\+\w+)?', 'default_key': 'default-compat',
-            'process': compat_shlex_split, 'multiple_keys': False},
+            'process': compat_shlex_split,
+            'multiple_keys': False
+        },
         help=(
             'Give these arguments to the postprocessors. '
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
