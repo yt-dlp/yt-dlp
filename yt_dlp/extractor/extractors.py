@@ -1442,6 +1442,7 @@ from .ufctv import (
     UFCTVIE,
     UFCArabiaIE,
 )
+from .ukcolumn import UkColumnIE
 from .uktvplay import UKTVPlayIE
 from .digiteka import DigitekaIE
 from .dlive import (
