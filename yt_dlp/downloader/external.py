@@ -290,11 +290,19 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
         cmd += self._configuration_args()
 
+        # aria2c strips out spaces from the beginning/end of filenames and paths.
+        # We work around this issue by adding a "./" to the beginning of the
+        # filename and relative path, and adding a "/" at the end of the path.
+        # See: https://github.com/yt-dlp/yt-dlp/issues/276
+        # https://github.com/ytdl-org/youtube-dl/issues/20312
+        # https://github.com/aria2/aria2/issues/1373
         dn = os.path.dirname(tmpfilename)
         if dn:
-            cmd += ['--dir', dn]
+            if not os.path.isabs(dn):
+                dn = '.%s%s' % (os.path.sep, dn)
+            cmd += ['--dir', dn + os.path.sep]
         if 'fragments' not in info_dict:
-            cmd += ['--out', os.path.basename(tmpfilename)]
+            cmd += ['--out', '.%s%s' % (os.path.sep, os.path.basename(tmpfilename))]
         cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
