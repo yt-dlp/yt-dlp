@@ -27,7 +27,13 @@ class CBSBaseIE(ThePlatformFeedIE):
 
 
 class CBSIE(CBSBaseIE):
-    _VALID_URL = r'(?:cbs:|https?://(?:www\.)?(?:(?:cbs|paramountplus)\.com/shows/[^/]+/video|colbertlateshow\.com/(?:video|podcasts))/)(?P<id>[\w-]+)'
+    _VALID_URL = r'''(?x)
+        (?:
+            cbs:|
+            https?://(?:www\.)?(?:
+                (?:cbs|paramountplus)\.com/(?:shows/[^/]+/video|movies/[^/]+)/|
+                colbertlateshow\.com/(?:video|podcasts)/)
+        )(?P<id>[\w-]+)'''
 
     _TESTS = [{
         'url': 'https://www.cbs.com/shows/garth-brooks/video/_u7W953k6la293J7EPTd9oHkSPs6Xn6_/connect-chat-feat-garth-brooks/',
@@ -54,6 +60,9 @@ class CBSIE(CBSBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.paramountplus.com/shows/all-rise/video/QmR1WhNkh1a_IrdHZrbcRklm176X_rVc/all-rise-space/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.paramountplus.com/movies/million-dollar-american-princesses-meghan-and-harry/C0LpgNwXYeB8txxycdWdR9TjxpJOsdCq',
         'only_matching': True,
     }]
 
