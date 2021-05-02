@@ -47,6 +47,7 @@ PROTOCOL_MAP = {
 def shorten_protocol_name(proto, simplify=False):
     short_protocol_names = {
         'm3u8_native': 'm3u8_n',
+        'rtmp_ffmpeg': 'rtmp_f',
         'http_dash_segments': 'dash',
         'niconico_dmc': 'dmc',
     }
@@ -55,6 +56,7 @@ def shorten_protocol_name(proto, simplify=False):
             'https': 'http',
             'ftps': 'ftp',
             'm3u8_native': 'm3u8',
+            'rtmp_ffmpeg': 'rtmp',
             'm3u8_frag_urls': 'm3u8',
             'dash_frag_urls': 'dash',
         })
