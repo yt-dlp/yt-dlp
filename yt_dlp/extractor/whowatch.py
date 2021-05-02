@@ -13,6 +13,11 @@ class WhoWatchIE(InfoExtractor):
     IE_NAME = 'whowatch'
     _VALID_URL = r'https?://whowatch\.tv/viewer/(?P<id>\d+)'
 
+    _TESTS = [{
+        'url': 'https://whowatch.tv/viewer/21450171',
+        'only_matching': True,
+    }]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         self._download_webpage(url, video_id)
