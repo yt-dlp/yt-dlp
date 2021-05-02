@@ -3,9 +3,10 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
+    qualities,
     try_get,
     ExtractorError,
-    int_or_none,
 )
 from ..compat import compat_str
 
@@ -14,7 +15,6 @@ class WhoWatchIE(InfoExtractor):
     IE_NAME = 'whowatch'
     _VALID_URL = r'https?://whowatch\.tv/viewer/(?P<id>\d+)'
 
-    _QUALITIES = {'low': 0, 'medium': 1, 'high': 2, 'veryhigh': 3}
     _TESTS = [{
         'url': 'https://whowatch.tv/viewer/21450171',
         'only_matching': True,
@@ -35,6 +35,7 @@ class WhoWatchIE(InfoExtractor):
         if not hls_url:
             raise ExtractorError(live_data.get('error_message') or 'The user is offline.', expected=True)
 
+        QUALITIES = qualities(['low', 'medium', 'high', 'veryhigh'])
         formats = []
 
         for i, fmt in enumerate(live_data.get('streams') or []):
@@ -42,7 +43,7 @@ class WhoWatchIE(InfoExtractor):
             hls_url = fmt.get('hls_url')
             rtmp_url = fmt.get('rtmp_url')
             audio_only = fmt.get('audio_only')
-            quality = -1 if audio_only else self._QUALITIES.get(fmt.get('quality'), 0)
+            quality = QUALITIES(fmt.get('quality'))
 
             if hls_url:
                 hls_fmts = self._extract_m3u8_formats(
