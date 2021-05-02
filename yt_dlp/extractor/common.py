@@ -157,7 +157,7 @@ class InfoExtractor(object):
                     * player_url SWF Player URL (used for rtmpdump).
                     * protocol   The protocol that will be used for the actual
                                  download, lower-case.
-                                 "http", "https", "rtsp", "rtmp", "rtmpe",
+                                 "http", "https", "rtsp", "rtmp", "rtmp_ffmpeg", "rtmpe",
                                  "m3u8", "m3u8_native" or "http_dash_segments".
                     * fragment_base_url
                                  Base URL for fragments. Each fragment's path
