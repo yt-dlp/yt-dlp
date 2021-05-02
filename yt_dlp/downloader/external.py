@@ -338,7 +338,7 @@ class HttpieFD(ExternalFD):
 
 
 class FFmpegFD(ExternalFD):
-    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'mms')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms')
 
     @classmethod
     def available(cls, path=None):
