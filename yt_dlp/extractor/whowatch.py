@@ -1,8 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import datetime
-
 from .common import InfoExtractor
 from ..utils import (
     try_get,
@@ -79,9 +77,7 @@ class WhoWatchIE(InfoExtractor):
         uploader_id = compat_str(try_get(metadata, lambda x: x['live']['user']['id'], int))
         uploader = try_get(metadata, lambda x: x['live']['user']['name'], compat_str)
         thumbnail = try_get(metadata, lambda x: x['live']['latest_thumbnail_url'], compat_str)
-        upload_date = try_get(metadata, lambda x: x['live']['started_at'], int)
-        if upload_date is not None:
-            upload_date = datetime.datetime.fromtimestamp(upload_date / 1000).strftime('%Y%m%d')
+        timestamp = try_get(metadata, lambda x: x['live']['started_at'], int)
         view_count = try_get(metadata, lambda x: x['live']['total_view_count'], int)
         comment_count = try_get(metadata, lambda x: x['live']['comment_count'], int)
 
@@ -93,7 +89,7 @@ class WhoWatchIE(InfoExtractor):
             'uploader': uploader,
             'formats': formats,
             'thumbnail': thumbnail,
-            'upload_date': upload_date,
+            'timestamp': timestamp,
             'view_count': view_count,
             'comment_count': comment_count,
             'is_live': True,
