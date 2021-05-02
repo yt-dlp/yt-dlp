@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     try_get,
     ExtractorError,
+    int_or_none,
 )
 from ..compat import compat_str
 
@@ -77,7 +78,7 @@ class WhoWatchIE(InfoExtractor):
         uploader_id = compat_str(try_get(metadata, lambda x: x['live']['user']['id'], int))
         uploader = try_get(metadata, lambda x: x['live']['user']['name'], compat_str)
         thumbnail = try_get(metadata, lambda x: x['live']['latest_thumbnail_url'], compat_str)
-        timestamp = try_get(metadata, lambda x: x['live']['started_at'], int)
+        timestamp = int_or_none(try_get(metadata, lambda x: x['live']['started_at'], int), scale=1000)
         view_count = try_get(metadata, lambda x: x['live']['total_view_count'], int)
         comment_count = try_get(metadata, lambda x: x['live']['comment_count'], int)
 
