@@ -38,7 +38,7 @@ class WhoWatchIE(InfoExtractor):
         formats = []
 
         for i, fmt in enumerate(live_data.get('streams') or []):
-            name = fmt.get('name') or 'source-%d' % i
+            name = fmt.get('quality') or fmt.get('name') or compat_str(i)
             hls_url = fmt.get('hls_url')
             rtmp_url = fmt.get('rtmp_url')
             audio_only = fmt.get('audio_only')
@@ -47,7 +47,7 @@ class WhoWatchIE(InfoExtractor):
             if hls_url:
                 hls_fmts = self._extract_m3u8_formats(
                     hls_url, video_id, ext='mp4', entry_protocol='m3u8',
-                    m3u8_id='hls', quality=quality)
+                    m3u8_id='hls-%s' % name, quality=quality)
                 formats.extend(hls_fmts)
             else:
                 hls_fmts = []
