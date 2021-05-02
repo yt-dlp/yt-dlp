@@ -37,7 +37,7 @@ class Zee5IE(InfoExtractor):
             'title': 'Krishna - The Birth',
             'duration': 4368,
             'average_rating': 4,
-            'description': str,
+            'description': compat_str,
             'alt_title': 'Krishna - The Birth',
             'uploader': 'Zee Entertainment Enterprises Ltd',
             'release_date': '20060101',
@@ -58,7 +58,7 @@ class Zee5IE(InfoExtractor):
             'title': 'Episode 1 - The Test Of Bramha',
             'duration': 1336,
             'average_rating': 4,
-            'description': str,
+            'description': compat_str,
             'alt_title': 'Episode 1 - The Test Of Bramha',
             'uploader': 'Green Gold',
             'release_date': '20090101',
@@ -95,14 +95,14 @@ class Zee5IE(InfoExtractor):
         m3u8_url = try_get(
             json_data,
             (lambda x: x['hls'][0], lambda x: x['video_details']['hls_url']),
-            str)
+            compat_str)
         formats = self._extract_m3u8_formats(
             'https://zee5vodnd.akamaized.net' + m3u8_url.replace('/drm', '/hls', 1) + token_request['video_token'],
             video_id, fatal=False)
         mpd_url = try_get(
             json_data,
             (lambda x: x['video'][0], lambda x: x['video_details']['url']),
-            str)
+            compat_str)
         formats += self._extract_mpd_formats(
             'https://zee5vod.akamaized.net' + mpd_url,
             video_id, fatal=False)
