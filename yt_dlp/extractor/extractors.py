@@ -1602,6 +1602,7 @@ from .weibo import (
 )
 from .weiqitv import WeiqiTVIE
 from .wimtv import WimTVIE
+from .whowatch import WhoWatchIE
 from .wistia import (
     WistiaIE,
     WistiaPlaylistIE,
