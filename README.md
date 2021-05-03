@@ -842,13 +842,14 @@ The simplest usage of `-o` is not to set any template arguments when downloading
 It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
-1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s` or `%(upload_date>%Y-%m-%d)s`
-2. **Offset numbers**: Numeric fields can have an initial offset specified by using a `+` separator. Eg: `%(playlist_index+10)03d`. This can also be used in conjunction with the date-time formatting. Eg: `%(epoch+-3600>%H-%M-%S)s`
-3. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. Eg: `%(tags.0)s` or `%(subtitles.en.-1.ext)`. Note that the fields that become available using this method are not listed below. Use `-j` to see such fields
+1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. Eg: `%(tags.0)s`, `%(subtitles.en.-1.ext)`, `%(id.3:7:-1)s`. Note that the fields that become available using this method are not listed below. Use `-j` to see such fields
+1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. Eg: `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
+1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
+1. **Default**: A default value can be specified for when the field is empty using a `|` seperator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
 
 To summarize, the general syntax for a field is:
 ```
-%(name[.keys][+offset][>strf])[flags][width][.precision][length]type
+%(name[.keys][addition][>strf][|default])[flags][width][.precision][length]type
 ```
 
 Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation`, `infojson`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.

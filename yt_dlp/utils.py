@@ -6112,11 +6112,11 @@ def traverse_dict(dictn, keys, casesense=True):
                 key = key.lower()
             dictn = dictn.get(key)
         elif isinstance(dictn, (list, tuple, compat_str)):
-            key, n = int_or_none(key), len(dictn)
-            if key is not None and -n <= key < n:
-                dictn = dictn[key]
+            if ':' in key:
+                key = slice(*map(int_or_none, key.split(':')))
             else:
-                dictn = None
+                key = int_or_none(key)
+            dictn = try_get(dictn, lambda x: x[key])
         else:
             return None
     return dictn

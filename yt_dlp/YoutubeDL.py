@@ -843,29 +843,67 @@ class YoutubeDL(object):
         if sanitize is None:
             sanitize = lambda k, v: v
 
-        # Internal Formatting = name.key1.key2+number>strf
-        INTERNAL_FORMAT_RE = FORMAT_RE.format(
-            r'''(?P<final_key>
-                        (?P<fields>\w+(?:\.[-\w]+)*)
-                        (?:\+(?P<add>-?\d+(?:\.\d+)?))?
-                        (?:>(?P<strf_format>.+?))?
-            )''')
-        for mobj in re.finditer(INTERNAL_FORMAT_RE, outtmpl):
-            mobj = mobj.groupdict()
-            # Object traversal
-            fields = mobj['fields'].split('.')
-            final_key = mobj['final_key']
-            value = traverse_dict(template_dict, fields)
-            # Offset the value
-            if mobj['add']:
-                value = float_or_none(value)
-                if value is not None:
-                    value = value + float(mobj['add'])
-            # Datetime formatting
-            if mobj['strf_format']:
-                value = strftime_or_none(value, mobj['strf_format'])
-            if mobj['type'] in 'crs' and value is not None:  # string
-                value = sanitize('%{}'.format(mobj['type']) % fields[-1], value)
+        EXTERNAL_FORMAT_RE = FORMAT_RE.format('(?P<key>[^)]*)')
+        # Field is of the form key1.key2...
+        # where keys (except first) can be string, int or slice
+        FIELD_RE = r'\w+(?:\.(?:\w+|[-\d]*(?::[-\d]*){0,2}))*'
+        INTERNAL_FORMAT_RE = re.compile(r'''(?x)
+            (?P<negate>-)?
+            (?P<fields>{0})
+            (?P<maths>(?:[-+]-?(?:\d+(?:\.\d+)?|{0}))*)
+            (?:>(?P<strf_format>.+?))?
+            (?:\|(?P<default>.*?))?
+            $'''.format(FIELD_RE))
+        MATH_OPERATORS_RE = re.compile(r'(?<![-+])([-+])')
+        MATH_FUNCTIONS = {
+            '+': float.__add__,
+            '-': float.__sub__,
+        }
+        for outer_mobj in re.finditer(EXTERNAL_FORMAT_RE, outtmpl):
+            final_key = outer_mobj.group('key')
+            str_type = outer_mobj.group('type')
+            value = None
+            mobj = re.match(INTERNAL_FORMAT_RE, final_key)
+            if mobj is not None:
+                mobj = mobj.groupdict()
+                # Object traversal
+                fields = mobj['fields'].split('.')
+                value = traverse_dict(template_dict, fields)
+                # Negative
+                if mobj['negate']:
+                    value = float_or_none(value)
+                    if value is not None:
+                        value *= -1
+                # Do maths
+                if mobj['maths']:
+                    value = float_or_none(value)
+                    operator = None
+                    for item in MATH_OPERATORS_RE.split(mobj['maths'])[1:]:
+                        if item == '':
+                            value = None
+                        if value is None:
+                            break
+                        if operator:
+                            item, multiplier = (item[1:], -1) if item[0] == '-' else (item, 1)
+                            offset = float_or_none(item)
+                            if offset is None:
+                                offset = float_or_none(traverse_dict(template_dict, item.split('.')))
+                            try:
+                                value = operator(value, multiplier * offset)
+                            except (TypeError, ZeroDivisionError):
+                                value = None
+                            operator = None
+                        else:
+                            operator = MATH_FUNCTIONS[item]
+                # Datetime formatting
+                if mobj['strf_format']:
+                    value = strftime_or_none(value, mobj['strf_format'])
+                # Set default
+                if value is None and mobj['default'] is not None:
+                    value = mobj['default']
+            # Sanitize
+            if str_type in 'crs' and value is not None:  # string
+                value = sanitize('%{}'.format(str_type) % fields[-1], value)
             else:  # numeric
                 numeric_fields.append(final_key)
                 value = float_or_none(value)

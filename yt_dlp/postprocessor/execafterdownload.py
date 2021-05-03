@@ -24,7 +24,7 @@ class ExecAfterDownloadPP(PostProcessor):
 
     def parse_cmd(self, cmd, info):
         # If no %(key)s is found, replace {} for backard compatibility
-        if not re.search(FORMAT_RE.format(r'[-\w>.+]+'), cmd):
+        if not re.search(FORMAT_RE.format(r'[^)]*'), cmd):
             if '{}' not in cmd:
                 cmd += ' {}'
             return cmd.replace('{}', compat_shlex_quote(info['filepath']))
