@@ -462,34 +462,13 @@ class YoutubeDL(object):
         }
         self.params.update(params)
         self.cache = Cache(self)
-        self.archive = set()
-
-        """Preload the archive, if any is specified"""
-        def preload_download_archive(self):
-            fn = self.params.get('download_archive')
-            if fn is None:
-                return False
-            try:
-                with locked_file(fn, 'r', encoding='utf-8') as archive_file:
-                    for line in archive_file:
-                        self.archive.add(line.strip())
-            except IOError as ioe:
-                if ioe.errno != errno.ENOENT:
-                    raise
-                return False
-            return True
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
                 self.report_warning(
-                    '%s is deprecated. Use %s instead.' % (option, suggestion))
+                    '%s is deprecated. Use %s instead' % (option, suggestion))
                 return True
             return False
-
-        if self.params.get('verbose'):
-            self.to_stdout('[debug] Loading archive file %r' % self.params.get('download_archive'))
-
-        preload_download_archive(self)
 
         if check_deprecated('cn_verification_proxy', '--cn-verification-proxy', '--geo-verification-proxy'):
             if self.params.get('geo_verification_proxy') is None:
@@ -547,6 +526,25 @@ class YoutubeDL(object):
         self.outtmpl_dict = self.parse_outtmpl()
 
         self._setup_opener()
+
+        """Preload the archive, if any is specified"""
+        def preload_download_archive(fn):
+            if fn is None:
+                return False
+            if self.params.get('verbose'):
+                self._write_string('[debug] Loading archive file %r\n' % fn)
+            try:
+                with locked_file(fn, 'r', encoding='utf-8') as archive_file:
+                    for line in archive_file:
+                        self.archive.add(line.strip())
+            except IOError as ioe:
+                if ioe.errno != errno.ENOENT:
+                    raise
+                return False
+            return True
+
+        self.archive = set()
+        preload_download_archive(self.params.get('download_archive'))
 
         if auto_init:
             self.print_debug_header()
