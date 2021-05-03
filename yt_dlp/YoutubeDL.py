@@ -474,6 +474,13 @@ class YoutubeDL(object):
             if self.params.get('geo_verification_proxy') is None:
                 self.params['geo_verification_proxy'] = self.params['cn_verification_proxy']
 
+        check_deprecated('autonumber_size', '--autonumber-size', 'output template with %(autonumber)0Nd, where N in the number of digits')
+        check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
+        check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
+
+        for msg in self.params.get('warnings', []):
+            self.report_warning(msg)
+
         if self.params.get('final_ext'):
             if self.params.get('merge_output_format'):
                 self.report_warning('--merge-output-format will be ignored since --remux-video or --recode-video is given')
@@ -481,10 +488,6 @@ class YoutubeDL(object):
 
         if 'overwrites' in self.params and self.params['overwrites'] is None:
             del self.params['overwrites']
-
-        check_deprecated('autonumber_size', '--autonumber-size', 'output template with %(autonumber)0Nd, where N in the number of digits')
-        check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
-        check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
 
         if params.get('bidi_workaround', False):
             try:

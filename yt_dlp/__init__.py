@@ -60,6 +60,7 @@ def _real_main(argv=None):
     setproctitle('yt-dlp')
 
     parser, opts, args = parseOpts(argv)
+    warnings = []
 
     # Set user agent
     if opts.user_agent is not None:
@@ -281,7 +282,7 @@ def _real_main(argv=None):
         opts.writeinfojson = True
 
     def report_conflict(arg1, arg2):
-        write_string('WARNING: %s is ignored since %s was given\n' % (arg2, arg1), out=sys.stderr)
+        warnings.append('%s is ignored since %s was given' % (arg2, arg1))
 
     if opts.remuxvideo and opts.recodevideo:
         report_conflict('--recode-video', '--remux-video')
@@ -419,11 +420,10 @@ def _real_main(argv=None):
         })
 
     def report_args_compat(arg, name):
-        write_string(
-            'WARNING: %s given without specifying name. The arguments will be given to all %s\n' % (arg, name),
-            out=sys.stderr)
+        warnings.append('%s given without specifying name. The arguments will be given to all %s' % (arg, name))
+
     if 'default' in opts.external_downloader_args:
-        report_args_compat('--external-downloader-args', 'external downloaders')
+        report_args_compat('--downloader-args', 'external downloaders')
 
     if 'default-compat' in opts.postprocessor_args and 'default' not in opts.postprocessor_args:
         report_args_compat('--post-processor-args', 'post-processors')
@@ -589,8 +589,9 @@ def _real_main(argv=None):
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
         # just for deprecation check
-        'autonumber': opts.autonumber if opts.autonumber is True else None,
-        'usetitle': opts.usetitle if opts.usetitle is True else None,
+        'warnings': warnings,
+        'autonumber': opts.autonumber or None,
+        'usetitle': opts.usetitle or None,
     }
 
     with YoutubeDL(ydl_opts) as ydl:
