@@ -827,7 +827,7 @@ class YoutubeDL(object):
         # For fields playlist_index and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
         field_size_compat_map = {
-            'playlist_index': len(str(template_dict.get('n_entries', na))),
+            'playlist_index': len(str(template_dict.get('_last_playlist_index') or '')),
             'autonumber': autonumber_size,
         }
         FIELD_SIZE_COMPAT_RE = r'(?<!%)%\((?P<field>autonumber|playlist_index)\)s'
@@ -1348,6 +1348,7 @@ class YoutubeDL(object):
                 entry['__x_forwarded_for_ip'] = x_forwarded_for
             extra = {
                 'n_entries': n_entries,
+                '_last_playlist_index': max(playlistitems) if playlistitems else (playlistend or n_entries),
                 'playlist': playlist,
                 'playlist_id': ie_result.get('id'),
                 'playlist_title': ie_result.get('title'),
