@@ -9,6 +9,7 @@ from ..utils import (
     clean_html,
     determine_ext,
     extract_attributes,
+    ExtractorError,
     get_element_by_class,
     JSON_LD_RE,
     merge_dicts,
@@ -23,15 +24,15 @@ class ITVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?itv\.com/hub/[^/]+/(?P<id>[0-9a-zA-Z]+)'
     _GEO_COUNTRIES = ['GB']
     _TESTS = [{
-        'url': 'https://www.itv.com/hub/liar/2a4547a0012',
+        'url': 'https://www.itv.com/hub/plebs/2a1873a0002',
         'info_dict': {
-            'id': '2a4547a0012',
+            'id': '2a1873a0002',
             'ext': 'mp4',
-            'title': 'Liar - Series 2 - Episode 6',
-            'description': 'md5:d0f91536569dec79ea184f0a44cca089',
-            'series': 'Liar',
-            'season_number': 2,
-            'episode_number': 6,
+            'title': 'Plebs - The Orgy',
+            'description': 'md5:4d7159af53ebd5b36e8b3ec82a41fdb4',
+            'series': 'Plebs',
+            'season_number': 1,
+            'episode_number': 1
         },
         'params': {
             # m3u8 download
@@ -56,6 +57,22 @@ class ITVIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         params = extract_attributes(self._search_regex(
             r'(?s)(<[^>]+id="video"[^>]*>)', webpage, 'params'))
+        variants = self._parse_json(
+            try_get(params, lambda x: x['data-video-variants'], str) or '{}',
+            video_id, fatal=False)
+        platform_tag_video = None
+        featureset_video = None
+        for platform_tag, featuresets in variants.items():
+            for featureset in featuresets:
+                if (isinstance(featureset, list) and len(featureset) >= 2
+                        and featureset[0] == 'hls' and featureset[1] == 'aes'):
+                    platform_tag_video = platform_tag
+                    featureset_video = featureset
+                    break
+        if not platform_tag_video or not featureset_video:
+            raise ExtractorError(
+                '[%s] %s: %s' % (self.IE_NAME, video_id, 'No downloads available'),
+                expected=True)
 
         ios_playlist_url = params.get('data-video-playlist') or params['data-video-id']
         hmac = params['data-video-hmac']
@@ -87,13 +104,13 @@ class ITVIE(InfoExtractor):
                 },
                 'variantAvailability': {
                     'featureset': {
-                        'min': ['hls', 'aes', 'outband-webvtt'],
-                        'max': ['hls', 'aes', 'outband-webvtt']
+                        'min': featureset_video,
+                        'max': featureset_video
                     },
-                    'platformTag': 'dotcom'
+                    'platformTag': platform_tag_video
                 }
             }).encode(), headers=headers)
-        video_data = ios_playlist['Playlist']['Video']
+        video_data = try_get(ios_playlist, lambda x: x['Playlist']['Video'], dict) or {}
         ios_base_url = video_data.get('Base')
 
         formats = []
@@ -115,17 +132,57 @@ class ITVIE(InfoExtractor):
         self._sort_formats(formats)
 
         subtitles = {}
-        subs = video_data.get('Subtitles') or []
-        for sub in subs:
-            if not isinstance(sub, dict):
-                continue
-            href = url_or_none(sub.get('Href'))
-            if not href:
-                continue
-            subtitles.setdefault('en', []).append({
-                'url': href,
-                'ext': determine_ext(href, 'vtt'),
-            })
+        platform_tag_subs = None
+        featureset_subs = None
+        for platform_tag, featuresets in variants.items():
+            for featureset in featuresets:
+                if (isinstance(featureset, list) and len(featureset) >= 3
+                        and featureset[2] == 'outband-webvtt'):
+                    platform_tag_subs = platform_tag
+                    featureset_subs = featureset
+                    break
+        if not platform_tag_subs or not featureset_subs:
+            self.report_warning('%s: %s' % (video_id, 'No subtitles available'))
+        else:
+            subs_playlist = self._download_json(
+                ios_playlist_url, video_id, data=json.dumps({
+                    'user': {
+                        'itvUserId': '',
+                        'entitlements': [],
+                        'token': ''
+                    },
+                    'device': {
+                        'manufacturer': 'Safari',
+                        'model': '5',
+                        'os': {
+                            'name': 'Windows NT',
+                            'version': '6.1',
+                            'type': 'desktop'
+                        }
+                    },
+                    'client': {
+                        'version': '4.1',
+                        'id': 'browser'
+                    },
+                    'variantAvailability': {
+                        'featureset': {
+                            'min': featureset_subs,
+                            'max': featureset_subs
+                        },
+                        'platformTag': platform_tag_subs
+                    }
+                }).encode(), headers=headers)
+            subs = try_get(subs_playlist, lambda x: x['Playlist']['Video']['Subtitles'], list) or []
+            for sub in subs:
+                if not isinstance(sub, dict):
+                    continue
+                href = url_or_none(sub.get('Href'))
+                if not href:
+                    continue
+                subtitles.setdefault('en', []).append({
+                    'url': href,
+                    'ext': determine_ext(href, 'vtt'),
+                })
 
         info = self._search_json_ld(webpage, video_id, default={})
         if not info:
