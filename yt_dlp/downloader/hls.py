@@ -299,6 +299,7 @@ class HlsFD(FragmentFD):
                         if count <= fragment_retries:
                             self.report_retry_fragment(err, frag_index, count, fragment_retries)
                 if count > fragment_retries:
+                    ctx['dest_stream'].close()
                     self.report_error('Giving up after %s fragment retries' % fragment_retries)
                     return False, frag_index
 
@@ -403,6 +404,7 @@ class HlsFD(FragmentFD):
                             self.report_skip_fragment(frag_index)
                             return True
                         else:
+                            ctx['dest_stream'].close()
                             self.report_error(
                                 'fragment %s not found, unable to continue' % frag_index)
                             return False
@@ -411,6 +413,7 @@ class HlsFD(FragmentFD):
                         self.report_skip_fragment(frag_index)
                         return True
                     else:
+                        ctx['dest_stream'].close()
                         self.report_error(
                             'fragment %s not found, unable to continue' % frag_index)
                         return False
