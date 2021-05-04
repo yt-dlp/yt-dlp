@@ -147,10 +147,10 @@ class FileDownloader(object):
         return int(round(number * multiplier))
 
     def to_screen(self, *args, **kargs):
-        self.ydl.to_screen(*args, **kargs)
+        self.ydl.to_stdout(*args, quiet=self.params.get('quiet'), **kargs)
 
     def to_stderr(self, message):
-        self.ydl.to_screen(message)
+        self.ydl.to_stderr(message)
 
     def to_console_title(self, message):
         self.ydl.to_console_title(message)
