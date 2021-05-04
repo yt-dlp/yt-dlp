@@ -19,7 +19,6 @@ import platform
 import re
 import shutil
 import subprocess
-import socket
 import sys
 import time
 import tokenize
@@ -33,7 +32,6 @@ from .compat import (
     compat_basestring,
     compat_cookiejar,
     compat_get_terminal_size,
-    compat_http_client,
     compat_kwargs,
     compat_numeric_types,
     compat_os_name,
@@ -77,6 +75,7 @@ from .utils import (
     make_dir,
     make_HTTPS_handler,
     MaxDownloadsReached,
+    network_exceptions,
     orderedSet,
     PagedList,
     parse_filesize,
@@ -2271,7 +2270,7 @@ class YoutubeDL(object):
                             dl(sub_filename, sub_info.copy(), subtitle=True)
                             sub_info['filepath'] = sub_filename
                             files_to_move[sub_filename] = sub_filename_final
-                        except (ExtractorError, IOError, OSError, ValueError, compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
+                        except tuple([ExtractorError, IOError, OSError, ValueError] + network_exceptions) as err:
                             self.report_warning('Unable to download subtitle for "%s": %s' %
                                                 (sub_lang, error_to_compat_str(err)))
                             continue
@@ -2475,7 +2474,7 @@ class YoutubeDL(object):
                 dl_filename = dl_filename or temp_filename
                 info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
 
-            except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
+            except network_exceptions as err:
                 self.report_error('unable to download video data: %s' % error_to_compat_str(err))
                 return
             except (OSError, IOError) as err:
@@ -3070,7 +3069,7 @@ class YoutubeDL(object):
                     ret.append(suffix + thumb_ext)
                     self.to_screen('[%s] %s: Writing thumbnail %sto: %s' %
                                    (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
-                except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
+                except network_exceptions as err:
                     self.report_warning('Unable to download thumbnail "%s": %s' %
                                         (t['url'], error_to_compat_str(err)))
             if ret and not write_all:

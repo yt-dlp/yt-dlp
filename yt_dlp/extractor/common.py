@@ -9,8 +9,6 @@ import netrc
 import os
 import random
 import re
-import socket
-import ssl
 import sys
 import time
 import math
@@ -58,6 +56,7 @@ from ..utils import (
     js_to_json,
     JSON_LD_RE,
     mimetype2ext,
+    network_exceptions,
     orderedSet,
     parse_bitrate,
     parse_codecs,
@@ -659,12 +658,9 @@ class InfoExtractor(object):
                 url_or_request = update_url_query(url_or_request, query)
             if data is not None or headers:
                 url_or_request = sanitized_Request(url_or_request, data, headers)
-        exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error]
-        if hasattr(ssl, 'CertificateError'):
-            exceptions.append(ssl.CertificateError)
         try:
             return self._downloader.urlopen(url_or_request)
-        except tuple(exceptions) as err:
+        except network_exceptions as err:
             if isinstance(err, compat_urllib_error.HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
                     # Retain reference to error to prevent file object from

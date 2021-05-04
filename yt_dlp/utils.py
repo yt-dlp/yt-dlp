@@ -2361,6 +2361,12 @@ class YoutubeDLError(Exception):
     pass
 
 
+network_exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error]
+if hasattr(ssl, 'CertificateError'):
+    network_exceptions.append(ssl.CertificateError)
+network_exceptions = tuple(network_exceptions)
+
+
 class ExtractorError(YoutubeDLError):
     """Error during info extraction."""
 
@@ -2369,7 +2375,7 @@ class ExtractorError(YoutubeDLError):
         If expected is set, this is a normal error message and most likely not a bug in yt-dlp.
         """
 
-        if sys.exc_info()[0] in (compat_urllib_error.URLError, socket.timeout, UnavailableVideoError):
+        if sys.exc_info()[0] in network_exceptions:
             expected = True
         if video_id is not None:
             msg = video_id + ': ' + msg

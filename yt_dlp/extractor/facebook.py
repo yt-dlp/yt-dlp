@@ -3,14 +3,11 @@ from __future__ import unicode_literals
 
 import json
 import re
-import socket
 
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
-    compat_http_client,
     compat_str,
-    compat_urllib_error,
     compat_urllib_parse_unquote,
     compat_urllib_parse_unquote_plus,
 )
@@ -23,6 +20,7 @@ from ..utils import (
     int_or_none,
     js_to_json,
     limit_length,
+    network_exceptions,
     parse_count,
     qualities,
     sanitized_Request,
@@ -370,7 +368,7 @@ class FacebookIE(InfoExtractor):
                                                     note='Confirming login')
             if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
                 self.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
-        except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
+        except network_exceptions as err:
             self.report_warning('unable to log in: %s' % error_to_compat_str(err))
             return
 
