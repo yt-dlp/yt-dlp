@@ -31,6 +31,7 @@ class FragmentFD(FileDownloader):
                         Skip unavailable fragments (DASH and hlsnative only)
     keep_fragments:     Keep downloaded fragments on disk after downloading is
                         finished
+    _no_ytdl_file:      Don't use .ytdl file
 
     For each incomplete fragment download yt-dlp keeps on disk a special
     bookkeeping file with download state and metadata (in future such files will
@@ -69,9 +70,8 @@ class FragmentFD(FileDownloader):
         self._prepare_frag_download(ctx)
         self._start_frag_download(ctx)
 
-    @staticmethod
-    def __do_ytdl_file(ctx):
-        return not ctx['live'] and not ctx['tmpfilename'] == '-'
+    def __do_ytdl_file(self, ctx):
+        return not ctx['live'] and not ctx['tmpfilename'] == '-' and not self.params.get('_no_ytdl_file')
 
     def _read_ytdl_file(self, ctx):
         assert 'ytdl_corrupt' not in ctx

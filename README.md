@@ -577,6 +577,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      containers irrespective of quality
     --no-prefer-free-formats         Don't give any special preference to free
                                      containers (default)
+    --check-formats                  Check that the formats selected are
+                                     actually downloadable (Experimental)
     -F, --list-formats               List all available formats of requested
                                      videos
     --list-formats-as-table          Present the output of -F in tabular form

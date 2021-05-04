@@ -471,6 +471,7 @@ def _real_main(argv=None):
         'format_sort_force': opts.format_sort_force,
         'allow_multiple_video_streams': opts.allow_multiple_video_streams,
         'allow_multiple_audio_streams': opts.allow_multiple_audio_streams,
+        'check_formats': opts.check_formats,
         'listformats': opts.listformats,
         'listformats_table': opts.listformats_table,
         'outtmpl': outtmpl,

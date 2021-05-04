@@ -503,6 +503,10 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='prefer_free_formats', default=False,
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
+        '--check-formats',
+        action='store_true', dest='check_formats', default=False,
+        help="Check that the formats selected are actually downloadable (Experimental)")
+    video_format.add_option(
         '-F', '--list-formats',
         action='store_true', dest='listformats',
         help='List all available formats of requested videos')
