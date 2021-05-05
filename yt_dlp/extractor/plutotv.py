@@ -80,26 +80,37 @@ class PlutoTVIE(InfoExtractor):
 
     def _to_ad_free_formats(self, video_id, formats, subtitles):
         ad_free_formats, ad_free_subtitles, m3u8_urls = [], {}, set()
-        for format in formats:
+        for fmt in formats:
             res = self._download_webpage(
-                format.get('url'), video_id, note='Downloading m3u8 playlist',
+                fmt.get('url'), video_id, note='Downloading m3u8 playlist',
                 fatal=False)
             if not res:
                 continue
             first_segment_url = re.search(
                 r'^(https?://.*/)0\-(end|[0-9]+)/[^/]+\.ts$', res,
                 re.MULTILINE)
-            if not first_segment_url:
+            if first_segment_url:
+                m3u8_urls.add(
+                    compat_urlparse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
                 continue
-            m3u8_urls.add(
-                compat_urlparse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
+            first_segment_url = re.search(
+                r'^(https?://.*/).+\-0+\.ts$', res,
+                re.MULTILINE)
+            if first_segment_url:
+                m3u8_urls.add(
+                    compat_urlparse.urljoin(first_segment_url.group(1), 'master.m3u8'))
+                continue
 
         for m3u8_url in m3u8_urls:
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
             ad_free_formats.extend(fmts)
             ad_free_subtitles = self._merge_subtitles(ad_free_subtitles, subs)
-        return ad_free_formats, ad_free_subtitles
+        if ad_free_formats:
+            formats, subtitles = ad_free_formats, ad_free_subtitles
+        else:
+            self._downloader.report_warning('Unable to find ad-free formats')
+        return formats, subtitles
 
     def _get_video_info(self, video_json, slug, series_name=None):
         video_id = video_json.get('_id', slug)
