@@ -17,7 +17,7 @@ class SonyLIVIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.sonyliv.com/shows/bachelors-delight-1700000113/achaari-cheese-toast-1000022678?watch=true',
         'info_dict': {
-            'title': 'Bachelors Delight - Achaari Cheese Toast',
+            'title': 'Achaari Cheese Toast',
             'id': '1000022678',
             'ext': 'mp4',
             'upload_date': '20200411',
@@ -25,7 +25,7 @@ class SonyLIVIE(InfoExtractor):
             'timestamp': 1586632091,
             'duration': 185,
             'season_number': 1,
-            'episode': 'Achaari Cheese Toast',
+            'series': 'Bachelors Delight',
             'episode_number': 1,
             'release_year': 2016,
         },
@@ -92,10 +92,7 @@ class SonyLIVIE(InfoExtractor):
 
         metadata = self._call_api(
             '1.6', 'IN/DETAIL/' + video_id, video_id)['containers'][0]['metadata']
-        title = metadata['title']
-        episode = metadata.get('episodeTitle')
-        if episode and title != episode:
-            title += ' - ' + episode
+        title = metadata['episodeTitle']
 
         return {
             'id': video_id,
@@ -106,7 +103,7 @@ class SonyLIVIE(InfoExtractor):
             'timestamp': int_or_none(metadata.get('creationDate'), 1000),
             'duration': int_or_none(metadata.get('duration')),
             'season_number': int_or_none(metadata.get('season')),
-            'episode': episode,
+            'series': metadata.get('title'),
             'episode_number': int_or_none(metadata.get('episodeNumber')),
             'release_year': int_or_none(metadata.get('year')),
         }
