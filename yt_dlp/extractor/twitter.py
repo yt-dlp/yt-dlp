@@ -19,6 +19,7 @@ from ..utils import (
     strip_or_none,
     unified_timestamp,
     update_url_query,
+    url_or_none,
     xpath_text,
 )
 
@@ -52,6 +53,9 @@ class TwitterBaseIE(InfoExtractor):
             return [f], {}
 
     def _extract_formats_from_vmap_url(self, vmap_url, video_id):
+        vmap_url = url_or_none(vmap_url)
+        if not vmap_url:
+            return []
         vmap_data = self._download_xml(vmap_url, video_id)
         formats = []
         subtitles = {}

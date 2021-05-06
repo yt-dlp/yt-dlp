@@ -58,6 +58,7 @@ class XFileShareIE(InfoExtractor):
         (r'vidlocker\.xyz', 'VidLocker'),
         (r'vidshare\.tv', 'VidShare'),
         (r'vup\.to', 'VUp'),
+        (r'wolfstream\.tv', 'WolfStream'),
         (r'xvideosharing\.com', 'XVideoSharing'),
     )
 
@@ -81,6 +82,9 @@ class XFileShareIE(InfoExtractor):
         },
     }, {
         'url': 'https://aparat.cam/n4d6dh0wvlpr',
+        'only_matching': True,
+    }, {
+        'url': 'https://wolfstream.tv/nthme29v9u2x',
         'only_matching': True,
     }]
 

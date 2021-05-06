@@ -11,6 +11,7 @@ from ..utils import (
     parse_duration,
     sanitized_Request,
     str_to_int,
+    url_or_none,
 )
 
 
@@ -71,10 +72,10 @@ class XTubeIE(InfoExtractor):
                 'Cookie': 'age_verified=1; cookiesAccepted=1',
             })
 
-        title, thumbnail, duration = [None] * 3
+        title, thumbnail, duration, sources, media_definition = [None] * 5
 
         config = self._parse_json(self._search_regex(
-            r'playerConf\s*=\s*({.+?})\s*,\s*(?:\n|loaderConf)', webpage, 'config',
+            r'playerConf\s*=\s*({.+?})\s*,\s*(?:\n|loaderConf|playerWrapper)', webpage, 'config',
             default='{}'), video_id, transform_source=js_to_json, fatal=False)
         if config:
             config = config.get('mainRoll')
@@ -83,20 +84,52 @@ class XTubeIE(InfoExtractor):
                 thumbnail = config.get('poster')
                 duration = int_or_none(config.get('duration'))
                 sources = config.get('sources') or config.get('format')
+                media_definition = config.get('mediaDefinition')
 
-        if not isinstance(sources, dict):
+        if not isinstance(sources, dict) and not media_definition:
             sources = self._parse_json(self._search_regex(
                 r'(["\'])?sources\1?\s*:\s*(?P<sources>{.+?}),',
                 webpage, 'sources', group='sources'), video_id,
                 transform_source=js_to_json)
 
         formats = []
-        for format_id, format_url in sources.items():
-            formats.append({
-                'url': format_url,
-                'format_id': format_id,
-                'height': int_or_none(format_id),
-            })
+        format_urls = set()
+
+        if isinstance(sources, dict):
+            for format_id, format_url in sources.items():
+                format_url = url_or_none(format_url)
+                if not format_url:
+                    continue
+                if format_url in format_urls:
+                    continue
+                format_urls.add(format_url)
+                formats.append({
+                    'url': format_url,
+                    'format_id': format_id,
+                    'height': int_or_none(format_id),
+                })
+
+        if isinstance(media_definition, list):
+            for media in media_definition:
+                video_url = url_or_none(media.get('videoUrl'))
+                if not video_url:
+                    continue
+                if video_url in format_urls:
+                    continue
+                format_urls.add(video_url)
+                format_id = media.get('format')
+                if format_id == 'hls':
+                    formats.extend(self._extract_m3u8_formats(
+                        video_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                        m3u8_id='hls', fatal=False))
+                elif format_id == 'mp4':
+                    height = int_or_none(media.get('quality'))
+                    formats.append({
+                        'url': video_url,
+                        'format_id': '%s-%d' % (format_id, height) if height else format_id,
+                        'height': height,
+                    })
+
         self._remove_duplicate_formats(formats)
         self._sort_formats(formats)
 

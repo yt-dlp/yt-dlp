@@ -16,7 +16,7 @@ from ..utils import (
 
 
 class FunimationIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?funimation(?:\.com|now\.uk)/shows/[^/]+/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?funimation(?:\.com|now\.uk)/(?:[^/]+/)?shows/[^/]+/(?P<id>[^/?#&]+)'
 
     _NETRC_MACHINE = 'funimation'
     _TOKEN = None
@@ -50,6 +50,10 @@ class FunimationIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.funimationnow.uk/shows/puzzle-dragons-x/drop-impact/simulcast/',
+        'only_matching': True,
+    }, {
+        # with lang code
+        'url': 'https://www.funimation.com/en/shows/hacksign/role-play/',
         'only_matching': True,
     }]
 

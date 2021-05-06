@@ -74,6 +74,12 @@ class TV2DKIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         entries = []
+
+        def add_entry(partner_id, kaltura_id):
+            entries.append(self.url_result(
+                'kaltura:%s:%s' % (partner_id, kaltura_id), 'Kaltura',
+                video_id=kaltura_id))
+
         for video_el in re.findall(r'(?s)<[^>]+\bdata-entryid\s*=[^>]*>', webpage):
             video = extract_attributes(video_el)
             kaltura_id = video.get('data-entryid')
@@ -82,9 +88,14 @@ class TV2DKIE(InfoExtractor):
             partner_id = video.get('data-partnerid')
             if not partner_id:
                 continue
-            entries.append(self.url_result(
-                'kaltura:%s:%s' % (partner_id, kaltura_id), 'Kaltura',
-                video_id=kaltura_id))
+            add_entry(partner_id, kaltura_id)
+        if not entries:
+            kaltura_id = self._search_regex(
+                r'entry_id\s*:\s*["\']([0-9a-z_]+)', webpage, 'kaltura id')
+            partner_id = self._search_regex(
+                (r'\\u002Fp\\u002F(\d+)\\u002F', r'/p/(\d+)/'), webpage,
+                'partner id')
+            add_entry(partner_id, kaltura_id)
         return self.playlist_result(entries)
 
 

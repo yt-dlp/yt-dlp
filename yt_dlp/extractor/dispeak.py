@@ -32,6 +32,18 @@ class DigitallySpeakingIE(InfoExtractor):
         # From http://www.gdcvault.com/play/1013700/Advanced-Material
         'url': 'http://sevt.dispeak.com/ubm/gdc/eur10/xml/11256_1282118587281VNIT.xml',
         'only_matching': True,
+    }, {
+        # From https://gdcvault.com/play/1016624, empty speakerVideo
+        'url': 'https://sevt.dispeak.com/ubm/gdc/online12/xml/201210-822101_1349794556671DDDD.xml',
+        'info_dict': {
+            'id': '201210-822101_1349794556671DDDD',
+            'ext': 'flv',
+            'title': 'Pre-launch - Preparing to Take the Plunge',
+        },
+    }, {
+        # From http://www.gdcvault.com/play/1014846/Conference-Keynote-Shigeru, empty slideVideo
+        'url': 'http://events.digitallyspeaking.com/gdc/project25/xml/p25-miyamoto1999_1282467389849HSVB.xml',
+        'only_matching': True,
     }]
 
     def _parse_mp4(self, metadata):
@@ -85,25 +97,19 @@ class DigitallySpeakingIE(InfoExtractor):
                 'quality': 1,
                 'format_id': audio.get('code'),
             })
-        slide_video_path = xpath_text(metadata, './slideVideo', fatal=True)
-        formats.append({
-            'url': 'rtmp://%s/ondemand?ovpfv=1.1' % akamai_url,
-            'play_path': remove_end(slide_video_path, '.flv'),
-            'ext': 'flv',
-            'format_note': 'slide deck video',
-            'quality': -2,
-            'format_id': 'slides',
-            'acodec': 'none',
-        })
-        speaker_video_path = xpath_text(metadata, './speakerVideo', fatal=True)
-        formats.append({
-            'url': 'rtmp://%s/ondemand?ovpfv=1.1' % akamai_url,
-            'play_path': remove_end(speaker_video_path, '.flv'),
-            'ext': 'flv',
-            'format_note': 'speaker video',
-            'quality': -1,
-            'format_id': 'speaker',
-        })
+        for video_key, format_id, preference in (
+                ('slide', 'slides', -2), ('speaker', 'speaker', -1)):
+            video_path = xpath_text(metadata, './%sVideo' % video_key)
+            if not video_path:
+                continue
+            formats.append({
+                'url': 'rtmp://%s/ondemand?ovpfv=1.1' % akamai_url,
+                'play_path': remove_end(video_path, '.flv'),
+                'ext': 'flv',
+                'format_note': '%s video' % video_key,
+                'quality': preference,
+                'format_id': format_id,
+            })
         return formats
 
     def _real_extract(self, url):

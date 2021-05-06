@@ -41,11 +41,18 @@ jobs:
     - name: Install Jython
       if: ${{ matrix.python-impl == 'jython' }}
       run: |
-        wget http://search.maven.org/remotecontent?filepath=org/python/jython-installer/2.7.1/jython-installer-2.7.1.jar -O jython-installer.jar
+        wget https://repo1.maven.org/maven2/org/python/jython-installer/2.7.1/jython-installer-2.7.1.jar -O jython-installer.jar
         java -jar jython-installer.jar -s -d "$HOME/jython"
         echo "$HOME/jython/bin" >> $GITHUB_PATH
     - name: Install nose
+      if: ${{ matrix.python-impl != 'jython' }}
       run: pip install nose
+    - name: Install nose (Jython)
+      if: ${{ matrix.python-impl == 'jython' }}
+      # Working around deprecation of support for non-SNI clients at PyPI CDN (see https://status.python.org/incidents/hzmjhqsdjqgb)
+      run: |
+        wget https://files.pythonhosted.org/packages/99/4f/13fb671119e65c4dce97c60e67d3fd9e6f7f809f2b307e2611f4701205cb/nose-1.3.7-py2-none-any.whl
+        pip install nose-1.3.7-py2-none-any.whl
     - name: Run tests
       continue-on-error: ${{ matrix.ytdl-test-set == 'download' || matrix.python-impl == 'jython' }}
       env:

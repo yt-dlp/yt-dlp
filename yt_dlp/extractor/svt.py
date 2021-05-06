@@ -146,7 +146,7 @@ class SVTPlayIE(SVTPlayBaseIE):
                         )
                         (?P<svt_id>[^/?#&]+)|
                         https?://(?:www\.)?(?:svtplay|oppetarkiv)\.se/(?:video|klipp|kanaler)/(?P<id>[^/?#&]+)
-                        (?:.*?modalId=(?P<modal_id>[\da-zA-Z-]+))?
+                        (?:.*?(?:modalId|id)=(?P<modal_id>[\da-zA-Z-]+))?
                     )
                     '''
     _TESTS = [{
@@ -176,6 +176,9 @@ class SVTPlayIE(SVTPlayBaseIE):
         },
     }, {
         'url': 'https://www.svtplay.se/video/30479064/husdrommar/husdrommar-sasong-8-designdrommar-i-stenungsund?modalId=8zVbDPA',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.svtplay.se/video/30684086/rapport/rapport-24-apr-18-00-7?id=e72gVpa',
         'only_matching': True,
     }, {
         # geo restricted to Sweden
@@ -259,7 +262,7 @@ class SVTPlayIE(SVTPlayBaseIE):
         if not svt_id:
             svt_id = self._search_regex(
                 (r'<video[^>]+data-video-id=["\']([\da-zA-Z-]+)',
-                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/%s/[^"\']*\bmodalId=([\da-zA-Z-]+)' % re.escape(video_id),
+                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/%s/[^"\']*\b(?:modalId|id)=([\da-zA-Z-]+)' % re.escape(video_id),
                  r'["\']videoSvtId["\']\s*:\s*["\']([\da-zA-Z-]+)',
                  r'["\']videoSvtId\\?["\']\s*:\s*\\?["\']([\da-zA-Z-]+)',
                  r'"content"\s*:\s*{.*?"id"\s*:\s*"([\da-zA-Z-]+)"',
