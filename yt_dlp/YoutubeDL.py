@@ -1336,7 +1336,7 @@ class YoutubeDL(object):
                 'playlist_title': ie_result.get('title'),
                 'playlist_uploader': ie_result.get('uploader'),
                 'playlist_uploader_id': ie_result.get('uploader_id'),
-                'playlist_index': 0
+                'playlist_index': 0,
             }
             ie_copy.update(dict(ie_result))
 
@@ -1370,6 +1370,11 @@ class YoutubeDL(object):
                         self.report_error('Cannot write playlist description file ' + descfn)
                         return
 
+        # Save playlist_index before re-ordering
+        entries = [
+            ((playlistitems[i - 1] if playlistitems else i), entry)
+            for i, entry in enumerate(entries, 1)]
+
         if self.params.get('playlistreverse', False):
             entries = entries[::-1]
         if self.params.get('playlistrandom', False):
@@ -1380,7 +1385,8 @@ class YoutubeDL(object):
         self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg))
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
-        for i, entry in enumerate(entries, 1):
+        for i, entry_tuple in enumerate(entries, 1):
+            playlist_index, entry = entry_tuple
             self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes
@@ -1389,12 +1395,13 @@ class YoutubeDL(object):
             extra = {
                 'n_entries': n_entries,
                 '_last_playlist_index': max(playlistitems) if playlistitems else (playlistend or n_entries),
+                'playlist_index': playlist_index,
+                'playlist_autonumber': i,
                 'playlist': playlist,
                 'playlist_id': ie_result.get('id'),
                 'playlist_title': ie_result.get('title'),
                 'playlist_uploader': ie_result.get('uploader'),
                 'playlist_uploader_id': ie_result.get('uploader_id'),
-                'playlist_index': playlistitems[i - 1] if playlistitems else i,
                 'extractor': ie_result['extractor'],
                 'webpage_url': ie_result['webpage_url'],
                 'webpage_url_basename': url_basename(ie_result['webpage_url']),
