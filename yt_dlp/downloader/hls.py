@@ -387,6 +387,7 @@ class HlsFD(FragmentFD):
                     return output.getvalue().encode('utf-8')
 
             def append_fragment(frag_content, frag_index):
+                fatal = frag_index == 1 or not skip_unavailable_fragments
                 if frag_content:
                     fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
                     try:
@@ -400,7 +401,7 @@ class HlsFD(FragmentFD):
                         if ose.errno != errno.ENOENT:
                             raise
                         # FileNotFoundError
-                        if skip_unavailable_fragments:
+                        if not fatal:
                             self.report_skip_fragment(frag_index)
                             return True
                         else:
@@ -409,7 +410,7 @@ class HlsFD(FragmentFD):
                                 'fragment %s not found, unable to continue' % frag_index)
                             return False
                 else:
-                    if skip_unavailable_fragments:
+                    if not fatal:
                         self.report_skip_fragment(frag_index)
                         return True
                     else:
