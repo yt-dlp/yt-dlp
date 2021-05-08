@@ -111,9 +111,11 @@ yt-dlp is not platform specific. So it should work on your Unix box, on Windows 
 
 You can install yt-dlp using one of the following methods:
 * Download the binary from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest) (recommended method)
-* Use [PyPI package](https://pypi.org/project/yt-dlp): `python -m pip install --upgrade yt-dlp`
-* Use pip+git: `python -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
-* Install master branch: `python -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp`
+* Use [PyPI package](https://pypi.org/project/yt-dlp): `python3 -m pip install --upgrade yt-dlp`
+* Use pip+git: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
+* Install master branch: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp`
+
+Note that on some systems, you may need to use `py` or `python` instead of `python3`
 
 UNIX users (Linux, macOS, BSD) can also install the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest) one of the following ways:
 
@@ -133,7 +135,7 @@ sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
 
 ### DEPENDENCIES
-Python versions 2.6, 2.7, or 3.2+ are currently supported. However, 3.2+ is strongly recommended and python2 support will be deprecated in the future.
+Python versions 3.6+ (CPython and PyPy) are officially supported. Other versions and implementations may or maynot work correctly.
 
 Although there are no required dependencies, `ffmpeg` and `ffprobe` are highly recommended. Other optional dependencies are `sponskrub`, `AtomicParsley`, `mutagen`, `pycryptodome` and any of the supported external downloaders. Note that the windows releases are already built with the python interpreter, mutagen and pycryptodome included.
 
@@ -146,9 +148,9 @@ If you are using `pip`, simply re-run the same command that was used to install 
 **For Windows**:
 To build the Windows executable, you must have pyinstaller (and optionally mutagen and pycryptodome)
 
-    python -m pip install --upgrade pyinstaller mutagen pycryptodome
+    python3 -m pip install --upgrade pyinstaller mutagen pycryptodome
 
-Once you have all the necessary dependencies installed, just run `py pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it. It is strongly recommended to use python3 although python2.6+ is supported.
+Once you have all the necessary dependencies installed, just run `py pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
 
 You can also build the executable without any version info or metadata by using:
 
