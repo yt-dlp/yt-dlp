@@ -12,15 +12,15 @@ except ImportError:
 
 if not _LAZY_LOADER:
     from .extractors import *
-
-    _PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
-
     _ALL_CLASSES = [
         klass
         for name, klass in globals().items()
         if name.endswith('IE') and name != 'GenericIE'
     ]
     _ALL_CLASSES.append(GenericIE)
+
+    _PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
+    _ALL_CLASSES = _PLUGIN_CLASSES + _ALL_CLASSES
 
 
 def gen_extractor_classes():

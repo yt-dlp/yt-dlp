@@ -6081,7 +6081,7 @@ def get_executable_path():
     return os.path.abspath(path)
 
 
-def load_plugins(name, type, namespace):
+def load_plugins(name, suffix, namespace):
     plugin_info = [None]
     classes = []
     try:
@@ -6089,7 +6089,9 @@ def load_plugins(name, type, namespace):
             name, [os.path.join(get_executable_path(), 'ytdlp_plugins')])
         plugins = imp.load_module(name, *plugin_info)
         for name in dir(plugins):
-            if not name.endswith(type):
+            if name in namespace:
+                continue
+            if not name.endswith(suffix):
                 continue
             klass = getattr(plugins, name)
             classes.append(klass)
