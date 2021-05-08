@@ -129,16 +129,12 @@ def _real_main(argv=None):
         parser.error('account username missing\n')
     if opts.ap_password is not None and opts.ap_username is None:
         parser.error('TV Provider account username missing\n')
-    if opts.outtmpl is not None and (opts.usetitle or opts.autonumber or opts.useid):
-        parser.error('using output template conflicts with using title, video ID or auto number')
     if opts.autonumber_size is not None:
         if opts.autonumber_size <= 0:
             parser.error('auto number size must be positive')
     if opts.autonumber_start is not None:
         if opts.autonumber_start < 0:
             parser.error('auto number start must be positive or 0')
-    if opts.usetitle and opts.useid:
-        parser.error('using title conflicts with using video ID')
     if opts.username is not None and opts.password is None:
         opts.password = compat_getpass('Type account password and press [Return]: ')
     if opts.ap_username is not None and opts.ap_password is None:
@@ -178,8 +174,7 @@ def _real_main(argv=None):
             parser.error('requests sleep interval must be positive or 0')
     if opts.ap_mso and opts.ap_mso not in MSO_INFO:
         parser.error('Unsupported TV Provider, use --ap-list-mso to get a list of supported TV Providers')
-    if opts.overwrites:
-        # --yes-overwrites implies --no-continue
+    if opts.overwrites:  # --yes-overwrites implies --no-continue
         opts.continue_dl = False
     if opts.concurrent_fragment_downloads <= 0:
         raise ValueError('Concurrent fragments must be positive')
@@ -244,17 +239,7 @@ def _real_main(argv=None):
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'
 
-    outtmpl = opts.outtmpl
-    if not outtmpl:
-        outtmpl = {'default': (
-            '%(title)s-%(id)s-%(format)s.%(ext)s' if opts.format == '-1' and opts.usetitle
-            else '%(id)s-%(format)s.%(ext)s' if opts.format == '-1'
-            else '%(autonumber)s-%(title)s-%(id)s.%(ext)s' if opts.usetitle and opts.autonumber
-            else '%(title)s-%(id)s.%(ext)s' if opts.usetitle
-            else '%(id)s.%(ext)s' if opts.useid
-            else '%(autonumber)s-%(id)s.%(ext)s' if opts.autonumber
-            else None)}
-    outtmpl_default = outtmpl.get('default')
+    outtmpl_default = opts.outtmpl.get('default')
     if outtmpl_default is not None and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
         parser.error('Cannot download a video and extract audio into the same'
                      ' file! Use "{0}.%(ext)s" instead of "{0}" as the output'
@@ -474,7 +459,7 @@ def _real_main(argv=None):
         'check_formats': opts.check_formats,
         'listformats': opts.listformats,
         'listformats_table': opts.listformats_table,
-        'outtmpl': outtmpl,
+        'outtmpl': opts.outtmpl,
         'outtmpl_na_placeholder': opts.outtmpl_na_placeholder,
         'paths': opts.paths,
         'autonumber_size': opts.autonumber_size,
@@ -593,6 +578,7 @@ def _real_main(argv=None):
         'warnings': warnings,
         'autonumber': opts.autonumber or None,
         'usetitle': opts.usetitle or None,
+        'useid': opts.useid or None,
     }
 
     with YoutubeDL(ydl_opts) as ydl:

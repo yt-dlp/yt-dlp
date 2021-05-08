@@ -937,15 +937,15 @@ def parseOpts(overrideArguments=None):
         dest='trim_file_name', default=0, type=int,
         help='Limit the filename length (excluding extension) to the specified number of characters')
     filesystem.add_option(
-        '-A', '--auto-number',
+        '--auto-number',
         action='store_true', dest='autonumber', default=False,
         help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
-        '-t', '--title',
+        '--title',
         action='store_true', dest='usetitle', default=False,
         help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
-        '-l', '--literal', default=False,
+        '--literal', default=False,
         action='store_true', dest='usetitle',
         help=optparse.SUPPRESS_HELP)
     filesystem.add_option(

@@ -1317,14 +1317,14 @@ These options may no longer work as intended
     --include-ads                    No longer supported
     --no-include-ads                 Default
     --youtube-print-sig-code         No longer supported
+
+#### Removed
+These options were deprecated since 2014 and have now been entirely removed
+
     --id                             -o "%(id)s.%(ext)s"
     -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
     -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
     -l, --literal                    -o accepts literal names
-
-#### Removed
-Currently, there are no options that have been completely removed. But there are plans to remove the old output options `-A`,`-t`, `-l`, `--id` (which have been deprecated since 2014) in the near future. If you are still using these, please move to using `--output` instead
-
 
 
 # MORE
