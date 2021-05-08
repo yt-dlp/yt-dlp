@@ -66,9 +66,9 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl v2021.04.17**: You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl [commit/a726009](https://github.com/ytdl-org/youtube-dl/commit/a7260099873acc6dc7d76cafad2f6b139087afd0)**: (v2021.04.26) You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
-* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, Playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
+* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--get-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
 * **Youtube improvements**:
     * All Youtube Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) works and supports downloading multiple pages of content
@@ -82,17 +82,21 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula
+* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow
 
-* **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu
+* **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi
+
+* **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [be6202f12b97858b9d716e608394b51065d0419f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
 * **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to using `--paths` (`-P`)
 
 * **Portable Configuration**: Configuration files are automatically loaded from the home and root directories. See [configuration](#configuration) for details
 
-* **Other new options**: `--parse-metadata`, `--list-formats-as-table`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+* **Output template improvements**: Output templates can now have date-time formatting, numeric offsets, object traversal etc. See [output template](#output-template) for details. Even more advanced operations can also be done with the help of `--parse-metadata`
 
-* **Improvements**: Multiple `--postprocessor-args` and `--external-downloader-args`, Date/time formatting in `-o`, faster archive checking, more [format selection options](#format-selection) etc
+* **Other new options**: `--sleep-requests`, `--convert-thumbnails`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+
+* **Improvements**: Multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection) etc
 
 * **Plugin extractors**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
 
@@ -161,7 +165,9 @@ sudo chmod a+rx /usr/local/bin/yt-dlp
 ### DEPENDENCIES
 Python versions 3.6+ (CPython and PyPy) are officially supported. Other versions and implementations may or maynot work correctly.
 
-Although there are no required dependencies, `ffmpeg` and `ffprobe` are highly recommended. Other optional dependencies are `sponskrub`, `AtomicParsley`, `mutagen`, `pycryptodome` and any of the supported external downloaders. Note that the windows releases are already built with the python interpreter, mutagen and pycryptodome included.
+On windows, [Microsoft Visual C++ 2010 Redistributable Package (x86)](https://www.microsoft.com/en-us/download/details.aspx?id=26999) is also necessary to run yt-dlp. You probably already have this, but if the executable throws an error due to missing `MSVCR100.dll` you need to install it.
+
+Although there are no other required dependencies, `ffmpeg` and `ffprobe` are highly recommended. Other optional dependencies are `sponskrub`, `AtomicParsley`, `mutagen`, `pycryptodome` and any of the supported external downloaders. Note that the windows releases are already built with the python interpreter, mutagen and pycryptodome included.
 
 ### UPDATE
 You can use `yt-dlp -U` to update if you are using the provided release.
@@ -179,6 +185,8 @@ Once you have all the necessary dependencies installed, just run `py pyinst.py`.
 You can also build the executable without any version info or metadata by using:
 
     pyinstaller.exe yt_dlp\__main__.py --onefile --name yt-dlp
+    
+Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment
 
 **For Unix**:
 You will need the required build tools: `python`, `make` (GNU), `pandoc`, `zip`, `nosetests`  

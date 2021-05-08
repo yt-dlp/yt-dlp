@@ -19,6 +19,61 @@
 -->
 
 
+### 2021.05.11
+
+* **Deprecate support for python versions < 3.6**
+* **Subtitle extraction from manifests** by [fstirlitz](https://github.com/fstirlitz). See [be6202f12b97858b9d716e608394b51065d0419f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
+* **Improve output template:**
+    * Allow slicing lists/strings using `field.start:end:step`
+    * A field can also be used as offset like `field1+num+field2`
+    * A default value can be given using `field|default`
+    * Prevent invalid fields from causing errors
+* Merge youtube-dl: Upto [commit/a726009](https://github.com/ytdl-org/youtube-dl/commit/a7260099873acc6dc7d76cafad2f6b139087afd0)
+* **Remove options** `-l`, `-t`, `-A` completely and disable `--auto-number`, `--title`, `--literal`, `--id`
+* [Plugins] Prioritize plugins over standard extractors and prevent plugins from overwriting the standard extractor classes
+* [downloader] Fix `quiet` and `to_stderr`
+* [fragment] Ensure the file is closed on error
+* [fragment] Make sure first segment is not skipped
+* [aria2c] Fix whitespace being stripped off
+* [embedthumbnail] Fix bug where jpeg thumbnails were converted again
+* [FormatSort] Fix for when some formats have quality and others don't
+* [utils] Add `network_exceptions`
+* [utils] Escape URL while sanitizing
+* [ukcolumn] Add Extractor
+* [whowatch] Add extractor by [nao20010128nao](https://github.com/nao20010128nao)
+* [CBS] Improve `_VALID_URL` to support movies
+* [crackle] Improve extraction
+* [curiositystream] Fix collections
+* [francetvinfo] Improve video id extraction
+* [generic] Respect the encoding in manifest
+* [limelight] Obey `allow_unplayable_formats`
+* [mediasite] Generalize URL pattern by [fstirlitz](https://github.com/fstirlitz)
+* [mxplayer] Add MxplayerShowIE by [Ashish0804](https://github.com/Ashish0804)
+* [nebula] Move to nebula.app by [Lamieur](https://github.com/Lamieur)
+* [niconico] Fix HLS formats by [CXwudi](https://github.com/CXwudi), [tsukumijima](https://github.com/tsukumijima), [nao20010128nao](https://github.com/nao20010128nao) and [pukkandan](https://github.com/pukkandan)
+* [niconico] Fix title and thumbnail extraction by [CXwudi](https://github.com/CXwudi)
+* [plutotv] Extract subtitles from manifests
+* [plutotv] Fix format extraction for some urls
+* [rmcdecouverte] Improve `_VALID_URL`
+* [sonyliv] Fix `title` and `series` extraction by [Ashish0804](https://github.com/Ashish0804)
+* [tubi] Raise "no video formats" error when video url is empty
+* [youtube:tab] Detect playlists inside community posts
+* [youtube] Add `oembed` to reserved names
+* [zee5] Fix extraction for some URLs by [Hadi0609](https://github.com/Hadi0609)
+* [zee5] Fix py2 compatibility
+* Fix `playlist_index` and add `playlist_autonumber`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details
+* Add experimental option `--check-formats` to test the URLs before format selection
+* Option `--compat-options` to revert some of yt-dlp's changes
+    * Deprecates `--list-formats-as-table`, `--list-formats-old`
+* Fix number of digits in `%(playlist_index)s`
+* Fix case sensitivity of format selector
+* Revert "[core] be able to hand over id and title using url_result"
+* Do not strip out whitespaces in `-o` and `-P`
+* Fix `preload_download_archive` writing verbose message to `stdout`
+* Move option warnings to `YoutubeDL`so that they obey `--no-warnings` and can output colors
+* Py2 compatibility for `FileNotFoundError`
+
+
 ### 2021.04.22
 * **Improve output template:**
     * Objects can be traversed like `%(field.key1.key2)s`

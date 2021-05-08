@@ -130,7 +130,6 @@
  - **bitwave:stream**
  - **BleacherReport**
  - **BleacherReportCMS**
- - **blinkx**
  - **Bloomberg**
  - **BokeCC**
  - **BongaCams**
@@ -225,7 +224,8 @@
  - **Culturebox**
  - **CultureUnplugged**
  - **curiositystream**
- - **curiositystream:collection**
+ - **curiositystream:collections**
+ - **curiositystream:series**
  - **CWTV**
  - **DagelijkseKost**: dagelijksekost.een.be
  - **DailyMail**
@@ -584,6 +584,7 @@
  - **Mwave**
  - **MwaveMeetGreet**
  - **Mxplayer**
+ - **MxplayerShow**
  - **MyChannels**
  - **MySpace**
  - **MySpace:album**
@@ -1076,6 +1077,7 @@
  - **UDNEmbed**: 聯合影音
  - **UFCArabia**
  - **UFCTV**
+ - **ukcolumn**
  - **UKTVPlay**
  - **umg:de**: Universal Music Deutschland
  - **Unistra**
@@ -1194,6 +1196,7 @@
  - **Weibo**
  - **WeiboMobile**
  - **WeiqiTV**: WQTV
+ - **whowatch**
  - **WimTV**
  - **Wistia**
  - **WistiaPlaylist**
@@ -1204,7 +1207,7 @@
  - **WWE**
  - **XBef**
  - **XboxClips**
- - **XFileShare**: XFileShare based sites: Aparat, ClipWatching, GoUnlimited, GoVid, HolaVid, Streamty, TheVideoBee, Uqload, VidBom, vidlo, VidLocker, VidShare, VUp, XVideoSharing
+ - **XFileShare**: XFileShare based sites: Aparat, ClipWatching, GoUnlimited, GoVid, HolaVid, Streamty, TheVideoBee, Uqload, VidBom, vidlo, VidLocker, VidShare, VUp, WolfStream, XVideoSharing
  - **XHamster**
  - **XHamsterEmbed**
  - **XHamsterUser**
