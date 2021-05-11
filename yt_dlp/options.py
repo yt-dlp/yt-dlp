@@ -165,7 +165,7 @@ def parseOpts(overrideArguments=None):
         help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
     general.add_option(
         '-i', '--ignore-errors', '--no-abort-on-error',
-        action='store_true', dest='ignoreerrors', default=True,
+        action='store_true', dest='ignoreerrors', default=None,
         help='Continue on download errors, for example to skip unavailable videos in a playlist (default) (Alias: --no-abort-on-error)')
     general.add_option(
         '--abort-on-error', '--no-ignore-errors',
@@ -229,6 +229,14 @@ def parseOpts(overrideArguments=None):
         '--no-colors',
         action='store_true', dest='no_color', default=False,
         help='Do not emit color codes in output')
+    general.add_option(
+        '--compat-options',
+        metavar='OPTS', dest='compat_opts', default=[],
+        action='callback', callback=_comma_separated_values_options_callback, type='str',
+        help=(
+            'Options that can help keep compatibility with youtube-dl and youtube-dlc '
+            'configurations by reverting some of the changes made in yt-dlp. '
+            'See "Differences in default behavior" for details'))
 
     network = optparse.OptionGroup(parser, 'Network Options')
     network.add_option(
@@ -474,7 +482,7 @@ def parseOpts(overrideArguments=None):
             'see "Sorting Formats" for more details'))
     video_format.add_option(
         '--video-multistreams',
-        action='store_true', dest='allow_multiple_video_streams', default=False,
+        action='store_true', dest='allow_multiple_video_streams', default=None,
         help='Allow multiple video streams to be merged into a single file')
     video_format.add_option(
         '--no-video-multistreams',
@@ -482,7 +490,7 @@ def parseOpts(overrideArguments=None):
         help='Only one video stream is downloaded for each output file (default)')
     video_format.add_option(
         '--audio-multistreams',
-        action='store_true', dest='allow_multiple_audio_streams', default=False,
+        action='store_true', dest='allow_multiple_audio_streams', default=None,
         help='Allow multiple audio streams to be merged into a single file')
     video_format.add_option(
         '--no-audio-multistreams',
@@ -513,11 +521,11 @@ def parseOpts(overrideArguments=None):
     video_format.add_option(
         '--list-formats-as-table',
         action='store_true', dest='listformats_table', default=True,
-        help='Present the output of -F in tabular form (default)')
+        help=optparse.SUPPRESS_HELP)
     video_format.add_option(
         '--list-formats-old', '--no-list-formats-as-table',
         action='store_false', dest='listformats_table',
-        help='Present the output of -F in the old form (Alias: --no-list-formats-as-table)')
+        help=optparse.SUPPRESS_HELP)
     video_format.add_option(
         '--merge-output-format',
         action='store', dest='merge_output_format', metavar='FORMAT', default=None,
@@ -1012,7 +1020,7 @@ def parseOpts(overrideArguments=None):
         help='Do not write video annotations (default)')
     filesystem.add_option(
         '--write-playlist-metafiles',
-        action='store_true', dest='allow_playlist_files', default=True,
+        action='store_true', dest='allow_playlist_files', default=None,
         help=(
             'Write playlist metadata in addition to the video metadata '
             'when using --write-info-json, --write-description etc. (default)'))

@@ -557,6 +557,10 @@ class InfoExtractor(object):
                     ie_result = self._real_extract(url)
                     if self._x_forwarded_for_ip:
                         ie_result['__x_forwarded_for_ip'] = self._x_forwarded_for_ip
+                    subtitles = ie_result.get('subtitles')
+                    if (subtitles and 'live_chat' in subtitles
+                            and 'no-live-chat' in self._downloader.params.get('compat_opts')):
+                        del subtitles['live_chat']
                     return ie_result
                 except GeoRestrictedError as e:
                     if self.__maybe_fake_ip_and_retry(e.countries):
@@ -1415,7 +1419,10 @@ class InfoExtractor(object):
 
         default = ('hidden', 'hasvid', 'ie_pref', 'lang', 'quality',
                    'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
-                   'proto', 'ext', 'has_audio', 'source', 'format_id')  # These must not be aliases
+                   'proto', 'ext', 'hasaud', 'source', 'format_id')  # These must not be aliases
+        ytdl_default = ('hasaud', 'quality', 'tbr', 'filesize', 'vbr',
+                        'height', 'width', 'proto', 'vext', 'abr', 'aext',
+                        'fps', 'fs_approx', 'source', 'format_id')
 
         settings = {
             'vcodec': {'type': 'ordered', 'regex': True,

@@ -3481,11 +3481,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
             compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
+        compat_opts = self._downloader.params.get('compat_opts', [])
 
         # This is not matched in a channel page with a tab selected
         mobj = re.match(r'(?P<pre>%s)(?P<post>/?(?![^#?]).*$)' % self._VALID_URL, url)
         mobj = mobj.groupdict() if mobj else {}
-        if mobj and not mobj.get('not_channel'):
+        if mobj and not mobj.get('not_channel') and 'no-youtube-channel-redirect' not in compat_opts:
             self.report_warning(
                 'A channel/user page was given. All the channel\'s videos will be downloaded. '
                 'To download only the videos in the home page, add a "/featured" to the URL')
@@ -3513,7 +3514,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         webpage, data = self._extract_webpage(url, item_id)
 
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
-        data = self._reload_with_unavailable_videos(item_id, data, webpage) or data
+        if 'no-youtube-unavailable-videos' not in compat_opts:
+            data = self._reload_with_unavailable_videos(item_id, data, webpage) or data
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)

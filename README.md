@@ -20,6 +20,7 @@ A command-line program to download videos from YouTube and many other [video pla
 yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc). The main focus of this project is adding new features and patches while also keeping up to date with the original project
 
 * [NEW FEATURES](#new-features)
+    * [Differences in default behavior](#differences-in-default-behavior)
 * [INSTALLATION](#installation)
     * [Dependencies](#dependencies)
     * [Update](#update)
@@ -104,6 +105,29 @@ See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/comm
 **PS**: Some of these changes are already in youtube-dlc, but are still unreleased. See [this](Changelog.md#unreleased-changes-in-blackjack4494yt-dlc) for details
 
 If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the amount of changes are very large. Compare [options](#options) and [supported sites](supportedsites.md) with youtube-dl's to get an idea of the massive number of features/patches [youtube-dlc](https://github.com/blackjack4494/yt-dlc) has accumulated.
+
+### Differences in default behavior
+
+Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc.
+
+1. The options `--id`, `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
+1. `avconv` is not supported as as an alternative to `ffmpeg`
+1. The default [output template](#output-template) is `%(title)s [%(id)s].%(ext)s`. There is no real reason for this change. This was changed before yt-dlp was ever made public and now there are no plans to change it back to `%(title)s.%(id)s.%(ext)s`. Instead, you may use `--compat-options filename`
+1. The default [format sorting](sorting-formats) is different from youtube-dl and prefers higher resolution and better codecs rather than higher bitrates. You can use the `--format-sort` option to change this to any order you prefer, or use `--compat-options format-sort` to use youtube-dl's sorting order
+1. The default format selector is `bv*+ba/b`. This means that if a combined video + audio format that is better than the best video-only format is found, the former will be prefered. Use `-f bv+ba/b` or `--compat-options format-spec` to revert this
+1. Unlike youtube-dlc, yt-dlp does not allow merging multiple audio/video streams into one file by default (since this conflicts with the use of `-f bv*+ba`). If needed, this feature must be enabled using `--audio-multistreams` and `--video-multistreams`. You can also use `--compat-options multistreams` to enable both
+1. `--ignore-errors` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
+1. When writing metadata files such as thumbnails, description or infojson, the same information (if available) is also written for playlists. Use `--no-write-playlist-metafiles` or `--compat-options no-playlist-metafiles` to not write these files
+1. `playlist_index` behaves differently when used with options like `--playlist-reverse` and `--playlist-items`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details. You can use `--compat-options playlist-index` if you want to keep the earlier behavior
+1. The output of `-F` is listed in a new format. Use `--compat-options list-formats` to revert this
+1. Youtube live chat (if available) is considered as a subtitle. Use `--sub-langs all,-live_chat` to download all subtitles except live chat. You can also use `--compat-options no-live-chat` to prevent live chat from downloading
+1. Youtube channel URLs are automatically redirected to `/video`. Either append a `/featured` to the URL or use `--compat-options no-youtube-channel-redirect` to download only the videos in the home page
+1. Unavailable videos are also listed for youtube playlists. Use `--compat-options no-youtube-unavailable-videos` to remove this
+
+For ease of use, a few more compat options are available:
+1. `--compat-options all` = Use all compat options
+1. `--compat-options youtube-dl` = `--compat-options all,-multistreams`
+1. `--compat-options youtube-dlc` = `--compat-options all,-no-live-chat,-no-youtube-channel-redirect`
 
 
 # INSTALLATION
@@ -212,6 +236,11 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --mark-watched                   Mark videos watched (YouTube only)
     --no-mark-watched                Do not mark videos watched (default)
     --no-colors                      Do not emit color codes in output
+    --compat-options OPTS            Options that can help keep compatibility
+                                     with youtube-dl and youtube-dlc
+                                     configurations by reverting some of the
+                                     changes made in yt-dlp. See "Differences in
+                                     default behavior" for details
 
 ## Network Options:
     --proxy URL                      Use the specified HTTP/HTTPS/SOCKS proxy.
@@ -583,10 +612,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      actually downloadable (Experimental)
     -F, --list-formats               List all available formats of requested
                                      videos
-    --list-formats-as-table          Present the output of -F in tabular form
-                                     (default)
-    --list-formats-old               Present the output of -F in the old form
-                                     (Alias: --no-list-formats-as-table)
     --merge-output-format FORMAT     If a merge is required (e.g.
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
@@ -1286,6 +1311,8 @@ While these options still work, their use is not recommended since there are oth
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"
     --hls-prefer-native              --downloader "m3u8:native"
     --hls-prefer-ffmpeg              --downloader "m3u8:ffmpeg"
+    --list-formats-old               --compat-options list-formats (Alias: --no-list-formats-as-table)
+    --list-formats-as-table          --compat-options -list-formats [Default] (Alias: --no-list-formats-old)
     --sponskrub-args ARGS            --ppa "sponskrub:ARGS"
     --test                           Used by developers for testing extractors. Not intended for the end user
 

@@ -385,6 +385,10 @@ class YoutubeDL(object):
                        Use the native HLS downloader instead of ffmpeg/avconv
                        if True, otherwise use ffmpeg/avconv if False, otherwise
                        use downloader suggested by extractor if None.
+    compat_opts:       Compatibility options. See "Differences in default behavior".
+                       Note that only format-sort, format-spec, no-live-chat,
+                       playlist-index, list-formats, no-youtube-channel-redirect
+                       and no-youtube-unavailable-videos works when used via the API
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
@@ -470,8 +474,7 @@ class YoutubeDL(object):
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
-                self.report_warning(
-                    '%s is deprecated. Use %s instead' % (option, suggestion))
+                self.report_warning('%s is deprecated. Use %s instead' % (option, suggestion))
                 return True
             return False
 
@@ -479,9 +482,9 @@ class YoutubeDL(object):
             if self.params.get('geo_verification_proxy') is None:
                 self.params['geo_verification_proxy'] = self.params['cn_verification_proxy']
 
-        check_deprecated('autonumber_size', '--autonumber-size', 'output template with %(autonumber)0Nd, where N in the number of digits')
         check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
         check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
+        check_deprecated('useid', '--id', '-o "%(id)s.%(ext)s"')
 
         for msg in self.params.get('warnings', []):
             self.report_warning(msg)
@@ -1401,6 +1404,8 @@ class YoutubeDL(object):
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
             playlist_index, entry = entry_tuple
+            if 'playlist_index' in self.params.get('compat_options', []):
+                playlist_index = playlistitems[i - 1] if playlistitems else i
             self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes
@@ -1519,12 +1524,14 @@ class YoutubeDL(object):
                 not can_merge()
                 or info_dict.get('is_live', False)
                 or self.outtmpl_dict['default'] == '-'))
+        compat = (
+            prefer_best
+            or self.params.get('allow_multiple_audio_streams', False)
+            or 'format-spec' in self.params.get('compat_opts', []))
 
         return (
-            'best/bestvideo+bestaudio'
-            if prefer_best
-            else 'bestvideo*+bestaudio/best'
-            if not self.params.get('allow_multiple_audio_streams', False)
+            'best/bestvideo+bestaudio' if prefer_best
+            else 'bestvideo*+bestaudio/best' if not compat
             else 'bestvideo+bestaudio/best')
 
     def build_format_selector(self, format_spec):
@@ -2913,7 +2920,9 @@ class YoutubeDL(object):
 
     def list_formats(self, info_dict):
         formats = info_dict.get('formats', [info_dict])
-        new_format = self.params.get('listformats_table', False)
+        new_format = (
+            'list-formats' not in self.params.get('compat_opts', [])
+            and self.params.get('list_formats_as_table', True) is not False)
         if new_format:
             table = [
                 [
@@ -3014,6 +3023,9 @@ class YoutubeDL(object):
         if _PLUGIN_CLASSES:
             self._write_string(
                 '[debug] Plugin Extractors: %s\n' % [ie.ie_key() for ie in _PLUGIN_CLASSES])
+        if self.params.get('compat_opts'):
+            self._write_string(
+                '[debug] Compatibility options: %s\n' % ', '.join(self.params.get('compat_opts')))
         try:
             sp = subprocess.Popen(
                 ['git', 'rev-parse', '--short', 'HEAD'],

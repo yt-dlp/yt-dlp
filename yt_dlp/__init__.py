@@ -235,11 +235,75 @@ def _real_main(argv=None):
     else:
         date = DateRange(opts.dateafter, opts.datebefore)
 
-    # Do not download videos when there are audio-only formats
+    def parse_compat_opts():
+        parsed_compat_opts, compat_opts = set(), opts.compat_opts[::-1]
+        while compat_opts:
+            actual_opt = opt = compat_opts.pop().lower()
+            if opt == 'youtube-dl':
+                compat_opts.extend(['-multistreams', 'all'])
+            elif opt == 'youtube-dlc':
+                compat_opts.extend(['-no-youtube-channel-redirect', '-no-live-chat', 'all'])
+            elif opt == 'all':
+                parsed_compat_opts.update(all_compat_opts)
+            elif opt == '-all':
+                parsed_compat_opts = set()
+            else:
+                if opt[0] == '-':
+                    opt = opt[1:]
+                    parsed_compat_opts.discard(opt)
+                else:
+                    parsed_compat_opts.update([opt])
+                if opt not in all_compat_opts:
+                    parser.error('Invalid compatibility option %s' % actual_opt)
+        return parsed_compat_opts
+
+    all_compat_opts = [
+        'filename', 'format-sort', 'abort-on-error', 'format-spec', 'multistreams',
+        'no-playlist-metafiles', 'no-live-chat', 'playlist-index', 'list-formats',
+        'no-youtube-channel-redirect', 'no-youtube-unavailable-videos',
+    ]
+    compat_opts = parse_compat_opts()
+
+    def _unused_compat_opt(name):
+        if name not in compat_opts:
+            return False
+        compat_opts.discard(name)
+        compat_opts.update(['*%s' % name])
+        return True
+
+    def set_default_compat(compat_name, opt_name, default=True, remove_compat=False):
+        attr = getattr(opts, opt_name)
+        if compat_name in compat_opts:
+            if attr is None:
+                setattr(opts, opt_name, not default)
+                return True
+            else:
+                if remove_compat:
+                    _unused_compat_opt(compat_name)
+                return False
+        elif attr is None:
+            setattr(opts, opt_name, default)
+        return None
+
+    set_default_compat('abort-on-error', 'ignoreerrors')
+    set_default_compat('no-playlist-metafiles', 'allow_playlist_files')
+    if 'format-sort' in compat_opts:
+        opts.format_sort.extend(InfoExtractor.FormatSort.ytdl_default)
+    _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
+    _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
+    if _video_multistreams_set is False and _audio_multistreams_set is False:
+        _unused_compat_opt('multistreams')
+    outtmpl_default = opts.outtmpl.get('default')
+    if 'filename' in compat_opts:
+        if outtmpl_default is None:
+            outtmpl_default = '%(title)s.%(id)s.%(ext)s'
+            opts.outtmpl.update({'default': outtmpl_default})
+        else:
+            _unused_compat_opt('filename')
+
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'
 
-    outtmpl_default = opts.outtmpl.get('default')
     if outtmpl_default is not None and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
         parser.error('Cannot download a video and extract audio into the same'
                      ' file! Use "{0}.%(ext)s" instead of "{0}" as the output'
@@ -574,8 +638,9 @@ def _real_main(argv=None):
         'geo_bypass': opts.geo_bypass,
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
-        # just for deprecation check
         'warnings': warnings,
+        'compat_opts': compat_opts,
+        # just for deprecation check
         'autonumber': opts.autonumber or None,
         'usetitle': opts.usetitle or None,
         'useid': opts.useid or None,
