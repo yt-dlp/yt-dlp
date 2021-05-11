@@ -178,6 +178,40 @@ class RTVEALaCartaIE(InfoExtractor):
             for s in subs)
 
 
+class RTVEAudioIE(RTVEALaCartaIE):
+    IE_NAME = 'rtve.es:audio'
+    IE_DESC = 'RTVE audio'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/alacarta/audios/[^/]+/[^/]+/(?P<id>[0-9]+)/'
+
+    _TESTS = [{
+        'url': 'https://www.rtve.es/alacarta/audios/a-hombros-de-gigantes/palabra-ingeniero-codigos-informaticos-27-04-21/5889192/',
+        'md5': 'ae06d27bff945c4e87a50f89f6ce48ce',
+        'info_dict': {
+            'id': '5889192',
+            'ext': 'mp3',
+            'title': 'Códigos informáticos',
+            'thumbnail': r're:https?://.+/1598856591583.jpg',
+            'duration': 349.440,
+        },
+    }]
+
+    def _real_extract(self, url):
+        audio_id = self._match_id(url)
+        info = self._download_json(
+            'https://www.rtve.es/api/audios/%s.json' % audio_id,
+            audio_id)['page']['items'][0]
+        title = info['title'].strip()
+
+        return {
+            'id': audio_id,
+            'title': title,
+            'thumbnail': info.get('thumbnail'),
+            'duration': float_or_none(info.get('duration'), 1000),
+            'series': info.get('programInfo').get('title'),
+            'url': info.get('qualities')[0].get('filePath'),
+        }
+
+
 class RTVEInfantilIE(RTVEALaCartaIE):
     IE_NAME = 'rtve.es:infantil'
     IE_DESC = 'RTVE infantil'

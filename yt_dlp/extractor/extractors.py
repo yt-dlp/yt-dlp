@@ -1239,6 +1239,7 @@ from .rts import RTSIE
 from .rtve import (
         RTVEALaCartaIE,
         RTVELiveIE,
+        RTVEAudioIE,
         RTVEInfantilIE,
         RTVETelevisionIE,
 )
