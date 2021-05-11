@@ -260,7 +260,7 @@ def _real_main(argv=None):
     all_compat_opts = [
         'filename', 'format-sort', 'abort-on-error', 'format-spec', 'multistreams',
         'no-playlist-metafiles', 'no-live-chat', 'playlist-index', 'list-formats',
-        'no-youtube-channel-redirect', 'no-youtube-unavailable-videos',
+        'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
     ]
     compat_opts = parse_compat_opts()
 

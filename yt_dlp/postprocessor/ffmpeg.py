@@ -605,7 +605,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 in_filenames.append(metadata_filename)
                 options.extend(['-map_metadata', '1'])
 
-        if '__infojson_filename' in info and info['ext'] in ('mkv', 'mka'):
+        if ('no-attach-info-json' not in self.get_param('compat_opts', [])
+                and '__infojson_filename' in info and info['ext'] in ('mkv', 'mka')):
             old_stream, new_stream = self.get_stream_number(
                 filename, ('tags', 'mimetype'), 'application/json')
             if old_stream is not None:
