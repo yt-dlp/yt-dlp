@@ -2210,11 +2210,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 automatic_captions = {}
                 for translation_language in (pctr.get('translationLanguages') or []):
                     translation_language_code = translation_language.get('languageCode')
+                    sub_name = translation_language.get('languageName').get('simpleText')
                     if not translation_language_code:
                         continue
                     process_language(
                         automatic_captions, base_url, translation_language_code,
-                        {'tlang': translation_language_code})
+                        sub_name, {'tlang': translation_language_code})
                 info['automatic_captions'] = automatic_captions
         info['subtitles'] = subtitles
 
