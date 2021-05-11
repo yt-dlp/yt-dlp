@@ -2508,7 +2508,10 @@ class GenericIE(InfoExtractor):
 
         # Is it an RSS feed, a SMIL file, an XSPF playlist or a MPD manifest?
         try:
-            doc = compat_etree_fromstring(webpage.encode('utf-8'))
+            try:
+                doc = compat_etree_fromstring(webpage)
+            except compat_xml_parse_error:
+                doc = compat_etree_fromstring(webpage.encode('utf-8'))
             if doc.tag == 'rss':
                 return self._extract_rss(url, video_id, doc)
             elif doc.tag == 'SmoothStreamingMedia':
