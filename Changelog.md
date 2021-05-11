@@ -22,13 +22,13 @@
 ### 2021.05.11
 
 * **Deprecate support for python versions < 3.6**
-* **Subtitle extraction from manifests** by [fstirlitz](https://github.com/fstirlitz). See [be6202f12b97858b9d716e608394b51065d0419f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
+* **Subtitle extraction from manifests** by [fstirlitz](https://github.com/fstirlitz). See [be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 * **Improve output template:**
     * Allow slicing lists/strings using `field.start:end:step`
     * A field can also be used as offset like `field1+num+field2`
     * A default value can be given using `field|default`
     * Prevent invalid fields from causing errors
-* Merge youtube-dl: Upto [commit/a726009](https://github.com/ytdl-org/youtube-dl/commit/a7260099873acc6dc7d76cafad2f6b139087afd0)
+* **Merge youtube-dl**: Upto [commit/a726009](https://github.com/ytdl-org/youtube-dl/commit/a7260099873acc6dc7d76cafad2f6b139087afd0)
 * **Remove options** `-l`, `-t`, `-A` completely and disable `--auto-number`, `--title`, `--literal`, `--id`
 * [Plugins] Prioritize plugins over standard extractors and prevent plugins from overwriting the standard extractor classes
 * [downloader] Fix `quiet` and `to_stderr`
@@ -63,7 +63,7 @@
 * [zee5] Fix py2 compatibility
 * Fix `playlist_index` and add `playlist_autonumber`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details
 * Add experimental option `--check-formats` to test the URLs before format selection
-* Option `--compat-options` to revert some of yt-dlp's changes
+* Option `--compat-options` to revert [some of yt-dlp's changes](https://github.com/yt-dlp/yt-dlp#differences-in-default-behavior)
     * Deprecates `--list-formats-as-table`, `--list-formats-old`
 * Fix number of digits in `%(playlist_index)s`
 * Fix case sensitivity of format selector
