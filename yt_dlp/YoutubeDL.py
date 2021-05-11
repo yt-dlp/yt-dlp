@@ -386,7 +386,7 @@ class YoutubeDL(object):
                        if True, otherwise use ffmpeg/avconv if False, otherwise
                        use downloader suggested by extractor if None.
     compat_opts:       Compatibility options. See "Differences in default behavior".
-                       Note that only format-sort, format-spec, no-live-chat, no-attach-infojson
+                       Note that only format-sort, format-spec, no-live-chat, no-attach-info-json
                        playlist-index, list-formats, no-youtube-channel-redirect
                        and no-youtube-unavailable-videos works when used via the API
 

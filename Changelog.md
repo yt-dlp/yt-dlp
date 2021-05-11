@@ -20,7 +20,6 @@
 
 
 ### 2021.05.11
-
 * **Deprecate support for python versions < 3.6**
 * **Subtitle extraction from manifests** by [fstirlitz](https://github.com/fstirlitz). See [be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 * **Improve output template:**

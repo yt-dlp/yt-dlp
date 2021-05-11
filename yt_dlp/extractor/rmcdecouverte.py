@@ -48,7 +48,7 @@ class RMCDecouverteIE(InfoExtractor):
     }, {
         'url': 'https://rmcdecouverte.bfmtv.com/avions-furtifs-la-technologie-de-lextreme_10598',
         'only_matching': True,
-    },{
+    }, {
         # The website accepts any URL as long as it has _\d+ at the end
         'url': 'https://rmcdecouverte.bfmtv.com/any/thing/can/go/here/_10598',
         'only_matching': True,
