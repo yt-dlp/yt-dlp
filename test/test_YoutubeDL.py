@@ -589,12 +589,12 @@ class TestYoutubeDL(unittest.TestCase):
         subs = result['requested_subtitles']
         self.assertTrue(subs)
         self.assertEqual(set(subs.keys()), set(['en']))
-        self.assertTrue(subs['en'].get('data') is None)
-        self.assertEqual(subs['en']['ext'], 'ass')
+        self.assertTrue(subs['en'][0].get('data') is None)
+        self.assertEqual(subs['en'][0]['ext'], 'ass')
 
         result = get_info({'writesubtitles': True, 'subtitlesformat': 'foo/srt'})
         subs = result['requested_subtitles']
-        self.assertEqual(subs['en']['ext'], 'srt')
+        self.assertEqual(subs['en'][0]['ext'], 'srt')
 
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['es', 'fr', 'it']})
         subs = result['requested_subtitles']
@@ -625,15 +625,15 @@ class TestYoutubeDL(unittest.TestCase):
         subs = result['requested_subtitles']
         self.assertTrue(subs)
         self.assertEqual(set(subs.keys()), set(['es', 'pt']))
-        self.assertFalse(subs['es']['_auto'])
-        self.assertTrue(subs['pt']['_auto'])
+        self.assertFalse(subs['es'][0]['_auto'])
+        self.assertTrue(subs['pt'][0]['_auto'])
 
         result = get_info({'writeautomaticsub': True, 'subtitleslangs': ['es', 'pt']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
         self.assertEqual(set(subs.keys()), set(['es', 'pt']))
-        self.assertTrue(subs['es']['_auto'])
-        self.assertTrue(subs['pt']['_auto'])
+        self.assertTrue(subs['es'][0]['_auto'])
+        self.assertTrue(subs['pt'][0]['_auto'])
 
     def test_add_extra_info(self):
         test_dict = {

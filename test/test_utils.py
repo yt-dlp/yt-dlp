@@ -268,9 +268,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(replace_extension('.abc.ext', 'temp'), '.abc.temp')
 
     def test_subtitles_filename(self):
-        self.assertEqual(subtitles_filename('abc.ext', 'en', 'vtt'), 'abc.en.vtt')
-        self.assertEqual(subtitles_filename('abc.ext', 'en', 'vtt', 'ext'), 'abc.en.vtt')
-        self.assertEqual(subtitles_filename('abc.unexpected_ext', 'en', 'vtt', 'ext'), 'abc.unexpected_ext.en.vtt')
+        self.assertEqual(subtitles_filename('abc.ext', 'en', 'English', 'vtt'), 'abc.English.en.vtt')
+        self.assertEqual(subtitles_filename('abc.ext', 'en', 'English', 'vtt', 'ext'), 'abc.English.en.vtt')
+        self.assertEqual(subtitles_filename('abc.unexpected_ext', 'en', 'English', 'vtt', 'ext'), 'abc.unexpected_ext.English.en.vtt')
 
     def test_remove_start(self):
         self.assertEqual(remove_start(None, 'A - '), None)
