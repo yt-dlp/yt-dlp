@@ -1304,6 +1304,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'skip_download': True,
             },
         },
+        {
+            # multiple subtitles with same lang_code
+            'url': 'https://www.youtube.com/watch?v=wsQiKKfKxug',
+            'only_matching': True,
+        },
     ]
 
     @classmethod
@@ -2175,8 +2180,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             lambda x: x['captions']['playerCaptionsTracklistRenderer'], dict)
         subtitles = {}
         if pctr:
-            def process_language(container, base_url, lang_code, query):
+            def process_language(container, base_url, lang_code, sub_name, query):
                 lang_subs = []
+                if lang_code in container:
+                    lang_subs = container[lang_code]
                 for fmt in self._SUBTITLE_FORMATS:
                     query.update({
                         'fmt': fmt,
@@ -2184,6 +2191,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     lang_subs.append({
                         'ext': fmt,
                         'url': update_url_query(base_url, query),
+                        'name': sub_name,
                     })
                 container[lang_code] = lang_subs
 
@@ -2193,10 +2201,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
                 if caption_track.get('kind') != 'asr':
                     lang_code = caption_track.get('languageCode')
+                    sub_name = caption_track.get('name').get('simpleText')
                     if not lang_code:
                         continue
                     process_language(
-                        subtitles, base_url, lang_code, {})
+                        subtitles, base_url, lang_code, sub_name, {})
                     continue
                 automatic_captions = {}
                 for translation_language in (pctr.get('translationLanguages') or []):

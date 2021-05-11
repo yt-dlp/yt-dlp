@@ -3108,8 +3108,8 @@ def determine_ext(url, default_ext='unknown_video'):
         return default_ext
 
 
-def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
-    return replace_extension(filename, sub_lang + '.' + sub_format, expected_real_ext)
+def subtitles_filename(filename, sub_lang, sub_name, sub_format, expected_real_ext=None):
+    return replace_extension(filename, (sub_name + '.' if sub_name else '') + sub_lang + '.' + sub_format, expected_real_ext)
 
 
 def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):

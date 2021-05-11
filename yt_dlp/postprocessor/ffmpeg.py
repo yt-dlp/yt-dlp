@@ -479,20 +479,24 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         webm_vtt_warn = False
         mp4_ass_warn = False
 
-        for lang, sub_info in subtitles.items():
-            sub_ext = sub_info['ext']
-            if sub_ext == 'json':
-                self.report_warning('JSON subtitles cannot be embedded')
-            elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
-                sub_langs.append(lang)
-                sub_filenames.append(sub_info['filepath'])
-            else:
-                if not webm_vtt_warn and ext == 'webm' and sub_ext != 'vtt':
-                    webm_vtt_warn = True
-                    self.report_warning('Only WebVTT subtitles can be embedded in webm files')
-            if not mp4_ass_warn and ext == 'mp4' and sub_ext == 'ass':
-                mp4_ass_warn = True
-                self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
+        for lang, sub_info_list in subtitles.items():
+            for sub_info in sub_info_list:
+                sub_ext = sub_info['ext']
+                if sub_ext == 'json':
+                    self.report_warning('JSON subtitles cannot be embedded')
+                elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
+                    sub_langs.append({
+                        'lang': lang,
+                        'name': sub_info['name']
+                    })
+                    sub_filenames.append(sub_info['filepath'])
+                else:
+                    if not webm_vtt_warn and ext == 'webm' and sub_ext != 'vtt':
+                        webm_vtt_warn = True
+                        self.report_warning('Only WebVTT subtitles can be embedded in webm files')
+                if not mp4_ass_warn and ext == 'mp4' and sub_ext == 'ass':
+                    mp4_ass_warn = True
+                    self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
 
         if not sub_langs:
             return [], information
@@ -510,10 +514,12 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         ]
         if information['ext'] == 'mp4':
             opts += ['-c:s', 'mov_text']
-        for (i, lang) in enumerate(sub_langs):
+        for (i, sub) in enumerate(sub_langs):
             opts.extend(['-map', '%d:0' % (i + 1)])
-            lang_code = ISO639Utils.short2long(lang) or lang
+            lang_code = ISO639Utils.short2long(sub['lang']) or sub['lang']
             opts.extend(['-metadata:s:s:%d' % i, 'language=%s' % lang_code])
+            opts.extend(['-metadata:s:s:%d' % i, 'handler_name=%s' % sub['name']])
+            opts.extend(['-metadata:s:s:%d' % i, 'title=%s' % sub['name']])
 
         temp_filename = prepend_extension(filename, 'temp')
         self.to_screen('Embedding subtitles in "%s"' % filename)
@@ -726,57 +732,63 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
             return [], info
         self.to_screen('Converting subtitles')
         sub_filenames = []
-        for lang, sub in subs.items():
-            ext = sub['ext']
-            if ext == new_ext:
-                self.to_screen('Subtitle file for %s is already in the requested format' % new_ext)
-                continue
-            elif ext == 'json':
-                self.to_screen(
-                    'You have requested to convert json subtitles into another format, '
-                    'which is currently not possible')
-                continue
-            old_file = sub['filepath']
-            sub_filenames.append(old_file)
-            new_file = replace_extension(old_file, new_ext)
-
-            if ext in ('dfxp', 'ttml', 'tt'):
-                self.report_warning(
-                    'You have requested to convert dfxp (TTML) subtitles into another format, '
-                    'which results in style information loss')
-
-                dfxp_file = old_file
-                srt_file = replace_extension(old_file, 'srt')
-
-                with open(dfxp_file, 'rb') as f:
-                    srt_data = dfxp2srt(f.read())
-
-                with io.open(srt_file, 'wt', encoding='utf-8') as f:
-                    f.write(srt_data)
-                old_file = srt_file
-
-                subs[lang] = {
-                    'ext': 'srt',
-                    'data': srt_data,
-                    'filepath': srt_file,
-                }
-
-                if new_ext == 'srt':
+        for lang, sublist in subs.items():
+            for sub in sublist:
+                ext = sub['ext']
+                if ext == new_ext:
+                    self.to_screen('Subtitle file for %s is already in the requested format' % new_ext)
                     continue
-                else:
-                    sub_filenames.append(srt_file)
+                elif ext == 'json':
+                    self.to_screen(
+                        'You have requested to convert json subtitles into another format, '
+                        'which is currently not possible')
+                    continue
+                name = sub.get('name', '')
+                old_file = sub['filepath']
+                sub_filenames.append(old_file)
+                new_file = replace_extension(old_file, new_ext)
 
-            self.run_ffmpeg(old_file, new_file, ['-f', new_format])
+                if ext in ('dfxp', 'ttml', 'tt'):
+                    self.report_warning(
+                        'You have requested to convert dfxp (TTML) subtitles into another format, '
+                        'which results in style information loss')
 
-            with io.open(new_file, 'rt', encoding='utf-8') as f:
-                subs[lang] = {
-                    'ext': new_ext,
-                    'data': f.read(),
-                    'filepath': new_file,
-                }
+                    dfxp_file = old_file
+                    srt_file = replace_extension(old_file, 'srt')
 
-            info['__files_to_move'][new_file] = replace_extension(
-                info['__files_to_move'][old_file], new_ext)
+                    with open(dfxp_file, 'rb') as f:
+                        srt_data = dfxp2srt(f.read())
+
+                    with io.open(srt_file, 'wt', encoding='utf-8') as f:
+                        f.write(srt_data)
+                    old_file = srt_file
+
+                    slist_new = [s for s in subs[lang] if s.get('name', '') != name]
+                    slist_new.append({
+                        'name': name,
+                        'ext': 'srt',
+                        'data': srt_data
+                    })
+                    subs[lang] = slist_new
+
+                    if new_ext == 'srt':
+                        continue
+                    else:
+                        sub_filenames.append(srt_file)
+
+                self.run_ffmpeg(old_file, new_file, ['-f', new_format])
+
+                with io.open(new_file, 'rt', encoding='utf-8') as f:
+                    slist_new = [s for s in subs[lang] if s.get('name', '') != name]
+                    slist_new.append({
+                        'name': name,
+                        'ext': new_ext,
+                        'data': f.read(),
+                    })
+                    subs[lang] = slist_new
+
+                info['__files_to_move'][new_file] = replace_extension(
+                    info['__files_to_move'][old_file], new_ext)
 
         return sub_filenames, info
 
