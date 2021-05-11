@@ -559,7 +559,7 @@ class InfoExtractor(object):
                         ie_result['__x_forwarded_for_ip'] = self._x_forwarded_for_ip
                     subtitles = ie_result.get('subtitles')
                     if (subtitles and 'live_chat' in subtitles
-                            and 'no-live-chat' in self._downloader.params.get('compat_opts')):
+                            and 'no-live-chat' in self._downloader.params.get('compat_opts', [])):
                         del subtitles['live_chat']
                     return ie_result
                 except GeoRestrictedError as e:
