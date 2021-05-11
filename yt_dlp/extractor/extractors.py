@@ -1236,7 +1236,12 @@ from .rtl2 import (
 from .rtp import RTPIE
 from .rtrfm import RTRFMIE
 from .rts import RTSIE
-from .rtve import RTVEALaCartaIE, RTVELiveIE, RTVEInfantilIE, RTVELiveIE, RTVETelevisionIE
+from .rtve import (
+        RTVEALaCartaIE,
+        RTVELiveIE,
+        RTVEInfantilIE,
+        RTVETelevisionIE,
+)
 from .rtvnh import RTVNHIE
 from .rtvs import RTVSIE
 from .ruhd import RUHDIE
