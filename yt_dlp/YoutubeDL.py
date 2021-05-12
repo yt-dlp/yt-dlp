@@ -3005,10 +3005,17 @@ class YoutubeDL(object):
             return
         self.to_screen(
             'Available %s for %s:' % (name, video_id))
+
+        def _row(lang, formats):
+            exts, names = zip(*((f['ext'], f['name']) for f in reversed(formats)))
+            if len(set(names)) == 1:
+                names = names[:1]
+            return [lang, ', '.join(names), ', '.join(exts)]
+
         self.to_screen(render_table(
-            ['Language', 'formats'],
-            [[lang, ', '.join(f['ext'] for f in reversed(formats))]
-                for lang, formats in subtitles.items()]))
+            ['Language', 'Name', 'Formats'],
+            [_row(lang, formats) for lang, formats in subtitles.items()],
+            hideEmpty=True))
 
     def urlopen(self, req):
         """ Start an HTTP download """

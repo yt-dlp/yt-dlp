@@ -474,8 +474,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         filename = information['filepath']
 
         ext = information['ext']
-        sub_langs = []
-        sub_filenames = []
+        sub_langs, sub_names, sub_filenames = [], [], []
         webm_vtt_warn = False
         mp4_ass_warn = False
 
@@ -485,6 +484,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 self.report_warning('JSON subtitles cannot be embedded')
             elif ext != 'webm' or ext == 'webm' and sub_ext == 'vtt':
                 sub_langs.append(lang)
+                sub_names.append(sub_info.get('name'))
                 sub_filenames.append(sub_info['filepath'])
             else:
                 if not webm_vtt_warn and ext == 'webm' and sub_ext != 'vtt':
@@ -510,10 +510,13 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         ]
         if information['ext'] == 'mp4':
             opts += ['-c:s', 'mov_text']
-        for (i, lang) in enumerate(sub_langs):
+        for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
             opts.extend(['-map', '%d:0' % (i + 1)])
             lang_code = ISO639Utils.short2long(lang) or lang
             opts.extend(['-metadata:s:s:%d' % i, 'language=%s' % lang_code])
+            if name:
+                opts.extend(['-metadata:s:s:%d' % i, 'handler_name=%s' % name,
+                             '-metadata:s:s:%d' % i, 'title=%s' % name])
 
         temp_filename = prepend_extension(filename, 'temp')
         self.to_screen('Embedding subtitles in "%s"' % filename)
