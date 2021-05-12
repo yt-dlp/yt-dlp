@@ -1308,6 +1308,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'url': 'WaOKSUlf4TM',
             'only_matching': True
         },
+        {
+            # multiple subtitles with same lang_code
+            'url': 'https://www.youtube.com/watch?v=wsQiKKfKxug',
+            'only_matching': True,
+        },
     ]
 
     @classmethod
@@ -2182,7 +2187,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         subtitles = {}
         if pctr:
             def process_language(container, base_url, lang_code, query):
-                lang_subs = []
+                lang_subs = container.setdefault(lang_code, [])
                 for fmt in self._SUBTITLE_FORMATS:
                     query.update({
                         'fmt': fmt,
@@ -2191,14 +2196,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'ext': fmt,
                         'url': update_url_query(base_url, query),
                     })
-                container[lang_code] = lang_subs
 
             for caption_track in (pctr.get('captionTracks') or []):
                 base_url = caption_track.get('baseUrl')
                 if not base_url:
                     continue
                 if caption_track.get('kind') != 'asr':
-                    lang_code = caption_track.get('languageCode')
+                    lang_code = (
+                        remove_start(caption_track.get('vssId') or '', '.').replace('.', '-')
+                        or caption_track.get('languageCode'))
                     if not lang_code:
                         continue
                     process_language(
