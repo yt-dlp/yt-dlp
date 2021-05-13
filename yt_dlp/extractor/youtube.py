@@ -2186,7 +2186,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             lambda x: x['captions']['playerCaptionsTracklistRenderer'], dict)
         subtitles = {}
         if pctr:
-            def process_language(container, base_url, lang_code, query):
+            def process_language(container, base_url, lang_code, sub_name, query):
                 lang_subs = container.setdefault(lang_code, [])
                 for fmt in self._SUBTITLE_FORMATS:
                     query.update({
@@ -2195,6 +2195,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     lang_subs.append({
                         'ext': fmt,
                         'url': update_url_query(base_url, query),
+                        'name': sub_name,
                     })
 
             for caption_track in (pctr.get('captionTracks') or []):
@@ -2208,7 +2209,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not lang_code:
                         continue
                     process_language(
-                        subtitles, base_url, lang_code, {})
+                        subtitles, base_url, lang_code,
+                        try_get(caption_track, lambda x: x.get('name').get('simpleText')),
+                        {})
                     continue
                 automatic_captions = {}
                 for translation_language in (pctr.get('translationLanguages') or []):
@@ -2217,6 +2220,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         automatic_captions, base_url, translation_language_code,
+                        try_get(translation_language, lambda x: x['languageName']['simpleText']),
                         {'tlang': translation_language_code})
                 info['automatic_captions'] = automatic_captions
         info['subtitles'] = subtitles
