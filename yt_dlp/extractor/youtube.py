@@ -398,6 +398,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers['X-Origin'] = 'https://www.youtube.com'
         return headers
 
+    @staticmethod
+    def is_music_url(url):
+        return re.match(r'https?://music\.youtube\.com/', url) is not None
+
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
         title = try_get(
@@ -521,7 +525,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      )?                                                       # all until now is optional -> you can pass the naked ID
                      (?P<id>[0-9A-Za-z_-]{11})                                # here is it! the YouTube video ID
                      (?(1).+)?                                                # if we found the ID, everything can follow
-                     $""" % {
+                     (?:\#|$)""" % {
         'invidious': '|'.join(_INVIDIOUS_SITES),
     }
     _PLAYER_INFO_RE = (
@@ -1843,6 +1847,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
+
+        is_music_url = smuggled_data.get('is_music_url') or self.is_music_url(url)
+        if is_music_url:
+            self.to_screen('the video came from youtube music')
+
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
         webpage = self._download_webpage(
@@ -3514,7 +3523,25 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 raise ExtractorError(last_error)
         return webpage, data
 
+    @staticmethod
+    def smuggle_data(data):
+        if data:
+            def _smuggle_entry(entry):
+                entry['url'] = smuggle_url(entry['url'], data)
+                return entry
+        else:
+            _smuggle_entry = lambda entry: entry
+        return _smuggle_entry
+
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
+        if self.is_music_url(url):
+            smuggled_data['is_music_url'] = True
+        info_dict = self.__real_extract(url)
+        info_dict['entries'] = map(self.smuggle_data(smuggled_data), info_dict['entries'])
+        return info_dict
+
+    def __real_extract(self, url):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
             compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
@@ -3649,12 +3676,13 @@ class YoutubePlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        qs = parse_qs(url)
-        if not qs:
-            qs = {'list': playlist_id}
-        return self.url_result(
-            update_url_query('https://www.youtube.com/playlist', qs),
-            ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
+        is_music_url = self.is_music_url(url)
+        url = update_url_query(
+            'https://www.youtube.com/playlist',
+            parse_qs(url) or {'list': playlist_id})
+        if is_music_url:
+            url = smuggle_url(url, {'is_music_url': True})
+        return self.url_result(url, ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
 
 
 class YoutubeYtBeIE(InfoExtractor):
