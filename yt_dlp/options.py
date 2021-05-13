@@ -107,13 +107,15 @@ def parseOpts(overrideArguments=None):
 
         return ''.join(opts)
 
-    def _comma_separated_values_options_callback(option, opt_str, value, parser, prepend=True):
+    def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=','):
+        # append can be True, False or -1 (prepend)
+        current = getattr(parser.values, option.dest) if append else []
+        value = [value] if delim is None else value.split(delim)
         setattr(
             parser.values, option.dest,
-            value.split(',') if not prepend
-            else value.split(',') + getattr(parser.values, option.dest))
+            current + value if append is True else value + current)
 
-    def _dict_from_multiple_values_options_callback(
+    def _dict_from_options_callback(
             option, opt_str, value, parser,
             allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True):
 
@@ -232,7 +234,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=[],
-        action='callback', callback=_comma_separated_values_options_callback, type='str',
+        action='callback', callback=_list_from_options_callback, type='str',
         help=(
             'Options that can help keep compatibility with youtube-dl and youtube-dlc '
             'configurations by reverting some of the changes made in yt-dlp. '
@@ -465,8 +467,8 @@ def parseOpts(overrideArguments=None):
         help='Video format code, see "FORMAT SELECTION" for more details')
     video_format.add_option(
         '-S', '--format-sort', metavar='SORTORDER',
-        dest='format_sort', default=[],
-        action='callback', callback=_comma_separated_values_options_callback, type='str',
+        dest='format_sort', default=[], type='str', action='callback',
+        callback=_list_from_options_callback, callback_kwargs={'append': -1},
         help='Sort the formats by the fields given, see "Sorting Formats" for more details')
     video_format.add_option(
         '--format-sort-force', '--S-force',
@@ -576,7 +578,7 @@ def parseOpts(overrideArguments=None):
     subtitles.add_option(
         '--sub-langs', '--srt-langs',
         action='callback', dest='subtitleslangs', metavar='LANGS', type='str',
-        default=[], callback=_comma_separated_values_options_callback,
+        default=[], callback=_list_from_options_callback,
         help=(
             'Languages of the subtitles to download (can be regex) or "all" separated by commas. (Eg: --sub-langs en.*,ja) '
             'You can prefix the language code with a "-" to exempt it from the requested languages. (Eg: --sub-langs all,-live_chat) '
@@ -678,7 +680,7 @@ def parseOpts(overrideArguments=None):
     downloader.add_option(
         '--downloader', '--external-downloader',
         dest='external_downloader', metavar='[PROTO:]NAME', default={}, type='str',
-        action='callback', callback=_dict_from_multiple_values_options_callback,
+        action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
             'allowed_keys': 'http|ftp|m3u8|dash|rtsp|rtmp|mms',
             'default_key': 'default',
@@ -695,7 +697,7 @@ def parseOpts(overrideArguments=None):
     downloader.add_option(
         '--downloader-args', '--external-downloader-args',
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
-        action='callback', callback=_dict_from_multiple_values_options_callback,
+        action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
             'allowed_keys': '|'.join(list_external_downloaders()),
             'default_key': 'default',
@@ -731,7 +733,7 @@ def parseOpts(overrideArguments=None):
     workarounds.add_option(
         '--add-header',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
-        action='callback', callback=_dict_from_multiple_values_options_callback,
+        action='callback', callback=_dict_from_options_callback,
         callback_kwargs={'multiple_keys': False},
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
@@ -893,7 +895,7 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '-P', '--paths',
         metavar='TYPES:PATH', dest='paths', default={}, type='str',
-        action='callback', callback=_dict_from_multiple_values_options_callback,
+        action='callback', callback=_dict_from_options_callback,
         callback_kwargs={'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys())},
         help=(
             'The paths where the files should be downloaded. '
@@ -906,7 +908,7 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '-o', '--output',
         metavar='[TYPES:]TEMPLATE', dest='outtmpl', default={}, type='str',
-        action='callback', callback=_dict_from_multiple_values_options_callback,
+        action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
             'allowed_keys': '|'.join(OUTTMPL_TYPES.keys()),
             'default_key': 'default'
@@ -1132,7 +1134,7 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--postprocessor-args', '--ppa',
         metavar='NAME:ARGS', dest='postprocessor_args', default={}, type='str',
-        action='callback', callback=_dict_from_multiple_values_options_callback,
+        action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
             'allowed_keys': r'\w+(?:\+\w+)?', 'default_key': 'default-compat',
             'process': compat_shlex_split,

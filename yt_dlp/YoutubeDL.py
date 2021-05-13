@@ -2179,6 +2179,7 @@ class YoutubeDL(object):
             requested_langs = ['en']
         else:
             requested_langs = [list(all_sub_langs)[0]]
+        self.write_debug('Downloading subtitles: %s' % ', '.join(requested_langs))
 
         formats_query = self.params.get('subtitlesformat', 'best')
         formats_preference = formats_query.split('/') if formats_query else []
