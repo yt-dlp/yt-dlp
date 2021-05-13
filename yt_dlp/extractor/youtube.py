@@ -3524,21 +3524,18 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         return webpage, data
 
     @staticmethod
-    def smuggle_data(data):
-        if data:
-            def _smuggle_entry(entry):
+    def _smuggle_data(entries, data):
+        for entry in entries:
+            if data:
                 entry['url'] = smuggle_url(entry['url'], data)
-                return entry
-        else:
-            _smuggle_entry = lambda entry: entry
-        return _smuggle_entry
+            yield entry
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         if self.is_music_url(url):
             smuggled_data['is_music_url'] = True
         info_dict = self.__real_extract(url)
-        info_dict['entries'] = map(self.smuggle_data(smuggled_data), info_dict['entries'])
+        info_dict['entries'] = self._smuggle_data(info_dict['entries'], smuggled_data)
         return info_dict
 
     def __real_extract(self, url):
