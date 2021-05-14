@@ -2074,35 +2074,37 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             formats.append(dct)
 
-        hls_manifest_url = streaming_data.get('hlsManifestUrl')
-        if hls_manifest_url:
-            for f in self._extract_m3u8_formats(
-                    hls_manifest_url, video_id, 'mp4', fatal=False):
-                itag = self._search_regex(
-                    r'/itag/(\d+)', f['url'], 'itag', default=None)
-                if itag:
-                    f['format_id'] = itag
+        for sd in (streaming_data, ytm_streaming_data):
+            hls_manifest_url = sd.get('hlsManifestUrl')
+            if hls_manifest_url:
+                for f in self._extract_m3u8_formats(
+                        hls_manifest_url, video_id, 'mp4', fatal=False):
+                    itag = self._search_regex(
+                        r'/itag/(\d+)', f['url'], 'itag', default=None)
+                    if itag:
+                        f['format_id'] = itag
                 formats.append(f)
 
         if self._downloader.params.get('youtube_include_dash_manifest', True):
-            dash_manifest_url = streaming_data.get('dashManifestUrl')
-            if dash_manifest_url:
-                for f in self._extract_mpd_formats(
-                        dash_manifest_url, video_id, fatal=False):
-                    itag = f['format_id']
-                    if itag in itags:
-                        continue
-                    if itag in itag_qualities:
-                        # Not actually usefull since the sorting is already done with "quality,res,fps,codec"
-                        # but kept to maintain feature parity (and code similarity) with youtube-dl
-                        # Remove if this causes any issues with sorting in future
-                        f['quality'] = q(itag_qualities[itag])
-                    filesize = int_or_none(self._search_regex(
-                        r'/clen/(\d+)', f.get('fragment_base_url')
-                        or f['url'], 'file size', default=None))
-                    if filesize:
-                        f['filesize'] = filesize
-                    formats.append(f)
+            for sd in (streaming_data, ytm_streaming_data):
+                dash_manifest_url = sd.get('dashManifestUrl')
+                if dash_manifest_url:
+                    for f in self._extract_mpd_formats(
+                            dash_manifest_url, video_id, fatal=False):
+                        itag = f['format_id']
+                        if itag in itags:
+                            continue
+                        if itag in itag_qualities:
+                            # Not actually usefull since the sorting is already done with "quality,res,fps,codec"
+                            # but kept to maintain feature parity (and code similarity) with youtube-dl
+                            # Remove if this causes any issues with sorting in future
+                            f['quality'] = q(itag_qualities[itag])
+                        filesize = int_or_none(self._search_regex(
+                            r'/clen/(\d+)', f.get('fragment_base_url')
+                            or f['url'], 'file size', default=None))
+                        if filesize:
+                            f['filesize'] = filesize
+                        formats.append(f)
 
         if not formats:
             if not self._downloader.params.get('allow_unplayable_formats') and streaming_data.get('licenseInfos'):
