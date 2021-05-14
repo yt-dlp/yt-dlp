@@ -1871,8 +1871,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
             return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
 
-        player_response = None
-        ytm_player_response = None
+        ytm_streaming_data = {}
         if is_music_url:
             # we are forcing to use parse_json because 141 only appeared in get_video_info.
             # el, c, cver, cplayer field required for 141(aac 256kbps) codec
@@ -1891,8 +1890,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     }, fatal=False)),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
+            ytm_streaming_data = ytm_player_response.get('streamingData') or {}
 
-        if player_response is None and webpage:
+        player_response = None
+        if webpage:
             player_response = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
@@ -1983,24 +1984,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
-        formats = []
-        itags = []
+        formats, itags, stream_ids = [], [], []
         itag_qualities = {}
         player_url = None
         q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
-        streaming_formats = []
-        # Keep main player response last to define main streaming_data for use after the loop.
-        for pr in (ytm_player_response, player_response):
-            streaming_data = try_get(pr, lambda x: x['streamingData'], expected_type=dict) or {}
-            streaming_formats.extend(streaming_data.get('formats') or [])
-            streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
 
-        for fmt in reversed(streaming_formats):
-            # TODO: deal with actual duplicate formats
+        streaming_data = player_response.get('streamingData') or {}
+        streaming_formats = streaming_data.get('formats') or []
+        streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
+        streaming_formats.extend(ytm_streaming_data.get('formats') or [])
+        streaming_formats.extend(ytm_streaming_data.get('adaptiveFormats') or [])
+
+        for fmt in streaming_formats:
             if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
                 continue
 
             itag = str_or_none(fmt.get('itag'))
+            audio_track = fmt.get('audioTrack') or {}
+            stream_id = '%s.%s' % (itag or '', audio_track.get('id', ''))
+            if stream_id in stream_ids:
+                continue
+
             quality = fmt.get('quality')
             if itag and quality:
                 itag_qualities[itag] = quality
@@ -2031,9 +2035,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             if itag:
                 itags.append(itag)
+                stream_ids.append(stream_id)
+
             tbr = float_or_none(
                 fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
-            audio_track = fmt.get('audioTrack') or {}
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
