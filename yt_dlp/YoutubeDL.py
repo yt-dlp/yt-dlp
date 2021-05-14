@@ -177,13 +177,14 @@ class YoutubeDL(object):
     verbose:           Print additional info to stdout.
     quiet:             Do not print messages to stdout.
     no_warnings:       Do not print out anything for warnings.
-    forceurl:          Force printing final URL.
-    forcetitle:        Force printing title.
-    forceid:           Force printing ID.
-    forcethumbnail:    Force printing thumbnail URL.
-    forcedescription:  Force printing description.
-    forcefilename:     Force printing final filename.
-    forceduration:     Force printing duration.
+    forceprint:        A list of templates to force print
+    forceurl:          Force printing final URL. (Deprecated)
+    forcetitle:        Force printing title. (Deprecated)
+    forceid:           Force printing ID. (Deprecated)
+    forcethumbnail:    Force printing thumbnail URL. (Deprecated)
+    forcedescription:  Force printing description. (Deprecated)
+    forcefilename:     Force printing final filename. (Deprecated)
+    forceduration:     Force printing duration. (Deprecated)
     forcejson:         Force printing info_dict as JSON.
     dump_single_json:  Force printing the info_dict of the whole playlist
                        (or video) as a single JSON line.
@@ -820,7 +821,7 @@ class YoutubeDL(object):
 
         # duration_string
         template_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
-            formatSeconds(info_dict['duration'], '-')
+            formatSeconds(info_dict['duration'], '-' if sanitize else ':')
             if info_dict.get('duration', None) is not None
             else None)
 
@@ -2206,32 +2207,43 @@ class YoutubeDL(object):
         return subs
 
     def __forced_printings(self, info_dict, filename, incomplete):
-        def print_mandatory(field):
+        def print_mandatory(field, actual_field=None):
+            if actual_field is None:
+                actual_field = field
             if (self.params.get('force%s' % field, False)
-                    and (not incomplete or info_dict.get(field) is not None)):
-                self.to_stdout(info_dict[field])
+                    and (not incomplete or info_dict.get(actual_field) is not None)):
+                self.to_stdout(info_dict[actual_field])
 
         def print_optional(field):
             if (self.params.get('force%s' % field, False)
                     and info_dict.get(field) is not None):
                 self.to_stdout(info_dict[field])
 
+        info_dict = info_dict.copy()
+        if filename is not None:
+            info_dict['filename'] = filename
+        if info_dict.get('requested_formats') is not None:
+            # For RTMP URLs, also include the playpath
+            info_dict['urls'] = '\n'.join(f['url'] + f.get('play_path', '') for f in info_dict['requested_formats'])
+        elif 'url' in info_dict:
+            info_dict['urls'] = info_dict['url'] + info_dict.get('play_path', '')
+
+        for tmpl in self.params.get('forceprint', []):
+            if re.match(r'\w+$', tmpl):
+                tmpl = '%({})s'.format(tmpl)
+            tmpl, info_copy = self.prepare_outtmpl(tmpl, info_dict)
+            self.to_stdout(tmpl % info_copy)
+
         print_mandatory('title')
         print_mandatory('id')
-        if self.params.get('forceurl', False) and not incomplete:
-            if info_dict.get('requested_formats') is not None:
-                for f in info_dict['requested_formats']:
-                    self.to_stdout(f['url'] + f.get('play_path', ''))
-            else:
-                # For RTMP URLs, also include the playpath
-                self.to_stdout(info_dict['url'] + info_dict.get('play_path', ''))
+        print_mandatory('url', 'urls')
         print_optional('thumbnail')
         print_optional('description')
-        if self.params.get('forcefilename', False) and filename is not None:
-            self.to_stdout(filename)
+        print_optional('filename')
         if self.params.get('forceduration', False) and info_dict.get('duration') is not None:
             self.to_stdout(formatSeconds(info_dict['duration']))
         print_mandatory('format')
+
         if self.params.get('forcejson', False):
             self.post_extract(info_dict)
             self.to_stdout(json.dumps(info_dict, default=repr))

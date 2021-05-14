@@ -789,37 +789,44 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='skip_download', default=False,
         help='Do not download the video but write all related files (Alias: --no-download)')
     verbosity.add_option(
+        '-O', '--print', metavar='TEMPLATE',
+        action='callback', dest='print', type='str', default=[],
+        callback=_list_from_options_callback, callback_kwargs={'delim': None},
+        help=(
+            'Simulate, quiet but print the given fields. Either a field name '
+            'or similar formatting as the output template can be used'))
+    verbosity.add_option(
         '-g', '--get-url',
         action='store_true', dest='geturl', default=False,
-        help='Simulate, quiet but print URL')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '-e', '--get-title',
         action='store_true', dest='gettitle', default=False,
-        help='Simulate, quiet but print title')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--get-id',
         action='store_true', dest='getid', default=False,
-        help='Simulate, quiet but print id')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--get-thumbnail',
         action='store_true', dest='getthumbnail', default=False,
-        help='Simulate, quiet but print thumbnail URL')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--get-description',
         action='store_true', dest='getdescription', default=False,
-        help='Simulate, quiet but print video description')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--get-duration',
         action='store_true', dest='getduration', default=False,
-        help='Simulate, quiet but print video length')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--get-filename',
         action='store_true', dest='getfilename', default=False,
-        help='Simulate, quiet but print output filename')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--get-format',
         action='store_true', dest='getformat', default=False,
-        help='Simulate, quiet but print output format')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '-j', '--dump-json',
         action='store_true', dest='dumpjson', default=False,
