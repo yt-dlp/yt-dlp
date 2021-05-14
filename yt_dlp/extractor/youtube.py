@@ -1868,16 +1868,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
 
         player_response = None
-        # TODO: merge formats from yt music into normal yt
+        ytm_player_response = None
         if is_music_url:
             # we are forcing to use parse_json because 141 only appeared in get_video_info.
             # el, c, cver, cplayer field required for 141(aac 256kbps) codec
             # maybe paramter of youtube music player?
-            pr = self._parse_json(try_get(compat_parse_qs(
+            ytm_player_response = self._parse_json(try_get(compat_parse_qs(
                 self._download_webpage(
                     base_url + 'get_video_info', video_id,
                     'Fetching youtube-music info webpage',
-                    'unable to download video info webpage', query={
+                    'unable to download youtube-music info webpage', query={
                         'video_id': video_id,
                         'eurl': 'https://youtube.googleapis.com/v/' + video_id,
                         'el': 'detailpage',
@@ -1887,20 +1887,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     }, fatal=False)),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
-            if pr:
-                # check cookie works
-                playability_status = pr.get('playabilityStatus') or {}
-                pemr = try_get(
-                    playability_status,
-                    lambda x: x['errorScreen']['playerErrorMessageRenderer'],
-                    dict) or {}
-                reason = get_text(pemr.get('reason')) or playability_status.get('reason')
-                if reason is not None and reason.find("This video is only available to Music Premium members") >= 0:
-                    # accept only music premium
-                    self.report_warning(reason.replace("video", "URL") + ". Using youtube mode instead of yt-music mode.", video_id)
-                else:
-                    self.to_screen("Using yt-music.")
-                    player_response = pr
 
         if player_response is None and webpage:
             player_response = self._extract_yt_initial_variable(
@@ -1998,10 +1984,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         itag_qualities = {}
         player_url = None
         q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
-        streaming_data = player_response.get('streamingData') or {}
-        streaming_formats = streaming_data.get('formats') or []
-        streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
-        for fmt in streaming_formats:
+        streaming_formats = []
+        # Keep main player response last to define main streaming_data for use after the loop.
+        for pr in (ytm_player_response, player_response):
+            streaming_data = try_get(pr, lambda x: x['streamingData'], expected_type=dict) or {}
+            streaming_formats.extend(streaming_data.get('formats') or [])
+            streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
+
+        for fmt in reversed(streaming_formats):
+            # TODO: deal with actual duplicate formats
             if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
                 continue
 
@@ -3531,7 +3522,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if self.is_music_url(url):
             smuggled_data['is_music_url'] = True
         info_dict = self.__real_extract(url)
-        info_dict['entries'] = self._smuggle_data(info_dict['entries'], smuggled_data)
+        if info_dict.get('entries'):
+            info_dict['entries'] = self._smuggle_data(info_dict['entries'], smuggled_data)
         return info_dict
 
     def __real_extract(self, url):
