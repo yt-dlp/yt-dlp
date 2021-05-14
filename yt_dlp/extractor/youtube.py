@@ -1307,6 +1307,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
+        }, {
+            # Has multiple audio streams
+            'url': 'WaOKSUlf4TM',
+            'only_matching': True
         },
     ]
 
@@ -1867,8 +1871,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
             return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
 
-        player_response = None
-        ytm_player_response = None
+        ytm_streaming_data = {}
         if is_music_url:
             # we are forcing to use parse_json because 141 only appeared in get_video_info.
             # el, c, cver, cplayer field required for 141(aac 256kbps) codec
@@ -1887,8 +1890,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     }, fatal=False)),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
+            ytm_streaming_data = ytm_player_response.get('streamingData') or {}
 
-        if player_response is None and webpage:
+        player_response = None
+        if webpage:
             player_response = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
@@ -1979,24 +1984,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
-        formats = []
-        itags = []
+        formats, itags, stream_ids = [], [], []
         itag_qualities = {}
         player_url = None
         q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
-        streaming_formats = []
-        # Keep main player response last to define main streaming_data for use after the loop.
-        for pr in (ytm_player_response, player_response):
-            streaming_data = try_get(pr, lambda x: x['streamingData'], expected_type=dict) or {}
-            streaming_formats.extend(streaming_data.get('formats') or [])
-            streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
 
-        for fmt in reversed(streaming_formats):
-            # TODO: deal with actual duplicate formats
+        streaming_data = player_response.get('streamingData') or {}
+        streaming_formats = streaming_data.get('formats') or []
+        streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
+        streaming_formats.extend(ytm_streaming_data.get('formats') or [])
+        streaming_formats.extend(ytm_streaming_data.get('adaptiveFormats') or [])
+
+        for fmt in streaming_formats:
             if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
                 continue
 
             itag = str_or_none(fmt.get('itag'))
+            audio_track = fmt.get('audioTrack') or {}
+            stream_id = '%s.%s' % (itag or '', audio_track.get('id', ''))
+            if stream_id in stream_ids:
+                continue
+
             quality = fmt.get('quality')
             if itag and quality:
                 itag_qualities[itag] = quality
@@ -2027,19 +2035,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             if itag:
                 itags.append(itag)
+                stream_ids.append(stream_id)
+
             tbr = float_or_none(
                 fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': itag,
-                'format_note': fmt.get('qualityLabel') or quality,
+                'format_note': audio_track.get('displayName') or fmt.get('qualityLabel') or quality,
                 'fps': int_or_none(fmt.get('fps')),
                 'height': int_or_none(fmt.get('height')),
                 'quality': q(quality),
                 'tbr': tbr,
                 'url': fmt_url,
                 'width': fmt.get('width'),
+                'language': audio_track.get('id', '').split('.')[0],
             }
             mimetype = fmt.get('mimeType')
             if mimetype:
@@ -2063,35 +2074,37 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             formats.append(dct)
 
-        hls_manifest_url = streaming_data.get('hlsManifestUrl')
-        if hls_manifest_url:
-            for f in self._extract_m3u8_formats(
-                    hls_manifest_url, video_id, 'mp4', fatal=False):
-                itag = self._search_regex(
-                    r'/itag/(\d+)', f['url'], 'itag', default=None)
-                if itag:
-                    f['format_id'] = itag
+        for sd in (streaming_data, ytm_streaming_data):
+            hls_manifest_url = sd.get('hlsManifestUrl')
+            if hls_manifest_url:
+                for f in self._extract_m3u8_formats(
+                        hls_manifest_url, video_id, 'mp4', fatal=False):
+                    itag = self._search_regex(
+                        r'/itag/(\d+)', f['url'], 'itag', default=None)
+                    if itag:
+                        f['format_id'] = itag
                 formats.append(f)
 
         if self._downloader.params.get('youtube_include_dash_manifest', True):
-            dash_manifest_url = streaming_data.get('dashManifestUrl')
-            if dash_manifest_url:
-                for f in self._extract_mpd_formats(
-                        dash_manifest_url, video_id, fatal=False):
-                    itag = f['format_id']
-                    if itag in itags:
-                        continue
-                    if itag in itag_qualities:
-                        # Not actually usefull since the sorting is already done with "quality,res,fps,codec"
-                        # but kept to maintain feature parity (and code similarity) with youtube-dl
-                        # Remove if this causes any issues with sorting in future
-                        f['quality'] = q(itag_qualities[itag])
-                    filesize = int_or_none(self._search_regex(
-                        r'/clen/(\d+)', f.get('fragment_base_url')
-                        or f['url'], 'file size', default=None))
-                    if filesize:
-                        f['filesize'] = filesize
-                    formats.append(f)
+            for sd in (streaming_data, ytm_streaming_data):
+                dash_manifest_url = sd.get('dashManifestUrl')
+                if dash_manifest_url:
+                    for f in self._extract_mpd_formats(
+                            dash_manifest_url, video_id, fatal=False):
+                        itag = f['format_id']
+                        if itag in itags:
+                            continue
+                        if itag in itag_qualities:
+                            # Not actually usefull since the sorting is already done with "quality,res,fps,codec"
+                            # but kept to maintain feature parity (and code similarity) with youtube-dl
+                            # Remove if this causes any issues with sorting in future
+                            f['quality'] = q(itag_qualities[itag])
+                        filesize = int_or_none(self._search_regex(
+                            r'/clen/(\d+)', f.get('fragment_base_url')
+                            or f['url'], 'file size', default=None))
+                        if filesize:
+                            f['filesize'] = filesize
+                        formats.append(f)
 
         if not formats:
             if not self._downloader.params.get('allow_unplayable_formats') and streaming_data.get('licenseInfos'):

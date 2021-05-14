@@ -177,13 +177,14 @@ class YoutubeDL(object):
     verbose:           Print additional info to stdout.
     quiet:             Do not print messages to stdout.
     no_warnings:       Do not print out anything for warnings.
-    forceurl:          Force printing final URL.
-    forcetitle:        Force printing title.
-    forceid:           Force printing ID.
-    forcethumbnail:    Force printing thumbnail URL.
-    forcedescription:  Force printing description.
-    forcefilename:     Force printing final filename.
-    forceduration:     Force printing duration.
+    forceprint:        A list of templates to force print
+    forceurl:          Force printing final URL. (Deprecated)
+    forcetitle:        Force printing title. (Deprecated)
+    forceid:           Force printing ID. (Deprecated)
+    forcethumbnail:    Force printing thumbnail URL. (Deprecated)
+    forcedescription:  Force printing description. (Deprecated)
+    forcefilename:     Force printing final filename. (Deprecated)
+    forceduration:     Force printing duration. (Deprecated)
     forcejson:         Force printing info_dict as JSON.
     dump_single_json:  Force printing the info_dict of the whole playlist
                        (or video) as a single JSON line.
@@ -542,8 +543,7 @@ class YoutubeDL(object):
         def preload_download_archive(fn):
             if fn is None:
                 return False
-            if self.params.get('verbose'):
-                self._write_string('[debug] Loading archive file %r\n' % fn)
+            self.write_debug('Loading archive file %r\n' % fn)
             try:
                 with locked_file(fn, 'r', encoding='utf-8') as archive_file:
                     for line in archive_file:
@@ -649,17 +649,11 @@ class YoutubeDL(object):
                       for _ in range(line_count))
         return res[:-len('\n')]
 
-    def to_screen(self, message, skip_eol=False):
-        """Print message to stdout if not in quiet mode."""
-        return self.to_stdout(
-            message, skip_eol,
-            quiet=self.params.get('quiet', False))
-
     def _write_string(self, s, out=None):
         write_string(s, out=out, encoding=self.params.get('encoding'))
 
     def to_stdout(self, message, skip_eol=False, quiet=False):
-        """Print message to stdout if not in quiet mode."""
+        """Print message to stdout"""
         if self.params.get('logger'):
             self.params['logger'].debug(message)
         elif not quiet:
@@ -670,7 +664,7 @@ class YoutubeDL(object):
             self._write_string(output, self._screen_file)
 
     def to_stderr(self, message):
-        """Print message to stderr."""
+        """Print message to stderr"""
         assert isinstance(message, compat_str)
         if self.params.get('logger'):
             self.params['logger'].error(message)
@@ -748,6 +742,11 @@ class YoutubeDL(object):
             raise DownloadError(message, exc_info)
         self._download_retcode = 1
 
+    def to_screen(self, message, skip_eol=False):
+        """Print message to stdout if not in quiet mode"""
+        self.to_stdout(
+            message, skip_eol, quiet=self.params.get('quiet', False))
+
     def report_warning(self, message):
         '''
         Print the message to stderr, it will be prefixed with 'WARNING:'
@@ -776,6 +775,16 @@ class YoutubeDL(object):
             _msg_header = 'ERROR:'
         error_message = '%s %s' % (_msg_header, message)
         self.trouble(error_message, tb)
+
+    def write_debug(self, message):
+        '''Log debug message or Print message to stderr'''
+        if not self.params.get('verbose', False):
+            return
+        message = '[debug] %s' % message
+        if self.params.get('logger'):
+            self.params['logger'].debug(message)
+        else:
+            self._write_string('%s\n' % message)
 
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
@@ -812,7 +821,7 @@ class YoutubeDL(object):
 
         # duration_string
         template_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
-            formatSeconds(info_dict['duration'], '-')
+            formatSeconds(info_dict['duration'], '-' if sanitize else ':')
             if info_dict.get('duration', None) is not None
             else None)
 
@@ -2081,8 +2090,7 @@ class YoutubeDL(object):
         req_format = self.params.get('format')
         if req_format is None:
             req_format = self._default_format_spec(info_dict, download=download)
-            if self.params.get('verbose'):
-                self.to_screen('[debug] Default format spec: %s' % req_format)
+            self.write_debug('Default format spec: %s' % req_format)
 
         format_selector = self.build_format_selector(req_format)
 
@@ -2172,6 +2180,7 @@ class YoutubeDL(object):
             requested_langs = ['en']
         else:
             requested_langs = [list(all_sub_langs)[0]]
+        self.write_debug('Downloading subtitles: %s' % ', '.join(requested_langs))
 
         formats_query = self.params.get('subtitlesformat', 'best')
         formats_preference = formats_query.split('/') if formats_query else []
@@ -2198,32 +2207,43 @@ class YoutubeDL(object):
         return subs
 
     def __forced_printings(self, info_dict, filename, incomplete):
-        def print_mandatory(field):
+        def print_mandatory(field, actual_field=None):
+            if actual_field is None:
+                actual_field = field
             if (self.params.get('force%s' % field, False)
-                    and (not incomplete or info_dict.get(field) is not None)):
-                self.to_stdout(info_dict[field])
+                    and (not incomplete or info_dict.get(actual_field) is not None)):
+                self.to_stdout(info_dict[actual_field])
 
         def print_optional(field):
             if (self.params.get('force%s' % field, False)
                     and info_dict.get(field) is not None):
                 self.to_stdout(info_dict[field])
 
+        info_dict = info_dict.copy()
+        if filename is not None:
+            info_dict['filename'] = filename
+        if info_dict.get('requested_formats') is not None:
+            # For RTMP URLs, also include the playpath
+            info_dict['urls'] = '\n'.join(f['url'] + f.get('play_path', '') for f in info_dict['requested_formats'])
+        elif 'url' in info_dict:
+            info_dict['urls'] = info_dict['url'] + info_dict.get('play_path', '')
+
+        for tmpl in self.params.get('forceprint', []):
+            if re.match(r'\w+$', tmpl):
+                tmpl = '%({})s'.format(tmpl)
+            tmpl, info_copy = self.prepare_outtmpl(tmpl, info_dict)
+            self.to_stdout(tmpl % info_copy)
+
         print_mandatory('title')
         print_mandatory('id')
-        if self.params.get('forceurl', False) and not incomplete:
-            if info_dict.get('requested_formats') is not None:
-                for f in info_dict['requested_formats']:
-                    self.to_stdout(f['url'] + f.get('play_path', ''))
-            else:
-                # For RTMP URLs, also include the playpath
-                self.to_stdout(info_dict['url'] + info_dict.get('play_path', ''))
+        print_mandatory('url', 'urls')
         print_optional('thumbnail')
         print_optional('description')
-        if self.params.get('forcefilename', False) and filename is not None:
-            self.to_stdout(filename)
+        print_optional('filename')
         if self.params.get('forceduration', False) and info_dict.get('duration') is not None:
             self.to_stdout(formatSeconds(info_dict['duration']))
         print_mandatory('format')
+
         if self.params.get('forcejson', False):
             self.post_extract(info_dict)
             self.to_stdout(json.dumps(info_dict, default=repr))
@@ -2249,8 +2269,7 @@ class YoutubeDL(object):
         if not test:
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
-            if self.params.get('verbose'):
-                self.to_screen('[debug] Invoking downloader on %r' % info.get('url'))
+            self.write_debug('Invoking downloader on %r' % info.get('url'))
         new_info = dict(info)
         if new_info.get('http_headers') is None:
             new_info['http_headers'] = self._calc_headers(new_info)

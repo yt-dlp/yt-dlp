@@ -534,14 +534,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      formats are found (default)
     --skip-download                  Do not download the video but write all
                                      related files (Alias: --no-download)
-    -g, --get-url                    Simulate, quiet but print URL
-    -e, --get-title                  Simulate, quiet but print title
-    --get-id                         Simulate, quiet but print id
-    --get-thumbnail                  Simulate, quiet but print thumbnail URL
-    --get-description                Simulate, quiet but print video description
-    --get-duration                   Simulate, quiet but print video length
-    --get-filename                   Simulate, quiet but print output filename
-    --get-format                     Simulate, quiet but print output format
+    -O, --print TEMPLATE             Simulate, quiet but print the given fields.
+                                     Either a field name or similar formatting
+                                     as the output template can be used
     -j, --dump-json                  Simulate, quiet but print JSON information.
                                      See "OUTPUT TEMPLATE" for a description of
                                      available keys
@@ -912,7 +907,7 @@ The available fields are:
  - `channel_id` (string): Id of the channel
  - `location` (string): Physical location where the video was filmed
  - `duration` (numeric): Length of the video in seconds
- - `duration_string` (string): Length of the video (HH-mm-ss)
+ - `duration_string` (string): Length of the video (HH:mm:ss)
  - `view_count` (numeric): How many users have watched the video on the platform
  - `like_count` (numeric): Number of positive ratings of the video
  - `dislike_count` (numeric): Number of negative ratings of the video
@@ -989,6 +984,11 @@ Available for `chapter:` prefix when using `--split-chapters` for videos with in
  - `section_number` (numeric): Number of the chapter within the file
  - `section_start` (numeric): Start time of the chapter in seconds
  - `section_end` (numeric): End time of the chapter in seconds
+
+Available only when used in `--print`:
+
+ - `urls` (string): The URLs of all requested formats, one in each line
+ - `filename` (string): Name of the video file. Note that the actual filename may be different due to post-processing. Use `--exec echo` to get the name after all postprocessing is complete
 
 Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
@@ -1313,6 +1313,14 @@ These are all the deprecated options and the current alternative to achieve the 
 #### Not recommended
 While these options still work, their use is not recommended since there are other alternatives to achieve the same
 
+    --get-description                --print description
+    --get-duration                   --print duration_string
+    --get-filename                   --print filename
+    --get-format                     --print format
+    --get-id                         --print id
+    --get-thumbnail                  --print thumbnail
+    -e, --get-title                  --print title
+    -g, --get-url                    --print urls
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
     --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
