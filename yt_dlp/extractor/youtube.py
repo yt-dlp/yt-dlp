@@ -1311,7 +1311,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Has multiple audio streams
             'url': 'WaOKSUlf4TM',
             'only_matching': True
-        },
+        }, {
+            # Requires Premium: has format 141 when requested using YTM url
+            'url': 'https://music.youtube.com/watch?v=XclachpHxis',
+            'only_matching': True
+        }
     ]
 
     @classmethod
