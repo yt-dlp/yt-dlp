@@ -1859,7 +1859,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = self._download_webpage(
             webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
 
-        # define early for use
         def get_text(x):
             if not x:
                 return
