@@ -1303,6 +1303,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
+        }, {
+            # Has multiple audio streams
+            'url': 'WaOKSUlf4TM',
+            'only_matching': True
         },
     ]
 
@@ -1996,17 +2000,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 itags.append(itag)
             tbr = float_or_none(
                 fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
+            audio_track = fmt.get('audioTrack') or {}
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': itag,
-                'format_note': fmt.get('qualityLabel') or quality,
+                'format_note': audio_track.get('displayName') or fmt.get('qualityLabel') or quality,
                 'fps': int_or_none(fmt.get('fps')),
                 'height': int_or_none(fmt.get('height')),
                 'quality': q(quality),
                 'tbr': tbr,
                 'url': fmt_url,
                 'width': fmt.get('width'),
+                'language': audio_track.get('id', '').split('.')[0],
             }
             mimetype = fmt.get('mimeType')
             if mimetype:
