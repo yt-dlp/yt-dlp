@@ -1853,8 +1853,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         video_id = self._match_id(url)
 
         is_music_url = smuggled_data.get('is_music_url') or self.is_music_url(url)
-        if is_music_url:
-            self.to_screen('the video came from youtube music')
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
@@ -1873,11 +1871,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
             return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
 
-        # check is music
-        is_music = re.match(r'^https?://music\.youtube\.com/.+', url)
-
         player_response = None
-        if is_music:
+        # TODO: merge formats from yt music into normal yt
+        if is_music_url:
             # we are forcing to use parse_json because 141 only appeared in get_video_info.
             # el, c, cver, cplayer field required for 141(aac 256kbps) codec
             # maybe paramter of youtube music player?
