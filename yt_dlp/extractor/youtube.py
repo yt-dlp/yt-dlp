@@ -1315,6 +1315,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Requires Premium: has format 141 when requested using YTM url
             'url': 'https://music.youtube.com/watch?v=XclachpHxis',
             'only_matching': True
+        }, {
+            # Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist.
+            'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+            'only_matching': True
         }
     ]
 
