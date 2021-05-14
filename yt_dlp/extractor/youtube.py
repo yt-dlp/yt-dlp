@@ -1315,10 +1315,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Requires Premium: has format 141 when requested using YTM url
             'url': 'https://music.youtube.com/watch?v=XclachpHxis',
             'only_matching': True
-        }, {
-            # Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist.
-            'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
-            'only_matching': True
         }
     ]
 
@@ -2868,6 +2864,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/watch?list=PLW4dVinRY435CBE_JD3t-0SRXKfnZHS1P&feature=youtu.be&v=M9cJMXmQ_ZU',
         'only_matching': True,
+    }, {
+        # Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist.
+        'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+        'only_matching': True
     }]
 
     @classmethod
