@@ -522,10 +522,8 @@ class InfoExtractor(object):
 
             if ip_block:
                 self._x_forwarded_for_ip = GeoUtils.random_ipv4(ip_block)
-                if self._downloader.params.get('verbose', False):
-                    self._downloader.to_screen(
-                        '[debug] Using fake IP %s as X-Forwarded-For.'
-                        % self._x_forwarded_for_ip)
+                self._downloader.write_debug(
+                    '[debug] Using fake IP %s as X-Forwarded-For' % self._x_forwarded_for_ip)
                 return
 
             # Path 2: bypassing based on country code
@@ -543,10 +541,8 @@ class InfoExtractor(object):
 
             if country:
                 self._x_forwarded_for_ip = GeoUtils.random_ipv4(country)
-                if self._downloader.params.get('verbose', False):
-                    self._downloader.to_screen(
-                        '[debug] Using fake IP %s (%s) as X-Forwarded-For.'
-                        % (self._x_forwarded_for_ip, country.upper()))
+                self._downloader.write_debug(
+                    'Using fake IP %s (%s) as X-Forwarded-For' % (self._x_forwarded_for_ip, country.upper()))
 
     def extract(self, url):
         """Extracts URL information and returns it in list of dicts."""
@@ -1594,12 +1590,12 @@ class InfoExtractor(object):
                              else limits[0] if has_limit and not has_multiple_limits
                              else None)
 
-        def print_verbose_info(self, to_screen):
+        def print_verbose_info(self, write_debug):
             if self._sort_user:
-                to_screen('[debug] Sort order given by user: %s' % ', '.join(self._sort_user))
+                write_debug('Sort order given by user: %s' % ', '.join(self._sort_user))
             if self._sort_extractor:
-                to_screen('[debug] Sort order given by extractor: %s' % ', '.join(self._sort_extractor))
-            to_screen('[debug] Formats sorted by: %s' % ', '.join(['%s%s%s' % (
+                write_debug('Sort order given by extractor: %s' % ', '.join(self._sort_extractor))
+            write_debug('Formats sorted by: %s' % ', '.join(['%s%s%s' % (
                 '+' if self._get_field_setting(field, 'reverse') else '', field,
                 '%s%s(%s)' % ('~' if self._get_field_setting(field, 'closest') else ':',
                               self._get_field_setting(field, 'limit_text'),
@@ -1691,7 +1687,7 @@ class InfoExtractor(object):
         format_sort = self.FormatSort()  # params and to_screen are taken from the downloader
         format_sort.evaluate_params(self._downloader.params, field_preference)
         if self._downloader.params.get('verbose', False):
-            format_sort.print_verbose_info(self._downloader.to_screen)
+            format_sort.print_verbose_info(self._downloader.write_debug)
         formats.sort(key=lambda f: format_sort.calculate_preference(f))
 
     def _check_formats(self, formats, video_id):

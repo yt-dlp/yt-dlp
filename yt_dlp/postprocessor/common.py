@@ -54,10 +54,9 @@ class PostProcessor(object):
         if self._downloader:
             return self._downloader.report_error(text, *args, **kwargs)
 
-    def write_debug(self, text, prefix=True, *args, **kwargs):
-        tag = '[debug] ' if prefix else ''
-        if self.get_param('verbose', False) and self._downloader:
-            return self._downloader.to_screen('%s%s' % (tag, text), *args, **kwargs)
+    def write_debug(self, text, *args, **kwargs):
+        if self._downloader:
+            return self._downloader.write_debug(text, *args, **kwargs)
 
     def get_param(self, name, default=None, *args, **kwargs):
         if self._downloader:

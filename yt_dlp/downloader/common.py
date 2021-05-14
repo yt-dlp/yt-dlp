@@ -402,5 +402,4 @@ class FileDownloader(object):
         if exe is None:
             exe = os.path.basename(str_args[0])
 
-        self.to_screen('[debug] %s command line: %s' % (
-            exe, shell_quote(str_args)))
+        self.write_debug('%s command line: %s' % (exe, shell_quote(str_args)))
