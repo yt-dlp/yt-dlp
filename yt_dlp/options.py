@@ -790,7 +790,7 @@ def parseOpts(overrideArguments=None):
         help='Do not download the video but write all related files (Alias: --no-download)')
     verbosity.add_option(
         '-O', '--print', metavar='TEMPLATE',
-        action='callback', dest='print', type='str', default=[],
+        action='callback', dest='forceprint', type='str', default=[],
         callback=_list_from_options_callback, callback_kwargs={'delim': None},
         help=(
             'Simulate, quiet but print the given fields. Either a field name '

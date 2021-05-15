@@ -1726,9 +1726,13 @@ class YoutubeDL(object):
                     expand_path(paths.get('home', '').strip()),
                     expand_path(paths.get('temp', '').strip()),
                     'ytdl.%s.f%s.check-format' % (random_uuidv4(), f['format_id']))
-                dl, _ = self.dl(temp_file, f, test=True)
-                if os.path.exists(temp_file):
-                    os.remove(temp_file)
+                try:
+                    dl, _ = self.dl(temp_file, f, test=True)
+                except (ExtractorError, IOError, OSError, ValueError) + network_exceptions:
+                    dl = False
+                finally:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
                 if dl:
                     yield f
                 else:
@@ -2395,7 +2399,7 @@ class YoutubeDL(object):
                             self.dl(sub_filename, sub_info.copy(), subtitle=True)
                             sub_info['filepath'] = sub_filename
                             files_to_move[sub_filename] = sub_filename_final
-                        except tuple([ExtractorError, IOError, OSError, ValueError] + network_exceptions) as err:
+                        except (ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
                             self.report_warning('Unable to download subtitle for "%s": %s' %
                                                 (sub_lang, error_to_compat_str(err)))
                             continue
@@ -3001,10 +3005,17 @@ class YoutubeDL(object):
             return
         self.to_screen(
             'Available %s for %s:' % (name, video_id))
+
+        def _row(lang, formats):
+            exts, names = zip(*((f['ext'], f['name']) for f in reversed(formats)))
+            if len(set(names)) == 1:
+                names = names[:1]
+            return [lang, ', '.join(names), ', '.join(exts)]
+
         self.to_screen(render_table(
-            ['Language', 'formats'],
-            [[lang, ', '.join(f['ext'] for f in reversed(formats))]
-                for lang, formats in subtitles.items()]))
+            ['Language', 'Name', 'Formats'],
+            [_row(lang, formats) for lang, formats in subtitles.items()],
+            hideEmpty=True))
 
     def urlopen(self, req):
         """ Start an HTTP download """
