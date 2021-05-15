@@ -398,6 +398,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers['X-Origin'] = 'https://www.youtube.com'
         return headers
 
+    @staticmethod
+    def is_music_url(url):
+        return re.match(r'https?://music\.youtube\.com/', url) is not None
+
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
         title = try_get(
@@ -521,7 +525,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      )?                                                       # all until now is optional -> you can pass the naked ID
                      (?P<id>[0-9A-Za-z_-]{11})                                # here is it! the YouTube video ID
                      (?(1).+)?                                                # if we found the ID, everything can follow
-                     $""" % {
+                     (?:\#|$)""" % {
         'invidious': '|'.join(_INVIDIOUS_SITES),
     }
     _PLAYER_INFO_RE = (
@@ -1307,8 +1311,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Has multiple audio streams
             'url': 'WaOKSUlf4TM',
             'only_matching': True
-        },
-        {
+        }, {
+            # Requires Premium: has format 141 when requested using YTM url
+            'url': 'https://music.youtube.com/watch?v=XclachpHxis',
+            'only_matching': True
+        }, {
             # multiple subtitles with same lang_code
             'url': 'https://www.youtube.com/watch?v=wsQiKKfKxug',
             'only_matching': True,
@@ -1852,10 +1859,45 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
+
+        is_music_url = smuggled_data.get('is_music_url') or self.is_music_url(url)
+
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
         webpage = self._download_webpage(
             webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
+
+        def get_text(x):
+            if not x:
+                return
+            text = x.get('simpleText')
+            if text and isinstance(text, compat_str):
+                return text
+            runs = x.get('runs')
+            if not isinstance(runs, list):
+                return
+            return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
+
+        ytm_streaming_data = {}
+        if is_music_url:
+            # we are forcing to use parse_json because 141 only appeared in get_video_info.
+            # el, c, cver, cplayer field required for 141(aac 256kbps) codec
+            # maybe paramter of youtube music player?
+            ytm_player_response = self._parse_json(try_get(compat_parse_qs(
+                self._download_webpage(
+                    base_url + 'get_video_info', video_id,
+                    'Fetching youtube-music info webpage',
+                    'unable to download youtube-music info webpage', query={
+                        'video_id': video_id,
+                        'eurl': 'https://youtube.googleapis.com/v/' + video_id,
+                        'el': 'detailpage',
+                        'c': 'WEB_REMIX',
+                        'cver': '0.1',
+                        'cplayer': 'UNIPLAYER'
+                    }, fatal=False)),
+                lambda x: x['player_response'][0],
+                compat_str) or '{}', video_id)
+            ytm_streaming_data = ytm_player_response.get('streamingData') or {}
 
         player_response = None
         if webpage:
@@ -1890,17 +1932,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if trailer_video_id:
             return self.url_result(
                 trailer_video_id, self.ie_key(), trailer_video_id)
-
-        def get_text(x):
-            if not x:
-                return
-            text = x.get('simpleText')
-            if text and isinstance(text, compat_str):
-                return text
-            runs = x.get('runs')
-            if not isinstance(runs, list):
-                return
-            return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
 
         search_meta = (
             lambda x: self._html_search_meta(x, webpage, default=None)) \
@@ -1960,19 +1991,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
-        formats = []
-        itags = []
+        formats, itags, stream_ids = [], [], []
         itag_qualities = {}
         player_url = None
         q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
+
         streaming_data = player_response.get('streamingData') or {}
         streaming_formats = streaming_data.get('formats') or []
         streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
+        streaming_formats.extend(ytm_streaming_data.get('formats') or [])
+        streaming_formats.extend(ytm_streaming_data.get('adaptiveFormats') or [])
+
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
                 continue
 
             itag = str_or_none(fmt.get('itag'))
+            audio_track = fmt.get('audioTrack') or {}
+            stream_id = '%s.%s' % (itag or '', audio_track.get('id', ''))
+            if stream_id in stream_ids:
+                continue
+
             quality = fmt.get('quality')
             if itag and quality:
                 itag_qualities[itag] = quality
@@ -2003,9 +2042,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             if itag:
                 itags.append(itag)
+                stream_ids.append(stream_id)
+
             tbr = float_or_none(
                 fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
-            audio_track = fmt.get('audioTrack') or {}
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
@@ -2041,35 +2081,37 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             formats.append(dct)
 
-        hls_manifest_url = streaming_data.get('hlsManifestUrl')
-        if hls_manifest_url:
-            for f in self._extract_m3u8_formats(
-                    hls_manifest_url, video_id, 'mp4', fatal=False):
-                itag = self._search_regex(
-                    r'/itag/(\d+)', f['url'], 'itag', default=None)
-                if itag:
-                    f['format_id'] = itag
+        for sd in (streaming_data, ytm_streaming_data):
+            hls_manifest_url = sd.get('hlsManifestUrl')
+            if hls_manifest_url:
+                for f in self._extract_m3u8_formats(
+                        hls_manifest_url, video_id, 'mp4', fatal=False):
+                    itag = self._search_regex(
+                        r'/itag/(\d+)', f['url'], 'itag', default=None)
+                    if itag:
+                        f['format_id'] = itag
                 formats.append(f)
 
         if self._downloader.params.get('youtube_include_dash_manifest', True):
-            dash_manifest_url = streaming_data.get('dashManifestUrl')
-            if dash_manifest_url:
-                for f in self._extract_mpd_formats(
-                        dash_manifest_url, video_id, fatal=False):
-                    itag = f['format_id']
-                    if itag in itags:
-                        continue
-                    if itag in itag_qualities:
-                        # Not actually usefull since the sorting is already done with "quality,res,fps,codec"
-                        # but kept to maintain feature parity (and code similarity) with youtube-dl
-                        # Remove if this causes any issues with sorting in future
-                        f['quality'] = q(itag_qualities[itag])
-                    filesize = int_or_none(self._search_regex(
-                        r'/clen/(\d+)', f.get('fragment_base_url')
-                        or f['url'], 'file size', default=None))
-                    if filesize:
-                        f['filesize'] = filesize
-                    formats.append(f)
+            for sd in (streaming_data, ytm_streaming_data):
+                dash_manifest_url = sd.get('dashManifestUrl')
+                if dash_manifest_url:
+                    for f in self._extract_mpd_formats(
+                            dash_manifest_url, video_id, fatal=False):
+                        itag = f['format_id']
+                        if itag in itags:
+                            continue
+                        if itag in itag_qualities:
+                            # Not actually usefull since the sorting is already done with "quality,res,fps,codec"
+                            # but kept to maintain feature parity (and code similarity) with youtube-dl
+                            # Remove if this causes any issues with sorting in future
+                            f['quality'] = q(itag_qualities[itag])
+                        filesize = int_or_none(self._search_regex(
+                            r'/clen/(\d+)', f.get('fragment_base_url')
+                            or f['url'], 'file size', default=None))
+                        if filesize:
+                            f['filesize'] = filesize
+                        formats.append(f)
 
         if not formats:
             if not self._downloader.params.get('allow_unplayable_formats') and streaming_data.get('licenseInfos'):
@@ -2831,6 +2873,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/watch?list=PLW4dVinRY435CBE_JD3t-0SRXKfnZHS1P&feature=youtu.be&v=M9cJMXmQ_ZU',
         'only_matching': True,
+    }, {
+        # Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist.
+        'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+        'only_matching': True
     }]
 
     @classmethod
@@ -3493,7 +3539,23 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 raise ExtractorError(last_error)
         return webpage, data
 
+    @staticmethod
+    def _smuggle_data(entries, data):
+        for entry in entries:
+            if data:
+                entry['url'] = smuggle_url(entry['url'], data)
+            yield entry
+
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
+        if self.is_music_url(url):
+            smuggled_data['is_music_url'] = True
+        info_dict = self.__real_extract(url)
+        if info_dict.get('entries'):
+            info_dict['entries'] = self._smuggle_data(info_dict['entries'], smuggled_data)
+        return info_dict
+
+    def __real_extract(self, url):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
             compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
@@ -3628,12 +3690,13 @@ class YoutubePlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        qs = parse_qs(url)
-        if not qs:
-            qs = {'list': playlist_id}
-        return self.url_result(
-            update_url_query('https://www.youtube.com/playlist', qs),
-            ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
+        is_music_url = self.is_music_url(url)
+        url = update_url_query(
+            'https://www.youtube.com/playlist',
+            parse_qs(url) or {'list': playlist_id})
+        if is_music_url:
+            url = smuggle_url(url, {'is_music_url': True})
+        return self.url_result(url, ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
 
 
 class YoutubeYtBeIE(InfoExtractor):
