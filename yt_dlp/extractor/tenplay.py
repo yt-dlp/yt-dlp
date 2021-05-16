@@ -71,6 +71,6 @@ class TenPlayIE(InfoExtractor):
             'series': data.get('showName'),
             'season': data.get('showContentSeason'),
             'timestamp': data.get('published'),
-            'thumbnail': data.get('imageURL'),
+            'thumbnail': data.get('imageUrl'),
             'uploader_id': 'Channel 10',
         }
