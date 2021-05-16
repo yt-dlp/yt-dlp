@@ -6,7 +6,7 @@ from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlencode
 from ..utils import (
     ExtractorError,
-    unescapeHTML
+    merge_dicts,
 )
 
 
@@ -24,7 +24,8 @@ class EroProfileIE(InfoExtractor):
             'title': 'sexy babe softcore',
             'thumbnail': r're:https?://.*\.jpg',
             'age_limit': 18,
-        }
+        },
+        'skip': 'Video not found',
     }, {
         'url': 'http://www.eroprofile.com/m/videos/view/Try-It-On-Pee_cut_2-wmv-4shared-com-file-sharing-download-movie-file',
         'md5': '1baa9602ede46ce904c431f5418d8916',
@@ -77,19 +78,15 @@ class EroProfileIE(InfoExtractor):
             [r"glbUpdViews\s*\('\d*','(\d+)'", r'p/report/video/(\d+)'],
             webpage, 'video id', default=None)
 
-        video_url = unescapeHTML(self._search_regex(
-            r'<source src="([^"]+)', webpage, 'video url'))
         title = self._html_search_regex(
-            r'Title:</th><td>([^<]+)</td>', webpage, 'title')
-        thumbnail = self._search_regex(
-            r'onclick="showVideoPlayer\(\)"><img src="([^"]+)',
-            webpage, 'thumbnail', fatal=False)
+            (r'Title:</th><td>([^<]+)</td>', r'<h1[^>]*>(.+?)</h1>'),
+            webpage, 'title')
 
-        return {
+        info = self._parse_html5_media_entries(url, webpage, video_id)[0]
+
+        return merge_dicts(info, {
             'id': video_id,
             'display_id': display_id,
-            'url': video_url,
             'title': title,
-            'thumbnail': thumbnail,
             'age_limit': 18,
-        }
+        })
