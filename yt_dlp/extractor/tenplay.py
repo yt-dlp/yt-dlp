@@ -6,9 +6,9 @@ from .common import InfoExtractor
 from ..utils import (
     HEADRequest,
     parse_age_limit,
-    parse_iso8601,
     urlencode_postdata,
 )
+
 
 class TenPlayIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?:[^/]+/)+(?P<id>tpv\d{6}[a-z]{5})'
@@ -55,7 +55,6 @@ class TenPlayIE(InfoExtractor):
         data = self._download_json(
             'https://10play.com.au/api/v1/videos/' + content_id, content_id)
         _video_url = self._download_json(data.get('playbackApiEndpoint'), content_id, 'Downloading video JSON', headers={'Authorization': _token}).get('source')
-        metadata = data.get('metaData') or {}
         m3u8_url = self._request_webpage(HEADRequest(
             _video_url), content_id).geturl()
         if '10play-not-in-oz' in m3u8_url:
