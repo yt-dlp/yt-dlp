@@ -395,6 +395,7 @@ from .facebook import (
     FacebookIE,
     FacebookPluginsVideoIE,
 )
+from .fancode import FancodeVodIE
 from .faz import FazIE
 from .fc2 import (
     FC2IE,
