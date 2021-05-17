@@ -2926,6 +2926,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'Falling back to channel URL',
         ],
         'playlist_mincount': 9,
+    }, {
+        'note': 'Youtube music Album',
+        'url': 'https://music.youtube.com/browse/MPREb_gTAcphH99wE',
+        'info_dict': {
+            'id': 'OLAK5uy_l1m0thk3g31NmIIz_vMIbWtyv7eZixlH0',
+            'title': 'Album - Royalty Free Music Library V2 (50 Songs)',
+        },
+        'playlist_count': 50,
     }]
 
     @classmethod
@@ -3632,6 +3640,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 if item_id[:2] == 'VL':
                     # Youtube music VL channels have an equivalent playlist
                     item_id = item_id[2:]
+                    pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
+                elif item_id[:2] == 'MP':
+                    # Youtube music albums (/channel/MP...) have a OLAK playlist that can be extracted from the webpage
+                    item_id = self._search_regex(
+                        r'\\x22audioPlaylistId\\x22:\\x22([0-9A-Za-z_-]+)\\x22',
+                        self._download_webpage('https://music.youtube.com/channel/%s' % item_id, item_id),
+                        'playlist id')
                     pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
                 elif mobj['channel_type'] == 'browse':
                     # Youtube music /browse/ should be changed to /channel/
