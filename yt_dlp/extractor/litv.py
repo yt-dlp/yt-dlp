@@ -71,7 +71,7 @@ class LiTVIE(InfoExtractor):
 
         video_id = self._match_id(url)
 
-        noplaylist = self._downloader.params.get('noplaylist')
+        noplaylist = self.get_param('noplaylist')
         noplaylist_prompt = True
         if 'force_noplaylist' in data:
             noplaylist = data['force_noplaylist']

@@ -42,7 +42,7 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
     def _real_initialize(self):
         cookies = self._get_dailymotion_cookies()
         ff = self._get_cookie_value(cookies, 'ff')
-        self._FAMILY_FILTER = ff == 'on' if ff else age_restricted(18, self._downloader.params.get('age_limit'))
+        self._FAMILY_FILTER = ff == 'on' if ff else age_restricted(18, self.get_param('age_limit'))
         self._set_dailymotion_cookie('ff', 'on' if self._FAMILY_FILTER else 'off')
 
     def _call_api(self, object_type, xid, object_fields, note, filter_extra=None):
@@ -207,14 +207,14 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         video_id, playlist_id = re.match(self._VALID_URL, url).groups()
 
         if playlist_id:
-            if not self._downloader.params.get('noplaylist'):
+            if not self.get_param('noplaylist'):
                 self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % playlist_id)
                 return self.url_result(
                     'http://www.dailymotion.com/playlist/' + playlist_id,
                     'DailymotionPlaylist', playlist_id)
             self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
-        password = self._downloader.params.get('videopassword')
+        password = self.get_param('videopassword')
         media = self._call_api(
             'media', video_id, '''... on Video {
       %s
@@ -232,7 +232,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
       audienceCount
       isOnAir
     }''' % (self._COMMON_MEDIA_FIELDS, self._COMMON_MEDIA_FIELDS), 'Downloading media JSON metadata',
-            'password: "%s"' % self._downloader.params.get('videopassword') if password else None)
+            'password: "%s"' % self.get_param('videopassword') if password else None)
         xid = media['xid']
 
         metadata = self._download_json(

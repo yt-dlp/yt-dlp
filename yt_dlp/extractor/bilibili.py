@@ -153,7 +153,7 @@ class BiliBiliIE(InfoExtractor):
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
         # If the video has no page argument, check to see if it's an anthology
         if page_id is None:
-            if not self._downloader.params.get('noplaylist'):
+            if not self.get_param('noplaylist'):
                 r = self._extract_anthology_entries(bv_id, video_id, webpage)
                 if r is not None:
                     self.to_screen('Downloading anthology %s - add --no-playlist to just download video' % video_id)
@@ -299,7 +299,7 @@ class BiliBiliIE(InfoExtractor):
             'tags': tags,
             'raw_tags': raw_tags,
         }
-        if self._downloader.params.get('getcomments', False):
+        if self.get_param('getcomments', False):
             def get_comments():
                 comments = self._get_all_comment_pages(video_id)
                 return {

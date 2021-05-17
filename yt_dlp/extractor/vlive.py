@@ -136,7 +136,7 @@ class VLiveIE(VLiveBaseIE):
             'author{nickname},channel{channelCode,channelName},officialVideo{commentCount,exposeStatus,likeCount,playCount,playTime,status,title,type,vodId},playlist{playlistSeq,totalCount,name}')
 
         playlist = post.get('playlist')
-        if not playlist or self._downloader.params.get('noplaylist'):
+        if not playlist or self.get_param('noplaylist'):
             if playlist:
                 self.to_screen(
                     'Downloading just video %s because of --no-playlist'

@@ -2370,7 +2370,7 @@ class GenericIE(InfoExtractor):
 
         parsed_url = compat_urlparse.urlparse(url)
         if not parsed_url.scheme:
-            default_search = self._downloader.params.get('default_search')
+            default_search = self.get_param('default_search')
             if default_search is None:
                 default_search = 'fixup_error'
 
@@ -2461,8 +2461,8 @@ class GenericIE(InfoExtractor):
             info_dict['subtitles'] = subtitles
             return info_dict
 
-        if not self._downloader.params.get('test', False) and not is_intentional:
-            force = self._downloader.params.get('force_generic_extractor', False)
+        if not self.get_param('test', False) and not is_intentional:
+            force = self.get_param('force_generic_extractor', False)
             self.report_warning(
                 '%s on generic information extractor.' % ('Forcing' if force else 'Falling back'))
 

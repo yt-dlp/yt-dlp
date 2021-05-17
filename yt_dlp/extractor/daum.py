@@ -158,7 +158,7 @@ class DaumListIE(InfoExtractor):
         query_dict = compat_parse_qs(compat_urlparse.urlparse(url).query)
         if 'clipid' in query_dict:
             clip_id = query_dict['clipid'][0]
-            if self._downloader.params.get('noplaylist'):
+            if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % clip_id)
                 return self.url_result(DaumClipIE._URL_TEMPLATE % clip_id, 'DaumClip')
             else:

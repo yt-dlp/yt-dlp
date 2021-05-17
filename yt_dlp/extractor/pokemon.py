@@ -112,7 +112,7 @@ class PokemonWatchIE(InfoExtractor):
         }
 
         # API call can be avoided entirely if we are listing formats
-        if self._downloader.params.get('listformats', False):
+        if self.get_param('listformats', False):
             return info
 
         webpage = self._download_webpage(url, video_id)

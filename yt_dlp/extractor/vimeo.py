@@ -76,7 +76,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             raise ExtractorError('Unable to log in')
 
     def _get_video_password(self):
-        password = self._downloader.params.get('videopassword')
+        password = self.get_param('videopassword')
         if password is None:
             raise ExtractorError(
                 'This video is protected by a password, use the --video-password option',
@@ -603,7 +603,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             album_id, headers={'Authorization': 'jwt ' + jwt},
             query={'fields': 'description,name,privacy'})
         if try_get(album, lambda x: x['privacy']['view']) == 'password':
-            password = self._downloader.params.get('videopassword')
+            password = self.get_param('videopassword')
             if not password:
                 raise ExtractorError(
                     'This album is protected by a password, use the --video-password option',
@@ -1058,7 +1058,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
             query={'fields': 'description,name,privacy'})
         hashed_pass = None
         if try_get(album, lambda x: x['privacy']['view']) == 'password':
-            password = self._downloader.params.get('videopassword')
+            password = self.get_param('videopassword')
             if not password:
                 raise ExtractorError(
                     'This album is protected by a password, use the --video-password option',

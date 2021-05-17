@@ -1414,7 +1414,7 @@ class AdobePassIE(InfoExtractor):
                 authn_token = None
             if not authn_token:
                 # TODO add support for other TV Providers
-                mso_id = self._downloader.params.get('ap_mso')
+                mso_id = self.get_param('ap_mso')
                 if not mso_id:
                     raise_mvpd_required()
                 username, password = self._get_login_info('ap_username', 'ap_password', mso_id)

@@ -35,7 +35,7 @@ class ZoomIE(InfoExtractor):
         except ExtractorError:
             form = None
         if form:
-            password = self._downloader.params.get('videopassword')
+            password = self.get_param('videopassword')
             if not password:
                 raise ExtractorError(
                     'This video is protected by a passcode, use the --video-password option', expected=True)

@@ -114,7 +114,7 @@ class ShahidIE(ShahidBaseIE):
         playout = self._call_api(
             'playout/new/url/' + video_id, video_id)['playout']
 
-        if not self._downloader.params.get('allow_unplayable_formats') and playout.get('drm'):
+        if not self.get_param('allow_unplayable_formats') and playout.get('drm'):
             raise ExtractorError('This video is DRM protected.', expected=True)
 
         formats = self._extract_m3u8_formats(re.sub(

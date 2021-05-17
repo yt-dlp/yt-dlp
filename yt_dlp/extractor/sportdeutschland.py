@@ -63,7 +63,7 @@ class SportDeutschlandIE(InfoExtractor):
         if len(videos) > 1:
             playlist_id = compat_parse_qs(compat_urllib_parse_urlparse(url).query).get('playlistId', [None])[0]
             if playlist_id:
-                if self._downloader.params.get('noplaylist'):
+                if self.get_param('noplaylist'):
                     videos = [videos[int(playlist_id)]]
                     self.to_screen('Downloading just a single video because of --no-playlist')
                 else:
@@ -77,7 +77,7 @@ class SportDeutschlandIE(InfoExtractor):
                         continue
                     formats = self._extract_m3u8_formats(
                         video_url.replace('.smil', '.m3u8'), video_id, 'mp4', fatal=False)
-                    if not formats and not self._downloader.params.get('ignore_no_formats'):
+                    if not formats and not self.get_param('ignore_no_formats'):
                         continue
                     yield {
                         'id': video_id,

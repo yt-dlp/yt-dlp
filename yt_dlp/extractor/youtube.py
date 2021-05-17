@@ -88,9 +88,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         username, password = self._get_login_info()
         # No authentication to be performed
         if username is None:
-            if self._LOGIN_REQUIRED and self._downloader.params.get('cookiefile') is None:
+            if self._LOGIN_REQUIRED and self.get_param('cookiefile') is None:
                 raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
-            # if self._downloader.params.get('cookiefile'):  # TODO remove 'and False' later - too many people using outdated cookies and open issues, remind them.
+            # if self.get_param('cookiefile'):  # TODO remove 'and False' later - too many people using outdated cookies and open issues, remind them.
             #     self.to_screen('[Cookies] Reminder - Make sure to always use up to date cookies!')
             return True
 
@@ -1460,7 +1460,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 )
                 self._player_cache[player_id] = func
             func = self._player_cache[player_id]
-            if self._downloader.params.get('youtube_print_sig_code'):
+            if self.get_param('youtube_print_sig_code'):
                 self._print_sig_code(func, s)
             return func(s)
         except Exception as e:
@@ -1690,7 +1690,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not continuation:
                 break
             headers = self._generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
-            retries = self._downloader.params.get('extractor_retries', 3)
+            retries = self.get_param('extractor_retries', 3)
             count = -1
             last_error = None
 
@@ -1948,7 +1948,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         video_description = video_details.get('shortDescription')
 
         if not smuggled_data.get('force_singlefeed', False):
-            if not self._downloader.params.get('noplaylist'):
+            if not self.get_param('noplaylist'):
                 multifeed_metadata_list = try_get(
                     player_response,
                     lambda x: x['multicamera']['playerLegacyMulticameraRenderer']['metadataList'],
@@ -2092,7 +2092,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f['format_id'] = itag
                 formats.append(f)
 
-        if self._downloader.params.get('youtube_include_dash_manifest', True):
+        if self.get_param('youtube_include_dash_manifest', True):
             for sd in (streaming_data, ytm_streaming_data):
                 dash_manifest_url = sd.get('dashManifestUrl')
                 if dash_manifest_url:
@@ -2114,7 +2114,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         formats.append(f)
 
         if not formats:
-            if not self._downloader.params.get('allow_unplayable_formats') and streaming_data.get('licenseInfos'):
+            if not self.get_param('allow_unplayable_formats') and streaming_data.get('licenseInfos'):
                 self.raise_no_formats(
                     'This video is DRM protected.', expected=True)
             pemr = try_get(
@@ -2473,8 +2473,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_unlisted=None if is_private is None else is_unlisted)
 
         # get xsrf for annotations or comments
-        get_annotations = self._downloader.params.get('writeannotations', False)
-        get_comments = self._downloader.params.get('getcomments', False)
+        get_annotations = self.get_param('writeannotations', False)
+        get_comments = self.get_param('getcomments', False)
         if get_annotations or get_comments:
             xsrf_token = None
             ytcfg = self._extract_ytcfg(video_id, webpage)
@@ -3475,7 +3475,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         response = None
         last_error = None
         count = -1
-        retries = self._downloader.params.get('extractor_retries', 3)
+        retries = self.get_param('extractor_retries', 3)
         if check_get_keys is None:
             check_get_keys = []
         while count < retries:
@@ -3519,7 +3519,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         return response
 
     def _extract_webpage(self, url, item_id):
-        retries = self._downloader.params.get('extractor_retries', 3)
+        retries = self.get_param('extractor_retries', 3)
         count = -1
         last_error = 'Incomplete yt initial data recieved'
         while count < retries:
@@ -3559,7 +3559,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
             compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
-        compat_opts = self._downloader.params.get('compat_opts', [])
+        compat_opts = self.get_param('compat_opts', [])
 
         # This is not matched in a channel page with a tab selected
         mobj = re.match(r'(?P<pre>%s)(?P<post>/?(?![^#?]).*$)' % self._VALID_URL, url)
@@ -3584,7 +3584,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             url = 'https://www.youtube.com/playlist?list=%s' % playlist_id
 
         if video_id and playlist_id:
-            if self._downloader.params.get('noplaylist'):
+            if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
                 return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))

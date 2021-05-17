@@ -81,7 +81,7 @@ class CrackleIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        geo_bypass_country = self._downloader.params.get('geo_bypass_country', None)
+        geo_bypass_country = self.get_param('geo_bypass_country', None)
         countries = orderedSet((geo_bypass_country, 'US', 'AU', 'CA', 'AS', 'FM', 'GU', 'MP', 'PR', 'PW', 'MH', 'VI', ''))
         num_countries, num = len(countries) - 1, 0
 
@@ -128,8 +128,8 @@ class CrackleIE(InfoExtractor):
             if isinstance(media.get('MediaURLs'), list):
                 break
 
-        ignore_no_formats = self._downloader.params.get('ignore_no_formats_error')
-        allow_unplayable_formats = self._downloader.params.get('allow_unplayable_formats')
+        ignore_no_formats = self.get_param('ignore_no_formats_error')
+        allow_unplayable_formats = self.get_param('allow_unplayable_formats')
 
         if not media or (not media.get('MediaURLs') and not ignore_no_formats):
             raise ExtractorError(

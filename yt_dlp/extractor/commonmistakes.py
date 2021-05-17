@@ -26,7 +26,7 @@ class CommonMistakesIE(InfoExtractor):
             'That doesn\'t make any sense. '
             'Simply remove the parameter in your command or configuration.'
         ) % url
-        if not self._downloader.params.get('verbose'):
+        if not self.get_param('verbose'):
             msg += ' Add -v to the command line to see what arguments and configuration yt-dlp has'
         raise ExtractorError(msg, expected=True)
 
