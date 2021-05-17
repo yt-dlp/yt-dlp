@@ -17,8 +17,8 @@ class FancodeVodIE(InfoExtractor):
     _TEST = {
         'url': 'https://fancode.com/video/15043/match-preview-pbks-vs-mi',
         'md5': '0cf97d19ce68c9765512f36fbb4447bd',
-        'params':{
-            'format':'bestvideo',
+        'params': {
+            'format': 'bestvideo',
             'skip_download': True,
         },
         'info_dict': {
@@ -32,7 +32,7 @@ class FancodeVodIE(InfoExtractor):
             "upload_date": "20210422",
             "uploader_id": "6008340455001",
         }
-        
+
     }
 
     def _real_extract(self, url):
