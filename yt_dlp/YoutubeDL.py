@@ -3007,9 +3007,9 @@ class YoutubeDL(object):
             'Available %s for %s:' % (name, video_id))
 
         def _row(lang, formats):
-            exts, names = zip(*((f['ext'], f['name']) for f in reversed(formats)))
+            exts, names = zip(*((f['ext'], f.get('name', 'unknown')) for f in reversed(formats)))
             if len(set(names)) == 1:
-                names = names[:1]
+                names = [] if names[0] == 'unknown' else names[:1]
             return [lang, ', '.join(names), ', '.join(exts)]
 
         self.to_screen(render_table(
