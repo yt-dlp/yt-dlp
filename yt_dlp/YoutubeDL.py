@@ -1379,6 +1379,9 @@ class YoutubeDL(object):
                     except (OSError, IOError):
                         self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
 
+            # TODO: This should be passed to ThumbnailsConvertor if necessary
+            self._write_thumbnails(ie_copy, self.prepare_filename(ie_copy, 'pl_thumbnail'))
+
             if self.params.get('writedescription', False):
                 descfn = self.prepare_filename(ie_copy, 'pl_description')
                 if not self._ensure_dir_exists(encodeFilename(descfn)):
