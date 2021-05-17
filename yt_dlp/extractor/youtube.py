@@ -1994,7 +1994,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         formats, itags, stream_ids = [], [], []
         itag_qualities = {}
         player_url = None
-        q = qualities(['tiny', 'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'])
+        q = qualities([
+            'tiny', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
+            'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
+        ])
 
         streaming_data = player_response.get('streamingData') or {}
         streaming_formats = streaming_data.get('formats') or []
@@ -2013,6 +2016,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             quality = fmt.get('quality')
+            if quality == 'tiny' or not quality:
+                quality = fmt.get('audioQuality', '').lower() or quality
             if itag and quality:
                 itag_qualities[itag] = quality
             # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
@@ -2102,9 +2107,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if itag in itags:
                             continue
                         if itag in itag_qualities:
-                            # Not actually usefull since the sorting is already done with "quality,res,fps,codec"
-                            # but kept to maintain feature parity (and code similarity) with youtube-dl
-                            # Remove if this causes any issues with sorting in future
                             f['quality'] = q(itag_qualities[itag])
                         filesize = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url')
