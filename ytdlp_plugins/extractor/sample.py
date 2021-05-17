@@ -1,6 +1,13 @@
 from __future__ import unicode_literals
+import sys
 
-# Don't use relative imports
+try:
+    import yt_dlp
+    #print("Imported yt_dlp", file=sys.stderr)
+except ImportError as e:
+    print(e, file=sys.stderr)
+
+# ⚠ Don't use relative imports
 from yt_dlp.extractor.common import InfoExtractor
 
 
