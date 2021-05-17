@@ -4000,6 +4000,15 @@ class PagedList(object):
         # This is only useful for tests
         return len(self.getslice())
 
+    def getslice(self, start, end):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+    def __getitem__(self, idx):
+        if not isinstance(idx, int) or idx < 0:
+            raise TypeError('indices must be non-negative integers')
+        entries = self.getslice(idx, idx + 1)
+        return entries[0] if entries else None
+
 
 class OnDemandPagedList(PagedList):
     def __init__(self, pagefunc, pagesize, use_cache=True):
