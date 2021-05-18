@@ -2534,7 +2534,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:tab'
 
     _TESTS = [{
-        # playlists, multipage
+        'note': 'playlists, multipage',
         'url': 'https://www.youtube.com/c/ИгорьКлейнер/playlists?view=1&flow=grid',
         'playlist_mincount': 94,
         'info_dict': {
@@ -2545,7 +2545,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
         },
     }, {
-        # playlists, multipage, different order
+        'note': 'playlists, multipage, different order',
         'url': 'https://www.youtube.com/user/igorkle1/playlists?view=1&sort=dd',
         'playlist_mincount': 94,
         'info_dict': {
@@ -2556,16 +2556,18 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader': 'Игорь Клейнер',
         },
     }, {
-        # playlists, series
+        'note': 'playlists, series',
         'url': 'https://www.youtube.com/c/3blue1brown/playlists?view=50&sort=dd&shelf_id=3',
         'playlist_mincount': 5,
         'info_dict': {
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Playlists',
             'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'uploader': '3Blue1Brown',
         },
     }, {
-        # playlists, singlepage
+        'note': 'playlists, singlepage',
         'url': 'https://www.youtube.com/user/ThirstForScience/playlists',
         'playlist_mincount': 4,
         'info_dict': {
@@ -2579,7 +2581,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
         'only_matching': True,
     }, {
-        # basic, single video playlist
+        'note': 'basic, single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
         'info_dict': {
             'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
@@ -2589,7 +2591,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_count': 1,
     }, {
-        # empty playlist
+        'note': 'empty playlist',
         'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFodcLWhDpGCYnngnHtQ-Xf',
         'info_dict': {
             'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
@@ -2599,7 +2601,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_count': 0,
     }, {
-        # Home tab
+        'note': 'Home tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/featured',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2610,7 +2612,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 2,
     }, {
-        # Videos tab
+        'note': 'Videos tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2621,7 +2623,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 975,
     }, {
-        # Videos tab, sorted by popular
+        'note': 'Videos tab, sorted by popular',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos?view=0&sort=p&flow=grid',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2632,7 +2634,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 199,
     }, {
-        # Playlists tab
+        'note': 'Playlists tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/playlists',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2643,7 +2645,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 17,
     }, {
-        # Community tab
+        'note': 'Community tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/community',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2654,7 +2656,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 18,
     }, {
-        # Channels tab
+        'note': 'Channels tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/channels',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2695,7 +2697,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 1123,
     }, {
-        # even larger playlist, 8832 videos
+        'note': 'even larger playlist, 8832 videos',
         'url': 'http://www.youtube.com/user/NASAgovVideo/videos',
         'only_matching': True,
     }, {
@@ -2717,12 +2719,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader': 'Phim Siêu Nhân Nhật Bản',
             'uploader_id': 'UCTYLiWFZy8xtPwxFwX9rV7Q',
         },
-        'playlist_mincount': 1400,
-        'expected_warnings': [
-            'YouTube said: INFO - Unavailable videos are hidden',
-        ]
+        'playlist_mincount': 200,
     }, {
-        'note': 'Playlist with unavailable videos in a later page',
+        'note': 'Playlist with unavailable videos in page 7',
         'url': 'https://www.youtube.com/playlist?list=UU8l9frL61Yl5KFOl87nIm2w',
         'info_dict': {
             'title': 'Uploads from BlankTV',
@@ -2730,9 +2729,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader': 'BlankTV',
             'uploader_id': 'UC8l9frL61Yl5KFOl87nIm2w',
         },
-        'playlist_mincount': 20000,
+        'playlist_mincount': 1000,
     }, {
-        # https://github.com/ytdl-org/youtube-dl/issues/21844
+        'note': 'https://github.com/ytdl-org/youtube-dl/issues/21844',
         'url': 'https://www.youtube.com/playlist?list=PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
         'info_dict': {
             'title': 'Data Analysis with Dr Mike Pound',
@@ -2746,7 +2745,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://invidio.us/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
         'only_matching': True,
     }, {
-        # Playlist URL that does not actually serve a playlist
+        'note': 'Playlist URL that does not actually serve a playlist',
         'url': 'https://www.youtube.com/watch?v=FqZTN594JQw&list=PLMYEtVRpaqY00V9W81Cwmzp6N6vZqfUKD4',
         'info_dict': {
             'id': 'FqZTN594JQw',
@@ -2778,14 +2777,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': '9Auq9mYxFEE',
+            'id': 'X1whbWASnNQ',  # This will keep changing
             'ext': 'mp4',
             'title': compat_str,
             'uploader': 'Sky News',
             'uploader_id': 'skynews',
             'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/skynews',
-            'upload_date': '20191102',
-            'description': 'md5:85ddd75d888674631aaf9599a9a0b0ae',
+            'upload_date': r're:\d{8}',
+            'description': compat_str,
             'categories': ['News & Politics'],
             'tags': list,
             'like_count': int,
@@ -2794,6 +2793,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'expected_warnings': ['Downloading just video ', 'Ignoring subtitle tracks found in '],
     }, {
         'url': 'https://www.youtube.com/user/TheYoungTurks/live',
         'info_dict': {
@@ -2825,27 +2825,23 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/feed/trending',
         'only_matching': True,
     }, {
-        # needs auth
         'url': 'https://www.youtube.com/feed/library',
         'only_matching': True,
     }, {
-        # needs auth
         'url': 'https://www.youtube.com/feed/history',
         'only_matching': True,
     }, {
-        # needs auth
         'url': 'https://www.youtube.com/feed/subscriptions',
         'only_matching': True,
     }, {
-        # needs auth
         'url': 'https://www.youtube.com/feed/watch_later',
         'only_matching': True,
     }, {
-        # no longer available?
+        'note': 'Recommended - redirects to home page',
         'url': 'https://www.youtube.com/feed/recommended',
         'only_matching': True,
     }, {
-        # inline playlist with not always working continuations
+        'note': 'inline playlist with not always working continuations',
         'url': 'https://www.youtube.com/watch?v=UC6u0Tct-Fo&list=PL36D642111D65BE7C',
         'only_matching': True,
     }, {
@@ -2874,7 +2870,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/watch?list=PLW4dVinRY435CBE_JD3t-0SRXKfnZHS1P&feature=youtu.be&v=M9cJMXmQ_ZU',
         'only_matching': True,
     }, {
-        # Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist.
+        'note': 'Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist',
         'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
         'only_matching': True
     }]
