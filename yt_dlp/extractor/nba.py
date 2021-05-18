@@ -167,7 +167,7 @@ class NBAWatchIE(NBAWatchBaseIE):
         display_id = self._match_id(url)
         collection_id = compat_parse_qs(compat_urllib_parse_urlparse(url).query).get('collection', [None])[0]
         if collection_id:
-            if self._downloader.params.get('noplaylist'):
+            if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % display_id)
             else:
                 self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % collection_id)

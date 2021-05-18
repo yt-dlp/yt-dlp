@@ -48,7 +48,6 @@ from .utils import (
     date_from_str,
     DateRange,
     DEFAULT_OUTTMPL,
-    OUTTMPL_TYPES,
     determine_ext,
     determine_protocol,
     DOT_DESKTOP_LINK_TEMPLATE,
@@ -57,8 +56,8 @@ from .utils import (
     DownloadError,
     encode_compat_str,
     encodeFilename,
-    error_to_compat_str,
     EntryNotInPlaylist,
+    error_to_compat_str,
     ExistingVideoReached,
     expand_path,
     ExtractorError,
@@ -77,6 +76,7 @@ from .utils import (
     MaxDownloadsReached,
     network_exceptions,
     orderedSet,
+    OUTTMPL_TYPES,
     PagedList,
     parse_filesize,
     PerRequestProxyHandler,
@@ -84,11 +84,12 @@ from .utils import (
     PostProcessingError,
     preferredencoding,
     prepend_extension,
+    process_communicate_or_kill,
     random_uuidv4,
     register_socks_protocols,
+    RejectedVideoReached,
     render_table,
     replace_extension,
-    RejectedVideoReached,
     SameFileError,
     sanitize_filename,
     sanitize_path,
@@ -109,7 +110,6 @@ from .utils import (
     YoutubeDLCookieProcessor,
     YoutubeDLHandler,
     YoutubeDLRedirectHandler,
-    process_communicate_or_kill,
 )
 from .cache import Cache
 from .extractor import (
@@ -1378,6 +1378,9 @@ class YoutubeDL(object):
                         write_json_file(self.filter_requested_info(ie_result, self.params.get('clean_infojson', True)), infofn)
                     except (OSError, IOError):
                         self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
+
+            # TODO: This should be passed to ThumbnailsConvertor if necessary
+            self._write_thumbnails(ie_copy, self.prepare_filename(ie_copy, 'pl_thumbnail'))
 
             if self.params.get('writedescription', False):
                 descfn = self.prepare_filename(ie_copy, 'pl_description')
@@ -3007,9 +3010,9 @@ class YoutubeDL(object):
             'Available %s for %s:' % (name, video_id))
 
         def _row(lang, formats):
-            exts, names = zip(*((f['ext'], f['name']) for f in reversed(formats)))
+            exts, names = zip(*((f['ext'], f.get('name', 'unknown')) for f in reversed(formats)))
             if len(set(names)) == 1:
-                names = names[:1]
+                names = [] if names[0] == 'unknown' else names[:1]
             return [lang, ', '.join(names), ', '.join(exts)]
 
         self.to_screen(render_table(

@@ -41,7 +41,7 @@ class WakanimIE(InfoExtractor):
         m3u8_url = urljoin(url, self._search_regex(
             r'file\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage, 'm3u8 url',
             group='url'))
-        if not self._downloader.params.get('allow_unplayable_formats'):
+        if not self.get_param('allow_unplayable_formats'):
             # https://docs.microsoft.com/en-us/azure/media-services/previous/media-services-content-protection-overview#streaming-urls
             encryption = self._search_regex(
                 r'encryption%3D(c(?:enc|bc(?:s-aapl)?))',

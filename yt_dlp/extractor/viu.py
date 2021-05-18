@@ -287,7 +287,7 @@ class ViuOTTIE(InfoExtractor):
             raise ExtractorError('This video is not available in your region.', expected=True)
 
         series_id = video_data.get('series_id')
-        if not self._downloader.params.get('noplaylist') and not idata.get('force_noplaylist'):
+        if not self.get_param('noplaylist') and not idata.get('force_noplaylist'):
             self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % series_id)
             series = product_data.get('series', {})
             product = series.get('product')
@@ -308,7 +308,7 @@ class ViuOTTIE(InfoExtractor):
 
                 return self.playlist_result(entries, series_id, series.get('name'), series.get('description'))
 
-        if self._downloader.params.get('noplaylist'):
+        if self.get_param('noplaylist'):
             self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
         duration_limit = False

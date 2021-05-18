@@ -1271,7 +1271,7 @@ class BBCIE(BBCCoUkIE):
         entries = []
         for num, media_meta in enumerate(medias, start=1):
             formats, subtitles = self._extract_from_media_meta(media_meta, playlist_id)
-            if not formats and not self._downloader.params.get('ignore_no_formats'):
+            if not formats and not self.get_param('ignore_no_formats'):
                 continue
             self._sort_formats(formats)
 

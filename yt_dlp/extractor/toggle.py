@@ -153,7 +153,7 @@ class ToggleIE(InfoExtractor):
                 })
         if not formats:
             for meta in (info.get('Metas') or []):
-                if (not self._downloader.params.get('allow_unplayable_formats')
+                if (not self.get_param('allow_unplayable_formats')
                         and meta.get('Key') == 'Encryption' and meta.get('Value') == '1'):
                     self.raise_no_formats(
                         'This video is DRM protected.', expected=True)

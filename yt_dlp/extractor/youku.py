@@ -160,7 +160,7 @@ class YoukuIE(InfoExtractor):
             'client_ts': time.time() / 1000,
         }
 
-        video_password = self._downloader.params.get('videopassword')
+        video_password = self.get_param('videopassword')
         if video_password:
             basic_data_params['password'] = video_password
 

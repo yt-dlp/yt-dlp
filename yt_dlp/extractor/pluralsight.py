@@ -337,11 +337,11 @@ query viewClip {
         # In order to minimize the number of calls to ViewClip API and reduce
         # the probability of being throttled or banned by Pluralsight we will request
         # only single format until formats listing was explicitly requested.
-        if self._downloader.params.get('listformats', False):
+        if self.get_param('listformats', False):
             allowed_qualities = ALLOWED_QUALITIES
         else:
             def guess_allowed_qualities():
-                req_format = self._downloader.params.get('format') or 'best'
+                req_format = self.get_param('format') or 'best'
                 req_format_split = req_format.split('-', 1)
                 if len(req_format_split) > 1:
                     req_ext, req_quality = req_format_split
@@ -349,7 +349,7 @@ query viewClip {
                     for allowed_quality in ALLOWED_QUALITIES:
                         if req_ext == allowed_quality.ext and req_quality in allowed_quality.qualities:
                             return (AllowedQuality(req_ext, (req_quality, )), )
-                req_ext = 'webm' if self._downloader.params.get('prefer_free_formats') else 'mp4'
+                req_ext = 'webm' if self.get_param('prefer_free_formats') else 'mp4'
                 return (AllowedQuality(req_ext, (best_quality, )), )
             allowed_qualities = guess_allowed_qualities()
 

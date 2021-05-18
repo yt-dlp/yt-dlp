@@ -109,7 +109,7 @@ class PlutoTVIE(InfoExtractor):
         if ad_free_formats:
             formats, subtitles = ad_free_formats, ad_free_subtitles
         else:
-            self._downloader.report_warning('Unable to find ad-free formats')
+            self.report_warning('Unable to find ad-free formats')
         return formats, subtitles
 
     def _get_video_info(self, video_json, slug, series_name=None):

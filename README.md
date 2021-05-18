@@ -1332,6 +1332,7 @@ While these options still work, their use is not recommended since there are oth
     --list-formats-as-table          --compat-options -list-formats [Default] (Alias: --no-list-formats-old)
     --sponskrub-args ARGS            --ppa "sponskrub:ARGS"
     --test                           Used by developers for testing extractors. Not intended for the end user
+    --youtube-print-sig-code         Used for testing youtube signatures
 
 
 #### Old aliases
@@ -1362,7 +1363,6 @@ These options may no longer work as intended
     --no-call-home                   Default
     --include-ads                    No longer supported
     --no-include-ads                 Default
-    --youtube-print-sig-code         No longer supported
 
 #### Removed
 These options were deprecated since 2014 and have now been entirely removed

@@ -98,7 +98,7 @@ class LimelightBaseIE(InfoExtractor):
             stream_url = stream.get('url')
             if not stream_url or stream_url in urls:
                 continue
-            if not self._downloader.params.get('allow_unplayable_formats') and stream.get('drmProtected'):
+            if not self.get_param('allow_unplayable_formats') and stream.get('drmProtected'):
                 continue
             urls.append(stream_url)
             ext = determine_ext(stream_url)
@@ -163,7 +163,7 @@ class LimelightBaseIE(InfoExtractor):
             if not media_url or media_url in urls:
                 continue
             if (format_id in ('Widevine', 'SmoothStreaming')
-                    and not self._downloader.params.get('allow_unplayable_formats', False)):
+                    and not self.get_param('allow_unplayable_formats', False)):
                 continue
             urls.append(media_url)
             ext = determine_ext(media_url)
