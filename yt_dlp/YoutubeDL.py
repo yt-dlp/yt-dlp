@@ -2089,6 +2089,9 @@ class YoutubeDL(object):
             # element in the 'formats' field in info_dict is info_dict itself,
             # which can't be exported to json
             info_dict['formats'] = formats
+
+        info_dict, _ = self.pre_process(info_dict)
+
         if self.params.get('listformats'):
             if not info_dict.get('formats'):
                 raise ExtractorError('No video formats found', expected=True)
@@ -2141,6 +2144,8 @@ class YoutubeDL(object):
                     ", ".join([f['format_id'] for f in formats_to_download])))
             for fmt in formats_to_download:
                 new_info = dict(info_dict)
+                # Save a reference to the original info_dict so that it can be modified in process_info if needed
+                new_info['__original_infodict'] = info_dict
                 new_info.update(fmt)
                 self.process_info(new_info)
         # We update the info dict with the best quality format (backwards compatibility)
@@ -2303,8 +2308,6 @@ class YoutubeDL(object):
 
         self.post_extract(info_dict)
         self._num_downloads += 1
-
-        info_dict, _ = self.pre_process(info_dict)
 
         # info_dict['_filename'] needs to be set for backward compatibility
         info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
@@ -2743,6 +2746,7 @@ class YoutubeDL(object):
 
     @staticmethod
     def filter_requested_info(info_dict, actually_filter=True):
+        info_dict.pop('__original_infodict', None)  # Always remove this
         if not actually_filter:
             info_dict['epoch'] = int(time.time())
             return info_dict
@@ -2788,8 +2792,13 @@ class YoutubeDL(object):
                 return
 
             post_extractor = info_dict.get('__post_extractor') or (lambda: {})
-            info_dict.update(post_extractor().items())
+            extra = post_extractor().items()
+            info_dict.update(extra)
             info_dict.pop('__post_extractor', None)
+
+            original_infodict = info_dict.get('__original_infodict') or {}
+            original_infodict.update(extra)
+            original_infodict.pop('__post_extractor', None)
 
         actual_post_extract(info_dict or {})
 
