@@ -67,7 +67,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|'
+        r'channel|c|user|browse|playlist|watch|w|v|embed|e|watch_popup|'
         r'movies|results|shared|hashtag|trending|feed|feeds|oembed|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 
@@ -1886,8 +1886,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             ytm_player_response = self._parse_json(try_get(compat_parse_qs(
                 self._download_webpage(
                     base_url + 'get_video_info', video_id,
-                    'Fetching youtube-music info webpage',
-                    'unable to download youtube-music info webpage', query={
+                    'Fetching youtube music info webpage',
+                    'unable to download youtube music info webpage', query={
                         'video_id': video_id,
                         'eurl': 'https://youtube.googleapis.com/v/' + video_id,
                         'el': 'detailpage',
@@ -2522,7 +2522,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                             invidio\.us
                         )/
                         (?:
-                            (?:channel|c|user)/|
+                            (?P<channel_type>channel|c|user|browse)/|
                             (?P<not_channel>
                                 feed/|hashtag/|
                                 (?:playlist|watch)\?.*?\blist=
@@ -2884,6 +2884,21 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'note': 'Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist',
         'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
         'only_matching': True
+    }, {
+        'note': '/browse/ should redirect to /channel/',
+        'url': 'https://music.youtube.com/browse/UC1a8OFewdjuLq6KlF8M_8Ng',
+        'only_matching': True
+    }, {
+        'note': 'VLPL, should redirect to playlist?list=PL...',
+        'url': 'https://music.youtube.com/browse/VLPLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+        'info_dict': {
+            'id': 'PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+            'uploader': 'NoCopyrightSounds',
+            'description': 'Providing you with copyright free / safe music for gaming, live streaming, studying and more!',
+            'uploader_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
+            'title': 'NCS Releases',
+        },
+        'playlist_mincount': 166,
     }]
 
     @classmethod
@@ -3563,36 +3578,57 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         url, smuggled_data = unsmuggle_url(url, {})
         if self.is_music_url(url):
             smuggled_data['is_music_url'] = True
-        info_dict = self.__real_extract(url)
+        info_dict = self.__real_extract(url, smuggled_data)
         if info_dict.get('entries'):
             info_dict['entries'] = self._smuggle_data(info_dict['entries'], smuggled_data)
         return info_dict
 
-    def __real_extract(self, url):
+    _url_re = re.compile(r'(?P<pre>%s)(?(channel_type)(?P<tab>/\w+))?(?P<post>.*)$' % _VALID_URL)
+
+    def __real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
             compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
         compat_opts = self.get_param('compat_opts', [])
 
-        # This is not matched in a channel page with a tab selected
-        mobj = re.match(r'(?P<pre>%s)(?P<post>/?(?![^#?]).*$)' % self._VALID_URL, url)
-        mobj = mobj.groupdict() if mobj else {}
-        if mobj and not mobj.get('not_channel') and 'no-youtube-channel-redirect' not in compat_opts:
+        def get_mobj(url):
+            mobj = self._url_re.match(url).groupdict()
+            mobj.update((k, '') for k,v in mobj.items() if v is None)
+            return mobj
+
+        mobj = get_mobj(url)
+        # Youtube returns incomplete data if tabname is not lower case
+        pre, tab, post, is_channel = mobj['pre'], mobj['tab'].lower(), mobj['post'], not mobj['not_channel']
+
+        if is_channel:
+            if smuggled_data.get('is_music_url'):
+                if item_id[:2] == 'VL':
+                    # Youtube music VL channels have an equivalent playlist
+                    item_id = item_id[2:]
+                    pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
+                elif mobj['channel_type'] == 'browse':
+                    # Youtube music /browse/ should be changed to /channel/
+                    pre = 'https://www.youtube.com/channel/%s' % item_id
+        if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
+            # Home URLs should redirect to /videos/
             self.report_warning(
                 'A channel/user page was given. All the channel\'s videos will be downloaded. '
                 'To download only the videos in the home page, add a "/featured" to the URL')
-            url = '%s/videos%s' % (mobj.get('pre'), mobj.get('post') or '')
+            tab = '/videos'
+
+        url = ''.join((pre, tab, post))
+        mobj = get_mobj(url)
 
         # Handle both video/playlist URLs
         qs = parse_qs(url)
         video_id = qs.get('v', [None])[0]
         playlist_id = qs.get('list', [None])[0]
 
-        if not video_id and (mobj.get('not_channel') or '').startswith('watch'):
+        if not video_id and mobj['not_channel'].startswith('watch'):
             if not playlist_id:
-                # If there is neither video or playlist ids,
-                # youtube redirects to home page, which is undesirable
+                # If there is neither video or playlist ids, youtube redirects to home page, which is undesirable
                 raise ExtractorError('Unable to recognize tab page')
+            # Common mistake: https://www.youtube.com/watch?list=playlist_id
             self.report_warning('A video URL was given without video ID. Trying to download playlist %s' % playlist_id)
             url = 'https://www.youtube.com/playlist?list=%s' % playlist_id
 
