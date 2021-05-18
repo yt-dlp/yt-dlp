@@ -2899,6 +2899,33 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'title': 'NCS Releases',
         },
         'playlist_mincount': 166,
+    }, {
+        'note': 'Topic, should redirect to playlist?list=UU...',
+        'url': 'https://music.youtube.com/browse/UC9ALqqC4aIeG5iDs7i90Bfw',
+        'info_dict': {
+            'id': 'UU9ALqqC4aIeG5iDs7i90Bfw',
+            'uploader_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
+            'title': 'Uploads from Royalty Free Music - Topic',
+            'uploader': 'Royalty Free Music - Topic',
+        },
+        'expected_warnings': [
+            'A channel/user page was given',
+            'The URL does not have a videos tab',
+        ],
+        'playlist_mincount': 101,
+    }, {
+        'note': 'Topic without a UU playlist',
+        'url': 'https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg',
+        'info_dict': {
+            'id': 'UCtFRv9O2AHqOZjjynzrv-xg',
+            'title': 'UCtFRv9O2AHqOZjjynzrv-xg',
+        },
+        'expected_warnings': [
+            'A channel/user page was given',
+            'The URL does not have a videos tab',
+            'Falling back to channel URL',
+        ],
+        'playlist_mincount': 9,
     }]
 
     @classmethod
@@ -3631,6 +3658,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             # Common mistake: https://www.youtube.com/watch?list=playlist_id
             self.report_warning('A video URL was given without video ID. Trying to download playlist %s' % playlist_id)
             url = 'https://www.youtube.com/playlist?list=%s' % playlist_id
+            mobj = get_mobj(url)
 
         if video_id and playlist_id:
             if self.get_param('noplaylist'):
@@ -3639,6 +3667,31 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
 
         webpage, data = self._extract_webpage(url, item_id)
+
+        tabs = try_get(
+            data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
+        if tabs:
+            selected_tab = self._extract_selected_tab(tabs)
+            tab_name = selected_tab.get('title', '')
+            if (mobj['tab'] == '/videos' and tab_name.lower() != mobj['tab'][1:]
+                    and 'no-youtube-channel-redirect' not in compat_opts):
+                if not mobj['not_channel'] and item_id[:2] == 'UC':
+                    # Topic channels don't have /videos. Use the equivalent playlist instead
+                    self.report_warning('The URL does not have a %s tab. Trying to redirect to playlist UU%s instead' % (mobj['tab'][1:], item_id[2:]))
+                    pl_id = 'UU%s' % item_id[2:]
+                    pl_url = 'https://www.youtube.com/playlist?list=%s%s' % (pl_id, mobj['post'])
+                    try:
+                        pl_webpage, pl_data = self._extract_webpage(pl_url, pl_id)
+                        for alert_type, alert_message in self._extract_alerts(pl_data):
+                            if alert_type == 'error':
+                                raise ExtractorError('Youtube said: %s' % alert_message)
+                        item_id, url, webpage, data = pl_id, pl_url, pl_webpage, pl_data
+                    except ExtractorError:
+                        self.report_warning('The playlist gave error. Falling back to channel URL')
+                else:
+                    self.report_warning('The URL does not have a %s tab. %s is being downloaded instead' % (mobj['tab'][1:], tab_name))
+
+        self.write_debug('Final URL: %s' % url)
 
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
         if 'no-youtube-unavailable-videos' not in compat_opts:
