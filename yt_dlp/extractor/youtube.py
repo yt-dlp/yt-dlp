@@ -2169,16 +2169,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if 'maxresdefault' in thumbnail_url:
                     thumbnail_url = thumbnail_url.split('?')[0]
                 thumbnails.append({
-                    'height': int_or_none(thumbnail.get('height')),
                     'url': thumbnail_url,
+                    'height': int_or_none(thumbnail.get('height')),
                     'width': int_or_none(thumbnail.get('width')),
+                    'preference': 1 if 'maxresdefault' in thumbnail_url else -1
                 })
-            if thumbnails:
-                break
-        else:
-            thumbnail = search_meta(['og:image', 'twitter:image'])
-            if thumbnail:
-                thumbnails = [{'url': thumbnail}]
+        thumbnail_url = search_meta(['og:image', 'twitter:image'])
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'preference': 1 if 'maxresdefault' in thumbnail_url else -1
+            })
+        # All videos have a maxresdefault thumbnail, but sometimes it does not appear in the webpage
+        # See: https://github.com/ytdl-org/youtube-dl/issues/29049
+        thumbnails.append({
+            'url': 'https://i.ytimg.com/vi/%s/maxresdefault.jpg' % video_id,
+            'preference': 1,
+        })
+        self._remove_duplicate_formats(thumbnails)
 
         category = microformat.get('category') or search_meta('genre')
         channel_id = video_details.get('channelId') \
