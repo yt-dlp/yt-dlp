@@ -554,6 +554,8 @@ class InfoExtractor(object):
                     self.initialize()
                     self.write_debug('Extracting URL: %s' % url)
                     ie_result = self._real_extract(url)
+                    if ie_result is None:
+                        return None
                     if self._x_forwarded_for_ip:
                         ie_result['__x_forwarded_for_ip'] = self._x_forwarded_for_ip
                     subtitles = ie_result.get('subtitles')

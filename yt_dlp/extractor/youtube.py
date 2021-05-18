@@ -3636,7 +3636,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
         def get_mobj(url):
             mobj = self._url_re.match(url).groupdict()
-            mobj.update((k, '') for k,v in mobj.items() if v is None)
+            mobj.update((k, '') for k, v in mobj.items() if v is None)
             return mobj
 
         mobj = get_mobj(url)

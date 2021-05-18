@@ -1191,10 +1191,10 @@ class YoutubeDL(object):
         elif result_type == 'url':
             # We have to add extra_info to the results because it may be
             # contained in a playlist
-            return self.extract_info(ie_result['url'],
-                                     download,
-                                     ie_key=ie_result.get('ie_key'),
-                                     extra_info=extra_info)
+            return self.extract_info(
+                ie_result['url'], download,
+                ie_key=ie_result.get('ie_key'),
+                extra_info=extra_info)
         elif result_type == 'url_transparent':
             # Use the information from the embedding page
             info = self.extract_info(
@@ -2136,12 +2136,9 @@ class YoutubeDL(object):
                 self.report_warning('Requested format is not available')
         elif download:
             self.to_screen(
-                '[info] %s: Downloading format(s) %s'
-                % (info_dict['id'], ", ".join([f['format_id'] for f in formats_to_download])))
-            if len(formats_to_download) > 1:
-                self.to_screen(
-                    '[info] %s: Downloading video in %s formats'
-                    % (info_dict['id'], len(formats_to_download)))
+                '[info] %s: Downloading %d format(s): %s' % (
+                    info_dict['id'], len(formats_to_download),
+                    ", ".join([f['format_id'] for f in formats_to_download])))
             for fmt in formats_to_download:
                 new_info = dict(info_dict)
                 new_info.update(fmt)
@@ -2790,13 +2787,9 @@ class YoutubeDL(object):
                     actual_post_extract(video_dict or {})
                 return
 
-            if '__post_extractor' not in info_dict:
-                return
-            post_extractor = info_dict['__post_extractor']
-            if post_extractor:
-                info_dict.update(post_extractor().items())
-            del info_dict['__post_extractor']
-            return
+            post_extractor = info_dict.get('__post_extractor') or (lambda: {})
+            info_dict.update(post_extractor().items())
+            info_dict.pop('__post_extractor', None)
 
         actual_post_extract(info_dict or {})
 
