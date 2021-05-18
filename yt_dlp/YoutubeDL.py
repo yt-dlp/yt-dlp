@@ -1187,7 +1187,22 @@ class YoutubeDL(object):
 
         if result_type == 'video':
             self.add_extra_info(ie_result, extra_info)
-            return self.process_video_result(ie_result, download=download)
+            ie_result = self.process_video_result(ie_result, download=download)
+            additional_urls = ie_result.get('additional_urls')
+            if additional_urls:
+                # TODO: Improve MetadataFromFieldPP to allow setting a list
+                if isinstance(additional_urls, compat_str):
+                    additional_urls = [additional_urls]
+                self.to_screen(
+                    '[info] %s: %d additional URL(s) requested' % (ie_result['id'], len(additional_urls)))
+                self.write_debug('Additional URLs: "%s"' % '", "'.join(additional_urls))
+                ie_result['additional_entries'] = [
+                    self.extract_info(
+                        url, download, extra_info,
+                        force_generic_extractor=self.params.get('force_generic_extractor'))
+                    for url in additional_urls
+                ]
+            return ie_result
         elif result_type == 'url':
             # We have to add extra_info to the results because it may be
             # contained in a playlist
