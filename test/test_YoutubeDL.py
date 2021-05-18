@@ -29,6 +29,7 @@ class YDL(FakeYDL):
         self.msgs = []
 
     def process_info(self, info_dict):
+        info_dict.pop('__original_infodict', None)
         self.downloaded_info_dicts.append(info_dict)
 
     def to_screen(self, msg):
