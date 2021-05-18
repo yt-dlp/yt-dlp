@@ -1,7 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
+
 from datetime import datetime
 import base64
+
 from .common import InfoExtractor
 from ..utils import (
     HEADRequest,
@@ -35,13 +37,12 @@ class TenPlayIE(InfoExtractor):
     _GEO_BYPASS = False
 
     def _get_bearer_token(self, video_id):
-        _authdata = self._get_login_info()
+        username, password = self._get_login_info()
         _time = datetime.now()
         _timestamp = str(_time.year) + str("{:02d}".format(_time.month)) + str("{:02d}".format(_time.day)) + '000000'
         _auth_header = base64.b64encode(_timestamp.encode('ascii')).decode('ascii')
-        if(_authdata[0] is None or _authdata[1] is None):
-            raise Exception('Your 10play account\'s details must be provided with --username and --password.')
-        username, password = self._get_login_info()
+        if username is None or password is None:
+            self.raise_login_required('Your 10play account\'s details must be provided with --username and --password.')
         data = self._download_json('https://10play.com.au/api/user/auth', video_id, 'Getting bearer token', headers={
             'X-Network-Ten-Auth': _auth_header,
         }, data=urlencode_postdata({
@@ -56,7 +57,9 @@ class TenPlayIE(InfoExtractor):
         print('bruh')
         data = self._download_json(
             'https://10play.com.au/api/v1/videos/' + content_id, content_id)
-        _video_url = self._download_json(data.get('playbackApiEndpoint'), content_id, 'Downloading video JSON', headers={'Authorization': _token}).get('source')
+        _video_url = self._download_json(
+            data.get('playbackApiEndpoint'), content_id, 'Downloading video JSON',
+            headers={'Authorization': _token}).get('source')
         m3u8_url = self._request_webpage(HEADRequest(
             _video_url), content_id).geturl()
         if '10play-not-in-oz' in m3u8_url:
