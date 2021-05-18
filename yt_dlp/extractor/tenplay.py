@@ -54,7 +54,6 @@ class TenPlayIE(InfoExtractor):
     def _real_extract(self, url):
         content_id = self._match_id(url)
         _token = self._get_bearer_token(content_id)
-        print('bruh')
         data = self._download_json(
             'https://10play.com.au/api/v1/videos/' + content_id, content_id)
         _video_url = self._download_json(
