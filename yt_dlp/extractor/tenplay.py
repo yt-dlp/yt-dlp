@@ -25,7 +25,7 @@ class TenPlayIE(InfoExtractor):
             'age_limit': 15,
             'timestamp': 1601379660,
             'upload_date': '20200909',
-            'uploader_id': 'Channel 10',
+            'uploader_id': '2199827728001',
         },
         'params': {
             'skip_download': True,
@@ -77,5 +77,6 @@ class TenPlayIE(InfoExtractor):
             'season': data.get('showContentSeason'),
             'timestamp': data.get('published'),
             'thumbnail': data.get('imageUrl'),
-            'uploader_id': 'Channel 10',
+            'uploader': 'Channel 10',
+            'uploaer_id': '2199827728001',
         }
