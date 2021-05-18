@@ -19,7 +19,6 @@
     "noprogress": false, 
     "outtmpl": "%(id)s.%(ext)s", 
     "password": null, 
-    "playlistend": -1, 
     "playliststart": 1, 
     "prefer_free_formats": false, 
     "quiet": false, 
