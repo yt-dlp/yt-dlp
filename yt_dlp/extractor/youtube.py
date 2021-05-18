@@ -67,7 +67,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|'
+        r'channel|c|user|browse|playlist|watch|w|v|embed|e|watch_popup|'
         r'movies|results|shared|hashtag|trending|feed|feeds|oembed|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 
@@ -1886,8 +1886,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             ytm_player_response = self._parse_json(try_get(compat_parse_qs(
                 self._download_webpage(
                     base_url + 'get_video_info', video_id,
-                    'Fetching youtube-music info webpage',
-                    'unable to download youtube-music info webpage', query={
+                    'Fetching youtube music info webpage',
+                    'unable to download youtube music info webpage', query={
                         'video_id': video_id,
                         'eurl': 'https://youtube.googleapis.com/v/' + video_id,
                         'el': 'detailpage',
@@ -2169,16 +2169,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if 'maxresdefault' in thumbnail_url:
                     thumbnail_url = thumbnail_url.split('?')[0]
                 thumbnails.append({
-                    'height': int_or_none(thumbnail.get('height')),
                     'url': thumbnail_url,
+                    'height': int_or_none(thumbnail.get('height')),
                     'width': int_or_none(thumbnail.get('width')),
+                    'preference': 1 if 'maxresdefault' in thumbnail_url else -1
                 })
-            if thumbnails:
-                break
-        else:
-            thumbnail = search_meta(['og:image', 'twitter:image'])
-            if thumbnail:
-                thumbnails = [{'url': thumbnail}]
+        thumbnail_url = search_meta(['og:image', 'twitter:image'])
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'preference': 1 if 'maxresdefault' in thumbnail_url else -1
+            })
+        # All videos have a maxresdefault thumbnail, but sometimes it does not appear in the webpage
+        # See: https://github.com/ytdl-org/youtube-dl/issues/29049
+        thumbnails.append({
+            'url': 'https://i.ytimg.com/vi/%s/maxresdefault.jpg' % video_id,
+            'preference': 1,
+        })
+        self._remove_duplicate_formats(thumbnails)
 
         category = microformat.get('category') or search_meta('genre')
         channel_id = video_details.get('channelId') \
@@ -2522,7 +2530,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                             invidio\.us
                         )/
                         (?:
-                            (?:channel|c|user)/|
+                            (?P<channel_type>channel|c|user|browse)/|
                             (?P<not_channel>
                                 feed/|hashtag/|
                                 (?:playlist|watch)\?.*?\blist=
@@ -2534,7 +2542,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:tab'
 
     _TESTS = [{
-        # playlists, multipage
+        'note': 'playlists, multipage',
         'url': 'https://www.youtube.com/c/ИгорьКлейнер/playlists?view=1&flow=grid',
         'playlist_mincount': 94,
         'info_dict': {
@@ -2545,7 +2553,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
         },
     }, {
-        # playlists, multipage, different order
+        'note': 'playlists, multipage, different order',
         'url': 'https://www.youtube.com/user/igorkle1/playlists?view=1&sort=dd',
         'playlist_mincount': 94,
         'info_dict': {
@@ -2556,16 +2564,18 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader': 'Игорь Клейнер',
         },
     }, {
-        # playlists, series
+        'note': 'playlists, series',
         'url': 'https://www.youtube.com/c/3blue1brown/playlists?view=50&sort=dd&shelf_id=3',
         'playlist_mincount': 5,
         'info_dict': {
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Playlists',
             'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'uploader': '3Blue1Brown',
         },
     }, {
-        # playlists, singlepage
+        'note': 'playlists, singlepage',
         'url': 'https://www.youtube.com/user/ThirstForScience/playlists',
         'playlist_mincount': 4,
         'info_dict': {
@@ -2579,7 +2589,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
         'only_matching': True,
     }, {
-        # basic, single video playlist
+        'note': 'basic, single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
         'info_dict': {
             'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
@@ -2589,7 +2599,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_count': 1,
     }, {
-        # empty playlist
+        'note': 'empty playlist',
         'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFodcLWhDpGCYnngnHtQ-Xf',
         'info_dict': {
             'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
@@ -2599,7 +2609,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_count': 0,
     }, {
-        # Home tab
+        'note': 'Home tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/featured',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2610,7 +2620,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 2,
     }, {
-        # Videos tab
+        'note': 'Videos tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2621,7 +2631,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 975,
     }, {
-        # Videos tab, sorted by popular
+        'note': 'Videos tab, sorted by popular',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos?view=0&sort=p&flow=grid',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2632,7 +2642,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 199,
     }, {
-        # Playlists tab
+        'note': 'Playlists tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/playlists',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2643,7 +2653,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 17,
     }, {
-        # Community tab
+        'note': 'Community tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/community',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2654,7 +2664,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 18,
     }, {
-        # Channels tab
+        'note': 'Channels tab',
         'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/channels',
         'info_dict': {
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -2664,6 +2674,17 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
         },
         'playlist_mincount': 12,
+    }, {
+        'note': 'Search tab',
+        'url': 'https://www.youtube.com/c/3blue1brown/search?query=linear%20algebra',
+        'playlist_mincount': 40,
+        'info_dict': {
+            'id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'title': '3Blue1Brown - Search - linear algebra',
+            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'uploader': '3Blue1Brown',
+            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
+        },
     }, {
         'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
         'only_matching': True,
@@ -2695,7 +2716,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_mincount': 1123,
     }, {
-        # even larger playlist, 8832 videos
+        'note': 'even larger playlist, 8832 videos',
         'url': 'http://www.youtube.com/user/NASAgovVideo/videos',
         'only_matching': True,
     }, {
@@ -2717,12 +2738,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader': 'Phim Siêu Nhân Nhật Bản',
             'uploader_id': 'UCTYLiWFZy8xtPwxFwX9rV7Q',
         },
-        'playlist_mincount': 1400,
-        'expected_warnings': [
-            'YouTube said: INFO - Unavailable videos are hidden',
-        ]
+        'playlist_mincount': 200,
     }, {
-        'note': 'Playlist with unavailable videos in a later page',
+        'note': 'Playlist with unavailable videos in page 7',
         'url': 'https://www.youtube.com/playlist?list=UU8l9frL61Yl5KFOl87nIm2w',
         'info_dict': {
             'title': 'Uploads from BlankTV',
@@ -2730,9 +2748,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'uploader': 'BlankTV',
             'uploader_id': 'UC8l9frL61Yl5KFOl87nIm2w',
         },
-        'playlist_mincount': 20000,
+        'playlist_mincount': 1000,
     }, {
-        # https://github.com/ytdl-org/youtube-dl/issues/21844
+        'note': 'https://github.com/ytdl-org/youtube-dl/issues/21844',
         'url': 'https://www.youtube.com/playlist?list=PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
         'info_dict': {
             'title': 'Data Analysis with Dr Mike Pound',
@@ -2746,7 +2764,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://invidio.us/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
         'only_matching': True,
     }, {
-        # Playlist URL that does not actually serve a playlist
+        'note': 'Playlist URL that does not actually serve a playlist',
         'url': 'https://www.youtube.com/watch?v=FqZTN594JQw&list=PLMYEtVRpaqY00V9W81Cwmzp6N6vZqfUKD4',
         'info_dict': {
             'id': 'FqZTN594JQw',
@@ -2778,14 +2796,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': '9Auq9mYxFEE',
+            'id': 'X1whbWASnNQ',  # This will keep changing
             'ext': 'mp4',
             'title': compat_str,
             'uploader': 'Sky News',
             'uploader_id': 'skynews',
             'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/skynews',
-            'upload_date': '20191102',
-            'description': 'md5:85ddd75d888674631aaf9599a9a0b0ae',
+            'upload_date': r're:\d{8}',
+            'description': compat_str,
             'categories': ['News & Politics'],
             'tags': list,
             'like_count': int,
@@ -2794,6 +2812,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'expected_warnings': ['Downloading just video ', 'Ignoring subtitle tracks found in '],
     }, {
         'url': 'https://www.youtube.com/user/TheYoungTurks/live',
         'info_dict': {
@@ -2825,27 +2844,23 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/feed/trending',
         'only_matching': True,
     }, {
-        # needs auth
         'url': 'https://www.youtube.com/feed/library',
         'only_matching': True,
     }, {
-        # needs auth
         'url': 'https://www.youtube.com/feed/history',
         'only_matching': True,
     }, {
-        # needs auth
         'url': 'https://www.youtube.com/feed/subscriptions',
         'only_matching': True,
     }, {
-        # needs auth
         'url': 'https://www.youtube.com/feed/watch_later',
         'only_matching': True,
     }, {
-        # no longer available?
+        'note': 'Recommended - redirects to home page',
         'url': 'https://www.youtube.com/feed/recommended',
         'only_matching': True,
     }, {
-        # inline playlist with not always working continuations
+        'note': 'inline playlist with not always working continuations',
         'url': 'https://www.youtube.com/watch?v=UC6u0Tct-Fo&list=PL36D642111D65BE7C',
         'only_matching': True,
     }, {
@@ -2874,9 +2889,59 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/watch?list=PLW4dVinRY435CBE_JD3t-0SRXKfnZHS1P&feature=youtu.be&v=M9cJMXmQ_ZU',
         'only_matching': True,
     }, {
-        # Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist.
+        'note': 'Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist',
         'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
         'only_matching': True
+    }, {
+        'note': '/browse/ should redirect to /channel/',
+        'url': 'https://music.youtube.com/browse/UC1a8OFewdjuLq6KlF8M_8Ng',
+        'only_matching': True
+    }, {
+        'note': 'VLPL, should redirect to playlist?list=PL...',
+        'url': 'https://music.youtube.com/browse/VLPLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+        'info_dict': {
+            'id': 'PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+            'uploader': 'NoCopyrightSounds',
+            'description': 'Providing you with copyright free / safe music for gaming, live streaming, studying and more!',
+            'uploader_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
+            'title': 'NCS Releases',
+        },
+        'playlist_mincount': 166,
+    }, {
+        'note': 'Topic, should redirect to playlist?list=UU...',
+        'url': 'https://music.youtube.com/browse/UC9ALqqC4aIeG5iDs7i90Bfw',
+        'info_dict': {
+            'id': 'UU9ALqqC4aIeG5iDs7i90Bfw',
+            'uploader_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
+            'title': 'Uploads from Royalty Free Music - Topic',
+            'uploader': 'Royalty Free Music - Topic',
+        },
+        'expected_warnings': [
+            'A channel/user page was given',
+            'The URL does not have a videos tab',
+        ],
+        'playlist_mincount': 101,
+    }, {
+        'note': 'Topic without a UU playlist',
+        'url': 'https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg',
+        'info_dict': {
+            'id': 'UCtFRv9O2AHqOZjjynzrv-xg',
+            'title': 'UCtFRv9O2AHqOZjjynzrv-xg',
+        },
+        'expected_warnings': [
+            'A channel/user page was given',
+            'The URL does not have a videos tab',
+            'Falling back to channel URL',
+        ],
+        'playlist_mincount': 9,
+    }, {
+        'note': 'Youtube music Album',
+        'url': 'https://music.youtube.com/browse/MPREb_gTAcphH99wE',
+        'info_dict': {
+            'id': 'OLAK5uy_l1m0thk3g31NmIIz_vMIbWtyv7eZixlH0',
+            'title': 'Album - Royalty Free Music Library V2 (50 Songs)',
+        },
+        'playlist_count': 50,
     }]
 
     @classmethod
@@ -3238,8 +3303,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     @staticmethod
     def _extract_selected_tab(tabs):
         for tab in tabs:
-            if try_get(tab, lambda x: x['tabRenderer']['selected'], bool):
-                return tab['tabRenderer']
+            renderer = dict_get(tab, ('tabRenderer', 'expandableTabRenderer')) or {}
+            if renderer.get('selected') is True:
+                return renderer
         else:
             raise ExtractorError('Unable to find selected tab')
 
@@ -3313,6 +3379,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 try_get(data, lambda x: x['header']['hashtagHeaderRenderer']['hashtag']['simpleText'])
                 or playlist_id)
         title += format_field(selected_tab, 'title', ' - %s')
+        title += format_field(selected_tab, 'expandedText', ' - %s')
 
         metadata = {
             'playlist_id': playlist_id,
@@ -3395,27 +3462,27 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self._extract_mix_playlist(playlist, playlist_id, data, webpage),
             playlist_id=playlist_id, playlist_title=title)
 
-    def _extract_alerts(self, data, expected=False):
-
-        def _real_extract_alerts():
-            for alert_dict in try_get(data, lambda x: x['alerts'], list) or []:
-                if not isinstance(alert_dict, dict):
+    @staticmethod
+    def _extract_alerts(data):
+        for alert_dict in try_get(data, lambda x: x['alerts'], list) or []:
+            if not isinstance(alert_dict, dict):
+                continue
+            for alert in alert_dict.values():
+                alert_type = alert.get('type')
+                if not alert_type:
                     continue
-                for alert in alert_dict.values():
-                    alert_type = alert.get('type')
-                    if not alert_type:
-                        continue
-                    message = try_get(alert, lambda x: x['text']['simpleText'], compat_str) or ''
-                    if message:
-                        yield alert_type, message
-                    for run in try_get(alert, lambda x: x['text']['runs'], list) or []:
-                        message += try_get(run, lambda x: x['text'], compat_str)
-                    if message:
-                        yield alert_type, message
+                message = try_get(alert, lambda x: x['text']['simpleText'], compat_str) or ''
+                if message:
+                    yield alert_type, message
+                for run in try_get(alert, lambda x: x['text']['runs'], list) or []:
+                    message += try_get(run, lambda x: x['text'], compat_str)
+                if message:
+                    yield alert_type, message
 
+    def _report_alerts(self, alerts, expected=True):
         errors = []
         warnings = []
-        for alert_type, alert_message in _real_extract_alerts():
+        for alert_type, alert_message in alerts:
             if alert_type.lower() == 'error':
                 errors.append([alert_type, alert_message])
             else:
@@ -3425,6 +3492,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
         if errors:
             raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
+
+    def _extract_and_report_alerts(self, data, *args, **kwargs):
+        return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
 
     def _reload_with_unavailable_videos(self, item_id, data, webpage):
         """
@@ -3504,7 +3574,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
             else:
                 # Youtube may send alerts if there was an issue with the continuation page
-                self._extract_alerts(response, expected=False)
+                self._extract_and_report_alerts(response, expected=False)
                 if not check_get_keys or dict_get(response, check_get_keys):
                     break
                 # Youtube sometimes sends incomplete data
@@ -3532,9 +3602,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 url, item_id,
                 'Downloading webpage%s' % (' (retry #%d)' % count if count else ''))
             data = self._extract_yt_initial_data(item_id, webpage)
-            self._extract_alerts(data, expected=True)
             if data.get('contents') or data.get('currentVideoEndpoint'):
                 break
+            # Extract alerts here only when there is error
+            self._extract_and_report_alerts(data)
             if count >= retries:
                 raise ExtractorError(last_error)
         return webpage, data
@@ -3550,38 +3621,67 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         url, smuggled_data = unsmuggle_url(url, {})
         if self.is_music_url(url):
             smuggled_data['is_music_url'] = True
-        info_dict = self.__real_extract(url)
+        info_dict = self.__real_extract(url, smuggled_data)
         if info_dict.get('entries'):
             info_dict['entries'] = self._smuggle_data(info_dict['entries'], smuggled_data)
         return info_dict
 
-    def __real_extract(self, url):
+    _url_re = re.compile(r'(?P<pre>%s)(?(channel_type)(?P<tab>/\w+))?(?P<post>.*)$' % _VALID_URL)
+
+    def __real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
             compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
         compat_opts = self.get_param('compat_opts', [])
 
-        # This is not matched in a channel page with a tab selected
-        mobj = re.match(r'(?P<pre>%s)(?P<post>/?(?![^#?]).*$)' % self._VALID_URL, url)
-        mobj = mobj.groupdict() if mobj else {}
-        if mobj and not mobj.get('not_channel') and 'no-youtube-channel-redirect' not in compat_opts:
+        def get_mobj(url):
+            mobj = self._url_re.match(url).groupdict()
+            mobj.update((k, '') for k,v in mobj.items() if v is None)
+            return mobj
+
+        mobj = get_mobj(url)
+        # Youtube returns incomplete data if tabname is not lower case
+        pre, tab, post, is_channel = mobj['pre'], mobj['tab'].lower(), mobj['post'], not mobj['not_channel']
+
+        if is_channel:
+            if smuggled_data.get('is_music_url'):
+                if item_id[:2] == 'VL':
+                    # Youtube music VL channels have an equivalent playlist
+                    item_id = item_id[2:]
+                    pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
+                elif item_id[:2] == 'MP':
+                    # Youtube music albums (/channel/MP...) have a OLAK playlist that can be extracted from the webpage
+                    item_id = self._search_regex(
+                        r'\\x22audioPlaylistId\\x22:\\x22([0-9A-Za-z_-]+)\\x22',
+                        self._download_webpage('https://music.youtube.com/channel/%s' % item_id, item_id),
+                        'playlist id')
+                    pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
+                elif mobj['channel_type'] == 'browse':
+                    # Youtube music /browse/ should be changed to /channel/
+                    pre = 'https://www.youtube.com/channel/%s' % item_id
+        if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
+            # Home URLs should redirect to /videos/
             self.report_warning(
                 'A channel/user page was given. All the channel\'s videos will be downloaded. '
                 'To download only the videos in the home page, add a "/featured" to the URL')
-            url = '%s/videos%s' % (mobj.get('pre'), mobj.get('post') or '')
+            tab = '/videos'
+
+        url = ''.join((pre, tab, post))
+        mobj = get_mobj(url)
 
         # Handle both video/playlist URLs
         qs = parse_qs(url)
         video_id = qs.get('v', [None])[0]
         playlist_id = qs.get('list', [None])[0]
 
-        if not video_id and (mobj.get('not_channel') or '').startswith('watch'):
+        if not video_id and mobj['not_channel'].startswith('watch'):
             if not playlist_id:
-                # If there is neither video or playlist ids,
-                # youtube redirects to home page, which is undesirable
+                # If there is neither video or playlist ids, youtube redirects to home page, which is undesirable
                 raise ExtractorError('Unable to recognize tab page')
+            # Common mistake: https://www.youtube.com/watch?list=playlist_id
             self.report_warning('A video URL was given without video ID. Trying to download playlist %s' % playlist_id)
             url = 'https://www.youtube.com/playlist?list=%s' % playlist_id
+            mobj = get_mobj(url)
 
         if video_id and playlist_id:
             if self.get_param('noplaylist'):
@@ -3591,9 +3691,35 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
         webpage, data = self._extract_webpage(url, item_id)
 
+        tabs = try_get(
+            data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
+        if tabs:
+            selected_tab = self._extract_selected_tab(tabs)
+            tab_name = selected_tab.get('title', '')
+            if (mobj['tab'] == '/videos' and tab_name.lower() != mobj['tab'][1:]
+                    and 'no-youtube-channel-redirect' not in compat_opts):
+                if not mobj['not_channel'] and item_id[:2] == 'UC':
+                    # Topic channels don't have /videos. Use the equivalent playlist instead
+                    self.report_warning('The URL does not have a %s tab. Trying to redirect to playlist UU%s instead' % (mobj['tab'][1:], item_id[2:]))
+                    pl_id = 'UU%s' % item_id[2:]
+                    pl_url = 'https://www.youtube.com/playlist?list=%s%s' % (pl_id, mobj['post'])
+                    try:
+                        pl_webpage, pl_data = self._extract_webpage(pl_url, pl_id)
+                        for alert_type, alert_message in self._extract_alerts(pl_data):
+                            if alert_type == 'error':
+                                raise ExtractorError('Youtube said: %s' % alert_message)
+                        item_id, url, webpage, data = pl_id, pl_url, pl_webpage, pl_data
+                    except ExtractorError:
+                        self.report_warning('The playlist gave error. Falling back to channel URL')
+                else:
+                    self.report_warning('The URL does not have a %s tab. %s is being downloaded instead' % (mobj['tab'][1:], tab_name))
+
+        self.write_debug('Final URL: %s' % url)
+
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
         if 'no-youtube-unavailable-videos' not in compat_opts:
             data = self._reload_with_unavailable_videos(item_id, data, webpage) or data
+        self._extract_and_report_alerts(data)
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
