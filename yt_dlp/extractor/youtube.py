@@ -1995,7 +1995,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             headers = self._generate_api_headers(ytcfg,
                                                  self._extract_identity_token(webpage, video_id),
                                                  self._extract_account_syncid(ytcfg),
-                                                 api_hostname='music.youtube.com'
                                                  )
             player_response = self._extract_response(item_id=video_id,
                                                          ep='player',
