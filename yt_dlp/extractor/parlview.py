@@ -64,9 +64,8 @@ class ParlviewIE(InfoExtractor):
             'formats': formats,
             'timestamp': int(time.mktime(_timestamp.timetuple())) or int(_timestamp.timestamp()),
             'description': self._search_regex(
-                r'<div[^>]+class="descripton"[^>]*>[^>]+<strong>[^>]+>[^>]+>([^<]+)', _html, 'description').strip() or self._search_regex(
-                    # The APH website has a typo of "descripton" instead of "description", so this is here in the event that the typo is fixed.
-                    r'<div[^>]+class="description"[^>]*>[^>]+<strong>[^>]+>[^>]+>([^<]+)', _html, 'description').strip(),
+                r'<div[^>]+class="descripti?on"[^>]*>[^>]+<strong>[^>]+>[^>]+>([^<]+)',
+                _html, 'description').strip(),
             'uploader': self._search_regex(
                 r'<td>[^>]+>Channel:[^>]+>([^<]+)', self._download_webpage(
                     self._MEDIA_INFO_URL % vod_id, vod_id), 'channel').strip(),
