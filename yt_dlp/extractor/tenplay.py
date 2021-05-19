@@ -76,7 +76,7 @@ class TenPlayIE(InfoExtractor):
 
         return {
             'formats': formats,
-            'id': data.get('altId') or video_id,
+            'id': data.get('altId') or content_id,
             'title': data.get('title'),
             'description': data.get('description'),
             'age_limit': self._AUS_AGES[data.get('classification')],
