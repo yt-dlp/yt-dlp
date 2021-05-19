@@ -245,3 +245,30 @@ class AudiusPlaylistIE(AudiusBaseIE):
         return self.playlist_result(entries, playlist_id,
                                     playlist_data.get('playlist_name', title),
                                     playlist_data.get('description'))
+
+
+class AudiusProfileIE(AudiusPlaylistIE):
+    _VALID_URL = r'https://audius.co/(?P<id>[\w\d-]+)'
+    _BASE = 'https://discovery-a.mainnet.audius.radar.tech/v1/full/'
+    _TEST = {
+        'url': 'https://audius.co/pzl/',
+        'info_dict': {
+            'id': 'ezRo7',
+            'description': 'TAMALE\n\nContact: officialpzl@gmail.com',
+            'title': 'pzl',
+        },
+        'playlist_count': 24,
+    }
+
+    def _real_extract(self, url):
+        self._select_api_base()
+        profile_id = self._match_id(url)
+        try:
+            _profile_data = self._api_request('/full/users/handle/' + profile_id, profile_id)
+            _id = _profile_data[0].get('id')
+            _description = _profile_data[0].get('bio')
+        except ExtractorError as e:
+            raise ExtractorError('Could not download profile info, ' + str(e))
+
+        _api_call = self._api_request('/full/users/handle/%s/tracks?sort=date&limit=99999999' % profile_id, profile_id)
+        return(self.playlist_result(self._build_playlist(_api_call), _id, profile_id, _description))

@@ -94,7 +94,8 @@ from .audiomack import AudiomackIE, AudiomackAlbumIE
 from .audius import (
     AudiusIE,
     AudiusTrackIE,
-    AudiusPlaylistIE
+    AudiusPlaylistIE,
+    AudiusProfileIE,
 )
 from .awaan import (
     AWAANIE,
