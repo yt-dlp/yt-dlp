@@ -1,70 +1,89 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+from datetime import datetime
+import base64
+
 from .common import InfoExtractor
 from ..utils import (
     HEADRequest,
-    parse_age_limit,
-    parse_iso8601,
-    # smuggle_url,
+    urlencode_postdata,
 )
 
 
 class TenPlayIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?:[^/]+/)+(?P<id>tpv\d{6}[a-z]{5})'
+    _NETRC_MACHINE = '10play'
     _TESTS = [{
-        'url': 'https://10play.com.au/masterchef/episodes/season-1/masterchef-s1-ep-1/tpv190718kwzga',
+        'url': 'https://10play.com.au/todd-sampsons-body-hack/episodes/season-4/episode-7/tpv200921kvngh',
         'info_dict': {
-            'id': '6060533435001',
+            'id': '6192880312001',
             'ext': 'mp4',
-            'title': 'MasterChef - S1 Ep. 1',
-            'description': 'md5:4fe7b78e28af8f2d900cd20d900ef95c',
-            'age_limit': 10,
-            'timestamp': 1240828200,
-            'upload_date': '20090427',
-            'uploader_id': '2199827728001',
+            'title': "Todd Sampson's Body Hack - S4 Ep. 2",
+            'description': 'md5:fa278820ad90f08ea187f9458316ac74',
+            'age_limit': 15,
+            'timestamp': 1600770600,
+            'upload_date': '20200922',
+            'uploader': 'Channel 10',
+            'uploader_id': '2199827728001'
         },
         'params': {
-            # 'format': 'bestvideo',
             'skip_download': True,
         }
     }, {
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
     }]
-    # BRIGHTCOVE_URL_TEMPLATE = 'https://players.brightcove.net/2199827728001/cN6vRtRQt_default/index.html?videoId=%s'
     _GEO_BYPASS = False
-    _FASTLY_URL_TEMPL = 'https://10-selector.global.ssl.fastly.net/s/kYEXFC/media/%s?mbr=true&manifest=m3u&format=redirect'
+
+    _AUS_AGES = {
+        'G': 0,
+        'PG': 15,
+        'M': 15,
+        'MA': 15,
+        'R': 18,
+        'X': 18
+    }
+
+    def _get_bearer_token(self, video_id):
+        username, password = self._get_login_info()
+        if username is None or password is None:
+            self.raise_login_required('Your 10play account\'s details must be provided with --username and --password.')
+        _timestamp = datetime.now().strftime('%Y%m%d000000')
+        _auth_header = base64.b64encode(_timestamp.encode('ascii')).decode('ascii')
+        data = self._download_json('https://10play.com.au/api/user/auth', video_id, 'Getting bearer token', headers={
+            'X-Network-Ten-Auth': _auth_header,
+        }, data=urlencode_postdata({
+            'email': username,
+            'password': password,
+        }))
+        return "Bearer " + data['jwt']['accessToken']
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
+        _token = self._get_bearer_token(content_id)
         data = self._download_json(
-            'https://10play.com.au/api/video/' + content_id, content_id)
-        video = data.get('video') or {}
-        metadata = data.get('metaData') or {}
-        brightcove_id = video.get('videoId') or metadata['showContentVideoId']
-        # brightcove_url = smuggle_url(
-        #     self.BRIGHTCOVE_URL_TEMPLATE % brightcove_id,
-        #     {'geo_countries': ['AU']})
+            'https://10play.com.au/api/v1/videos/' + content_id, content_id)
+        _video_url = self._download_json(
+            data.get('playbackApiEndpoint'), content_id, 'Downloading video JSON',
+            headers={'Authorization': _token}).get('source')
         m3u8_url = self._request_webpage(HEADRequest(
-            self._FASTLY_URL_TEMPL % brightcove_id), brightcove_id).geturl()
+            _video_url), content_id).geturl()
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
-        formats = self._extract_m3u8_formats(m3u8_url, brightcove_id, 'mp4')
+        formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
         self._sort_formats(formats)
 
         return {
-            # '_type': 'url_transparent',
-            # 'url': brightcove_url,
             'formats': formats,
-            'id': brightcove_id,
-            'title': video.get('title') or metadata.get('pageContentName') or metadata['showContentName'],
-            'description': video.get('description'),
-            'age_limit': parse_age_limit(video.get('showRatingClassification') or metadata.get('showProgramClassification')),
-            'series': metadata.get('showName'),
-            'season': metadata.get('showContentSeason'),
-            'timestamp': parse_iso8601(metadata.get('contentPublishDate') or metadata.get('pageContentPublishDate')),
-            'thumbnail': video.get('poster'),
+            'id': data.get('altId') or content_id,
+            'title': data.get('title'),
+            'description': data.get('description'),
+            'age_limit': self._AUS_AGES[data.get('classification')],
+            'series': data.get('showName'),
+            'season': data.get('showContentSeason'),
+            'timestamp': data.get('published'),
+            'thumbnail': data.get('imageUrl'),
+            'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
-            # 'ie_key': 'BrightcoveNew',
         }
