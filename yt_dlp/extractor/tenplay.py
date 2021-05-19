@@ -47,11 +47,10 @@ class TenPlayIE(InfoExtractor):
 
     def _get_bearer_token(self, video_id):
         username, password = self._get_login_info()
-        _time = datetime.now()
-        _timestamp = str(_time.year) + str("{:02d}".format(_time.month)) + str("{:02d}".format(_time.day)) + '000000'
-        _auth_header = base64.b64encode(_timestamp.encode('ascii')).decode('ascii')
         if username is None or password is None:
             self.raise_login_required('Your 10play account\'s details must be provided with --username and --password.')
+        _timestamp = datetime.now().strftime('%Y%M%d000000')
+        _auth_header = base64.b64encode(_timestamp.encode('ascii')).decode('ascii')
         data = self._download_json('https://10play.com.au/api/user/auth', video_id, 'Getting bearer token', headers={
             'X-Network-Ten-Auth': _auth_header,
         }, data=urlencode_postdata({
@@ -87,5 +86,5 @@ class TenPlayIE(InfoExtractor):
             'timestamp': data.get('published'),
             'thumbnail': data.get('imageUrl'),
             'uploader': 'Channel 10',
-            'uploaer_id': '2199827728001',
+            'uploader_id': '2199827728001',
         }

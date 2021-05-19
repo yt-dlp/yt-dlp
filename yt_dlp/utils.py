@@ -4311,6 +4311,7 @@ OUTTMPL_TYPES = {
     'description': 'description',
     'annotation': 'annotations.xml',
     'infojson': 'info.json',
+    'pl_thumbnail': None,
     'pl_description': 'description',
     'pl_infojson': 'info.json',
 }
