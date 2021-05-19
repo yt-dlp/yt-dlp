@@ -13,6 +13,24 @@ from ..utils import (
 class ParlviewIE(InfoExtractor):
 
     _VALID_URL = r'https?://(?:www\.)?parlview\.aph\.gov\.au/(?:[^/]+)?(videoID=)+(?P<id>\d{6})'
+    _TESTS = [{
+        'url': 'https://parlview.aph.gov.au/mediaPlayer.php?videoID=542661',
+        'info_dict': {
+            'id': '542661',
+            'ext': 'mp4',
+            'title': "Australia's Family Law System [Part 2]",
+            'description': 'md5:7099883b391619dbae435891ca871a62',
+            'timestamp': 1621394700,
+            'upload_date': '20210519',
+            'uploader': 'Joint Committee',
+        },
+        'params': {
+            'skip_download': True,
+        }
+    }, {
+        'url': 'https://parlview.aph.gov.au/mediaPlayer.php?videoID=539936',
+        'only_matching': True,
+    }]
     _API_URL = 'https://parlview.aph.gov.au/api_v3/1/playback/getUniversalPlayerConfig?videoID=%s&format=json'
     _MEDIA_INFO_URL = 'https://parlview.aph.gov.au/ajaxPlayer.php?videoID=%s&tabNum=4&action=loadTab'
 
@@ -44,7 +62,7 @@ class ParlviewIE(InfoExtractor):
                 r'<h2>([^<]+)<',
                 _html, 'title', fatal=False),
             'formats': formats,
-            'timestamp': time.mktime(_timestamp.timetuple()) or _timestamp.timestamp(),
+            'timestamp': int(time.mktime(_timestamp.timetuple())) or int(_timestamp.timestamp()),
             'description': self._search_regex(
                 r'<div[^>]+class="descripton"[^>]*>[^>]+<strong>[^>]+>[^>]+>([^<]+)', _html, 'description').strip() or self._search_regex(
                     # The APH website has a typo of "descripton" instead of "description", so this is here in the event that the typo is fixed.
