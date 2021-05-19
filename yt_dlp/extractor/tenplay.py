@@ -17,7 +17,7 @@ class TenPlayIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://10play.com.au/todd-sampsons-body-hack/episodes/season-4/episode-7/tpv200921kvngh',
         'info_dict': {
-            'id': 'tpv200921kvngh',
+            'id': '6192880312001',
             'ext': 'mp4',
             'title': "Todd Sampson's Body Hack - S4 Ep. 2",
             'description': 'md5:fa278820ad90f08ea187f9458316ac74',
@@ -25,6 +25,7 @@ class TenPlayIE(InfoExtractor):
             'timestamp': 1600770600,
             'upload_date': '20200922',
             'uploader': 'Channel 10',
+            'uploader_id': '2199827728001'
         },
         'params': {
             'skip_download': True,
@@ -48,7 +49,8 @@ class TenPlayIE(InfoExtractor):
         username, password = self._get_login_info()
         if username is None or password is None:
             self.raise_login_required('Your 10play account\'s details must be provided with --username and --password.')
-        _timestamp = datetime.now().strftime('%Y%M%d000000')
+        _timestamp = datetime.now().strftime('%Y%m%d000000')
+        print(_timestamp)
         _auth_header = base64.b64encode(_timestamp.encode('ascii')).decode('ascii')
         data = self._download_json('https://10play.com.au/api/user/auth', video_id, 'Getting bearer token', headers={
             'X-Network-Ten-Auth': _auth_header,
@@ -75,7 +77,7 @@ class TenPlayIE(InfoExtractor):
 
         return {
             'formats': formats,
-            'id': content_id,
+            'id': data.get('altId'),
             'title': data.get('title'),
             'description': data.get('description'),
             'age_limit': self._AUS_AGES[data.get('classification')],
