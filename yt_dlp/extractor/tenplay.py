@@ -7,7 +7,6 @@ import base64
 from .common import InfoExtractor
 from ..utils import (
     HEADRequest,
-    parse_age_limit,
     urlencode_postdata,
 )
 
@@ -74,7 +73,6 @@ class TenPlayIE(InfoExtractor):
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
         self._sort_formats(formats)
 
-        self.write_debug(data.get('classification'))
         return {
             'formats': formats,
             'id': content_id,
