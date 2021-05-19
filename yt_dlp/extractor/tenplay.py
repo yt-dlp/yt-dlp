@@ -18,14 +18,14 @@ class TenPlayIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://10play.com.au/todd-sampsons-body-hack/episodes/season-4/episode-7/tpv200921kvngh',
         'info_dict': {
-            'id': 'tpv200928zskgi',
+            'id': 'tpv200921kvngh',
             'ext': 'mp4',
             'title': "Todd Sampson's Body Hack - S4 Ep. 2",
-            'description': 'md5:a73ea55671034c6367784405423ef5a0',
+            'description': 'md5:fa278820ad90f08ea187f9458316ac74',
             'age_limit': 15,
-            'timestamp': 1601379660,
-            'upload_date': '20200909',
-            'uploader_id': '2199827728001',
+            'timestamp': 1600770600,
+            'upload_date': '20200922',
+            'uploader': 'Channel 10',
         },
         'params': {
             'skip_download': True,
@@ -35,6 +35,15 @@ class TenPlayIE(InfoExtractor):
         'only_matching': True,
     }]
     _GEO_BYPASS = False
+
+    _AUS_AGES = {
+        'G': 0,
+        'PG': 15,
+        'M': 15,
+        'MA': 15,
+        'R': 18,
+        'X': 18
+    }
 
     def _get_bearer_token(self, video_id):
         username, password = self._get_login_info()
@@ -66,12 +75,13 @@ class TenPlayIE(InfoExtractor):
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
         self._sort_formats(formats)
 
+        self.write_debug(data.get('classification'))
         return {
             'formats': formats,
             'id': content_id,
             'title': data.get('title'),
             'description': data.get('description'),
-            'age_limit': parse_age_limit(data.get('classification')),
+            'age_limit': self._AUS_AGES[data.get('classification')],
             'series': data.get('showName'),
             'season': data.get('showContentSeason'),
             'timestamp': data.get('published'),
