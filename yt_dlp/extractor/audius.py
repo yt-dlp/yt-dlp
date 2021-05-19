@@ -271,4 +271,4 @@ class AudiusProfileIE(AudiusPlaylistIE):
             raise ExtractorError('Could not download profile info, ' + str(e))
 
         _api_call = self._api_request('/full/users/handle/%s/tracks?sort=date&limit=99999999' % profile_id, profile_id)
-        return(self.playlist_result(self._build_playlist(_api_call), _id, profile_id, _description))
+        return self.playlist_result(self._build_playlist(_api_call), _id, profile_id, _description)
