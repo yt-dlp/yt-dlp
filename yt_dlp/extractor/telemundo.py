@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-from datetime import datetime
 
 from .common import InfoExtractor
 from ..utils import (
@@ -33,7 +32,6 @@ class TelemundoIE(InfoExtractor):
         'url': 'https://www.telemundo.com/shows/al-rojo-vivo/empleo/video/personajes-de-times-square-piden-que-la-ciudad-de-nueva-york-los-deje-volver-trabajar-tmvo9816272',
         'only_matching': True,
     }]
-    
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -49,11 +47,8 @@ class TelemundoIE(InfoExtractor):
             video_id, 'Processing m3u8').geturl()
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
         self._sort_formats(formats)
-        date = unified_timestamp(str(datetime.strptime(
-            try_get(
-                metadata, lambda x: x['props']['initialState']['video']['associatedPlaylists'][0]['videos'][0]['datePublished'].split(' ', 1)[1]),
-            '%b %d %Y %H:%M:%S GMT+0000 (UTC)')))
-
+        date = unified_timestamp(try_get(
+            metadata, lambda x: x['props']['initialState']['video']['associatedPlaylists'][0]['videos'][0]['datePublished'].split(' ', 1)[1]))
         return {
             'url': url,
             'id': video_id,
