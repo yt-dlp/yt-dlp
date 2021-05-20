@@ -483,10 +483,13 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      could still contain some personal
                                      information (default)
     --no-clean-infojson              Write all fields to the infojson
-    --get-comments                   Retrieve video comments to be placed in the
-                                     .info.json file. The comments are fetched
-                                     even without this option if the extraction
-                                     is known to be quick
+    --write-comments                 Retrieve video comments to be placed in the
+                                     infojson. The comments are fetched even
+                                     without this option if the extraction is
+                                     known to be quick (Alias: --get-comments)
+    --no-write-comments              Do not retrieve video comments unless the
+                                     extraction is known to be quick
+                                     (Alias: --no-get-comments)
     --load-info-json FILE            JSON file containing the video information
                                      (created with the "--write-info-json"
                                      option)

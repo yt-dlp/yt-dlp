@@ -1048,11 +1048,15 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='clean_infojson',
         help='Write all fields to the infojson')
     filesystem.add_option(
-        '--get-comments',
+        '--write-comments', '--get-comments',
         action='store_true', dest='getcomments', default=False,
         help=(
-            'Retrieve video comments to be placed in the .info.json file. '
-            'The comments are fetched even without this option if the extraction is known to be quick'))
+            'Retrieve video comments to be placed in the infojson. '
+            'The comments are fetched even without this option if the extraction is known to be quick (Alias: --get-comments)'))
+    filesystem.add_option(
+        '--no-write-comments', '--no-get-comments',
+        action='store_true', dest='getcomments', default=False,
+        help='Do not retrieve video comments unless the extraction is known to be quick (Alias: --no-get-comments)')
     filesystem.add_option(
         '--load-info-json', '--load-info',
         dest='load_info_filename', metavar='FILE',
