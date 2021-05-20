@@ -250,7 +250,7 @@ class AudiusPlaylistIE(AudiusBaseIE):
 class AudiusProfileIE(AudiusPlaylistIE):
     IE_NAME = 'audius:artist'
     IE_DESC = 'Audius.co profile/artist pages'
-    _VALID_URL = r'https?://(?:www)?audius\.co/(?P<id>[^\/]+)/$'
+    _VALID_URL = r'https?://(?:www)?audius\.co/(?P<id>[^\/]+)/?(?:[?#]|$)'
     _TEST = {
         'url': 'https://audius.co/pzl/',
         'info_dict': {
