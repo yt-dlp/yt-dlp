@@ -250,7 +250,7 @@ class AudiusPlaylistIE(AudiusBaseIE):
 class AudiusProfileIE(AudiusPlaylistIE):
     IE_NAME = 'audius:artist'
     IE_DESC = 'Audius.co profile/artist pages'
-    _VALID_URL = r'https://audius.co/(?P<id>[\w\d-]+)'
+    _VALID_URL = r'https?://(?:www)?audius\.co/(?P<id>[^\/]+)/$'
     _TEST = {
         'url': 'https://audius.co/pzl/',
         'info_dict': {
@@ -264,6 +264,7 @@ class AudiusProfileIE(AudiusPlaylistIE):
     def _real_extract(self, url):
         self._select_api_base()
         profile_id = self._match_id(url)
+        print(profile_id)
         try:
             _profile_data = self._api_request('/full/users/handle/' + profile_id, profile_id)
             profile_audius_id = _profile_data[0].get('id')
