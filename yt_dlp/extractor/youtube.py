@@ -1903,7 +1903,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'el': 'detailpage',
                         'c': 'WEB_REMIX',
                         'cver': '0.1',
-                        'cplayer': 'UNIPLAYER'
+                        'cplayer': 'UNIPLAYER',
+                        'html5': '1',
                     }, fatal=False)),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
@@ -1929,6 +1930,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'unable to download video info webpage', query={
                         'video_id': video_id,
                         'eurl': 'https://youtube.googleapis.com/v/' + video_id,
+                        'html5': '1',
                     }, fatal=False)),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
