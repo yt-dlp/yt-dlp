@@ -53,6 +53,7 @@
 * [options] Refactor callbacks
 * [test:download] Only extract enough videos for `playlist_mincount`
 * [extractor] bugfix for when `compat_opts` is not given
+* [build] Fix x86 build by [shirt](https://github.com/shirt-dev)
 * [cleanup] code formatting, youtube tests and readme
 
 ### 2021.05.11
