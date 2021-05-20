@@ -266,10 +266,10 @@ class AudiusProfileIE(AudiusPlaylistIE):
         profile_id = self._match_id(url)
         try:
             _profile_data = self._api_request('/full/users/handle/' + profile_id, profile_id)
-            profile_audius_id = _profile_data[0].get('id')
-            profile_bio = _profile_data[0].get('bio')
         except ExtractorError as e:
-            raise ExtractorError('Could not download profile info, ' + str(e))
+            raise ExtractorError('Could not download profile info; ' + str(e))
+        profile_audius_id = _profile_data[0]['id']
+        profile_bio = _profile_data[0].get('bio')
 
         api_call = self._api_request('/full/users/handle/%s/tracks' % profile_id, profile_id)
         return self.playlist_result(self._build_playlist(api_call), profile_audius_id, profile_id, profile_bio)
