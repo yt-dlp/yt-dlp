@@ -21,6 +21,7 @@ from ..utils import (
 class ShahidBaseIE(AWSIE):
     _AWS_PROXY_HOST = 'api2.shahid.net'
     _AWS_API_KEY = '2RRtuMHx95aNI1Kvtn2rChEuwsCogUd4samGPjLh'
+    _VALID_URL_BASE = r'https?://shahid\.mbc\.net/[a-z]{2}/'
 
     def _handle_error(self, e):
         fail_data = self._parse_json(
@@ -49,7 +50,7 @@ class ShahidBaseIE(AWSIE):
 
 class ShahidIE(ShahidBaseIE):
     _NETRC_MACHINE = 'shahid'
-    _VALID_URL = r'https?://shahid\.mbc\.net/ar/(?:serie|show|movie)s/[^/]+/(?P<type>episode|clip|movie)-(?P<id>\d+)'
+    _VALID_URL = ShahidBaseIE._VALID_URL_BASE + r'(?:serie|show|movie)s/[^/]+/(?P<type>episode|clip|movie)-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://shahid.mbc.net/ar/shows/%D9%85%D8%AA%D8%AD%D9%81-%D8%A7%D9%84%D8%AF%D8%AD%D9%8A%D8%AD-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D9%83%D9%84%D9%8A%D8%A8-1/clip-816924',
         'info_dict': {
@@ -72,6 +73,9 @@ class ShahidIE(ShahidBaseIE):
     }, {
         # shahid plus subscriber only
         'url': 'https://shahid.mbc.net/ar/series/%D9%85%D8%B1%D8%A7%D9%8A%D8%A7-2011-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D8%A7%D9%84%D8%AD%D9%84%D9%82%D8%A9-1/episode-90511',
+        'only_matching': True
+    }, {
+        'url': 'https://shahid.mbc.net/en/shows/Ramez-Fi-Al-Shallal-season-1-episode-1/episode-359319',
         'only_matching': True
     }]
 
@@ -168,7 +172,7 @@ class ShahidIE(ShahidBaseIE):
 
 
 class ShahidShowIE(ShahidBaseIE):
-    _VALID_URL = r'https?://shahid\.mbc\.net/ar/(?:show|serie)s/[^/]+/(?:show|series)-(?P<id>\d+)'
+    _VALID_URL = ShahidBaseIE._VALID_URL_BASE + r'(?:show|serie)s/[^/]+/(?:show|series)-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://shahid.mbc.net/ar/shows/%D8%B1%D8%A7%D9%85%D8%B2-%D9%82%D8%B1%D8%B4-%D8%A7%D9%84%D8%A8%D8%AD%D8%B1/show-79187',
         'info_dict': {
