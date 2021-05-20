@@ -1,12 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from datetime import datetime
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
-    HEADRequest,
     int_or_none,
     try_get,
     unified_timestamp,
@@ -54,7 +51,6 @@ class ParlviewIE(InfoExtractor):
 
         media_info = self._download_webpage(
             self._MEDIA_INFO_URL % video_id, video_id, note='Downloading media info', fatal=False)
-
 
         return {
             'id': video_id,
