@@ -7,6 +7,8 @@ from datetime import datetime
 from .common import InfoExtractor
 from ..utils import (
     HEADRequest,
+    unified_timestamp,
+    try_get,
 )
 
 
@@ -20,7 +22,7 @@ class ParlviewIE(InfoExtractor):
             'ext': 'mp4',
             'title': "Australia's Family Law System [Part 2]",
             'description': 'md5:7099883b391619dbae435891ca871a62',
-            'timestamp': 1621394700,
+            'timestamp': 1621430700,
             'upload_date': '20210519',
             'uploader': 'Joint Committee',
         },
@@ -52,9 +54,11 @@ class ParlviewIE(InfoExtractor):
         formats = self._extract_m3u8_formats(m3u8_url, vod_id, 'mp4')
         self._sort_formats(formats)
 
-        _timestamp = datetime.strptime(
-            _media.get('timeMap').get('source').get('timecode_offsets')[0],
-            '0.0/%Y-%m-%d_%H:%M:00:00')
+        _timestamp = unified_timestamp(str(datetime.strptime(
+            try_get(_media.get('timeMap'), lambda x: x['source']['timecode_offsets'][0], str),
+            '0.0/%Y-%m-%d_%H:%M:00:00')))
+        print(_timestamp)
+
         return {
             'id': vod_id,
             'url': url,
@@ -62,7 +66,7 @@ class ParlviewIE(InfoExtractor):
                 r'<h2>([^<]+)<',
                 _html, 'title', fatal=False),
             'formats': formats,
-            'timestamp': int(time.mktime(_timestamp.timetuple())) or int(_timestamp.timestamp()),
+            'timestamp': _timestamp,
             'description': self._search_regex(
                 r'<div[^>]+class="descripton"[^>]*>[^>]+<strong>[^>]+>[^>]+>([^<]+)', _html, 'description').strip() or self._search_regex(
                     # The APH website has a typo of "descripton" instead of "description", so this is here in the event that the typo is fixed.
