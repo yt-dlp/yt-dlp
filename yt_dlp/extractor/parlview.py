@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import time
 from datetime import datetime
 
 from .common import InfoExtractor
@@ -59,7 +58,7 @@ class ParlviewIE(InfoExtractor):
             '0.0/%Y-%m-%d_%H:%M:00:00')))
 
         media_webpage_call = self._download_webpage(
-                    self._MEDIA_INFO_URL % vod_id, vod_id)
+            self._MEDIA_INFO_URL % vod_id, vod_id)
 
         return {
             'id': vod_id,
