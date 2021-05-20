@@ -248,6 +248,8 @@ class AudiusPlaylistIE(AudiusBaseIE):
 
 
 class AudiusProfileIE(AudiusPlaylistIE):
+    IE_NAME = 'audius:artist'
+    IE_DESC = 'Audius.co profile/artist pages'
     _VALID_URL = r'https://audius.co/(?P<id>[\w\d-]+)'
     _BASE = 'https://discovery-a.mainnet.audius.radar.tech/v1/full/'
     _TEST = {
@@ -265,10 +267,10 @@ class AudiusProfileIE(AudiusPlaylistIE):
         profile_id = self._match_id(url)
         try:
             _profile_data = self._api_request('/full/users/handle/' + profile_id, profile_id)
-            _id = _profile_data[0].get('id')
-            _description = _profile_data[0].get('bio')
+            profile_audius_id = _profile_data[0].get('id')
+            profile_bio = _profile_data[0].get('bio')
         except ExtractorError as e:
             raise ExtractorError('Could not download profile info, ' + str(e))
 
-        _api_call = self._api_request('/full/users/handle/%s/tracks?sort=date&limit=99999999' % profile_id, profile_id)
-        return self.playlist_result(self._build_playlist(_api_call), _id, profile_id, _description)
+        api_call = self._api_request('/full/users/handle/%s/tracks' % profile_id, profile_id)
+        return self.playlist_result(self._build_playlist(api_call), profile_audius_id, profile_id, profile_bio)
