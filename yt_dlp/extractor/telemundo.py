@@ -1,8 +1,6 @@
 # coding=utf-8
 from __future__ import unicode_literals
 
-import json
-
 from .common import InfoExtractor
 from ..utils import (
     try_get,
@@ -36,8 +34,8 @@ class TelemundoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        metadata = json.loads(
-            self._search_regex(r'<[^>]+id="__NEXT_DATA__"[^>]+>([^<]+)', webpage, 'JSON metadata'))
+        metadata = self._parse_json(
+            self._search_regex(r'<[^>]+id="__NEXT_DATA__"[^>]+>([^<]+)', webpage, 'JSON metadata'), video_id)
         redirect_url = try_get(
             metadata,
             lambda x: x['props']['initialState']['video']['associatedPlaylists'][0]['videos'][0]['videoAssets'][0]['publicUrl'])
@@ -52,9 +50,9 @@ class TelemundoIE(InfoExtractor):
         return {
             'url': url,
             'id': video_id,
-            'title': self._search_regex(r'<h1[^>]+>([^<]+)', webpage, 'title'),
+            'title': self._search_regex(r'<h1[^>]+>([^<]+)', webpage, 'title', fatal=False),
             'formats': formats,
             'timestamp': date,
             'uploader': 'Telemundo',
-            'uploader_id': self._search_regex(r'https?:\/\/(?:[^/]+\/){3}video\/(?P<id>[^\/]+)', m3u8_url, 'Akamai account')
+            'uploader_id': self._search_regex(r'https?:\/\/(?:[^/]+\/){3}video\/(?P<id>[^\/]+)', m3u8_url, 'Akamai account', fatal=False)
         }
