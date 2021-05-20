@@ -1,14 +1,17 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import os
-import subprocess
-import struct
-import re
 import base64
+import imghdr
+import os
+import struct
+import subprocess
+import re
 
 try:
-    import mutagen
+    from mutagen.oggvorbis import OggVorbis
+    from mutagen.oggopus import OggOpus
+    from mutagen.flac import Picture, FLAC
     has_mutagen = True
 except ImportError:
     has_mutagen = False
@@ -38,6 +41,23 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
     def __init__(self, downloader=None, already_have_thumbnail=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._already_have_thumbnail = already_have_thumbnail
+
+    def _get_thumbnail_resolution(self, filename, thumbnail_dict):
+        def guess():
+            width, height = thumbnail_dict.get('width'), thumbnail_dict.get('height')
+            if width and height:
+                return width, height
+
+        try:
+            size_regex = r',\s*(?P<w>\d+)x(?P<h>\d+)\s*[,\[]'
+            size_result = self.run_ffmpeg(filename, filename, ['-hide_banner'])
+            mobj = re.search(size_regex, size_result)
+            if mobj is None:
+                return guess()
+        except PostProcessingError as err:
+            self.report_warning('unable to find the thumbnail resolution; %s' % error_to_compat_str(err))
+            return guess()
+        return int(mobj.group('w')), int(mobj.group('h'))
 
     def run(self, info):
         filename = info['filepath']
@@ -135,34 +155,32 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     self.report_warning('The file format doesn\'t support embedding a thumbnail')
                     success = False
 
-        elif info['ext'] in ['ogg', 'opus']:
+        elif info['ext'] in ['ogg', 'opus', 'flac']:
             if not has_mutagen:
                 raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python -m pip install mutagen`')
+
             self.to_screen('Adding thumbnail to "%s"' % filename)
-
-            size_regex = r',\s*(?P<w>\d+)x(?P<h>\d+)\s*[,\[]'
-            size_result = self.run_ffmpeg(thumbnail_filename, thumbnail_filename, ['-hide_banner'])
-            mobj = re.search(size_regex, size_result)
-            width, height = int(mobj.group('w')), int(mobj.group('h'))
-            mimetype = ('image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')).encode('ascii')
-
-            # https://xiph.org/flac/format.html#metadata_block_picture
-            data = bytearray()
-            data += struct.pack('>II', 3, len(mimetype))
-            data += mimetype
-            data += struct.pack('>IIIIII', 0, width, height, 8, 0, os.stat(thumbnail_filename).st_size)  # 32 if png else 24
-
-            fin = open(thumbnail_filename, "rb")
-            data += fin.read()
-            fin.close()
-
             temp_filename = filename
-            f = mutagen.File(temp_filename)
-            f.tags['METADATA_BLOCK_PICTURE'] = base64.b64encode(data).decode('ascii')
+            f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['ext']](filename)
+
+            pic = Picture()
+            pic.mime = 'image/%s' % imghdr.what(thumbnail_filename)
+            with open(thumbnail_filename, 'rb') as thumbfile:
+                pic.data = thumbfile.read()
+            pic.type = 3  # front cover
+            res = self._get_thumbnail_resolution(thumbnail_filename, info['thumbnails'][-1])
+            if res is not None:
+                pic.width, pic.height = res
+
+            if info['ext'] == 'flac':
+                f.add_picture(pic)
+            else:
+                # https://wiki.xiph.org/VorbisComment#METADATA_BLOCK_PICTURE
+                f['METADATA_BLOCK_PICTURE'] = base64.b64encode(pic.write()).decode('ascii')
             f.save()
 
         else:
-            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus, m4a/mp4/mov')
+            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/mov')
 
         if success and temp_filename != filename:
             os.remove(encodeFilename(filename))
