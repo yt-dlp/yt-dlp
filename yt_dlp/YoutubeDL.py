@@ -1188,7 +1188,7 @@ class YoutubeDL(object):
         if result_type == 'video':
             self.add_extra_info(ie_result, extra_info)
             ie_result = self.process_video_result(ie_result, download=download)
-            additional_urls = ie_result.get('additional_urls')
+            additional_urls = (ie_result or {}).get('additional_urls')
             if additional_urls:
                 # TODO: Improve MetadataFromFieldPP to allow setting a list
                 if isinstance(additional_urls, compat_str):

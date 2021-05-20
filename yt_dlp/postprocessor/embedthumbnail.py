@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 import base64
 import imghdr
 import os
-import struct
 import subprocess
 import re
 
