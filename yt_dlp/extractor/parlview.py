@@ -57,7 +57,9 @@ class ParlviewIE(InfoExtractor):
         _timestamp = unified_timestamp(str(datetime.strptime(
             try_get(_media.get('timeMap'), lambda x: x['source']['timecode_offsets'][0], str),
             '0.0/%Y-%m-%d_%H:%M:00:00')))
-        print(_timestamp)
+
+        media_webpage_call = self._download_webpage(
+                    self._MEDIA_INFO_URL % vod_id, vod_id)
 
         return {
             'id': vod_id,
@@ -71,7 +73,6 @@ class ParlviewIE(InfoExtractor):
                 r'<div[^>]+class="descripti?on"[^>]*>[^>]+<strong>[^>]+>[^>]+>([^<]+)',
                 _html, 'description').strip(),
             'uploader': self._search_regex(
-                r'<td>[^>]+>Channel:[^>]+>([^<]+)', self._download_webpage(
-                    self._MEDIA_INFO_URL % vod_id, vod_id), 'channel').strip(),
+                r'<td>[^>]+>Channel:[^>]+>([^<]+)', media_webpage_call, 'channel').strip(),
             'thumbnail': _media.get('staticImage')
         }
