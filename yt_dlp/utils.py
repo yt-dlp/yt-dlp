@@ -1748,6 +1748,7 @@ DATE_FORMATS = (
     '%Y-%m-%d %H:%M',
     '%Y-%m-%d %H:%M:%S',
     '%Y-%m-%d %H:%M:%S.%f',
+    '%Y-%m-%d %H:%M:%S:%f',
     '%d.%m.%Y %H:%M',
     '%d.%m.%Y %H.%M',
     '%Y-%m-%dT%H:%M:%SZ',
