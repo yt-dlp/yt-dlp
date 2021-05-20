@@ -368,7 +368,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         # Recreate the client context (required)
         client_version = self.__extract_client_version(ytcfg)
-        client_name = try_get(ytcfg, lambda x: x['INNERTUBE_CLIENT_NAME'], compat_str) or 'WEB'
+        client_name = try_get(ytcfg, (lambda x: x['INNERTUBE_CLIENT_NAME'],
+                                      lambda x: x['INNERTUBE_CONTEXT_CLIENT_VERSION']), compat_str) or 'WEB'
         context = {
             'client': {
                 'clientName': client_name,
@@ -396,7 +397,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         auth = self._generate_sapisidhash_header(origin)
         if auth is not None:
             headers['Authorization'] = auth
-            headers['X-Origin'] = origin
+            #headers['X-Origin'] = origin
+        headers['Origin'] = origin
         return headers
 
     @staticmethod
