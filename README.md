@@ -752,7 +752,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (currently supported: srt|ass|vtt|lrc)
                                      (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT      Convert the thumbnails to another format
-                                     (currently supported: jpg)
+                                     (currently supported: jpg, png)
     --split-chapters                 Split video into multiple files based on
                                      internal chapters. The "chapter:" prefix
                                      can be used with "--paths" and "--output"

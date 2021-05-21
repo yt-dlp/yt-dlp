@@ -77,11 +77,14 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         original_thumbnail = thumbnail_filename = info['thumbnails'][-1]['filepath']
 
-        # Convert unsupported thumbnail formats to JPEG (see #25687, #25717)
+        # Convert unsupported thumbnail formats to PNG (see #25687, #25717)
+        # Original behavior was to convert to JPG, but since JPG is a lossy
+        # format, there will be some additional data loss.
+        # PNG, on the other hand, is lossless.
         thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:]
         if thumbnail_ext not in ('jpg', 'png'):
-            thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'jpg')
-            thumbnail_ext = 'jpg'
+            thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
+            thumbnail_ext = 'png'
 
         mtime = os.stat(encodeFilename(filename)).st_mtime
 

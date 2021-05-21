@@ -227,7 +227,7 @@ def _real_main(argv=None):
         if opts.convertsubtitles not in ('srt', 'vtt', 'ass', 'lrc'):
             parser.error('invalid subtitle format specified')
     if opts.convertthumbnails is not None:
-        if opts.convertthumbnails not in ('jpg', ):
+        if opts.convertthumbnails not in ('jpg', 'png'):
             parser.error('invalid thumbnail format specified')
 
     if opts.date is not None:
