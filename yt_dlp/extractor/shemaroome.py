@@ -25,7 +25,7 @@ class ShemarooMeIE(InfoExtractor):
             'title': 'Dil Hai Tumhaara',
             'release_date': '2002-09-06',
             'thumbnail': 'https://daex9l847wg3n.cloudfront.net/shemoutputimages/Dil-Hai-Tumhaara/60599346a609d2faa3000020/large_16_9_1616436538.jpg?1616483693',
-            'description': "A chirpy young girl Shalu craves for the love of her mother Sarita, but Sarita is partial towards her elder daughter Nimmi. Shalu is in love with her employer's son, Dev, but when Sarita proposes Nimmi's marriage to Dev, Shalu is forced to choose between her mother's acceptance and Dev's love. Matters worsen when Shalu is told the truth about her heritage.",
+            'description': 'md5:2782c4127807103cf5a6ae2ca33645ce',
         }
     }]
 
@@ -36,15 +36,15 @@ class ShemarooMeIE(InfoExtractor):
         m = re.search(params_pattern, webpage)
         data = bytes_to_intlist(compat_b64decode(m.group('data')))
         key = bytes_to_intlist(compat_b64decode(m.group('key')))
-        iv = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        iv = [0] * 16
         m3u8_url = intlist_to_bytes(aes_cbc_decrypt(data, key, iv))
         m3u8_url = m3u8_url[:-compat_ord((m3u8_url[-1]))].decode('ascii')
         formats = self._extract_m3u8_formats(m3u8_url, video_id, fatal=False)
         self._sort_formats(formats)
         release_date = self._html_search_regex(r'\<span\ itemprop\=\"uploadDate\"\>(?P<uploaddate>\S+)\<\/span\>',
-                                               webpage, 'release_date', default="NA", fatal=False)
+                                               webpage, 'release_date', fatal=False)
         description = self._html_search_regex(r'\<p\ class\=\"float-left\ w-100\ app-color1\ font-regular\"\>(?P<description>[^\<]+)\<\/p\>',
-                                              webpage, 'description', default="NA", fatal=False)
+                                              webpage, 'description', fatal=False)
         return {
             'id': video_id,
             'formats': formats,
