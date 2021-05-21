@@ -872,7 +872,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
 
     def run(self, info):
         if self.format not in ('jpg', 'png'):
-            raise FFmpegPostProcessorError('Only conversion to jpg or png is currently supported')
+            raise FFmpegPostProcessorError('Only conversion to either jpg or png is currently supported')
         files_to_delete = []
         has_thumbnail = False
 
