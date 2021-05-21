@@ -849,24 +849,30 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
                     info['__files_to_move'].pop(thumbnail_filename), 'webp')
 
     def convert_thumbnail(self, thumbnail_filename, ext):
-        if ext != 'jpg':
-            raise FFmpegPostProcessorError('Only conversion to jpg is currently supported')
+        if ext == 'jpg':
+            format_name = 'JPEG'
+            opts = ['-bsf:v', 'mjpeg2jpeg']
+        elif ext == 'png':
+            format_name = 'PNG'
+            opts = []
+        else:
+            raise FFmpegPostProcessorError('Only conversion to either jpg or png is currently supported')
         # NB: % is supposed to be escaped with %% but this does not work
         # for input files so working around with standard substitution
         escaped_thumbnail_filename = thumbnail_filename.replace('%', '#')
         os.rename(encodeFilename(thumbnail_filename), encodeFilename(escaped_thumbnail_filename))
-        escaped_thumbnail_jpg_filename = replace_extension(escaped_thumbnail_filename, 'jpg')
-        self.to_screen('Converting thumbnail "%s" to JPEG' % escaped_thumbnail_filename)
-        self.run_ffmpeg(escaped_thumbnail_filename, escaped_thumbnail_jpg_filename, ['-bsf:v', 'mjpeg2jpeg'])
-        thumbnail_jpg_filename = replace_extension(thumbnail_filename, 'jpg')
+        escaped_thumbnail_conv_filename = replace_extension(escaped_thumbnail_filename, ext)
+        self.to_screen('Converting thumbnail "%s" to %s' % (escaped_thumbnail_filename, format_name))
+        self.run_ffmpeg(escaped_thumbnail_filename, escaped_thumbnail_conv_filename, opts)
+        thumbnail_conv_filename = replace_extension(thumbnail_filename, ext)
         # Rename back to unescaped
         os.rename(encodeFilename(escaped_thumbnail_filename), encodeFilename(thumbnail_filename))
-        os.rename(encodeFilename(escaped_thumbnail_jpg_filename), encodeFilename(thumbnail_jpg_filename))
-        return thumbnail_jpg_filename
+        os.rename(encodeFilename(escaped_thumbnail_conv_filename), encodeFilename(thumbnail_conv_filename))
+        return thumbnail_conv_filename
 
     def run(self, info):
-        if self.format != 'jpg':
-            raise FFmpegPostProcessorError('Only conversion to jpg is currently supported')
+        if self.format not in ('jpg', 'png'):
+            raise FFmpegPostProcessorError('Only conversion to jpg or png is currently supported')
         files_to_delete = []
         has_thumbnail = False
 
