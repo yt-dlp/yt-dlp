@@ -9,11 +9,18 @@ from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    try_get,
 )
 
 
 class SonyLIVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?sonyliv\.com/(?:s(?:how|port)s/[^/]+|movies|clip|trailer|music-videos)/[^/?#&]+-(?P<id>\d+)'
+    _VALID_URL = r'''(?x)
+                     (?:
+                        sonyliv:|
+                        https?://(?:www\.)?sonyliv\.com/(?:s(?:how|port)s/[^/]+|movies|clip|trailer|music-videos)/[^/?#&]+-
+                    )
+                    (?P<id>\d+)
+                  '''
     _TESTS = [{
         'url': 'https://www.sonyliv.com/shows/bachelors-delight-1700000113/achaari-cheese-toast-1000022678?watch=true',
         'info_dict': {
@@ -107,3 +114,35 @@ class SonyLIVIE(InfoExtractor):
             'episode_number': int_or_none(metadata.get('episodeNumber')),
             'release_year': int_or_none(metadata.get('year')),
         }
+
+
+class SonyLIVSeriesIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?sonyliv\.com/shows/[^/?#&]+-(?P<id>\d{10})$'
+    _TESTS = [{
+        'url': 'https://www.sonyliv.com/shows/adaalat-1700000091',
+        'playlist_mincount': 456,
+        'info_dict': {
+            'id': '1700000091',
+        },
+    }]
+    _API_SHOW_URL = "https://apiv2.sonyliv.com/AGL/1.9/R/ENG/WEB/IN/DL/DETAIL/{}?kids_safe=false&from=0&to=49"
+    _API_EPISODES_URL = "https://apiv2.sonyliv.com/AGL/1.4/R/ENG/WEB/IN/CONTENT/DETAIL/BUNDLE/{}?from=0&to=1000&orderBy=episodeNumber&sortOrder=asc"
+    _API_SECURITY_URL = 'https://apiv2.sonyliv.com/AGL/1.4/A/ENG/WEB/ALL/GETTOKEN'
+
+    def _entries(self, show_id):
+        headers = {
+            'Accept': 'application/json, text/plain, */*',
+            'Referer': 'https://www.sonyliv.com',
+        }
+        headers['security_token'] = self._download_json(self._API_SECURITY_URL, video_id=show_id, headers=headers, note='Downloading security token')['resultObj']
+        show_json = self._download_json(self._API_SHOW_URL.format(show_id), video_id=show_id, headers=headers)
+        for season in try_get(show_json, lambda x: x['resultObj']['containers'][0]['containers'], list) or []:
+            season_id = season['id']
+            episodes_json = self._download_json(self._API_EPISODES_URL.format(season_id), video_id=season_id, headers=headers,)
+            for episode in try_get(episodes_json, lambda x: x['resultObj']['containers'][0]['containers'], list) or []:
+                video_id = episode.get('id')
+                yield self.url_result('sonyliv:%s' % video_id, ie=SonyLIVIE.ie_key(), video_id=video_id)
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
+        return self.playlist_result(self._entries(show_id), playlist_id=show_id)

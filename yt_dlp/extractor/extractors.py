@@ -1184,7 +1184,10 @@ from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
 from .snotr import SnotrIE
 from .sohu import SohuIE
-from .sonyliv import SonyLIVIE
+from .sonyliv import (
+    SonyLIVIE,
+    SonyLIVSeriesIE,
+)
 from .soundcloud import (
     SoundcloudEmbedIE,
     SoundcloudIE,
