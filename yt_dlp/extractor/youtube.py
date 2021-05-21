@@ -2855,6 +2855,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/c/CommanderVideoHq/live',
         'only_matching': True,
     }, {
+        'note': 'A channel that is not live. Should raise error',
+        'url': 'https://www.youtube.com/user/numberphile/live',
+        'only_matching': True,
+    }, {
         'url': 'https://www.youtube.com/feed/trending',
         'only_matching': True,
     }, {
@@ -3710,23 +3714,26 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if tabs:
             selected_tab = self._extract_selected_tab(tabs)
             tab_name = selected_tab.get('title', '')
-            if (mobj['tab'] == '/videos' and tab_name.lower() != mobj['tab'][1:]
-                    and 'no-youtube-channel-redirect' not in compat_opts):
-                if not mobj['not_channel'] and item_id[:2] == 'UC':
-                    # Topic channels don't have /videos. Use the equivalent playlist instead
-                    self.report_warning('The URL does not have a %s tab. Trying to redirect to playlist UU%s instead' % (mobj['tab'][1:], item_id[2:]))
-                    pl_id = 'UU%s' % item_id[2:]
-                    pl_url = 'https://www.youtube.com/playlist?list=%s%s' % (pl_id, mobj['post'])
-                    try:
-                        pl_webpage, pl_data = self._extract_webpage(pl_url, pl_id)
-                        for alert_type, alert_message in self._extract_alerts(pl_data):
-                            if alert_type == 'error':
-                                raise ExtractorError('Youtube said: %s' % alert_message)
-                        item_id, url, webpage, data = pl_id, pl_url, pl_webpage, pl_data
-                    except ExtractorError:
-                        self.report_warning('The playlist gave error. Falling back to channel URL')
-                else:
-                    self.report_warning('The URL does not have a %s tab. %s is being downloaded instead' % (mobj['tab'][1:], tab_name))
+            if 'no-youtube-channel-redirect' not in compat_opts:
+                if mobj['tab'] == '/live':
+                    # Live tab should have redirected to the video
+                    raise ExtractorError('The channel is not currently live', expected=True)
+                if mobj['tab'] == '/videos' and tab_name.lower() != mobj['tab'][1:]:
+                    if not mobj['not_channel'] and item_id[:2] == 'UC':
+                        # Topic channels don't have /videos. Use the equivalent playlist instead
+                        self.report_warning('The URL does not have a %s tab. Trying to redirect to playlist UU%s instead' % (mobj['tab'][1:], item_id[2:]))
+                        pl_id = 'UU%s' % item_id[2:]
+                        pl_url = 'https://www.youtube.com/playlist?list=%s%s' % (pl_id, mobj['post'])
+                        try:
+                            pl_webpage, pl_data = self._extract_webpage(pl_url, pl_id)
+                            for alert_type, alert_message in self._extract_alerts(pl_data):
+                                if alert_type == 'error':
+                                    raise ExtractorError('Youtube said: %s' % alert_message)
+                            item_id, url, webpage, data = pl_id, pl_url, pl_webpage, pl_data
+                        except ExtractorError:
+                            self.report_warning('The playlist gave error. Falling back to channel URL')
+                    else:
+                        self.report_warning('The URL does not have a %s tab. %s is being downloaded instead' % (mobj['tab'][1:], tab_name))
 
         self.write_debug('Final URL: %s' % url)
 
@@ -3749,7 +3756,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             data, lambda x: x['currentVideoEndpoint']['watchEndpoint']['videoId'],
             compat_str) or video_id
         if video_id:
-            self.report_warning('Unable to recognize playlist. Downloading just video %s' % video_id)
+            if mobj['tab'] != '/live':  # live tab is expected to redirect to video
+                self.report_warning('Unable to recognize playlist. Downloading just video %s' % video_id)
             return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
 
         raise ExtractorError('Unable to recognize tab page')
