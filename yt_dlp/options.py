@@ -1253,7 +1253,7 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
-        help='Convert the thumbnails to another format (currently supported: jpg)')
+        help='Convert the thumbnails to another format (currently supported: jpg, png)')
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,
