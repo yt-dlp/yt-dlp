@@ -11,7 +11,7 @@ from ..utils import (
 
 class TelemundoIE(InfoExtractor):
 
-    _VALID_URL = r'https?:\/\/(?:www\.)?telemundo\.com\/.+?(?=video)video\/[^\/]+(?P<id>tmvo\d{7})'
+    _VALID_URL = r'https?:\/\/(?:www\.)?telemundo\.com\/.+?video\/[^\/]+(?P<id>tmvo\d{7})'
     _TESTS = [{
         'url': 'https://www.telemundo.com/noticias/noticias-telemundo-en-la-noche/empleo/video/esta-aplicacion-gratuita-esta-ayudando-los-latinos-encontrar-trabajo-en-estados-unidos-tmvo9829325',
         'info_dict': {
