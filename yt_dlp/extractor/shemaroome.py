@@ -32,8 +32,9 @@ class ShemarooMeIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        params_pattern = r'params_for_player\ =\ \"(?P<data>[^|]+)\|key=(?P<key>[^|]+)\|image=(?P<thumbnail>[^|]+)\|title=(?P<title>[^|]+)'
-        m = re.search(params_pattern, webpage)
+        m = re.search(
+            r'params_for_player\s*=\s*"(?P<data>[^|]+)\|key=(?P<key>[^|]+)\|image=(?P<thumbnail>[^|]+)\|title=(?P<title>[^|]+)',
+            webpage)
         data = bytes_to_intlist(compat_b64decode(m.group('data')))
         key = bytes_to_intlist(compat_b64decode(m.group('key')))
         iv = [0] * 16
@@ -41,10 +42,11 @@ class ShemarooMeIE(InfoExtractor):
         m3u8_url = m3u8_url[:-compat_ord((m3u8_url[-1]))].decode('ascii')
         formats = self._extract_m3u8_formats(m3u8_url, video_id, fatal=False)
         self._sort_formats(formats)
-        release_date = self._html_search_regex(r'\<span\ itemprop\=\"uploadDate\"\>(?P<uploaddate>\S+)\<\/span\>',
-                                               webpage, 'release_date', fatal=False)
-        description = self._html_search_regex(r'\<p\ class\=\"float-left\ w-100\ app-color1\ font-regular\"\>(?P<description>[^\<]+)\<\/p\>',
-                                              webpage, 'description', fatal=False)
+
+        release_date = self._html_search_regex(
+            r'itemprop="uploadDate">\s*([\d-]+)', webpage, 'release_date', fatal=False)
+        description = self._html_search_regex(r'(?s)>Synopsis(<.+?)</', webpage, 'description', fatal=False)
+
         return {
             'id': video_id,
             'formats': formats,
