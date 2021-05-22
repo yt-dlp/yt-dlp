@@ -387,8 +387,9 @@ class YoutubeDL(object):
                        if True, otherwise use ffmpeg/avconv if False, otherwise
                        use downloader suggested by extractor if None.
     compat_opts:       Compatibility options. See "Differences in default behavior".
-                       Note that only format-sort, format-spec, no-live-chat, no-attach-info-json
-                       playlist-index, list-formats, no-youtube-channel-redirect
+                       Note that only format-sort, format-spec, no-live-chat,
+                       no-attach-info-json, playlist-index, list-formats,
+                       no-direct-merge, no-youtube-channel-redirect,
                        and no-youtube-unavailable-videos works when used via the API
 
     The following parameters are not used by YoutubeDL itself, they are used by
@@ -2294,7 +2295,8 @@ class YoutubeDL(object):
         if not test:
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
-            self.write_debug('Invoking downloader on %r' % info.get('url'))
+            urls = '", "'.join([f['url'] for f in info.get('requested_formats', [])] or [info['url']])
+            self.write_debug('Invoking downloader on "%s"' % urls)
         new_info = dict(info)
         if new_info.get('http_headers') is None:
             new_info['http_headers'] = self._calc_headers(new_info)
@@ -2533,17 +2535,6 @@ class YoutubeDL(object):
 
                 success = True
                 if info_dict.get('requested_formats') is not None:
-                    downloaded = []
-                    merger = FFmpegMergerPP(self)
-                    if self.params.get('allow_unplayable_formats'):
-                        self.report_warning(
-                            'You have requested merging of multiple formats '
-                            'while also allowing unplayable formats to be downloaded. '
-                            'The formats won\'t be merged to prevent data corruption.')
-                    elif not merger.available:
-                        self.report_warning(
-                            'You have requested merging of multiple formats but ffmpeg is not installed. '
-                            'The formats won\'t be merged.')
 
                     def compatible_formats(formats):
                         # TODO: some formats actually allow this (mkv, webm, ogg, mp4), but not all of them.
@@ -2591,27 +2582,57 @@ class YoutubeDL(object):
                     temp_filename = correct_ext(temp_filename)
                     dl_filename = existing_file(full_filename, temp_filename)
                     info_dict['__real_download'] = False
-                    if dl_filename is None:
-                        for f in requested_formats:
-                            new_info = dict(info_dict)
-                            new_info.update(f)
-                            fname = prepend_extension(
-                                self.prepare_filename(new_info, 'temp'),
-                                'f%s' % f['format_id'], new_info['ext'])
-                            if not self._ensure_dir_exists(fname):
-                                return
-                            downloaded.append(fname)
-                            partial_success, real_download = self.dl(fname, new_info)
-                            info_dict['__real_download'] = info_dict['__real_download'] or real_download
-                            success = success and partial_success
-                        if merger.available and not self.params.get('allow_unplayable_formats'):
-                            info_dict['__postprocessors'].append(merger)
-                            info_dict['__files_to_merge'] = downloaded
-                            # Even if there were no downloads, it is being merged only now
-                            info_dict['__real_download'] = True
-                        else:
-                            for file in downloaded:
-                                files_to_move[file] = None
+
+                    _protocols = set(determine_protocol(f) for f in requested_formats)
+                    if len(_protocols) == 1:
+                        info_dict['protocol'] = _protocols.pop()
+                    directly_mergable = (
+                        'no-direct-merge' not in self.params.get('compat_opts', [])
+                        and info_dict.get('protocol') is not None  # All requested formats have same protocol
+                        and not self.params.get('allow_unplayable_formats')
+                        and get_suitable_downloader(info_dict, self.params).__name__ == 'FFmpegFD')
+                    if directly_mergable:
+                        info_dict['url'] = requested_formats[0]['url']
+                        # Treat it as a single download
+                        dl_filename = existing_file(full_filename, temp_filename)
+                        if dl_filename is None:
+                            success, real_download = self.dl(temp_filename, info_dict)
+                            info_dict['__real_download'] = real_download
+                    else:
+                        downloaded = []
+                        merger = FFmpegMergerPP(self)
+                        if self.params.get('allow_unplayable_formats'):
+                            self.report_warning(
+                                'You have requested merging of multiple formats '
+                                'while also allowing unplayable formats to be downloaded. '
+                                'The formats won\'t be merged to prevent data corruption.')
+                        elif not merger.available:
+                            self.report_warning(
+                                'You have requested merging of multiple formats but ffmpeg is not installed. '
+                                'The formats won\'t be merged.')
+
+                        if dl_filename is None:
+                            for f in requested_formats:
+                                new_info = dict(info_dict)
+                                del new_info['requested_formats']
+                                new_info.update(f)
+                                fname = prepend_extension(
+                                    self.prepare_filename(new_info, 'temp'),
+                                    'f%s' % f['format_id'], new_info['ext'])
+                                if not self._ensure_dir_exists(fname):
+                                    return
+                                downloaded.append(fname)
+                                partial_success, real_download = self.dl(fname, new_info)
+                                info_dict['__real_download'] = info_dict['__real_download'] or real_download
+                                success = success and partial_success
+                            if merger.available and not self.params.get('allow_unplayable_formats'):
+                                info_dict['__postprocessors'].append(merger)
+                                info_dict['__files_to_merge'] = downloaded
+                                # Even if there were no downloads, it is being merged only now
+                                info_dict['__real_download'] = True
+                            else:
+                                for file in downloaded:
+                                    files_to_move[file] = None
                 else:
                     # Just a single file
                     dl_filename = existing_file(full_filename, temp_filename)

@@ -346,7 +346,7 @@ class FFmpegFD(ExternalFD):
         return FFmpegPostProcessor().available
 
     def _call_downloader(self, tmpfilename, info_dict):
-        url = info_dict['url']
+        urls = [f['url'] for f in info_dict.get('requested_formats', [])] or [info_dict['url']]
         ffpp = FFmpegPostProcessor(downloader=self)
         if not ffpp.available:
             self.report_error('m3u8 download detected but ffmpeg could not be found. Please install')
@@ -378,7 +378,7 @@ class FFmpegFD(ExternalFD):
         # if end_time:
         #     args += ['-t', compat_str(end_time - start_time)]
 
-        if info_dict.get('http_headers') is not None and re.match(r'^https?://', url):
+        if info_dict.get('http_headers') is not None and re.match(r'^https?://', urls[0]):
             # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
             # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
             headers = handle_youtubedl_headers(info_dict['http_headers'])
@@ -436,7 +436,15 @@ class FFmpegFD(ExternalFD):
             elif isinstance(conn, compat_str):
                 args += ['-rtmp_conn', conn]
 
-        args += ['-i', url, '-c', 'copy']
+        for url in urls:
+            args += ['-i', url]
+        args += ['-c', 'copy']
+        if info_dict.get('requested_formats'):
+            for (i, fmt) in enumerate(info_dict['requested_formats']):
+                if fmt.get('acodec') != 'none':
+                    args.extend(['-map', '%d:a:0' % i])
+                if fmt.get('vcodec') != 'none':
+                    args.extend(['-map', '%d:v:0' % i])
 
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
