@@ -107,8 +107,7 @@ class EggheadLessonIE(EggheadBaseIE):
             ext = determine_ext(format_url)
             if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
-                    format_url, lesson_id, 'mp4', entry_protocol='m3u8',
-                    m3u8_id='hls', fatal=False))
+                    format_url, lesson_id, 'mp4', m3u8_id='hls', fatal=False))
             elif ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(
                     format_url, lesson_id, mpd_id='dash', fatal=False))

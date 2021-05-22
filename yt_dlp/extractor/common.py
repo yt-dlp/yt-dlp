@@ -1902,7 +1902,7 @@ class InfoExtractor(object):
         return fmts
 
     def _extract_m3u8_formats_and_subtitles(
-            self, m3u8_url, video_id, ext=None, entry_protocol='m3u8',
+            self, m3u8_url, video_id, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, note=None,
             errnote=None, fatal=True, live=False, data=None, headers={},
             query={}):
@@ -1926,7 +1926,7 @@ class InfoExtractor(object):
             headers=headers, query=query, video_id=video_id)
 
     def _parse_m3u8_formats_and_subtitles(
-            self, m3u8_doc, m3u8_url, ext=None, entry_protocol='m3u8',
+            self, m3u8_doc, m3u8_url, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, live=False, note=None,
             errnote=None, fatal=True, data=None, headers={}, query={},
             video_id=None):
