@@ -399,62 +399,55 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         return [path], information
 
 
-class FFmpegVideoRemuxerPP(FFmpegPostProcessor):
-    def __init__(self, downloader=None, preferedformat=None):
-        super(FFmpegVideoRemuxerPP, self).__init__(downloader)
-        self._preferedformats = preferedformat.lower().split('/')
-
-    def run(self, information):
-        path = information['filepath']
-        sourceext, targetext = information['ext'].lower(), None
-        for pair in self._preferedformats:
-            kv = pair.split('>')
-            if len(kv) == 1 or kv[0].strip() == sourceext:
-                targetext = kv[-1].strip()
-                break
-
-        _skip_msg = (
-            'could not find a mapping for %s' if not targetext
-            else 'already is in target format %s' if sourceext == targetext
-            else None)
-        if _skip_msg:
-            self.to_screen('Not remuxing media file %s; %s' % (path, _skip_msg % sourceext))
-            return [], information
-
-        options = ['-c', 'copy', '-map', '0', '-dn']
-        if targetext in ['mp4', 'm4a', 'mov']:
-            options.extend(['-movflags', '+faststart'])
-        prefix, sep, oldext = path.rpartition('.')
-        outpath = prefix + sep + targetext
-        self.to_screen('Remuxing video from %s to %s; Destination: %s' % (sourceext, targetext, outpath))
-        self.run_ffmpeg(path, outpath, options)
-        information['filepath'] = outpath
-        information['format'] = targetext
-        information['ext'] = targetext
-        return [path], information
-
-
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
+    _action = 'converting'
+
     def __init__(self, downloader=None, preferedformat=None):
         super(FFmpegVideoConvertorPP, self).__init__(downloader)
-        self._preferedformat = preferedformat
+        self._preferedformats = preferedformat.lower().split('/')
+
+    def _target_ext(self, source_ext):
+        for pair in self._preferedformats:
+            kv = pair.split('>')
+            if len(kv) == 1 or kv[0].strip() == source_ext:
+                return kv[-1].strip()
+
+    @staticmethod
+    def _options(target_ext):
+        if target_ext == 'avi':
+            return ['-c:v', 'libxvid', '-vtag', 'XVID']
+        return []
 
     def run(self, information):
         path = information['filepath']
-        if information['ext'] == self._preferedformat:
-            self.to_screen('Not converting video file %s - already is in target format %s' % (path, self._preferedformat))
+        target_ext = self._target_ext(information['ext'].lower())
+        _skip_msg = (
+            'could not find a mapping for %s' if not target_ext
+            else 'already is in target format %s' if source_ext == target_ext
+            else None)
+        if _skip_msg:
+            self.to_screen('Not %s media file %s; %s' % (self._action, path, _skip_msg % source_ext))
             return [], information
-        options = []
-        if self._preferedformat == 'avi':
-            options.extend(['-c:v', 'libxvid', '-vtag', 'XVID'])
-        prefix, sep, ext = path.rpartition('.')
-        outpath = prefix + sep + self._preferedformat
-        self.to_screen('Converting video from %s to %s, Destination: ' % (information['ext'], self._preferedformat) + outpath)
-        self.run_ffmpeg(path, outpath, options)
+
+        prefix, sep, oldext = path.rpartition('.')
+        outpath = prefix + sep + target_ext
+        self.to_screen('%s video from %s to %s; Destination: %s' % (self._action.title(), source_ext, target_ext, outpath))
+        self.run_ffmpeg(path, outpath, self._options(target_ext))
+
         information['filepath'] = outpath
-        information['format'] = self._preferedformat
-        information['ext'] = self._preferedformat
+        information['format'] = information['ext'] = target_ext
         return [path], information
+
+
+class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
+    _action = 'remuxing'
+
+    @staticmethod
+    def _options(target_ext):
+        options = ['-c', 'copy', '-map', '0', '-dn']
+        if target_ext in ['mp4', 'm4a', 'mov']:
+            options.extend(['-movflags', '+faststart'])
+        return options
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):

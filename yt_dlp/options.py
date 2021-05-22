@@ -1141,7 +1141,8 @@ def parseOpts(overrideArguments=None):
         metavar='FORMAT', dest='recodevideo', default=None,
         help=(
             'Re-encode the video into another format if re-encoding is necessary. '
-            'The supported formats are the same as --remux-video'))
+            'You can specify multiple rules similar to --remux-video. '
+            'The supported formats are also the same as --remux-video'))
     postproc.add_option(
         '--postprocessor-args', '--ppa',
         metavar='NAME:ARGS', dest='postprocessor_args', default={}, type='str',
