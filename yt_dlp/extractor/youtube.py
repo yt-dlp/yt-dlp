@@ -2107,7 +2107,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         r'/itag/(\d+)', f['url'], 'itag', default=None)
                     if itag:
                         f['format_id'] = itag
-                formats.append(f)
+                    formats.append(f)
 
         if self.get_param('youtube_include_dash_manifest', True):
             for sd in (streaming_data, ytm_streaming_data):
