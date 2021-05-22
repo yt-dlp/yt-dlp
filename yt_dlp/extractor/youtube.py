@@ -1998,7 +1998,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
 
-        player_response = None
         if webpage:
             player_response = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
@@ -2031,6 +2030,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'unable to download video info webpage', query={
                         'video_id': video_id,
                         'eurl': 'https://youtube.googleapis.com/v/' + video_id,
+                        'html5': '1',
                     }, fatal=False)),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
