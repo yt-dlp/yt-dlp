@@ -286,6 +286,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _YT_WEB_CLIENT_VERSION = '2.20210407.08.00'
     _YT_INNERTUBE_API_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'
+    _YT_INNERTUBE_API_HOST = "www.youtube.com"
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
@@ -309,7 +310,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if headers:
             real_headers.update(headers)
         return self._download_json(
-            'https://%s/youtubei/v1/%s' % (api_hostname or 'www.youtube.com', ep),
+            'https://%s/youtubei/v1/%s' % (api_hostname or self._YT_INNERTUBE_API_HOST, ep),
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
             data=json.dumps(data).encode('utf8'), headers=real_headers,
             query={'key': api_key or self._extract_api_key()})
@@ -381,24 +382,25 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             context['client']['visitorData'] = visitor_data
         return context
 
-    def _generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None, visitor_data=None, api_hostname=None):
+    def _generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None,
+                              visitor_data=None, api_hostname=None):
+        origin = 'https://' + (api_hostname if api_hostname else self._YT_INNERTUBE_API_HOST)
         headers = {
             'X-YouTube-Client-Name': compat_str(try_get(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], int)) or '1',
             'X-YouTube-Client-Version': self.__extract_client_version(ytcfg),
+            'Origin': origin
         }
         if identity_token:
             headers['x-youtube-identity-token'] = identity_token
         if account_syncid:
             headers['X-Goog-PageId'] = account_syncid
             headers['X-Goog-AuthUser'] = 0
-        origin = ('https://' + api_hostname) if api_hostname else 'https://www.youtube.com'
         if visitor_data:
             headers['x-goog-visitor-id'] = visitor_data
         auth = self._generate_sapisidhash_header(origin)
         if auth is not None:
             headers['Authorization'] = auth
-            #headers['X-Origin'] = origin
-        headers['Origin'] = origin
+            headers['X-Origin'] = origin
         return headers
 
     @staticmethod
@@ -483,6 +485,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         self.report_warning(last_error)
                         return
         return response
+
     @staticmethod
     def is_music_url(url):
         return re.match(r'https?://music\.youtube\.com/', url) is not None
@@ -1963,28 +1966,37 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
             return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
 
+        # TODO: Extract player context params from js player
+        player_context = {
+            'playbackContext': {
+                'contentPlaybackContext': {
+                    'signatureTimestamp': 18768  # TODO: extract from js player
+                }
+            }
+        }
         ytm_streaming_data = {}
         if is_music_url:
+            # TODO: better way to fetch ytcfg?
             ytm_webpage = self._download_webpage(
                 "%s//music.youtube.com/watch?v=%s&bpctr=9999999999&has_verified=1" % (self.http_scheme(), video_id),
-                video_id, fatal=False, note="Fetching youtube-music ytcfg")
+                video_id, fatal=False, note="Downloading YouTube Music config")
 
             ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage)
-            ytm_headers = self._generate_api_headers(ytm_cfg,
-                                                 self._extract_identity_token(ytm_webpage, video_id),
-                                                 self._extract_account_syncid(ytm_cfg),
-                                                 api_hostname='music.youtube.com'
-                                                 )
-            ytm_player_response = self._extract_response(item_id=video_id,
-                                                         ep='player',
-                                                         query={'videoId': video_id},
-                                                         ytcfg=ytm_cfg,
-                                                         headers=ytm_headers,
-                                                         api_hostname='music.youtube.com',
-                                                         note='Downloading youtube-music API JSON',
-                                                         fatal=False)
+            ytm_headers = self._generate_api_headers(
+                ytm_cfg,
+                self._extract_identity_token(ytm_webpage, video_id),
+                self._extract_account_syncid(ytm_cfg),
+                api_hostname='music.youtube.com')
+            ytm_query = {'videoId': video_id}
+            ytm_query.update(player_context)
 
-            ytm_streaming_data =  try_get(ytm_player_response, lambda x: x['streamingData']) or {}
+            ytm_player_response = self._extract_response(
+                item_id=video_id, ep='player', query=ytm_query,
+                ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
+                api_hostname='music.youtube.com',
+                note='Downloading YouTube Music player API JSON')
+
+            ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
 
         player_response = None
         if webpage:
@@ -1993,17 +2005,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 video_id, 'initial player response')
 
         ytcfg = self._extract_ytcfg(video_id, webpage)
+        # backup request for player_response if regex fails
+        # and/or Youtube removes player response on initial page
         if not player_response:
-            headers = self._generate_api_headers(ytcfg,
-                                                 self._extract_identity_token(webpage, video_id),
-                                                 self._extract_account_syncid(ytcfg),
-                                                 )
-            player_response = self._extract_response(item_id=video_id,
-                                                         ep='player',
-                                                         query={'videoId': video_id},
-                                                         ytcfg=ytcfg,
-                                                         headers=headers,
-                                                         fatal=False)
+            headers = self._generate_api_headers(
+                ytcfg,
+                self._extract_identity_token(webpage, video_id),
+                self._extract_account_syncid(ytcfg)
+            )
+
+            yt_query = {'videoId': video_id}
+            yt_query.update(player_context)
+            player_response = self._extract_response(
+                item_id=video_id, ep='player', query=yt_query,
+                ytcfg=ytcfg, headers=headers, fatal=False,
+                note='Downloading YouTube player API JSON'
+            )
 
         playability_status = player_response.get('playabilityStatus') or {}
         if playability_status.get('reason') == 'Sign in to confirm your age':
@@ -3557,8 +3574,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self._extract_mix_playlist(playlist, playlist_id, data, webpage),
             playlist_id=playlist_id, playlist_title=title)
 
-
-
     def _reload_with_unavailable_videos(self, item_id, data, webpage):
         """
         Get playlist with unavailable videos if the 'show unavailable videos' button exists.
@@ -3651,7 +3666,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
         def get_mobj(url):
             mobj = self._url_re.match(url).groupdict()
-            mobj.update((k, '') for k,v in mobj.items() if v is None)
+            mobj.update((k, '') for k, v in mobj.items() if v is None)
             return mobj
 
         mobj = get_mobj(url)
