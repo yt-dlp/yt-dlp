@@ -134,7 +134,7 @@ class SonyLIVSeriesIE(InfoExtractor):
             'Accept': 'application/json, text/plain, */*',
             'Referer': 'https://www.sonyliv.com',
         }
-         headers['security_token'] = self._download_json(
+        headers['security_token'] = self._download_json(
             self._API_SECURITY_URL, video_id=show_id, headers=headers,
             note='Downloading security token')['resultObj']
         seasons = try_get(
