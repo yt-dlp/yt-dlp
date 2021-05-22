@@ -94,7 +94,8 @@ from .audiomack import AudiomackIE, AudiomackAlbumIE
 from .audius import (
     AudiusIE,
     AudiusTrackIE,
-    AudiusPlaylistIE
+    AudiusPlaylistIE,
+    AudiusProfileIE,
 )
 from .awaan import (
     AWAANIE,
@@ -952,6 +953,7 @@ from .palcomp3 import (
 )
 from .pandoratv import PandoraTVIE
 from .parliamentliveuk import ParliamentLiveUKIE
+from .parlview import ParlviewIE
 from .patreon import PatreonIE
 from .pbs import PBSIE
 from .pearvideo import PearVideoIE
@@ -983,6 +985,7 @@ from .platzi import (
 from .playfm import PlayFMIE
 from .playplustv import PlayPlusTVIE
 from .plays import PlaysTVIE
+from .playstuff import PlayStuffIE
 from .playtvak import PlaytvakIE
 from .playvid import PlayvidIE
 from .playwire import PlaywireIE

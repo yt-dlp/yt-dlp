@@ -86,10 +86,10 @@ class SharedIE(SharedBaseIE):
 
 class VivoIE(SharedBaseIE):
     IE_DESC = 'vivo.sx'
-    _VALID_URL = r'https?://vivo\.sx/(?P<id>[\da-z]{10})'
+    _VALID_URL = r'https?://vivo\.s[xt]/(?P<id>[\da-z]{10})'
     _FILE_NOT_FOUND = '>The file you have requested does not exists or has been removed'
 
-    _TEST = {
+    _TESTS = [{
         'url': 'http://vivo.sx/d7ddda0e78',
         'md5': '15b3af41be0b4fe01f4df075c2678b2c',
         'info_dict': {
@@ -98,7 +98,10 @@ class VivoIE(SharedBaseIE):
             'title': 'Chicken',
             'filesize': 515659,
         },
-    }
+    }, {
+        'url': 'http://vivo.st/d7ddda0e78',
+        'only_matching': True,
+    }]
 
     def _extract_title(self, webpage):
         title = self._html_search_regex(

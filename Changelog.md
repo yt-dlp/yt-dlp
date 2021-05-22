@@ -10,7 +10,7 @@
 * Commit to master as `Release <version>`
 * Push to origin/release using `git push origin master:release`
     build task will now run
-* Update version.py using devscripts\update-version.py
+* Update version.py using `devscripts\update-version.py`
 * Run `make issuetemplates`
 * Commit to master as `[version] update :ci skip all`
 * Push to origin/master
@@ -18,6 +18,43 @@
 
 -->
 
+
+### 2021.05.20
+
+* **Youtube improvements**: 
+    * Support youtube music `MP`, `VL` and `browse` pages
+    * Extract more formats for youtube music by [craftingmod](https://github.com/craftingmod), [colethedj](https://github.com/colethedj) and [pukkandan](https://github.com/pukkandan)
+    * Extract multiple subtitles in same language by [pukkandan](https://github.com/pukkandan) and [tpikonen](https://github.com/tpikonen)
+    * Redirect channels that doesn't have a `videos` tab to their `UU` playlists
+    * Support in-channel search
+    * Sort audio-only formats correctly
+    * Always extract `maxresdefault` thumbnail
+    * Extract audio language
+    * Add subtitle language names by [nixxo](https://github.com/nixxo) and [tpikonen](https://github.com/tpikonen)
+    * Show alerts only from the final webpage
+    * Add `html5=1` param to `get_video_info` page requests by [colethedj](https://github.com/colethedj)
+    * Better message when login required
+* **Add option `--print`**: to print any field/template
+    * Deprecates: `--get-description`, `--get-duration`, `--get-filename`, `--get-format`, `--get-id`, `--get-thumbnail`, `--get-title`, `--get-url`
+* Field `additional_urls` to download additional videos from metadata using [`--parse-metadata`](https://github.com/yt-dlp/yt-dlp#modifying-metadata)
+* Merge youtube-dl: Upto [commit/dfbbe29](https://github.com/ytdl-org/youtube-dl/commit/dfbbe2902fc67f0f93ee47a8077c148055c67a9b)
+* Write thumbnail of playlist and add `pl_thumbnail` outtmpl key
+* [embedthumbnail] Add `flac` support and refactor `mutagen` code by [pukkandan](https://github.com/pukkandan) and [tripulse](https://github.com/tripulse)
+* [audius:artist] Add extractor by [king-millez](https://github.com/king-millez)
+* [parlview] Add extractor by [king-millez](https://github.com/king-millez)
+* [tenplay] Fix extractor by [king-millez](https://github.com/king-millez)
+* [rmcdecouverte] Generalize `_VALID_URL`
+* Add compat-option `no-attach-infojson`
+* Add field `name` for subtitles
+* Ensure `post_extract` and `pre_process` only run once
+* Fix `--check-formats` when there is network error
+* Standardize `write_debug` and `get_param`
+* [options] Alias `--write-comments`, `--no-write-comments`
+* [options] Refactor callbacks
+* [test:download] Only extract enough videos for `playlist_mincount`
+* [extractor] bugfix for when `compat_opts` is not given
+* [build] Fix x86 build by [shirt](https://github.com/shirt-dev)
+* [cleanup] code formatting, youtube tests and readme
 
 ### 2021.05.11
 * **Deprecate support for python versions < 3.6**

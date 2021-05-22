@@ -422,6 +422,14 @@ class InfoExtractor(object):
     _GEO_IP_BLOCKS = None
     _WORKING = True
 
+    _LOGIN_HINTS = {
+        'any': 'Use --cookies, --username and --password or --netrc to provide account credentials',
+        'cookies': (
+            'Use --cookies for the authentication. '
+            'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to pass cookies'),
+        'password': 'Use --username and --password or --netrc to provide account credentials',
+    }
+
     def __init__(self, downloader=None):
         """Constructor. Receives an optional downloader."""
         self._ready = False
@@ -554,6 +562,8 @@ class InfoExtractor(object):
                     self.initialize()
                     self.write_debug('Extracting URL: %s' % url)
                     ie_result = self._real_extract(url)
+                    if ie_result is None:
+                        return None
                     if self._x_forwarded_for_ip:
                         ie_result['__x_forwarded_for_ip'] = self._x_forwarded_for_ip
                     subtitles = ie_result.get('subtitles')
@@ -976,12 +986,11 @@ class InfoExtractor(object):
         self.to_screen('Logging in')
 
     def raise_login_required(
-            self, msg='This video is only available for registered users', metadata_available=False):
+            self, msg='This video is only available for registered users',
+            metadata_available=False, method='any'):
         if metadata_available and self.get_param('ignore_no_formats_error'):
             self.report_warning(msg)
-        raise ExtractorError(
-            '%s. Use --cookies, --username and --password or --netrc to provide account credentials' % msg,
-            expected=True)
+        raise ExtractorError('%s. %s' % (msg, self._LOGIN_HINTS[method]), expected=True)
 
     def raise_geo_restricted(
             self, msg='This video is not available from your location due to geo restriction',

@@ -133,8 +133,10 @@ class RedBullEmbedIE(RedBullTVIE):
         rrn_id = self._match_id(url)
         asset_id = self._download_json(
             'https://edge-graphql.crepo-production.redbullaws.com/v1/graphql',
-            rrn_id, headers={'API-KEY': 'e90a1ff11335423998b100c929ecc866'},
-            query={
+            rrn_id, headers={
+                'Accept': 'application/json',
+                'API-KEY': 'e90a1ff11335423998b100c929ecc866',
+            }, query={
                 'query': '''{
   resource(id: "%s", enforceGeoBlocking: false) {
     %s
