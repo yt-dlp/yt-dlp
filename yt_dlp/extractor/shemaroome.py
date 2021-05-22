@@ -18,16 +18,28 @@ from ..utils import (
 
 
 class ShemarooMeIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?shemaroome\.com/(?:movies|shows)/(?P<id>\S+)'
+    _VALID_URL = r'(?:https?://)(?:www\.)?shemaroome\.com/(?:movies|shows)/(?P<id>[^?#]+)'
     _TESTS = [{
         'url': 'https://www.shemaroome.com/movies/dil-hai-tumhaara',
         'info_dict': {
             'id': 'dil-hai-tumhaara',
             'ext': 'mp4',
             'title': 'Dil Hai Tumhaara',
-            'release_date': '20020906',
+            'upload_date': '20020906',
             'thumbnail': 'https://daex9l847wg3n.cloudfront.net/shemoutputimages/Dil-Hai-Tumhaara/60599346a609d2faa3000020/large_16_9_1616436538.jpg?1616483693',
             'description': 'md5:2782c4127807103cf5a6ae2ca33645ce',
+        },
+        'params': {
+            'skip_download': True
+        }
+    }, {
+        'url': 'https://www.shemaroome.com/shows/jurm-aur-jazbaat/laalach',
+        'info_dict': {
+            'id': 'jurm-aur-jazbaat_laalach',
+            'ext': 'mp4',
+            'title': 'Laalach',
+            'description': 'md5:92b79c2dcb539b0ab53f9fa5a048f53c',
+            'upload_date': '20210507',
         },
         'params': {
             'skip_download': True
@@ -35,7 +47,7 @@ class ShemarooMeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id = self._match_id(url).replace('/', '_')
         webpage = self._download_webpage(url, video_id)
         m = re.search(
             r'params_for_player\s*=\s*"(?P<data>[^|]+)\|key=(?P<key>[^|]+)\|image=(?P<thumbnail>[^|]+)\|title=(?P<title>[^|]+)',
@@ -48,15 +60,17 @@ class ShemarooMeIE(InfoExtractor):
         formats = self._extract_m3u8_formats(m3u8_url, video_id, fatal=False)
         self._sort_formats(formats)
 
-        release_date = self._html_search_regex(
-            r'itemprop="uploadDate">\s*([\d-]+)', webpage, 'release_date', fatal=False)
-        description = self._html_search_regex(r'(?s)>Synopsis(<.+?)</', webpage, 'description', fatal=False)
+        upload_date = self._html_search_regex(
+            (r'itemprop="uploadDate">\s*([\d-]+)', r'id="release_date" value="([\d-]+)'),
+            webpage, 'upload date', fatal=False)
+
+        description = self._html_search_regex(r'(?s)>Synopsis(</.+?)</', webpage, 'description', fatal=False)
 
         return {
             'id': video_id,
             'formats': formats,
             'title': m.group('title'),
             'thumbnail': url_or_none(m.group('thumbnail')),
-            'release_date': unified_strdate(release_date),
+            'upload_date': unified_strdate(upload_date),
             'description': description,
         }
