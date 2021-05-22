@@ -134,12 +134,18 @@ class SonyLIVSeriesIE(InfoExtractor):
             'Accept': 'application/json, text/plain, */*',
             'Referer': 'https://www.sonyliv.com',
         }
-        headers['security_token'] = self._download_json(self._API_SECURITY_URL, video_id=show_id, headers=headers, note='Downloading security token')['resultObj']
-        show_json = self._download_json(self._API_SHOW_URL.format(show_id), video_id=show_id, headers=headers)
-        for season in try_get(show_json, lambda x: x['resultObj']['containers'][0]['containers'], list) or []:
+         headers['security_token'] = self._download_json(
+            self._API_SECURITY_URL, video_id=show_id, headers=headers,
+            note='Downloading security token')['resultObj']
+        seasons = try_get(
+            self._download_json(self._API_SHOW_URL.format(show_id), video_id=show_id, headers=headers),
+            lambda x: x['resultObj']['containers'][0]['containers'], list)
+        for season in seasons or []:
             season_id = season['id']
-            episodes_json = self._download_json(self._API_EPISODES_URL.format(season_id), video_id=season_id, headers=headers,)
-            for episode in try_get(episodes_json, lambda x: x['resultObj']['containers'][0]['containers'], list) or []:
+            episodes = try_get(
+                self._download_json(self._API_EPISODES_URL.format(season_id), video_id=season_id, headers=headers),
+                lambda x: x['resultObj']['containers'][0]['containers'], list)
+            for episode in episodes or []:
                 video_id = episode.get('id')
                 yield self.url_result('sonyliv:%s' % video_id, ie=SonyLIVIE.ie_key(), video_id=video_id)
 
