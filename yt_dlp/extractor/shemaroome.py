@@ -12,6 +12,8 @@ from ..compat import (
 from ..utils import (
     bytes_to_intlist,
     intlist_to_bytes,
+    unified_strdate,
+    url_or_none,
 )
 
 
@@ -23,9 +25,12 @@ class ShemarooMeIE(InfoExtractor):
             'id': 'dil-hai-tumhaara',
             'ext': 'mp4',
             'title': 'Dil Hai Tumhaara',
-            'release_date': '2002-09-06',
+            'release_date': '20020906',
             'thumbnail': 'https://daex9l847wg3n.cloudfront.net/shemoutputimages/Dil-Hai-Tumhaara/60599346a609d2faa3000020/large_16_9_1616436538.jpg?1616483693',
             'description': 'md5:2782c4127807103cf5a6ae2ca33645ce',
+        },
+        'params': {
+            'skip_download': True
         }
     }]
 
@@ -51,7 +56,7 @@ class ShemarooMeIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'title': m.group('title'),
-            'thumbnail': m.group('thumbnail'),
-            'release_date': release_date,
+            'thumbnail': url_or_none(m.group('thumbnail')),
+            'release_date': unified_strdate(release_date),
             'description': description,
         }
