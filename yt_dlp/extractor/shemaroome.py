@@ -25,7 +25,7 @@ class ShemarooMeIE(InfoExtractor):
             'id': 'dil-hai-tumhaara',
             'ext': 'mp4',
             'title': 'Dil Hai Tumhaara',
-            'upload_date': '20020906',
+            'release_date': '20020906',
             'thumbnail': 'https://daex9l847wg3n.cloudfront.net/shemoutputimages/Dil-Hai-Tumhaara/60599346a609d2faa3000020/large_16_9_1616436538.jpg?1616483693',
             'description': 'md5:2782c4127807103cf5a6ae2ca33645ce',
         },
@@ -39,7 +39,7 @@ class ShemarooMeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Laalach',
             'description': 'md5:92b79c2dcb539b0ab53f9fa5a048f53c',
-            'upload_date': '20210507',
+            'release_date': '20210507',
         },
         'params': {
             'skip_download': True
@@ -60,9 +60,9 @@ class ShemarooMeIE(InfoExtractor):
         formats = self._extract_m3u8_formats(m3u8_url, video_id, fatal=False)
         self._sort_formats(formats)
 
-        upload_date = self._html_search_regex(
+        release_date = self._html_search_regex(
             (r'itemprop="uploadDate">\s*([\d-]+)', r'id="release_date" value="([\d-]+)'),
-            webpage, 'upload date', fatal=False)
+            webpage, 'release date', fatal=False)
 
         description = self._html_search_regex(r'(?s)>Synopsis(</.+?)</', webpage, 'description', fatal=False)
 
@@ -71,6 +71,6 @@ class ShemarooMeIE(InfoExtractor):
             'formats': formats,
             'title': m.group('title'),
             'thumbnail': url_or_none(m.group('thumbnail')),
-            'upload_date': unified_strdate(upload_date),
+            'release_date': unified_strdate(release_date),
             'description': description,
         }
