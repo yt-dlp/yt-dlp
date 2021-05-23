@@ -1151,6 +1151,7 @@ from .shared import (
     SharedIE,
     VivoIE,
 )
+from .shemaroome import ShemarooMeIE
 from .showroomlive import ShowRoomLiveIE
 from .simplecast import (
     SimplecastIE,
