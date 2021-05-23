@@ -2122,6 +2122,7 @@ class InfoExtractor(object):
                         format_id.append(str(format_index))
                     f = {
                         'format_id': '-'.join(format_id),
+                        'format_note': name,
                         'format_index': format_index,
                         'url': manifest_url,
                         'manifest_url': m3u8_url,
@@ -2633,7 +2634,7 @@ class InfoExtractor(object):
                     mime_type = representation_attrib['mimeType']
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
-                    if content_type in ('video', 'audio', 'text'):
+                    if content_type in ('video', 'audio', 'text') or mime_type == 'image/jpeg':
                         base_url = ''
                         for element in (representation, adaptation_set, period, mpd_doc):
                             base_url_e = element.find(_add_ns('BaseURL'))
@@ -2650,9 +2651,15 @@ class InfoExtractor(object):
                         url_el = representation.find(_add_ns('BaseURL'))
                         filesize = int_or_none(url_el.attrib.get('{http://youtube.com/yt/2012/10/10}contentLength') if url_el is not None else None)
                         bandwidth = int_or_none(representation_attrib.get('bandwidth'))
+                        if representation_id is not None:
+                            format_id = representation_id
+                        else:
+                            format_id = content_type
+                        if mpd_id:
+                            format_id = mpd_id + '-' + format_id
                         if content_type in ('video', 'audio'):
                             f = {
-                                'format_id': '%s-%s' % (mpd_id, representation_id) if mpd_id else representation_id,
+                                'format_id': format_id,
                                 'manifest_url': mpd_url,
                                 'ext': mimetype2ext(mime_type),
                                 'width': int_or_none(representation_attrib.get('width')),
@@ -2672,6 +2679,16 @@ class InfoExtractor(object):
                                 'manifest_url': mpd_url,
                                 'filesize': filesize,
                             }
+                        elif mime_type == 'image/jpeg':
+                            f = {
+                                'format_id': format_id,
+                                'ext': 'mhtml',
+                                'manifest_url': mpd_url,
+                                'format_note': 'DASH thumbnail',
+                                'preference': -10,
+                                'acodec': 'none',
+                                'vcodec': 'jpeg',
+                            }
                         representation_ms_info = extract_multisegment_info(representation, adaption_set_ms_info)
 
                         def prepare_template(template_name, identifiers):
@@ -2690,7 +2707,8 @@ class InfoExtractor(object):
                                     t += c
                             # Next, $...$ templates are translated to their
                             # %(...) counterparts to be used with % operator
-                            t = t.replace('$RepresentationID$', representation_id)
+                            if representation_id is not None:
+                                t = t.replace('$RepresentationID$', representation_id)
                             t = re.sub(r'\$(%s)\$' % '|'.join(identifiers), r'%(\1)d', t)
                             t = re.sub(r'\$(%s)%%([^$]+)\$' % '|'.join(identifiers), r'%(\1)\2', t)
                             t.replace('$$', '$')
@@ -2807,7 +2825,7 @@ class InfoExtractor(object):
                                 'url': mpd_url or base_url,
                                 'fragment_base_url': base_url,
                                 'fragments': [],
-                                'protocol': 'http_dash_segments',
+                                'protocol': 'http_dash_segments' if mime_type != 'image/jpeg' else 'mhtml',
                             })
                             if 'initialization_url' in representation_ms_info:
                                 initialization_url = representation_ms_info['initialization_url']
@@ -2818,7 +2836,7 @@ class InfoExtractor(object):
                         else:
                             # Assuming direct URL to unfragmented media.
                             f['url'] = base_url
-                        if content_type in ('video', 'audio'):
+                        if content_type in ('video', 'audio') or mime_type == 'image/jpeg':
                             formats.append(f)
                         elif content_type == 'text':
                             subtitles.setdefault(lang or 'und', []).append(f)
