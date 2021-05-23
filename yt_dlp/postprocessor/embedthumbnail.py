@@ -128,7 +128,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     meta = MP4(filename)
                     # NOTE: the 'covr' atom is a non-standard MPEG-4 atom,
                     # Apple iTunes 'M4A' files include the 'moov.udta.meta.ilst' atom.
-                    f = {'jpeg': MP4Cover.FORMAT_JPEG, 'png':MP4Cover.FORMAT_PNG}[imghdr.what(thumbnail_filename)]
+                    f = {'jpeg': MP4Cover.FORMAT_JPEG, 'png': MP4Cover.FORMAT_PNG}[imghdr.what(thumbnail_filename)]
                     with open(thumbnail_filename, 'rb') as thumbfile:
                         thumb_data = thumbfile.read()
                     meta.tags['covr'] = [MP4Cover(data=thumb_data, imageformat=f)]

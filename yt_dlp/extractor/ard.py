@@ -290,7 +290,7 @@ class ARDMediathekIE(ARDMediathekBaseIE):
 
 
 class ARDIE(InfoExtractor):
-    _VALID_URL = r'(?P<mainurl>https?://(?:www\.)?daserste\.de/[^?#]+/videos(?:extern)?/(?P<display_id>[^/?#]+)-(?:video-?)?(?P<id>[0-9]+))\.html'
+    _VALID_URL = r'(?P<mainurl>https?://(?:www\.)?daserste\.de/[^?#]+/videos(?:extern)?/(?P<display_id>[^/?#]+)-?(?:video-?)?(?P<id>[0-9]+))\.html'
     _TESTS = [{
         # available till 7.01.2022
         'url': 'https://www.daserste.de/information/talk/maischberger/videos/maischberger-die-woche-video100.html',
@@ -306,6 +306,9 @@ class ARDIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.daserste.de/information/reportage-dokumentation/erlebnis-erde/videosextern/woelfe-und-herdenschutzhunde-ungleiche-brueder-102.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.daserste.de/unterhaltung/serie/in-aller-freundschaft-die-jungen-aerzte/videos/diversity-tag-sanam-afrashteh100.html',
         'only_matching': True,
     }, {
         'url': 'http://www.daserste.de/information/reportage-dokumentation/dokus/videos/die-story-im-ersten-mission-unter-falscher-flagge-100.html',
