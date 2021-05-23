@@ -8,9 +8,10 @@ import subprocess
 import re
 
 try:
-    from mutagen.oggvorbis import OggVorbis
-    from mutagen.oggopus import OggOpus
     from mutagen.flac import Picture, FLAC
+    from mutagen.mp4 import MP4, MP4Cover
+    from mutagen.oggopus import OggOpus
+    from mutagen.oggvorbis import OggVorbis
     has_mutagen = True
 except ImportError:
     has_mutagen = False
@@ -58,6 +59,9 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             return guess()
         return int(mobj.group('w')), int(mobj.group('h'))
 
+    def _report_run(self, exe, filename):
+        self.to_screen('%s: Adding thumbnail to "%s"' % (exe, filename))
+
     def run(self, info):
         filename = info['filepath']
         temp_filename = prepend_extension(filename, 'temp')
@@ -94,7 +98,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 '-c', 'copy', '-map', '0:0', '-map', '1:0', '-id3v2_version', '3',
                 '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment="Cover (front)"']
 
-            self.to_screen('Adding thumbnail to "%s"' % filename)
+            self._report_run('ffmpeg', filename)
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
         elif info['ext'] in ['mkv', 'mka']:
@@ -111,25 +115,51 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 '-metadata:s:%d' % new_stream, 'mimetype=%s' % mimetype,
                 '-metadata:s:%d' % new_stream, 'filename=cover.%s' % thumbnail_ext])
 
-            self.to_screen('Adding thumbnail to "%s"' % filename)
+            self._report_run('ffmpeg', filename)
             self.run_ffmpeg(filename, temp_filename, options)
 
         elif info['ext'] in ['m4a', 'mp4', 'mov']:
-            try:
-                options = ['-c', 'copy', '-map', '0', '-dn', '-map', '1']
+            # Method 1: Use mutagen
+            if not has_mutagen:
+                success = False
+            else:
+                try:
+                    self._report_run('mutagen', filename)
+                    meta = MP4(filename)
+                    # NOTE: the 'covr' atom is a non-standard MPEG-4 atom,
+                    # Apple iTunes 'M4A' files include the 'moov.udta.meta.ilst' atom.
+                    f = {'jpeg': MP4Cover.FORMAT_JPEG, 'png':MP4Cover.FORMAT_PNG}[imghdr.what(thumbnail_filename)]
+                    with open(thumbnail_filename, 'rb') as thumbfile:
+                        thumb_data = thumbfile.read()
+                    meta.tags['covr'] = [MP4Cover(data=thumb_data, imageformat=f)]
+                    meta.save()
+                    temp_filename = filename
+                except Exception as err:
+                    self.report_warning('unable to embed using mutagen; %s' % error_to_compat_str(err))
+                    success = False
 
-                old_stream, new_stream = self.get_stream_number(
-                    filename, ('disposition', 'attached_pic'), 1)
-                if old_stream is not None:
-                    options.extend(['-map', '-0:%d' % old_stream])
-                    new_stream -= 1
-                options.extend(['-disposition:%s' % new_stream, 'attached_pic'])
+            # Method 2: Use ffmpeg+ffprobe
+            if not success:
+                success = True
+                try:
+                    options = ['-c', 'copy', '-map', '0', '-dn', '-map', '1']
 
-                self.to_screen('Adding thumbnail to "%s"' % filename)
-                self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
+                    old_stream, new_stream = self.get_stream_number(
+                        filename, ('disposition', 'attached_pic'), 1)
+                    if old_stream is not None:
+                        options.extend(['-map', '-0:%d' % old_stream])
+                        new_stream -= 1
+                    options.extend(['-disposition:%s' % new_stream, 'attached_pic'])
 
-            except PostProcessingError as err:
-                self.report_warning('unable to embed using ffprobe & ffmpeg; %s' % error_to_compat_str(err))
+                    self._report_run('ffmpeg', filename)
+                    self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
+                except PostProcessingError as err:
+                    self.report_warning('unable to embed using ffprobe & ffmpeg; %s' % error_to_compat_str(err))
+                    success = False
+
+            # Method 3: Use AtomicParsley
+            if not success:
+                success = True
                 atomicparsley = next((
                     x for x in ['AtomicParsley', 'atomicparsley']
                     if check_executable(x, ['-v'])), None)
@@ -144,7 +174,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                        encodeFilename(temp_filename, True)]
                 cmd += [encodeArgument(o) for o in self._configuration_args('AtomicParsley')]
 
-                self.to_screen('Adding thumbnail to "%s"' % filename)
+                self._report_run('atomicparsley', filename)
                 self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = process_communicate_or_kill(p)
@@ -161,8 +191,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not has_mutagen:
                 raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python -m pip install mutagen`')
 
-            self.to_screen('Adding thumbnail to "%s"' % filename)
-            temp_filename = filename
+            self._report_run('mutagen', filename)
             f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['ext']](filename)
 
             pic = Picture()
@@ -180,6 +209,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 # https://wiki.xiph.org/VorbisComment#METADATA_BLOCK_PICTURE
                 f['METADATA_BLOCK_PICTURE'] = base64.b64encode(pic.write()).decode('ascii')
             f.save()
+            temp_filename = filename
 
         else:
             raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/mov')
