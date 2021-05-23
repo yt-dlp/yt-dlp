@@ -105,7 +105,7 @@ class SonyLIVIE(InfoExtractor):
             sub_url = sub.get('subtitleUrl')
             if not sub_url:
                 continue
-            subtitles.setdefault(sub.get('subtitleLanguageName', 'English'), []).append({
+            subtitles.setdefault(sub.get('subtitleLanguageName', 'ENG'), []).append({
                 'url': sub_url,
             })
         return {
