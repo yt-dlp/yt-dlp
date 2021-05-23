@@ -1254,6 +1254,7 @@ class YoutubeDL(object):
 
             self._playlist_level += 1
             self._playlist_urls.add(webpage_url)
+            self._sanitize_thumbnails(ie_result)
             try:
                 return self.__process_playlist(ie_result, download)
             finally:
@@ -1914,6 +1915,27 @@ class YoutubeDL(object):
         self.cookiejar.add_cookie_header(pr)
         return pr.get_header('Cookie')
 
+    @staticmethod
+    def _sanitize_thumbnails(info_dict):
+        thumbnails = info_dict.get('thumbnails')
+        if thumbnails is None:
+            thumbnail = info_dict.get('thumbnail')
+            if thumbnail:
+                info_dict['thumbnails'] = thumbnails = [{'url': thumbnail}]
+        if thumbnails:
+            thumbnails.sort(key=lambda t: (
+                t.get('preference') if t.get('preference') is not None else -1,
+                t.get('width') if t.get('width') is not None else -1,
+                t.get('height') if t.get('height') is not None else -1,
+                t.get('id') if t.get('id') is not None else '',
+                t.get('url')))
+            for i, t in enumerate(thumbnails):
+                t['url'] = sanitize_url(t['url'])
+                if t.get('width') and t.get('height'):
+                    t['resolution'] = '%dx%d' % (t['width'], t['height'])
+                if t.get('id') is None:
+                    t['id'] = '%d' % i
+
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
 
@@ -1950,30 +1972,14 @@ class YoutubeDL(object):
             info_dict['playlist'] = None
             info_dict['playlist_index'] = None
 
-        thumbnails = info_dict.get('thumbnails')
-        if thumbnails is None:
-            thumbnail = info_dict.get('thumbnail')
-            if thumbnail:
-                info_dict['thumbnails'] = thumbnails = [{'url': thumbnail}]
-        if thumbnails:
-            thumbnails.sort(key=lambda t: (
-                t.get('preference') if t.get('preference') is not None else -1,
-                t.get('width') if t.get('width') is not None else -1,
-                t.get('height') if t.get('height') is not None else -1,
-                t.get('id') if t.get('id') is not None else '',
-                t.get('url')))
-            for i, t in enumerate(thumbnails):
-                t['url'] = sanitize_url(t['url'])
-                if t.get('width') and t.get('height'):
-                    t['resolution'] = '%dx%d' % (t['width'], t['height'])
-                if t.get('id') is None:
-                    t['id'] = '%d' % i
+        self._sanitize_thumbnails(info_dict)
 
         if self.params.get('list_thumbnails'):
             self.list_thumbnails(info_dict)
             return
 
         thumbnail = info_dict.get('thumbnail')
+        thumbnails = info_dict.get('thumbnails')
         if thumbnail:
             info_dict['thumbnail'] = sanitize_url(thumbnail)
         elif thumbnails:
