@@ -100,7 +100,14 @@ class SonyLIVIE(InfoExtractor):
         metadata = self._call_api(
             '1.6', 'IN/DETAIL/' + video_id, video_id)['containers'][0]['metadata']
         title = metadata['episodeTitle']
-
+        subtitles = {}
+        for sub in content.get('subtitle', []):
+            sub_url = sub.get('subtitleUrl')
+            if not sub_url:
+                continue
+            subtitles.setdefault(sub.get('subtitleLanguageName', 'English'), []).append({
+                'url': sub_url,
+            })
         return {
             'id': video_id,
             'title': title,
@@ -113,6 +120,7 @@ class SonyLIVIE(InfoExtractor):
             'series': metadata.get('title'),
             'episode_number': int_or_none(metadata.get('episodeNumber')),
             'release_year': int_or_none(metadata.get('year')),
+            'subtitles': subtitles,
         }
 
 
