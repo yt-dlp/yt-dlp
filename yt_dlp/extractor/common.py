@@ -2042,7 +2042,12 @@ class InfoExtractor(object):
             groups.setdefault(group_id, []).append(media)
             # <https://tools.ietf.org/html/rfc8216#section-4.3.4.1>
             if media_type == 'SUBTITLES':
-                lang = media['LANGUAGE']  # XXX: normalise?
+                # According to RFC 8216 §4.3.4.2.1, URI is REQUIRED in the
+                # EXT-X-MEDIA tag if the media type is SUBTITLES.
+                # However, lack of URI has been spotted in the wild.
+                # e.g. NebulaIE; see https://github.com/yt-dlp/yt-dlp/issues/339
+                if not media.get('URI'):
+                    return
                 url = format_url(media['URI'])
                 sub_info = {
                     'url': url,
@@ -2054,6 +2059,7 @@ class InfoExtractor(object):
                     # <https://tools.ietf.org/html/rfc8216#section-3.1>
                     sub_info['ext'] = 'vtt'
                     sub_info['protocol'] = 'm3u8_native'
+                lang = media.get('LANGUAGE') or 'unknown'
                 subtitles.setdefault(lang, []).append(sub_info)
             if media_type not in ('VIDEO', 'AUDIO'):
                 return
