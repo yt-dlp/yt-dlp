@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import hashlib
-import io
 import json
 import os
 import platform
@@ -147,6 +146,11 @@ def run_update(ydl):
         directory = os.path.dirname(exe)
         if not os.access(directory, os.W_OK):
             return report_error('no write permissions on %s' % directory, expected=True)
+        try:
+            if os.path.exists(filename + '.old'):
+                os.remove(filename + '.old')
+        except (IOError, OSError):
+            return report_error('unable to remove the old version')
 
         try:
             arch = platform.architecture()[0][:2]
@@ -176,22 +180,24 @@ def run_update(ydl):
                 return report_error('unable to remove corrupt download')
 
         try:
-            bat = os.path.join(directory, 'yt-dlp-updater.cmd')
-            with io.open(bat, 'w') as batfile:
-                batfile.write('''
-@(
-    echo.Waiting for file handle to be closed ...
-    ping 127.0.0.1 -n 5 -w 1000 > NUL
-    move /Y "%s.new" "%s" > NUL
-    echo.Updated yt-dlp to version %s
-)
-@start /b "" cmd /c del "%%~f0"&exit /b
-                ''' % (exe, exe, version_id))
-
-            subprocess.Popen([bat])  # Continues to run in the background
+            os.rename(exe, exe + '.old')
+        except (IOError, OSError):
+            return report_error('unable to move current version')
+        try:
+            os.rename(exe + '.new', exe)
         except (IOError, OSError):
             report_error('unable to overwrite current version')
-        return True  # Exit app
+            os.rename(exe + '.old', exe)
+            return
+        try:
+            # Continues to run in the background
+            subprocess.Popen(
+                'ping 127.0.0.1 -n 5 -w 1000 & del /F "%s.old"' % exe,
+                shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ydl.to_screen('Updated yt-dlp to version %s' % version_id)
+            return True  # Exit app
+        except OSError:
+            report_error('unable to delete old version')
 
     # Zip unix package
     elif isinstance(globals().get('__loader__'), zipimporter):
