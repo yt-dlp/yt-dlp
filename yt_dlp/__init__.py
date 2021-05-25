@@ -37,7 +37,7 @@ from .utils import (
     std_headers,
     write_string,
 )
-from .update import update_self
+from .update import run_update
 from .downloader import (
     FileDownloader,
 )
@@ -663,7 +663,7 @@ def _real_main(argv=None):
         # Update version
         if opts.update_self:
             # If updater returns True, exit. Required for windows
-            if update_self(ydl.to_screen, opts.verbose, ydl._opener):
+            if run_update(ydl):
                 if actual_use:
                     sys.exit('ERROR: The program must exit for the update to complete')
                 sys.exit()

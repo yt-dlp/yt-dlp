@@ -734,7 +734,8 @@ class YoutubeDL(object):
                 else:
                     tb_data = traceback.format_list(traceback.extract_stack())
                     tb = ''.join(tb_data)
-            self.to_stderr(tb)
+            if tb:
+                self.to_stderr(tb)
         if not self.params.get('ignoreerrors', False):
             if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
                 exc_info = sys.exc_info()[1].exc_info
