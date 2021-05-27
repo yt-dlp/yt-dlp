@@ -18,7 +18,6 @@ from ..utils import (
 )
 
 
-
 class PatreonIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|posts/(?:[\w-]+-)?)(?P<id>\d+)'
     _TESTS = [{
@@ -70,7 +69,7 @@ class PatreonIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.patreon.com/posts/kitchen-as-seen-51706779',
-        'md5':'96656690071f6d64895866008484251b',
+        'md5': '96656690071f6d64895866008484251b',
         'info_dict': {
             'id': '555089736',
             "ext": "mp4",
@@ -157,8 +156,8 @@ class PatreonIE(InfoExtractor):
 
         if not info.get('url'):
             # handle Vimeo embeds
-            if try_get(attributes,lambda x:x['embed']['provider']) == 'Vimeo':
-                embed_html = try_get(attributes,lambda x:x['embed']['html'])
+            if try_get(attributes, lambda x: x['embed']['provider']) == 'Vimeo':
+                embed_html = try_get(attributes, lambda x: x['embed']['html'])
                 v_url = url_or_none(compat_urllib_parse_unquote(
                     self._search_regex(r'src=(https%3A%2F%2Fplayer\.vimeo\.com.+)%3F', embed_html, 'vimeo url', fatal=False)))
                 if v_url:
