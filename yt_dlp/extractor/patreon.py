@@ -12,6 +12,8 @@ from ..utils import (
     str_or_none,
     try_get,
 )
+from ..compat import compat_urllib_parse_unquote
+from .vimeo import VimeoIE
 
 
 class PatreonIE(InfoExtractor):
@@ -137,12 +139,23 @@ class PatreonIE(InfoExtractor):
                     })
 
         if not info.get('url'):
-            embed_url = try_get(attributes, lambda x: x['embed']['url'])
-            if embed_url:
+            # handle Vimeo embeds
+            if attributes.get('embed').get('provider') == 'Vimeo':
+                embed_html = attributes.get('embed').get('html')
+                v_url = self._search_regex(r'''src=(https%3A%2F%2Fplayer\.vimeo\.com.+)%3F''', embed_html, "vimeo url")
                 info.update({
-                    '_type': 'url',
-                    'url': embed_url,
+                    '_type': 'url_transparent',
+                    'url': VimeoIE._smuggle_referrer(compat_urllib_parse_unquote(v_url), 'https://patreon.com'),
+                    'ie_key': 'Vimeo',
                 })
+
+            else:
+                embed_url = try_get(attributes, lambda x: x['embed']['url'])
+                if embed_url:
+                    info.update({
+                        '_type': 'url',
+                        'url': embed_url,
+                    })
 
         if not info.get('url'):
             post_file = attributes['post_file']
