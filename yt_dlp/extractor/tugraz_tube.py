@@ -11,7 +11,9 @@ class TugrazTubeIE(InfoExtractor):
             (?P<episode>watch.html\?id=)
         )(?P<id>[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})
     $"""
+
     _LOGIN_REQUIRED = True
+    _NETRC_MACHINE = None # wtf? needed for proper error message when no login details provided
 
     _LOGIN_URL = "https://tube.tugraz.at/Shibboleth.sso/Login?target=/paella/ui/index.html"
     _LOGIN_SUCCESS_URL = "https://tube.tugraz.at/paella/ui/index.html"
@@ -47,7 +49,7 @@ class TugrazTubeIE(InfoExtractor):
         )
 
         if result_page_handle.url != self._LOGIN_SUCCESS_URL:
-            raise ExtractorError('Failed to log in, needed for using %s.' % self.IE_NAME)
+            raise ExtractorError('Failed to log in, needed for using %s' % self.IE_NAME)
 
     def _real_initialize(self):
         self._login()
