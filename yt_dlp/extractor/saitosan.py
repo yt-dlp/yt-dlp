@@ -1,7 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
-
 from .common import InfoExtractor
+from ..utils import ExtractorError
 
 
 class SaitosanIE(InfoExtractor):
@@ -52,7 +52,7 @@ class SaitosanIE(InfoExtractor):
 
         self._download_webpage(base, b_id, note="Polling socket")
         payload = '420["room_start_join",{"room_id":"' + str(b_id) + '"}]'
-        payload = str(len(payload)) + ":" + payload
+        payload = '%s:%s' % (len(payload), payload)
 
         self._download_webpage(base, b_id, data=payload, note='Polling socket with payload')
         should_continue = format_socket_response_as_json(self._download_webpage(base, b_id, note="Polling socket")).get('ok')
