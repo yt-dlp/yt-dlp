@@ -72,7 +72,7 @@ class PatreonIE(InfoExtractor):
         'md5': '96656690071f6d64895866008484251b',
         'info_dict': {
             'id': '555089736',
-            "ext": "mp4",
+            'ext': 'mp4',
             'title': 'KITCHEN AS SEEN ON DEEZ NUTS EXTENDED!',
             'uploader': 'Cold Ones',
             'thumbnail': 're:^https?://.*$',
