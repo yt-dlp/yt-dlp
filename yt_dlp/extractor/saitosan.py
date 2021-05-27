@@ -54,7 +54,7 @@ class SaitosanIE(InfoExtractor):
         payload = '420["room_start_join",{"room_id":"' + str(b_id) + '"}]'
         payload = str(len(payload)) + ":" + payload
 
-        self._download_webpage(base, b_id, data=payload, note="Polling socket")
+        self._download_webpage(base, b_id, data=payload, note='Polling socket with payload')
         should_continue = format_socket_response_as_json(self._download_webpage(base, b_id, note="Polling socket")).get('ok')
         if not should_continue:
             # The socket does not give any specific error messages.
