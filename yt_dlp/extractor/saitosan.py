@@ -58,7 +58,9 @@ class SaitosanIE(InfoExtractor):
         should_continue = format_socket_response_as_json(self._download_webpage(base, b_id, note="Polling socket")).get('ok')
         if not should_continue:
             # The socket does not give any specific error messages.
-            self.raise_no_formats("The socket reported that the broadcast could not be joined. Maybe it's offline or the URL is incorrect", expected=True)
+            raise ExtractorError(
+                'The socket reported that the broadcast could not be joined. Maybe it's offline or the URL is incorrect',
+                expected=True, video_id=b_id)
 
         self._download_webpage(base, b_id, data='26:421["room_finish_join",{}]', note="Polling socket")
         b_data = format_socket_response_as_json(self._download_webpage(base, b_id, note='Getting broadcast metadata from socket'))
