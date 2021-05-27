@@ -48,24 +48,24 @@ class SaitosanIE(InfoExtractor):
 
         base = 'http://hankachi.saitosan-api.net:8002/socket.io/?transport=polling&EIO=3'
         sid = format_socket_response_as_json(self._download_webpage(base, b_id, note='Opening socket')).get('sid')
-        base += "&sid=" + sid
+        base += '&sid=' + sid
 
-        self._download_webpage(base, b_id, note="Polling socket")
+        self._download_webpage(base, b_id, note='Polling socket')
         payload = '420["room_start_join",{"room_id":"' + str(b_id) + '"}]'
         payload = '%s:%s' % (len(payload), payload)
 
         self._download_webpage(base, b_id, data=payload, note='Polling socket with payload')
-        should_continue = format_socket_response_as_json(self._download_webpage(base, b_id, note="Polling socket")).get('ok')
+        should_continue = format_socket_response_as_json(self._download_webpage(base, b_id, note='Polling socket')).get('ok')
         if not should_continue:
             # The socket does not give any specific error messages.
             raise ExtractorError(
                 "The socket reported that the broadcast could not be joined. Maybe it's offline or the URL is incorrect",
                 expected=True, video_id=b_id)
 
-        self._download_webpage(base, b_id, data='26:421["room_finish_join",{}]', note="Polling socket")
+        self._download_webpage(base, b_id, data='26:421["room_finish_join",{}]', note='Polling socket')
         b_data = format_socket_response_as_json(self._download_webpage(base, b_id, note='Getting broadcast metadata from socket'))
 
-        self._download_webpage(base, b_id, data="1:1", note="Closing socket")
+        self._download_webpage(base, b_id, data='1:1', note='Closing socket')
 
         title = b_data.get('name')
         uploader = b_data.get('broadcast_user')
