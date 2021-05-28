@@ -270,8 +270,9 @@ class TubeTuGrazIE(InfoExtractor):
                 format["preference"] = preference
         else:
             # RTMP, HDS, SMOOTH, and unknown formats
-            # - RTMP url doesn't work
-            # - other formats are TODO
+            # - RTMP url fails on every tested entry until now
+            # - HDS url 404's on every tested entry until now
+            # - SMOOTH url 404's on every tested entry until now
             formats = []
 
         for format in formats:
