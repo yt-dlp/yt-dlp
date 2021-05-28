@@ -169,6 +169,7 @@ class TubeTuGrazIE(InfoExtractor):
             formats.extend(self._extract_formats(format_info, format_types))
 
         self._guess_formats(formats, format_types, id)
+        self._sort_formats(formats)
 
         return {
             "_type": "video",
