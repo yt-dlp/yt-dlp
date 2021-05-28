@@ -1,16 +1,16 @@
 # coding: utf-8
 from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import ExtractorError, urlencode_postdata, try_get, parse_duration
-
 import re
+
 
 def try_get_or(src, getters, expected_type=None):
     for getter in getters:
         v = try_get(src, getter, expected_type)
         if v is not None:
             return v
+
 
 class TubeTuGrazIE(InfoExtractor):
     IE_DESC = 'tube.tugraz.at'
@@ -23,7 +23,7 @@ class TubeTuGrazIE(InfoExtractor):
     $"""
 
     _LOGIN_REQUIRED = False
-    _NETRC_MACHINE = None # wtf? needed for proper error message when no login details provided
+    _NETRC_MACHINE = None
 
     _LOGIN_URL = "https://tube.tugraz.at/Shibboleth.sso/Login?target=/paella/ui/index.html"
     _LOGIN_SUCCESS_URL = "https://tube.tugraz.at/paella/ui/index.html"
@@ -57,7 +57,9 @@ class TubeTuGrazIE(InfoExtractor):
                 b"j_username": username,
                 b"j_password": password
             }),
-            headers={ "referer": login_page_handle.url })
+            headers={
+                "referer": login_page_handle.url
+            })
         if result is False:
             return
         else:
@@ -106,7 +108,9 @@ class TubeTuGrazIE(InfoExtractor):
             note='downloading episode list',
             errnote='failed to download episode list',
             fatal=False,
-            query={ "sid": id })
+            query={
+                "sid": id
+            })
         episodes_info = try_get(episodes_info_data,
             lambda x: x["search-results"]["result"]) or []
 
@@ -122,9 +126,12 @@ class TubeTuGrazIE(InfoExtractor):
         episode_info_data = self._download_json(
             self._API_EPISODE, None,
             note='downloading episode metadata',
-            errnote ='failed to download episode metadata',
+            errnote='failed to download episode metadata',
             fatal=False,
-            query={ "id": id, "limit": 1 })
+            query={
+                "id": id,
+                "limit": 1
+            })
         episode_info = try_get(episode_info_data,
             lambda x: x["search-results"]["result"]) or {}
 
@@ -250,14 +257,14 @@ class TubeTuGrazIE(InfoExtractor):
             else:
                 preference = -2
 
-            if not "HLS" in format_types:
+            if "HLS" not in format_types:
                 formats.extend(self._extract_m3u8_formats(
                     m3u8_url, None,
                     note="guessing location of %s HLS manifest" % type,
                     fatal=False,
                     preference=preference,
                     ext="mp4"))
-            if not "DASH" in format_types:
+            if "DASH" not in format_types:
                 dash_formats = self._extract_mpd_formats(
                     mpd_url, None,
                     note="guessing location of %s DASH manifest" % type,
