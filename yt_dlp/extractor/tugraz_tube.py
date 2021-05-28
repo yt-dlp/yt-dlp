@@ -16,7 +16,7 @@ class TugrazTubeIE(InfoExtractor):
         )(?P<id>[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})
     $"""
 
-    _LOGIN_REQUIRED = True
+    _LOGIN_REQUIRED = False
     _NETRC_MACHINE = None # wtf? needed for proper error message when no login details provided
 
     _LOGIN_URL = "https://tube.tugraz.at/Shibboleth.sso/Login?target=/paella/ui/index.html"
@@ -29,18 +29,22 @@ class TugrazTubeIE(InfoExtractor):
         username, password = self._get_login_info()
 
         if username is None:
-            raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME)
+            return
 
-        _, login_page_handle = self._download_webpage_handle(
+        result = self._download_webpage_handle(
             self._LOGIN_URL, None,
             note = 'Downloading login page',
-            errnote = 'unable to fetch login page', fatal = True
+            errnote = 'unable to fetch login page', fatal = False
         )
+        if result is False:
+            return
+        else:
+            _, login_page_handle = result
 
-        _, result_page_handle = self._download_webpage_handle(
+        result = self._download_webpage_handle(
             login_page_handle.url, None,
             note = 'Logging in',
-            errnote = 'unable to log in', fatal = True,
+            errnote = 'unable to log in', fatal = False,
             data = urlencode_postdata({
                 b"lang": "de",
                 b"_eventId_proceed": "",
@@ -51,9 +55,13 @@ class TugrazTubeIE(InfoExtractor):
                 "referer": login_page_handle.url
             }
         )
+        if result is False:
+            return
+        else:
+            _, result_page_handle = result
 
         if result_page_handle.url != self._LOGIN_SUCCESS_URL:
-            raise ExtractorError('Failed to log in, needed for using %s' % self.IE_NAME)
+            return
 
     def _real_initialize(self):
         self._login()
@@ -73,13 +81,15 @@ class TugrazTubeIE(InfoExtractor):
         data = self._download_json(
             self._API_SERIES, None,
             note = 'Downloading series metadata',
-            errnote = 'failed to download series metadata', fatal = True,
+            errnote = 'failed to download series metadata', fatal = False,
             query = {
                 "seriesId": id,
                 "count": 1,
                 "sort": "TITLE"
             }
         )
+        if data is False:
+            return None
 
         return data["catalogs"][0]["http://purl.org/dc/terms/"]
 
