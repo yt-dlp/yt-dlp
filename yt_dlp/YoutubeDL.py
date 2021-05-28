@@ -1017,7 +1017,7 @@ class YoutubeDL(object):
             path = encodeFilename(path, True).decode(preferredencoding())
         return sanitize_path(path, force=self.params.get('windowsfilenames'))
 
-    def _match_entry(self, info_dict, incomplete=False):
+    def _match_entry(self, info_dict, incomplete=False, silent=False):
         """ Returns None if the file should be downloaded """
 
         video_title = info_dict.get('title', info_dict.get('id', 'video'))
@@ -1065,7 +1065,8 @@ class YoutubeDL(object):
             reason = check_filter()
             break_opt, break_err = 'break_on_reject', RejectedVideoReached
         if reason is not None:
-            self.to_screen('[download] ' + reason)
+            if not silent:
+                self.to_screen('[download] ' + reason)
             if self.params.get(break_opt, False):
                 raise break_err()
         return reason
@@ -1351,6 +1352,11 @@ class YoutubeDL(object):
                 elif not playlistitems:
                     break
             entries.append(entry)
+            try:
+                if entry is not None:
+                    self._match_entry(entry, incomplete=True, silent=True)
+            except (ExistingVideoReached, RejectedVideoReached):
+                break
         ie_result['entries'] = entries
 
         # Save playlist_index before re-ordering
