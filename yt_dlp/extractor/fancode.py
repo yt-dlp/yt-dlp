@@ -2,10 +2,13 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
+
+from ..compat import compat_str
 from ..utils import (
     parse_iso8601,
     random_user_agent,
-    RegexNotFoundError
+    RegexNotFoundError,
+    try_get
 )
 
 
@@ -63,22 +66,24 @@ class FancodeVodIE(InfoExtractor):
             }'''
 
         metadata_json = self._download_json(GQL_URL, video_id, data=str.encode(data % video_id), headers=headers, note="Downloading metadata")
-        brightcove_video_id = metadata_json.get('data').get('media').get('mediaSource').get('brightcove')
+        brightcove_video_id = try_get(metadata_json,lambda x:x['data']['media']['mediaSource']['brightcove'],compat_str)
 
         if brightcove_video_id is None:
             raise RegexNotFoundError('Unable to extract brightcove Video ID')
 
-        if metadata_json.get('data').get('media').get('isPremium') is True:
+        if try_get(metadata_json,lambda x:x['data']['media']['isPremium']) is True:
             self.report_warning("requires a premium account" % video_id, video_id)
+
+        media = try_get(metadata_json,lambda x:x['data']['media'])
 
         return {
             '_type': 'url_transparent',
             'url': BRIGHTCOVE_URL_TEMPLATE % (brightcove_user_id, brightcove_video_id),
             'ie_key': 'BrightcoveNew',
             'id': video_id,
-            'title': metadata_json.get('data').get('media').get('title'),
-            'like_count': metadata_json.get('data').get('media').get('totalUpvotes'),
-            'view_count': metadata_json.get('data').get('media').get('totalViews'),
-            'tags': metadata_json.get('data').get('media').get('tags'),
-            'release_timestamp': parse_iso8601(metadata_json.get('data').get('media').get('publishedTime'))
+            'title': media.get('title'),
+            'like_count': media.get('totalUpvotes'),
+            'view_count': media.get('totalViews'),
+            'tags': media.get('tags'),
+            'release_timestamp': parse_iso8601(media.get('publishedTime'))
         }
