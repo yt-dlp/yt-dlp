@@ -219,7 +219,7 @@ class TubeTuGrazIE(InfoExtractor):
         PREFERRED_TYPE = "presentation"
 
         url = try_get(format_info, lambda x: x["url"])
-        type = try_get(format_info, lambda x: x["type"])
+        type = try_get(format_info, lambda x: x["type"]) or "unknown"
         transport = try_get(format_info, lambda x: x["transport"]) or "https"
         audio_bitrate = try_get(format_info, lambda x: x["audio"]["bitrate"])
         video_bitrate = try_get(format_info, lambda x: x["video"]["bitrate"])
