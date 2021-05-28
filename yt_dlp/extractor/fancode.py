@@ -66,15 +66,15 @@ class FancodeVodIE(InfoExtractor):
             }'''
 
         metadata_json = self._download_json(GQL_URL, video_id, data=str.encode(data % video_id), headers=headers, note="Downloading metadata")
-        brightcove_video_id = try_get(metadata_json,lambda x:x['data']['media']['mediaSource']['brightcove'],compat_str)
+        brightcove_video_id = try_get(metadata_json, lambda x: x['data']['media']['mediaSource']['brightcove'], compat_str)
 
         if brightcove_video_id is None:
             raise RegexNotFoundError('Unable to extract brightcove Video ID')
 
-        if try_get(metadata_json,lambda x:x['data']['media']['isPremium']) is True:
+        if try_get(metadata_json, lambda x: x['data']['media']['isPremium']) is True:
             self.report_warning("requires a premium account" % video_id, video_id)
 
-        media = try_get(metadata_json,lambda x:x['data']['media'])
+        media = try_get(metadata_json, lambda x: x['data']['media'])
 
         return {
             '_type': 'url_transparent',
