@@ -1016,11 +1016,12 @@ class YoutubeDL(object):
             path = encodeFilename(path, True).decode(preferredencoding())
         return sanitize_path(path, force=self.params.get('windowsfilenames'))
 
-    def _match_entry(self, info_dict, incomplete):
+    def _match_entry(self, info_dict, incomplete=False):
         """ Returns None if the file should be downloaded """
 
+        video_title = info_dict.get('title', info_dict.get('id', 'video'))
+
         def check_filter():
-            video_title = info_dict.get('title', info_dict.get('id', 'video'))
             if 'title' in info_dict:
                 # This can happen when we're just evaluating the playlist
                 title = info_dict['title']
@@ -1047,8 +1048,6 @@ class YoutubeDL(object):
                     return 'Skipping %s, because it has exceeded the maximum view count (%d/%d)' % (video_title, view_count, max_views)
             if age_restricted(info_dict.get('age_limit'), self.params.get('age_limit')):
                 return 'Skipping "%s" because it is age restricted' % video_title
-            if self.in_download_archive(info_dict):
-                return '%s has already been recorded in archive' % video_title
 
             if not incomplete:
                 match_filter = self.params.get('match_filter')
@@ -1058,13 +1057,16 @@ class YoutubeDL(object):
                         return ret
             return None
 
-        reason = check_filter()
+        if self.in_download_archive(info_dict):
+            reason = '%s has already been recorded in the archive' % video_title
+            break_opt, break_err = 'break_on_existing', ExistingVideoReached
+        else:
+            reason = check_filter()
+            break_opt, break_err = 'break_on_reject', RejectedVideoReached
         if reason is not None:
             self.to_screen('[download] ' + reason)
-            if reason.endswith('has already been recorded in the archive') and self.params.get('break_on_existing', False):
-                raise ExistingVideoReached()
-            elif self.params.get('break_on_reject', False):
-                raise RejectedVideoReached()
+            if self.params.get(break_opt, False):
+                raise break_err()
         return reason
 
     @staticmethod
@@ -2327,7 +2329,7 @@ class YoutubeDL(object):
         if 'format' not in info_dict:
             info_dict['format'] = info_dict['ext']
 
-        if self._match_entry(info_dict, incomplete=False) is not None:
+        if self._match_entry(info_dict) is not None:
             return
 
         self.post_extract(info_dict)

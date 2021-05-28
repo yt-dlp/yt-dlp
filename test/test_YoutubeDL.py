@@ -756,7 +756,7 @@ class TestYoutubeDL(unittest.TestCase):
             def process_info(self, info_dict):
                 super(YDL, self).process_info(info_dict)
 
-            def _match_entry(self, info_dict, incomplete):
+            def _match_entry(self, info_dict, incomplete=False):
                 res = super(FilterYDL, self)._match_entry(info_dict, incomplete)
                 if res is None:
                     self.downloaded_info_dicts.append(info_dict)
