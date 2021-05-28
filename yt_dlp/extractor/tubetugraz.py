@@ -278,21 +278,33 @@ class TubeTuGrazIE(InfoExtractor):
                 preference = -2
 
             if "HLS" not in format_types:
-                formats.extend(self._extract_m3u8_formats(
+                hls_page = self._download_webpage_handle(
                     m3u8_url, None,
                     note="guessing location of %s HLS manifest" % type,
-                    fatal=False,
-                    preference=preference,
-                    ext="mp4"))
+                    errnote=False,
+                    fatal=False)
+                if hls_page is not False:
+                    formats.extend(self._extract_m3u8_formats(
+                        m3u8_url, None,
+                        note="downloading %s HLS manifest" % type,
+                        fatal=False,
+                        preference=preference,
+                        ext="mp4"))
             if "DASH" not in format_types:
-                dash_formats = self._extract_mpd_formats(
+                dash_page = self._download_webpage_handle(
                     mpd_url, None,
                     note="guessing location of %s DASH manifest" % type,
+                    errnote=False,
                     fatal=False)
+                if dash_page is not False:
+                    dash_formats = self._extract_mpd_formats(
+                        mpd_url, None,
+                        note="guessing location of %s DASH manifest" % type,
+                        fatal=False)
 
-                # manually add preference since _extract_mpd_formats
-                # lacks a preference keyword arg
-                for format in dash_formats:
-                    format["preference"] = preference
+                    # manually add preference since _extract_mpd_formats
+                    # lacks a preference keyword arg
+                    for format in dash_formats:
+                        format["preference"] = preference
 
-                formats.extend(dash_formats)
+                    formats.extend(dash_formats)
