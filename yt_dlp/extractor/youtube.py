@@ -68,7 +68,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _RESERVED_NAMES = (
         r'channel|c|user|browse|playlist|watch|w|v|embed|e|watch_popup|'
-        r'movies|results|shared|hashtag|trending|feed|feeds|oembed|'
+        r'movies|results|shared|hashtag|trending|feed|feeds|oembed|get_video_info|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 
     _NETRC_MACHINE = 'youtube'
@@ -3838,7 +3838,7 @@ class YoutubePlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        is_music_url = self.is_music_url(url)
+        is_music_url = YoutubeBaseInfoExtractor.is_music_url(url)
         url = update_url_query(
             'https://www.youtube.com/playlist',
             parse_qs(url) or {'list': playlist_id})
