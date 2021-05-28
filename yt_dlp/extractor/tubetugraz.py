@@ -349,4 +349,5 @@ class TubeTuGrazIE(InfoExtractor):
         else:
             pre_index = ""
 
-        format["format_id"] = "%s-%s-%s%d" % (type, transport, pre_index, index)
+        format_id = "%s-%s-%s%d" % (type, transport, pre_index, index)
+        format["format_id"] = format_id
