@@ -2777,19 +2777,20 @@ class YoutubeDL(object):
 
     @staticmethod
     def filter_requested_info(info_dict, actually_filter=True):
-        info_dict.pop('__original_infodict', None)  # Always remove this
-        if not actually_filter:
+        remove_keys = ['__original_infodict']  # Always remove this since this may contain a copy of the entire dict
+        keep_keys = ['_type'],  # Always keep this to facilitate load-info-json
+        if actually_filter:
+            remove_keys += ('requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries')
+            empty_values = (None, {}, [], set(), tuple())
+            reject = lambda k, v: k not in keep_keys and (
+                k.startswith('_') or k in remove_keys or v in empty_values)
+        else:
             info_dict['epoch'] = int(time.time())
-            return info_dict
-        exceptions = {
-            'remove': ['requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries'],
-            'keep': ['_type'],
-        }
-        keep_key = lambda k: k in exceptions['keep'] or not (k.startswith('_') or k in exceptions['remove'])
+            reject = lambda k, v: k in remove_keys
         filter_fn = lambda obj: (
-            list(map(filter_fn, obj)) if isinstance(obj, (list, tuple))
+            list(map(filter_fn, obj)) if isinstance(obj, (list, tuple, set))
             else obj if not isinstance(obj, dict)
-            else dict((k, filter_fn(v)) for k, v in obj.items() if keep_key(k)))
+            else dict((k, filter_fn(v)) for k, v in obj.items() if not reject(k, v)))
         return filter_fn(info_dict)
 
     def run_pp(self, pp, infodict):
