@@ -853,19 +853,12 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         return []
 
     def convert_thumbnail(self, thumbnail_filename, target_ext):
-        # NB: % is supposed to be escaped with %% but this does not work
-        # for input files so working around with standard substitution
-        escaped_thumbnail_filename = thumbnail_filename.replace('%', '#')
-        os.rename(encodeFilename(thumbnail_filename), encodeFilename(escaped_thumbnail_filename))
-        escaped_thumbnail_conv_filename = replace_extension(escaped_thumbnail_filename, target_ext)
-
-        self.to_screen('Converting thumbnail "%s" to %s' % (escaped_thumbnail_filename, target_ext))
-        self.run_ffmpeg(escaped_thumbnail_filename, escaped_thumbnail_conv_filename, self._options(target_ext))
-
-        # Rename back to unescaped
         thumbnail_conv_filename = replace_extension(thumbnail_filename, target_ext)
-        os.rename(encodeFilename(escaped_thumbnail_filename), encodeFilename(thumbnail_filename))
-        os.rename(encodeFilename(escaped_thumbnail_conv_filename), encodeFilename(thumbnail_conv_filename))
+
+        self.to_screen('Converting thumbnail "%s" to %s' % (thumbnail_filename, target_ext))
+        self.real_run_ffmpeg(
+            [(thumbnail_filename, ['-f', 'image2', '-pattern_type', 'none'])],
+            [(thumbnail_conv_filename.replace('%', '%%'), self._options(target_ext))])
         return thumbnail_conv_filename
 
     def run(self, info):

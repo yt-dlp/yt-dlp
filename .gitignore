@@ -1,3 +1,46 @@
+# Config
+*.conf
+*.spec
+cookies
+cookies.txt
+
+# Downloaded
+*.srt
+*.ttml
+*.sbv
+*.vtt
+*.flv
+*.mp4
+*.m4a
+*.m4v
+*.mp3
+*.3gp
+*.webm
+*.wav
+*.ape
+*.mkv
+*.swf
+*.part
+*.part-*
+*.ytdl
+*.dump
+*.frag
+*.frag.urls
+*.aria2
+*.swp
+*.ogg
+*.opus
+*.info.json
+*.live_chat.json
+*.jpg
+*.png
+*.webp
+*.annotations.xml
+*.description
+
+# Allow config/media files in testdata
+!test/testdata/**
+
 # Python
 *.pyc
 *.pyo
@@ -42,48 +85,6 @@ README.txt
 /yt-dlp
 yt-dlp.zip
 *.exe
-
-# Downloaded
-*.srt
-*.ttml
-*.sbv
-*.vtt
-*.flv
-*.mp4
-*.m4a
-*.m4v
-*.mp3
-*.3gp
-*.webm
-*.wav
-*.ape
-*.mkv
-*.swf
-*.part
-*.part-*
-*.ytdl
-*.dump
-*.frag
-*.frag.urls
-*.aria2
-*.swp
-*.ogg
-*.opus
-*.info.json
-*.live_chat.json
-*.jpg
-*.png
-*.webp
-*.annotations.xml
-*.description
-
-# Config
-*.conf
-*.spec
-cookies
-cookies.txt
-
-
 
 # Text Editor / IDE
 .idea

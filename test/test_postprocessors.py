@@ -8,7 +8,11 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yt_dlp.postprocessor import MetadataFromFieldPP, MetadataFromTitlePP
+from yt_dlp.postprocessor import (
+    FFmpegThumbnailsConvertorPP,
+    MetadataFromFieldPP,
+    MetadataFromTitlePP,
+)
 
 
 class TestMetadataFromField(unittest.TestCase):
@@ -30,3 +34,24 @@ class TestMetadataFromTitle(unittest.TestCase):
     def test_format_to_regex(self):
         pp = MetadataFromTitlePP(None, '%(title)s - %(artist)s')
         self.assertEqual(pp._titleregex, r'(?P<title>.+)\ \-\ (?P<artist>.+)')
+
+
+class TestConvertThumbnail(unittest.TestCase):
+    def test_escaping(self):
+        pp = FFmpegThumbnailsConvertorPP()
+        if not pp.available:
+            print('Skipping: ffmpeg not found')
+            return
+
+        file = 'test/testdata/thumbnails/foo %d bar/foo_%d.{}'
+        tests = (('webp', 'png'), ('png', 'jpg'))
+
+        for inp, out in tests:
+            out_file = file.format(out)
+            if os.path.exists(out_file):
+                os.remove(out_file)
+            pp.convert_thumbnail(file.format(inp), out)
+            assert os.path.exists(out_file)
+
+        for _, out in tests:
+            os.remove(file.format(out))
