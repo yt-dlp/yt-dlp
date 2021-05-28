@@ -108,8 +108,9 @@ class TubeTuGrazIE(InfoExtractor):
                 "count": 1,
                 "sort": "TITLE"
             })
-        series_info = try_get_or(series_info_data, [
-            lambda x: x["catalogs"][0]["http://purl.org/dc/terms/"]]) or {}
+        series_info = try_get(
+            series_info_data,
+            lambda x: x["catalogs"][0]["http://purl.org/dc/terms/"]) or {}
 
         if len(series_info) == 0:
             self.report_warning(
