@@ -15,12 +15,26 @@ def try_get_or(src, getters, expected_type=None):
 class TubeTuGrazIE(InfoExtractor):
     IE_DESC = 'tube.tugraz.at'
     IE_NAME = 'TubeTuGraz'
+
     _VALID_URL = r"""(?x)^
         (?:https?://)?tube\.tugraz\.at/paella/ui/(?:
             (?P<series>browse\.html\?series=)|
             (?P<episode>watch.html\?id=)
         )(?P<id>[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})
     $"""
+    _TEST = {
+        "url": "https://tube.tugraz.at/paella/ui/watch.html?id=f2634392-e40e-4ac7-9ddc-47764aa23d40",
+        "md5": "a23a3d5c9aaca2b84932fdba66e17145",
+        "info_dict": {
+            "id": "f2634392-e40e-4ac7-9ddc-47764aa23d40",
+            "ext": "mp4",
+            "title": "#6 (23.11.2017)",
+            "episode": "#6 (23.11.2017)",
+            "series": "[INB03001UF] Einführung in die strukturierte Programmierung",
+            "creator": "Safran C",
+            "duration": 3295818,
+        }
+    }
 
     _LOGIN_REQUIRED = False
     _NETRC_MACHINE = None
