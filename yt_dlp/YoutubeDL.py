@@ -3232,7 +3232,7 @@ class YoutubeDL(object):
             thumb_ext = determine_ext(t['url'], 'jpg')
             suffix = '%s.' % t['id'] if multiple else ''
             thumb_display_id = '%s ' % t['id'] if multiple else ''
-            t['filepath'] = thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
+            thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
 
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
                 ret.append(suffix + thumb_ext)
@@ -3248,6 +3248,7 @@ class YoutubeDL(object):
                     ret.append(suffix + thumb_ext)
                     self.to_screen('[%s] %s: Writing thumbnail %sto: %s' %
                                    (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
+                    t['filepath'] = thumb_filename
                 except network_exceptions as err:
                     self.report_warning('Unable to download thumbnail "%s": %s' %
                                         (t['url'], error_to_compat_str(err)))
