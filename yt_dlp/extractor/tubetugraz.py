@@ -2,9 +2,15 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, urlencode_postdata
+from ..utils import ExtractorError, urlencode_postdata, try_get
 
 import re
+
+def try_get_or(src, getters, expected_type=None):
+    for getter in getters:
+        v = try_get(src, getter, expected_type)
+        if v is not None:
+            return v
 
 class TubeTuGrazIE(InfoExtractor):
     IE_DESC = 'tube.tugraz.at'
@@ -27,15 +33,14 @@ class TubeTuGrazIE(InfoExtractor):
 
     def _login(self):
         username, password = self._get_login_info()
-
         if username is None:
             return
 
         result = self._download_webpage_handle(
             self._LOGIN_URL, None,
-            note = 'Downloading login page',
-            errnote = 'unable to fetch login page', fatal = False
-        )
+            note='downloading login page',
+            errnote='unable to fetch login page',
+            fatal=False)
         if result is False:
             return
         else:
@@ -43,18 +48,16 @@ class TubeTuGrazIE(InfoExtractor):
 
         result = self._download_webpage_handle(
             login_page_handle.url, None,
-            note = 'Logging in',
-            errnote = 'unable to log in', fatal = False,
-            data = urlencode_postdata({
+            note='logging in',
+            errnote='unable to log in',
+            fatal=False,
+            data=urlencode_postdata({
                 b"lang": "de",
                 b"_eventId_proceed": "",
                 b"j_username": username,
                 b"j_password": password
             }),
-            headers = {
-                "referer": login_page_handle.url
-            }
-        )
+            headers={ "referer": login_page_handle.url })
         if result is False:
             return
         else:
@@ -75,94 +78,95 @@ class TubeTuGrazIE(InfoExtractor):
         elif match.group('episode') is not None:
             return self._extract_episode(id)
         else:
-            raise ExtractorError("No video found on page")
+            raise ExtractorError("no video found on page")
 
-    def _get_series_info(self, id):
-        data = self._download_json(
+    def _extract_series(self, id):
+        series_info_data = self._download_json(
             self._API_SERIES, None,
-            note = 'Downloading series metadata',
-            errnote = 'failed to download series metadata', fatal = False,
-            query = {
+            note='downloading series metadata',
+            errnote='failed to download series metadata',
+            fatal=False,
+            query={
                 "seriesId": id,
                 "count": 1,
                 "sort": "TITLE"
-            }
-        )
-        if data is False:
-            return None
+            })
+        series_info = try_get(series_info_data,
+            lambda x: x["catalogs"][0]["http://purl.org/dc/terms/"]) or {}
 
-        return data["catalogs"][0]["http://purl.org/dc/terms/"]
+        title = try_get(series_info, lambda x: x["title"][0]["value"])
 
-    def _get_series_id(self, info):
-        return info["identifier"][0]["value"]
-
-    def _get_series_title(self, info):
-        return info["title"][0]["value"]
-
-    def _get_series_episode_info(self, id):
-        data = self._download_json(
+        episodes_info_data = self._download_json(
             self._API_EPISODE, None,
-            note = 'Downloading episode list',
-            errnote = 'failed to download episode list', fatal = True,
-            query = {
-                "sid": id,
-                "limit": 128,
-                "offset": 0
-            }
-        )
+            note='downloading episode list',
+            errnote='failed to download episode list',
+            fatal=False,
+            query={ "sid": id })
+        episodes_info = try_get(episodes_info_data,
+            lambda x: x["search-results"]["result"]) or []
 
-        return data["search-results"]["result"]
+        if len(episodes_info == 0):
+            raise ExtractorError("no videos found in series")
 
-    def _get_episode_info(self, id):
-        data = self._download_json(
-            self._API_EPISODE, None,
-            note = 'Downloading episode metadata',
-            errnote = 'failed to download episode metadata', fatal = True,
-            query = {
-                "id": id,
-                "limit": 1,
-                "offset": 0
-            }
-        )
-
-        return data["search-results"]["result"]
-
-    def _get_episode_id(self, info):
-        return info["id"]
-
-    def _get_episode_title(self, info):
-        return info["dcTitle"]
-
-    def _get_episode_download_url(self, info):
-        return info["mediapackage"]["media"]["track"][0]["url"]
-
-    def _get_episode_download_ext(self, info):
-        *_, ext = self._get_episode_download_url(info).rsplit('.', 1)
-        return ext
-
-    def _build_series_info_dict(self, info, episodes):
         return {
             "_type": "playlist",
-            "id": self._get_series_id(info),
-            "title": self._get_series_title(info),
-            "entries": [
-                self._build_episode_info_dict(episode) for episode in episodes
-            ]
+            "id": id,
+            "title": title,
+            "entries": [self._extract_episode_from_info(episode_info)
+                for episode_info in episodes_info]
         }
-
-    def _build_episode_info_dict(self, info):
-        return {
-            "id": self._get_episode_id(info),
-            "title": self._get_episode_title(info),
-            "url": self._get_episode_download_url(info),
-            "ext": self._get_episode_download_ext(info),
-        }
-
-    def _extract_series(self, id):
-        info = self._get_series_info(id)
-        episodes = self._get_series_episode_info(id)
-        return self._build_series_info_dict(info, episodes)
 
     def _extract_episode(self, id):
-        episode = self._get_episode_info(id)
-        return self._build_episode_info_dict(episode)
+        episode_info_data = self._download_json(
+            self._API_EPISODE, None,
+            note='downloading episode metadata',
+            errnote ='failed to download episode metadata',
+            fatal=False,
+            query={ "id": id, "limit": 1 })
+        episode_info = try_get(episode_info_data,
+            lambda x: x["search-results"]["result"]) or {}
+
+        return self._extract_episode_inner(id, episode_info)
+
+    def _extract_episode_from_info(self, episode_info):
+        id = try_get(episode_info, lambda x: x["id"])
+        return self._extract_episode_inner(id, episode_info)
+
+    def _extract_episode_inner(self, id, episode_info):
+        title = try_get_or(episode_info, [
+            lambda x: x["mediapackage"]["title"],
+            lambda x: x["dcTitle"]])
+
+        creator = try_get_or(episode_info, [
+            lambda x: x["mediapackage"]["creators"]["creator"],
+            lambda x: x["dcCreator"]])
+        if isinstance(creator, list):
+            creator = ", ".join(creator)
+
+        duration = parse_duration(try_get_or(episode_info, [
+            lambda x: x["mediapackage"]["duration"],
+            lambda x: x["dcExtent"]]))
+
+        # TODO: extract series id
+        # TODO: extract series title
+
+        format_info_data = try_get(episode_info,
+            lambda x: x["mediapackage"]["media"]["track"]) or []
+        formats = [self._extract_format(format_info)
+            for format_info in format_info_data]
+
+        # TODO: sort formats
+        # TODO: add guessed m3u8 url formats if not already there
+
+        return {
+            "_type": "video",
+            "id": id,
+            "title": title,
+            "creator": creator,
+            "duration": duration,
+            "formats": formats
+        }
+
+    def _extract_format(self, format_info):
+        # TODO: extract format
+        pass
