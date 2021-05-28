@@ -19,7 +19,7 @@ class VootIE(InfoExtractor):
                         (?:
                             movies/[^/]+/|
                             shows/[^/]+/\d+/\d+/[^/]+/
-                        )                        
+                        )
                      )
                     (?P<id>\d{3,})
                     '''
