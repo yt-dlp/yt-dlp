@@ -658,12 +658,10 @@ class YoutubeDL(object):
         """Print message to stdout"""
         if self.params.get('logger'):
             self.params['logger'].debug(message)
-        elif not quiet:
-            message = self._bidi_workaround(message)
-            terminator = ['\n', ''][skip_eol]
-            output = message + terminator
-
-            self._write_string(output, self._screen_file)
+        elif not quiet or self.params.get('verbose'):
+            self._write_string(
+                '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
+                self._err_file if quiet else self._screen_file)
 
     def to_stderr(self, message):
         """Print message to stderr"""
@@ -671,9 +669,7 @@ class YoutubeDL(object):
         if self.params.get('logger'):
             self.params['logger'].error(message)
         else:
-            message = self._bidi_workaround(message)
-            output = message + '\n'
-            self._write_string(output, self._err_file)
+            self._write_string('%s\n' % self._bidi_workaround(message), self._err_file)
 
     def to_console_title(self, message):
         if not self.params.get('consoletitle', False):
