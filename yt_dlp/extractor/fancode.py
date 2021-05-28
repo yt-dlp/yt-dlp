@@ -6,8 +6,7 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     parse_iso8601,
-    random_user_agent,
-    RegexNotFoundError,
+    ExtractorError,
     try_get
 )
 
@@ -19,10 +18,9 @@ class FancodeVodIE(InfoExtractor):
 
     _TEST = {
         'url': 'https://fancode.com/video/15043/match-preview-pbks-vs-mi',
-        'md5': '0cf97d19ce68c9765512f36fbb4447bd',
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
+            'format': 'bestvideo'
         },
         'info_dict': {
             'id': '6249806281001',
@@ -32,23 +30,22 @@ class FancodeVodIE(InfoExtractor):
             "timestamp": 1619081590,
             'view_count': int,
             'like_count': int,
-            "upload_date": "20210422",
-            "uploader_id": "6008340455001",
+            'upload_date': '20210422',
+            'uploader_id': '6008340455001'
         }
-
     }
 
     def _real_extract(self, url):
 
-        GQL_URL = "https://www.fancode.com/graphql"
-        BRIGHTCOVE_URL_TEMPLATE = "https://players.brightcove.net/%s/default_default/index.html?videoId=%s"
+        BRIGHTCOVE_URL_TEMPLATE = 'https://players.brightcove.net/%s/default_default/index.html?videoId=%s'
 
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        brightcove_user_id = self._html_search_regex(r'(?:https?://)?players\.brightcove\.net/(\d+)/default_default/index(?:\.min)?\.js', webpage, "user id")
+        brightcove_user_id = self._html_search_regex(
+            r'(?:https?://)?players\.brightcove\.net/(\d+)/default_default/index(?:\.min)?\.js',
+            webpage, "user id")
 
         headers = {
-            'user-agent': random_user_agent(),
             'content-type': 'application/json',  # has to be set otherwise api errors out
             'origin': 'https://fancode.com',
             'referer': 'https://fancode.com/',
@@ -65,12 +62,15 @@ class FancodeVodIE(InfoExtractor):
             "operationName":"Video"
             }'''
 
-        metadata_json = self._download_json(GQL_URL, video_id, data=str.encode(data % video_id), headers=headers, note="Downloading metadata")
+        metadata_json = self._download_json(
+            'https://www.fancode.com/graphql', video_id, data=(data % video_id).encode(),
+            headers=headers, note="Downloading metadata")
+
         media = try_get(metadata_json, lambda x: x['data']['media'])
         brightcove_video_id = try_get(media, lambda x: x['mediaSource']['brightcove'], compat_str)
 
         if brightcove_video_id is None:
-            raise RegexNotFoundError('Unable to extract brightcove Video ID')
+            raise ExtractorError('Unable to extract brightcove Video ID')
 
         if media.get('isPremium') is True:
             self.report_warning("requires a premium account" % video_id, video_id)
