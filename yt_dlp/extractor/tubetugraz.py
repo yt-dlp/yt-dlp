@@ -251,23 +251,18 @@ class TubeTuGrazIE(InfoExtractor):
                 "vbr": video_bitrate,
                 "framerate": framerate,
                 "resolution": resolution,
-                "preference": preference
             }]
         elif transport == "hls":
             formats = self._extract_m3u8_formats(
                 url, None,
                 note="downloading %s HLS manifest" % type,
                 fatal=False,
-                preference=preference,
                 ext="mp4")
         elif transport == "dash":
             formats = self._extract_mpd_formats(
                 url, None,
                 note="downloading %s DASH manifest" % type,
                 fatal=False)
-
-            for format in formats:
-                format["preference"] = preference
         else:
             # RTMP, HDS, SMOOTH, and unknown formats
             # - RTMP url fails on every tested entry until now
@@ -276,6 +271,7 @@ class TubeTuGrazIE(InfoExtractor):
             formats = []
 
         for format in formats:
+            format["preference"] = preference
             self._gen_format_id(format, type, transport, format_types)
 
         return formats
@@ -303,10 +299,10 @@ class TubeTuGrazIE(InfoExtractor):
                         m3u8_url, None,
                         note="downloading %s HLS manifest" % type,
                         fatal=False,
-                        preference=preference,
                         ext="mp4")
 
                     for format in hls_formats:
+                        format["preference"] = preference
                         self._gen_format_id(format, type, "hls", format_types)
 
                     formats.extend(hls_formats)
