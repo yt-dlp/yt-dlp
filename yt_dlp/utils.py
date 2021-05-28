@@ -3945,6 +3945,56 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
         return unrecognized
 
 
+class LazyList(collections.Sequence):
+    ''' Lazy immutable list from an iterable
+    Note that slices of a LazyList are lists and not LazyList'''
+
+    def __init__(self, iterable):
+        self.__iterable = iter(iterable)
+        self.__cache = []
+
+    def __iter__(self):
+        for item in self.__cache:
+            yield item
+        for item in self.__iterable:
+            self.__cache.append(item)
+            yield item
+
+    def exhaust(self):
+        ''' Evaluate the entire iterable '''
+        self.__cache.extend(self.__iterable)
+
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            step = idx.step or 1
+            start = idx.start if idx.start is not None else 1 if step > 0 else -1
+            stop = idx.stop if idx.stop is not None else -1 if step > 0 else 0
+        elif isinstance(idx, int):
+            start = stop = idx
+        else:
+            raise TypeError('indices must be integers or slices')
+        if start < 0 or stop < 0:
+            # We need to consume the entire iterable to be able to slice from the end
+            # Obviously, never use this with infinite iterables
+            self.exhaust()
+        else:
+            n = max(start, stop) - len(self.__cache) + 1
+            if n > 0:
+                self.__cache.extend(itertools.islice(self.__iterable, n))
+        return self.__cache[idx]
+
+    def __bool__(self):
+        try:
+            self[0]
+        except IndexError:
+            return False
+        return True
+
+    def __len__(self):
+        self.exhaust()
+        return len(self.__cache)
+
+
 class PagedList(object):
     def __len__(self):
         # This is only useful for tests
