@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import ExtractorError, urlencode_postdata, try_get
+from collections import defaultdict
 import re
 
 
@@ -196,7 +197,7 @@ class TubeTuGrazIE(InfoExtractor):
             lambda x: x["mediapackage"]["media"]["track"]) or []
 
         formats = []
-        format_types = set()
+        format_types = defaultdict(lambda: defaultdict(int))
         for format_info in format_infos:
             formats.extend(self._extract_formats(format_info, format_types))
 
@@ -215,62 +216,68 @@ class TubeTuGrazIE(InfoExtractor):
         }
 
     def _extract_formats(self, format_info, format_types):
-        PREFERRED_TYPE = "presentation/delivery"
+        PREFERRED_TYPE = "presentation"
 
         url = try_get(format_info, lambda x: x["url"])
         type = try_get(format_info, lambda x: x["type"])
-        transport = try_get(format_info, lambda x: x["transport"]) or "HTTPS"
+        transport = try_get(format_info, lambda x: x["transport"]) or "https"
         audio_bitrate = try_get(format_info, lambda x: x["audio"]["bitrate"])
         video_bitrate = try_get(format_info, lambda x: x["video"]["bitrate"])
         framerate = try_get(format_info, lambda x: x["video"]["framerate"])
         resolution = try_get(format_info, lambda x: x["video"]["resolution"])
 
-        strtype = str(type).replace("/delivery", "")
+        type = str(type).replace("/delivery", "")
+        transport = str(transport).lower()
+
         if isinstance(audio_bitrate, int):
             audio_bitrate = audio_bitrate / 1000
         if isinstance(video_bitrate, int):
             video_bitrate = video_bitrate / 1000
+        if isinstance(audio_bitrate, int) and isinstance(video_bitrate, int):
+            bitrate = audio_bitrate + video_bitrate
+        else:
+            bitrate = None
 
         if type == PREFERRED_TYPE:
             preference = -1
         else:
             preference = -2
 
-        format_types.add(transport)
-
-        if transport == "HTTPS":
-            return [{
+        if transport == "https":
+            formats = [{
                 "url": url,
+                "tbr": bitrate,
                 "abr": audio_bitrate,
                 "vbr": video_bitrate,
                 "framerate": framerate,
                 "resolution": resolution,
                 "preference": preference
             }]
-        elif transport == "HLS":
-            return self._extract_m3u8_formats(
+        elif transport == "hls":
+            formats = self._extract_m3u8_formats(
                 url, None,
-                note="downloading %s HLS manifest" % strtype,
+                note="downloading %s HLS manifest" % type,
                 fatal=False,
                 preference=preference,
                 ext="mp4")
-        elif transport == "DASH":
-            dash_formats = self._extract_mpd_formats(
+        elif transport == "dash":
+            formats = self._extract_mpd_formats(
                 url, None,
-                note="downloading %s DASH manifest" % strtype,
+                note="downloading %s DASH manifest" % type,
                 fatal=False)
 
-            # manually add preference since _extract_mpd_formats
-            # lacks a preference keyword arg
-            for format in dash_formats:
+            for format in formats:
                 format["preference"] = preference
-
-            return dash_formats
         else:
             # RTMP, HDS, SMOOTH, and unknown formats
             # - RTMP url doesn't work
             # - other formats are TODO
-            return []
+            formats = []
+
+        for format in formats:
+            self._gen_format_id(format, type, transport, format_types)
+
+        return formats
 
     def _guess_formats(self, formats, format_types, id):
         PREFERRED_TYPE = "presentation"
@@ -284,20 +291,25 @@ class TubeTuGrazIE(InfoExtractor):
             else:
                 preference = -2
 
-            if "HLS" not in format_types:
+            if "hls" not in format_types[type]:
                 hls_page = self._download_webpage_handle(
                     m3u8_url, None,
                     note="guessing location of %s HLS manifest" % type,
                     errnote=False,
                     fatal=False)
                 if hls_page is not False:
-                    formats.extend(self._extract_m3u8_formats(
+                    hls_formats = self._extract_m3u8_formats(
                         m3u8_url, None,
                         note="downloading %s HLS manifest" % type,
                         fatal=False,
                         preference=preference,
-                        ext="mp4"))
-            if "DASH" not in format_types:
+                        ext="mp4")
+
+                    for format in hls_formats:
+                        self._gen_format_id(format, type, "hls", format_types)
+
+                    formats.extend(hls_formats)
+            if "dash" not in format_types[type]:
                 dash_page = self._download_webpage_handle(
                     mpd_url, None,
                     note="guessing location of %s DASH manifest" % type,
@@ -309,9 +321,31 @@ class TubeTuGrazIE(InfoExtractor):
                         note="guessing location of %s DASH manifest" % type,
                         fatal=False)
 
-                    # manually add preference since _extract_mpd_formats
-                    # lacks a preference keyword arg
                     for format in dash_formats:
                         format["preference"] = preference
+                        self._gen_format_id(format, type, "dash", format_types)
 
                     formats.extend(dash_formats)
+
+    def _gen_format_id(self, format, type, transport, format_types):
+        format_types[type][transport] += 1
+        index = format_types[type][transport]
+
+        vbr = format.get("vbr")
+        abr = format.get("abr")
+        tbr = format.get("tbr") or ((vbr or 0) + (abr or 0))
+        vcodec = format.get("vcodec")
+        acodec = format.get("acodec")
+        if acodec == "none" or (vbr and not abr):
+            pre_index = "vbr"
+            index = int(tbr)
+        elif vcodec == "none" or (abr and not vbr):
+            pre_index = "abr"
+            index = int(tbr)
+        elif tbr:
+            pre_index = "br"
+            index = int(tbr)
+        else:
+            pre_index = ""
+
+        format["format_id"] = "%s-%s-%s%d" % (type, transport, pre_index, index)
