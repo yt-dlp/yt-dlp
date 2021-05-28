@@ -220,9 +220,6 @@ class TubeTuGrazIE(InfoExtractor):
                 "framerate": framerate,
                 "resolution": resolution
             }]
-        elif transport == "RTMP":
-            # hack: RTMP does not seem to work
-            return []
         elif transport == "HLS":
             return self._extract_m3u8_formats(
                 url, None,
@@ -243,6 +240,9 @@ class TubeTuGrazIE(InfoExtractor):
 
             return dash_formats
         else:
+            # RTMP, HDS, SMOOTH, and unknown formats
+            # - RTMP url doesn't work
+            # - other formats are TODO
             return []
 
     def _guess_formats(self, formats, format_types, id):
