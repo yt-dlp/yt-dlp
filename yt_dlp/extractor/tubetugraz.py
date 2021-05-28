@@ -1,7 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 from .common import InfoExtractor
-from ..utils import ExtractorError, urlencode_postdata, try_get, parse_duration
+from ..utils import ExtractorError, urlencode_postdata, try_get
 import re
 
 
@@ -156,9 +156,9 @@ class TubeTuGrazIE(InfoExtractor):
         if isinstance(creator, list):
             creator = ", ".join(creator)
 
-        duration = parse_duration(try_get_or(episode_info, [
+        duration = try_get_or(episode_info, [
             lambda x: x["mediapackage"]["duration"],
-            lambda x: x["dcExtent"]]))
+            lambda x: x["dcExtent"]])
 
         series_id = try_get_or(episode_info, [
             lambda x: x["mediapackage"]["series"],
