@@ -147,8 +147,12 @@ class TubeTuGrazIE(InfoExtractor):
             lambda x: x["mediapackage"]["duration"],
             lambda x: x["dcExtent"]]))
 
-        # TODO: extract series id
-        # TODO: extract series title
+        series_id = try_get_or(episode_info, [
+            lambda x: x["mediapackage"]["series"],
+            lambda x: x["dcIsPartOf"]])
+
+        series_title = try_get(episode_info,
+            lambda x: x["mediapackage"]["seriestitle"])
 
         format_info_data = try_get(episode_info,
             lambda x: x["mediapackage"]["media"]["track"]) or []
@@ -164,6 +168,7 @@ class TubeTuGrazIE(InfoExtractor):
             "title": title,
             "creator": creator,
             "duration": duration,
+            "series": series_title,
             "formats": formats
         }
 
