@@ -136,7 +136,7 @@ class TubeTuGrazIE(InfoExtractor):
     def _extract_episode_inner(self, id, episode_info):
         title = try_get_or(episode_info, [
             lambda x: x["mediapackage"]["title"],
-            lambda x: x["dcTitle"]])
+            lambda x: x["dcTitle"]]) or id
 
         creator = try_get_or(episode_info, [
             lambda x: x["mediapackage"]["creators"]["creator"],
@@ -153,7 +153,7 @@ class TubeTuGrazIE(InfoExtractor):
             lambda x: x["dcIsPartOf"]])
 
         series_title = try_get(episode_info,
-            lambda x: x["mediapackage"]["seriestitle"])
+            lambda x: x["mediapackage"]["seriestitle"]) or series_id
 
         format_info_data = try_get(episode_info,
             lambda x: x["mediapackage"]["media"]["track"]) or []
