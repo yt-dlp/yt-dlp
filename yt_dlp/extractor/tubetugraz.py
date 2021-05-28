@@ -64,7 +64,7 @@ class TubeTuGrazIE(InfoExtractor):
             _, result_page_handle = result
 
         if result_page_handle.url != self._LOGIN_SUCCESS_URL:
-            self._downloader.report_warning("unable to login: incorrect password")
+            self.report_warning("unable to login: incorrect password")
             return
 
     def _real_initialize(self):
@@ -95,6 +95,10 @@ class TubeTuGrazIE(InfoExtractor):
         series_info = try_get(series_info_data,
             lambda x: x["catalogs"][0]["http://purl.org/dc/terms/"]) or {}
 
+        if len(series_info) == 0:
+            self.report_warning("failed to download series metadata: "
+                + "authentication required or series does not exist", id)
+
         title = try_get(series_info, lambda x: x["title"][0]["value"])
 
         episodes_info_data = self._download_json(
@@ -105,9 +109,6 @@ class TubeTuGrazIE(InfoExtractor):
             query={ "sid": id })
         episodes_info = try_get(episodes_info_data,
             lambda x: x["search-results"]["result"]) or []
-
-        if len(episodes_info == 0):
-            raise ExtractorError("no videos found in series")
 
         return {
             "_type": "playlist",
@@ -126,6 +127,10 @@ class TubeTuGrazIE(InfoExtractor):
             query={ "id": id, "limit": 1 })
         episode_info = try_get(episode_info_data,
             lambda x: x["search-results"]["result"]) or {}
+
+        if len(episode_info) == 0:
+            self.report_warning("failed to download episode metadata: "
+                + "authentication required or video does not exist", id)
 
         return self._extract_episode_inner(id, episode_info)
 
