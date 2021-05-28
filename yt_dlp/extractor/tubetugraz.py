@@ -160,15 +160,15 @@ class TubeTuGrazIE(InfoExtractor):
         series_title = try_get(episode_info,
             lambda x: x["mediapackage"]["seriestitle"]) or series_id
 
-        format_info_data = try_get(episode_info,
+        format_infos = try_get(episode_info,
             lambda x: x["mediapackage"]["media"]["track"]) or []
-        formats = [self._extract_format(format_info)
-            for format_info in format_info_data]
 
-        # remove skipped formats
-        formats = [format for format in formats if format is not None]
+        formats = []
+        format_types = set()
+        for format_info in format_infos:
+            formats.extend(self._extract_formats(format_info, format_types))
 
-        self._add_guessed_formats(formats, id)
+        self._guess_formats(formats, format_types, id)
 
         return {
             "_type": "video",
@@ -180,7 +180,7 @@ class TubeTuGrazIE(InfoExtractor):
             "formats": formats
         }
 
-    def _extract_format(self, format_info):
+    def _extract_formats(self, format_info, format_types):
         PREFERRED_TYPE = "presentation/delivery"
 
         url = try_get(format_info, lambda x: x["url"])
@@ -191,41 +191,53 @@ class TubeTuGrazIE(InfoExtractor):
         framerate = try_get(format_info, lambda x: x["video"]["framerate"])
         resolution = try_get(format_info, lambda x: x["video"]["resolution"])
 
+        strtype = str(type).replace("/delivery", "")
+        if isinstance(audio_bitrate, int):
+            audio_bitrate = audio_bitrate / 1000
+        if isinstance(video_bitrate, int):
+            video_bitrate = video_bitrate / 1000
+
         if type == PREFERRED_TYPE:
             preference = -1
         else:
             preference = -2
 
-        if type == "HTTPS":
-            protocol = "https"
-        elif type == "RTMP":
-            protocol = "rtmp"
-        elif type == "HLS":
-            protocol = "m3u8"
-        elif type == "DASH":
-            protocol = "http_dash_segments"
-        else:
-            # let youtube-dl figure it out
-            protocol = None
+        format_types.add(transport)
 
-        if type == "RTMP":
+        if transport == "HTTPS":
+            return [{
+                "url": url,
+                "abr": audio_bitrate,
+                "vbr": video_bitrate,
+                "framerate": framerate,
+                "resolution": resolution
+            }]
+        elif transport == "RTMP":
             # hack: RTMP does not seem to work
-            return None
+            return []
+        elif transport == "HLS":
+            return self._extract_m3u8_formats(
+                url, None,
+                note="downloading %s HLS manifest" % strtype,
+                fatal=False,
+                preference=preference)
+        elif transport == "DASH":
+            dash_formats = self._extract_mpd_formats(
+                url, None,
+                note="downloading %s DASH manifest" % strtype,
+                fatal=False)
 
-        return {
-            "url": url,
-            "abr": audio_bitrate,
-            "vbr": video_bitrate,
-            "framerate": framerate,
-            "resolution": resolution,
-            "protocol": protocol
-        }
+            # manually add preference since _extract_mpd_formats
+            # lacks a preference keyword arg
+            for format in dash_formats:
+                format["preference"] = preference
 
-    def _add_guessed_formats(self, formats, id):
+            return dash_formats
+        else:
+            return []
+
+    def _guess_formats(self, formats, format_types, id):
         PREFERRED_TYPE = "presentation"
-
-        guess_hls = not any([format["protocol"] == "m3u8" for format in formats])
-        guess_dash = not any([format["protocol"] == "http_dash_segments"for format in formats])
 
         for type in ("presentation", "presenter"):
             m3u8_url = "https://wowza.tugraz.at/matterhorn_engage/smil:engage-player_%s_%s.smil/playlist.m3u8" % (id, type)
@@ -236,13 +248,13 @@ class TubeTuGrazIE(InfoExtractor):
             else:
                 preference = -2
 
-            if guess_hls:
+            if not "HLS" in format_types:
                 formats.extend(self._extract_m3u8_formats(
                     m3u8_url, None,
                     note="guessing location of %s HLS manifest" % type,
                     fatal=False,
                     preference=preference))
-            if guess_dash:
+            if not "DASH" in format_types:
                 dash_formats = self._extract_mpd_formats(
                     mpd_url, None,
                     note="guessing location of %s DASH manifest" % type,
