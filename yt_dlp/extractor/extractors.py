@@ -1595,7 +1595,7 @@ from .wdr import (
     WDRElefantIE,
     WDRMobileIE,
 )
-from .webarchive import WebArchiveIE
+from .webarchive import YoutubeWebArchiveIE
 from .webcaster import (
     WebcasterIE,
     WebcasterFeedIE,
