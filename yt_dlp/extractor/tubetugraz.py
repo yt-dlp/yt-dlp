@@ -167,6 +167,11 @@ class TubeTuGrazIE(InfoExtractor):
         series_title = try_get(episode_info,
             lambda x: x["mediapackage"]["seriestitle"]) or series_id
 
+        if series_title is not None:
+            episode_title = title
+        else:
+            episode_title = None
+
         format_infos = try_get(episode_info,
             lambda x: x["mediapackage"]["media"]["track"]) or []
 
@@ -185,6 +190,7 @@ class TubeTuGrazIE(InfoExtractor):
             "creator": creator,
             "duration": duration,
             "series": series_title,
+            "episode": episode_title,
             "formats": formats
         }
 
