@@ -108,14 +108,17 @@ class TubeTuGrazIE(InfoExtractor):
                 "count": 1,
                 "sort": "TITLE"
             })
-        series_info = try_get(series_info_data,
-            lambda x: x["catalogs"][0]["http://purl.org/dc/terms/"]) or {}
+        series_info = try_get_or(series_info_data, [
+            lambda x: x["catalogs"][0]["http://purl.org/dc/terms/"]]) or {}
 
         if len(series_info) == 0:
-            self.report_warning("failed to download series metadata: "
+            self.report_warning(
+                "failed to download series metadata: "
                 + "authentication required or series does not exist", id)
 
-        title = try_get(series_info, lambda x: x["title"][0]["value"])
+        title = try_get(
+            series_info,
+            lambda x: x["title"][0]["value"])
 
         episodes_info_data = self._download_json(
             self._API_EPISODE, None,
@@ -125,7 +128,8 @@ class TubeTuGrazIE(InfoExtractor):
             query={
                 "sid": id
             })
-        episodes_info = try_get(episodes_info_data,
+        episodes_info = try_get(
+            episodes_info_data,
             lambda x: x["search-results"]["result"]) or []
 
         return {
@@ -133,7 +137,7 @@ class TubeTuGrazIE(InfoExtractor):
             "id": id,
             "title": title,
             "entries": [self._extract_episode_from_info(episode_info)
-                for episode_info in episodes_info]
+                        for episode_info in episodes_info]
         }
 
     def _extract_episode(self, id):
@@ -146,11 +150,13 @@ class TubeTuGrazIE(InfoExtractor):
                 "id": id,
                 "limit": 1
             })
-        episode_info = try_get(episode_info_data,
+        episode_info = try_get(
+            episode_info_data,
             lambda x: x["search-results"]["result"]) or {}
 
         if len(episode_info) == 0:
-            self.report_warning("failed to download episode metadata: "
+            self.report_warning(
+                "failed to download series metadata: "
                 + "authentication required or video does not exist", id)
 
         return self._extract_episode_inner(id, episode_info)
@@ -178,15 +184,14 @@ class TubeTuGrazIE(InfoExtractor):
             lambda x: x["mediapackage"]["series"],
             lambda x: x["dcIsPartOf"]])
 
-        series_title = try_get(episode_info,
+        series_title = try_get(
+            episode_info,
             lambda x: x["mediapackage"]["seriestitle"]) or series_id
 
-        if series_title is not None:
-            episode_title = title
-        else:
-            episode_title = None
+        episode_title = title if series_title is not None else None
 
-        format_infos = try_get(episode_info,
+        format_infos = try_get(
+            episode_info,
             lambda x: x["mediapackage"]["media"]["track"]) or []
 
         formats = []
