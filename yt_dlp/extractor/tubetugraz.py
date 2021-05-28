@@ -64,6 +64,7 @@ class TubeTuGrazIE(InfoExtractor):
             _, result_page_handle = result
 
         if result_page_handle.url != self._LOGIN_SUCCESS_URL:
+            self._downloader.report_warning("unable to login: incorrect password")
             return
 
     def _real_initialize(self):
