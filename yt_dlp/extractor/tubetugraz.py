@@ -220,7 +220,8 @@ class TubeTuGrazIE(InfoExtractor):
                 url, None,
                 note="downloading %s HLS manifest" % strtype,
                 fatal=False,
-                preference=preference)
+                preference=preference,
+                ext="mp4")
         elif transport == "DASH":
             dash_formats = self._extract_mpd_formats(
                 url, None,
@@ -253,7 +254,8 @@ class TubeTuGrazIE(InfoExtractor):
                     m3u8_url, None,
                     note="guessing location of %s HLS manifest" % type,
                     fatal=False,
-                    preference=preference))
+                    preference=preference,
+                    ext="mp4"))
             if not "DASH" in format_types:
                 dash_formats = self._extract_mpd_formats(
                     mpd_url, None,
