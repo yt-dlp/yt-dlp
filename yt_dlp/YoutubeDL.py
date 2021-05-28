@@ -70,6 +70,7 @@ from .utils import (
     int_or_none,
     iri_to_uri,
     ISO3166Utils,
+    LazyList,
     locked_file,
     make_dir,
     make_HTTPS_handler,
@@ -1309,7 +1310,7 @@ class YoutubeDL(object):
 
         playlist_results = []
 
-        playliststart = self.params.get('playliststart', 1) - 1
+        playliststart = self.params.get('playliststart', 1)
         playlistend = self.params.get('playlistend')
         # For backwards compatibility, interpret -1 as whole list
         if playlistend == -1:
@@ -1329,50 +1330,38 @@ class YoutubeDL(object):
             playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
 
         ie_entries = ie_result['entries']
+        msg = (
+            'Downloading %d videos' if not isinstance(ie_entries, list)
+            else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
+        if not isinstance(ie_entries, (list, PagedList)):
+            ie_entries = LazyList(ie_entries)
 
-        def make_playlistitems_entries(list_ie_entries):
-            num_entries = len(list_ie_entries)
-            for i in playlistitems:
-                if -num_entries < i <= num_entries:
-                    yield list_ie_entries[i - 1]
-                elif incomplete_entries:
+        entries = []
+        for i in playlistitems or itertools.count(playliststart):
+            if playlistitems is None and playlistend is not None and playlistend < i:
+                break
+            entry = None
+            try:
+                entry = ie_entries[i - 1]
+                if entry is None:
                     raise EntryNotInPlaylist()
-
-        if isinstance(ie_entries, list):
-            n_all_entries = len(ie_entries)
-            if playlistitems:
-                entries = list(make_playlistitems_entries(ie_entries))
-            else:
-                entries = ie_entries[playliststart:playlistend]
-            n_entries = len(entries)
-            msg = 'Collected %d videos; downloading %d of them' % (n_all_entries, n_entries)
-        elif isinstance(ie_entries, PagedList):
-            if playlistitems:
-                entries = []
-                for item in playlistitems:
-                    entries.extend(ie_entries.getslice(
-                        item - 1, item
-                    ))
-            else:
-                entries = ie_entries.getslice(
-                    playliststart, playlistend)
-            n_entries = len(entries)
-            msg = 'Downloading %d videos' % n_entries
-        else:  # iterable
-            if playlistitems:
-                entries = list(make_playlistitems_entries(list(itertools.islice(
-                    ie_entries, 0, max(playlistitems)))))
-            else:
-                entries = list(itertools.islice(
-                    ie_entries, playliststart, playlistend))
-            n_entries = len(entries)
-            msg = 'Downloading %d videos' % n_entries
-
-        if any((entry is None for entry in entries)):
-            raise EntryNotInPlaylist()
-        if not playlistitems and (playliststart or playlistend):
-            playlistitems = list(range(1 + playliststart, 1 + playliststart + len(entries)))
+            except (IndexError, EntryNotInPlaylist):
+                if incomplete_entries:
+                    raise EntryNotInPlaylist()
+                elif not playlistitems:
+                    break
+            entries.append(entry)
         ie_result['entries'] = entries
+
+        # Save playlist_index before re-ordering
+        entries = [
+            ((playlistitems[i - 1] if playlistitems else i), entry)
+            for i, entry in enumerate(entries, 1)
+            if entry is not None]
+        n_entries = len(entries)
+
+        if not playlistitems and (playliststart or playlistend):
+            playlistitems = list(range(playliststart, playliststart + n_entries))
         ie_result['requested_entries'] = playlistitems
 
         if self.params.get('allow_playlist_files', True):
@@ -1419,11 +1408,6 @@ class YoutubeDL(object):
                         self.report_error('Cannot write playlist description file ' + descfn)
                         return
 
-        # Save playlist_index before re-ordering
-        entries = [
-            ((playlistitems[i - 1] if playlistitems else i), entry)
-            for i, entry in enumerate(entries, 1)]
-
         if self.params.get('playlistreverse', False):
             entries = entries[::-1]
         if self.params.get('playlistrandom', False):
@@ -1431,7 +1415,7 @@ class YoutubeDL(object):
 
         x_forwarded_for = ie_result.get('__x_forwarded_for_ip')
 
-        self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg))
+        self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg % n_entries))
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
