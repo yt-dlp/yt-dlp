@@ -238,7 +238,8 @@ class TubeTuGrazIE(InfoExtractor):
                 "abr": audio_bitrate,
                 "vbr": video_bitrate,
                 "framerate": framerate,
-                "resolution": resolution
+                "resolution": resolution,
+                "preference": preference
             }]
         elif transport == "HLS":
             return self._extract_m3u8_formats(
