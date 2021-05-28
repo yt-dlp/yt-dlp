@@ -6,9 +6,9 @@ from ..utils import ExtractorError, urlencode_postdata
 
 import re
 
-class TugrazTubeIE(InfoExtractor):
+class TubeTuGrazIE(InfoExtractor):
     IE_DESC = 'tube.tugraz.at'
-    IE_NAME = 'tube.tugraz.at'
+    IE_NAME = 'TubeTuGraz'
     _VALID_URL = r"""(?x)^
         (?:https?://)?tube\.tugraz\.at/paella/ui/(?:
             (?P<series>browse\.html\?series=)|

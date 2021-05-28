@@ -1624,6 +1624,7 @@ from .tubitv import (
     TubiTvShowIE,
 )
 from .tumblr import TumblrIE
+from .tubetugraz import TubeTuGrazIE
 from .tunein import (
     TuneInClipIE,
     TuneInStationIE,
@@ -2025,4 +2026,3 @@ from .zingmp3 import (
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
-from .tugraz_tube import TugrazTubeIE
