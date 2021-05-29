@@ -60,7 +60,7 @@ class VidioIE(InfoExtractor):
             })
         video = data['videos'][0]
         title = video['title'].strip()
-        is_premium = video['is_premium']
+        is_premium = video.get('is_premium')
         if is_premium:
             self.to_screen('Premier-exclusive video detected, switching to premier mode')
             sources = self._download_json(
