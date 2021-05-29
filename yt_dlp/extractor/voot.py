@@ -33,7 +33,6 @@ class VootIE(InfoExtractor):
             'description': 'md5:06291fbbbc4dcbe21235c40c262507c1',
             'timestamp': 1472162937,
             'upload_date': '20160825',
-            'duration': None,
             'series': 'Ishq Ka Rang Safed',
             'season_number': 1,
             'episode': 'Is this the end of Kamini?',
