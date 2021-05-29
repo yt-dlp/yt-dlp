@@ -62,7 +62,7 @@ class VidioIE(InfoExtractor):
         title = video['title'].strip()
         is_premium = video.get('is_premium')
         if is_premium:
-            sources = sources = self._download_json(
+            sources = self._download_json(
                 'https://www.vidio.com/interactions_stream.json?video_id=%s&type=videos' % video_id,
                 display_id, note='Downloading premier API JSON')
             if not (sources.get('source') or sources.get('source_dash')):
