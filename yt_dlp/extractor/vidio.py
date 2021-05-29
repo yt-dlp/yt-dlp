@@ -41,6 +41,10 @@ class VidioIE(InfoExtractor):
     }, {
         'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
         'only_matching': True,
+    }, {
+        # Premier-exclusive video
+        'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
+        'only_matching': True
     }]
 
     def _real_initialize(self):
@@ -56,9 +60,30 @@ class VidioIE(InfoExtractor):
             })
         video = data['videos'][0]
         title = video['title'].strip()
+        is_premium = video.get('is_premium')
+        if is_premium:
+            sources = self._download_json(
+                'https://www.vidio.com/interactions_stream.json?video_id=%s&type=videos' % video_id,
+                display_id, note='Downloading premier API JSON')
+            if not (sources.get('source') or sources.get('source_dash')):
+                self.raise_login_required(method='cookies')
 
-        formats = self._extract_m3u8_formats(
-            data['clips'][0]['hls_url'], display_id, 'mp4', 'm3u8_native')
+            formats, subs = [], {}
+            if sources.get('source'):
+                hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
+                    sources['source'], display_id, 'mp4', 'm3u8_native')
+                formats.extend(hls_formats)
+                subs.update(hls_subs)
+            if sources.get('source_dash'):  # TODO: Find video example with source_dash
+                dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
+                    sources['source_dash'], display_id, 'dash')
+                formats.extend(dash_formats)
+                subs.update(dash_subs)
+        else:
+            hls_url = data['clips'][0]['hls_url']
+            formats, subs = self._extract_m3u8_formats_and_subtitles(
+                hls_url, display_id, 'mp4', 'm3u8_native')
+
         self._sort_formats(formats)
 
         get_first = lambda x: try_get(data, lambda y: y[x + 's'][0], dict) or {}
@@ -76,6 +101,7 @@ class VidioIE(InfoExtractor):
             'duration': int_or_none(video.get('duration')),
             'like_count': get_count('likes'),
             'formats': formats,
+            'subtitles': subs,
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(video.get('created_at')),
             'uploader_id': username,
