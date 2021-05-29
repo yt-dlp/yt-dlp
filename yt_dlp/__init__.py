@@ -12,7 +12,6 @@ import os
 import random
 import re
 import sys
-from typing import List, Set
 
 from .options import (
     parseOpts,
@@ -474,7 +473,7 @@ def _real_main(argv=None):
         except re.error as e:
             parser.error(f'invalid --remove-chapters regex {opts.remove_chapters!r}: {e}')
 
-    def categories_from_list(cats: List[str]) -> Set[str]:
+    def categories_from_list(cats):
         if cats == ['']:
             return set()
         cats = set(c.strip() for c in cats)

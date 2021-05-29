@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 import os
 import sys
 import unittest
-from typing import Optional, Sequence, List, MutableSequence
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -19,7 +18,6 @@ from yt_dlp.postprocessor import (
     MetadataParserPP,
     ModifyChaptersPP
 )
-from yt_dlp.postprocessor.modify_chapters import Chapter
 
 
 class TestMetadataFromField(unittest.TestCase):
@@ -79,14 +77,14 @@ class TestModifyChaptersPP(unittest.TestCase):
         self._pp = ModifyChaptersPP(None)
 
     @staticmethod
-    def _sponsor_chapter(start: float, end: float, cat: str, remove=False) -> Chapter:
+    def _sponsor_chapter(start, end, cat, remove=False):
         c = {'start_time': start, 'end_time': end, 'categories': [(cat, start, end)]}
         if remove:
             c['remove'] = True
         return c
 
     @staticmethod
-    def _chapter(start: float, end: float, title: Optional[str] = None, remove=False) -> Chapter:
+    def _chapter(start, end, title=None, remove=False):
         c = {'start_time': start, 'end_time': end}
         if title is not None:
             c['title'] = title
@@ -94,18 +92,18 @@ class TestModifyChaptersPP(unittest.TestCase):
             c['remove'] = True
         return c
 
-    def _chapters(self, ends: Sequence[float], titles: Sequence[str]) -> List[Chapter]:
+    def _chapters(self, ends, titles):
         self.assertEqual(len(ends), len(titles))
         start = 0
-        chapters: List[Chapter] = []
+        chapters = []
         for e, t in zip(ends, titles):
             chapters.append(self._chapter(start, e, t))
             start = e
         return chapters
 
     def _remove_marked_arrange_sponsors_test_impl(
-            self, chapters: MutableSequence[Chapter], expected_chapters: Sequence[Chapter],
-            expected_removed: Sequence[Chapter], expected_has_sponsors: bool):
+            self, chapters, expected_chapters,
+            expected_removed, expected_has_sponsors):
         actual_chapters, actual_removed, actual_has_sponsors = (
             self._pp._remove_marked_arrange_sponsors(chapters))
         # Title and categories are meaningless if a cut is a merge of

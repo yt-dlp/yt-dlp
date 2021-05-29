@@ -5,14 +5,8 @@ import os
 import re
 from collections import OrderedDict
 from hashlib import sha256
-from typing import (AbstractSet, Any, Dict, Iterable, List, MutableMapping, MutableSequence,
-                    Optional, Pattern, Sequence, TYPE_CHECKING, Tuple)
 
-if TYPE_CHECKING:
-    from .. import YoutubeDL
-
-from . import FFmpegPostProcessor
-from .ffmpeg import FFmpegPostProcessorError
+from .ffmpeg import FFmpegPostProcessor, FFmpegPostProcessorError
 from ..compat import compat_urllib_parse_urlencode, compat_HTTPError
 from ..utils import (
     float_or_none,
@@ -38,17 +32,13 @@ SPONSORBLOCK_CATEGORY_TO_CHAPTER = {
 # See https://ffmpeg.org/general.html#Subtitle-Formats.
 SUPPORTED_SUBS = 'srt', 'ass', 'vtt'
 
-InfoDict = MutableMapping[str, Any]
-Chapter = MutableMapping[str, Any]
-SponsorBlockSegment = MutableMapping[str, Any]
-
 
 class ModifyChaptersPP(FFmpegPostProcessor):
     def __init__(
-            self, downloader: 'YoutubeDL', remove_chapters_pattern: Optional[Pattern[str]] = None,
+            self, downloader, remove_chapters_pattern=None,
             force_keyframes=False, use_sponsorblock=False,
-            sponsorblock_query: AbstractSet[str] = frozenset(SPONSORBLOCK_CATEGORIES),
-            sponsorblock_cut: AbstractSet[str] = frozenset(SPONSORBLOCK_CATEGORIES),
+            sponsorblock_query=frozenset(SPONSORBLOCK_CATEGORIES),
+            sponsorblock_cut=frozenset(SPONSORBLOCK_CATEGORIES),
             sponsorblock_force=False, sponsorblock_hide_video_id=True,
             sponsorblock_api='https://sponsor.ajay.app'):
         FFmpegPostProcessor.__init__(self, downloader)
@@ -63,8 +53,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         self._sponsorblock_api = (sponsorblock_api if re.match('^https?://', sponsorblock_api)
                                   else 'https://' + sponsorblock_api)
 
-    def run(self, info: InfoDict) -> Tuple[List[str], InfoDict]:
-        video_file: str = info['filepath']
+    def run(self, info):
+        video_file = info['filepath']
         # When cut is requested, simple info['chapters'] update is insufficient.
         if not os.path.exists(video_file) and (
                 self._remove_chapters_pattern or self._sponsorblock_cut):
@@ -72,7 +62,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
         # Chapter will be flagged for removal, which can fail. Deep copy to make sure
         # original chapters are not flagged.
-        chapters: Optional[MutableSequence[Chapter]] = copy.deepcopy(info.get('chapters', None))
+        chapters = copy.deepcopy(info.get('chapters', None))
         if not chapters and not self._use_sponsorblock:
             return [], info
 
@@ -100,9 +90,9 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             return [], info
 
         real_download, cut_warn = info.get('__real_download', False), False
-        files_to_remove: List[str] = []
+        files_to_remove = []
 
-        def move_to_uncut(file: str) -> str:
+        def move_to_uncut(file):
             nonlocal cut_warn
             uncut_file = prepend_extension(file, 'uncut')
             if real_download or not os.path.exists(uncut_file):
@@ -121,7 +111,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             # The file might have been removed by --embed-subs.
             if not sub_file or not os.path.exists(sub_file):
                 continue
-            ext: str = sub['ext']
+            ext = sub['ext']
             if ext not in SUPPORTED_SUBS:
                 self.report_warning('Cannot remove chapters from external subtitles '
                                     f'of type ".{ext}". They are now out of sync.')
@@ -137,7 +127,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             os.rename(uncut, original)
         return [], info
 
-    def _get_video_duration(self, video_file: str) -> float:
+    def _get_video_duration(self, video_file):
         # In contrast to info['duration'], ffprobe reports real duration,
         # thus providing protection against cutting the same pieces twice
         # (see duration_match in _get_sponsor_chapters below).
@@ -147,7 +137,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             raise PostProcessingError('Cannot determine the video duration')
         return duration
 
-    def _get_sponsor_chapters(self, info: InfoDict, duration: float) -> List[Chapter]:
+    def _get_sponsor_chapters(self, info, duration):
         if not self._use_sponsorblock:
             return []
         if info['extractor_key'].lower() != 'youtube':
@@ -164,8 +154,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         segments = (self._get_sponsor_segments_hiding_id if self._sponsorblock_hide_video_id
                     else self._get_sponsor_segments_revealing_id)(info['id'])
 
-        def duration_filter(s: SponsorBlockSegment):
-            start_end: MutableSequence[float] = s['segment']
+        def duration_filter(s):
+            start_end = s['segment']
             # Ignore milliseconds difference at the start.
             if start_end[0] <= 1:
                 start_end[0] = 0
@@ -183,7 +173,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                         else '. Looks like SponsorBlock has already run')
             self.report_warning(warning)
 
-        def to_chapter(s: SponsorBlockSegment) -> Chapter:
+        def to_chapter(s):
             (start, end), cat = s['segment'], s['category']
             c = {'start_time': start, 'end_time': end, 'categories': [(cat, start, end)]}
             if cat in self._sponsorblock_cut:
@@ -195,7 +185,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             self.to_screen('No skippable segments were found by SponsorBlock')
         return sponsor_chapters
 
-    def _get_sponsor_segments_revealing_id(self, video_id: str) -> Sequence[SponsorBlockSegment]:
+    def _get_sponsor_segments_revealing_id(self, video_id):
         url = f'{self._sponsorblock_api}/api/skipSegments?' + compat_urllib_parse_urlencode({
             'videoID': video_id,
             'categories': json.dumps(tuple(self._sponsorblock_query)),
@@ -203,7 +193,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         })
         return self._get_json(url)
 
-    def _get_sponsor_segments_hiding_id(self, video_id: str) -> Sequence[SponsorBlockSegment]:
+    def _get_sponsor_segments_hiding_id(self, video_id):
         hash = sha256(video_id.encode('ascii')).hexdigest()
         # SponsorBlock API recommends using first 4 hash characters.
         url = f'{self._sponsorblock_api}/api/skipSegments/{hash[:4]}?' + (
@@ -216,7 +206,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 return d['segments']
         return []
 
-    def _get_json(self, url: str) -> Any:
+    def _get_json(self, url):
         try:
             self.write_debug(f'SponsorBlock query: {url}')
             rsp = self._downloader.urlopen(sanitized_Request(url))
@@ -226,10 +216,9 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 return []
             raise PostProcessingError('Error communicating with SponsorBlock API') from e
 
-    def _remove_marked_arrange_sponsors(
-            self, chapters: MutableSequence[Chapter]) -> Tuple[List[Chapter], List[Chapter], bool]:
+    def _remove_marked_arrange_sponsors(self, chapters):
         # Store cuts separately, since adjacent and overlapping cuts must be merged.
-        cuts: List[Chapter] = []
+        cuts = []
 
         overlap_warn = False
 
@@ -243,7 +232,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 'Usually it means that there are many conflicting submissions. '
                 'You may want to review them, and upvote or downvote appropriately')
 
-        def append_cut(c: Chapter) -> int:
+        def append_cut(c):
             assert 'remove' in c
             last_to_cut = cuts[-1] if cuts else None
             if last_to_cut and last_to_cut['end_time'] >= c['start_time']:
@@ -257,7 +246,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 cuts.append(c)
             return len(cuts) - 1
 
-        def excess_duration(c: Chapter) -> float:
+        def excess_duration(c):
             # Cuts that are completely within the chapter reduce chapters' duration.
             # Since cuts can overlap, excess duration may be less that the sum of cuts' durations.
             # To avoid that, chapter stores the index to the fist cut within the chapter,
@@ -278,11 +267,11 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
         # same_titles tracks chapters having the same title to disambiguate them later,
         # e.g. multiple 'Sponsor' chapters will be renamed to 'Sponsor - 1', 'Sponsor - 2', etc.
-        same_titles: Dict[str, List[Chapter]] = {}
-        new_chapters: List[Chapter] = []
+        same_titles = {}
+        new_chapters = []
         has_sponsors = False
 
-        def append_chapter(c: Chapter):
+        def append_chapter(c):
             nonlocal has_sponsors
             assert 'remove' not in c
             length = c['end_time'] - c['start_time'] - excess_duration(c)
@@ -406,8 +395,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     c['title'] += f' - {i}'
         return new_chapters, cuts, has_sponsors
 
-    def _try_remove_chapters(self, in_out_files: Iterable[Tuple[str, str]],
-                             chapters_to_remove: Iterable[Chapter], duration: float) -> bool:
+    def _try_remove_chapters(self, in_out_files, chapters_to_remove, duration):
         concat_opts = self._make_concat_opts(chapters_to_remove, duration)
         for in_file, out_file in in_out_files:
             force_keyframes = (self._force_keyframes
@@ -434,9 +422,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         return True
 
     @staticmethod
-    def _make_concat_opts(chapters_to_remove: Iterable[Chapter],
-                          duration: float) -> List[Dict[str, str]]:
-        opts: List[Dict[str, str]] = [{}]
+    def _make_concat_opts(chapters_to_remove, duration):
+        opts = [{}]
         for s in chapters_to_remove:
             # Do not create 0 duration chunk at the beginning.
             if s['start_time'] == 0:

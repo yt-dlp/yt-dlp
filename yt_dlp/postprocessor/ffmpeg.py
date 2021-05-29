@@ -7,7 +7,6 @@ import subprocess
 import time
 import re
 import json
-from typing import Iterable, List, Mapping, Optional, Sequence, Union
 
 from .common import AudioConversionError, PostProcessor
 
@@ -291,7 +290,7 @@ class FFmpegPostProcessor(PostProcessor):
         return 'file:' + fn if fn != '-' else fn
 
     @staticmethod
-    def _quote_for_ffmpeg(string: str) -> str:
+    def _quote_for_ffmpeg(string):
         # See https://ffmpeg.org/ffmpeg-utils.html#toc-Quoting-and-escaping.
         # A sequence of '' produces '\'''\'';
         # final replace removes the empty '' between \' \'.
@@ -300,15 +299,14 @@ class FFmpegPostProcessor(PostProcessor):
         string = string[1:] if string[0] == "'" else "'" + string
         return string[:-1] if string[-1] == "'" else string + "'"
 
-    def force_keyframes(self, in_file: str, timestamps: Iterable[float]) -> str:
+    def force_keyframes(self, in_file, timestamps):
         keyframes_file = prepend_extension(in_file, 'keyframes')
         self.to_screen(f'Adding keyframes to "{in_file}"')
         self.run_ffmpeg(in_file, keyframes_file, [
             '-force_key_frames', ','.join(f'{t:.6f}' for t in timestamps)])
         return keyframes_file
 
-    def concat_files(self, in_files: Sequence[str], out_file: str,
-                     concat_opts: Optional[Sequence[Mapping[str, Union[str, float]]]] = None):
+    def concat_files(self, in_files, out_file, concat_opts=None):
         """
         Use concat demuxer to concatenate multiple files having identical streams.
 
@@ -331,10 +329,7 @@ class FFmpegPostProcessor(PostProcessor):
         finally:
             os.remove(concat_file)
 
-    def _concat_spec(
-            self, in_files: Sequence[str],
-            concat_opts: Optional[Sequence[Mapping[str, Union[str, float]]]] = None
-    ) -> List[str]:
+    def _concat_spec(self, in_files, concat_opts=None):
         if concat_opts is None:
             concat_opts = [{}] * len(in_files)
         yield 'ffconcat version 1.0\n'
