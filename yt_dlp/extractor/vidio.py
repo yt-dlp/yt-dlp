@@ -60,27 +60,29 @@ class VidioIE(InfoExtractor):
             })
         video = data['videos'][0]
         title = video['title'].strip()
-        hls_url = data['clips'][0]['hls_url']
-
-        formats, subs = self._extract_m3u8_formats_and_subtitles(
-            hls_url, display_id, 'mp4', 'm3u8_native', errnote=False, fatal=False)
-        if not formats:
-            self.to_screen('Falling back to premier mode.')
+        is_premium = video['is_premium']
+        if is_premium:
+            self.to_screen('Premier-exclusive video detected, switching to premier mode')
             sources = self._download_json(
                 'https://www.vidio.com/interactions_stream.json?video_id=' + video_id + '&type=videos', display_id)
             if not (sources.get('source') or sources.get('source_dash')):
-                self.raise_login_required()
+                self.raise_login_required(method='cookies')
 
+            formats, subs = [], {}
             if sources.get('source'):
                 hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
                     sources['source'], display_id, 'mp4', 'm3u8_native')
                 formats.extend(hls_formats)
                 subs.update(hls_subs)
-            if sources.get('source_dash'):  # TODO: Find video example with source_dash, can both exist at the same time?
+            if sources.get('source_dash'):  # TODO: Find video example with source_dash
                 dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
                     sources['source_dash'], display_id, 'dash')
                 formats.extend(dash_formats)
                 subs.update(dash_subs)
+        else:
+            hls_url = data['clips'][0]['hls_url']
+            formats, subs = self._extract_m3u8_formats_and_subtitles(
+                hls_url, display_id, 'mp4', 'm3u8_native')
 
         self._sort_formats(formats)
 
