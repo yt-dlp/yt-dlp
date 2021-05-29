@@ -1909,8 +1909,8 @@ class InfoExtractor(object):
 
         res = self._download_webpage_handle(
             m3u8_url, video_id,
-            note=note or 'Downloading m3u8 information',
-            errnote=errnote or 'Failed to download m3u8 information',
+            note='Downloading m3u8 information' if note is None else note,
+            errnote='Failed to download m3u8 information' if errnote is None else errnote,
             fatal=fatal, data=data, headers=headers, query=query)
 
         if res is False:
@@ -2059,7 +2059,7 @@ class InfoExtractor(object):
                     # <https://tools.ietf.org/html/rfc8216#section-3.1>
                     sub_info['ext'] = 'vtt'
                     sub_info['protocol'] = 'm3u8_native'
-                lang = media.get('LANGUAGE') or 'unknown'
+                lang = media.get('LANGUAGE') or 'und'
                 subtitles.setdefault(lang, []).append(sub_info)
             if media_type not in ('VIDEO', 'AUDIO'):
                 return
@@ -2465,8 +2465,8 @@ class InfoExtractor(object):
             fatal=True, data=None, headers={}, query={}):
         res = self._download_xml_handle(
             mpd_url, video_id,
-            note=note or 'Downloading MPD manifest',
-            errnote=errnote or 'Failed to download MPD manifest',
+            note='Downloading MPD manifest' if note is None else note,
+            errnote='Failed to download MPD manifest' if errnote is None else errnote,
             fatal=fatal, data=data, headers=headers, query=query)
         if res is False:
             return [], {}
@@ -2795,8 +2795,8 @@ class InfoExtractor(object):
     def _extract_ism_formats_and_subtitles(self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True, data=None, headers={}, query={}):
         res = self._download_xml_handle(
             ism_url, video_id,
-            note=note or 'Downloading ISM manifest',
-            errnote=errnote or 'Failed to download ISM manifest',
+            note='Downloading ISM manifest' if note is None else note,
+            errnote='Failed to download ISM manifest' if errnote is None else errnote,
             fatal=fatal, data=data, headers=headers, query=query)
         if res is False:
             return [], {}
