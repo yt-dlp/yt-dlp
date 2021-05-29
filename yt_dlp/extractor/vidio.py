@@ -62,9 +62,9 @@ class VidioIE(InfoExtractor):
         title = video['title'].strip()
         is_premium = video.get('is_premium')
         if is_premium:
-            self.to_screen('Premier-exclusive video detected, switching to premier mode')
-            sources = self._download_json(
-                'https://www.vidio.com/interactions_stream.json?video_id=' + video_id + '&type=videos', display_id)
+            sources = sources = self._download_json(
+                'https://www.vidio.com/interactions_stream.json?video_id=%s&type=videos' % video_id,
+                display_id, note='Downloading premier API JSON')
             if not (sources.get('source') or sources.get('source_dash')):
                 self.raise_login_required(method='cookies')
 
