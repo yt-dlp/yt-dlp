@@ -74,16 +74,16 @@ class VidioIE(InfoExtractor):
             self.to_screen('Falling back to premier mode.')
             sources = self._download_json(
                 'https://www.vidio.com/interactions_stream.json?video_id=' + video_id + '&type=videos', display_id)
-            if not (sources['source'] or sources['source_dash']):
+            if not (sources.get('source') or sources.get('source_dash')):
                 self.raise_login_required()
 
             formats, subs = [], {}
-            if sources['source']:
+            if sources.get('source'):
                 hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
                     sources['source'], display_id, 'mp4', 'm3u8_native')
                 formats.extend(hls_formats)
                 subs.update(hls_subs)
-            if sources['source_dash']:  # TODO: Find video example with source_dash, can both exist at the same time?
+            if sources.get('source_dash'):  # TODO: Find video example with source_dash, can both exist at the same time?
                 dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
                     sources['source_dash'], display_id, 'dash')
                 formats.extend(dash_formats)
