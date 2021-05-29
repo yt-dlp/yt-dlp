@@ -27,6 +27,7 @@ from .metadataparser import (
 )
 from .movefilesafterdownload import MoveFilesAfterDownloadPP
 from .sponskrub import SponSkrubPP
+from .modify_chapters import ModifyChaptersPP
 
 
 def get_postprocessor(key):
@@ -57,5 +58,6 @@ __all__ = [
     'MetadataFromTitlePP',
     'MoveFilesAfterDownloadPP',
     'SponSkrubPP',
+    'ModifyChaptersPP',
     'XAttrMetadataPP',
 ]

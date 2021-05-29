@@ -7,7 +7,7 @@ import subprocess
 import time
 import re
 import json
-
+from typing import List, Mapping, Optional, Sequence, Union
 
 from .common import AudioConversionError, PostProcessor
 
@@ -290,6 +290,55 @@ class FFmpegPostProcessor(PostProcessor):
             return fn
         return 'file:' + fn if fn != '-' else fn
 
+    def concat_files(self, in_files: Sequence[str], out_file: str,
+                     concat_opts: Optional[Sequence[Mapping[str, Union[str, float]]]] = None):
+        """
+        Use concat demuxer to concatenate multiple files having identical streams.
+
+        Only inpoint, outpoint, and duration concat options are supported.
+        See https://ffmpeg.org/ffmpeg-formats.html#concat-1 for details.
+        """
+        concat_file = out_file + '.concat'
+        with open(concat_file, 'wt', encoding='utf-8') as f:
+            f.writelines(self._concat_spec(in_files, concat_opts))
+
+        out_flags = ['-c', 'copy']
+        if out_file.rpartition('.')[-1] in ('mp4', 'mov'):
+            # For some reason, '-c copy' is not enough to copy subtitles.
+            out_flags.extend(['-c:s', 'mov_text', '-movflags', '+faststart'])
+
+        try:
+            self.real_run_ffmpeg(
+                [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
+                [(out_file, out_flags)])
+        finally:
+            os.remove(concat_file)
+
+    def _concat_spec(
+            self, in_files: Sequence[str],
+            concat_opts: Optional[Sequence[Mapping[str, Union[str, float]]]] = None
+    ) -> List[str]:
+        if concat_opts is None:
+            concat_opts = [{}] * len(in_files)
+        concat_spec = ['ffconcat version 1.0\n']
+        for f, o in zip(in_files, concat_opts):
+            concat_spec.append(
+                f'file {self._quote_for_concat(self._ffmpeg_filename_argument(f))}\n')
+            for directive in 'inpoint', 'outpoint', 'duration':
+                if directive in o:
+                    concat_spec.append(f'{directive} {o[directive]}\n')
+        return concat_spec
+
+    @staticmethod
+    def _quote_for_concat(string: str) -> str:
+        # See https://ffmpeg.org/ffmpeg-utils.html#toc-Quoting-and-escaping.
+        # A sequence of '' produces '\'''\'';
+        # final replace removes the empty '' between \' \'.
+        string = string.replace("'", r"'\''").replace("'''", "'")
+        # Handle potential ' at string boundaries.
+        string = string[1:] if string[0] == "'" else "'" + string
+        return string[:-1] if string[-1] == "'" else string + "'"
+
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
     COMMON_AUDIO_EXTS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
@@ -528,6 +577,9 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
+    def __init__(self, downloader=None, only_chapters=False):
+        super(FFmpegMetadataPP, self).__init__(downloader)
+        self._only_chapters = only_chapters
 
     @staticmethod
     def _options(target_ext):
@@ -539,10 +591,13 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        if self._only_chapters and '__has_sponsor_chapters' not in info:
+            return [], info
+
         metadata = {}
 
         def add(meta_list, info_list=None):
-            if not meta_list:
+            if self._only_chapters or not meta_list:
                 return
             for info_f in variadic(info_list or meta_list):
                 if isinstance(info.get(info_f), (compat_str, compat_numeric_types)):
@@ -578,16 +633,20 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         filename, metadata_filename = info['filepath'], None
         options = [('-metadata', f'{name}={value}') for name, value in metadata.items()]
 
-        stream_idx = 0
-        for fmt in info.get('requested_formats') or []:
-            stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
-            if fmt.get('language'):
-                lang = ISO639Utils.short2long(fmt['language']) or fmt['language']
-                options.extend(('-metadata:s:%d' % (stream_idx + i), 'language=%s' % lang)
-                               for i in range(stream_count))
-            stream_idx += stream_count
+        if not self._only_chapters:
+            stream_idx = 0
+            for fmt in info.get('requested_formats') or []:
+                stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
+                if fmt.get('language'):
+                    lang = ISO639Utils.short2long(fmt['language']) or fmt['language']
+                    options.extend(('-metadata:s:%d' % (stream_idx + i), 'language=%s' % lang)
+                                   for i in range(stream_count))
+                stream_idx += stream_count
 
         chapters = info.get('chapters', [])
+        if self._only_chapters and not chapters:
+            return [], info
+
         if chapters:
             metadata_filename = replace_extension(filename, 'meta')
             with io.open(metadata_filename, 'wt', encoding='utf-8') as f:
@@ -622,7 +681,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             return [], info
 
         temp_filename = prepend_extension(filename, 'temp')
-        self.to_screen('Adding metadata to "%s"' % filename)
+        self.to_screen('Adding %s to "%s"' % (
+            'chapters' if self._only_chapters else 'metadata', filename))
         self.run_ffmpeg_multiple_files(
             (filename, metadata_filename), temp_filename,
             itertools.chain(self._options(info['ext']), *options))

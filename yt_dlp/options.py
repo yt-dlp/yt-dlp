@@ -29,6 +29,7 @@ from .postprocessor import (
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoRemuxerPP,
 )
+from .postprocessor.modify_chapters import SPONSORBLOCK_CATEGORIES
 
 
 def _hide_login_info(opts):
@@ -1221,8 +1222,8 @@ def parseOpts(overrideArguments=None):
             'to give the argument to the specified postprocessor/executable. Supported PP are: '
             'Merger, ExtractAudio, SplitChapters, Metadata, EmbedSubtitle, EmbedThumbnail, '
             'SubtitlesConvertor, ThumbnailsConvertor, VideoRemuxer, VideoConvertor, '
-            'SponSkrub, FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
-            'The supported executables are: AtomicParsley, FFmpeg, FFprobe, and SponSkrub. '
+            'FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
+            'The supported executables are: AtomicParsley, FFmpeg and FFprobe.'
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
             '"_i"/"_o" can be appended to the prefix optionally followed by a number to pass the argument '
@@ -1355,41 +1356,85 @@ def parseOpts(overrideArguments=None):
         '--no-split-chapters', '--no-split-tracks',
         dest='split_chapters', action='store_false',
         help='Do not split video based on chapters (default)')
+    postproc.add_option(
+        '--remove-chapters', metavar='CHAPTER_REGEX', default=None, dest='remove_chapters',
+        help='Remove chapters whose title matches a regular expression')
+    postproc.add_option(
+        '--remove-chapters-force-keyframes', default=False,
+        action='store_true', dest='remove_chapters_force_keyframes',
+        help='Force keyframes around the chapters before removing them. '
+             'Requires re-encoding and thus very slow, but the resulting video '
+             'may have fewer artifacts around the cuts')
 
-    sponskrub = optparse.OptionGroup(parser, 'SponSkrub (SponsorBlock) Options', description=(
-        'SponSkrub (https://github.com/yt-dlp/SponSkrub) is a utility to mark/remove sponsor segments '
+    sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
+        'Make chapter entries for or remove various segments (sponsor, introductions, etc.) '
         'from downloaded YouTube videos using SponsorBlock API (https://sponsor.ajay.app)'))
-    sponskrub.add_option(
+    sponsorblock.add_option(
+        '--sponsorblock',
+        action='store_true', dest='sponsorblock',
+        help='Use SponsorBlock')
+    sponsorblock.add_option(
+        '--no-sponsorblock', default=False,
+        action='store_false', dest='sponsorblock',
+        help='Do not use SponsorBlock (default)')
+    sponsorblock.add_option(
+        '--sponsorblock-query', metavar='CATEGORIES', default=['all'],
+        dest='sponsorblock_query', type='str', action='callback',
+        callback=_list_from_options_callback, callback_kwargs={'append': False},
+        help='Segment categories to query SponsorBlock API for '
+             '(see https://github.com/ajayyy/SponsorBlock/wiki/Segment-Categories). '
+             f'Available categories: {", ".join(SPONSORBLOCK_CATEGORIES)}'
+             'Use "all" to select all of the above. Defaults to "all"')
+    sponsorblock.add_option(
+        '--sponsorblock-cut', metavar='CATEGORIES', default=['all'],
+        dest='sponsorblock_cut', type='str', action='callback',
+        callback=_list_from_options_callback, callback_kwargs={'append': False},
+        help='Segment categories to remove from the video. '
+             'If a category is queried but not cut, a chapter is created for it. '
+             'Defaults to "all"')
+    sponsorblock.add_option(
+        '--sponsorblock-force', default=False,
+        action='store_true', dest='sponsorblock_force',
+        help='Try to use SponsorBlock even if the video was already downloaded')
+    sponsorblock.add_option(
+        '--sponsorblock-no-privacy', default=False,
+        action='store_true', dest='sponsorblock_reveal_video_id',
+        help='Send plaintext video ID instead of its hash prefix to SponsorBlock '
+             'to make sure it knows what videos you are watching')
+    sponsorblock.add_option(
+        '--sponsorblock-api', metavar='URL',
+        default='https://sponsor.ajay.app', dest='sponsorblock_api',
+        help='SponsorBlock API location, defaults to %default')
+
+    sponsorblock.add_option(
         '--sponskrub',
         action='store_true', dest='sponskrub', default=None,
-        help=(
-            'Use sponskrub to mark sponsored sections. '
-            'This is enabled by default if the sponskrub binary exists (Youtube only)'))
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--no-sponskrub',
         action='store_false', dest='sponskrub',
-        help='Do not use sponskrub')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--sponskrub-cut', default=False,
         action='store_true', dest='sponskrub_cut',
-        help='Cut out the sponsor sections instead of simply marking them')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--no-sponskrub-cut',
         action='store_false', dest='sponskrub_cut',
-        help='Simply mark the sponsor sections, not cut them out (default)')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--sponskrub-force', default=False,
         action='store_true', dest='sponskrub_force',
-        help='Run sponskrub even if the video was already downloaded')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--no-sponskrub-force',
         action='store_true', dest='sponskrub_force',
-        help='Do not cut out the sponsor sections if the video was already downloaded (default)')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--sponskrub-location', metavar='PATH',
         dest='sponskrub_path', default='',
-        help='Location of the sponskrub binary; either the path to the binary or its containing directory')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--sponskrub-args', dest='sponskrub_args', metavar='ARGS',
         help=optparse.SUPPRESS_HELP)
 
@@ -1458,7 +1503,7 @@ def parseOpts(overrideArguments=None):
     parser.add_option_group(subtitles)
     parser.add_option_group(authentication)
     parser.add_option_group(postproc)
-    parser.add_option_group(sponskrub)
+    parser.add_option_group(sponsorblock)
     parser.add_option_group(extractor)
 
     if overrideArguments is not None:

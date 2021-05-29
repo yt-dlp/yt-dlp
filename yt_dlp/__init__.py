@@ -12,7 +12,7 @@ import os
 import random
 import re
 import sys
-
+from typing import List, Set
 
 from .options import (
     parseOpts,
@@ -57,6 +57,7 @@ from .postprocessor import (
     MetadataFromFieldPP,
     MetadataParserPP,
 )
+from .postprocessor.modify_chapters import SPONSORBLOCK_CATEGORIES
 from .YoutubeDL import YoutubeDL
 
 
@@ -362,6 +363,9 @@ def _real_main(argv=None):
     if opts.sponskrub_cut and opts.split_chapters and opts.sponskrub is not False:
         report_conflict('--split-chapter', '--sponskrub-cut')
         opts.sponskrub_cut = False
+    if opts.sponskrub and opts.sponsorblock:
+        report_conflict('--sponsorblock', '--sponskrub')
+        opts.sponskrub = False
 
     if opts.allow_unplayable_formats:
         if opts.extractaudio:
@@ -387,10 +391,13 @@ def _real_main(argv=None):
             opts.xattrs = False
         if opts.fixup and opts.fixup.lower() not in ('never', 'ignore'):
             report_conflict('--allow-unplayable-formats', '--fixup')
-        opts.fixup = 'never'
+            opts.fixup = 'never'
         if opts.sponskrub:
             report_conflict('--allow-unplayable-formats', '--sponskrub')
-        opts.sponskrub = False
+            opts.sponskrub = False
+        if opts.sponsorblock:
+            report_conflict('--allow-unplayable-formats', '--sponsorblock')
+            opts.sponsorblock = False
 
     # PostProcessors
     postprocessors = []
@@ -439,16 +446,7 @@ def _real_main(argv=None):
             'key': 'FFmpegVideoConvertor',
             'preferedformat': opts.recodevideo,
         })
-    # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
-    # FFmpegExtractAudioPP as containers before conversion may not support
-    # metadata (3gp, webm, etc.)
-    # And this post-processor should be placed before other metadata
-    # manipulating post-processors (FFmpegEmbedSubtitle) to prevent loss of
-    # extra metadata. By default ffmpeg preserves metadata applicable for both
-    # source and target containers. From this point the container won't change,
-    # so metadata can be added here.
-    if opts.addmetadata:
-        postprocessors.append({'key': 'FFmpegMetadata'})
+    # If ModifyChapters is going to remove chapters, subtitles must already be in the container.
     if opts.embedsubtitles:
         already_have_subtitle = opts.writesubtitles and 'no-keep-subs' not in compat_opts
         postprocessors.append({
@@ -462,6 +460,55 @@ def _real_main(argv=None):
     # this was the old behaviour if only --all-sub was given.
     if opts.allsubtitles and not opts.writeautomaticsub:
         opts.writesubtitles = True
+    # ModifyChapters must run before FFmpegMetadataPP.
+    # Always check arguments even if ModifyChapters will be disabled.
+    remove_chapters_pattern = None
+    if opts.remove_chapters is not None:
+        try:
+            remove_chapters_pattern = re.compile(opts.remove_chapters)
+        except re.error:
+            parser.error('invalid --remove-chapters regex: %s' % opts.remove_chapters)
+
+    def categories_from_list(cats: List[str]) -> Set[str]:
+        if cats == ['']:
+            return set()
+        cats = set(c.strip() for c in cats)
+        if 'all' in cats:
+            return set(SPONSORBLOCK_CATEGORIES)
+        return cats
+
+    sponsorblock_query = categories_from_list(opts.sponsorblock_query)
+    sponsorblock_cut = categories_from_list(opts.sponsorblock_cut)
+    for c in (sponsorblock_query | sponsorblock_cut).difference(SPONSORBLOCK_CATEGORIES):
+        parser.error(f'invalid SponsorBlock category: {c}')
+    # Categories to be cut must first be queried.
+    sponsorblock_query |= sponsorblock_cut
+    use_sponsorblock = opts.sponsorblock and sponsorblock_query
+    if remove_chapters_pattern or use_sponsorblock:
+        postprocessors.append({
+            'key': 'ModifyChapters',
+            'remove_chapters_pattern': remove_chapters_pattern,
+            'force_keyframes': opts.remove_chapters_force_keyframes,
+            'use_sponsorblock': use_sponsorblock,
+            'sponsorblock_query': sponsorblock_query,
+            'sponsorblock_cut': sponsorblock_cut,
+            'sponsorblock_force': opts.sponsorblock_force,
+            'sponsorblock_reveal_video_id': opts.sponsorblock_reveal_video_id,
+            'sponsorblock_api': opts.sponsorblock_api
+        })
+    # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
+    # FFmpegExtractAudioPP as containers before conversion may not support
+    # metadata (3gp, webm, etc.)
+    # And this post-processor should be placed before other metadata
+    # manipulating post-processors (FFmpegEmbedSubtitle) to prevent loss of
+    # extra metadata. By default ffmpeg preserves metadata applicable for both
+    # source and target containers. From this point the container won't change,
+    # so metadata can be added here.
+    if opts.addmetadata or opts.sponsorblock:
+        postprocessors.append({
+            'key': 'FFmpegMetadata',
+            'only_chapters': not opts.addmetadata
+        })
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
     # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29

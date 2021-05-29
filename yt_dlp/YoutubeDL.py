@@ -2561,20 +2561,8 @@ class YoutubeDL(object):
                                                 (sub_lang, error_to_compat_str(err)))
                             continue
 
-        if self.params.get('writeinfojson', False):
-            infofn = self.prepare_filename(info_dict, 'infojson')
-            if not self._ensure_dir_exists(encodeFilename(infofn)):
-                return
-            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                self.to_screen('[info] Video metadata is already present')
-            else:
-                self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
-                try:
-                    write_json_file(self.sanitize_info(info_dict, self.params.get('clean_infojson', True)), infofn)
-                except (OSError, IOError):
-                    self.report_error('Cannot write video metadata to JSON file ' + infofn)
-                    return
-            info_dict['__infojson_filename'] = infofn
+        if not self.write_info_json(info_dict):
+            return
 
         for thumb_ext in self._write_thumbnails(info_dict, temp_filename):
             thumb_filename_temp = replace_extension(temp_filename, thumb_ext, info_dict.get('ext'))
@@ -2858,6 +2846,24 @@ class YoutubeDL(object):
         max_downloads = self.params.get('max_downloads')
         if max_downloads is not None and self._num_downloads >= int(max_downloads):
             raise MaxDownloadsReached()
+
+    def write_info_json(self, info_dict, override=False):
+        if not self.params.get('writeinfojson', False):
+            return True
+        infofn = self.prepare_filename(info_dict, 'infojson')
+        if not self._ensure_dir_exists(encodeFilename(infofn)):
+            return False
+        if os.path.exists(encodeFilename(infofn)) and not (override or self.params.get('overwrites', True)):
+            self.to_screen('[info] Video metadata is already present')
+            return True
+        self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
+        try:
+            write_json_file(self.sanitize_info(info_dict, self.params.get('clean_infojson', True)), infofn)
+        except (OSError, IOError):
+            self.report_error('Cannot write video metadata to JSON file ' + infofn)
+            return False
+        info_dict['__infojson_filename'] = infofn
+        return True
 
     def download(self, url_list):
         """Download a given list of URLs."""
