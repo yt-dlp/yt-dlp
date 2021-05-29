@@ -41,6 +41,10 @@ class VidioIE(InfoExtractor):
     }, {
         'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
         'only_matching': True,
+    }, {
+        # Premier-exclusive video
+        'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
+        'only_matching': True
     }]
 
     def _real_initialize(self):
@@ -56,9 +60,35 @@ class VidioIE(InfoExtractor):
             })
         video = data['videos'][0]
         title = video['title'].strip()
+        hls_url = data['clips'][0]['hls_url']
 
-        formats = self._extract_m3u8_formats(
-            data['clips'][0]['hls_url'], display_id, 'mp4', 'm3u8_native')
+        # Note: _extract_m3u8_formats(_and_subtitles) non-fatal warnings can't be disabled for now, so workaround
+        res = self._download_webpage_handle(
+            hls_url, display_id, errnote=False, fatal=False)
+        if res:
+            hls_doc, urlh = res
+            hls_url = urlh.geturl()
+            formats, subs = self._parse_m3u8_formats_and_subtitles(
+                hls_doc, hls_url, 'mp4', 'm3u8_native')
+        else:
+            self.to_screen('Falling back to premier mode.')
+            sources = self._download_json(
+                'https://www.vidio.com/interactions_stream.json?video_id=' + video_id + '&type=videos', display_id)
+            if not (sources['source'] or sources['source_dash']):
+                self.raise_login_required()
+
+            formats, subs = [], {}
+            if sources['source']:
+                hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
+                    sources['source'], display_id, 'mp4', 'm3u8_native')
+                formats.extend(hls_formats)
+                subs.update(hls_subs)
+            if sources['source_dash']:  # TODO: Find video example with source_dash, can both exist at the same time?
+                dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
+                    sources['source_dash'], display_id, 'dash')
+                formats.extend(dash_formats)
+                subs.update(dash_subs)
+
         self._sort_formats(formats)
 
         get_first = lambda x: try_get(data, lambda y: y[x + 's'][0], dict) or {}
@@ -76,6 +106,7 @@ class VidioIE(InfoExtractor):
             'duration': int_or_none(video.get('duration')),
             'like_count': get_count('likes'),
             'formats': formats,
+            'subtitles': subs,
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(video.get('created_at')),
             'uploader_id': username,
