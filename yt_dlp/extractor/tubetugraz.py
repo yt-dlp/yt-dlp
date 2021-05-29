@@ -315,7 +315,7 @@ class TubeTuGrazIE(InfoExtractor):
                 if dash_page is not False:
                     dash_formats = self._extract_mpd_formats(
                         mpd_url, None,
-                        note="guessing location of %s DASH manifest" % type,
+                        note="downloading %s DASH manifest" % type,
                         fatal=False)
 
                     for format in dash_formats:
