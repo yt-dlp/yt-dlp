@@ -51,7 +51,7 @@ class SaitosanIE(InfoExtractor):
         base += '&sid=' + sid
 
         self._download_webpage(base, b_id, note='Polling socket')
-        payload = '420["room_start_join",{"room_id":"' + str(b_id) + '"}]'
+        payload = '420["room_start_join",{"room_id":"%s"}]' % b_id
         payload = '%s:%s' % (len(payload), payload)
 
         self._download_webpage(base, b_id, data=payload, note='Polling socket with payload')
