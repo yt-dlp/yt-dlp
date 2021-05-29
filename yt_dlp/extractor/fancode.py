@@ -46,7 +46,7 @@ class FancodeVodIE(InfoExtractor):
             webpage, "user id")
 
         headers = {
-            'content-type': 'application/json',  # has to be set otherwise api errors out
+            'content-type': 'application/json',
             'origin': 'https://fancode.com',
             'referer': 'https://fancode.com/',
         }
