@@ -62,22 +62,15 @@ class VidioIE(InfoExtractor):
         title = video['title'].strip()
         hls_url = data['clips'][0]['hls_url']
 
-        # Note: _extract_m3u8_formats(_and_subtitles) non-fatal warnings can't be disabled for now, so workaround
-        res = self._download_webpage_handle(
-            hls_url, display_id, errnote=False, fatal=False)
-        if res:
-            hls_doc, urlh = res
-            hls_url = urlh.geturl()
-            formats, subs = self._parse_m3u8_formats_and_subtitles(
-                hls_doc, hls_url, 'mp4', 'm3u8_native')
-        else:
+        formats, subs = self._extract_m3u8_formats_and_subtitles(
+            hls_url, display_id, 'mp4', 'm3u8_native', errnote=False, fatal=False)
+        if not formats:
             self.to_screen('Falling back to premier mode.')
             sources = self._download_json(
                 'https://www.vidio.com/interactions_stream.json?video_id=' + video_id + '&type=videos', display_id)
             if not (sources.get('source') or sources.get('source_dash')):
                 self.raise_login_required()
 
-            formats, subs = [], {}
             if sources.get('source'):
                 hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
                     sources['source'], display_id, 'mp4', 'm3u8_native')
