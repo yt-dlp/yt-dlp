@@ -81,8 +81,6 @@ class HlsFD(FragmentFD):
         man_url = info_dict['url']
         self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
 
-        is_webvtt = info_dict['ext'] == 'vtt'
-
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
         man_url = urlh.geturl()
         s = urlh.read().decode('utf-8', 'ignore')
@@ -101,7 +99,11 @@ class HlsFD(FragmentFD):
             #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
 
-        real_downloader = _get_real_downloader(info_dict, 'm3u8_frag_urls', self.params, None)
+        is_webvtt = info_dict['ext'] == 'vtt'
+        if is_webvtt:
+            real_downloader = None  # Packing the fragments is not currently supported for external downloader
+        else:
+            real_downloader = _get_real_downloader(info_dict, 'm3u8_frag_urls', self.params, None)
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:
