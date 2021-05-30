@@ -265,12 +265,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 (?:https?://)?web\.archive\.org/
                     (?:web/)?
                     (?:[0-9A-Za-z_*]+/)?  # /web and the version index is optional
-                (?:https?://)?
+
+                (?:https?(?::|%3[Aa])//)?
                 (?:
-                    (?:\w+\.)?youtube\.com/watch\?v=  # Youtube URL
-                    |(wayback-fakeurl\.archive\.org/yt/)  # Or optionally, also support the internal fake url
+                    (?:\w+\.)?youtube\.com/watch(?:\?|%3[fF])(?:[^\#]+(?:&|%26))?v(?:=|%3[dD])  # Youtube URL
+                    |(wayback-fakeurl\.archive\.org/yt/)  # Or the internal fake url
                 )
-                (?P<id>[0-9A-Za-z_-]{11})(?:\#|&|$)
+                (?P<id>[0-9A-Za-z_-]{11})(?:%26|\#|&|$)
                 """
 
     _TESTS = [
