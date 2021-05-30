@@ -5,11 +5,14 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    get_element_by_class,
     int_or_none,
     parse_iso8601,
     str_or_none,
     strip_or_none,
     try_get,
+    urlencode_postdata,
 )
 
 
@@ -46,10 +49,44 @@ class VidioIE(InfoExtractor):
         'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
         'only_matching': True
     }]
+    _LOGIN_URL = 'https://www.vidio.com/users/login'
+    _NETRC_MACHINE = 'vidio'
+
+    def _login(self):
+        username, password = self._get_login_info()
+        if username is None:
+            return
+
+        def is_logged_in():
+            res = self._download_json(
+                'https://www.vidio.com/interactions.json', None, 'Checking if logged in', fatal=False) or {}
+            return bool(res.get('current_user'))
+
+        if is_logged_in():
+            return
+
+        login_page = self._download_webpage(
+            self._LOGIN_URL, None, 'Downloading log in page')
+
+        login_form = self._form_hidden_inputs("login-form", login_page)
+        login_form.update({
+            'user[login]': username,
+            'user[password]': password,
+        })
+        login_post, login_post_urlh = self._download_webpage_handle(
+            self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(login_form), expected_status=[302, 401])
+
+        if login_post_urlh.status == 401:
+            reason = get_element_by_class('onboarding-form__general-error', login_post)
+            if reason:
+                raise ExtractorError(
+                    'Unable to log in: %s' % reason, expected=True)
+            raise ExtractorError('Unable to log in')
 
     def _real_initialize(self):
         self._api_key = self._download_json(
             'https://www.vidio.com/auth', None, data=b'')['api_key']
+        self._login()
 
     def _real_extract(self, url):
         video_id, display_id = re.match(self._VALID_URL, url).groups()
@@ -66,7 +103,7 @@ class VidioIE(InfoExtractor):
                 'https://www.vidio.com/interactions_stream.json?video_id=%s&type=videos' % video_id,
                 display_id, note='Downloading premier API JSON')
             if not (sources.get('source') or sources.get('source_dash')):
-                self.raise_login_required(method='cookies')
+                self.raise_login_required('This video is only available for registered users with a premier subscription.')
 
             formats, subs = [], {}
             if sources.get('source'):
