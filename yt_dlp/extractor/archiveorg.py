@@ -257,13 +257,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
     IE_NAME = 'youtube:web.archive.org'
     IE_DESC = 'web.archive.org saved youtube videos'
     _VALID_URL = r"""(?x)^
-                (?:https?://)?web\.archive\.org\/
+                (?:https?://)?web\.archive\.org/
                     (?:web/)?
                     (?:[0-9A-Za-z_*]+/)?  # /web and the version index is optional
                 (?:https?://)?
                 (?:
-                    (?:\w+\.)?youtube\.com\/watch\?v=  # Youtube URL
-                    |(wayback-fakeurl\.archive\.org\/yt\/)  # Or optionally, also support the internal fake url
+                    (?:\w+\.)?youtube\.com/watch\?v=  # Youtube URL
+                    |(wayback-fakeurl\.archive\.org/yt/)  # Or optionally, also support the internal fake url
                 )
                 (?P<id>[0-9A-Za-z_-]{11})(?:\#|&|$)
                 """
@@ -334,6 +334,5 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'id': video_id,
             'title': id,  # We are not able to get a title
             'formats': [format],
-            'webpage_url': url,
             'duration': str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
         }
