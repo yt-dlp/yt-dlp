@@ -379,7 +379,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         try:
             video_file_webpage = self._request_webpage(
                 HEADRequest(internal_fake_url), video_id,
-                note='Fetching video file link', expected_status=True)
+                note='Fetching video file url', expected_status=True)
         except ExtractorError as e:
             # HTTP Error 404 is expected if the video is not saved.
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
