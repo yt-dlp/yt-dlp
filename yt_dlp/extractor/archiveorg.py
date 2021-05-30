@@ -27,6 +27,7 @@ from ..utils import (
     RegexNotFoundError,
     str_to_int,
     str_or_none,
+    strip_or_none,
     try_get,
     unified_strdate,
     unified_timestamp,
@@ -352,10 +353,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
         title = video_id  # if we are not able get a title
 
         def _extract_title(webpage):
-            page_title = self._html_search_regex(r'<title>([^<]*)</title>', webpage, 'title', fatal=False) or ''
-            page_title = page_title.strip()
+            page_title = strip_or_none(self._html_search_regex(r'<title>([^<]*)</title>', webpage, 'title', fatal=False), default='')
+            # YouTube video pages appear to always have either 'YouTube -' as suffix or '- YouTube' as prefix.
             try:
-                page_title = self._search_regex(r"(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)", page_title, 'title', fatal=True, default='').strip()
+                page_title = strip_or_none(self._search_regex(r"(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)", page_title, 'title', default=''))
             except RegexNotFoundError:
                 self.report_warning('unable to extract title')
                 return
@@ -368,7 +369,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         # Setting the capture date in url to early date seems to redirect to earliest capture.
         webpage = self._download_webpage(
             "https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=%s" % video_id,
-            video_id=video_id, fatal=False, errnote="Unable to download video webpage (probably not archived)")
+            video_id=video_id, fatal=False, errnote="unable to download video webpage (probably not archived).")
         if webpage:
             title = _extract_title(webpage) or title
 
