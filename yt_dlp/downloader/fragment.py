@@ -5,6 +5,12 @@ import time
 import json
 
 try:
+    from Crypto.Cipher import AES
+    can_decrypt_frag = True
+except ImportError:
+    can_decrypt_frag = False
+
+try:
     import concurrent.futures
     can_threaded_download = True
 except ImportError:
@@ -12,7 +18,12 @@ except ImportError:
 
 from .common import FileDownloader
 from .http import HttpFD
+from ..compat import (
+    compat_urllib_error,
+    compat_struct_pack,
+)
 from ..utils import (
+    DownloadError,
     error_to_compat_str,
     encodeFilename,
     sanitize_open,

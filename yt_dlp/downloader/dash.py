@@ -1,21 +1,9 @@
 from __future__ import unicode_literals
 
-import errno
-try:
-    import concurrent.futures
-    can_threaded_download = True
-except ImportError:
-    can_threaded_download = False
-
 from ..downloader import _get_real_downloader
 from .fragment import FragmentFD
 
-from ..compat import compat_urllib_error
-from ..utils import (
-    DownloadError,
-    sanitize_open,
-    urljoin,
-)
+from ..utils import urljoin
 
 
 class DashSegmentsFD(FragmentFD):

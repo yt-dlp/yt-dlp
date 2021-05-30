@@ -1,32 +1,18 @@
 from __future__ import unicode_literals
 
-import errno
 import re
 import io
 import binascii
-try:
-    from Crypto.Cipher import AES
-    can_decrypt_frag = True
-except ImportError:
-    can_decrypt_frag = False
-try:
-    import concurrent.futures
-    can_threaded_download = True
-except ImportError:
-    can_threaded_download = False
 
 from ..downloader import _get_real_downloader
-from .fragment import FragmentFD
+from .fragment import FragmentFD, can_decrypt_frag
 from .external import FFmpegFD
 
 from ..compat import (
-    compat_urllib_error,
     compat_urlparse,
-    compat_struct_pack,
 )
 from ..utils import (
     parse_m3u8_attributes,
-    sanitize_open,
     update_url_query,
     bug_reports_message,
 )
