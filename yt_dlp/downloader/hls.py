@@ -424,8 +424,9 @@ class HlsFD(FragmentFD):
             max_workers = self.params.get('concurrent_fragment_downloads', 1)
             if can_threaded_download and max_workers > 1:
                 self.report_warning('The download speed shown is only of one thread. This is a known issue')
+                _download_fragment = lambda f: (f, download_fragment(f)[1])
                 with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
-                    futures = [pool.submit(download_fragment, fragment) for fragment in fragments]
+                    futures = [pool.submit(_download_fragment, fragment) for fragment in fragments]
                     # timeout must be 0 to return instantly
                     done, not_done = concurrent.futures.wait(futures, timeout=0)
                     try:
@@ -439,9 +440,13 @@ class HlsFD(FragmentFD):
                         # timeout must be none to cancel
                         concurrent.futures.wait(not_done, timeout=None)
                         raise KeyboardInterrupt
-                results = [future.result() for future in futures]
 
-                for frag_content, frag_index in results:
+                for fragment, frag_index in map(lambda x: x.result(), futures):
+                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
+                    down, frag_sanitized = sanitize_open(fragment_filename, 'rb')
+                    fragment['fragment_filename_sanitized'] = frag_sanitized
+                    frag_content = down.read()
+                    down.close()
                     result = append_fragment(frag_content, frag_index)
                     if not result:
                         return False
