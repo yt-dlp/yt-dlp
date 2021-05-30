@@ -57,16 +57,16 @@ class VidioIE(InfoExtractor):
         if username is None:
             return
 
+        def is_logged_in():
+            res = self._download_json(
+                'https://www.vidio.com/interactions.json', None, 'Checking if logged in', fatal=False) or {}
+            return bool(res.get('current_user'))
+
+        if is_logged_in():
+            return
+
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading log in page')
-
-        def is_logged():
-            return bool(self._download_json(
-                'https://www.vidio.com/interactions.json', None, False).get('current_user'))
-
-        # already logged in
-        if is_logged():
-            return
 
         login_form = self._form_hidden_inputs("login-form", login_page)
         login_form.update({
