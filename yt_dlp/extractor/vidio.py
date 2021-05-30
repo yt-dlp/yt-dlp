@@ -5,11 +5,14 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    get_element_by_class,
     int_or_none,
     parse_iso8601,
     str_or_none,
     strip_or_none,
     try_get,
+    urlencode_postdata,
 )
 
 
@@ -46,10 +49,43 @@ class VidioIE(InfoExtractor):
         'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
         'only_matching': True
     }]
+    _LOGIN_URL = 'https://www.vidio.com/users/login'
+
+    def _login(self):
+        username, password = self._get_login_info()
+        if username is None:
+            return
+
+        login_page = self._download_webpage(
+            self._LOGIN_URL, None, 'Downloading log in page')
+
+        def is_logged():
+            return bool(self._download_json(
+                'https://www.vidio.com/interactions.json', None, False).get('current_user'))
+
+        # already logged in
+        if is_logged():
+            return
+
+        login_form = self._form_hidden_inputs("login-form", login_page)
+        login_form.update({
+            'user[login]': username,
+            'user[password]': password,
+        })
+        login_post, login_post_urlh = self._download_webpage_handle(
+            self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(login_form), expected_status=[302, 401])
+
+        if login_post_urlh.status == 401:
+            reason = get_element_by_class('onboarding-form__general-error', login_post)
+            if reason:
+                raise ExtractorError(
+                    'Unable to log in: %s' % reason, expected=True)
+            raise ExtractorError('Unable to log in')
 
     def _real_initialize(self):
         self._api_key = self._download_json(
             'https://www.vidio.com/auth', None, data=b'')['api_key']
+        self._login()
 
     def _real_extract(self, url):
         video_id, display_id = re.match(self._VALID_URL, url).groups()
