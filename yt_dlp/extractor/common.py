@@ -952,6 +952,49 @@ class InfoExtractor(object):
             else:
                 self.report_warning(errmsg + str(ve))
 
+    def _parse_socket_response_as_json(self, data, video_id, transform_source=None, fatal=True):
+        return self._parse_json(
+            data[data.find('{'):data.rfind('}') + 1],
+            video_id, transform_source, fatal)
+
+    def _download_socket_json_handle(
+            self, url_or_request, video_id, note='Polling socket',
+            errnote='Unable to poll socket', transform_source=None,
+            fatal=True, encoding=None, data=None, headers={}, query={},
+            expected_status=None):
+        """
+        Return a tuple (JSON object, URL handle).
+
+        See _download_webpage docstring for arguments specification.
+        """
+        res = self._download_webpage_handle(
+            url_or_request, video_id, note, errnote, fatal=fatal,
+            encoding=encoding, data=data, headers=headers, query=query,
+            expected_status=expected_status)
+        if res is False:
+            return res
+        webpage, urlh = res
+        return self._parse_socket_response_as_json(
+            webpage, video_id, transform_source=transform_source,
+            fatal=fatal), urlh
+
+    def _download_socket_json(
+            self, url_or_request, video_id, note='Polling socket',
+            errnote='Unable to poll socket', transform_source=None,
+            fatal=True, encoding=None, data=None, headers={}, query={},
+            expected_status=None):
+        """
+        Return the JSON object as a dict.
+
+        See _download_webpage docstring for arguments specification.
+        """
+        res = self._download_socket_json_handle(
+            url_or_request, video_id, note=note, errnote=errnote,
+            transform_source=transform_source, fatal=fatal, encoding=encoding,
+            data=data, headers=headers, query=query,
+            expected_status=expected_status)
+        return res if res is False else res[0]
+
     def report_warning(self, msg, video_id=None, *args, **kwargs):
         idstr = '' if video_id is None else '%s: ' % video_id
         self._downloader.report_warning(
