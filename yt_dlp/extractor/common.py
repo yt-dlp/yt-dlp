@@ -3530,7 +3530,7 @@ class InfoExtractor(object):
         return compat_urllib_parse_unquote(os.path.splitext(url_basename(url))[0])
 
     @staticmethod
-    def _availability(is_private, needs_premium, needs_subscription, needs_auth, is_unlisted):
+    def _availability(is_private=None, needs_premium=None, needs_subscription=None, needs_auth=None, is_unlisted=None):
         all_known = all(map(
             lambda x: x is not None,
             (is_private, needs_premium, needs_subscription, needs_auth, is_unlisted)))
