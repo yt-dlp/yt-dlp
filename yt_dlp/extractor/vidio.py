@@ -50,6 +50,7 @@ class VidioIE(InfoExtractor):
         'only_matching': True
     }]
     _LOGIN_URL = 'https://www.vidio.com/users/login'
+    _NETRC_MACHINE = 'vidio'
 
     def _login(self):
         username, password = self._get_login_info()
