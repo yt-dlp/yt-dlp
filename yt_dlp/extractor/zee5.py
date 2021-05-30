@@ -98,7 +98,7 @@ class Zee5IE(InfoExtractor):
             compat_str)
         formats = self._extract_m3u8_formats(
             'https://zee5vodnd.akamaized.net' + m3u8_url.replace('/drm', '/hls', 1) + token_request['video_token'],
-            video_id, fatal=False)
+            video_id, 'mp4', fatal=False)
         mpd_url = try_get(
             json_data,
             (lambda x: x['video'][0], lambda x: x['video_details']['url']),

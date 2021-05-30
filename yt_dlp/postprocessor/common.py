@@ -100,7 +100,7 @@ class PostProcessor(object):
         else:
             use_compat = False
         return cli_configuration_args(
-            self._downloader.params.get('postprocessor_args'),
+            self.get_param('postprocessor_args'),
             keys, default, use_compat)
 
 

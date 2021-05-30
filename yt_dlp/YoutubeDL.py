@@ -70,6 +70,7 @@ from .utils import (
     int_or_none,
     iri_to_uri,
     ISO3166Utils,
+    LazyList,
     locked_file,
     make_dir,
     make_HTTPS_handler,
@@ -657,12 +658,10 @@ class YoutubeDL(object):
         """Print message to stdout"""
         if self.params.get('logger'):
             self.params['logger'].debug(message)
-        elif not quiet:
-            message = self._bidi_workaround(message)
-            terminator = ['\n', ''][skip_eol]
-            output = message + terminator
-
-            self._write_string(output, self._screen_file)
+        elif not quiet or self.params.get('verbose'):
+            self._write_string(
+                '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
+                self._err_file if quiet else self._screen_file)
 
     def to_stderr(self, message):
         """Print message to stderr"""
@@ -670,9 +669,7 @@ class YoutubeDL(object):
         if self.params.get('logger'):
             self.params['logger'].error(message)
         else:
-            message = self._bidi_workaround(message)
-            output = message + '\n'
-            self._write_string(output, self._err_file)
+            self._write_string('%s\n' % self._bidi_workaround(message), self._err_file)
 
     def to_console_title(self, message):
         if not self.params.get('consoletitle', False):
@@ -1016,11 +1013,12 @@ class YoutubeDL(object):
             path = encodeFilename(path, True).decode(preferredencoding())
         return sanitize_path(path, force=self.params.get('windowsfilenames'))
 
-    def _match_entry(self, info_dict, incomplete):
+    def _match_entry(self, info_dict, incomplete=False, silent=False):
         """ Returns None if the file should be downloaded """
 
+        video_title = info_dict.get('title', info_dict.get('id', 'video'))
+
         def check_filter():
-            video_title = info_dict.get('title', info_dict.get('id', 'video'))
             if 'title' in info_dict:
                 # This can happen when we're just evaluating the playlist
                 title = info_dict['title']
@@ -1047,8 +1045,6 @@ class YoutubeDL(object):
                     return 'Skipping %s, because it has exceeded the maximum view count (%d/%d)' % (video_title, view_count, max_views)
             if age_restricted(info_dict.get('age_limit'), self.params.get('age_limit')):
                 return 'Skipping "%s" because it is age restricted' % video_title
-            if self.in_download_archive(info_dict):
-                return '%s has already been recorded in archive' % video_title
 
             if not incomplete:
                 match_filter = self.params.get('match_filter')
@@ -1058,13 +1054,17 @@ class YoutubeDL(object):
                         return ret
             return None
 
-        reason = check_filter()
+        if self.in_download_archive(info_dict):
+            reason = '%s has already been recorded in the archive' % video_title
+            break_opt, break_err = 'break_on_existing', ExistingVideoReached
+        else:
+            reason = check_filter()
+            break_opt, break_err = 'break_on_reject', RejectedVideoReached
         if reason is not None:
-            self.to_screen('[download] ' + reason)
-            if reason.endswith('has already been recorded in the archive') and self.params.get('break_on_existing', False):
-                raise ExistingVideoReached()
-            elif self.params.get('break_on_reject', False):
-                raise RejectedVideoReached()
+            if not silent:
+                self.to_screen('[download] ' + reason)
+            if self.params.get(break_opt, False):
+                raise break_err()
         return reason
 
     @staticmethod
@@ -1307,7 +1307,7 @@ class YoutubeDL(object):
 
         playlist_results = []
 
-        playliststart = self.params.get('playliststart', 1) - 1
+        playliststart = self.params.get('playliststart', 1)
         playlistend = self.params.get('playlistend')
         # For backwards compatibility, interpret -1 as whole list
         if playlistend == -1:
@@ -1327,50 +1327,43 @@ class YoutubeDL(object):
             playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
 
         ie_entries = ie_result['entries']
+        msg = (
+            'Downloading %d videos' if not isinstance(ie_entries, list)
+            else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
+        if not isinstance(ie_entries, (list, PagedList)):
+            ie_entries = LazyList(ie_entries)
 
-        def make_playlistitems_entries(list_ie_entries):
-            num_entries = len(list_ie_entries)
-            for i in playlistitems:
-                if -num_entries < i <= num_entries:
-                    yield list_ie_entries[i - 1]
-                elif incomplete_entries:
+        entries = []
+        for i in playlistitems or itertools.count(playliststart):
+            if playlistitems is None and playlistend is not None and playlistend < i:
+                break
+            entry = None
+            try:
+                entry = ie_entries[i - 1]
+                if entry is None:
                     raise EntryNotInPlaylist()
-
-        if isinstance(ie_entries, list):
-            n_all_entries = len(ie_entries)
-            if playlistitems:
-                entries = list(make_playlistitems_entries(ie_entries))
-            else:
-                entries = ie_entries[playliststart:playlistend]
-            n_entries = len(entries)
-            msg = 'Collected %d videos; downloading %d of them' % (n_all_entries, n_entries)
-        elif isinstance(ie_entries, PagedList):
-            if playlistitems:
-                entries = []
-                for item in playlistitems:
-                    entries.extend(ie_entries.getslice(
-                        item - 1, item
-                    ))
-            else:
-                entries = ie_entries.getslice(
-                    playliststart, playlistend)
-            n_entries = len(entries)
-            msg = 'Downloading %d videos' % n_entries
-        else:  # iterable
-            if playlistitems:
-                entries = list(make_playlistitems_entries(list(itertools.islice(
-                    ie_entries, 0, max(playlistitems)))))
-            else:
-                entries = list(itertools.islice(
-                    ie_entries, playliststart, playlistend))
-            n_entries = len(entries)
-            msg = 'Downloading %d videos' % n_entries
-
-        if any((entry is None for entry in entries)):
-            raise EntryNotInPlaylist()
-        if not playlistitems and (playliststart or playlistend):
-            playlistitems = list(range(1 + playliststart, 1 + playliststart + len(entries)))
+            except (IndexError, EntryNotInPlaylist):
+                if incomplete_entries:
+                    raise EntryNotInPlaylist()
+                elif not playlistitems:
+                    break
+            entries.append(entry)
+            try:
+                if entry is not None:
+                    self._match_entry(entry, incomplete=True, silent=True)
+            except (ExistingVideoReached, RejectedVideoReached):
+                break
         ie_result['entries'] = entries
+
+        # Save playlist_index before re-ordering
+        entries = [
+            ((playlistitems[i - 1] if playlistitems else i), entry)
+            for i, entry in enumerate(entries, 1)
+            if entry is not None]
+        n_entries = len(entries)
+
+        if not playlistitems and (playliststart or playlistend):
+            playlistitems = list(range(playliststart, playliststart + n_entries))
         ie_result['requested_entries'] = playlistitems
 
         if self.params.get('allow_playlist_files', True):
@@ -1417,11 +1410,6 @@ class YoutubeDL(object):
                         self.report_error('Cannot write playlist description file ' + descfn)
                         return
 
-        # Save playlist_index before re-ordering
-        entries = [
-            ((playlistitems[i - 1] if playlistitems else i), entry)
-            for i, entry in enumerate(entries, 1)]
-
         if self.params.get('playlistreverse', False):
             entries = entries[::-1]
         if self.params.get('playlistrandom', False):
@@ -1429,7 +1417,7 @@ class YoutubeDL(object):
 
         x_forwarded_for = ie_result.get('__x_forwarded_for_ip')
 
-        self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg))
+        self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg % n_entries))
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
@@ -2327,7 +2315,7 @@ class YoutubeDL(object):
         if 'format' not in info_dict:
             info_dict['format'] = info_dict['ext']
 
-        if self._match_entry(info_dict, incomplete=False) is not None:
+        if self._match_entry(info_dict) is not None:
             return
 
         self.post_extract(info_dict)
@@ -2789,19 +2777,20 @@ class YoutubeDL(object):
 
     @staticmethod
     def filter_requested_info(info_dict, actually_filter=True):
-        info_dict.pop('__original_infodict', None)  # Always remove this
-        if not actually_filter:
+        remove_keys = ['__original_infodict']  # Always remove this since this may contain a copy of the entire dict
+        keep_keys = ['_type'],  # Always keep this to facilitate load-info-json
+        if actually_filter:
+            remove_keys += ('requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries')
+            empty_values = (None, {}, [], set(), tuple())
+            reject = lambda k, v: k not in keep_keys and (
+                k.startswith('_') or k in remove_keys or v in empty_values)
+        else:
             info_dict['epoch'] = int(time.time())
-            return info_dict
-        exceptions = {
-            'remove': ['requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries'],
-            'keep': ['_type'],
-        }
-        keep_key = lambda k: k in exceptions['keep'] or not (k.startswith('_') or k in exceptions['remove'])
+            reject = lambda k, v: k in remove_keys
         filter_fn = lambda obj: (
-            list(map(filter_fn, obj)) if isinstance(obj, (list, tuple))
+            list(map(filter_fn, obj)) if isinstance(obj, (list, tuple, set))
             else obj if not isinstance(obj, dict)
-            else dict((k, filter_fn(v)) for k, v in obj.items() if keep_key(k)))
+            else dict((k, filter_fn(v)) for k, v in obj.items() if not reject(k, v)))
         return filter_fn(info_dict)
 
     def run_pp(self, pp, infodict):
@@ -3243,7 +3232,7 @@ class YoutubeDL(object):
             thumb_ext = determine_ext(t['url'], 'jpg')
             suffix = '%s.' % t['id'] if multiple else ''
             thumb_display_id = '%s ' % t['id'] if multiple else ''
-            t['filepath'] = thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
+            thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
 
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
                 ret.append(suffix + thumb_ext)
@@ -3259,6 +3248,7 @@ class YoutubeDL(object):
                     ret.append(suffix + thumb_ext)
                     self.to_screen('[%s] %s: Writing thumbnail %sto: %s' %
                                    (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
+                    t['filepath'] = thumb_filename
                 except network_exceptions as err:
                     self.report_warning('Unable to download thumbnail "%s": %s' %
                                         (t['url'], error_to_compat_str(err)))

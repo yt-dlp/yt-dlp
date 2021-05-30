@@ -70,16 +70,20 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.to_screen('There aren\'t any thumbnails to embed')
             return [], info
 
-        thumbnail_filename = info['thumbnails'][-1]['filepath']
+        idx = next((-i for i, t in enumerate(info['thumbnails'][::-1], 1) if t.get('filepath')), None)
+        if idx is None:
+            self.to_screen('There are no thumbnails on disk')
+            return [], info
+        thumbnail_filename = info['thumbnails'][idx]['filepath']
         if not os.path.exists(encodeFilename(thumbnail_filename)):
             self.report_warning('Skipping embedding the thumbnail because the file is missing.')
             return [], info
 
         # Correct extension for WebP file with wrong extension (see #25687, #25717)
         convertor = FFmpegThumbnailsConvertorPP(self._downloader)
-        convertor.fixup_webp(info, -1)
+        convertor.fixup_webp(info, idx)
 
-        original_thumbnail = thumbnail_filename = info['thumbnails'][-1]['filepath']
+        original_thumbnail = thumbnail_filename = info['thumbnails'][idx]['filepath']
 
         # Convert unsupported thumbnail formats to PNG (see #25687, #25717)
         # Original behavior was to convert to JPG, but since JPG is a lossy
@@ -199,7 +203,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             with open(thumbnail_filename, 'rb') as thumbfile:
                 pic.data = thumbfile.read()
             pic.type = 3  # front cover
-            res = self._get_thumbnail_resolution(thumbnail_filename, info['thumbnails'][-1])
+            res = self._get_thumbnail_resolution(thumbnail_filename, info['thumbnails'][idx])
             if res is not None:
                 pic.width, pic.height = res
 
