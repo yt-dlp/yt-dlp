@@ -28,7 +28,6 @@ from ..utils import (
     RegexNotFoundError,
     str_to_int,
     str_or_none,
-    strip_or_none,
     try_get,
     unified_strdate,
     unified_timestamp,
@@ -368,8 +367,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
             # YouTube video pages appear to always have either 'YouTube -' as suffix or '- YouTube' as prefix.
             try:
                 page_title = self._html_search_regex(
-                        r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
-                        page_title, 'title', default='')
+                    r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
+                    page_title, 'title', default='')
             except RegexNotFoundError:
                 page_title = None
 
