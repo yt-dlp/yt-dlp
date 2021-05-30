@@ -9,13 +9,15 @@ from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_unquote_plus,
     compat_urlparse,
-    compat_parse_qs
+    compat_parse_qs,
+    compat_HTTPError
 )
 from ..utils import (
     clean_html,
     determine_ext,
     dict_get,
     extract_attributes,
+    ExtractorError,
     HEADRequest,
     int_or_none,
     KNOWN_EXTENSIONS,
@@ -26,7 +28,7 @@ from ..utils import (
     str_or_none,
     try_get,
     unified_strdate,
-    unified_timestamp
+    unified_timestamp,
 )
 
 
@@ -268,15 +270,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 (?P<id>[0-9A-Za-z_-]{11})(?:\#|&|$)
                 """
 
-    _INTERNAL_URL_TEMPLATE = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s'
-
     _TESTS = [
         {
             'url': 'https://web.archive.org/web/20150415002341/https://www.youtube.com/watch?v=aYAGB11YrSs',
             'info_dict': {
                 'id': 'aYAGB11YrSs',
                 'ext': 'webm',
-                'title': 'aYAGB11YrSs'
+                'title': 'Team Fortress 2 - Sandviches!'
             }
         },
         {
@@ -285,38 +285,99 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'info_dict': {
                 'id': '97t7Xj_iBv0',
                 'ext': 'mp4',
-                'title': '97t7Xj_iBv0'
+                'title': 'How Flexible Machines Could Save The World'
             }
-
         },
         {
-            # Video from 2012, webm format itag 45
+            # Video from 2012, webm format itag 45.
             'url': 'https://web.archive.org/web/20120712231619/http://www.youtube.com/watch?v=AkhihxRKcrs&gl=US&hl=en',
             'info_dict': {
                 'id': 'AkhihxRKcrs',
                 'ext': 'webm',
-                'title': 'AkhihxRKcrs'
+                'title': 'Limited Run: Mondo\'s Modern Classic 1 of 3 (SDCC 2012)'
             }
         },
         {
-            # Old flash-only video
+            # Old flash-only video. Webpage title starts with "YouTube - ".
             'url': 'https://web.archive.org/web/20081211103536/http://www.youtube.com/watch?v=jNQXAC9IVRw',
             'info_dict': {
                 'id': 'jNQXAC9IVRw',
                 'ext': 'unknown_video',
-                'title': 'jNQXAC9IVRw'
+                'title': 'Me at the zoo'
             }
+        },
+        {   # Some versions of Youtube have have "Youtube" as page title in html (and later rewritten by js).
+            'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
+            'info_dict': {
+                'id': 'kH-G_aIBlFw',
+                'ext': 'mp4',
+                'title': 'kH-G_aIBlFw'
+            },
+            'expected_warnings': [
+                'Unable to extract video title',
+            ]
+        },
+        {
+            # First capture is a 302 redirect intermediary page.
+            'url': 'https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=0altSZ96U4M',
+            'info_dict': {
+                'id': '0altSZ96U4M',
+                'ext': 'mp4',
+                'title': '0altSZ96U4M'
+            },
+            'expected_warnings': [
+                'Unable to extract video title',
+            ]
+        },
+        {
+            # Video not archived, only capture is unavailable video page
+            'url': 'https://web.archive.org/web/20210530071008/https://www.youtube.com/watch?v=lHJTf93HL1s&spfreload=10',
+            'only_matching': True,
         }
     ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        title = video_id  # if we are not able get a title
+
+        def _extract_title(webpage):
+            page_title = self._html_search_regex(r'<title>([^<]*)</title>', webpage, 'title', fatal=False) or ''
+            page_title = page_title.strip()
+            # Unavailable video captures will only have youtube suffix/prefix as page title.
+            if page_title.endswith("- YouTube"):
+                page_title = page_title[:-9].strip()
+            elif page_title.startswith("YouTube -"):
+                page_title = page_title[9:].strip()
+            else:
+                # Probably invalid title if doesn't have youtube suffix/prefix
+                self.report_warning("Unable to extract video title", video_id=video_id)
+                return
+            if not page_title:
+                self.report_warning("Unable to extract video title", video_id=video_id)
+                return
+            return page_title
+
+        # If the video is no longer available,
+        # the oldest capture may be one before it was removed
+        webpage = self._download_webpage(
+            "https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=%s" % video_id,
+            video_id=video_id, fatal=False, errnote="Unable to download video webpage (probably not archived)")
+        if webpage:
+            title = _extract_title(webpage) or title
+
         # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
-        internal_fake_url = self._INTERNAL_URL_TEMPLATE % video_id
-        video_file_webpage = self._request_webpage(
-            HEADRequest(internal_fake_url), video_id,
-            errnote='Video is not archived or issue with web.archive.org',
-            note="Fetching video file link")
+        internal_fake_url = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id
+        try:
+            video_file_webpage = self._request_webpage(
+                HEADRequest(internal_fake_url), video_id,
+                note="Fetching video file link", expected_status=True)
+        except ExtractorError as e:
+            # HTTP Error 404 is expected if the video is not saved.
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                raise ExtractorError(
+                    "HTTP Error %s. Most likely the video is not archived or issue with web.archive.org." % e.cause.code,
+                    expected=True)
+            raise
         video_file_url = compat_urllib_parse_unquote(video_file_webpage.url)
         video_file_url_qs = compat_parse_qs(compat_urlparse.urlparse(video_file_url).query)
 
@@ -332,7 +393,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             format.update({'ext': ext})
         return {
             'id': video_id,
-            'title': id,  # We are not able to get a title
+            'title': title,
             'formats': [format],
             'duration': str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
         }
