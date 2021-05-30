@@ -18,7 +18,7 @@ class VootIE(InfoExtractor):
                         (?:https?://)(?:www\.)?voot\.com/?
                         (?:
                             movies/[^/]+/|
-                            shows/[^/]+/\d+/\d+/[^/]+/
+                            (?:shows|kids)/(?:[^/]+/){4}
                         )
                      )
                     (?P<id>\d{3,})
@@ -44,6 +44,9 @@ class VootIE(InfoExtractor):
             'skip_download': True,
         },
         'expected_warnings': ['Failed to download m3u8 information'],
+    }, {
+        'url': 'https://www.voot.com/kids/characters/mighty-cat-masked-niyander-e-/400478/school-bag-disappears/440925',
+        'only_matching': True,
     }, {
         'url': 'https://www.voot.com/movies/pandavas-5/424627',
         'only_matching': True,
