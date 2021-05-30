@@ -257,18 +257,18 @@ class YoutubeWebArchiveIE(InfoExtractor):
     IE_NAME = 'youtube:web.archive.org'
     IE_DESC = 'web.archive.org saved youtube videos'
     _VALID_URL = r"""(?x)^
-                (?:https?://|//)?web\.archive\.org\/
+                (?:https?://)?web\.archive\.org\/
                     (?:web/)?
-                    (?:[0-9A-Za-z_*]+/)? # /web and the version index is optional
-                (?:https?:\/\/)?
+                    (?:[0-9A-Za-z_*]+/)?  # /web and the version index is optional
+                (?:https?://)?
                 (?:
-                    (?:\w+\.)?youtube\.com\/watch\?v= # Youtube URL
-                    |(wayback-fakeurl\.archive\.org\/yt\/) # Or optionally, also support the internal fake url
+                    (?:\w+\.)?youtube\.com\/watch\?v=  # Youtube URL
+                    |(wayback-fakeurl\.archive\.org\/yt\/)  # Or optionally, also support the internal fake url
                 )
-                (?P<id>[0-9A-Za-z_-]{11})(?(1).+)?(?:\#|&|$)
+                (?P<id>[0-9A-Za-z_-]{11})(?:\#|&|$)
                 """
 
-    _INTERNAL_URL_TEMPLATE = "https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s"
+    _INTERNAL_URL_TEMPLATE = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s'
 
     _TESTS = [
         {
@@ -276,7 +276,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'info_dict': {
                 'id': 'aYAGB11YrSs',
                 'ext': 'webm',
-                'title': 'Unknown Video'
+                'title': 'aYAGB11YrSs'
             }
         },
         {
@@ -285,7 +285,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'info_dict': {
                 'id': '97t7Xj_iBv0',
                 'ext': 'mp4',
-                'title': 'Unknown Video'
+                'title': '97t7Xj_iBv0'
             }
 
         },
@@ -295,7 +295,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'info_dict': {
                 'id': 'AkhihxRKcrs',
                 'ext': 'webm',
-                'title': 'Unknown Video'
+                'title': 'AkhihxRKcrs'
             }
         },
         {
@@ -304,7 +304,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'info_dict': {
                 'id': 'jNQXAC9IVRw',
                 'ext': 'unknown_video',
-                'title': 'Unknown Video'
+                'title': 'jNQXAC9IVRw'
             }
         }
     ]
@@ -314,7 +314,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
         # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
         internal_fake_url = self._INTERNAL_URL_TEMPLATE % video_id
         video_file_webpage = self._request_webpage(
-            HEADRequest(internal_fake_url), video_id, errnote='Video is not archived or issue with web.archive.org')
+            HEADRequest(internal_fake_url), video_id,
+            errnote='Video is not archived or issue with web.archive.org',
+            note="Fetching video file link")
         video_file_url = compat_urllib_parse_unquote(video_file_webpage.url)
         video_file_url_qs = compat_parse_qs(compat_urlparse.urlparse(video_file_url).query)
 
@@ -330,7 +332,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             format.update({'ext': ext})
         return {
             'id': video_id,
-            'title': 'Unknown Video',  # In this case we are not able to get a title reliably.
+            'title': id,  # We are not able to get a title
             'formats': [format],
             'webpage_url': url,
             'duration': str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
