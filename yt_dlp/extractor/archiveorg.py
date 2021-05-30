@@ -357,8 +357,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 return
             return page_title
 
-        # If the video is no longer available,
-        # the oldest capture may be one before it was removed
+        # If the video is no longer available, the oldest capture may be one before it was removed.
+        # Setting the capture date in url to early date seems to redirect to earliest capture.
         webpage = self._download_webpage(
             "https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=%s" % video_id,
             video_id=video_id, fatal=False, errnote="Unable to download video webpage (probably not archived)")
