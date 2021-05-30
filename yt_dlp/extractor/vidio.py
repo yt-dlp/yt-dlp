@@ -103,7 +103,7 @@ class VidioIE(InfoExtractor):
                 'https://www.vidio.com/interactions_stream.json?video_id=%s&type=videos' % video_id,
                 display_id, note='Downloading premier API JSON')
             if not (sources.get('source') or sources.get('source_dash')):
-                self.raise_login_required()
+                self.raise_login_required('This video is only available for registered users with a premier subscription.')
 
             formats, subs = [], {}
             if sources.get('source'):
