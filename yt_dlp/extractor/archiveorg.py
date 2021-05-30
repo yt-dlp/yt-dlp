@@ -24,6 +24,7 @@ from ..utils import (
     merge_dicts,
     mimetype2ext,
     parse_duration,
+    RegexNotFoundError,
     str_to_int,
     str_or_none,
     try_get,
@@ -306,6 +307,16 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'Me at the zoo'
             }
         },
+        {
+            # Flash video with .flv extension (itag 34). Title has prefix "YouTube         -"
+            # Title has some weird unicode characters too.
+            'url': 'https://web.archive.org/web/20110712231407/http://www.youtube.com/watch?v=lTx3G6h2xyA',
+            'info_dict': {
+                'id': 'lTx3G6h2xyA',
+                'ext': 'flv',
+                'title': '‪Madeon - Pop Culture (live mashup)‬‏'
+            }
+        },
         {   # Some versions of Youtube have have "Youtube" as page title in html (and later rewritten by js).
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'info_dict': {
@@ -314,7 +325,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'kH-G_aIBlFw'
             },
             'expected_warnings': [
-                'Unable to extract video title',
+                'unable to extract title',
             ]
         },
         {
@@ -326,7 +337,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': '0altSZ96U4M'
             },
             'expected_warnings': [
-                'Unable to extract video title',
+                'unable to extract title',
             ]
         },
         {
@@ -343,17 +354,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
         def _extract_title(webpage):
             page_title = self._html_search_regex(r'<title>([^<]*)</title>', webpage, 'title', fatal=False) or ''
             page_title = page_title.strip()
-            # Unavailable video captures will only have youtube suffix/prefix as page title.
-            if page_title.endswith("- YouTube"):
-                page_title = page_title[:-9].strip()
-            elif page_title.startswith("YouTube -"):
-                page_title = page_title[9:].strip()
-            else:
-                # Probably invalid title if doesn't have youtube suffix/prefix
-                self.report_warning("Unable to extract video title", video_id=video_id)
+            try:
+                page_title = self._search_regex(r"(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)", page_title, 'title', fatal=True, default='').strip()
+            except RegexNotFoundError:
+                self.report_warning('unable to extract title')
                 return
             if not page_title:
-                self.report_warning("Unable to extract video title", video_id=video_id)
+                self.report_warning("unable to extract title", video_id=video_id)
                 return
             return page_title
 
