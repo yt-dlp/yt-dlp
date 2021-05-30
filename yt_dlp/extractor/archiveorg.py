@@ -356,20 +356,20 @@ class YoutubeWebArchiveIE(InfoExtractor):
             page_title = strip_or_none(self._html_search_regex(r'<title>([^<]*)</title>', webpage, 'title', fatal=False), default='')
             # YouTube video pages appear to always have either 'YouTube -' as suffix or '- YouTube' as prefix.
             try:
-                page_title = strip_or_none(self._search_regex(r"(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)", page_title, 'title', default=''))
+                page_title = strip_or_none(self._search_regex(r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)', page_title, 'title', default=''))
             except RegexNotFoundError:
                 self.report_warning('unable to extract title')
                 return
             if not page_title:
-                self.report_warning("unable to extract title", video_id=video_id)
+                self.report_warning('unable to extract title', video_id=video_id)
                 return
             return page_title
 
         # If the video is no longer available, the oldest capture may be one before it was removed.
         # Setting the capture date in url to early date seems to redirect to earliest capture.
         webpage = self._download_webpage(
-            "https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=%s" % video_id,
-            video_id=video_id, fatal=False, errnote="unable to download video webpage (probably not archived).")
+            'https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=%s' % video_id,
+            video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived).')
         if webpage:
             title = _extract_title(webpage) or title
 
@@ -378,12 +378,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
         try:
             video_file_webpage = self._request_webpage(
                 HEADRequest(internal_fake_url), video_id,
-                note="Fetching video file link", expected_status=True)
+                note='Fetching video file link', expected_status=True)
         except ExtractorError as e:
             # HTTP Error 404 is expected if the video is not saved.
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
                 raise ExtractorError(
-                    "HTTP Error %s. Most likely the video is not archived or issue with web.archive.org." % e.cause.code,
+                    'HTTP Error %s. Most likely the video is not archived or issue with web.archive.org.' % e.cause.code,
                     expected=True)
             raise
         video_file_url = compat_urllib_parse_unquote(video_file_webpage.url)
