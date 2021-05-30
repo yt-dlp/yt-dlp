@@ -259,8 +259,8 @@ class ArchiveOrgIE(InfoExtractor):
 
 
 class YoutubeWebArchiveIE(InfoExtractor):
-    IE_NAME = 'youtube:web.archive.org'
-    IE_DESC = 'web.archive.org saved youtube videos'
+    IE_NAME = 'web.archive:youtube'
+    IE_DESC = 'internet archive saved youtube videos'
     _VALID_URL = r"""(?x)^
                 (?:https?://)?web\.archive\.org/
                     (?:web/)?
@@ -347,6 +347,14 @@ class YoutubeWebArchiveIE(InfoExtractor):
             # Video not archived, only capture is unavailable video page
             'url': 'https://web.archive.org/web/20210530071008/https://www.youtube.com/watch?v=lHJTf93HL1s&spfreload=10',
             'only_matching': True,
+        },
+        {   # Encoded url
+            'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fgl%3DUS%26v%3DAkhihxRKcrs%26hl%3Den',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fv%3DAkhihxRKcrs%26gl%3DUS%26hl%3Den',
+            'only_matching': True,
         }
     ]
 
@@ -355,13 +363,17 @@ class YoutubeWebArchiveIE(InfoExtractor):
         title = video_id  # if we are not able get a title
 
         def _extract_title(webpage):
-            page_title = strip_or_none(self._html_search_regex(r'<title>([^<]*)</title>', webpage, 'title', fatal=False), default='')
+            page_title = self._html_search_regex(
+                r'<title>([^<]*)</title>', webpage, 'title', fatal=False) or ''
             # YouTube video pages appear to always have either 'YouTube -' as suffix or '- YouTube' as prefix.
             try:
-                page_title = strip_or_none(self._search_regex(r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)', page_title, 'title', default=''))
+                page_title = strip_or_none(
+                    self._search_regex(
+                        r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
+                        page_title, 'title', default=''))
             except RegexNotFoundError:
-                self.report_warning('unable to extract title')
-                return
+                page_title = None
+
             if not page_title:
                 self.report_warning('unable to extract title', video_id=video_id)
                 return
