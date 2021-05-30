@@ -367,10 +367,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 r'<title>([^<]*)</title>', webpage, 'title', fatal=False) or ''
             # YouTube video pages appear to always have either 'YouTube -' as suffix or '- YouTube' as prefix.
             try:
-                page_title = strip_or_none(
-                    self._search_regex(
+                page_title = self._html_search_regex(
                         r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
-                        page_title, 'title', default=''))
+                        page_title, 'title', default='')
             except RegexNotFoundError:
                 page_title = None
 
