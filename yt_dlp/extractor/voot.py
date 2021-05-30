@@ -91,7 +91,6 @@ class VootIE(InfoExtractor):
                 episode = value
             elif key == 'EpisodeNo':
                 episode_number = int_or_none(value)
-
         return {
             'extractor_key': 'Kaltura',
             'id': entry_id,
@@ -125,15 +124,14 @@ class VootSeriesIE(InfoExtractor):
         },
     }]
     _SHOW_API = 'https://psapi.voot.com/media/voot/v1/voot-web/content/generic/season-by-show?sort=season%3Aasc&id={}&responseType=common'
-    _SEASON_API = 'https://psapi.voot.com/media/voot/v1/voot-web/content/generic/series-wise-episode?sort=episode%3Aasc&id={}&responseType=common&page={}'
+    _SEASON_API = 'https://psapi.voot.com/media/voot/v1/voot-web/content/generic/series-wise-episode?sort=episode%3Aasc&id={}&responseType=common&page={:d}'
 
     def _entries(self, show_id):
-
         show_json = self._download_json(self._SHOW_API.format(show_id), video_id=show_id)
         for season in show_json.get('result', []):
             page_num = 1
             season_id = try_get(season, lambda x: x['id'], compat_str)
-            season_json = self._download_json(self._SEASON_API.format(season_id, compat_str(page_num)),
+            season_json = self._download_json(self._SEASON_API.format(season_id, page_num),
                                               video_id=season_id,
                                               note='Downloading JSON metadata page %d' % page_num)
             episodes_json = season_json.get('result', [])
@@ -142,9 +140,8 @@ class VootSeriesIE(InfoExtractor):
                 for episode in episodes_json:
                     video_id = episode.get('id')
                     yield self.url_result(
-                        'voot:%s' % video_id,
-                        ie=VootIE.ie_key(), video_id=video_id)
-                episodes_json = self._download_json(self._SEASON_API.format(season_id, compat_str(page_num)),
+                        'voot:%s' % video_id, ie=VootIE.ie_key(), video_id=video_id)
+                episodes_json = self._download_json(self._SEASON_API.format(season_id, page_num),
                                                     video_id=season_id,
                                                     note='Downloading JSON metadata page %d' % page_num)['result']
 
