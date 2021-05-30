@@ -73,5 +73,5 @@ class DashSegmentsFD(FragmentFD):
             if not success:
                 return False
         else:
-            self.download_and_append_fragments(ctx, fragments_to_download)
+            self.download_and_append_fragments(ctx, fragments_to_download, info_dict)
         return True

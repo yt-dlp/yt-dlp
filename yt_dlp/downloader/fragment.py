@@ -315,7 +315,7 @@ class FragmentFD(FileDownloader):
             'fragment_index': 0,
         })
 
-    def download_and_append_fragments(self, ctx, fragments, pack_func=None):
+    def download_and_append_fragments(self, ctx, fragments, info_dict, pack_func=None):
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
         test = self.params.get('test', False)
@@ -323,9 +323,9 @@ class FragmentFD(FileDownloader):
             pack_func = lambda frag_content, _: frag_content
 
         def download_fragment(fragment):
-            i = fragment['index']
             frag_index = fragment['frag_index']
             frag_url = fragment['url']
+            i = fragment.get('index') or frag_index
 
             ctx['fragment_index'] = frag_index
             headers = info_dict.get('http_headers', {})

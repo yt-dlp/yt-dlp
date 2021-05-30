@@ -268,7 +268,7 @@ class HlsFD(FragmentFD):
             if not success:
                 return False
         else:
-            if is_webvtt
+            if is_webvtt:
                 def pack_fragment(frag_content, frag_index):
                     output = io.StringIO()
                     adjust = 0
@@ -337,5 +337,5 @@ class HlsFD(FragmentFD):
                     return output.getvalue().encode('utf-8')
             else:
                 pack_fragment = None
-            self.download_and_append_fragments(ctx, fragments, pack_fragment)
+            self.download_and_append_fragments(ctx, fragments, info_dict, pack_fragment)
         return True
