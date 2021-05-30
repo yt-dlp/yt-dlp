@@ -1,7 +1,9 @@
 # coding: utf-8
+
 from __future__ import unicode_literals
+
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import ExtractorError, try_get
 
 
 class SaitosanIE(InfoExtractor):
@@ -43,11 +45,8 @@ class SaitosanIE(InfoExtractor):
     def _real_extract(self, url):
         b_id = self._match_id(url)
 
-        def format_socket_response_as_json(data):
-            return self._parse_json(data[data.find('{'):data.rfind('}') + 1], b_id)
-
         base = 'http://hankachi.saitosan-api.net:8002/socket.io/?transport=polling&EIO=3'
-        sid = format_socket_response_as_json(self._download_webpage(base, b_id, note='Opening socket')).get('sid')
+        sid = self._download_socket_json(base, b_id, note='Opening socket').get('sid')
         base += '&sid=' + sid
 
         self._download_webpage(base, b_id, note='Polling socket')
@@ -55,31 +54,25 @@ class SaitosanIE(InfoExtractor):
         payload = '%s:%s' % (len(payload), payload)
 
         self._download_webpage(base, b_id, data=payload, note='Polling socket with payload')
-        should_continue = format_socket_response_as_json(self._download_webpage(base, b_id, note='Polling socket')).get('ok')
-        if not should_continue:
-            # The socket does not give any specific error messages.
+        response = self._download_socket_json(base, b_id, note='Polling socket')
+        if not response.get('ok'):
+            err = response.get('error') or {}
             raise ExtractorError(
-                "The socket reported that the broadcast could not be joined. Maybe it's offline or the URL is incorrect",
+                '%s said: %s - %s' % (self.IE_NAME, err.get('code', '?'), err.get('msg', 'Unknown')) if err
+                else 'The socket reported that the broadcast could not be joined. Maybe it\'s offline or the URL is incorrect',
                 expected=True, video_id=b_id)
 
         self._download_webpage(base, b_id, data='26:421["room_finish_join",{}]', note='Polling socket')
-        b_data = format_socket_response_as_json(self._download_webpage(base, b_id, note='Getting broadcast metadata from socket'))
-
-        self._download_webpage(base, b_id, data='1:1', note='Closing socket')
-
-        title = b_data.get('name')
-        uploader = b_data.get('broadcast_user')
-        uploader_name = uploader.get('name')  # same as title
-
+        b_data = self._download_socket_json(base, b_id, note='Getting broadcast metadata from socket')
         m3u8_url = b_data.get('url')
-        thumbnail = m3u8_url.replace('av.m3u8', 'thumb')
-        formats = self._extract_m3u8_formats(m3u8_url, b_id, 'mp4', live=True)
+
+        self._download_webpage(base, b_id, data='1:1', note='Closing socket', fatal=False)
 
         return {
             'id': b_id,
-            'title': title,
-            'formats': formats,
-            'thumbnail': thumbnail,
-            'uploader': uploader_name,
+            'title': b_data.get('name'),
+            'formats': self._extract_m3u8_formats(m3u8_url, b_id, 'mp4', live=True),
+            'thumbnail': m3u8_url.replace('av.m3u8', 'thumb'),
+            'uploader': try_get(b_data, lambda x: x['broadcast_user']['name']),  # same as title
             'is_live': True
         }
