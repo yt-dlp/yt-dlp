@@ -9,45 +9,44 @@ from distutils.spawn import spawn
 
 
 # Get the version from yt_dlp/version.py without importing the package
-exec(compile(open('yt_dlp/version.py').read(),
-             'yt_dlp/version.py', 'exec'))
+exec(compile(open('yt_dlp/version.py').read(), 'yt_dlp/version.py', 'exec'))
 
 
 DESCRIPTION = 'Command-line program to download videos from YouTube.com and many other other video platforms.'
 
 LONG_DESCRIPTION = '\n\n'.join((
     'Official repository: <https://github.com/yt-dlp/yt-dlp>',
-    '**PS**: Many links in this document will not work since this is a copy of the README.md from Github',
+    '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
     open('README.md', 'r', encoding='utf-8').read()))
 
 REQUIREMENTS = ['mutagen', 'pycryptodome']
 
+if sys.argv[1:2] == ['py2exe']:
+    raise NotImplementedError('py2exe is not currently supported; instead, use "pyinst.py" to build with pyinstaller')
 
-if len(sys.argv) >= 2 and sys.argv[1] == 'py2exe':
-    print('inv')
-else:
-    files_spec = [
-        ('share/bash-completion/completions', ['completions/bash/yt-dlp']),
-        ('share/zsh/site-functions', ['completions/zsh/_yt-dlp']),
-        ('share/fish/vendor_completions.d', ['completions/fish/yt-dlp.fish']),
-        ('share/doc/yt_dlp', ['README.txt']),
-        ('share/man/man1', ['yt-dlp.1'])
-    ]
-    root = os.path.dirname(os.path.abspath(__file__))
-    data_files = []
-    for dirname, files in files_spec:
-        resfiles = []
-        for fn in files:
-            if not os.path.exists(fn):
-                warnings.warn('Skipping file %s since it is not present. Try running `make pypi-files` first.' % fn)
-            else:
-                resfiles.append(fn)
-        data_files.append((dirname, resfiles))
 
-    params = {
-        'data_files': data_files,
-    }
-    params['entry_points'] = {'console_scripts': ['yt-dlp = yt_dlp:main']}
+files_spec = [
+    ('share/bash-completion/completions', ['completions/bash/yt-dlp']),
+    ('share/zsh/site-functions', ['completions/zsh/_yt-dlp']),
+    ('share/fish/vendor_completions.d', ['completions/fish/yt-dlp.fish']),
+    ('share/doc/yt_dlp', ['README.txt']),
+    ('share/man/man1', ['yt-dlp.1'])
+]
+root = os.path.dirname(os.path.abspath(__file__))
+data_files = []
+for dirname, files in files_spec:
+    resfiles = []
+    for fn in files:
+        if not os.path.exists(fn):
+            warnings.warn('Skipping file %s since it is not present. Try running `make pypi-files` first' % fn)
+        else:
+            resfiles.append(fn)
+    data_files.append((dirname, resfiles))
+
+params = {
+    'data_files': data_files,
+}
+params['entry_points'] = {'console_scripts': ['yt-dlp = yt_dlp:main']}
 
 
 class build_lazy_extractors(Command):
@@ -61,10 +60,8 @@ class build_lazy_extractors(Command):
         pass
 
     def run(self):
-        spawn(
-            [sys.executable, 'devscripts/make_lazy_extractors.py', 'yt_dlp/extractor/lazy_extractors.py'],
-            dry_run=self.dry_run,
-        )
+        spawn([sys.executable, 'devscripts/make_lazy_extractors.py', 'yt_dlp/extractor/lazy_extractors.py'],
+              dry_run=self.dry_run)
 
 
 packages = find_packages(exclude=('youtube_dl', 'test', 'ytdlp_plugins'))
