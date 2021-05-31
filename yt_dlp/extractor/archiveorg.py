@@ -319,7 +319,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': '‪Madeon - Pop Culture (live mashup)‬‏'
             }
         },
-        {   # Some versions of Youtube have have "Youtube" as page title in html (and later rewritten by js).
+        {   # Some versions of Youtube have have "YouTube" as page title in html (and later rewritten by js).
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'info_dict': {
                 'id': 'kH-G_aIBlFw',
