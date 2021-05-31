@@ -259,7 +259,7 @@ class ArchiveOrgIE(InfoExtractor):
 
 class YoutubeWebArchiveIE(InfoExtractor):
     IE_NAME = 'web.archive:youtube'
-    IE_DESC = 'internet archive saved youtube videos'
+    IE_DESC = 'web.archive.org saved youtube videos'
     _VALID_URL = r"""(?x)^
                 (?:https?://)?web\.archive\.org/
                     (?:web/)?
