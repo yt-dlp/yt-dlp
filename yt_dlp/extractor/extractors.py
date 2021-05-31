@@ -67,7 +67,10 @@ from .appletrailers import (
     AppleTrailersSectionIE,
 )
 from .applepodcasts import ApplePodcastsIE
-from .archiveorg import ArchiveOrgIE
+from .archiveorg import (
+    ArchiveOrgIE,
+    YoutubeWebArchiveIE,
+)
 from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
 from .ard import (
