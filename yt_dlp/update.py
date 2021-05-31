@@ -87,10 +87,19 @@ def run_update(ydl):
                 h.update(mv[:n])
         return h.hexdigest()
 
-    if not isinstance(globals().get('__loader__'), zipimporter) and not hasattr(sys, 'frozen'):
-        return report_error(
-            'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. '
-            'Please use that to update', expected=True)
+    err = None
+    if isinstance(globals().get('__loader__'), zipimporter):
+        # We only support python 3.6 or above
+        if sys.version_info < (3, 6):
+            err = 'This is the last release of yt-dlp for Python version %d.%d! Please update to Python 3.6 or above' % sys.version_info[:2]
+    elif hasattr(sys, 'frozen'):
+        # Python 3.6 supports only vista and above
+        if sys.getwindowsversion()[0] < 6:
+            err = 'This is the last release of yt-dlp for your version of Windows. Please update to Windows Vista or above'
+    else:
+        err = 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Please use that to update'
+    if err:
+        return report_error(err, expected=True)
 
     # sys.executable is set to the full pathname of the exe-file for py2exe
     # though symlinks are not followed so that we need to do this manually
@@ -117,7 +126,6 @@ def run_update(ydl):
 
     version_labels = {
         'zip_3': '',
-        'zip_2': '',
         'exe_64': '.exe',
         'exe_32': '_x86.exe',
     }
@@ -202,8 +210,7 @@ def run_update(ydl):
     # Zip unix package
     elif isinstance(globals().get('__loader__'), zipimporter):
         try:
-            py_ver = platform.python_version()[0]
-            url = get_bin_info('zip', py_ver).get('browser_download_url')
+            url = get_bin_info('zip', '3').get('browser_download_url')
             if not url:
                 return report_error('unable to fetch updates', True)
             urlh = ydl._opener.open(url)
@@ -212,7 +219,7 @@ def run_update(ydl):
         except (IOError, OSError, StopIteration):
             return report_error('unable to download latest version', True)
 
-        expected_sum = get_sha256sum('zip', py_ver)
+        expected_sum = get_sha256sum('zip', '3')
         if expected_sum and hashlib.sha256(newcontent).hexdigest() != expected_sum:
             return report_error('unable to verify the new zip', True)
 
