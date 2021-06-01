@@ -25,7 +25,7 @@
 * Pre-check archive and filters during playlist extraction
 * Handle Basic Auth `user:pass` in URLs by [hhirtz](https://github.com/hhirtz) and [pukkandan](https://github.com/pukkandan)
 * [archiveorg] Add YoutubeWebArchiveIE by [colethedj](https://github.com/colethedj) and [alex-gedeon](https://github.com/alex-gedeon)
-* [fancode] Add extractor by [rmsmachine](https://github.com/rmsmachine)
+* [fancode] Add extractor by [rhsmachine](https://github.com/rhsmachine)
 * [patreon] Support vimeo embeds by [rhsmachine](https://github.com/rhsmachine)
 * [Saitosan] Add new extractor by [llacb47](https://github.com/llacb47)
 * [ShemarooMe] Add extractor by [Ashish0804](https://github.com/Ashish0804) and [pukkandan](https://github.com/pukkandan)
@@ -400,7 +400,7 @@
 
 ### 2021.02.15
 * Merge youtube-dl: Upto [2021.02.10](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.02.10) (except archive.org)
-* [niconico] Improved extraction and support encrypted/SMILE movies by [kurumigi](https://github.com/kurumigi), [tsukumi](https://github.com/tsukumi), [bbepis](https://github.com/bbepis), [pukkandan](https://github.com/pukkandan)
+* [niconico] Improved extraction and support encrypted/SMILE movies by [kurumigi](https://github.com/kurumigi), [tsukumijima](https://github.com/tsukumijima), [bbepis](https://github.com/bbepis), [pukkandan](https://github.com/pukkandan)
 * Fix HLS AES-128 with multiple keys in external downloaders by [shirt](https://github.com/shirt-dev)
 * [youtube_live_chat] Fix by using POST API by [siikamiika](https://github.com/siikamiika)
 * [rumble] Add support for video page
