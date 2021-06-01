@@ -2165,7 +2165,7 @@ def sanitize_url(url):
     for mistake, fixup in COMMON_TYPOS:
         if re.match(mistake, url):
             return re.sub(mistake, fixup, url)
-    return escape_url(url)
+    return url
 
 
 def extract_basic_auth(url):
@@ -2181,7 +2181,7 @@ def extract_basic_auth(url):
 
 
 def sanitized_Request(url, *args, **kwargs):
-    url, auth_header = extract_basic_auth(sanitize_url(url))
+    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
     if auth_header is not None:
         headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
         headers['Authorization'] = auth_header
