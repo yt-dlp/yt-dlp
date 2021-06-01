@@ -505,6 +505,7 @@ from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
     HotStarIE,
     HotStarPlaylistIE,
+    HotStarSeriesIE,
 )
 from .howcast import HowcastIE
 from .howstuffworks import HowStuffWorksIE
