@@ -88,16 +88,13 @@ class HotStarBaseIE(InfoExtractor):
 class HotStarIE(HotStarBaseIE):
     IE_NAME = 'hotstar'
     _VALID_URL = r'''(?x)
-                        https?://(?:www\.)?hotstar\.com(?:/in)?/
-                        (?:
-                            sports/[^/]+/[^/]+/|
-                            movies/[^/]+/|
-                            tv/[^/]+/[^/]+/[^/]+/|
-                            [^/]{3,}/|
-                            |
-                        )
-                    (?P<id>\d{10})
-                '''
+                           https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
+                           (?:
+                               tv/(?:[^/?#]+/){3}|
+                               (?!tv/)[^?#]+/
+                           )?
+                           (?P<id>\d{10})
+                   '''
     _TESTS = [{
         # contentData
         'url': 'https://www.hotstar.com/can-you-not-spread-rumours/1000076273',
