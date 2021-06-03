@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+
+# yt-dlp --help | make_readme.py
+# This must be run in a console of correct width
+
 from __future__ import unicode_literals
 
 import io
