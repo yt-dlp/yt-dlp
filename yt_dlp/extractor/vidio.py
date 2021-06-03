@@ -9,46 +9,16 @@ from ..utils import (
     get_element_by_class,
     int_or_none,
     parse_iso8601,
+    smuggle_url,
     str_or_none,
     strip_or_none,
     try_get,
+    unsmuggle_url,
     urlencode_postdata,
 )
 
 
-class VidioIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?vidio\.com/watch/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
-    _TESTS = [{
-        'url': 'http://www.vidio.com/watch/165683-dj_ambred-booyah-live-2015',
-        'md5': 'cd2801394afc164e9775db6a140b91fe',
-        'info_dict': {
-            'id': '165683',
-            'display_id': 'dj_ambred-booyah-live-2015',
-            'ext': 'mp4',
-            'title': 'DJ_AMBRED - Booyah (Live 2015)',
-            'description': 'md5:27dc15f819b6a78a626490881adbadf8',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 149,
-            'like_count': int,
-            'uploader': 'TWELVE Pic',
-            'timestamp': 1444902800,
-            'upload_date': '20151015',
-            'uploader_id': 'twelvepictures',
-            'channel': 'Cover Music Video',
-            'channel_id': '280236',
-            'view_count': int,
-            'dislike_count': int,
-            'comment_count': int,
-            'tags': 'count:4',
-        },
-    }, {
-        'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
-        'only_matching': True,
-    }, {
-        # Premier-exclusive video
-        'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
-        'only_matching': True
-    }]
+class VidioBaseIE(InfoExtractor):
     _LOGIN_URL = 'https://www.vidio.com/users/login'
     _NETRC_MACHINE = 'vidio'
 
@@ -88,13 +58,56 @@ class VidioIE(InfoExtractor):
             'https://www.vidio.com/auth', None, data=b'')['api_key']
         self._login()
 
+    def _call_api(self, url, video_id, note=None):
+        return self._download_json(url, video_id, note=note, headers={
+            'Content-Type': 'application/vnd.api+json',
+            'X-API-KEY': self._api_key,
+        })
+
+
+class VidioIE(VidioBaseIE):
+    _VALID_URL = r'''(?x)
+                    (?:
+                        vidio:|
+                        https?://(?:www\.)?vidio\.com/watch/
+                    )(?P<id>\d+)(-(?P<display_id>[^/?#&]+))?
+                '''
+    _TESTS = [{
+        'url': 'http://www.vidio.com/watch/165683-dj_ambred-booyah-live-2015',
+        'md5': 'cd2801394afc164e9775db6a140b91fe',
+        'info_dict': {
+            'id': '165683',
+            'display_id': 'dj_ambred-booyah-live-2015',
+            'ext': 'mp4',
+            'title': 'DJ_AMBRED - Booyah (Live 2015)',
+            'description': 'md5:27dc15f819b6a78a626490881adbadf8',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 149,
+            'like_count': int,
+            'uploader': 'TWELVE Pic',
+            'timestamp': 1444902800,
+            'upload_date': '20151015',
+            'uploader_id': 'twelvepictures',
+            'channel': 'Cover Music Video',
+            'channel_id': '280236',
+            'view_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'tags': 'count:4',
+        },
+    }, {
+        'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
+        'only_matching': True,
+    }, {
+        # Premier-exclusive video
+        'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
+        'only_matching': True
+    }]
+
     def _real_extract(self, url):
-        video_id, display_id = re.match(self._VALID_URL, url).groups()
-        data = self._download_json(
-            'https://api.vidio.com/videos/' + video_id, display_id, headers={
-                'Content-Type': 'application/vnd.api+json',
-                'X-API-KEY': self._api_key,
-            })
+        match = re.match(self._VALID_URL, url).groupdict()
+        video_id, display_id = match.get('id'), match.get('display_id')
+        data = self._call_api('https://api.vidio.com/videos/' + video_id, display_id)
         video = data['videos'][0]
         title = video['title'].strip()
         is_premium = video.get('is_premium')
@@ -103,7 +116,7 @@ class VidioIE(InfoExtractor):
                 'https://www.vidio.com/interactions_stream.json?video_id=%s&type=videos' % video_id,
                 display_id, note='Downloading premier API JSON')
             if not (sources.get('source') or sources.get('source_dash')):
-                self.raise_login_required('This video is only available for registered users with a premier subscription.')
+                self.raise_login_required('This video is only available for registered users with the appropriate subscription')
 
             formats, subs = [], {}
             if sources.get('source'):
@@ -149,4 +162,135 @@ class VidioIE(InfoExtractor):
             'dislike_count': get_count('dislikes'),
             'comment_count': get_count('comments'),
             'tags': video.get('tag_list'),
+        }
+
+
+class VidioPremierIE(VidioBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?vidio\.com/premier/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
+    _TESTS = [{
+        'url': 'https://www.vidio.com/premier/2885/badai-pasti-berlalu',
+        'playlist_mincount': 14,
+    }, {
+        # Series with both free and premier-exclusive videos
+        'url': 'https://www.vidio.com/premier/2567/sosmed',
+        'only_matching': True,
+    }]
+
+    def _playlist_entries(self, playlist_url, display_id):
+        index = 1
+        while playlist_url:
+            playlist_json = self._call_api(playlist_url, display_id, 'Downloading API JSON page %s' % index)
+            for video_json in playlist_json.get('data', []):
+                link = video_json['links']['watchpage']
+                yield self.url_result(link, 'Vidio', video_json['id'])
+            playlist_url = try_get(playlist_json, lambda x: x['links']['next'])
+            index += 1
+
+    def _real_extract(self, url):
+        url, idata = unsmuggle_url(url, {})
+        playlist_id, display_id = re.match(self._VALID_URL, url).groups()
+
+        playlist_url = idata.get('url')
+        if playlist_url:  # Smuggled data contains an API URL. Download only that playlist
+            playlist_id = idata['id']
+            return self.playlist_result(
+                self._playlist_entries(playlist_url, playlist_id),
+                playlist_id=playlist_id, playlist_title=idata.get('title'))
+
+        playlist_data = self._call_api('https://api.vidio.com/content_profiles/%s/playlists' % playlist_id, display_id)
+
+        return self.playlist_from_matches(
+            playlist_data.get('data', []), playlist_id=playlist_id, ie=self.ie_key(),
+            getter=lambda data: smuggle_url(url, {
+                'url': data['relationships']['videos']['links']['related'],
+                'id': data['id'],
+                'title': try_get(data, lambda x: x['attributes']['name'])
+            }))
+
+
+class VidioLiveIE(VidioBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?vidio\.com/live/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
+    _TESTS = [{
+        'url': 'https://www.vidio.com/live/204-sctv',
+        'info_dict': {
+            'id': '204',
+            'title': 'SCTV',
+            'uploader': 'SCTV',
+            'uploader_id': 'sctv',
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
+    }, {
+        # Premier-exclusive livestream
+        'url': 'https://www.vidio.com/live/6362-tvn',
+        'only_matching': True,
+    }, {
+        # DRM premier-exclusive livestream
+        'url': 'https://www.vidio.com/live/6299-bein-1',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_id, display_id = re.match(self._VALID_URL, url).groups()
+        stream_data = self._call_api(
+            'https://www.vidio.com/api/livestreamings/%s/detail' % video_id, display_id)
+        stream_meta = stream_data['livestreamings'][0]
+        user = stream_data.get('users', [{}])[0]
+
+        title = stream_meta.get('title')
+        username = user.get('username')
+
+        formats = []
+        if stream_meta.get('is_drm'):
+            # skip non-drm formats if drm is detected
+            if not self.get_param('allow_unplayable_formats'):
+                self.raise_no_formats(
+                    'This video is DRM protected.', expected=True)
+
+            drm_hls_url = stream_meta.get('drm_stream_hls_url')
+            if drm_hls_url:
+                formats.extend(self._extract_m3u8_formats(
+                    drm_hls_url, display_id, 'mp4', 'm3u8-native'))
+        elif stream_meta.get('is_premium'):
+            sources = self._download_json(
+                'https://www.vidio.com/interactions_stream.json?video_id=%s&type=livestreamings' % video_id,
+                display_id, note='Downloading premier API JSON')
+            if not (sources.get('source') or sources.get('source_dash')):
+                self.raise_login_required('This video is only available for registered users with the appropriate subscription')
+
+            if sources.get('source'):
+                token_json = self._download_json(
+                    'https://www.vidio.com/live/%s/tokens' % video_id,
+                    display_id, note='Downloading HLS token JSON', data=b'')
+                formats.extend(self._extract_m3u8_formats(
+                    sources['source'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
+        elif stream_meta.get('stream_token_url') or stream_meta.get('stream_dash_url'):
+            # prioritize token urls
+            token_hls_url = stream_meta.get('stream_token_url')
+
+            if token_hls_url:
+                token_json = self._download_json(
+                    'https://www.vidio.com/live/%s/tokens' % video_id,
+                    display_id, note='Downloading HLS token JSON', data=b'')
+                formats.extend(self._extract_m3u8_formats(
+                    token_hls_url + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
+        else:
+            hls_url = stream_meta['stream_url']
+            formats.extend(self._extract_m3u8_formats(
+                hls_url, display_id, 'mp4', 'm3u8_native'))
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'display_id': display_id,
+            'title': title,
+            'is_live': True,
+            'description': strip_or_none(stream_meta.get('description')),
+            'thumbnail': stream_meta.get('image'),
+            'like_count': int_or_none(stream_meta.get('like')),
+            'dislike_count': int_or_none(stream_meta.get('dislike')),
+            'formats': formats,
+            'uploader': user.get('name'),
+            'timestamp': parse_iso8601(stream_meta.get('start_time')),
+            'uploader_id': username,
+            'uploader_url': 'https://www.vidio.com/@' + username if username else None,
         }
