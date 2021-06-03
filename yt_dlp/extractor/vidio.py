@@ -66,7 +66,7 @@ class VidioBaseIE(InfoExtractor):
 
 
 class VidioIE(VidioBaseIE):
-_VALID_URL = r'https?://(?:www\.)?vidio\.com/watch/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?vidio\.com/watch/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'http://www.vidio.com/watch/165683-dj_ambred-booyah-live-2015',
         'md5': 'cd2801394afc164e9775db6a140b91fe',
