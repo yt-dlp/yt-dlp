@@ -1,13 +1,11 @@
 from __future__ import unicode_literals
 
-import re
 import subprocess
 
 from .common import PostProcessor
 from ..compat import compat_shlex_quote
 from ..utils import (
     encodeArgument,
-    FORMAT_RE,
     PostProcessingError,
 )
 
@@ -23,14 +21,14 @@ class ExecAfterDownloadPP(PostProcessor):
         return 'Exec'
 
     def parse_cmd(self, cmd, info):
-        # If no %(key)s is found, replace {} for backard compatibility
-        if not re.search(FORMAT_RE.format(r'[^)]*'), cmd):
-            if '{}' not in cmd:
-                cmd += ' {}'
-            return cmd.replace('{}', compat_shlex_quote(info['filepath']))
+        tmpl, tmpl_dict = self._downloader.prepare_outtmpl(cmd, info)
+        if tmpl_dict:  # if there are no replacements, tmpl_dict = {}
+            return tmpl % tmpl_dict
 
-        tmpl, info_copy = self._downloader.prepare_outtmpl(cmd, info)
-        return tmpl % info_copy
+        # If no replacements are found, replace {} for backard compatibility
+        if '{}' not in cmd:
+            cmd += ' {}'
+        return cmd.replace('{}', compat_shlex_quote(info['filepath']))
 
     def run(self, info):
         cmd = self.parse_cmd(self.exec_cmd, info)
