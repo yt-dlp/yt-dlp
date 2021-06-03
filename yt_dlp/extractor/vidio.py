@@ -244,7 +244,7 @@ class VidioLiveIE(VidioBaseIE):
             drm_hls_url = stream_meta.get('drm_stream_hls_url')
             if drm_hls_url:
                 formats.extend(self._extract_m3u8_formats(
-                    drm_hls_url, display_id, 'mp4', 'm3u8-native'))
+                    drm_hls_url, display_id, 'mp4', 'm3u8_native'))
         elif stream_meta.get('is_premium'):
             sources = self._download_json(
                 'https://www.vidio.com/interactions_stream.json?video_id=%s&type=livestreamings' % video_id,
