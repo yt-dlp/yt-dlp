@@ -241,10 +241,9 @@ class VidioLiveIE(VidioBaseIE):
                 self.raise_no_formats(
                     'This video is DRM protected.', expected=True)
 
-            drm_hls_url = stream_meta.get('drm_stream_hls_url')
-            if drm_hls_url:
+            if stream_meta.get('drm_stream_hls_url'):
                 formats.extend(self._extract_m3u8_formats(
-                    drm_hls_url, display_id, 'mp4', 'm3u8_native'))
+                    stream_meta['drm_stream_hls_url'], display_id, 'mp4', 'm3u8-native'))
         elif stream_meta.get('is_premium'):
             sources = self._download_json(
                 'https://www.vidio.com/interactions_stream.json?video_id=%s&type=livestreamings' % video_id,
@@ -258,16 +257,18 @@ class VidioLiveIE(VidioBaseIE):
                     display_id, note='Downloading HLS token JSON', data=b'')
                 formats.extend(self._extract_m3u8_formats(
                     sources['source'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
+            if sources.get('source_dash'):
+                pass
         elif stream_meta.get('stream_token_url') or stream_meta.get('stream_dash_url'):
             # prioritize token urls
-            token_hls_url = stream_meta.get('stream_token_url')
-
-            if token_hls_url:
+            if stream_meta.get('stream_token_url'):
                 token_json = self._download_json(
                     'https://www.vidio.com/live/%s/tokens' % video_id,
                     display_id, note='Downloading HLS token JSON', data=b'')
                 formats.extend(self._extract_m3u8_formats(
-                    token_hls_url + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
+                    stream_meta['stream_token_url'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
+            if stream_meta.get('stream_dash_url'):
+                pass
         else:
             hls_url = stream_meta['stream_url']
             formats.extend(self._extract_m3u8_formats(
