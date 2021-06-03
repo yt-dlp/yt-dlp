@@ -67,7 +67,10 @@ from .appletrailers import (
     AppleTrailersSectionIE,
 )
 from .applepodcasts import ApplePodcastsIE
-from .archiveorg import ArchiveOrgIE
+from .archiveorg import (
+    ArchiveOrgIE,
+    YoutubeWebArchiveIE,
+)
 from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
 from .ard import (
@@ -502,6 +505,7 @@ from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
     HotStarIE,
     HotStarPlaylistIE,
+    HotStarSeriesIE,
 )
 from .howcast import HowcastIE
 from .howstuffworks import HowStuffWorksIE
@@ -1509,7 +1513,7 @@ from .videopress import VideoPressIE
 from .vidio import (
     VidioIE,
     VidioPremierIE,
-    VidioLiveIE,
+    VidioLiveIE
 )
 from .vidlii import VidLiiIE
 from .vidme import (
