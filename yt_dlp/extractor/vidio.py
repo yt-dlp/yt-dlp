@@ -106,6 +106,7 @@ class VidioIE(VidioBaseIE):
         video = data['videos'][0]
         title = video['title'].strip()
         is_premium = video.get('is_premium')
+
         if is_premium:
             sources = self._download_json(
                 'https://www.vidio.com/interactions_stream.json?video_id=%s&type=videos' % video_id,
@@ -236,43 +237,37 @@ class VidioLiveIE(VidioBaseIE):
 
         formats = []
         if stream_meta.get('is_drm'):
-            # skip non-drm formats if drm is detected
             if not self.get_param('allow_unplayable_formats'):
                 self.raise_no_formats(
                     'This video is DRM protected.', expected=True)
-
-            if stream_meta.get('drm_stream_hls_url'):
-                formats.extend(self._extract_m3u8_formats(
-                    stream_meta['drm_stream_hls_url'], display_id, 'mp4', 'm3u8_native'))
-        elif stream_meta.get('is_premium'):
+        if stream_meta.get('is_premium'):
             sources = self._download_json(
                 'https://www.vidio.com/interactions_stream.json?video_id=%s&type=livestreamings' % video_id,
                 display_id, note='Downloading premier API JSON')
             if not (sources.get('source') or sources.get('source_dash')):
                 self.raise_login_required('This video is only available for registered users with the appropriate subscription')
 
-            if sources.get('source'):
+            if str_or_none(sources.get('source')):
                 token_json = self._download_json(
                     'https://www.vidio.com/live/%s/tokens' % video_id,
                     display_id, note='Downloading HLS token JSON', data=b'')
                 formats.extend(self._extract_m3u8_formats(
                     sources['source'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
-            if sources.get('source_dash'):
-                pass
-        elif stream_meta.get('stream_token_url') or stream_meta.get('stream_dash_url'):
-            # prioritize token urls
-            if stream_meta.get('stream_token_url'):
-                token_json = self._download_json(
-                    'https://www.vidio.com/live/%s/tokens' % video_id,
-                    display_id, note='Downloading HLS token JSON', data=b'')
-                formats.extend(self._extract_m3u8_formats(
-                    stream_meta['stream_token_url'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
-            if stream_meta.get('stream_dash_url'):
+            if str_or_none(sources.get('source_dash')):
                 pass
         else:
-            hls_url = stream_meta['stream_url']
-            formats.extend(self._extract_m3u8_formats(
-                hls_url, display_id, 'mp4', 'm3u8_native'))
+            if stream_meta.get('stream_token_url') or stream_meta.get('stream_dash_url'):
+                if stream_meta.get('stream_token_url'):
+                    token_json = self._download_json(
+                        'https://www.vidio.com/live/%s/tokens' % video_id,
+                        display_id, note='Downloading HLS token JSON', data=b'')
+                    formats.extend(self._extract_m3u8_formats(
+                        stream_meta['stream_token_url'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
+                if stream_meta.get('stream_dash_url'):
+                    pass
+            if stream_meta.get('stream_url'):
+                formats.extend(self._extract_m3u8_formats(
+                    stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native'))
         self._sort_formats(formats)
 
         return {
