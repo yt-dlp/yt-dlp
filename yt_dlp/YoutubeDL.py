@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 from __future__ import absolute_import, unicode_literals
@@ -64,7 +64,7 @@ from .utils import (
     float_or_none,
     format_bytes,
     format_field,
-    FORMAT_RE,
+    STR_FORMAT_RE,
     formatSeconds,
     GeoRestrictedError,
     int_or_none,
@@ -815,52 +815,26 @@ class YoutubeDL(object):
 
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
         """ Make the template and info_dict suitable for substitution (outtmpl % info_dict)"""
-        template_dict = dict(info_dict)
+        info_dict = dict(info_dict)
         na = self.params.get('outtmpl_na_placeholder', 'NA')
 
-        # duration_string
-        template_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
+        info_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
             formatSeconds(info_dict['duration'], '-' if sanitize else ':')
             if info_dict.get('duration', None) is not None
             else None)
-
-        # epoch
-        template_dict['epoch'] = int(time.time())
-
-        # autonumber
-        autonumber_size = self.params.get('autonumber_size')
-        if autonumber_size is None:
-            autonumber_size = 5
-        template_dict['autonumber'] = self.params.get('autonumber_start', 1) - 1 + self._num_downloads
-
-        # resolution if not defined
-        if template_dict.get('resolution') is None:
-            if template_dict.get('width') and template_dict.get('height'):
-                template_dict['resolution'] = '%dx%d' % (template_dict['width'], template_dict['height'])
-            elif template_dict.get('height'):
-                template_dict['resolution'] = '%sp' % template_dict['height']
-            elif template_dict.get('width'):
-                template_dict['resolution'] = '%dx?' % template_dict['width']
+        info_dict['epoch'] = int(time.time())
+        info_dict['autonumber'] = self.params.get('autonumber_start', 1) - 1 + self._num_downloads
+        if info_dict.get('resolution') is None:
+            info_dict['resolution'] = self.format_resolution(info_dict, default=None)
 
         # For fields playlist_index and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
         field_size_compat_map = {
-            'playlist_index': len(str(template_dict.get('_last_playlist_index') or '')),
-            'autonumber': autonumber_size,
+            'playlist_index': len(str(info_dict.get('_last_playlist_index') or '')),
+            'autonumber': self.params.get('autonumber_size') or 5,
         }
-        FIELD_SIZE_COMPAT_RE = r'(?<!%)%\((?P<field>autonumber|playlist_index)\)s'
-        mobj = re.search(FIELD_SIZE_COMPAT_RE, outtmpl)
-        if mobj:
-            outtmpl = re.sub(
-                FIELD_SIZE_COMPAT_RE,
-                r'%%(\1)0%dd' % field_size_compat_map[mobj.group('field')],
-                outtmpl)
 
-        numeric_fields = list(self._NUMERIC_FIELDS)
-        if sanitize is None:
-            sanitize = lambda k, v: v
-
-        EXTERNAL_FORMAT_RE = FORMAT_RE.format('(?P<key>[^)]*)')
+        EXTERNAL_FORMAT_RE = STR_FORMAT_RE.format('[^)]*')
         # Field is of the form key1.key2...
         # where keys (except first) can be string, int or slice
         FIELD_RE = r'\w+(?:\.(?:\w+|[-\d]*(?::[-\d]*){0,2}))*'
@@ -876,71 +850,76 @@ class YoutubeDL(object):
             '+': float.__add__,
             '-': float.__sub__,
         }
-        for outer_mobj in re.finditer(EXTERNAL_FORMAT_RE, outtmpl):
-            final_key = outer_mobj.group('key')
-            str_type = outer_mobj.group('type')
-            value = None
-            mobj = re.match(INTERNAL_FORMAT_RE, final_key)
-            if mobj is not None:
-                mobj = mobj.groupdict()
-                # Object traversal
-                fields = mobj['fields'].split('.')
-                value = traverse_dict(template_dict, fields)
-                # Negative
-                if mobj['negate']:
-                    value = float_or_none(value)
-                    if value is not None:
-                        value *= -1
-                # Do maths
-                if mobj['maths']:
-                    value = float_or_none(value)
-                    operator = None
-                    for item in MATH_OPERATORS_RE.split(mobj['maths'])[1:]:
-                        if item == '':
-                            value = None
-                        if value is None:
-                            break
-                        if operator:
-                            item, multiplier = (item[1:], -1) if item[0] == '-' else (item, 1)
-                            offset = float_or_none(item)
-                            if offset is None:
-                                offset = float_or_none(traverse_dict(template_dict, item.split('.')))
-                            try:
-                                value = operator(value, multiplier * offset)
-                            except (TypeError, ZeroDivisionError):
-                                value = None
-                            operator = None
-                        else:
-                            operator = MATH_FUNCTIONS[item]
-                # Datetime formatting
-                if mobj['strf_format']:
-                    value = strftime_or_none(value, mobj['strf_format'])
-                # Set default
-                if value is None and mobj['default'] is not None:
-                    value = mobj['default']
-            # Sanitize
-            if str_type in 'crs' and value is not None:  # string
-                value = sanitize('%{}'.format(str_type) % fields[-1], value)
-            else:  # numeric
-                numeric_fields.append(final_key)
+        tmpl_dict = {}
+
+        def get_value(mdict):
+            # Object traversal
+            fields = mdict['fields'].split('.')
+            value = traverse_dict(info_dict, fields)
+            # Negative
+            if mdict['negate']:
                 value = float_or_none(value)
-            if value is not None:
-                template_dict[final_key] = value
+                if value is not None:
+                    value *= -1
+            # Do maths
+            if mdict['maths']:
+                value = float_or_none(value)
+                operator = None
+                for item in MATH_OPERATORS_RE.split(mdict['maths'])[1:]:
+                    if item == '' or value is None:
+                        return None
+                    if operator:
+                        item, multiplier = (item[1:], -1) if item[0] == '-' else (item, 1)
+                        offset = float_or_none(item)
+                        if offset is None:
+                            offset = float_or_none(traverse_dict(info_dict, item.split('.')))
+                        try:
+                            value = operator(value, multiplier * offset)
+                        except (TypeError, ZeroDivisionError):
+                            return None
+                        operator = None
+                    else:
+                        operator = MATH_FUNCTIONS[item]
+            # Datetime formatting
+            if mdict['strf_format']:
+                value = strftime_or_none(value, mdict['strf_format'])
 
-        # Missing numeric fields used together with integer presentation types
-        # in format specification will break the argument substitution since
-        # string NA placeholder is returned for missing fields. We will patch
-        # output template for missing fields to meet string presentation type.
-        for numeric_field in numeric_fields:
-            if template_dict.get(numeric_field) is None:
-                outtmpl = re.sub(
-                    FORMAT_RE.format(re.escape(numeric_field)),
-                    r'%({0})s'.format(numeric_field), outtmpl)
+            return value
 
-        template_dict = collections.defaultdict(lambda: na, (
-            (k, v if isinstance(v, compat_numeric_types) else sanitize(k, v))
-            for k, v in template_dict.items() if v is not None))
-        return outtmpl, template_dict
+        def create_key(outer_mobj):
+            if not outer_mobj.group('has_key'):
+                return '%{}'.format(outer_mobj.group(0))
+
+            key = outer_mobj.group('key')
+            fmt = outer_mobj.group('format')
+            mobj = re.match(INTERNAL_FORMAT_RE, key)
+            if mobj is None:
+                value, default = None, na
+            else:
+                mobj = mobj.groupdict()
+                default = mobj['default'] if mobj['default'] is not None else na
+                value = get_value(mobj)
+
+            if fmt == 's' and value is not None and key in field_size_compat_map.keys():
+                fmt = '0{:d}d'.format(field_size_compat_map[key])
+
+            value = default if value is None else value
+            key += '\0%s' % fmt
+
+            if fmt[-1] not in 'crs':  # numeric
+                value = float_or_none(value)
+                if value is None:
+                    value, fmt = default, 's'
+            if sanitize:
+                if fmt[-1] == 'r':
+                    # If value is an object, sanitize might convert it to a string
+                    # So we convert it to repr first
+                    value, fmt = repr(value), '%ss' % fmt[:-1]
+                    value = sanitize(key, value)
+            tmpl_dict[key] = value
+            return '%({key}){fmt}'.format(key=key, fmt=fmt)
+
+        return re.sub(EXTERNAL_FORMAT_RE, create_key, outtmpl), tmpl_dict
 
     def _prepare_filename(self, info_dict, tmpl_type='default'):
         try:
@@ -966,7 +945,7 @@ class YoutubeDL(object):
 
             force_ext = OUTTMPL_TYPES.get(tmpl_type)
             if force_ext is not None:
-                filename = replace_extension(filename, force_ext, template_dict.get('ext'))
+                filename = replace_extension(filename, force_ext, info_dict.get('ext'))
 
             # https://github.com/blackjack4494/youtube-dlc/issues/85
             trim_file_name = self.params.get('trim_file_name', False)

@@ -67,7 +67,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'channel|c|user|browse|playlist|watch|w|v|embed|e|watch_popup|'
+        r'channel|c|user|browse|playlist|watch|w|v|embed|e|watch_popup|shorts|'
         r'movies|results|shared|hashtag|trending|feed|feeds|oembed|get_video_info|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 

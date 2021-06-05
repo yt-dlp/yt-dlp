@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 from __future__ import unicode_literals
@@ -2165,7 +2165,7 @@ def sanitize_url(url):
     for mistake, fixup in COMMON_TYPOS:
         if re.match(mistake, url):
             return re.sub(mistake, fixup, url)
-    return escape_url(url)
+    return url
 
 
 def extract_basic_auth(url):
@@ -2181,7 +2181,7 @@ def extract_basic_auth(url):
 
 
 def sanitized_Request(url, *args, **kwargs):
-    url, auth_header = extract_basic_auth(sanitize_url(url))
+    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
     if auth_header is not None:
         headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
         headers['Authorization'] = auth_header
@@ -4393,15 +4393,17 @@ OUTTMPL_TYPES = {
 # As of [1] format syntax is:
 #  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type
 # 1. https://docs.python.org/2/library/stdtypes.html#string-formatting
-FORMAT_RE = r'''(?x)
+STR_FORMAT_RE = r'''(?x)
     (?<!%)
     %
-    \({0}\)  # mapping key
-    (?:[#0\-+ ]+)?  # conversion flags (optional)
-    (?:\d+)?  # minimum field width (optional)
-    (?:\.\d+)?  # precision (optional)
-    [hlL]?  # length modifier (optional)
-    (?P<type>[diouxXeEfFgGcrs%])  # conversion type
+    (?P<has_key>\((?P<key>{0})\))?  # mapping key
+    (?P<format>
+        (?:[#0\-+ ]+)?  # conversion flags (optional)
+        (?:\d+)?  # minimum field width (optional)
+        (?:\.\d+)?  # precision (optional)
+        [hlL]?  # length modifier (optional)
+        [diouxXeEfFgGcrs]  # conversion type
+    )
 '''
 
 

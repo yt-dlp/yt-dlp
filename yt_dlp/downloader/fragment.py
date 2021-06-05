@@ -374,7 +374,9 @@ class FragmentFD(FileDownloader):
                 ctx['dest_stream'].close()
                 self.report_error('Giving up after %s fragment retries' % fragment_retries)
                 return False, frag_index
+            return decrypt_fragment(fragment, frag_content), frag_index
 
+        def decrypt_fragment(fragment, frag_content):
             decrypt_info = fragment.get('decrypt_info')
             if decrypt_info and decrypt_info['METHOD'] == 'AES-128':
                 iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
@@ -387,7 +389,7 @@ class FragmentFD(FileDownloader):
                     frag_content = AES.new(
                         decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
 
-            return frag_content, frag_index
+            return frag_content
 
         def append_fragment(frag_content, frag_index):
             if not frag_content:
@@ -428,7 +430,7 @@ class FragmentFD(FileDownloader):
         else:
             for fragment in fragments:
                 frag_content, frag_index = download_fragment(fragment)
-                result = append_fragment(frag_content, frag_index)
+                result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index)
                 if not result:
                     return False
 

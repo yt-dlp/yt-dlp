@@ -7,7 +7,6 @@ on:
 
 jobs:
   build_unix:
-
     runs-on: ubuntu-latest
 
     outputs:
@@ -44,7 +43,7 @@ jobs:
         draft: false
         prerelease: false
     - name: Upload yt-dlp Unix binary
-      id: upload-release-asset 
+      id: upload-release-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,13 +73,11 @@ jobs:
         twine upload dist/*
 
   build_windows:
-
     runs-on: windows-latest
+    needs: build_unix
 
     outputs:
       sha2_windows: ${{ steps.sha2_file_win.outputs.sha2_windows }}
-
-    needs: build_unix
 
     steps:
     - uses: actions/checkout@v2
@@ -114,13 +111,11 @@ jobs:
       run: echo "::set-output name=sha2_windows::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA256).Hash.ToLower())"
 
   build_windows32:
-
     runs-on: windows-latest
+    needs: [build_unix, build_windows]
 
     outputs:
       sha2_windows32: ${{ steps.sha2_file_win32.outputs.sha2_windows32 }}
-
-    needs: [build_unix, build_windows]
 
     steps:
     - uses: actions/checkout@v2
@@ -153,10 +148,16 @@ jobs:
     - name: Get SHA2-256SUMS for yt-dlp_x86.exe
       id: sha2_file_win32
       run: echo "::set-output name=sha2_windows32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA256).Hash.ToLower())"
+
+  finish:
+    runs-on: ubuntu-latest
+    needs: [build_unix, build_windows, build_windows32]
+
+    steps:
     - name: Make SHA2-256SUMS file
       env:
         SHA2_WINDOWS: ${{ needs.build_windows.outputs.sha2_windows }}
-        SHA2_WINDOWS32: ${{ steps.sha2_file_win32.outputs.sha2_windows32 }}
+        SHA2_WINDOWS32: ${{ needs.build_windows32.outputs.sha2_windows32 }}
         SHA2_UNIX: ${{ needs.build_unix.outputs.sha2_unix }}
         YTDLP_VERSION: ${{ needs.build_unix.outputs.ytdlp_version }}
       run: |
@@ -164,7 +165,6 @@ jobs:
         echo "yt-dlp.exe:${env:SHA2_WINDOWS}" >> SHA2-256SUMS
         echo "yt-dlp_x86.exe:${env:SHA2_WINDOWS32}" >> SHA2-256SUMS
         echo "yt-dlp:${env:SHA2_UNIX}" >> SHA2-256SUMS
-
     - name: Upload 256SUMS file
       id: upload-sums
       uses: actions/upload-release-asset@v1

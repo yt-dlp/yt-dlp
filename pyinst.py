@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 from __future__ import unicode_literals
@@ -17,7 +17,7 @@ assert arch in ('32', '64')
 print('Building %sbit version' % arch)
 _x86 = '_x86' if arch == '32' else ''
 
-FILE_DESCRIPTION = 'Media Downloader%s' % (' (32 Bit)' if _x86 else '')
+FILE_DESCRIPTION = 'yt-dlp%s' % (' (32 Bit)' if _x86 else '')
 
 # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 # print('Changing working directory to %s' % root_dir)

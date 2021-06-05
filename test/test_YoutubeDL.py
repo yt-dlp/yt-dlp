@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 from __future__ import unicode_literals
@@ -17,7 +17,7 @@ from yt_dlp.compat import compat_str, compat_urllib_error
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
-from yt_dlp.utils import ExtractorError, match_filter_func
+from yt_dlp.utils import ExtractorError, float_or_none, match_filter_func
 
 TEST_URL = 'http://localhost/sample.mp4'
 
@@ -648,56 +648,95 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(test_dict['extractor'], 'Foo')
         self.assertEqual(test_dict['playlist'], 'funny videos')
 
-    def test_prepare_filename(self):
-        info = {
-            'id': '1234',
-            'ext': 'mp4',
-            'width': None,
-            'height': 1080,
-            'title1': '$PATH',
-            'title2': '%PATH%',
-            'timestamp': 1618488000,
-            'formats': [{'id': 'id1'}, {'id': 'id2'}]
-        }
+    outtmpl_info = {
+        'id': '1234',
+        'ext': 'mp4',
+        'width': None,
+        'height': 1080,
+        'title1': '$PATH',
+        'title2': '%PATH%',
+        'timestamp': 1618488000,
+        'duration': 100000,
+        'playlist_index': 1,
+        '_last_playlist_index': 100,
+        'n_entries': 10,
+        'formats': [{'id': 'id1'}, {'id': 'id2'}, {'id': 'id3'}]
+    }
 
-        def fname(templ, na_placeholder='NA'):
-            params = {'outtmpl': templ}
-            if na_placeholder != 'NA':
-                params['outtmpl_na_placeholder'] = na_placeholder
+    def test_prepare_outtmpl(self):
+        def out(tmpl, **params):
+            params['outtmpl'] = tmpl
             ydl = YoutubeDL(params)
-            return ydl.prepare_filename(info)
-        self.assertEqual(fname('%(id)s.%(ext)s'), '1234.mp4')
-        self.assertEqual(fname('%(id)s-%(width)s.%(ext)s'), '1234-NA.mp4')
-        NA_TEST_OUTTMPL = '%(uploader_date)s-%(width)d-%(id)s.%(ext)s'
-        # Replace missing fields with 'NA' by default
-        self.assertEqual(fname(NA_TEST_OUTTMPL), 'NA-NA-1234.mp4')
-        # Or by provided placeholder
-        self.assertEqual(fname(NA_TEST_OUTTMPL, na_placeholder='none'), 'none-none-1234.mp4')
-        self.assertEqual(fname(NA_TEST_OUTTMPL, na_placeholder=''), '--1234.mp4')
-        self.assertEqual(fname('%(height)s.%(ext)s'), '1080.mp4')
-        self.assertEqual(fname('%(height)d.%(ext)s'), '1080.mp4')
-        self.assertEqual(fname('%(height)6d.%(ext)s'), '  1080.mp4')
-        self.assertEqual(fname('%(height)-6d.%(ext)s'), '1080  .mp4')
-        self.assertEqual(fname('%(height)06d.%(ext)s'), '001080.mp4')
-        self.assertEqual(fname('%(height) 06d.%(ext)s'), ' 01080.mp4')
-        self.assertEqual(fname('%(height)   06d.%(ext)s'), ' 01080.mp4')
-        self.assertEqual(fname('%(height)0 6d.%(ext)s'), ' 01080.mp4')
-        self.assertEqual(fname('%(height)0   6d.%(ext)s'), ' 01080.mp4')
-        self.assertEqual(fname('%(height)   0   6d.%(ext)s'), ' 01080.mp4')
+            ydl._num_downloads = 1
+            outtmpl, tmpl_dict = ydl.prepare_outtmpl(tmpl, self.outtmpl_info)
+            return outtmpl % tmpl_dict
+
+        self.assertEqual(out('%(id)s.%(ext)s'), '1234.mp4')
+        self.assertEqual(out('%(duration_string)s'), '27:46:40')
+        self.assertTrue(float_or_none(out('%(epoch)d')))
+        self.assertEqual(out('%(resolution)s'), '1080p')
+        self.assertEqual(out('%(playlist_index)s'), '001')
+        self.assertEqual(out('%(autonumber)s'), '00001')
+        self.assertEqual(out('%(autonumber+2)03d', autonumber_start=3), '005')
+        self.assertEqual(out('%(autonumber)s', autonumber_size=3), '001')
+
+        self.assertEqual(out('%%'), '%')
+        self.assertEqual(out('%%%%'), '%%')
+        self.assertEqual(out('%(invalid@tmpl|def)s', outtmpl_na_placeholder='none'), 'none')
+        self.assertEqual(out('%()s'), 'NA')
+        self.assertEqual(out('%s'), '%s')
+
+        NA_TEST_OUTTMPL = '%(uploader_date)s-%(width)d-%(x|def)s-%(id)s.%(ext)s'
+        self.assertEqual(out(NA_TEST_OUTTMPL), 'NA-NA-def-1234.mp4')
+        self.assertEqual(out(NA_TEST_OUTTMPL, outtmpl_na_placeholder='none'), 'none-none-def-1234.mp4')
+        self.assertEqual(out(NA_TEST_OUTTMPL, outtmpl_na_placeholder=''), '--def-1234.mp4')
+
+        FMT_TEST_OUTTMPL = '%%(height)%s.%%(ext)s'
+        self.assertEqual(out(FMT_TEST_OUTTMPL % 's'), '1080.mp4')
+        self.assertEqual(out(FMT_TEST_OUTTMPL % 'd'), '1080.mp4')
+        self.assertEqual(out(FMT_TEST_OUTTMPL % '6d'), '  1080.mp4')
+        self.assertEqual(out(FMT_TEST_OUTTMPL % '-6d'), '1080  .mp4')
+        self.assertEqual(out(FMT_TEST_OUTTMPL % '06d'), '001080.mp4')
+        self.assertEqual(out(FMT_TEST_OUTTMPL % ' 06d'), ' 01080.mp4')
+        self.assertEqual(out(FMT_TEST_OUTTMPL % '   06d'), ' 01080.mp4')
+        self.assertEqual(out(FMT_TEST_OUTTMPL % '0 6d'), ' 01080.mp4')
+        self.assertEqual(out(FMT_TEST_OUTTMPL % '0   6d'), ' 01080.mp4')
+        self.assertEqual(out(FMT_TEST_OUTTMPL % '   0   6d'), ' 01080.mp4')
+
+        self.assertEqual(out('%(id)d'), '1234')
+        self.assertEqual(out('%(id)d %(id)r'), "1234 '1234'")
+        self.assertEqual(out('%(ext)s-%(ext|def)d'), 'mp4-def')
+        self.assertEqual(out('%(width|0)04d'), '0000')
+        self.assertEqual(out('%(width|)d', outtmpl_na_placeholder='none'), '')
+
+        FORMATS = self.outtmpl_info['formats']
+        self.assertEqual(out('%(timestamp+-1000>%H-%M-%S)s'), '11-43-20')
+        self.assertEqual(out('%(id+1-height+3)05d'), '00158')
+        self.assertEqual(out('%(width+100)05d'), 'NA')
+        self.assertEqual(out('%(formats.0)s'), str(FORMATS[0]))
+        self.assertEqual(out('%(formats.-1.id)s'), str(FORMATS[-1]['id']))
+        self.assertEqual(out('%(formats.3)s'), 'NA')
+        self.assertEqual(out('%(formats.:2:-1)r'), repr(FORMATS[:2:-1]))
+        self.assertEqual(out('%(formats.0.id.-1+id)f'), '1235.000000')
+
+    def test_prepare_filename(self):
+        def fname(templ):
+            params = {'outtmpl': templ}
+            ydl = YoutubeDL(params)
+            return ydl.prepare_filename(self.outtmpl_info)
+
         self.assertEqual(fname('%%'), '%')
         self.assertEqual(fname('%%%%'), '%%')
-        self.assertEqual(fname('%%(height)06d.%(ext)s'), '%(height)06d.mp4')
+        self.assertEqual(fname('%%(width)06d.%(ext)s'), '%(width)06d.mp4')
         self.assertEqual(fname('%(width)06d.%(ext)s'), 'NA.mp4')
         self.assertEqual(fname('%(width)06d.%%(ext)s'), 'NA.%(ext)s')
         self.assertEqual(fname('%%(width)06d.%(ext)s'), '%(width)06d.mp4')
+
         self.assertEqual(fname('Hello %(title1)s'), 'Hello $PATH')
         self.assertEqual(fname('Hello %(title2)s'), 'Hello %PATH%')
-        self.assertEqual(fname('%(timestamp+-1000>%H-%M-%S)s'), '11-43-20')
-        self.assertEqual(fname('%(id+1)05d'), '01235')
-        self.assertEqual(fname('%(width+100)05d'), 'NA')
-        self.assertEqual(fname('%(formats.0)s').replace("u", ""), "{'id' - 'id1'}")
-        self.assertEqual(fname('%(formats.-1.id)s'), 'id2')
-        self.assertEqual(fname('%(formats.2)s'), 'NA')
+
+        self.assertEqual(fname('%(id)r %(height)r'), "'1234' 1080")
+        self.assertEqual(fname('%(formats.0)r'), "{'id' - 'id1'}")
 
     def test_format_note(self):
         ydl = YoutubeDL()

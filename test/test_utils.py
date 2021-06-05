@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 from __future__ import unicode_literals
@@ -239,6 +239,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_url('httpss://foo.bar'), 'https://foo.bar')
         self.assertEqual(sanitize_url('rmtps://foo.bar'), 'rtmps://foo.bar')
         self.assertEqual(sanitize_url('https://foo.bar'), 'https://foo.bar')
+        self.assertEqual(sanitize_url('foo bar'), 'foo bar')
 
     def test_extract_basic_auth(self):
         auth_header = lambda url: sanitized_Request(url).get_header('Authorization')
