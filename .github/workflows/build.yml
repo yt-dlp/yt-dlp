@@ -95,7 +95,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python
+    # 3.8 is used for Win7 support
+    - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:
           python-version: '3.8'
@@ -137,15 +138,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.4.4 32-Bit
+    # 3.7 is used for Vista support. See https://github.com/yt-dlp/yt-dlp/issues/390
+    - name: Set up Python 3.7 32-Bit
       uses: actions/setup-python@v2
       with:
-          python-version: '3.4.4'
+          python-version: '3.7'
           architecture: 'x86'
     - name: Upgrade pip and enable wheel support
-      run: python -m pip install pip==19.1.1 setuptools==43.0.0 wheel==0.33.6
-    - name: Install Requirements for 32 Bit
-      run: pip install pyinstaller==3.5 mutagen==1.42.0 pycryptodome==3.9.4 pefile==2019.4.18
+      run: python -m pip install --upgrade pip setuptools wheel
+    - name: Install Requirements
+      run: pip install pyinstaller mutagen pycryptodome
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
