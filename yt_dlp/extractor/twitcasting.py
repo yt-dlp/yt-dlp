@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import itertools
 import re
 
 from .common import InfoExtractor
@@ -11,13 +12,16 @@ from ..utils import (
     get_element_by_id,
     parse_duration,
     str_to_int,
+    try_get,
     unified_timestamp,
     urlencode_postdata,
+    urljoin,
+    ExtractorError,
 )
 
 
 class TwitCastingIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<uploader_id>[^/]+)/movie/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<uploader_id>[^/]+)/(?:movie|twplayer)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://twitcasting.tv/ivetesangalo/movie/2357609',
         'md5': '745243cad58c4681dc752490f7540d7f',
@@ -69,9 +73,8 @@ class TwitCastingIE(InfoExtractor):
             url, video_id, data=request_data,
             headers={'Origin': 'https://twitcasting.tv'})
 
-        title = clean_html(get_element_by_id(
-            'movietitle', webpage)) or self._html_search_meta(
-            ['og:title', 'twitter:title'], webpage, fatal=True)
+        title = (clean_html(get_element_by_id('movietitle', webpage))
+                 or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
 
         video_js_data = {}
         m3u8_url = self._search_regex(
@@ -80,14 +83,16 @@ class TwitCastingIE(InfoExtractor):
         if not m3u8_url:
             video_js_data = self._parse_json(self._search_regex(
                 r'data-movie-playlist=(["\'])(?P<url>(?:(?!\1).)+)',
-                webpage, 'movie playlist', group='url'), video_id)
+                webpage, 'movie playlist', group='url', default='[{}]'), video_id)
             if isinstance(video_js_data, dict):
                 video_js_data = list(video_js_data.values())[0]
             video_js_data = video_js_data[0]
-            m3u8_url = video_js_data['source']['url']
+            m3u8_url = try_get(video_js_data, lambda x: x['source']['url'])
 
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
+        is_live = 'data-status="online"' in webpage
+        if is_live and not m3u8_url:
+            m3u8_url = 'https://twitcasting.tv/%s/metastream.m3u8' % uploader_id
+
         thumbnail = video_js_data.get('thumbnailUrl') or self._og_search_thumbnail(webpage)
         description = clean_html(get_element_by_id(
             'authorcomment', webpage)) or self._html_search_meta(
@@ -101,6 +106,12 @@ class TwitCastingIE(InfoExtractor):
             r'data-toggle="true"[^>]+datetime="([^"]+)"',
             webpage, 'datetime', None))
 
+        formats = None
+        if m3u8_url:
+            formats = self._extract_m3u8_formats(
+                m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', live=is_live)
+        self._sort_formats(formats)
+
         return {
             'id': video_id,
             'title': title,
@@ -111,4 +122,59 @@ class TwitCastingIE(InfoExtractor):
             'duration': duration,
             'view_count': view_count,
             'formats': formats,
+            'is_live': is_live,
         }
+
+
+class TwitCastingLiveIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<id>[^/]+)/?(?:[#?]|$)'
+    _TESTS = [{
+        'url': 'https://twitcasting.tv/ivetesangalo',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        uploader_id = self._match_id(url)
+        self.to_screen(
+            'Downloading live video of user {0}. '
+            'Pass "https://twitcasting.tv/{0}/show" to download the history'.format(uploader_id))
+
+        webpage = self._download_webpage(url, uploader_id)
+        current_live = self._search_regex(
+            (r'data-type="movie" data-id="(\d+)">',
+             r'tw-sound-flag-open-link" data-id="(\d+)" style=',),
+            webpage, 'current live ID', default=None)
+        if not current_live:
+            raise ExtractorError('The user is not currently live')
+        return self.url_result('https://twitcasting.tv/%s/movie/%s' % (uploader_id, current_live))
+
+
+class TwitCastingUserIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<id>[^/]+)/show/?(?:[#?]|$)'
+    _TESTS = [{
+        'url': 'https://twitcasting.tv/noriyukicas/show',
+        'only_matching': True,
+    }]
+
+    def _entries(self, uploader_id):
+        base_url = next_url = 'https://twitcasting.tv/%s/show' % uploader_id
+        for page_num in itertools.count(1):
+            webpage = self._download_webpage(
+                next_url, uploader_id, query={'filter': 'watchable'}, note='Downloading page %d' % page_num)
+            matches = re.finditer(
+                r'''(?isx)<a\s+class="tw-movie-thumbnail"\s*href="(?P<url>/[^/]+/movie/\d+)"\s*>.+?</a>''',
+                webpage)
+            for mobj in matches:
+                yield self.url_result(urljoin(base_url, mobj.group('url')))
+
+            next_url = self._search_regex(
+                r'<a href="(/%s/show/%d-\d+)[?"]' % (re.escape(uploader_id), page_num),
+                webpage, 'next url', default=None)
+            next_url = urljoin(base_url, next_url)
+            if not next_url:
+                return
+
+    def _real_extract(self, url):
+        uploader_id = self._match_id(url)
+        return self.playlist_result(
+            self._entries(uploader_id), uploader_id, '%s - Live History' % uploader_id)
