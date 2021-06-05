@@ -272,12 +272,24 @@ class HlsFD(FragmentFD):
             if not success:
                 return False
         else:
+            def decrypt_fragment(fragment, frag_content):
+                decrypt_info = fragment['decrypt_info']
+                if decrypt_info['METHOD'] != 'AES-128':
+                    return frag_content
+                iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
+                decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
+                    self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
+                # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
+                # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
+                # not what it decrypts to.
+                if test:
+                    return frag_content
+                return AES.new(decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
+
             def download_fragment(fragment):
                 frag_index = fragment['frag_index']
                 frag_url = fragment['url']
-                decrypt_info = fragment['decrypt_info']
                 byte_range = fragment['byte_range']
-                media_sequence = fragment['media_sequence']
 
                 ctx['fragment_index'] = frag_index
 
@@ -305,18 +317,7 @@ class HlsFD(FragmentFD):
                     self.report_error('Giving up after %s fragment retries' % fragment_retries)
                     return False, frag_index
 
-                if decrypt_info['METHOD'] == 'AES-128':
-                    iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', media_sequence)
-                    decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
-                        self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
-                    # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
-                    # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
-                    # not what it decrypts to.
-                    if not test:
-                        frag_content = AES.new(
-                            decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
-
-                return frag_content, frag_index
+                return decrypt_fragment(fragment, frag_content), frag_index
 
             pack_fragment = lambda frag_content, _: frag_content
 
@@ -447,7 +448,7 @@ class HlsFD(FragmentFD):
                     fragment['fragment_filename_sanitized'] = frag_sanitized
                     frag_content = down.read()
                     down.close()
-                    result = append_fragment(frag_content, frag_index)
+                    result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index)
                     if not result:
                         return False
             else:
