@@ -256,15 +256,15 @@ class VidioLiveIE(VidioBaseIE):
             if str_or_none(sources.get('source_dash')):
                 pass
         else:
-            if stream_meta.get('stream_token_url') or stream_meta.get('stream_dash_url'):
-                if stream_meta.get('stream_token_url'):
-                    token_json = self._download_json(
-                        'https://www.vidio.com/live/%s/tokens' % video_id,
-                        display_id, note='Downloading HLS token JSON', data=b'')
-                    formats.extend(self._extract_m3u8_formats(
-                        stream_meta['stream_token_url'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
-                if stream_meta.get('stream_dash_url'):
-                    pass
+            if stream_meta.get('stream_token_url'):
+                token_json = self._download_json(
+                    'https://www.vidio.com/live/%s/tokens' % video_id,
+                    display_id, note='Downloading HLS token JSON', data=b'')
+                formats.extend(self._extract_m3u8_formats(
+                    stream_meta['stream_token_url'] + '?' + token_json.get('token', ''),
+                    display_id, 'mp4', 'm3u8_native'))
+            if stream_meta.get('stream_dash_url'):
+                pass
             if stream_meta.get('stream_url'):
                 formats.extend(self._extract_m3u8_formats(
                     stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native'))
