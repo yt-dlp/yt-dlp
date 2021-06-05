@@ -370,7 +370,7 @@ class FragmentFD(FileDownloader):
                 ctx['dest_stream'].close()
                 self.report_error('Giving up after %s fragment retries' % fragment_retries)
                 return False, frag_index
-            return decrypt_fragment(fragment, frag_content), frag_index
+            return frag_content, frag_index
 
         def decrypt_fragment(fragment, frag_content):
             decrypt_info = fragment.get('decrypt_info')
@@ -419,7 +419,8 @@ class FragmentFD(FileDownloader):
                     raise KeyboardInterrupt
 
             for fragment, frag_index in map(lambda x: x.result(), futures):
-                result = append_fragment(self._read_fragment(fragment), frag_index)
+                result = append_fragment(
+                    decrypt_fragment(fragment, self._read_fragment(fragment)), frag_index)
                 if not result:
                     return False
         else:
