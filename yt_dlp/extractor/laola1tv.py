@@ -121,7 +121,7 @@ class Laola1TvEmbedIE(InfoExtractor):
         }
 
 
-class Laola1TvBaseIE(Laola1TvEmbedIE):
+class Laola1TvBaseIE(Laola1TvEmbedIE, register=False):
     def _extract_video(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)

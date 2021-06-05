@@ -16,7 +16,6 @@ import email.header
 import errno
 import functools
 import gzip
-import imp
 import io
 import itertools
 import json
@@ -6158,27 +6157,24 @@ def get_executable_path():
     return os.path.abspath(path)
 
 
-def load_plugins(name, suffix, namespace):
-    plugin_info = [None]
-    classes = []
+def load_plugins():
+    from .extractor.common import InfoExtractorMeta
+    REGISTRY = InfoExtractorMeta.REGISTRY
+    PLUGIN_REGISTRY = []
+    InfoExtractorMeta.REGISTRY = PLUGIN_REGISTRY
     try:
-        plugin_info = imp.find_module(
-            name, [os.path.join(get_executable_path(), 'ytdlp_plugins')])
-        plugins = imp.load_module(name, *plugin_info)
-        for name in dir(plugins):
-            if name in namespace:
-                continue
-            if not name.endswith(suffix):
-                continue
-            klass = getattr(plugins, name)
-            classes.append(klass)
-            namespace[name] = klass
-    except ImportError:
-        pass
+        import pkgutil
+
+        plugin_path = os.path.join(get_executable_path(), 'ytdlp_plugins')
+        for modinfo in pkgutil.iter_modules([plugin_path]):
+            module_finder, name, *_ = modinfo
+            spec = module_finder.find_spec(name)
+            spec.loader.load_module(name)
     finally:
-        if plugin_info[0] is not None:
-            plugin_info[0].close()
-    return classes
+        InfoExtractorMeta.REGISTRY = REGISTRY
+    REGISTRY.extend(PLUGIN_REGISTRY)
+
+    return PLUGIN_REGISTRY
 
 
 def traverse_dict(dictn, keys, casesense=True):

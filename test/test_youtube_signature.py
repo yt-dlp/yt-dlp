@@ -13,7 +13,7 @@ import re
 import string
 
 from test.helper import FakeYDL
-from yt_dlp.extractor import YoutubeIE
+from yt_dlp.extractor.youtube import YoutubeIE
 from yt_dlp.compat import compat_str, compat_urlretrieve
 
 _TESTS = [

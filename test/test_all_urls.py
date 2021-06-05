@@ -12,11 +12,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import gettestcases
 
-from yt_dlp.extractor import (
-    FacebookIE,
-    gen_extractors,
-    YoutubeIE,
-)
+from yt_dlp.extractor import gen_extractors
+from yt_dlp.extractor.facebook import FacebookIE
+from yt_dlp.extractor.youtube import YoutubeIE
 
 
 class TestAllURLsMatching(unittest.TestCase):

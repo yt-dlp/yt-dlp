@@ -139,6 +139,7 @@ from .wimtv import WimTVIE
 
 
 class GenericIE(InfoExtractor):
+    _REGISTRY_TIER = float('inf')
     IE_DESC = 'Generic downloader that works on some sites'
     _VALID_URL = r'.*'
     IE_NAME = 'generic'

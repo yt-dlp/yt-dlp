@@ -4026,7 +4026,7 @@ class YoutubeSearchURLIE(YoutubeSearchIE):
         return self._get_n_results(query, self._MAX_RESULTS)
 
 
-class YoutubeFeedsInfoExtractor(YoutubeTabIE):
+class YoutubeFeedsInfoExtractor(YoutubeTabIE, register=False):
     """
     Base class for feed extractors
     Subclasses must define the _FEED_NAME property.

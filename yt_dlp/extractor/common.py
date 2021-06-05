@@ -84,7 +84,30 @@ from ..utils import (
 )
 
 
-class InfoExtractor(object):
+class InfoExtractorMeta(type):
+    REGISTRY = []
+
+    @classmethod
+    def __register(cls, ocls):
+        if ocls._REGISTRY_TIER is None:
+            return
+        try:
+            ocls._VALID_URL
+        except AttributeError:
+            return
+        cls.REGISTRY.insert(0, ocls)
+
+    def __new__(cls, name, bases, namespace, *_, **__):
+        return super().__new__(cls, name, bases, namespace)
+
+    def __init__(self, name, bases, namespace, *, register=None):
+        if register is None:
+            register = not name.endswith('BaseIE')
+        if register:
+            self.__register(self)
+
+
+class InfoExtractor(object, metaclass=InfoExtractorMeta):
     """Information Extractor class.
 
     Information extractors are the classes that, given a URL, extract
@@ -429,6 +452,12 @@ class InfoExtractor(object):
             'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to pass cookies'),
         'password': 'Use --username and --password or --netrc to provide account credentials',
     }
+
+    _REGISTRY_TIER = 0
+
+    def __init_subclass__(self, *_, **__):
+        # dummy method: everything is done in the metaclass
+        pass
 
     def __init__(self, downloader=None):
         """Constructor. Receives an optional downloader."""

@@ -11,17 +11,20 @@ except ImportError:
     _LAZY_LOADER = False
 
 if not _LAZY_LOADER:
-    from .extractors import *
-    _ALL_CLASSES = [
-        klass
-        for name, klass in globals().items()
-        if name.endswith('IE') and name != 'GenericIE'
-    ]
-    _ALL_CLASSES.append(GenericIE)
+    from .common import InfoExtractorMeta
 
-    _PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
-    _ALL_CLASSES = _PLUGIN_CLASSES + _ALL_CLASSES
+    import pkgutil
+    import importlib
 
+    for modinfo in pkgutil.iter_modules(__path__):
+        _, name, *_ = modinfo
+        importlib.import_module('.' + name, package=__package__)
+
+    _PLUGIN_CLASSES = load_plugins()
+    _ALL_CLASSES = InfoExtractorMeta.REGISTRY
+    _ALL_CLASSES.sort(key=lambda cls: (cls._REGISTRY_TIER, -(cls in _PLUGIN_CLASSES)))
+
+_ALL_CLASSES_MAP = {cls.__name__: cls for cls in _ALL_CLASSES}
 
 def gen_extractor_classes():
     """ Return a list of supported extractors.
@@ -50,4 +53,4 @@ def list_extractors(age_limit):
 
 def get_info_extractor(ie_name):
     """Returns the info extractor class with the given ie_name"""
-    return globals()[ie_name + 'IE']
+    return _ALL_CLASSES_MAP[ie_name + 'IE']

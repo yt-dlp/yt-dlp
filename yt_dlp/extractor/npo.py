@@ -656,7 +656,7 @@ class HetKlokhuisIE(NPODataMidEmbedIE):
     }
 
 
-class NPOPlaylistBaseIE(NPOIE):
+class NPOPlaylistBaseIE(NPOIE, register=False):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
