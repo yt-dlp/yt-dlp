@@ -655,6 +655,7 @@ class TestYoutubeDL(unittest.TestCase):
         'height': 1080,
         'title1': '$PATH',
         'title2': '%PATH%',
+        'title3': 'foo/bar\\test',
         'timestamp': 1618488000,
         'duration': 100000,
         'playlist_index': 1,
@@ -734,6 +735,9 @@ class TestYoutubeDL(unittest.TestCase):
 
         self.assertEqual(fname('Hello %(title1)s'), 'Hello $PATH')
         self.assertEqual(fname('Hello %(title2)s'), 'Hello %PATH%')
+
+        self.assertEqual(fname('%(title3)s'), 'foo_bar_test')
+        self.assertEqual(fname('%(formats.0)s'), "{'id' - 'id1'}")
 
         self.assertEqual(fname('%(id)r %(height)r'), "'1234' 1080")
         self.assertEqual(fname('%(formats.0)r'), "{'id' - 'id1'}")
