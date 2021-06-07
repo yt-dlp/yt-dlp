@@ -1,21 +1,23 @@
 # coding: utf-8
 from __future__ import unicode_literals
-from .fragment import FragmentFD
-import quopri
-import uuid
+
 import io
+import quopri
 import re
-from ..version import __version__ as YT_DLP_VERSION
+import uuid
+
+from .fragment import FragmentFD
 from ..utils import (
-    urljoin,
-    srt_subtitles_timecode,
+    escapeHTML,
     formatSeconds,
+    srt_subtitles_timecode,
+    urljoin,
 )
+from ..version import __version__ as YT_DLP_VERSION
 
 
 class MhtmlFD(FragmentFD):
     FD_NAME = 'mhtml'
-    _EXTENSION = 'mhtml'
 
     _STYLESHEET = """\
 html, body {
@@ -179,31 +181,21 @@ body > figure > img {
 
             frag_header = io.BytesIO()
             frag_header.write(
-                b'--%b\r\n'
-                % (frag_boundary.encode('us-ascii'),))
+                b'--%b\r\n' % frag_boundary.encode('us-ascii'))
             frag_header.write(
-                b'Content-ID: <%b>\r\n'
-                % (self._gen_cid(i, fragment, frag_boundary).encode('us-ascii'),))
+                b'Content-ID: <%b>\r\n' % self._gen_cid(i, fragment, frag_boundary).encode('us-ascii'))
             frag_header.write(
-                b'Content-type: %b\r\n'
-                % (mime_type,))
+                b'Content-type: %b\r\n' % mime_type)
             frag_header.write(
-                b'Content-length: %u\r\n'
-                % (len(frag_content),))
+                b'Content-length: %u\r\n' % len(frag_content))
             frag_header.write(
-                b'Content-location: %b\r\n'
-                % (fragment_url.encode('us-ascii'),))
-            try:
-                frag_header.write(
-                    b'X.yt-dlp.Duration: %f s\r\n'
-                    % (fragment['duration'],))
-            except KeyError:
-                pass
+                b'Content-location: %b\r\n' % fragment_url.encode('us-ascii'))
+            frag_header.write(
+                b'X.yt-dlp.Duration: %f\r\n' % fragment['duration'])
             frag_header.write(b'\r\n')
             self._append_fragment(
                 ctx, frag_header.getvalue() + frag_content + b'\r\n')
 
         ctx['dest_stream'].write(
-            b'--%b--\r\n\r\n'
-            % (frag_boundary.encode('us-ascii'),))
+            b'--%b--\r\n\r\n' % frag_boundary.encode('us-ascii'))
         self._finish_frag_download(ctx)
