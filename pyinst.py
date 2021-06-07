@@ -25,7 +25,6 @@ FILE_DESCRIPTION = 'yt-dlp%s' % (' (32 Bit)' if _x86 else '')
 
 exec(compile(open('yt_dlp/version.py').read(), 'yt_dlp/version.py', 'exec'))
 VERSION = locals()['__version__']
-PY_VER = '.'.join(map(str, sys.version_info[:3]))
 
 VERSION_LIST = VERSION.split('.')
 VERSION_LIST = list(map(int, VERSION_LIST)) + [0] * (4 - len(VERSION_LIST))
@@ -59,7 +58,9 @@ VERSION_FILE = VSVersionInfo(
                     ),
                     StringStruct('OriginalFilename', 'yt-dlp%s.exe' % _x86),
                     StringStruct('ProductName', 'yt-dlp%s' % _x86),
-                    StringStruct('ProductVersion', '%s%s on Python %s' % (VERSION, _x86, PY_VER)),
+                    StringStruct(
+                        'ProductVersion',
+                        '%s%s on Python %s' % (VERSION, _x86, (platform.python_version()))),
                 ])]),
         VarFileInfo([VarStruct('Translation', [0, 1200])])
     ]
