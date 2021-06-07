@@ -105,7 +105,7 @@ body > figure > img {
                     num=i + 1,
                     t0=srt_subtitles_timecode(t0),
                     t1=srt_subtitles_timecode(t1),
-                    duration=formatSeconds(frag['duration'])
+                    duration=formatSeconds(frag['duration'], msec=True)
                 ))
             except (KeyError, ValueError, TypeError):
                 t1 = None

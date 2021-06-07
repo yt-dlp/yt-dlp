@@ -2321,13 +2321,14 @@ def decodeOption(optval):
     return optval
 
 
-def formatSeconds(secs, delim=':'):
+def formatSeconds(secs, delim=':', msec=False):
     if secs > 3600:
-        return '%d%s%02d%s%02d' % (secs // 3600, delim, (secs % 3600) // 60, delim, secs % 60)
+        ret = '%d%s%02d%s%02d' % (secs // 3600, delim, (secs % 3600) // 60, delim, secs % 60)
     elif secs > 60:
-        return '%d%s%02d' % (secs // 60, delim, secs % 60)
+        ret = '%d%s%02d' % (secs // 60, delim, secs % 60)
     else:
-        return '%d' % secs
+        ret = '%d' % secs
+    return '%s.%03d' % (ret, secs % 1) if msec else ret
 
 
 def make_HTTPS_handler(params, **kwargs):
