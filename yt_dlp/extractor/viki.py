@@ -142,6 +142,21 @@ class VikiIE(VikiBaseIE):
     IE_NAME = 'viki'
     _VALID_URL = r'%s(?:videos|player)/(?P<id>[0-9]+v)' % VikiBaseIE._VALID_URL_BASE
     _TESTS = [{
+        'url': 'https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1',
+        'info_dict': {
+            'id': '1175236v',
+            'ext': 'mp4',
+            'title': 'Choosing Spouse by Lottery - Episode 1',
+            'timestamp': 1606463239,
+            'age_limit': 13,
+            'uploader': 'FCC',
+            'upload_date': '20201127',
+        },
+        'params': {
+            'format': 'bestvideo',
+        },
+        'expected_warnings': ['Unknown MIME type image/jpeg in DASH manifest'],
+    }, {
         'url': 'http://www.viki.com/videos/1023585v-heirs-episode-14',
         'info_dict': {
             'id': '1023585v',
@@ -255,8 +270,14 @@ class VikiIE(VikiBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        video = self._call_api(
-            'videos/%s.json' % video_id, video_id, 'Downloading video JSON')
+        resp = self._download_json(
+            'https://www.viki.com/api/videos/' + video_id,
+            video_id, 'Downloading video JSON', headers={
+                'x-client-user-agent': std_headers['User-Agent'],
+                'x-viki-app-ver': '3.0.0',
+            })
+        video = resp['video']
+
         self._check_errors(video)
 
         title = self.dict_selection(video.get('titles', {}), 'en', allow_fallback=False)
@@ -310,8 +331,6 @@ class VikiIE(VikiBaseIE):
             format_url = format_dict.get('url')
             if not format_url:
                 return
-            format_drms = format_dict.get('drms')
-            format_stream_id = format_dict.get('id')
             qs = compat_parse_qs(compat_urllib_parse_urlparse(format_url).query)
             stream = qs.get('stream', [None])[0]
             if stream:
@@ -345,8 +364,6 @@ class VikiIE(VikiBaseIE):
                     'play_path': mobj.group('playpath'),
                     'app': mobj.group('app'),
                     'page_url': url,
-                    'drms': format_drms,
-                    'stream_id': format_stream_id,
                 })
             else:
                 urlh = self._request_webpage(
@@ -356,25 +373,26 @@ class VikiIE(VikiBaseIE):
                     'format_id': '%s-%s' % (format_id, protocol),
                     'height': int_or_none(self._search_regex(
                         r'^(\d+)[pP]$', format_id, 'height', default=None)),
-                    'drms': format_drms,
-                    'stream_id': format_stream_id,
                     'filesize': int_or_none(urlh.headers.get('Content-Length')),
                 })
 
-        streams = self._call_api(
-            'videos/%s/streams.json' % video_id, video_id,
-            'Downloading video streams JSON')
+        for format_id, format_dict in (resp.get('streams') or {}).items():
+            add_format(format_id, format_dict)
+        if not formats:
+            streams = self._call_api(
+                'videos/%s/streams.json' % video_id, video_id,
+                'Downloading video streams JSON')
 
-        if 'external' in streams:
-            result.update({
-                '_type': 'url_transparent',
-                'url': streams['external']['url'],
-            })
-            return result
+            if 'external' in streams:
+                result.update({
+                    '_type': 'url_transparent',
+                    'url': streams['external']['url'],
+                })
+                return result
 
-        for format_id, stream_dict in streams.items():
-            for protocol, format_dict in stream_dict.items():
-                add_format(format_id, format_dict, protocol)
+            for format_id, stream_dict in streams.items():
+                for protocol, format_dict in stream_dict.items():
+                    add_format(format_id, format_dict, protocol)
         self._sort_formats(formats)
 
         result['formats'] = formats
