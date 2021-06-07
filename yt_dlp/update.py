@@ -227,7 +227,9 @@ def run_update(ydl):
             return report_error('unable to download latest version', True)
 
         expected_sum = get_sha256sum('zip', '3')
-        if expected_sum and hashlib.sha256(newcontent).hexdigest() != expected_sum:
+        if not expected_sum:
+            ydl.report_warning('no hash information found for the release')
+        elif hashlib.sha256(newcontent).hexdigest() != expected_sum:
             return report_error('unable to verify the new zip', True)
 
         try:
