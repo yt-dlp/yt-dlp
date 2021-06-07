@@ -13,6 +13,7 @@ jobs:
       ytdlp_version: ${{ steps.bump_version.outputs.ytdlp_version }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       sha2_unix: ${{ steps.sha2_file.outputs.sha2_unix }}
+      sha512_unix: ${{ steps.sha512_file.outputs.sha512_unix }}
 
     steps:
     - uses: actions/checkout@v2
@@ -55,6 +56,9 @@ jobs:
     - name: Get SHA2-256SUMS for yt-dlp
       id: sha2_file
       run: echo "::set-output name=sha2_unix::$(sha256sum yt-dlp | awk '{print $1}')"
+    - name: Get SHA2-512SUMS for yt-dlp
+      id: sha512_file
+      run: echo "::set-output name=sha512_unix::$(sha512sum yt-dlp | awk '{print $1}')"
     - name: Install dependencies for pypi
       env:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
@@ -78,6 +82,7 @@ jobs:
 
     outputs:
       sha2_windows: ${{ steps.sha2_file_win.outputs.sha2_windows }}
+      sha512_windows: ${{ steps.sha512_file_win.outputs.sha512_windows }}
 
     steps:
     - uses: actions/checkout@v2
@@ -109,6 +114,9 @@ jobs:
     - name: Get SHA2-256SUMS for yt-dlp.exe
       id: sha2_file_win
       run: echo "::set-output name=sha2_windows::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA256).Hash.ToLower())"
+    - name: Get SHA2-512SUMS for yt-dlp.exe
+      id: sha512_file_win
+      run: echo "::set-output name=sha512_windows::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
 
   build_windows32:
     runs-on: windows-latest
@@ -116,6 +124,7 @@ jobs:
 
     outputs:
       sha2_windows32: ${{ steps.sha2_file_win32.outputs.sha2_windows32 }}
+      sha512_windows32: ${{ steps.sha512_file_win32.outputs.sha512_windows32 }}
 
     steps:
     - uses: actions/checkout@v2
@@ -148,6 +157,9 @@ jobs:
     - name: Get SHA2-256SUMS for yt-dlp_x86.exe
       id: sha2_file_win32
       run: echo "::set-output name=sha2_windows32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA256).Hash.ToLower())"
+    - name: Get SHA2-512SUMS for yt-dlp_x86.exe
+      id: sha512_file_win32
+      run: echo "::set-output name=sha512_windows32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA512).Hash.ToLower())"
 
   finish:
     runs-on: ubuntu-latest
@@ -162,10 +174,9 @@ jobs:
         YTDLP_VERSION: ${{ needs.build_unix.outputs.ytdlp_version }}
       run: |
         echo "version: ${env:YTDLP_VERSION}" >> SHA2-256SUMS
-        echo "${env:SHA2_WINDOWS}  yt-dlp.exe" >> SHA2-256SUMS
-        echo "${env:SHA2_WINDOWS32}  yt-dlp_x86.exe" >> SHA2-256SUMS
-        echo "${env:SHA2_UNIX}  yt-dlp" >> SHA2-256SUMS
-        sed -Ei 's/\r//' SHA2-256SUMS
+        echo "yt-dlp.exe:${env:SHA2_WINDOWS}" >> SHA2-256SUMS
+        echo "yt-dlp_x86.exe:${env:SHA2_WINDOWS32}" >> SHA2-256SUMS
+        echo "yt-dlp:${env:SHA2_UNIX}" >> SHA2-256SUMS
     - name: Upload 256SUMS file
       id: upload-sums
       uses: actions/upload-release-asset@v1
@@ -175,4 +186,24 @@ jobs:
         upload_url: ${{ needs.build_unix.outputs.upload_url }}
         asset_path: ./SHA2-256SUMS
         asset_name: SHA2-256SUMS
+        asset_content_type: text/plain
+    - name: Make SHA2-512SUMS file
+      env:
+        SHA512_WINDOWS: ${{ needs.build_windows.outputs.sha512_windows }}
+        SHA512_WINDOWS32: ${{ needs.build_windows32.outputs.sha512_windows32 }}
+        SHA512_UNIX: ${{ needs.build_unix.outputs.sha512_unix }}
+        YTDLP_VERSION: ${{ needs.build_unix.outputs.ytdlp_version }}
+      run: |
+        echo "${env:SHA512_WINDOWS}  yt-dlp.exe" >> SHA2-512SUMS
+        echo "${env:SHA512_WINDOWS32}  yt-dlp_x86.exe" >> SHA2-512SUMS
+        echo "${env:SHA512_UNIX}  yt-dlp" >> SHA2-512SUMS
+    - name: Upload 512SUMS file
+      id: upload-512sums
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build_unix.outputs.upload_url }}
+        asset_path: ./SHA2-512SUMS
+        asset_name: SHA2-512SUMS
         asset_content_type: text/plain
