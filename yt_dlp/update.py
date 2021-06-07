@@ -135,7 +135,7 @@ def run_update(ydl):
         return next((i for i in version_info['assets'] if i['name'] == 'yt-dlp%s' % label), {})
 
     def get_sha256sum(bin_or_exe, version):
-        label = version_labels['%s_%s' % (bin_or_exe, version)]
+        filename = 'yt-dlp%s' % version_labels['%s_%s' % (bin_or_exe, version)]
         urlh = next(
             (i for i in version_info['assets'] if i['name'] in ('SHA2-256SUMS')),
             {}).get('browser_download_url')
@@ -143,14 +143,11 @@ def run_update(ydl):
             return None
         hash_data = ydl._opener.open(urlh).read().decode('utf-8')
         if hash_data.startswith('version:'):
-            # Old colon-separated hash file.
-            hashes = list(map(lambda x: x.split(':'), hash_data.splitlines()))
-            return next((i[1] for i in hashes if i[0] == 'yt-dlp%s' % label), None)
+            # Old colon-separated hash file
+            return dict(ln.split(':') for ln in hash_data.splitlines()).get(filename)
         else:
-            # GNU-style hash file.
-            return next((hash for ln in hash_data.splitlines()
-                         for hash, file in ln.split()
-                         if file == 'yt-dlp%s' % label), None)
+            # GNU-style hash file
+            return dict(ln.split()[::-1] for ln in hash_data.splitlines()).get(filename)
 
     if not os.access(filename, os.W_OK):
         return report_error('no write permissions on %s' % filename, expected=True)
