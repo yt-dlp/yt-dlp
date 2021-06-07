@@ -2241,6 +2241,15 @@ def unescapeHTML(s):
     return re.sub(
         r'&([^&;]+;)', lambda m: _htmlentity_transform(m.group(1)), s)
 
+def escapeHTML(text):
+    return (
+        text
+        .replace('&', '&amp;')
+        .replace('<', '&lt;')
+        .replace('>', '&gt;')
+        .replace('"', '&quot;')
+        .replace("'", '&#39;')
+    )
 
 def process_communicate_or_kill(p, *args, **kwargs):
     try:

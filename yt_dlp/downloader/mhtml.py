@@ -57,17 +57,6 @@ body > figure > img {
     _STYLESHEET = re.sub(r'\B \B|(?<=[\w\-]) (?=[^\w\-])|(?<=[^\w\-]) (?=[\w\-])', '', _STYLESHEET)
 
     @staticmethod
-    def _escape_html(text):
-        return (
-            text
-            .replace('&', '&amp;')
-            .replace('<', '&lt;')
-            .replace('>', '&gt;')
-            .replace('"', '&quot;')
-            .replace("'", '&#39;')
-        )
-
-    @staticmethod
     def _escape_mime(s):
         return '=?utf-8?Q?' + (b''.join(
             bytes((b,)) if b >= 0x20 else b'=%02X' % b
@@ -89,9 +78,9 @@ body > figure > img {
             ''  '<style>{styles}</style>'
             '<body>'
         ).format(
-            version=self._escape_html(YT_DLP_VERSION),
+            version=escapeHTML(YT_DLP_VERSION),
             styles=self._STYLESHEET,
-            title=self._escape_html(title)
+            title=escapeHTML(title)
         ))
 
         t0 = 0
