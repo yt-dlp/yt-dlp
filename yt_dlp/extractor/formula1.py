@@ -5,29 +5,23 @@ from .common import InfoExtractor
 
 
 class Formula1IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?formula1\.com/(?:content/fom-website/)?en/video/\d{4}/\d{1,2}/(?P<id>.+?)\.html'
-    _TESTS = [{
-        'url': 'http://www.formula1.com/content/fom-website/en/video/2016/5/Race_highlights_-_Spain_2016.html',
-        'md5': '8c79e54be72078b26b89e0e111c0502b',
+    _VALID_URL = r'https?://(?:www\.)?formula1\.com/en/latest/video\.[^.]+\.(?P<id>\d+)\.html'
+    _TEST = {
+        'url': 'https://www.formula1.com/en/latest/video.race-highlights-spain-2016.6060988138001.html',
+        'md5': 'be7d3a8c2f804eb2ab2aa5d941c359f8',
         'info_dict': {
-            'id': 'JvYXJpMzE6pArfHWm5ARp5AiUmD-gibV',
+            'id': '6060988138001',
             'ext': 'mp4',
             'title': 'Race highlights - Spain 2016',
+            'timestamp': 1463332814,
+            'upload_date': '20160515',
+            'uploader_id': '6057949432001',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-        'add_ie': ['Ooyala'],
-    }, {
-        'url': 'http://www.formula1.com/en/video/2016/5/Race_highlights_-_Spain_2016.html',
-        'only_matching': True,
-    }]
+        'add_ie': ['BrightcoveNew'],
+    }
+    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/6057949432001/S1WMrhjlh_default/index.html?videoId=%s'
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        ooyala_embed_code = self._search_regex(
-            r'data-videoid="([^"]+)"', webpage, 'ooyala embed code')
+        bc_id = self._match_id(url)
         return self.url_result(
-            'ooyala:%s' % ooyala_embed_code, 'Ooyala', ooyala_embed_code)
+            self.BRIGHTCOVE_URL_TEMPLATE % bc_id, 'BrightcoveNew', bc_id)
