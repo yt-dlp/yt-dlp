@@ -194,9 +194,9 @@ jobs:
         SHA512_UNIX: ${{ needs.build_unix.outputs.sha512_unix }}
         YTDLP_VERSION: ${{ needs.build_unix.outputs.ytdlp_version }}
       run: |
-        echo "${env:SHA512_WINDOWS}  yt-dlp.exe" >> SHA2-512SUMS
-        echo "${env:SHA512_WINDOWS32}  yt-dlp_x86.exe" >> SHA2-512SUMS
-        echo "${env:SHA512_UNIX}  yt-dlp" >> SHA2-512SUMS
+        echo "${{ env.SHA512_WINDOWS }}  yt-dlp.exe" >> SHA2-512SUMS
+        echo "${{ env.SHA512_WINDOWS32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
+        echo "${{ env.SHA512_UNIX }}  yt-dlp" >> SHA2-512SUMS
     - name: Upload 512SUMS file
       id: upload-512sums
       uses: actions/upload-release-asset@v1
