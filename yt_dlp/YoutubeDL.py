@@ -1163,7 +1163,11 @@ class YoutubeDL(object):
             extract_flat = self.params.get('extract_flat', False)
             if ((extract_flat == 'in_playlist' and 'playlist' in extra_info)
                     or extract_flat is True):
-                self.__forced_printings(ie_result, self.prepare_filename(ie_result), incomplete=True)
+                info_copy = ie_result.copy()
+                self.add_extra_info(info_copy, extra_info)
+                self.add_default_extra_info(
+                    info_copy, self.get_info_extractor(ie_result.get('ie_key')), ie_result['url'])
+                self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
                 return ie_result
 
         if result_type == 'video':
