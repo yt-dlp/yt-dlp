@@ -2680,6 +2680,8 @@ class InfoExtractor(object):
                                 'filesize': filesize,
                             }
                         elif mime_type == 'image/jpeg':
+                            # See test case in VikiIE
+                            # https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1
                             f = {
                                 'format_id': format_id,
                                 'ext': 'mhtml',

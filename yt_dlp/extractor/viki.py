@@ -142,6 +142,7 @@ class VikiIE(VikiBaseIE):
     IE_NAME = 'viki'
     _VALID_URL = r'%s(?:videos|player)/(?P<id>[0-9]+v)' % VikiBaseIE._VALID_URL_BASE
     _TESTS = [{
+        'note': 'Free non-DRM video with storyboards in MPD',
         'url': 'https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1',
         'info_dict': {
             'id': '1175236v',
@@ -155,7 +156,6 @@ class VikiIE(VikiBaseIE):
         'params': {
             'format': 'bestvideo',
         },
-        'expected_warnings': ['Unknown MIME type image/jpeg in DASH manifest'],
     }, {
         'url': 'http://www.viki.com/videos/1023585v-heirs-episode-14',
         'info_dict': {
@@ -173,7 +173,6 @@ class VikiIE(VikiBaseIE):
             'format': 'bestvideo',
         },
         'skip': 'Blocked in the US',
-        'expected_warnings': ['Unknown MIME type image/jpeg in DASH manifest'],
     }, {
         # clip
         'url': 'http://www.viki.com/videos/1067139v-the-avengers-age-of-ultron-press-conference',
@@ -225,7 +224,6 @@ class VikiIE(VikiBaseIE):
         'params': {
             'format': 'bestvideo',
         },
-        'expected_warnings': ['Unknown MIME type image/jpeg in DASH manifest'],
     }, {
         # youtube external
         'url': 'http://www.viki.com/videos/50562v-poor-nastya-complete-episode-1',
@@ -264,7 +262,6 @@ class VikiIE(VikiBaseIE):
         'params': {
             'format': 'bestvideo',
         },
-        'expected_warnings': ['Unknown MIME type image/jpeg in DASH manifest'],
     }]
 
     def _real_extract(self, url):
