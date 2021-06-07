@@ -1144,6 +1144,7 @@ class YoutubeDL(object):
         self.add_extra_info(ie_result, {
             'extractor': ie.IE_NAME,
             'webpage_url': url,
+            'original_url': url,
             'webpage_url_basename': url_basename(url),
             'extractor_key': ie.ie_key(),
         })
@@ -2763,7 +2764,7 @@ class YoutubeDL(object):
         remove_keys = ['__original_infodict']  # Always remove this since this may contain a copy of the entire dict
         keep_keys = ['_type'],  # Always keep this to facilitate load-info-json
         if actually_filter:
-            remove_keys += ('requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries')
+            remove_keys += ('requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries', 'original_url')
             empty_values = (None, {}, [], set(), tuple())
             reject = lambda k, v: k not in keep_keys and (
                 k.startswith('_') or k in remove_keys or v in empty_values)

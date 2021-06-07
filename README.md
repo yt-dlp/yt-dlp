@@ -968,6 +968,8 @@ The available fields are:
  - `playlist_title` (string): Playlist title
  - `playlist_uploader` (string): Full name of the playlist uploader
  - `playlist_uploader_id` (string): Nickname or id of the playlist uploader
+ - `webpage_url` (string): A URL to the video webpage which if given to yt-dlp should allow to get the same result again
+ - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
 
 Available for the video that belongs to some logical chapter or section:
 
