@@ -122,7 +122,7 @@ class MediasiteIE(InfoExtractor):
                 r'(?xi)<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:(?:https?:)?//[^/]+)?/Mediasite/Play/%s(?:\?.*?)?)\1' % _ID_RE,
                 webpage)]
 
-    def __extract_slides(self, *, stream_id, snum, Stream, duration, images, title, origin):
+    def __extract_slides(self, *, stream_id, snum, Stream, duration, images):
         slide_base_url = Stream['SlideBaseUrl']
 
         fname_template = Stream['SlideImageFileNameTemplate']
@@ -167,11 +167,6 @@ class MediasiteIE(InfoExtractor):
             'format_note': 'Slides',
             'fragments': fragments,
             'fragment_base_url': slide_base_url,
-            '_download_params': {
-                'duration': duration,
-                'title': title,
-                'origin': origin,
-            },
         }
 
     def _real_extract(self, url):
@@ -258,8 +253,6 @@ class MediasiteIE(InfoExtractor):
                     Stream=Stream,
                     duration=presentation.get('Duration'),
                     images=images,
-                    title=title,
-                    origin=url
                 ))
 
             # disprefer 'secondary' streams
