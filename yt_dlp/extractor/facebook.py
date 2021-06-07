@@ -519,7 +519,10 @@ class FacebookIE(InfoExtractor):
                 raise ExtractorError(
                     'The video is not available, Facebook said: "%s"' % m_msg.group(1),
                     expected=True)
-            elif '>You must log in to continue' in webpage:
+            elif any(p in webpage for p in (
+                    '>You must log in to continue',
+                    'id="login_form"',
+                    'id="loginbutton"')):
                 self.raise_login_required()
 
         if not video_data and '/watchparty/' in url:

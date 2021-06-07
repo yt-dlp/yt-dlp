@@ -1144,6 +1144,7 @@ class YoutubeDL(object):
         self.add_extra_info(ie_result, {
             'extractor': ie.IE_NAME,
             'webpage_url': url,
+            'original_url': url,
             'webpage_url_basename': url_basename(url),
             'extractor_key': ie.ie_key(),
         })
@@ -1163,7 +1164,11 @@ class YoutubeDL(object):
             extract_flat = self.params.get('extract_flat', False)
             if ((extract_flat == 'in_playlist' and 'playlist' in extra_info)
                     or extract_flat is True):
-                self.__forced_printings(ie_result, self.prepare_filename(ie_result), incomplete=True)
+                info_copy = ie_result.copy()
+                self.add_extra_info(info_copy, extra_info)
+                self.add_default_extra_info(
+                    info_copy, self.get_info_extractor(ie_result.get('ie_key')), ie_result['url'])
+                self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
                 return ie_result
 
         if result_type == 'video':
@@ -2759,7 +2764,7 @@ class YoutubeDL(object):
         remove_keys = ['__original_infodict']  # Always remove this since this may contain a copy of the entire dict
         keep_keys = ['_type'],  # Always keep this to facilitate load-info-json
         if actually_filter:
-            remove_keys += ('requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries')
+            remove_keys += ('requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries', 'original_url')
             empty_values = (None, {}, [], set(), tuple())
             reject = lambda k, v: k not in keep_keys and (
                 k.startswith('_') or k in remove_keys or v in empty_values)
