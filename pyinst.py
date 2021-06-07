@@ -60,7 +60,7 @@ VERSION_FILE = VSVersionInfo(
                     StringStruct('ProductName', 'yt-dlp%s' % _x86),
                     StringStruct(
                         'ProductVersion',
-                        '%s%s on Python %s' % (VERSION, _x86, (platform.python_version()))),
+                        '%s%s on Python %s' % (VERSION, _x86, platform.python_version())),
                 ])]),
         VarFileInfo([VarStruct('Translation', [0, 1200])])
     ]
