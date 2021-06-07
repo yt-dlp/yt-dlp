@@ -142,8 +142,15 @@ def run_update(ydl):
         if not urlh:
             return None
         hash_data = ydl._opener.open(urlh).read().decode('utf-8')
-        hashes = list(map(lambda x: x.split(':'), hash_data.splitlines()))
-        return next((i[1] for i in hashes if i[0] == 'yt-dlp%s' % label), None)
+        if hash_data.startswith('version:'):
+            # Old colon-separated hash file.
+            hashes = list(map(lambda x: x.split(':'), hash_data.splitlines()))
+            return next((i[1] for i in hashes if i[0] == 'yt-dlp%s' % label), None)
+        else:
+            # GNU-style hash file.
+            return next((hash for ln in hash_data.splitlines()
+                         for hash, file in ln.split()
+                         if file == 'yt-dlp%s' % label), None)
 
     if not os.access(filename, os.W_OK):
         return report_error('no write permissions on %s' % filename, expected=True)
