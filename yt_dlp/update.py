@@ -135,15 +135,19 @@ def run_update(ydl):
         return next((i for i in version_info['assets'] if i['name'] == 'yt-dlp%s' % label), {})
 
     def get_sha256sum(bin_or_exe, version):
-        label = version_labels['%s_%s' % (bin_or_exe, version)]
+        filename = 'yt-dlp%s' % version_labels['%s_%s' % (bin_or_exe, version)]
         urlh = next(
             (i for i in version_info['assets'] if i['name'] in ('SHA2-256SUMS')),
             {}).get('browser_download_url')
         if not urlh:
             return None
         hash_data = ydl._opener.open(urlh).read().decode('utf-8')
-        hashes = list(map(lambda x: x.split(':'), hash_data.splitlines()))
-        return next((i[1] for i in hashes if i[0] == 'yt-dlp%s' % label), None)
+        if hash_data.startswith('version:'):
+            # Old colon-separated hash file
+            return dict(ln.split(':') for ln in hash_data.splitlines()).get(filename)
+        else:
+            # GNU-style hash file
+            return dict(ln.split()[::-1] for ln in hash_data.splitlines()).get(filename)
 
     if not os.access(filename, os.W_OK):
         return report_error('no write permissions on %s' % filename, expected=True)
@@ -220,7 +224,9 @@ def run_update(ydl):
             return report_error('unable to download latest version', True)
 
         expected_sum = get_sha256sum('zip', '3')
-        if expected_sum and hashlib.sha256(newcontent).hexdigest() != expected_sum:
+        if not expected_sum:
+            ydl.report_warning('no hash information found for the release')
+        elif hashlib.sha256(newcontent).hexdigest() != expected_sum:
             return report_error('unable to verify the new zip', True)
 
         try:
