@@ -203,6 +203,9 @@ class InfoExtractor(object):
                                  (HTTP or RTMP) download. Boolean.
                     * downloader_options  A dictionary of downloader options as
                                  described in FileDownloader
+                    RTMP formats can also have the additional fields: page_url,
+                    app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
+                    rtmp_protocol, rtmp_real_time
 
     url:            Final video URL.
     ext:            Video filename extension.

@@ -1069,6 +1069,8 @@
  - **TVPlayHome**
  - **Tweakers**
  - **TwitCasting**
+ - **TwitCastingLive**
+ - **TwitCastingUser**
  - **twitch:clips**
  - **twitch:stream**
  - **twitch:vod**
@@ -1130,6 +1132,8 @@
  - **videomore:video**
  - **VideoPress**
  - **Vidio**
+ - **VidioLive**
+ - **VidioPremier**
  - **VidLii**
  - **vidme**
  - **vidme:user**
