@@ -813,6 +813,19 @@ class YoutubeDL(object):
                     'Put  from __future__ import unicode_literals  at the top of your code file or consider switching to Python 3.x.')
         return outtmpl_dict
 
+    @staticmethod
+    def validate_outtmpl(tmpl):
+        ''' @return None or Exception object '''
+        try:
+            re.sub(
+                STR_FORMAT_RE.format(''),
+                lambda mobj: ('%' if not mobj.group('has_key') else '') + mobj.group(0),
+                tmpl
+            ) % collections.defaultdict(int)
+            return None
+        except ValueError as err:
+            return err
+
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
         """ Make the template and info_dict suitable for substitution (outtmpl % info_dict)"""
         info_dict = dict(info_dict)
@@ -852,10 +865,12 @@ class YoutubeDL(object):
         }
         tmpl_dict = {}
 
+        get_key = lambda k: traverse_obj(
+            info_dict, k.split('.'), is_user_input=True, traverse_string=True)
+
         def get_value(mdict):
             # Object traversal
-            fields = mdict['fields'].split('.')
-            value = traverse_obj(info_dict, fields)
+            value = get_key(mdict['fields'])
             # Negative
             if mdict['negate']:
                 value = float_or_none(value)
@@ -872,7 +887,7 @@ class YoutubeDL(object):
                         item, multiplier = (item[1:], -1) if item[0] == '-' else (item, 1)
                         offset = float_or_none(item)
                         if offset is None:
-                            offset = float_or_none(traverse_obj(info_dict, item.split('.')))
+                            offset = float_or_none(get_key(item))
                         try:
                             value = operator(value, multiplier * offset)
                         except (TypeError, ZeroDivisionError):
@@ -906,7 +921,13 @@ class YoutubeDL(object):
             value = default if value is None else value
             key += '\0%s' % fmt
 
-            if fmt[-1] not in 'crs':  # numeric
+            if fmt == 'c':
+                value = compat_str(value)
+                if value is None:
+                    value, fmt = default, 's'
+                else:
+                    value = value[0]
+            elif fmt[-1] not in 'rs':  # numeric
                 value = float_or_none(value)
                 if value is None:
                     value, fmt = default, 's'

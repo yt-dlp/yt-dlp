@@ -669,6 +669,9 @@ class TestYoutubeDL(unittest.TestCase):
             params['outtmpl'] = tmpl
             ydl = YoutubeDL(params)
             ydl._num_downloads = 1
+            err = ydl.validate_outtmpl(tmpl)
+            if err:
+                raise err
             outtmpl, tmpl_dict = ydl.prepare_outtmpl(tmpl, self.outtmpl_info)
             return outtmpl % tmpl_dict
 
@@ -686,6 +689,9 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(out('%(invalid@tmpl|def)s', outtmpl_na_placeholder='none'), 'none')
         self.assertEqual(out('%()s'), 'NA')
         self.assertEqual(out('%s'), '%s')
+        self.assertEqual(out('%d'), '%d')
+        self.assertRaises(ValueError, out, '%')
+        self.assertRaises(ValueError, out, '%(title)')
 
         NA_TEST_OUTTMPL = '%(uploader_date)s-%(width)d-%(x|def)s-%(id)s.%(ext)s'
         self.assertEqual(out(NA_TEST_OUTTMPL), 'NA-NA-def-1234.mp4')
@@ -705,6 +711,8 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(out(FMT_TEST_OUTTMPL % '   0   6d'), ' 01080.mp4')
 
         self.assertEqual(out('%(id)d'), '1234')
+        self.assertEqual(out('%(height)c'), '1')
+        self.assertEqual(out('%(ext)c'), 'm')
         self.assertEqual(out('%(id)d %(id)r'), "1234 '1234'")
         self.assertEqual(out('%(ext)s-%(ext|def)d'), 'mp4-def')
         self.assertEqual(out('%(width|0)04d'), '0000')
@@ -715,6 +723,7 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(out('%(id+1-height+3)05d'), '00158')
         self.assertEqual(out('%(width+100)05d'), 'NA')
         self.assertEqual(out('%(formats.0)s'), str(FORMATS[0]))
+        self.assertEqual(out('%(height.0)03d'), '001')
         self.assertEqual(out('%(formats.-1.id)s'), str(FORMATS[-1]['id']))
         self.assertEqual(out('%(formats.3)s'), 'NA')
         self.assertEqual(out('%(formats.:2:-1)r'), repr(FORMATS[:2:-1]))
