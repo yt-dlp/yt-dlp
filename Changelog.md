@@ -25,23 +25,23 @@
 * Merge youtube-dl: Upto [commit/c2350ca](https://github.com/ytdl-org/youtube-dl/commit/c2350cac243ba1ec1586fe85b0d62d1b700047a2)
 * [hls] Fix decryption for multithreaded downloader
 * [extractor] Fix pre-checking archive for some extractors
-* [extractor] Fix FourCC fallback when parsing ISM [fstirlitz](https://github.com/fstirlitz)
-* [twitcasting] Add TwitCastingUserIE, TwitCastingLiveIE [pukkandan](https://github.com/pukkandan), [nao20010128nao](https://github.com/nao20010128nao)
-* [vidio] Add VidioPremierIE and VidioLiveIE [minEplaYerspe](Https://github.com/MinePlayersPE)
-* [viki] Fix extraction from [ytdl-org/youtube-dl@59e583f](https://github.com/ytdl-org/youtube-dl/commit/59e583f7e8530ca92776c866897d895c072e2a82)
+* [extractor] Fix FourCC fallback when parsing ISM by [fstirlitz](https://github.com/fstirlitz)
+* [twitcasting] Add TwitCastingUserIE, TwitCastingLiveIE by [pukkandan](https://github.com/pukkandan), [nao20010128nao](https://github.com/nao20010128nao)
+* [vidio] Add VidioPremierIE and VidioLiveIE by [MinePlayersPE](Https://github.com/MinePlayersPE)
+* [viki] Fix extraction from by [ytdl-org/youtube-dl@59e583f](https://github.com/ytdl-org/youtube-dl/commit/59e583f7e8530ca92776c866897d895c072e2a82)
 * [youtube] Support shorts URL
 * [zoom] Extract transcripts as subtitles
 * Add field `original_url` with the user-inputted URL
 * Fix and refactor `prepare_outtmpl`
 * Make more fields available for `--print` when used with `--flat-playlist`
 * [utils] Generalize `traverse_dict` to `traverse_obj`
-* [downloader/ffmpeg] Hide FFmpeg banner unless in verbose mode [fstirlitz](https://github.com/fstirlitz)
+* [downloader/ffmpeg] Hide FFmpeg banner unless in verbose mode by [fstirlitz](https://github.com/fstirlitz)
 * [build] Release `yt-dlp.tar.gz`
-* [build,update] Add GNU-style SHA512 and prepare updater for simlar SHA256 [nihil-admirari](https://github.com/nihil-admirari)
-* [pyinst] Show Python version in exe metadata [nihil-admirari](https://github.com/nihil-admirari)
+* [build,update] Add GNU-style SHA512 and prepare updater for simlar SHA256 by [nihil-admirari](https://github.com/nihil-admirari)
+* [pyinst] Show Python version in exe metadata by [nihil-admirari](https://github.com/nihil-admirari)
 * [docs] Improve documentation of dependencies
 * [cleanup] Mark unused files
-* [cleanup] Point all shebang to `python3` [fstirlitz](https://github.com/fstirlitz)
+* [cleanup] Point all shebang to `python3` by [fstirlitz](https://github.com/fstirlitz)
 * [cleanup] Remove duplicate file `trovolive.py`
 
 
