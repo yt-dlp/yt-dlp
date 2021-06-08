@@ -101,7 +101,7 @@ from .utils import (
     strftime_or_none,
     subtitles_filename,
     to_high_limit_path,
-    traverse_dict,
+    traverse_obj,
     UnavailableVideoError,
     url_basename,
     version_tuple,
@@ -855,7 +855,7 @@ class YoutubeDL(object):
         def get_value(mdict):
             # Object traversal
             fields = mdict['fields'].split('.')
-            value = traverse_dict(info_dict, fields)
+            value = traverse_obj(info_dict, fields)
             # Negative
             if mdict['negate']:
                 value = float_or_none(value)
@@ -872,7 +872,7 @@ class YoutubeDL(object):
                         item, multiplier = (item[1:], -1) if item[0] == '-' else (item, 1)
                         offset = float_or_none(item)
                         if offset is None:
-                            offset = float_or_none(traverse_dict(info_dict, item.split('.')))
+                            offset = float_or_none(traverse_obj(info_dict, item.split('.')))
                         try:
                             value = operator(value, multiplier * offset)
                         except (TypeError, ZeroDivisionError):

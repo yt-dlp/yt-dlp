@@ -6181,21 +6181,38 @@ def load_plugins(name, suffix, namespace):
     return classes
 
 
-def traverse_dict(dictn, keys, casesense=True):
+def traverse_obj(obj, keys, *, casesense=True, is_user_input=False, traverse_string=False):
+    ''' Traverse nested list/dict/tuple
+    @param casesense        Whether to consider dictionary keys as case sensitive
+    @param is_user_input    Whether the keys are generated from user input. If True,
+                            strings are converted to int/slice if necessary
+    @param traverse_string  Whether to traverse inside strings. If True, any
+                            non-compatible object will also be converted into a string
+    '''
     keys = list(keys)[::-1]
     while keys:
         key = keys.pop()
-        if isinstance(dictn, dict):
+        if isinstance(obj, dict):
+            assert isinstance(key, compat_str)
             if not casesense:
-                dictn = {k.lower(): v for k, v in dictn.items()}
+                obj = {k.lower(): v for k, v in obj.items()}
                 key = key.lower()
-            dictn = dictn.get(key)
-        elif isinstance(dictn, (list, tuple, compat_str)):
-            if ':' in key:
-                key = slice(*map(int_or_none, key.split(':')))
-            else:
-                key = int_or_none(key)
-            dictn = try_get(dictn, lambda x: x[key])
+            obj = obj.get(key)
         else:
-            return None
-    return dictn
+            if is_user_input:
+                key = (int_or_none(key) if ':' not in key
+                       else slice(*map(int_or_none, key.split(':'))))
+            if not isinstance(obj, (list, tuple)):
+                if traverse_string:
+                    obj = compat_str(obj)
+                else:
+                    return None
+            assert isinstance(key, (int, slice))
+            obj = try_get(obj, lambda x: x[key])
+    return obj
+
+
+def traverse_dict(dictn, keys, casesense=True):
+    ''' For backward compatibility. Do not use '''
+    return traverse_obj(dictn, keys, casesense=casesense,
+                        is_user_input=True, traverse_string=True)

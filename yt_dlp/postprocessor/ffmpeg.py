@@ -23,7 +23,7 @@ from ..utils import (
     ISO639Utils,
     process_communicate_or_kill,
     replace_extension,
-    traverse_dict,
+    traverse_obj,
 )
 
 
@@ -229,7 +229,7 @@ class FFmpegPostProcessor(PostProcessor):
     def get_stream_number(self, path, keys, value):
         streams = self.get_metadata_object(path)['streams']
         num = next(
-            (i for i, stream in enumerate(streams) if traverse_dict(stream, keys, casesense=False) == value),
+            (i for i, stream in enumerate(streams) if traverse_obj(stream, keys, casesense=False) == value),
             None)
         return num, len(streams)
 
