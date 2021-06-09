@@ -752,6 +752,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.3)s', 'NA')
         test('%(formats.:2:-1)r', repr(FORMATS[:2:-1]))
         test('%(formats.0.id.-1+id)f', '1235.000000')
+        test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
 
         # Empty filename
         test('%(foo|)s-%(bar|)s.%(ext)s', '-.mp4')

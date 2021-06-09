@@ -847,23 +847,24 @@ class YoutubeDL(object):
             'autonumber': self.params.get('autonumber_size') or 5,
         }
 
-        EXTERNAL_FORMAT_RE = STR_FORMAT_RE.format('[^)]*')
-        # Field is of the form key1.key2...
-        # where keys (except first) can be string, int or slice
-        FIELD_RE = r'\w+(?:\.(?:\w+|[-\d]*(?::[-\d]*){0,2}))*'
-        INTERNAL_FORMAT_RE = re.compile(r'''(?x)
-            (?P<negate>-)?
-            (?P<fields>{0})
-            (?P<maths>(?:[-+]-?(?:\d+(?:\.\d+)?|{0}))*)
-            (?:>(?P<strf_format>.+?))?
-            (?:\|(?P<default>.*?))?
-            $'''.format(FIELD_RE))
-        MATH_OPERATORS_RE = re.compile(r'(?<![-+])([-+])')
+        TMPL_DICT = {}
+        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE.format('[^)]*'))
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
         }
-        tmpl_dict = {}
+        # Field is of the form key1.key2...
+        # where keys (except first) can be string, int or slice
+        FIELD_RE = r'\w+(?:\.(?:\w+|{num}|{num}?(?::{num}?){{1,2}}))*'.format(num=r'(?:-?\d+)')
+        MATH_FIELD_RE = r'''{field}|{num}'''.format(field=FIELD_RE, num=r'-?\d+(?:.\d+)?')
+        MATH_OPERATORS_RE = r'(?:%s)' % '|'.join(map(re.escape, MATH_FUNCTIONS.keys()))
+        INTERNAL_FORMAT_RE = re.compile(r'''(?x)
+            (?P<negate>-)?
+            (?P<fields>{field})
+            (?P<maths>(?:{math_op}{math_field})*)
+            (?:>(?P<strf_format>.+?))?
+            (?:\|(?P<default>.*?))?
+            $'''.format(field=FIELD_RE, math_op=MATH_OPERATORS_RE, math_field=MATH_FIELD_RE))
 
         get_key = lambda k: traverse_obj(
             info_dict, k.split('.'), is_user_input=True, traverse_string=True)
@@ -877,24 +878,27 @@ class YoutubeDL(object):
                 if value is not None:
                     value *= -1
             # Do maths
-            if mdict['maths']:
+            offset_key = mdict['maths']
+            if offset_key:
                 value = float_or_none(value)
                 operator = None
-                for item in MATH_OPERATORS_RE.split(mdict['maths'])[1:]:
-                    if item == '' or value is None:
-                        return None
-                    if operator:
-                        item, multiplier = (item[1:], -1) if item[0] == '-' else (item, 1)
-                        offset = float_or_none(item)
-                        if offset is None:
-                            offset = float_or_none(get_key(item))
-                        try:
-                            value = operator(value, multiplier * offset)
-                        except (TypeError, ZeroDivisionError):
-                            return None
-                        operator = None
-                    else:
+                while offset_key:
+                    item = re.match(
+                        MATH_FIELD_RE if operator else MATH_OPERATORS_RE,
+                        offset_key).group(0)
+                    offset_key = offset_key[len(item):]
+                    if operator is None:
                         operator = MATH_FUNCTIONS[item]
+                        continue
+                    item, multiplier = (item[1:], -1) if item[0] == '-' else (item, 1)
+                    offset = float_or_none(item)
+                    if offset is None:
+                        offset = float_or_none(get_key(item))
+                    try:
+                        value = operator(value, multiplier * offset)
+                    except (TypeError, ZeroDivisionError):
+                        return None
+                    operator = None
             # Datetime formatting
             if mdict['strf_format']:
                 value = strftime_or_none(value, mdict['strf_format'])
@@ -938,10 +942,10 @@ class YoutubeDL(object):
                     value, fmt = repr(value), '%ss' % fmt[:-1]
                 if fmt[-1] in 'csr':
                     value = sanitize(key, value)
-            tmpl_dict[key] = value
+            TMPL_DICT[key] = value
             return '%({key}){fmt}'.format(key=key, fmt=fmt)
 
-        return re.sub(EXTERNAL_FORMAT_RE, create_key, outtmpl), tmpl_dict
+        return EXTERNAL_FORMAT_RE.sub(create_key, outtmpl), TMPL_DICT
 
     def _prepare_filename(self, info_dict, tmpl_type='default'):
         try:
