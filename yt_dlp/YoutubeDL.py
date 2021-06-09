@@ -472,7 +472,8 @@ class YoutubeDL(object):
 
         if sys.version_info < (3, 6):
             self.report_warning(
-                'Python version %d.%d is not supported! Please update to Python 3.6 or above' % sys.version_info[:2])
+                'Support for Python version %d.%d have been deprecated and will break in future versions of yt-dlp! '
+                'Update to Python 3.6 or above' % sys.version_info[:2])
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:

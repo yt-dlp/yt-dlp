@@ -89,9 +89,13 @@ def run_update(ydl):
 
     err = None
     if isinstance(globals().get('__loader__'), zipimporter):
-        pass
+        # We only support python 3.6 or above
+        if sys.version_info < (3, 6):
+            err = 'This is the last release of yt-dlp for Python version %d.%d! Please update to Python 3.6 or above' % sys.version_info[:2]
     elif hasattr(sys, 'frozen'):
-        pass
+        # Python 3.6 supports only vista and above
+        if sys.getwindowsversion()[0] < 6:
+            err = 'This is the last release of yt-dlp for your version of Windows. Please update to Windows Vista or above'
     else:
         err = 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Please use that to update'
     if err:
