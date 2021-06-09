@@ -19,6 +19,12 @@
 -->
 
 
+### 2021.06.09
+
+* Fix bug where `%(field)d` in filename template throws error
+* Improve offset parsing in outtmpl
+* [test] More rigorous tests for `prepare_filename`
+
 ### 2021.06.08
 
 * Remove support for obsolete Python versions: Only 3.6+ is now supported
