@@ -735,6 +735,11 @@ class TestYoutubeDL(unittest.TestCase):
             ydl = YoutubeDL(params)
             return ydl.prepare_filename(self.outtmpl_info)
 
+        self.assertEqual(fname('%(height)06d.%(ext)s'), '001080.mp4')
+        self.assertEqual(fname('%(foo|)s-%(bar|)s.%(ext)s'), '-.mp4')
+        # self.assertEqual(fname('%(foo|)s.%(ext)s'), '_.mp4')  # fixme
+        # self.assertEqual(fname('%(foo|)s'), '_')  # fixme
+
         self.assertEqual(fname('%%'), '%')
         self.assertEqual(fname('%%%%'), '%%')
         self.assertEqual(fname('%%(width)06d.%(ext)s'), '%(width)06d.mp4')
@@ -746,7 +751,7 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(fname('Hello %(title2)s'), 'Hello %PATH%')
 
         self.assertEqual(fname('%(title3)s'), 'foo_bar_test')
-        self.assertEqual(fname('%(formats.0)s'), "{'id' - 'id1'}")
+        self.assertEqual(fname('%(formats.0) 15s'), " {'id' - 'id1'}")
 
         self.assertEqual(fname('%(id)r %(height)r'), "'1234' 1080")
         self.assertEqual(fname('%(formats.0)r'), "{'id' - 'id1'}")

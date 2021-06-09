@@ -126,6 +126,7 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(timeconvert('bougrg') is None)
 
     def test_sanitize_filename(self):
+        self.assertEqual(sanitize_filename(''), '')
         self.assertEqual(sanitize_filename('abc'), 'abc')
         self.assertEqual(sanitize_filename('abc_d-e'), 'abc_d-e')
 

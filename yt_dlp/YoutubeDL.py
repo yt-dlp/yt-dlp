@@ -936,7 +936,8 @@ class YoutubeDL(object):
                     # If value is an object, sanitize might convert it to a string
                     # So we convert it to repr first
                     value, fmt = repr(value), '%ss' % fmt[:-1]
-                value = sanitize(key, value)
+                if fmt[-1] in 'csr':
+                    value = sanitize(key, value)
             tmpl_dict[key] = value
             return '%({key}){fmt}'.format(key=key, fmt=fmt)
 
