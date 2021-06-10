@@ -112,7 +112,6 @@ class TwitCastingIE(InfoExtractor):
                     'ext': 'mp4',
                     'preference': -100,
                     'quality': qq(mode),
-                    'format_note': 'requires FFmpeg 4.4 or later. most likely you don\'t have this version',
 
                     '__postprocessors': [{
                         'key': 'FFmpegFixupTimestamp',
