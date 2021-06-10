@@ -4,7 +4,10 @@ import os
 import signal
 import asyncio
 import threading
-from websockets import connect
+try:
+    from websockets import connect
+except ImportError:
+    pass
 
 from .common import FileDownloader
 from .external import FFmpegFD
