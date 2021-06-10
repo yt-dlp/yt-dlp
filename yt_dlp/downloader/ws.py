@@ -3,6 +3,7 @@ from __future__ import division, unicode_literals
 import os
 import signal
 import asyncio
+import threading
 from websockets import connect
 
 from .common import FileDownloader
@@ -28,7 +29,9 @@ class LiveStreamSinkBaseFD(FileDownloader):
 
         class FFmpegStdinFD(FFmpegFD):
             def on_process_started(self, proc, stdin):
-                asyncio.create_task(call_conn(proc, stdin))
+                # asyncio.create_task(call_conn(proc, stdin))  # don't work somehow
+                thread = threading.Thread(target=asyncio.run, daemon=True, args=(call_conn(proc, stdin), ))
+                thread.start()
 
         return FFmpegStdinFD(self.ydl, self.params or {}).download(filename, new_infodict)
 
