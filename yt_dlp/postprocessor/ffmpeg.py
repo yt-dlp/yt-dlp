@@ -906,7 +906,7 @@ class FFmpegFixupTimestampPP(FFmpegPostProcessor):
         required_version = '4.4'
         if is_outdated_version(
                 self._versions[self.basename], required_version):
-            self.report_warning('Please install to FFmpeg 4.4 or later to fix seeking')
+            self.report_warning('Please install FFmpeg 4.4 or later to fix seeking')
             return [], info
 
         filename = info['filepath']
