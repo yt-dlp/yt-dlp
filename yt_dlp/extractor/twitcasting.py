@@ -3,6 +3,11 @@ from __future__ import unicode_literals
 
 import itertools
 import re
+try:
+    import websockets  # noqa: F401
+    have_websocket = True
+except ImportError:
+    have_websocket = False
 
 from .common import InfoExtractor
 from ..utils import (
@@ -11,6 +16,7 @@ from ..utils import (
     get_element_by_class,
     get_element_by_id,
     parse_duration,
+    qualities,
     str_to_int,
     try_get,
     unified_timestamp,
@@ -89,9 +95,34 @@ class TwitCastingIE(InfoExtractor):
             video_js_data = video_js_data[0]
             m3u8_url = try_get(video_js_data, lambda x: x['source']['url'])
 
+        stream_server_data = self._download_json(
+            'https://twitcasting.tv/streamserver.php?target=%s&mode=client' % uploader_id, video_id,
+            'Downloading live info', fatal=False)
+
         is_live = 'data-status="online"' in webpage
+        formats = []
         if is_live and not m3u8_url:
             m3u8_url = 'https://twitcasting.tv/%s/metastream.m3u8' % uploader_id
+        if is_live and have_websocket and stream_server_data:
+            qq = qualities(['base', 'mobilesource', 'main'])
+            for mode, ws_url in stream_server_data['llfmp4']['streams'].items():
+                formats.append({
+                    'url': ws_url,
+                    'format_id': 'ws-%s' % mode,
+                    'ext': 'mp4',
+                    'preference': -100,
+                    'quality': qq(mode),
+                    'format_note': 'requires FFmpeg 4.4 or later. most likely you don\'t have this version',
+
+                    '__postprocessors': [{
+                        'key': 'FFmpegFixupTimestamp',
+                    }, {
+                        'key': 'FFmpegFixupDuration',
+                    }],
+
+                    # TwitCasting simply sends moof atom directly over WS
+                    'protocol': 'websocket_frag',
+                })
 
         thumbnail = video_js_data.get('thumbnailUrl') or self._og_search_thumbnail(webpage)
         description = clean_html(get_element_by_id(
@@ -106,10 +137,9 @@ class TwitCastingIE(InfoExtractor):
             r'data-toggle="true"[^>]+datetime="([^"]+)"',
             webpage, 'datetime', None))
 
-        formats = None
         if m3u8_url:
-            formats = self._extract_m3u8_formats(
-                m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', live=is_live)
+            formats.extend(self._extract_m3u8_formats(
+                m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', live=is_live))
         self._sort_formats(formats)
 
         return {
