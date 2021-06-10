@@ -3602,7 +3602,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
             else:
                 # Youtube may send alerts if there was an issue with the continuation page
-                self._extract_and_report_alerts(response, expected=False)
+                try:
+                    self._extract_and_report_alerts(response, expected=False)
+                except ExtractorError as e:
+                    if fatal:
+                        raise
+                    self.report_warning(error_to_compat_str(e))
+                    return
                 if not check_get_keys or dict_get(response, check_get_keys):
                     break
                 # Youtube sometimes sends incomplete data
