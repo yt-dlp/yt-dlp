@@ -125,6 +125,7 @@ from .downloader import (
     shorten_protocol_name
 )
 from .downloader.rtmp import rtmpdump_version
+from .postprocessor.common import PostProcessor
 from .postprocessor import (
     FFmpegFixupM3u8PP,
     FFmpegFixupM4aPP,
@@ -563,15 +564,7 @@ class YoutubeDL(object):
             self.add_default_info_extractors()
 
         for pp_def_raw in self.params.get('postprocessors', []):
-            pp_class = get_postprocessor(pp_def_raw['key'])
-            pp_def = dict(pp_def_raw)
-            del pp_def['key']
-            if 'when' in pp_def:
-                when = pp_def['when']
-                del pp_def['when']
-            else:
-                when = 'post_process'
-            pp = pp_class(self, **compat_kwargs(pp_def))
+            pp, when = self.instantiate_postprocessor(pp_def_raw)
             self.add_post_processor(pp, when=when)
 
         for ph in self.params.get('post_hooks', []):
@@ -581,6 +574,26 @@ class YoutubeDL(object):
             self.add_progress_hook(ph)
 
         register_socks_protocols()
+
+    def instantiate_postprocessor(self, pp_def_raw):
+        if isinstance(pp_def_raw, PostProcessor):
+            when = 'post_process'
+            for w, pps in self._pps.items():
+                if pp_def_raw in pps:
+                    when = w
+                    break
+            return pp_def_raw, when
+
+        pp_class = get_postprocessor(pp_def_raw['key'])
+        pp_def = dict(pp_def_raw)
+        del pp_def['key']
+        if 'when' in pp_def:
+            when = pp_def['when']
+            del pp_def['when']
+        else:
+            when = 'post_process'
+        pp = pp_class(self, **compat_kwargs(pp_def))
+        return pp, when
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?
@@ -2311,7 +2324,9 @@ class YoutubeDL(object):
 
         assert info_dict.get('_type', 'video') == 'video'
 
-        info_dict.setdefault('__postprocessors', [])
+        pps = info_dict.setdefault('__postprocessors', [])
+        for i in range(len(pps)):
+            pps[i] = self.instantiate_postprocessor(pps[i])[0]
 
         max_downloads = self.params.get('max_downloads')
         if max_downloads is not None:
@@ -2630,7 +2645,7 @@ class YoutubeDL(object):
                                 info_dict['__real_download'] = info_dict['__real_download'] or real_download
                                 success = success and partial_success
                             if merger.available and not self.params.get('allow_unplayable_formats'):
-                                info_dict['__postprocessors'].append(merger)
+                                pps.append(merger)
                                 info_dict['__files_to_merge'] = downloaded
                                 # Even if there were no downloads, it is being merged only now
                                 info_dict['__real_download'] = True
@@ -2672,7 +2687,7 @@ class YoutubeDL(object):
                     elif fixup_policy == 'detect_or_warn':
                         stretched_pp = FFmpegFixupStretchedPP(self)
                         if stretched_pp.available:
-                            info_dict['__postprocessors'].append(stretched_pp)
+                            pps.append(stretched_pp)
                         else:
                             self.report_warning(
                                 '%s: Non-uniform pixel ratio (%s). %s'
@@ -2691,7 +2706,7 @@ class YoutubeDL(object):
                     elif fixup_policy == 'detect_or_warn':
                         fixup_pp = FFmpegFixupM4aPP(self)
                         if fixup_pp.available:
-                            info_dict['__postprocessors'].append(fixup_pp)
+                            pps.append(fixup_pp)
                         else:
                             self.report_warning(
                                 '%s: writing DASH m4a. '
@@ -2708,7 +2723,7 @@ class YoutubeDL(object):
                     elif fixup_policy == 'detect_or_warn':
                         fixup_pp = FFmpegFixupM3u8PP(self)
                         if fixup_pp.available:
-                            info_dict['__postprocessors'].append(fixup_pp)
+                            pps.append(fixup_pp)
                         else:
                             self.report_warning(
                                 '%s: malformed AAC bitstream detected. %s'
