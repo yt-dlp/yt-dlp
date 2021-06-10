@@ -23,6 +23,7 @@ from .rtmp import RtmpFD
 from .rtsp import RtspFD
 from .ism import IsmFD
 from .niconico import NiconicoDmcFD
+from .ws import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatReplayFD
 from .external import (
     get_external_downloader,
@@ -40,6 +41,7 @@ PROTOCOL_MAP = {
     'http_dash_segments': DashSegmentsFD,
     'ism': IsmFD,
     'niconico_dmc': NiconicoDmcFD,
+    'websocket_frag': WebSocketFragmentFD,
     'youtube_live_chat_replay': YoutubeLiveChatReplayFD,
 }
 
