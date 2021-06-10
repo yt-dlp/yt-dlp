@@ -1,6 +1,5 @@
 from __future__ import division, unicode_literals
 
-import threading
 import os
 import signal
 import asyncio
@@ -21,7 +20,7 @@ class LiveStreamSinkBaseFD(FileDownloader):
 
         async def call_conn(proc, stdin):
             try:
-                self.real_connection(stdin, info_dict)
+                await self.real_connection(stdin, info_dict)
             finally:
                 stdin.flush()
                 stdin.close()
@@ -29,7 +28,7 @@ class LiveStreamSinkBaseFD(FileDownloader):
 
         class FFmpegStdinFD(FFmpegFD):
             def on_process_started(self, proc, stdin):
-                asyncio.run(call_conn(proc, stdin))
+                asyncio.create_task(call_conn(proc, stdin))
 
         return FFmpegStdinFD(self.ydl, self.params or {}).download(filename, new_infodict)
 
