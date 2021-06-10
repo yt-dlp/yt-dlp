@@ -895,7 +895,7 @@ class FFmpegFixupTimestampPP(FFmpegPostProcessor):
     # "trim" should be used when the video contains unintended packets
 
     def __init__(self, downloader=None, trim=None):
-        super(FFmpegPostProcessor, self).__init__(downloader)
+        super(FFmpegFixupTimestampPP, self).__init__(downloader)
         self.trim = str_or_none(trim) or '0.001'
 
     def run(self, info):
