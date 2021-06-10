@@ -23,6 +23,7 @@ from ..utils import (
     ISO639Utils,
     process_communicate_or_kill,
     replace_extension,
+    str_or_none,
     traverse_obj,
 )
 
@@ -885,3 +886,55 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         if not has_thumbnail:
             self.to_screen('There aren\'t any thumbnails to convert')
         return files_to_delete, info
+
+
+class FFmpegFixupTimestampPP(FFmpegPostProcessor):
+    # NOTE: uses feature that is available on FFmpeg 4.4 or later
+    # Failing on this fixup means that playing downloaded video requires \
+    # advanced skills
+    # "trim" should be used when the video contains unintended packets
+
+    def __init__(self, downloader=None, trim=None):
+        super(FFmpegPostProcessor, self).__init__(downloader)
+        self.trim = str_or_none(trim) or '0.001'
+
+    def run(self, info):
+        if self.basename != 'ffmpeg':
+            self.report_warning('You have to install to FFmpeg 4.4 or later to fix seeking in the player')
+            return [], info
+
+        required_version = '4.4'
+        if is_outdated_version(
+                self._versions[self.basename], required_version):
+            self.report_warning('Please install to FFmpeg 4.4 or later to fix seeking')
+            return [], info
+
+        filename = info['filepath']
+
+        temp_filename = prepend_extension(filename, 'temp')
+
+        # NOTE: actually, there is a way to fix PTS without very recent versions,
+        # but with this way re-encoding is required (-vf "setpts=PTS-STARTPTS")
+        options = ['-c', 'copy', '-ss', self.trim, '-bsf', 'setts=ts=TS-STARTPTS']
+        self.to_screen('Fixing frame timestamp in "%s"' % filename)
+        self.run_ffmpeg(filename, temp_filename, options)
+
+        os.remove(encodeFilename(filename))
+        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+        return [], info
+
+
+class FFmpegFixupDurationPP(FFmpegPostProcessor):
+
+    def run(self, info):
+        filename = info['filepath']
+
+        temp_filename = prepend_extension(filename, 'temp')
+
+        options = ['-c', 'copy']
+        self.to_screen('Fixing video duration in "%s"' % filename)
+        self.run_ffmpeg(filename, temp_filename, options)
+
+        os.remove(encodeFilename(filename))
+        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+        return [], info
