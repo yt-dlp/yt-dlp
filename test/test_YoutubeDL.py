@@ -461,14 +461,13 @@ class TestFormatSelection(unittest.TestCase):
 
     def test_invalid_format_specs(self):
         def assert_syntax_error(format_spec):
-            ydl = YDL({'format': format_spec})
-            info_dict = _make_result([{'format_id': 'foo', 'url': TEST_URL}])
-            self.assertRaises(SyntaxError, ydl.process_ie_result, info_dict)
+            self.assertRaises(SyntaxError, YDL, {'format': format_spec})
 
         assert_syntax_error('bestvideo,,best')
         assert_syntax_error('+bestaudio')
         assert_syntax_error('bestvideo+')
         assert_syntax_error('/')
+        assert_syntax_error('[720<height]')
 
     def test_format_filtering(self):
         formats = [

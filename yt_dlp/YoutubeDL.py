@@ -538,6 +538,11 @@ class YoutubeDL(object):
 
         self.outtmpl_dict = self.parse_outtmpl()
 
+        # Creating format selector here allows us to catch syntax errors before the extraction
+        self.format_selector = (
+            None if self.params.get('format') is None
+            else self.build_format_selector(self.params['format']))
+
         self._setup_opener()
 
         """Preload the archive, if any is specified"""
@@ -1487,12 +1492,11 @@ class YoutubeDL(object):
             '!=': operator.ne,
         }
         operator_rex = re.compile(r'''(?x)\s*
-            (?P<key>width|height|tbr|abr|vbr|asr|filesize|filesize_approx|fps)
-            \s*(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
-            (?P<value>[0-9.]+(?:[kKmMgGtTpPeEzZyY]i?[Bb]?)?)
-            $
+            (?P<key>width|height|tbr|abr|vbr|asr|filesize|filesize_approx|fps)\s*
+            (?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
+            (?P<value>[0-9.]+(?:[kKmMgGtTpPeEzZyY]i?[Bb]?)?)\s*
             ''' % '|'.join(map(re.escape, OPERATORS.keys())))
-        m = operator_rex.search(filter_spec)
+        m = operator_rex.fullmatch(filter_spec)
         if m:
             try:
                 comparison_value = int(m.group('value'))
@@ -1513,13 +1517,12 @@ class YoutubeDL(object):
                 '$=': lambda attr, value: attr.endswith(value),
                 '*=': lambda attr, value: value in attr,
             }
-            str_operator_rex = re.compile(r'''(?x)
-                \s*(?P<key>[a-zA-Z0-9._-]+)
-                \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?
-                \s*(?P<value>[a-zA-Z0-9._-]+)
-                \s*$
+            str_operator_rex = re.compile(r'''(?x)\s*
+                (?P<key>[a-zA-Z0-9._-]+)\s*
+                (?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
+                (?P<value>[a-zA-Z0-9._-]+)\s*
                 ''' % '|'.join(map(re.escape, STR_OPERATORS.keys())))
-            m = str_operator_rex.search(filter_spec)
+            m = str_operator_rex.fullmatch(filter_spec)
             if m:
                 comparison_value = m.group('value')
                 str_op = STR_OPERATORS[m.group('op')]
@@ -1529,7 +1532,7 @@ class YoutubeDL(object):
                     op = str_op
 
         if not m:
-            raise ValueError('Invalid filter specification %r' % filter_spec)
+            raise SyntaxError('Invalid filter specification %r' % filter_spec)
 
         def _filter(f):
             actual_value = f.get(m.group('key'))
@@ -2118,12 +2121,11 @@ class YoutubeDL(object):
             self.list_formats(info_dict)
             return
 
-        req_format = self.params.get('format')
-        if req_format is None:
+        format_selector = self.format_selector
+        if format_selector is None:
             req_format = self._default_format_spec(info_dict, download=download)
             self.write_debug('Default format spec: %s' % req_format)
-
-        format_selector = self.build_format_selector(req_format)
+            format_selector = self.build_format_selector(req_format)
 
         # While in format selection we may need to have an access to the original
         # format set in order to calculate some metrics or do some processing.
