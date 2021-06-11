@@ -1200,7 +1200,7 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--embed-thumbnail',
         action='store_true', dest='embedthumbnail', default=False,
-        help='Embed thumbnail in the audio as cover art')
+        help='Embed thumbnail in the video/audio as cover art')
     postproc.add_option(
         '--no-embed-thumbnail',
         action='store_false', dest='embedthumbnail',

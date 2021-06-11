@@ -3247,6 +3247,7 @@ class YoutubeDL(object):
 
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
                 ret.append(suffix + thumb_ext)
+                t['filepath'] = thumb_filename
                 self.to_screen('[%s] %s: Thumbnail %sis already present' %
                                (info_dict['extractor'], info_dict['id'], thumb_display_id))
             else:
