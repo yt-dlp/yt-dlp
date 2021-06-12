@@ -1822,14 +1822,16 @@ class YoutubeDL(object):
                         format_modified = mobj.group('mod') is not None
 
                         format_fallback = not format_type and not format_modified  # for b, w
-                        filter_f = (
+                        _filter_f = (
                             (lambda f: f.get('%scodec' % format_type) != 'none')
                             if format_type and format_modified  # bv*, ba*, wv*, wa*
                             else (lambda f: f.get('%scodec' % not_format_type) == 'none')
                             if format_type  # bv, ba, wv, wa
                             else (lambda f: f.get('vcodec') != 'none' and f.get('acodec') != 'none')
                             if not format_modified  # b, w
-                            else None)  # b*, w*
+                            else lambda f: True)  # b*, w*
+                        filter_f = lambda f: _filter_f(f) and (
+                            f.get('vcodec') != 'none' or f.get('acodec') != 'none')
                     else:
                         filter_f = ((lambda f: f.get('ext') == format_spec)
                                     if format_spec in ['mp4', 'flv', 'webm', '3gp', 'm4a', 'mp3', 'ogg', 'aac', 'wav']  # extension
@@ -2928,6 +2930,8 @@ class YoutubeDL(object):
     @staticmethod
     def format_resolution(format, default='unknown'):
         if format.get('vcodec') == 'none':
+            if format.get('acodec') == 'none':
+                return 'images'
             return 'audio only'
         if format.get('resolution') is not None:
             return format['resolution']

@@ -1473,7 +1473,7 @@ class InfoExtractor(object):
     class FormatSort:
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
-        default = ('hidden', 'hasvid', 'ie_pref', 'lang', 'quality',
+        default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
                    'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
                    'proto', 'ext', 'hasaud', 'source', 'format_id')  # These must not be aliases
         ytdl_default = ('hasaud', 'quality', 'tbr', 'filesize', 'vbr',
@@ -1494,6 +1494,9 @@ class InfoExtractor(object):
                      'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
                      'order_free': ('opus', 'ogg', 'webm', 'm4a', 'mp3', 'aac', '', 'none')},
             'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
+            'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple', 'default': 1,
+                           'field': ('vcodec', 'acodec'),
+                           'function': lambda it: int(any(v != 'none' for v in it))},
             'ie_pref': {'priority': True, 'type': 'extractor'},
             'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
@@ -1701,9 +1704,7 @@ class InfoExtractor(object):
 
                 def wrapped_function(values):
                     values = tuple(filter(lambda x: x is not None, values))
-                    return (self._get_field_setting(field, 'function')(*values) if len(values) > 1
-                            else values[0] if values
-                            else None)
+                    return self._get_field_setting(field, 'function')(values) if values else None
 
                 value = wrapped_function((get_value(f) for f in actual_fields))
             else:
@@ -1719,7 +1720,7 @@ class InfoExtractor(object):
             if not format.get('ext') and 'url' in format:
                 format['ext'] = determine_ext(format['url'])
             if format.get('vcodec') == 'none':
-                format['audio_ext'] = format['ext']
+                format['audio_ext'] = format['ext'] if format.get('acodec') != 'none' else 'none'
                 format['video_ext'] = 'none'
             else:
                 format['video_ext'] = format['ext']

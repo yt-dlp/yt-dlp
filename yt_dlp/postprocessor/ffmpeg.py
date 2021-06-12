@@ -310,6 +310,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         except FFmpegPostProcessorError as err:
             raise AudioConversionError(err.msg)
 
+    @PostProcessor._restrict_to(images=False)
     def run(self, information):
         path = information['filepath']
         orig_ext = information['ext']
@@ -419,6 +420,7 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
             return ['-c:v', 'libxvid', '-vtag', 'XVID']
         return []
 
+    @PostProcessor._restrict_to(images=False)
     def run(self, information):
         path, source_ext = information['filepath'], information['ext'].lower()
         target_ext = self._target_ext(source_ext)
@@ -456,6 +458,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         super(FFmpegEmbedSubtitlePP, self).__init__(downloader)
         self._already_have_subtitle = already_have_subtitle
 
+    @PostProcessor._restrict_to(images=False)
     def run(self, information):
         if information['ext'] not in ('mp4', 'webm', 'mkv'):
             self.to_screen('Subtitles can only be embedded in mp4, webm or mkv files')
@@ -523,6 +526,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
+    @PostProcessor._restrict_to(images=False)
     def run(self, info):
         metadata = {}
 
@@ -625,6 +629,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
 
 class FFmpegMergerPP(FFmpegPostProcessor):
+    @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename = info['filepath']
         temp_filename = prepend_extension(filename, 'temp')
@@ -657,6 +662,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
 
 
 class FFmpegFixupStretchedPP(FFmpegPostProcessor):
+    @PostProcessor._restrict_to(images=False, audio=False)
     def run(self, info):
         stretched_ratio = info.get('stretched_ratio')
         if stretched_ratio is None or stretched_ratio == 1:
@@ -676,6 +682,7 @@ class FFmpegFixupStretchedPP(FFmpegPostProcessor):
 
 
 class FFmpegFixupM4aPP(FFmpegPostProcessor):
+    @PostProcessor._restrict_to(images=False, video=False)
     def run(self, info):
         if info.get('container') != 'm4a_dash':
             return [], info
@@ -694,6 +701,7 @@ class FFmpegFixupM4aPP(FFmpegPostProcessor):
 
 
 class FFmpegFixupM3u8PP(FFmpegPostProcessor):
+    @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename = info['filepath']
         if self.get_audio_codec(filename) == 'aac':
@@ -805,6 +813,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
             ['-ss', compat_str(chapter['start_time']),
              '-t', compat_str(chapter['end_time'] - chapter['start_time'])])
 
+    @PostProcessor._restrict_to(images=False)
     def run(self, info):
         chapters = info.get('chapters') or []
         if not chapters:
