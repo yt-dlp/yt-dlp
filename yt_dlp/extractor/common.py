@@ -2686,10 +2686,9 @@ class InfoExtractor(object):
                                 'format_id': format_id,
                                 'ext': 'mhtml',
                                 'manifest_url': mpd_url,
-                                'format_note': 'DASH thumbnail',
-                                'preference': -10,
+                                'format_note': 'DASH storyboards (jpeg)',
                                 'acodec': 'none',
-                                'vcodec': 'jpeg',
+                                'vcodec': 'none',
                             }
                         representation_ms_info = extract_multisegment_info(representation, adaption_set_ms_info)
 
