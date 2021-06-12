@@ -140,6 +140,25 @@ class ORFTVthekIE(InfoExtractor):
                 })
 
             upload_date = unified_strdate(sd.get('created_date'))
+
+            thumbnails = []
+            preview = sd.get('preview_image_url')
+            if preview:
+                thumbnails.append({
+                    'id': 'preview',
+                    'url': preview,
+                    'preference': 0,
+                })
+            image = sd.get('image_full_url')
+            if not image and len(data_jsb) == 1:
+                image = self._og_search_thumbnail(webpage)
+            if image:
+                thumbnails.append({
+                    'id': 'full',
+                    'url': image,
+                    'preference': 1,
+                })
+
             entries.append({
                 '_type': 'video',
                 'id': video_id,
@@ -149,7 +168,7 @@ class ORFTVthekIE(InfoExtractor):
                 'description': sd.get('description'),
                 'duration': int_or_none(sd.get('duration_in_seconds')),
                 'upload_date': upload_date,
-                'thumbnail': sd.get('image_full_url'),
+                'thumbnails': thumbnails,
             })
 
         return {

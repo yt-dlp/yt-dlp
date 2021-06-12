@@ -2107,6 +2107,8 @@ def sanitize_filename(s, restricted=False, is_id=False):
             return '_'
         return char
 
+    if s == '':
+        return ''
     # Handle timestamps
     s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)
     result = ''.join(map(replace_insane, s))
@@ -3964,10 +3966,14 @@ class LazyList(collections.Sequence):
     def __init__(self, iterable):
         self.__iterable = iter(iterable)
         self.__cache = []
+        self.__reversed = False
 
     def __iter__(self):
-        for item in self.__cache:
-            yield item
+        if self.__reversed:
+            # We need to consume the entire iterable to iterate in reverse
+            yield from self.exhaust()[::-1]
+            return
+        yield from self.__cache
         for item in self.__iterable:
             self.__cache.append(item)
             yield item
@@ -3975,29 +3981,39 @@ class LazyList(collections.Sequence):
     def exhaust(self):
         ''' Evaluate the entire iterable '''
         self.__cache.extend(self.__iterable)
+        return self.__cache
+
+    @staticmethod
+    def _reverse_index(x):
+        return -(x + 1)
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
             step = idx.step or 1
-            start = idx.start if idx.start is not None else 1 if step > 0 else -1
+            start = idx.start if idx.start is not None else 0 if step > 0 else -1
             stop = idx.stop if idx.stop is not None else -1 if step > 0 else 0
+            if self.__reversed:
+                start, stop, step = map(self._reverse_index, (start, stop, step))
+                idx = slice(start, stop, step)
         elif isinstance(idx, int):
+            if self.__reversed:
+                idx = self._reverse_index(idx)
             start = stop = idx
         else:
             raise TypeError('indices must be integers or slices')
         if start < 0 or stop < 0:
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
-            self.exhaust()
-        else:
-            n = max(start, stop) - len(self.__cache) + 1
-            if n > 0:
-                self.__cache.extend(itertools.islice(self.__iterable, n))
+            return self.exhaust()[idx]
+
+        n = max(start, stop) - len(self.__cache) + 1
+        if n > 0:
+            self.__cache.extend(itertools.islice(self.__iterable, n))
         return self.__cache[idx]
 
     def __bool__(self):
         try:
-            self[0]
+            self[-1] if self.__reversed else self[0]
         except IndexError:
             return False
         return True
@@ -4005,6 +4021,17 @@ class LazyList(collections.Sequence):
     def __len__(self):
         self.exhaust()
         return len(self.__cache)
+
+    def __reversed__(self):
+        self.__reversed = not self.__reversed
+        return self
+
+    def __repr__(self):
+        # repr and str should mimic a list. So we exhaust the iterable
+        return repr(self.exhaust())
+
+    def __str__(self):
+        return repr(self.exhaust())
 
 
 class PagedList(object):
@@ -6193,21 +6220,38 @@ def load_plugins(name, suffix, namespace):
     return classes
 
 
-def traverse_dict(dictn, keys, casesense=True):
+def traverse_obj(obj, keys, *, casesense=True, is_user_input=False, traverse_string=False):
+    ''' Traverse nested list/dict/tuple
+    @param casesense        Whether to consider dictionary keys as case sensitive
+    @param is_user_input    Whether the keys are generated from user input. If True,
+                            strings are converted to int/slice if necessary
+    @param traverse_string  Whether to traverse inside strings. If True, any
+                            non-compatible object will also be converted into a string
+    '''
     keys = list(keys)[::-1]
     while keys:
         key = keys.pop()
-        if isinstance(dictn, dict):
+        if isinstance(obj, dict):
+            assert isinstance(key, compat_str)
             if not casesense:
-                dictn = {k.lower(): v for k, v in dictn.items()}
+                obj = {k.lower(): v for k, v in obj.items()}
                 key = key.lower()
-            dictn = dictn.get(key)
-        elif isinstance(dictn, (list, tuple, compat_str)):
-            if ':' in key:
-                key = slice(*map(int_or_none, key.split(':')))
-            else:
-                key = int_or_none(key)
-            dictn = try_get(dictn, lambda x: x[key])
+            obj = obj.get(key)
         else:
-            return None
-    return dictn
+            if is_user_input:
+                key = (int_or_none(key) if ':' not in key
+                       else slice(*map(int_or_none, key.split(':'))))
+            if not isinstance(obj, (list, tuple)):
+                if traverse_string:
+                    obj = compat_str(obj)
+                else:
+                    return None
+            assert isinstance(key, (int, slice))
+            obj = try_get(obj, lambda x: x[key])
+    return obj
+
+
+def traverse_dict(dictn, keys, casesense=True):
+    ''' For backward compatibility. Do not use '''
+    return traverse_obj(dictn, keys, casesense=casesense,
+                        is_user_input=True, traverse_string=True)

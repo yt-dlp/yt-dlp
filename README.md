@@ -22,8 +22,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * [NEW FEATURES](#new-features)
     * [Differences in default behavior](#differences-in-default-behavior)
 * [INSTALLATION](#installation)
-    * [Dependencies](#dependencies)
     * [Update](#update)
+    * [Dependencies](#dependencies)
     * [Compile](#compile)
 * [USAGE AND OPTIONS](#usage-and-options)
     * [General Options](#general-options)
@@ -66,7 +66,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl [commit/d495292](https://github.com/ytdl-org/youtube-dl/commit/d495292852b6c2f1bd58bc2141ff2b0265c952cf)**: (v2021.05.16) You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl [commit/c2350ca](https://github.com/ytdl-org/youtube-dl/commit/c2350cac243ba1ec1586fe85b0d62d1b700047a2)**: (v2021.06.06) You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
@@ -84,7 +84,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries
+* **New extractors**: AnimeLab, Philo MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive
 
 * **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon
 
@@ -166,16 +166,30 @@ sudo aria2c https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o 
 sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
 
-### DEPENDENCIES
-Python versions 3.6+ (CPython and PyPy) are officially supported. Other versions and implementations may or maynot work correctly.
-
-On windows, [Microsoft Visual C++ 2010 Redistributable Package (x86)](https://www.microsoft.com/en-us/download/details.aspx?id=26999) is also necessary to run yt-dlp. You probably already have this, but if the executable throws an error due to missing `MSVCR100.dll` you need to install it.
-
-Although there are no other required dependencies, `ffmpeg` and `ffprobe` are highly recommended. Other optional dependencies are `sponskrub`, `AtomicParsley`, `mutagen`, `pycryptodome`, `phantomjs` and any of the supported external downloaders. Note that the windows releases are already built with the python interpreter, mutagen and pycryptodome included.
-
 ### UPDATE
 You can use `yt-dlp -U` to update if you are using the provided release.
 If you are using `pip`, simply re-run the same command that was used to install the program.
+
+### DEPENDENCIES
+Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
+
+<!-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 -->
+On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe) is also necessary to run yt-dlp. You probably already have this, but if the executable throws an error due to missing `MSVCR100.dll` you need to install it manually.
+
+While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly recommended
+* [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging seperate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. Licence [depends on the build](https://www.ffmpeg.org/legal.html)
+* [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the [sponskrub options](#sponskrub-sponsorblock-options). Licenced under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
+* [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licenced under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
+* [**pycryptodome**](https://github.com/Legrandin/pycryptodome) - For decrypting various data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
+* [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen is not present. Licenced under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
+* [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](http://rtmpdump.mplayerhq.hu)
+* [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
+* [**phantomjs**](https://github.com/ariya/phantomjs) - Used in extractors where javascript needs to be run. Licenced under [BSD3](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD)
+* Any external downloader that you want to use with `--downloader`
+
+To use or redistribute the dependencies, you must agree to their respective licensing terms.
+
+Note that the windows releases are already built with the python interpreter, mutagen and pycryptodome included.
 
 ### COMPILE
 
@@ -500,13 +514,10 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      jar in
     --no-cookies                     Do not read/dump cookies (default)
     --cache-dir DIR                  Location in the filesystem where youtube-dl
-                                     can store some downloaded information
-                                     permanently. By default
-                                     $XDG_CACHE_HOME/youtube-dl or
-                                     ~/.cache/youtube-dl . At the moment, only
-                                     YouTube player files (for videos with
-                                     obfuscated signatures) are cached, but that
-                                     may change
+                                     can store some downloaded information (such
+                                     as client ids and signatures) permanently.
+                                     By default $XDG_CACHE_HOME/youtube-dl or
+                                     ~/.cache/youtube-dl
     --no-cache-dir                   Disable filesystem caching
     --rm-cache-dir                   Delete all filesystem cache files
 
@@ -954,6 +965,8 @@ The available fields are:
  - `playlist_title` (string): Playlist title
  - `playlist_uploader` (string): Full name of the playlist uploader
  - `playlist_uploader_id` (string): Nickname or id of the playlist uploader
+ - `webpage_url` (string): A URL to the video webpage which if given to yt-dlp should allow to get the same result again
+ - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
 
 Available for the video that belongs to some logical chapter or section:
 
