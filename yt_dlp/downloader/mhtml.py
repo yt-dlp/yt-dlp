@@ -199,3 +199,4 @@ body > figure > img {
         ctx['dest_stream'].write(
             b'--%b--\r\n\r\n' % frag_boundary.encode('us-ascii'))
         self._finish_frag_download(ctx)
+        return True
