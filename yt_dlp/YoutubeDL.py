@@ -68,6 +68,7 @@ from .utils import (
     STR_FORMAT_RE,
     formatSeconds,
     GeoRestrictedError,
+    HEADRequest,
     int_or_none,
     iri_to_uri,
     ISO3166Utils,
@@ -1921,8 +1922,7 @@ class YoutubeDL(object):
         self.cookiejar.add_cookie_header(pr)
         return pr.get_header('Cookie')
 
-    @staticmethod
-    def _sanitize_thumbnails(info_dict):
+    def _sanitize_thumbnails(self, info_dict):
         thumbnails = info_dict.get('thumbnails')
         if thumbnails is None:
             thumbnail = info_dict.get('thumbnail')
@@ -1935,12 +1935,25 @@ class YoutubeDL(object):
                 t.get('height') if t.get('height') is not None else -1,
                 t.get('id') if t.get('id') is not None else '',
                 t.get('url')))
+
+            def test_thumbnail(t):
+                self.to_screen('[info] Testing thumbnail %s' % t['id'])
+                try:
+                    self.urlopen(HEADRequest(t['url']))
+                except network_exceptions as err:
+                    self.to_screen('[info] Unable to connect to thumbnail %s URL "%s" - %s. Skipping...' % (
+                        t['id'], t['url'], error_to_compat_str(err)))
+                    return False
+                return True
+
             for i, t in enumerate(thumbnails):
-                t['url'] = sanitize_url(t['url'])
-                if t.get('width') and t.get('height'):
-                    t['resolution'] = '%dx%d' % (t['width'], t['height'])
                 if t.get('id') is None:
                     t['id'] = '%d' % i
+                if t.get('width') and t.get('height'):
+                    t['resolution'] = '%dx%d' % (t['width'], t['height'])
+                t['url'] = sanitize_url(t['url'])
+            if self.params.get('check_formats'):
+                info_dict['thumbnails'] = reversed(LazyList(filter(test_thumbnail, thumbnails[::-1])))
 
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
@@ -2804,7 +2817,7 @@ class YoutubeDL(object):
             info_dict['epoch'] = int(time.time())
             reject = lambda k, v: k in remove_keys
         filter_fn = lambda obj: (
-            list(map(filter_fn, obj)) if isinstance(obj, (list, tuple, set))
+            list(map(filter_fn, obj)) if isinstance(obj, (LazyList, list, tuple, set))
             else obj if not isinstance(obj, dict)
             else dict((k, filter_fn(v)) for k, v in obj.items() if not reject(k, v)))
         return filter_fn(info_dict)
@@ -3042,7 +3055,7 @@ class YoutubeDL(object):
                 hideEmpty=new_format)))
 
     def list_thumbnails(self, info_dict):
-        thumbnails = info_dict.get('thumbnails')
+        thumbnails = list(info_dict.get('thumbnails'))
         if not thumbnails:
             self.to_screen('[info] No thumbnails present for %s' % info_dict['id'])
             return
