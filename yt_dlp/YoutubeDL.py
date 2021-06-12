@@ -1691,9 +1691,12 @@ class YoutubeDL(object):
             formats_info.extend(format_2.get('requested_formats', (format_2,)))
 
             if not allow_multiple_streams['video'] or not allow_multiple_streams['audio']:
-                get_no_more = {"video": False, "audio": False}
+                get_no_more = {'video': False, 'audio': False}
                 for (i, fmt_info) in enumerate(formats_info):
-                    for aud_vid in ["audio", "video"]:
+                    if fmt_info.get('acodec') == fmt_info.get('vcodec') == 'none':
+                        formats_info.pop(i)
+                        continue
+                    for aud_vid in ['audio', 'video']:
                         if not allow_multiple_streams[aud_vid] and fmt_info.get(aud_vid[0] + 'codec') != 'none':
                             if get_no_more[aud_vid]:
                                 formats_info.pop(i)
@@ -1801,7 +1804,9 @@ class YoutubeDL(object):
                             yield f
                 elif format_spec == 'mergeall':
                     def selector_function(ctx):
-                        formats = list(_check_formats(ctx['formats']))
+                        formats = ctx['formats']
+                        if check_formats:
+                            formats = list(_check_formats(formats))
                         if not formats:
                             return
                         merged_format = formats[-1]
