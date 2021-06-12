@@ -20,6 +20,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import tokenize
 import traceback
@@ -86,7 +87,6 @@ from .utils import (
     preferredencoding,
     prepend_extension,
     process_communicate_or_kill,
-    random_uuidv4,
     register_socks_protocols,
     RejectedVideoReached,
     render_table,
@@ -817,6 +817,21 @@ class YoutubeDL(object):
                     'Put  from __future__ import unicode_literals  at the top of your code file or consider switching to Python 3.x.')
         return outtmpl_dict
 
+    def get_output_path(self, dir_type='', filename=None):
+        paths = self.params.get('paths', {})
+        assert isinstance(paths, dict)
+        path = os.path.join(
+            expand_path(paths.get('home', '').strip()),
+            expand_path(paths.get(dir_type, '').strip()) if dir_type else '',
+            filename or '')
+
+        # Temporary fix for #4787
+        # 'Treat' all problem characters by passing filename through preferredencoding
+        # to workaround encoding issues with subprocess on python2 @ Windows
+        if sys.version_info < (3, 0) and sys.platform == 'win32':
+            path = encodeFilename(path, True).decode(preferredencoding())
+        return sanitize_path(path, force=self.params.get('windowsfilenames'))
+
     @staticmethod
     def validate_outtmpl(tmpl):
         ''' @return None or Exception object '''
@@ -994,12 +1009,11 @@ class YoutubeDL(object):
 
     def prepare_filename(self, info_dict, dir_type='', warn=False):
         """Generate the output filename."""
-        paths = self.params.get('paths', {})
-        assert isinstance(paths, dict)
+
         filename = self._prepare_filename(info_dict, dir_type or 'default')
 
         if warn and not self.__prepare_filename_warned:
-            if not paths:
+            if not self.params.get('paths'):
                 pass
             elif filename == '-':
                 self.report_warning('--paths is ignored when an outputting to stdout')
@@ -1009,18 +1023,7 @@ class YoutubeDL(object):
         if filename == '-' or not filename:
             return filename
 
-        homepath = expand_path(paths.get('home', '').strip())
-        assert isinstance(homepath, compat_str)
-        subdir = expand_path(paths.get(dir_type, '').strip()) if dir_type else ''
-        assert isinstance(subdir, compat_str)
-        path = os.path.join(homepath, subdir, filename)
-
-        # Temporary fix for #4787
-        # 'Treat' all problem characters by passing filename through preferredencoding
-        # to workaround encoding issues with subprocess on python2 @ Windows
-        if sys.version_info < (3, 0) and sys.platform == 'win32':
-            path = encodeFilename(path, True).decode(preferredencoding())
-        return sanitize_path(path, force=self.params.get('windowsfilenames'))
+        return self.get_output_path(dir_type, filename)
 
     def _match_entry(self, info_dict, incomplete=False, silent=False):
         """ Returns None if the file should be downloaded """
@@ -1742,18 +1745,20 @@ class YoutubeDL(object):
         def _check_formats(formats):
             for f in formats:
                 self.to_screen('[info] Testing format %s' % f['format_id'])
-                paths = self.params.get('paths', {})
-                temp_file = os.path.join(
-                    expand_path(paths.get('home', '').strip()),
-                    expand_path(paths.get('temp', '').strip()),
-                    'ytdl.%s.f%s.check-format' % (random_uuidv4(), f['format_id']))
+                temp_file = tempfile.NamedTemporaryFile(
+                    suffix='.tmp', delete=False,
+                    dir=self.get_output_path('temp') or None)
+                temp_file.close()
                 try:
-                    dl, _ = self.dl(temp_file, f, test=True)
+                    dl, _ = self.dl(temp_file.name, f, test=True)
                 except (ExtractorError, IOError, OSError, ValueError) + network_exceptions:
                     dl = False
                 finally:
-                    if os.path.exists(temp_file):
-                        os.remove(temp_file)
+                    if os.path.exists(temp_file.name):
+                        try:
+                            os.remove(temp_file.name)
+                        except OSError:
+                            self.report_warning('Unable to delete temporary file "%s"' % temp_file.name)
                 if dl:
                     yield f
                 else:
