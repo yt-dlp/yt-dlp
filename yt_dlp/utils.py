@@ -3954,10 +3954,14 @@ class LazyList(collections.Sequence):
     def __init__(self, iterable):
         self.__iterable = iter(iterable)
         self.__cache = []
+        self.__reversed = False
 
     def __iter__(self):
-        for item in self.__cache:
-            yield item
+        if self.__reversed:
+            # We need to consume the entire iterable to iterate in reverse
+            yield from self.exhaust()[::-1]
+            return
+        yield from self.__cache
         for item in self.__iterable:
             self.__cache.append(item)
             yield item
@@ -3965,29 +3969,39 @@ class LazyList(collections.Sequence):
     def exhaust(self):
         ''' Evaluate the entire iterable '''
         self.__cache.extend(self.__iterable)
+        return self.__cache
+
+    @staticmethod
+    def _reverse_index(x):
+        return -(x + 1)
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
             step = idx.step or 1
-            start = idx.start if idx.start is not None else 1 if step > 0 else -1
+            start = idx.start if idx.start is not None else 0 if step > 0 else -1
             stop = idx.stop if idx.stop is not None else -1 if step > 0 else 0
+            if self.__reversed:
+                start, stop, step = map(self._reverse_index, (start, stop, step))
+                idx = slice(start, stop, step)
         elif isinstance(idx, int):
+            if self.__reversed:
+                idx = self._reverse_index(idx)
             start = stop = idx
         else:
             raise TypeError('indices must be integers or slices')
         if start < 0 or stop < 0:
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
-            self.exhaust()
-        else:
-            n = max(start, stop) - len(self.__cache) + 1
-            if n > 0:
-                self.__cache.extend(itertools.islice(self.__iterable, n))
+            return self.exhaust()[idx]
+
+        n = max(start, stop) - len(self.__cache) + 1
+        if n > 0:
+            self.__cache.extend(itertools.islice(self.__iterable, n))
         return self.__cache[idx]
 
     def __bool__(self):
         try:
-            self[0]
+            self[-1] if self.__reversed else self[0]
         except IndexError:
             return False
         return True
@@ -3995,6 +4009,17 @@ class LazyList(collections.Sequence):
     def __len__(self):
         self.exhaust()
         return len(self.__cache)
+
+    def __reversed__(self):
+        self.__reversed = not self.__reversed
+        return self
+
+    def __repr__(self):
+        # repr and str should mimic a list. So we exhaust the iterable
+        return repr(self.exhaust())
+
+    def __str__(self):
+        return repr(self.exhaust())
 
 
 class PagedList(object):
