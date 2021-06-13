@@ -18,7 +18,7 @@ from ..utils import (
 class SinaIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://(?:.*?\.)?video\.sina\.com\.cn/
                         (?:
-                            (?:view/|.*\#)(?P<video_id>\d+)|
+                            (?:view/|.*\#)(?P<id>\d+)|
                             .+?/(?P<pseudo_id>[^/?#]+)(?:\.s?html)|
                             # This is used by external sites like Weibo
                             api/sinawebApi/outplay.php/(?P<token>.+?)\.swf
@@ -58,7 +58,7 @@ class SinaIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
 
-        video_id = mobj.group('video_id')
+        video_id = mobj.group('id')
         if not video_id:
             if mobj.group('token') is not None:
                 # The video id is in the redirected url

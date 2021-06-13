@@ -301,12 +301,22 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
     def _generate_sapisidhash_header(self):
-        sapisid_cookie = self._get_cookies('https://www.youtube.com').get('SAPISID')
+        # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
+        # See: https://github.com/yt-dlp/yt-dlp/issues/393
+        yt_cookies = self._get_cookies('https://www.youtube.com')
+        sapisid_cookie = dict_get(
+            yt_cookies, ('__Secure-3PAPISID', 'SAPISID'))
         if sapisid_cookie is None:
             return
         time_now = round(time.time())
-        sapisidhash = hashlib.sha1((str(time_now) + " " + sapisid_cookie.value + " " + "https://www.youtube.com").encode("utf-8")).hexdigest()
-        return "SAPISIDHASH %s_%s" % (time_now, sapisidhash)
+        # SAPISID cookie is required if not already present
+        if not yt_cookies.get('SAPISID'):
+            self._set_cookie(
+                '.youtube.com', 'SAPISID', sapisid_cookie.value, secure=True, expire_time=time_now + 3600)
+        # SAPISIDHASH algorithm from https://stackoverflow.com/a/32065323
+        sapisidhash = hashlib.sha1(
+            f'{time_now} {sapisid_cookie.value} https://www.youtube.com'.encode('utf-8')).hexdigest()
+        return f'SAPISIDHASH {time_now}_{sapisidhash}'
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page',
@@ -3592,7 +3602,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
             else:
                 # Youtube may send alerts if there was an issue with the continuation page
-                self._extract_and_report_alerts(response, expected=False)
+                try:
+                    self._extract_and_report_alerts(response, expected=False)
+                except ExtractorError as e:
+                    if fatal:
+                        raise
+                    self.report_warning(error_to_compat_str(e))
+                    return
                 if not check_get_keys or dict_get(response, check_get_keys):
                     break
                 # Youtube sometimes sends incomplete data
@@ -4062,6 +4078,7 @@ class YoutubeRecommendedIE(YoutubeFeedsInfoExtractor):
     IE_DESC = 'YouTube.com recommended videos, ":ytrec" for short (requires authentication)'
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/?(?:[?#]|$)|:ytrec(?:ommended)?'
     _FEED_NAME = 'recommended'
+    _LOGIN_REQUIRED = False
     _TESTS = [{
         'url': ':ytrec',
         'only_matching': True,

@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Various small unit tests
 import io
+import itertools
 import json
 import xml.etree.ElementTree
 
@@ -108,6 +109,7 @@ from yt_dlp.utils import (
     cli_bool_option,
     parse_codecs,
     iri_to_uri,
+    LazyList,
 )
 from yt_dlp.compat import (
     compat_chr,
@@ -126,6 +128,7 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(timeconvert('bougrg') is None)
 
     def test_sanitize_filename(self):
+        self.assertEqual(sanitize_filename(''), '')
         self.assertEqual(sanitize_filename('abc'), 'abc')
         self.assertEqual(sanitize_filename('abc_d-e'), 'abc_d-e')
 
@@ -1523,6 +1526,47 @@ Line 1
     def test_clean_podcast_url(self):
         self.assertEqual(clean_podcast_url('https://www.podtrac.com/pts/redirect.mp3/chtbl.com/track/5899E/traffic.megaphone.fm/HSW7835899191.mp3'), 'https://traffic.megaphone.fm/HSW7835899191.mp3')
         self.assertEqual(clean_podcast_url('https://play.podtrac.com/npr-344098539/edge1.pod.npr.org/anon.npr-podcasts/podcast/npr/waitwait/2020/10/20201003_waitwait_wwdtmpodcast201003-015621a5-f035-4eca-a9a1-7c118d90bc3c.mp3'), 'https://edge1.pod.npr.org/anon.npr-podcasts/podcast/npr/waitwait/2020/10/20201003_waitwait_wwdtmpodcast201003-015621a5-f035-4eca-a9a1-7c118d90bc3c.mp3')
+
+    def test_LazyList(self):
+        it = list(range(10))
+
+        self.assertEqual(list(LazyList(it)), it)
+        self.assertEqual(LazyList(it).exhaust(), it)
+        self.assertEqual(LazyList(it)[5], it[5])
+
+        self.assertEqual(LazyList(it)[::2], it[::2])
+        self.assertEqual(LazyList(it)[1::2], it[1::2])
+        self.assertEqual(LazyList(it)[6:2:-2], it[6:2:-2])
+        self.assertEqual(LazyList(it)[::-1], it[::-1])
+
+        self.assertTrue(LazyList(it))
+        self.assertFalse(LazyList(range(0)))
+        self.assertEqual(len(LazyList(it)), len(it))
+        self.assertEqual(repr(LazyList(it)), repr(it))
+        self.assertEqual(str(LazyList(it)), str(it))
+
+        self.assertEqual(list(reversed(LazyList(it))), it[::-1])
+        self.assertEqual(list(reversed(LazyList(it))[1:3:7]), it[::-1][1:3:7])
+
+    def test_LazyList_laziness(self):
+
+        def test(ll, idx, val, cache):
+            self.assertEqual(ll[idx], val)
+            self.assertEqual(getattr(ll, '_LazyList__cache'), list(cache))
+
+        ll = LazyList(range(10))
+        test(ll, 0, 0, range(1))
+        test(ll, 5, 5, range(6))
+        test(ll, -3, 7, range(10))
+
+        ll = reversed(LazyList(range(10)))
+        test(ll, -1, 0, range(1))
+        test(ll, 3, 6, range(10))
+
+        ll = LazyList(itertools.count())
+        test(ll, 10, 10, range(11))
+        reversed(ll)
+        test(ll, -15, 14, range(15))
 
 
 if __name__ == '__main__':

@@ -24,6 +24,7 @@ from .utils import (
     DateRange,
     decodeOption,
     DownloadError,
+    error_to_compat_str,
     ExistingVideoReached,
     expand_path,
     match_filter_func,
@@ -306,6 +307,16 @@ def _real_main(argv=None):
             opts.outtmpl.update({'default': outtmpl_default})
         else:
             _unused_compat_opt('filename')
+
+    def validate_outtmpl(tmpl, msg):
+        err = YoutubeDL.validate_outtmpl(tmpl)
+        if err:
+            parser.error('invalid %s %r: %s' % (msg, tmpl, error_to_compat_str(err)))
+
+    for k, tmpl in opts.outtmpl.items():
+        validate_outtmpl(tmpl, '%s output template' % k)
+    for tmpl in opts.forceprint:
+        validate_outtmpl(tmpl, 'print template')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'
