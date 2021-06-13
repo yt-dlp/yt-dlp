@@ -407,7 +407,7 @@ class FragmentFD(FileDownloader):
                 # Do not keep frag_content in memory. Instead we only need the
                 # fragment filename so that the content can be read again
                 _, frag_index = download_fragment(fragment)
-                return fragment, frag_index, ctx['fragment_filename_sanitized']
+                return fragment, frag_index, ctx.get('fragment_filename_sanitized')
 
             self.report_warning('The download speed shown is only of one thread. This is a known issue')
             with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
@@ -425,6 +425,8 @@ class FragmentFD(FileDownloader):
                     raise KeyboardInterrupt
 
             for fragment, frag_index, frag_filename in map(lambda x: x.result(), futures):
+                if not frag_filename:  # if the download was skipped
+                    continue
                 ctx['fragment_filename_sanitized'] = frag_filename
                 result = append_fragment(
                     decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index)
