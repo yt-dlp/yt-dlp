@@ -402,8 +402,14 @@ class FragmentFD(FileDownloader):
 
         max_workers = self.params.get('concurrent_fragment_downloads', 1)
         if can_threaded_download and max_workers > 1:
+
+            def _download_fragment(fragment):
+                # Do not keep frag_content in memory. Instead we only need the
+                # fragment filename so that the content can be read again
+                _, frag_index = download_fragment(fragment)
+                return fragment, frag_index, ctx['fragment_filename_sanitized']
+
             self.report_warning('The download speed shown is only of one thread. This is a known issue')
-            _download_fragment = lambda f: (f, download_fragment(f)[1])
             with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 futures = [pool.submit(_download_fragment, fragment) for fragment in fragments]
                 done, not_done = concurrent.futures.wait(futures, timeout=0)  # timeout must be 0 to return instantly
@@ -418,9 +424,10 @@ class FragmentFD(FileDownloader):
                     concurrent.futures.wait(not_done, timeout=None)  # timeout must be none to cancel
                     raise KeyboardInterrupt
 
-            for fragment, frag_index in map(lambda x: x.result(), futures):
+            for fragment, frag_index, frag_filename in map(lambda x: x.result(), futures):
+                ctx['fragment_filename_sanitized'] = frag_filename
                 result = append_fragment(
-                    decrypt_fragment(fragment, self._read_fragment(fragment)), frag_index)
+                    decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index)
                 if not result:
                     return False
         else:
