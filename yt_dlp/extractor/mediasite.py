@@ -163,7 +163,7 @@ class MediasiteIE(InfoExtractor):
             'protocol': 'mhtml',
             'acodec': 'none',
             'vcodec': 'none',
-            'format_note': 'Slides (jpeg)',
+            'format_note': 'Slides',
             'fragments': fragments,
             'fragment_base_url': slide_base_url,
         }
