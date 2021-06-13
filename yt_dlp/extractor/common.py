@@ -290,6 +290,7 @@ class InfoExtractor(object):
     categories:     A list of categories that the video falls in, for example
                     ["Sports", "Berlin"]
     tags:           A list of tags assigned to the video, e.g. ["sweden", "pop music"]
+    cast:           A list of the video cast
     is_live:        True, False, or None (=unknown). Whether this video is a
                     live stream that goes on instead of a fixed-length video.
     was_live:       True, False, or None (=unknown). Whether this video was

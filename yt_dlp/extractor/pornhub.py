@@ -14,6 +14,7 @@ from ..compat import (
 )
 from .openload import PhantomJSwrapper
 from ..utils import (
+    clean_html,
     determine_ext,
     ExtractorError,
     int_or_none,
@@ -145,6 +146,7 @@ class PornHubIE(PornHubBaseIE):
             'age_limit': 18,
             'tags': list,
             'categories': list,
+            'cast': list,
         },
     }, {
         # non-ASCII title
@@ -464,7 +466,7 @@ class PornHubIE(PornHubBaseIE):
                 r'(?s)<div[^>]+\bclass=["\'].*?\b%sWrapper[^>]*>(.+?)</div>'
                 % meta_key, webpage, meta_key, default=None)
             if div:
-                return re.findall(r'<a[^>]+\bhref=[^>]+>([^<]+)', div)
+                return [clean_html(x).strip() for x in re.findall(r'(?s)<a[^>]+\bhref=[^>]+>.+?</a>', div)]
 
         info = self._search_json_ld(webpage, video_id, default={})
         # description provided in JSON-LD is irrelevant
@@ -485,6 +487,7 @@ class PornHubIE(PornHubBaseIE):
             'age_limit': 18,
             'tags': extract_list('tags'),
             'categories': extract_list('categories'),
+            'cast': extract_list('pornstars'),
             'subtitles': subtitles,
         }, info)
 
