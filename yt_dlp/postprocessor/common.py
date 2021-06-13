@@ -80,7 +80,7 @@ class PostProcessor(object):
                     else 'audio' if info['acodec'] != 'none'
                     else 'images')
                 if allowed[format_type]:
-                    func(self, info)
+                    return func(self, info)
                 else:
                     self.to_screen('Skipping %s' % format_type)
                     return [], info
