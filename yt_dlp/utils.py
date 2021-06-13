@@ -4663,17 +4663,20 @@ def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
 
 
 def _match_one(filter_part, dct):
+    # TODO: Generalize code with YoutubeDL._build_format_filter
     COMPARISON_OPERATORS = {
         '<': operator.lt,
         '<=': operator.le,
         '>': operator.gt,
         '>=': operator.ge,
         '=': operator.eq,
-        '!=': operator.ne,
+        '*=': operator.contains,
+        '^=': lambda attr, value: attr.startswith(value),
+        '$=': lambda attr, value: attr.endswith(value),
     }
     operator_rex = re.compile(r'''(?x)\s*
         (?P<key>[a-z_]+)
-        \s*(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
+        \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
         (?:
             (?P<intval>[0-9.]+(?:[kKmMgGtTpPeEzZyY]i?[Bb]?)?)|
             (?P<quote>["\'])(?P<quotedstrval>(?:\\.|(?!(?P=quote)|\\).)+?)(?P=quote)|
@@ -4683,7 +4686,11 @@ def _match_one(filter_part, dct):
         ''' % '|'.join(map(re.escape, COMPARISON_OPERATORS.keys())))
     m = operator_rex.search(filter_part)
     if m:
-        op = COMPARISON_OPERATORS[m.group('op')]
+        unnegated_op = COMPARISON_OPERATORS[m.group('op')]
+        if m.group('negation'):
+            op = lambda attr, value: not unnegated_op(attr, value)
+        else:
+            op = unnegated_op
         actual_value = dct.get(m.group('key'))
         if (m.group('quotedstrval') is not None
             or m.group('strval') is not None
@@ -4693,14 +4700,14 @@ def _match_one(filter_part, dct):
             # https://github.com/ytdl-org/youtube-dl/issues/11082).
             or actual_value is not None and m.group('intval') is not None
                 and isinstance(actual_value, compat_str)):
-            if m.group('op') not in ('=', '!='):
-                raise ValueError(
-                    'Operator %s does not support string values!' % m.group('op'))
             comparison_value = m.group('quotedstrval') or m.group('strval') or m.group('intval')
             quote = m.group('quote')
             if quote is not None:
                 comparison_value = comparison_value.replace(r'\%s' % quote, quote)
         else:
+            if m.group('op') in ('*=', '^=', '$='):
+                raise ValueError(
+                    'Operator %s only supports string values!' % m.group('op'))
             try:
                 comparison_value = int(m.group('intval'))
             except ValueError:
