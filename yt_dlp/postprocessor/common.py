@@ -76,8 +76,8 @@ class PostProcessor(object):
             @functools.wraps(func)
             def wrapper(self, info):
                 format_type = (
-                    'video' if info['vcodec'] != 'none'
-                    else 'audio' if info['acodec'] != 'none'
+                    'video' if info.get('vcodec') != 'none'
+                    else 'audio' if info.get('acodec') != 'none'
                     else 'images')
                 if allowed[format_type]:
                     return func(self, info)
