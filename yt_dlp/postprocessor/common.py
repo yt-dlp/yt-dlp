@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import functools
 import os
 
 from ..compat import compat_str
@@ -66,6 +67,25 @@ class PostProcessor(object):
     def set_downloader(self, downloader):
         """Sets the downloader for this PP."""
         self._downloader = downloader
+
+    @staticmethod
+    def _restrict_to(*, video=True, audio=True, images=True):
+        allowed = {'video': video, 'audio': audio, 'images': images}
+
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(self, info):
+                format_type = (
+                    'video' if info.get('vcodec') != 'none'
+                    else 'audio' if info.get('acodec') != 'none'
+                    else 'images')
+                if allowed[format_type]:
+                    return func(self, info)
+                else:
+                    self.to_screen('Skipping %s' % format_type)
+                    return [], info
+            return wrapper
+        return decorator
 
     def run(self, information):
         """Run the PostProcessor.

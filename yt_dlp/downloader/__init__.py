@@ -22,6 +22,7 @@ from .http import HttpFD
 from .rtmp import RtmpFD
 from .rtsp import RtspFD
 from .ism import IsmFD
+from .mhtml import MhtmlFD
 from .niconico import NiconicoDmcFD
 from .ws import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatReplayFD
@@ -40,6 +41,7 @@ PROTOCOL_MAP = {
     'f4m': F4mFD,
     'http_dash_segments': DashSegmentsFD,
     'ism': IsmFD,
+    'mhtml': MhtmlFD,
     'niconico_dmc': NiconicoDmcFD,
     'websocket_frag': WebSocketFragmentFD,
     'youtube_live_chat_replay': YoutubeLiveChatReplayFD,

@@ -24,7 +24,7 @@ class CanvasIE(InfoExtractor):
     _VALID_URL = r'https?://mediazone\.vrt\.be/api/v1/(?P<site_id>canvas|een|ketnet|vrt(?:video|nieuws)|sporza|dako)/assets/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://mediazone.vrt.be/api/v1/ketnet/assets/md-ast-4ac54990-ce66-4d00-a8ca-9eac86f4c475',
-        'md5': '68993eda72ef62386a15ea2cf3c93107',
+        'md5': '37b2b7bb9b3dcaa05b67058dc3a714a9',
         'info_dict': {
             'id': 'md-ast-4ac54990-ce66-4d00-a8ca-9eac86f4c475',
             'display_id': 'md-ast-4ac54990-ce66-4d00-a8ca-9eac86f4c475',
@@ -32,9 +32,9 @@ class CanvasIE(InfoExtractor):
             'title': 'Nachtwacht: De Greystook',
             'description': 'Nachtwacht: De Greystook',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 1468.04,
+            'duration': 1468.02,
         },
-        'expected_warnings': ['is not a supported codec', 'Unknown MIME type'],
+        'expected_warnings': ['is not a supported codec'],
     }, {
         'url': 'https://mediazone.vrt.be/api/v1/canvas/assets/mz-ast-5e5f90b6-2d72-4c40-82c2-e134f884e93e',
         'only_matching': True,

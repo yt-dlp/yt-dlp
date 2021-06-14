@@ -290,6 +290,7 @@ class InfoExtractor(object):
     categories:     A list of categories that the video falls in, for example
                     ["Sports", "Berlin"]
     tags:           A list of tags assigned to the video, e.g. ["sweden", "pop music"]
+    cast:           A list of the video cast
     is_live:        True, False, or None (=unknown). Whether this video is a
                     live stream that goes on instead of a fixed-length video.
     was_live:       True, False, or None (=unknown). Whether this video was
@@ -1473,7 +1474,7 @@ class InfoExtractor(object):
     class FormatSort:
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
-        default = ('hidden', 'hasvid', 'ie_pref', 'lang', 'quality',
+        default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
                    'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
                    'proto', 'ext', 'hasaud', 'source', 'format_id')  # These must not be aliases
         ytdl_default = ('hasaud', 'quality', 'tbr', 'filesize', 'vbr',
@@ -1494,6 +1495,9 @@ class InfoExtractor(object):
                      'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
                      'order_free': ('opus', 'ogg', 'webm', 'm4a', 'mp3', 'aac', '', 'none')},
             'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
+            'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple', 'default': 1,
+                           'field': ('vcodec', 'acodec'),
+                           'function': lambda it: int(any(v != 'none' for v in it))},
             'ie_pref': {'priority': True, 'type': 'extractor'},
             'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
@@ -1701,9 +1705,7 @@ class InfoExtractor(object):
 
                 def wrapped_function(values):
                     values = tuple(filter(lambda x: x is not None, values))
-                    return (self._get_field_setting(field, 'function')(*values) if len(values) > 1
-                            else values[0] if values
-                            else None)
+                    return self._get_field_setting(field, 'function')(values) if values else None
 
                 value = wrapped_function((get_value(f) for f in actual_fields))
             else:
@@ -1719,7 +1721,7 @@ class InfoExtractor(object):
             if not format.get('ext') and 'url' in format:
                 format['ext'] = determine_ext(format['url'])
             if format.get('vcodec') == 'none':
-                format['audio_ext'] = format['ext']
+                format['audio_ext'] = format['ext'] if format.get('acodec') != 'none' else 'none'
                 format['video_ext'] = 'none'
             else:
                 format['video_ext'] = format['ext']
@@ -2125,6 +2127,7 @@ class InfoExtractor(object):
                         format_id.append(str(format_index))
                     f = {
                         'format_id': '-'.join(format_id),
+                        'format_note': name,
                         'format_index': format_index,
                         'url': manifest_url,
                         'manifest_url': m3u8_url,
@@ -2636,7 +2639,7 @@ class InfoExtractor(object):
                     mime_type = representation_attrib['mimeType']
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
-                    if content_type in ('video', 'audio', 'text'):
+                    if content_type in ('video', 'audio', 'text') or mime_type == 'image/jpeg':
                         base_url = ''
                         for element in (representation, adaptation_set, period, mpd_doc):
                             base_url_e = element.find(_add_ns('BaseURL'))
@@ -2653,9 +2656,15 @@ class InfoExtractor(object):
                         url_el = representation.find(_add_ns('BaseURL'))
                         filesize = int_or_none(url_el.attrib.get('{http://youtube.com/yt/2012/10/10}contentLength') if url_el is not None else None)
                         bandwidth = int_or_none(representation_attrib.get('bandwidth'))
+                        if representation_id is not None:
+                            format_id = representation_id
+                        else:
+                            format_id = content_type
+                        if mpd_id:
+                            format_id = mpd_id + '-' + format_id
                         if content_type in ('video', 'audio'):
                             f = {
-                                'format_id': '%s-%s' % (mpd_id, representation_id) if mpd_id else representation_id,
+                                'format_id': format_id,
                                 'manifest_url': mpd_url,
                                 'ext': mimetype2ext(mime_type),
                                 'width': int_or_none(representation_attrib.get('width')),
@@ -2675,6 +2684,17 @@ class InfoExtractor(object):
                                 'manifest_url': mpd_url,
                                 'filesize': filesize,
                             }
+                        elif mime_type == 'image/jpeg':
+                            # See test case in VikiIE
+                            # https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1
+                            f = {
+                                'format_id': format_id,
+                                'ext': 'mhtml',
+                                'manifest_url': mpd_url,
+                                'format_note': 'DASH storyboards (jpeg)',
+                                'acodec': 'none',
+                                'vcodec': 'none',
+                            }
                         representation_ms_info = extract_multisegment_info(representation, adaption_set_ms_info)
 
                         def prepare_template(template_name, identifiers):
@@ -2693,7 +2713,8 @@ class InfoExtractor(object):
                                     t += c
                             # Next, $...$ templates are translated to their
                             # %(...) counterparts to be used with % operator
-                            t = t.replace('$RepresentationID$', representation_id)
+                            if representation_id is not None:
+                                t = t.replace('$RepresentationID$', representation_id)
                             t = re.sub(r'\$(%s)\$' % '|'.join(identifiers), r'%(\1)d', t)
                             t = re.sub(r'\$(%s)%%([^$]+)\$' % '|'.join(identifiers), r'%(\1)\2', t)
                             t.replace('$$', '$')
@@ -2810,7 +2831,7 @@ class InfoExtractor(object):
                                 'url': mpd_url or base_url,
                                 'fragment_base_url': base_url,
                                 'fragments': [],
-                                'protocol': 'http_dash_segments',
+                                'protocol': 'http_dash_segments' if mime_type != 'image/jpeg' else 'mhtml',
                             })
                             if 'initialization_url' in representation_ms_info:
                                 initialization_url = representation_ms_info['initialization_url']
@@ -2821,7 +2842,7 @@ class InfoExtractor(object):
                         else:
                             # Assuming direct URL to unfragmented media.
                             f['url'] = base_url
-                        if content_type in ('video', 'audio'):
+                        if content_type in ('video', 'audio') or mime_type == 'image/jpeg':
                             formats.append(f)
                         elif content_type == 'text':
                             subtitles.setdefault(lang or 'und', []).append(f)
