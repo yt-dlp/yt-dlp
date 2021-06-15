@@ -391,8 +391,9 @@ class YoutubeDL(object):
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        Note that only format-sort, format-spec, no-live-chat,
                        no-attach-info-json, playlist-index, list-formats,
-                       no-direct-merge, no-youtube-channel-redirect,
-                       and no-youtube-unavailable-videos works when used via the API
+                       no-direct-merge, embed-thumbnail-atomicparsley,
+                       no-youtube-unavailable-videos, no-youtube-channel-redirect,
+                       works when used via the API
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
