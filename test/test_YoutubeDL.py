@@ -664,15 +664,15 @@ class TestYoutubeDL(unittest.TestCase):
     }
 
     def test_prepare_outtmpl_and_filename(self):
-        def test(tmpl, expected, **params):
+        def test(tmpl, expected, *, info=None, **params):
             params['outtmpl'] = tmpl
             ydl = YoutubeDL(params)
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
-            outtmpl, tmpl_dict = ydl.prepare_outtmpl(tmpl, self.outtmpl_info)
+            outtmpl, tmpl_dict = ydl.prepare_outtmpl(tmpl, info or self.outtmpl_info)
             out = outtmpl % tmpl_dict
-            fname = ydl.prepare_filename(self.outtmpl_info)
+            fname = ydl.prepare_filename(info or self.outtmpl_info)
 
             if callable(expected):
                 self.assertTrue(expected(out))
@@ -699,6 +699,15 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(width)06d.%(ext)s', 'NA.mp4')
         test('%(width)06d.%%(ext)s', 'NA.%(ext)s')
         test('%%(width)06d.%(ext)s', '%(width)06d.mp4')
+
+        # ID sanitization
+        test('%(id)s', '_abcd', info={'id': '_abcd'})
+        test('%(some_id)s', '_abcd', info={'some_id': '_abcd'})
+        test('%(formats.0.id)s', '_abcd', info={'formats': [{'id': '_abcd'}]})
+        test('%(id)s', '-abcd', info={'id': '-abcd'})
+        test('%(id)s', '.abcd', info={'id': '.abcd'})
+        test('%(id)s', 'ab__cd', info={'id': 'ab__cd'})
+        test('%(id)s', ('ab:cd', 'ab -cd'), info={'id': 'ab:cd'})
 
         # Invalid templates
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%'), ValueError))

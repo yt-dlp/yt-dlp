@@ -6241,6 +6241,8 @@ def traverse_obj(obj, keys, *, casesense=True, is_user_input=False, traverse_str
             if is_user_input:
                 key = (int_or_none(key) if ':' not in key
                        else slice(*map(int_or_none, key.split(':'))))
+                if key is None:
+                    return None
             if not isinstance(obj, (list, tuple)):
                 if traverse_string:
                     obj = compat_str(obj)
