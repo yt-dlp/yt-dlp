@@ -2045,8 +2045,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         playability_status = player_response.get('playabilityStatus') or {}
         if playability_status.get('reason') == 'Sign in to confirm your age':
             # TODO: default context/ytcfg if this fails
-            embed_webpage = self._download_webpage('https://www.youtube-nocookie.com/embed/%s?html5=1' % video_id,
-                                             video_id=video_id, note='Downloading embed config')
+            embed_webpage = self._download_webpage(
+                'https://www.youtube-nocookie.com/embed/%s?html5=1' % video_id,
+                video_id=video_id, note='Downloading embed config')
             ytcfg_age = self._extract_ytcfg(video_id, embed_webpage)
             embedded_pr = self._parse_json(try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response']), video_id=video_id)
             embedded_ps = embedded_pr.get('playabilityStatus') or {}
