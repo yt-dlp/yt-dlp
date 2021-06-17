@@ -407,7 +407,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                               visitor_data=None, api_hostname=None):
         origin = 'https://' + (api_hostname if api_hostname else self._YT_INNERTUBE_API_HOST)
         headers = {
-            'X-YouTube-Client-Name': compat_str(try_get(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], int)) or '1',
+            'X-YouTube-Client-Name': compat_str(try_get(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], int) or '1'),
             'X-YouTube-Client-Version': self.__extract_client_version(ytcfg),
             'Origin': origin
         }
@@ -2015,7 +2015,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 item_id=video_id, ep='player', query=ytm_query,
                 ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
                 api_hostname='music.youtube.com',
-                note='Downloading YouTube Music player API JSON')
+                note='Downloading music player API JSON')
 
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
 
@@ -2039,24 +2039,30 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_response = self._extract_response(
                 item_id=video_id, ep='player', query=yt_query,
                 ytcfg=ytcfg, headers=headers, fatal=False,
-                note='Downloading YouTube player API JSON'
+                note='Downloading player API JSON'
             )
 
         playability_status = player_response.get('playabilityStatus') or {}
         if playability_status.get('reason') == 'Sign in to confirm your age':
-            pr = self._parse_json(try_get(compat_parse_qs(
-                self._download_webpage(
-                    base_url + 'get_video_info', video_id,
-                    'Refetching age-gated info webpage',
-                    'unable to download video info webpage', query={
-                        'video_id': video_id,
-                        'eurl': 'https://youtube.googleapis.com/v/' + video_id,
-                        'html5': '1',
-                    }, fatal=False)),
-                lambda x: x['player_response'][0],
-                compat_str) or '{}', video_id)
-            if pr:
-                player_response = pr
+            # TODO: default context/ytcfg if this fails
+            embed_webpage = self._download_webpage('https://www.youtube-nocookie.com/embed/%s?html5=1' % video_id,
+                                             video_id=video_id, note='Downloading embed config')
+            ytcfg_age = self._extract_ytcfg(video_id, embed_webpage)
+            embedded_pr = self._parse_json(try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response']), video_id=video_id)
+            embedded_ps = embedded_pr.get('playabilityStatus') or {}
+            if embedded_ps.get('reason') != 'Sorry, this content is age-restricted.':
+                age_headers = self._generate_api_headers(
+                    ytcfg_age,
+                    self._extract_identity_token(embed_webpage, video_id),
+                    self._extract_account_syncid(ytcfg_age)
+                )
+                yt_age_query = {'videoId': video_id}
+                yt_age_query.update(player_context)
+                player_response = self._extract_response(
+                    item_id=video_id, ep='player', query=yt_age_query,
+                    ytcfg=ytcfg_age, headers=age_headers, fatal=False,
+                    note='Refetching age-gated player API JSON'
+                )
 
         trailer_video_id = try_get(
             playability_status,
