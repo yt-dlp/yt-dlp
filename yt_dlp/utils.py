@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 from __future__ import unicode_literals
@@ -1716,8 +1716,6 @@ KNOWN_EXTENSIONS = (
     'wav',
     'f4f', 'f4m', 'm3u8', 'smil')
 
-REMUX_EXTENSIONS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')
-
 # needed for sanitizing filenames in restricted mode
 ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ',
                         itertools.chain('AAAAAA', ['AE'], 'CEEEEIIIIDNOOOOOOO', ['OE'], 'UUUUUY', ['TH', 'ss'],
@@ -2109,6 +2107,8 @@ def sanitize_filename(s, restricted=False, is_id=False):
             return '_'
         return char
 
+    if s == '':
+        return ''
     # Handle timestamps
     s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)
     result = ''.join(map(replace_insane, s))
@@ -2167,11 +2167,27 @@ def sanitize_url(url):
     for mistake, fixup in COMMON_TYPOS:
         if re.match(mistake, url):
             return re.sub(mistake, fixup, url)
-    return escape_url(url)
+    return url
+
+
+def extract_basic_auth(url):
+    parts = compat_urlparse.urlsplit(url)
+    if parts.username is None:
+        return url, None
+    url = compat_urlparse.urlunsplit(parts._replace(netloc=(
+        parts.hostname if parts.port is None
+        else '%s:%d' % (parts.hostname, parts.port))))
+    auth_payload = base64.b64encode(
+        ('%s:%s' % (parts.username, parts.password or '')).encode('utf-8'))
+    return url, 'Basic ' + auth_payload.decode('utf-8')
 
 
 def sanitized_Request(url, *args, **kwargs):
-    return compat_urllib_request.Request(sanitize_url(url), *args, **kwargs)
+    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
+    if auth_header is not None:
+        headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
+        headers['Authorization'] = auth_header
+    return compat_urllib_request.Request(url, *args, **kwargs)
 
 
 def expand_path(s):
@@ -2226,6 +2242,17 @@ def unescapeHTML(s):
 
     return re.sub(
         r'&([^&;]+;)', lambda m: _htmlentity_transform(m.group(1)), s)
+
+
+def escapeHTML(text):
+    return (
+        text
+        .replace('&', '&amp;')
+        .replace('<', '&lt;')
+        .replace('>', '&gt;')
+        .replace('"', '&quot;')
+        .replace("'", '&#39;')
+    )
 
 
 def process_communicate_or_kill(p, *args, **kwargs):
@@ -2307,13 +2334,14 @@ def decodeOption(optval):
     return optval
 
 
-def formatSeconds(secs, delim=':'):
+def formatSeconds(secs, delim=':', msec=False):
     if secs > 3600:
-        return '%d%s%02d%s%02d' % (secs // 3600, delim, (secs % 3600) // 60, delim, secs % 60)
+        ret = '%d%s%02d%s%02d' % (secs // 3600, delim, (secs % 3600) // 60, delim, secs % 60)
     elif secs > 60:
-        return '%d%s%02d' % (secs // 60, delim, secs % 60)
+        ret = '%d%s%02d' % (secs // 60, delim, secs % 60)
     else:
-        return '%d' % secs
+        ret = '%d' % secs
+    return '%s.%03d' % (ret, secs % 1) if msec else ret
 
 
 def make_HTTPS_handler(params, **kwargs):
@@ -3931,10 +3959,94 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
         return unrecognized
 
 
+class LazyList(collections.Sequence):
+    ''' Lazy immutable list from an iterable
+    Note that slices of a LazyList are lists and not LazyList'''
+
+    def __init__(self, iterable):
+        self.__iterable = iter(iterable)
+        self.__cache = []
+        self.__reversed = False
+
+    def __iter__(self):
+        if self.__reversed:
+            # We need to consume the entire iterable to iterate in reverse
+            yield from self.exhaust()[::-1]
+            return
+        yield from self.__cache
+        for item in self.__iterable:
+            self.__cache.append(item)
+            yield item
+
+    def exhaust(self):
+        ''' Evaluate the entire iterable '''
+        self.__cache.extend(self.__iterable)
+        return self.__cache
+
+    @staticmethod
+    def _reverse_index(x):
+        return -(x + 1)
+
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            step = idx.step or 1
+            start = idx.start if idx.start is not None else 0 if step > 0 else -1
+            stop = idx.stop if idx.stop is not None else -1 if step > 0 else 0
+            if self.__reversed:
+                start, stop, step = map(self._reverse_index, (start, stop, step))
+                idx = slice(start, stop, step)
+        elif isinstance(idx, int):
+            if self.__reversed:
+                idx = self._reverse_index(idx)
+            start = stop = idx
+        else:
+            raise TypeError('indices must be integers or slices')
+        if start < 0 or stop < 0:
+            # We need to consume the entire iterable to be able to slice from the end
+            # Obviously, never use this with infinite iterables
+            return self.exhaust()[idx]
+
+        n = max(start, stop) - len(self.__cache) + 1
+        if n > 0:
+            self.__cache.extend(itertools.islice(self.__iterable, n))
+        return self.__cache[idx]
+
+    def __bool__(self):
+        try:
+            self[-1] if self.__reversed else self[0]
+        except IndexError:
+            return False
+        return True
+
+    def __len__(self):
+        self.exhaust()
+        return len(self.__cache)
+
+    def __reversed__(self):
+        self.__reversed = not self.__reversed
+        return self
+
+    def __repr__(self):
+        # repr and str should mimic a list. So we exhaust the iterable
+        return repr(self.exhaust())
+
+    def __str__(self):
+        return repr(self.exhaust())
+
+
 class PagedList(object):
     def __len__(self):
         # This is only useful for tests
         return len(self.getslice())
+
+    def getslice(self, start, end):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+    def __getitem__(self, idx):
+        if not isinstance(idx, int) or idx < 0:
+            raise TypeError('indices must be non-negative integers')
+        entries = self.getslice(idx, idx + 1)
+        return entries[0] if entries else None
 
 
 class OnDemandPagedList(PagedList):
@@ -4320,15 +4432,17 @@ OUTTMPL_TYPES = {
 # As of [1] format syntax is:
 #  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type
 # 1. https://docs.python.org/2/library/stdtypes.html#string-formatting
-FORMAT_RE = r'''(?x)
+STR_FORMAT_RE = r'''(?x)
     (?<!%)
     %
-    \({0}\)  # mapping key
-    (?:[#0\-+ ]+)?  # conversion flags (optional)
-    (?:\d+)?  # minimum field width (optional)
-    (?:\.\d+)?  # precision (optional)
-    [hlL]?  # length modifier (optional)
-    (?P<type>[diouxXeEfFgGcrs%])  # conversion type
+    (?P<has_key>\((?P<key>{0})\))?  # mapping key
+    (?P<format>
+        (?:[#0\-+ ]+)?  # conversion flags (optional)
+        (?:\d+)?  # minimum field width (optional)
+        (?:\.\d+)?  # precision (optional)
+        [hlL]?  # length modifier (optional)
+        [diouxXeEfFgGcrs]  # conversion type
+    )
 '''
 
 
@@ -6106,21 +6220,40 @@ def load_plugins(name, suffix, namespace):
     return classes
 
 
-def traverse_dict(dictn, keys, casesense=True):
+def traverse_obj(obj, keys, *, casesense=True, is_user_input=False, traverse_string=False):
+    ''' Traverse nested list/dict/tuple
+    @param casesense        Whether to consider dictionary keys as case sensitive
+    @param is_user_input    Whether the keys are generated from user input. If True,
+                            strings are converted to int/slice if necessary
+    @param traverse_string  Whether to traverse inside strings. If True, any
+                            non-compatible object will also be converted into a string
+    '''
     keys = list(keys)[::-1]
     while keys:
         key = keys.pop()
-        if isinstance(dictn, dict):
+        if isinstance(obj, dict):
+            assert isinstance(key, compat_str)
             if not casesense:
-                dictn = {k.lower(): v for k, v in dictn.items()}
+                obj = {k.lower(): v for k, v in obj.items()}
                 key = key.lower()
-            dictn = dictn.get(key)
-        elif isinstance(dictn, (list, tuple, compat_str)):
-            if ':' in key:
-                key = slice(*map(int_or_none, key.split(':')))
-            else:
-                key = int_or_none(key)
-            dictn = try_get(dictn, lambda x: x[key])
+            obj = obj.get(key)
         else:
-            return None
-    return dictn
+            if is_user_input:
+                key = (int_or_none(key) if ':' not in key
+                       else slice(*map(int_or_none, key.split(':'))))
+                if key is None:
+                    return None
+            if not isinstance(obj, (list, tuple)):
+                if traverse_string:
+                    obj = compat_str(obj)
+                else:
+                    return None
+            assert isinstance(key, (int, slice))
+            obj = try_get(obj, lambda x: x[key])
+    return obj
+
+
+def traverse_dict(dictn, keys, casesense=True):
+    ''' For backward compatibility. Do not use '''
+    return traverse_obj(dictn, keys, casesense=casesense,
+                        is_user_input=True, traverse_string=True)

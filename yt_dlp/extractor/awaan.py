@@ -19,7 +19,7 @@ from ..utils import (
 
 
 class AWAANIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(?:awaan|dcndigital)\.ae/(?:#/)?show/(?P<show_id>\d+)/[^/]+(?:/(?P<video_id>\d+)/(?P<season_id>\d+))?'
+    _VALID_URL = r'https?://(?:www\.)?(?:awaan|dcndigital)\.ae/(?:#/)?show/(?P<show_id>\d+)/[^/]+(?:/(?P<id>\d+)/(?P<season_id>\d+))?'
 
     def _real_extract(self, url):
         show_id, video_id, season_id = re.match(self._VALID_URL, url).groups()

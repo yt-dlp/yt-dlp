@@ -307,6 +307,7 @@
  - **EyedoTV**
  - **facebook**
  - **FacebookPluginsVideo**
+ - **fancode:vod**
  - **faz.net**
  - **fc2**
  - **fc2:embed**
@@ -392,6 +393,7 @@
  - **HotNewHipHop**
  - **hotstar**
  - **hotstar:playlist**
+ - **hotstar:series**
  - **Howcast**
  - **HowStuffWorks**
  - **hrfernsehen**
@@ -859,6 +861,7 @@
  - **safari**: safaribooksonline.com online video
  - **safari:api**
  - **safari:course**: safaribooksonline.com online courses
+ - **Saitosan**
  - **SAKTV**
  - **SaltTV**
  - **SampleFocus**
@@ -883,6 +886,7 @@
  - **Shahid**
  - **ShahidShow**
  - **Shared**: shared.sx
+ - **ShemarooMe**
  - **ShowRoomLive**
  - **simplecast**
  - **simplecast:episode**
@@ -902,6 +906,7 @@
  - **Snotr**
  - **Sohu**
  - **SonyLIV**
+ - **SonyLIVSeries**
  - **soundcloud**
  - **soundcloud:playlist**
  - **soundcloud:search**: Soundcloud search
@@ -980,6 +985,7 @@
  - **Telecinco**: telecinco.es, cuatro.com and mediaset.es
  - **Telegraaf**
  - **TeleMB**
+ - **Telemundo**
  - **TeleQuebec**
  - **TeleQuebecEmission**
  - **TeleQuebecLive**
@@ -1063,6 +1069,8 @@
  - **TVPlayHome**
  - **Tweakers**
  - **TwitCasting**
+ - **TwitCastingLive**
+ - **TwitCastingUser**
  - **twitch:clips**
  - **twitch:stream**
  - **twitch:vod**
@@ -1124,6 +1132,8 @@
  - **videomore:video**
  - **VideoPress**
  - **Vidio**
+ - **VidioLive**
+ - **VidioPremier**
  - **VidLii**
  - **vidme**
  - **vidme:user**
@@ -1163,6 +1173,7 @@
  - **VODPlatform**
  - **VoiceRepublic**
  - **Voot**
+ - **VootSeries**
  - **VoxMedia**
  - **VoxMediaVolume**
  - **vpro**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
@@ -1192,6 +1203,7 @@
  - **wdr:mobile**
  - **WDRElefant**
  - **WDRPage**
+ - **web.archive:youtube**: web.archive.org saved youtube videos
  - **Webcaster**
  - **WebcasterFeed**
  - **WebOfStories**

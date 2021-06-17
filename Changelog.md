@@ -19,6 +19,82 @@
 -->
 
 
+### 2021.06.09
+
+* Fix bug where `%(field)d` in filename template throws error
+* Improve offset parsing in outtmpl
+* [test] More rigorous tests for `prepare_filename`
+
+### 2021.06.08
+
+* Remove support for obsolete Python versions: Only 3.6+ is now supported
+* Merge youtube-dl: Upto [commit/c2350ca](https://github.com/ytdl-org/youtube-dl/commit/c2350cac243ba1ec1586fe85b0d62d1b700047a2)
+* [hls] Fix decryption for multithreaded downloader
+* [extractor] Fix pre-checking archive for some extractors
+* [extractor] Fix FourCC fallback when parsing ISM by [fstirlitz](https://github.com/fstirlitz)
+* [twitcasting] Add TwitCastingUserIE, TwitCastingLiveIE by [pukkandan](https://github.com/pukkandan), [nao20010128nao](https://github.com/nao20010128nao)
+* [vidio] Add VidioPremierIE and VidioLiveIE by [MinePlayersPE](Https://github.com/MinePlayersPE)
+* [viki] Fix extraction from by [ytdl-org/youtube-dl@59e583f](https://github.com/ytdl-org/youtube-dl/commit/59e583f7e8530ca92776c866897d895c072e2a82)
+* [youtube] Support shorts URL
+* [zoom] Extract transcripts as subtitles
+* Add field `original_url` with the user-inputted URL
+* Fix and refactor `prepare_outtmpl`
+* Make more fields available for `--print` when used with `--flat-playlist`
+* [utils] Generalize `traverse_dict` to `traverse_obj`
+* [downloader/ffmpeg] Hide FFmpeg banner unless in verbose mode by [fstirlitz](https://github.com/fstirlitz)
+* [build] Release `yt-dlp.tar.gz`
+* [build,update] Add GNU-style SHA512 and prepare updater for simlar SHA256 by [nihil-admirari](https://github.com/nihil-admirari)
+* [pyinst] Show Python version in exe metadata by [nihil-admirari](https://github.com/nihil-admirari)
+* [docs] Improve documentation of dependencies
+* [cleanup] Mark unused files
+* [cleanup] Point all shebang to `python3` by [fstirlitz](https://github.com/fstirlitz)
+* [cleanup] Remove duplicate file `trovolive.py`
+
+
+### 2021.06.01
+
+* Merge youtube-dl: Upto [commit/d495292](https://github.com/ytdl-org/youtube-dl/commit/d495292852b6c2f1bd58bc2141ff2b0265c952cf)
+* Pre-check archive and filters during playlist extraction
+* Handle Basic Auth `user:pass` in URLs by [hhirtz](https://github.com/hhirtz) and [pukkandan](https://github.com/pukkandan)
+* [archiveorg] Add YoutubeWebArchiveIE by [colethedj](https://github.com/colethedj) and [alex-gedeon](https://github.com/alex-gedeon)
+* [fancode] Add extractor by [rhsmachine](https://github.com/rhsmachine)
+* [patreon] Support vimeo embeds by [rhsmachine](https://github.com/rhsmachine)
+* [Saitosan] Add new extractor by [llacb47](https://github.com/llacb47)
+* [ShemarooMe] Add extractor by [Ashish0804](https://github.com/Ashish0804) and [pukkandan](https://github.com/pukkandan)
+* [telemundo] Add extractor by [king-millez](https://github.com/king-millez)
+* [SonyLIV] Add SonyLIVSeriesIE and subtitle support by [Ashish0804](https://github.com/Ashish0804)
+* [Hotstar] Add HotStarSeriesIE by [Ashish0804](https://github.com/Ashish0804)
+* [Voot] Add VootSeriesIE by [Ashish0804](https://github.com/Ashish0804)
+* [vidio] Support login and premium videos by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [fragment] When using `-N`, do not keep the fragment content in memory
+* [ffmpeg] Download and merge in a single step if possible
+* [ThumbnailsConvertor] Support conversion to `png` and make it the default by [louie-github](https://github.com/louie-github)
+* [VideoConvertor] Generalize with remuxer and allow conditional recoding
+* [EmbedThumbnail] Embed in `mp4`/`m4a` using mutagen by [tripulse](https://github.com/tripulse) and [pukkandan](https://github.com/pukkandan)
+* [EmbedThumbnail] Embed if any thumbnail was downloaded, not just the best
+* [EmbedThumbnail] Correctly escape filename
+* [update] replace self without launching a subprocess in windows
+* [update] Block further update for unsupported systems
+* Refactor `__process_playlist` by creating `LazyList`
+* Write messages to `stderr` when both `quiet` and `verbose`
+* Sanitize and sort playlist thumbnails
+* Remove `None` values from `info.json`
+* [extractor] Always prefer native hls downloader by default
+* [extractor] Skip subtitles without URI in m3u8 manifests by [hheimbuerger](https://github.com/hheimbuerger)
+* [extractor] Functions to parse `socket.io` response as `json` by [pukkandan](https://github.com/pukkandan) and [llacb47](https://github.com/llacb47)
+* [extractor] Allow `note=False` when extracting manifests
+* [utils] Escape URLs in `sanitized_Request`, not `sanitize_url`
+* [hls] Disable external downloader for `webtt`
+* [youtube] `/live` URLs should raise error if channel is not live
+* [youtube] Bug fixes
+* [zee5] Fix m3u8 formats' extension
+* [ard] Allow URLs without `-` before id by [olifre](https://github.com/olifre)
+* [cleanup] `YoutubeDL._match_entry`
+* [cleanup] Refactor updater
+* [cleanup] Refactor ffmpeg convertors
+* [cleanup] setup.py
+
+
 ### 2021.05.20
 
 * **Youtube improvements**: 
@@ -356,7 +432,7 @@
 
 ### 2021.02.15
 * Merge youtube-dl: Upto [2021.02.10](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.02.10) (except archive.org)
-* [niconico] Improved extraction and support encrypted/SMILE movies by [kurumigi](https://github.com/kurumigi), [tsukumi](https://github.com/tsukumi), [bbepis](https://github.com/bbepis), [pukkandan](https://github.com/pukkandan)
+* [niconico] Improved extraction and support encrypted/SMILE movies by [kurumigi](https://github.com/kurumigi), [tsukumijima](https://github.com/tsukumijima), [bbepis](https://github.com/bbepis), [pukkandan](https://github.com/pukkandan)
 * Fix HLS AES-128 with multiple keys in external downloaders by [shirt](https://github.com/shirt-dev)
 * [youtube_live_chat] Fix by using POST API by [siikamiika](https://github.com/siikamiika)
 * [rumble] Add support for video page

@@ -1,22 +1,36 @@
+# coding: utf-8
 from __future__ import unicode_literals
 
 import re
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote_plus
+from .youtube import YoutubeIE
+from ..compat import (
+    compat_urllib_parse_unquote,
+    compat_urllib_parse_unquote_plus,
+    compat_urlparse,
+    compat_parse_qs,
+    compat_HTTPError
+)
 from ..utils import (
-    KNOWN_EXTENSIONS,
-
+    clean_html,
+    determine_ext,
+    dict_get,
     extract_attributes,
+    ExtractorError,
+    HEADRequest,
+    int_or_none,
+    KNOWN_EXTENSIONS,
+    merge_dicts,
+    mimetype2ext,
+    parse_duration,
+    RegexNotFoundError,
+    str_to_int,
+    str_or_none,
+    try_get,
     unified_strdate,
     unified_timestamp,
-    clean_html,
-    dict_get,
-    parse_duration,
-    int_or_none,
-    str_or_none,
-    merge_dicts,
 )
 
 
@@ -241,3 +255,165 @@ class ArchiveOrgIE(InfoExtractor):
                     'parent': 'root'})
 
         return info
+
+
+class YoutubeWebArchiveIE(InfoExtractor):
+    IE_NAME = 'web.archive:youtube'
+    IE_DESC = 'web.archive.org saved youtube videos'
+    _VALID_URL = r"""(?x)^
+                (?:https?://)?web\.archive\.org/
+                    (?:web/)?
+                    (?:[0-9A-Za-z_*]+/)?  # /web and the version index is optional
+
+                (?:https?(?::|%3[Aa])//)?
+                (?:
+                    (?:\w+\.)?youtube\.com/watch(?:\?|%3[fF])(?:[^\#]+(?:&|%26))?v(?:=|%3[dD])  # Youtube URL
+                    |(wayback-fakeurl\.archive\.org/yt/)  # Or the internal fake url
+                )
+                (?P<id>[0-9A-Za-z_-]{11})(?:%26|\#|&|$)
+                """
+
+    _TESTS = [
+        {
+            'url': 'https://web.archive.org/web/20150415002341/https://www.youtube.com/watch?v=aYAGB11YrSs',
+            'info_dict': {
+                'id': 'aYAGB11YrSs',
+                'ext': 'webm',
+                'title': 'Team Fortress 2 - Sandviches!'
+            }
+        },
+        {
+            # Internal link
+            'url': 'https://web.archive.org/web/2oe/http://wayback-fakeurl.archive.org/yt/97t7Xj_iBv0',
+            'info_dict': {
+                'id': '97t7Xj_iBv0',
+                'ext': 'mp4',
+                'title': 'How Flexible Machines Could Save The World'
+            }
+        },
+        {
+            # Video from 2012, webm format itag 45.
+            'url': 'https://web.archive.org/web/20120712231619/http://www.youtube.com/watch?v=AkhihxRKcrs&gl=US&hl=en',
+            'info_dict': {
+                'id': 'AkhihxRKcrs',
+                'ext': 'webm',
+                'title': 'Limited Run: Mondo\'s Modern Classic 1 of 3 (SDCC 2012)'
+            }
+        },
+        {
+            # Old flash-only video. Webpage title starts with "YouTube - ".
+            'url': 'https://web.archive.org/web/20081211103536/http://www.youtube.com/watch?v=jNQXAC9IVRw',
+            'info_dict': {
+                'id': 'jNQXAC9IVRw',
+                'ext': 'unknown_video',
+                'title': 'Me at the zoo'
+            }
+        },
+        {
+            # Flash video with .flv extension (itag 34). Title has prefix "YouTube         -"
+            # Title has some weird unicode characters too.
+            'url': 'https://web.archive.org/web/20110712231407/http://www.youtube.com/watch?v=lTx3G6h2xyA',
+            'info_dict': {
+                'id': 'lTx3G6h2xyA',
+                'ext': 'flv',
+                'title': '‪Madeon - Pop Culture (live mashup)‬‏'
+            }
+        },
+        {   # Some versions of Youtube have have "YouTube" as page title in html (and later rewritten by js).
+            'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
+            'info_dict': {
+                'id': 'kH-G_aIBlFw',
+                'ext': 'mp4',
+                'title': 'kH-G_aIBlFw'
+            },
+            'expected_warnings': [
+                'unable to extract title',
+            ]
+        },
+        {
+            # First capture is a 302 redirect intermediary page.
+            'url': 'https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=0altSZ96U4M',
+            'info_dict': {
+                'id': '0altSZ96U4M',
+                'ext': 'mp4',
+                'title': '0altSZ96U4M'
+            },
+            'expected_warnings': [
+                'unable to extract title',
+            ]
+        },
+        {
+            # Video not archived, only capture is unavailable video page
+            'url': 'https://web.archive.org/web/20210530071008/https://www.youtube.com/watch?v=lHJTf93HL1s&spfreload=10',
+            'only_matching': True,
+        },
+        {   # Encoded url
+            'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fgl%3DUS%26v%3DAkhihxRKcrs%26hl%3Den',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fv%3DAkhihxRKcrs%26gl%3DUS%26hl%3Den',
+            'only_matching': True,
+        }
+    ]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        title = video_id  # if we are not able get a title
+
+        def _extract_title(webpage):
+            page_title = self._html_search_regex(
+                r'<title>([^<]*)</title>', webpage, 'title', fatal=False) or ''
+            # YouTube video pages appear to always have either 'YouTube -' as suffix or '- YouTube' as prefix.
+            try:
+                page_title = self._html_search_regex(
+                    r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
+                    page_title, 'title', default='')
+            except RegexNotFoundError:
+                page_title = None
+
+            if not page_title:
+                self.report_warning('unable to extract title', video_id=video_id)
+                return
+            return page_title
+
+        # If the video is no longer available, the oldest capture may be one before it was removed.
+        # Setting the capture date in url to early date seems to redirect to earliest capture.
+        webpage = self._download_webpage(
+            'https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=%s' % video_id,
+            video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived).')
+        if webpage:
+            title = _extract_title(webpage) or title
+
+        # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
+        internal_fake_url = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id
+        try:
+            video_file_webpage = self._request_webpage(
+                HEADRequest(internal_fake_url), video_id,
+                note='Fetching video file url', expected_status=True)
+        except ExtractorError as e:
+            # HTTP Error 404 is expected if the video is not saved.
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                raise ExtractorError(
+                    'HTTP Error %s. Most likely the video is not archived or issue with web.archive.org.' % e.cause.code,
+                    expected=True)
+            raise
+        video_file_url = compat_urllib_parse_unquote(video_file_webpage.url)
+        video_file_url_qs = compat_parse_qs(compat_urlparse.urlparse(video_file_url).query)
+
+        # Attempt to recover any ext & format info from playback url
+        format = {'url': video_file_url}
+        itag = try_get(video_file_url_qs, lambda x: x['itag'][0])
+        if itag and itag in YoutubeIE._formats:  # Naughty access but it works
+            format.update(YoutubeIE._formats[itag])
+            format.update({'format_id': itag})
+        else:
+            mime = try_get(video_file_url_qs, lambda x: x['mime'][0])
+            ext = mimetype2ext(mime) or determine_ext(video_file_url)
+            format.update({'ext': ext})
+        return {
+            'id': video_id,
+            'title': title,
+            'formats': [format],
+            'duration': str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
+        }

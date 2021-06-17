@@ -67,8 +67,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
-        r'channel|c|user|browse|playlist|watch|w|v|embed|e|watch_popup|'
-        r'movies|results|shared|hashtag|trending|feed|feeds|oembed|'
+        r'channel|c|user|browse|playlist|watch|w|v|embed|e|watch_popup|shorts|'
+        r'movies|results|shared|hashtag|trending|feed|feeds|oembed|get_video_info|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 
     _NETRC_MACHINE = 'youtube'
@@ -301,13 +301,24 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
-    def _generate_sapisidhash_header(self, origin):
-        sapisid_cookie = self._get_cookies(origin).get('SAPISID')
+    def _generate_sapisidhash_header(self):
+        # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
+        # See: https://github.com/yt-dlp/yt-dlp/issues/393
+        # TODO: origin
+        yt_cookies = self._get_cookies('https://www.youtube.com')
+        sapisid_cookie = dict_get(
+            yt_cookies, ('__Secure-3PAPISID', 'SAPISID'))
         if sapisid_cookie is None:
             return
         time_now = round(time.time())
-        sapisidhash = hashlib.sha1((str(time_now) + " " + sapisid_cookie.value + " " + origin).encode("utf-8")).hexdigest()
-        return "SAPISIDHASH %s_%s" % (time_now, sapisidhash)
+        # SAPISID cookie is required if not already present
+        if not yt_cookies.get('SAPISID'):
+            self._set_cookie(
+                '.youtube.com', 'SAPISID', sapisid_cookie.value, secure=True, expire_time=time_now + 3600)
+        # SAPISIDHASH algorithm from https://stackoverflow.com/a/32065323
+        sapisidhash = hashlib.sha1(
+            f'{time_now} {sapisid_cookie.value} https://www.youtube.com'.encode('utf-8')).hexdigest()
+        return f'SAPISIDHASH {time_now}_{sapisidhash}'
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page',
@@ -2217,7 +2228,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         r'/itag/(\d+)', f['url'], 'itag', default=None)
                     if itag:
                         f['format_id'] = itag
-                formats.append(f)
+                    formats.append(f)
 
         if self.get_param('youtube_include_dash_manifest', True):
             for sd in (streaming_data, ytm_streaming_data):
@@ -3634,6 +3645,60 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 check_get_keys='contents', fatal=False,
                 note='Downloading API JSON with unavailable videos')
 
+    def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
+                          ytcfg=None, check_get_keys=None, ep='browse', fatal=True):
+        response = None
+        last_error = None
+        count = -1
+        retries = self.get_param('extractor_retries', 3)
+        if check_get_keys is None:
+            check_get_keys = []
+        while count < retries:
+            count += 1
+            if last_error:
+                self.report_warning('%s. Retrying ...' % last_error)
+            try:
+                response = self._call_api(
+                    ep=ep, fatal=True, headers=headers,
+                    video_id=item_id, query=query,
+                    context=self._extract_context(ytcfg),
+                    api_key=self._extract_api_key(ytcfg),
+                    note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
+                    # Downloading page may result in intermittent 5xx HTTP error
+                    # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
+                    last_error = 'HTTP Error %s' % e.cause.code
+                    if count < retries:
+                        continue
+                if fatal:
+                    raise
+                else:
+                    self.report_warning(error_to_compat_str(e))
+                    return
+
+            else:
+                # Youtube may send alerts if there was an issue with the continuation page
+                try:
+                    self._extract_and_report_alerts(response, expected=False)
+                except ExtractorError as e:
+                    if fatal:
+                        raise
+                    self.report_warning(error_to_compat_str(e))
+                    return
+                if not check_get_keys or dict_get(response, check_get_keys):
+                    break
+                # Youtube sometimes sends incomplete data
+                # See: https://github.com/ytdl-org/youtube-dl/issues/28194
+                last_error = 'Incomplete data received'
+                if count >= retries:
+                    if fatal:
+                        raise ExtractorError(last_error)
+                    else:
+                        self.report_warning(last_error)
+                        return
+        return response
+
     def _extract_webpage(self, url, item_id):
         retries = self.get_param('extractor_retries', 3)
         count = -1
@@ -3866,7 +3931,7 @@ class YoutubePlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        is_music_url = self.is_music_url(url)
+        is_music_url = YoutubeBaseInfoExtractor.is_music_url(url)
         url = update_url_query(
             'https://www.youtube.com/playlist',
             parse_qs(url) or {'list': playlist_id})
@@ -4090,6 +4155,7 @@ class YoutubeRecommendedIE(YoutubeFeedsInfoExtractor):
     IE_DESC = 'YouTube.com recommended videos, ":ytrec" for short (requires authentication)'
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/?(?:[?#]|$)|:ytrec(?:ommended)?'
     _FEED_NAME = 'recommended'
+    _LOGIN_REQUIRED = False
     _TESTS = [{
         'url': ':ytrec',
         'only_matching': True,

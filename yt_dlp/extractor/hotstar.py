@@ -87,7 +87,14 @@ class HotStarBaseIE(InfoExtractor):
 
 class HotStarIE(HotStarBaseIE):
     IE_NAME = 'hotstar'
-    _VALID_URL = r'https?://(?:www\.)?hotstar\.com/.*(?P<id>\d{10})'
+    _VALID_URL = r'''(?x)
+                           https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
+                           (?:
+                               tv/(?:[^/?#]+/){3}|
+                               (?!tv/)[^?#]+/
+                           )?
+                           (?P<id>\d{10})
+                   '''
     _TESTS = [{
         # contentData
         'url': 'https://www.hotstar.com/can-you-not-spread-rumours/1000076273',
@@ -235,3 +242,41 @@ class HotStarPlaylistIE(HotStarBaseIE):
             if video.get('contentId')]
 
         return self.playlist_result(entries, playlist_id)
+
+
+class HotStarSeriesIE(HotStarBaseIE):
+    IE_NAME = 'hotstar:series'
+    _VALID_URL = r'(?:https?://)(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d{10})$'
+    _TESTS = [{
+        'url': 'https://www.hotstar.com/in/tv/radhakrishn/1260000646',
+        'info_dict': {
+            'id': '1260000646',
+        },
+        'playlist_mincount': 690,
+    }, {
+        'url': 'https://www.hotstar.com/tv/dancee-/1260050431',
+        'info_dict': {
+            'id': '1260050431',
+        },
+        'playlist_mincount': 43,
+    }]
+
+    def _real_extract(self, url):
+        series_id = self._match_id(url)
+        headers = {
+            'x-country-code': 'IN',
+            'x-platform-code': 'PCTV',
+        }
+        detail_json = self._download_json('https://api.hotstar.com/o/v1/show/detail?contentId=' + series_id,
+                                          video_id=series_id, headers=headers)
+        id = compat_str(try_get(detail_json, lambda x: x['body']['results']['item']['id'], int))
+        item_json = self._download_json('https://api.hotstar.com/o/v1/tray/g/1/items?etid=0&tao=0&tas=10000&eid=' + id,
+                                        video_id=series_id, headers=headers)
+        entries = [
+            self.url_result(
+                'https://www.hotstar.com/%d' % video['contentId'],
+                ie=HotStarIE.ie_key(), video_id=video['contentId'])
+            for video in item_json['body']['results']['items']
+            if video.get('contentId')]
+
+        return self.playlist_result(entries, series_id)

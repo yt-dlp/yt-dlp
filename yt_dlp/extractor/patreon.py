@@ -2,6 +2,9 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
+from .vimeo import VimeoIE
+
+from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     clean_html,
     determine_ext,
@@ -11,6 +14,7 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     try_get,
+    url_or_none
 )
 
 
@@ -63,6 +67,20 @@ class PatreonIE(InfoExtractor):
     }, {
         'url': 'https://www.patreon.com/posts/743933',
         'only_matching': True,
+    }, {
+        'url': 'https://www.patreon.com/posts/kitchen-as-seen-51706779',
+        'md5': '96656690071f6d64895866008484251b',
+        'info_dict': {
+            'id': '555089736',
+            'ext': 'mp4',
+            'title': 'KITCHEN AS SEEN ON DEEZ NUTS EXTENDED!',
+            'uploader': 'Cold Ones',
+            'thumbnail': 're:^https?://.*$',
+            'upload_date': '20210526',
+            'description': 'md5:557a409bd79d3898689419094934ba79',
+            'uploader_id': '14936315',
+        },
+        'skip': 'Patron-only content'
     }]
 
     # Currently Patreon exposes download URL via hidden CSS, so login is not
@@ -134,6 +152,19 @@ class PatreonIE(InfoExtractor):
                         'uploader': user_attributes.get('full_name'),
                         'uploader_id': str_or_none(i.get('id')),
                         'uploader_url': user_attributes.get('url'),
+                    })
+
+        if not info.get('url'):
+            # handle Vimeo embeds
+            if try_get(attributes, lambda x: x['embed']['provider']) == 'Vimeo':
+                embed_html = try_get(attributes, lambda x: x['embed']['html'])
+                v_url = url_or_none(compat_urllib_parse_unquote(
+                    self._search_regex(r'src=(https%3A%2F%2Fplayer\.vimeo\.com.+)%3F', embed_html, 'vimeo url', fatal=False)))
+                if v_url:
+                    info.update({
+                        '_type': 'url_transparent',
+                        'url': VimeoIE._smuggle_referrer(v_url, 'https://patreon.com'),
+                        'ie_key': 'Vimeo',
                     })
 
         if not info.get('url'):

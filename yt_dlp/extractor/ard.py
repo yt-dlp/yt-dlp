@@ -290,14 +290,14 @@ class ARDMediathekIE(ARDMediathekBaseIE):
 
 
 class ARDIE(InfoExtractor):
-    _VALID_URL = r'(?P<mainurl>https?://(?:www\.)?daserste\.de/[^?#]+/videos(?:extern)?/(?P<display_id>[^/?#]+)-(?:video-?)?(?P<id>[0-9]+))\.html'
+    _VALID_URL = r'(?P<mainurl>https?://(?:www\.)?daserste\.de/(?:[^/?#&]+/)+(?P<id>[^/?#&]+))\.html'
     _TESTS = [{
         # available till 7.01.2022
         'url': 'https://www.daserste.de/information/talk/maischberger/videos/maischberger-die-woche-video100.html',
         'md5': '867d8aa39eeaf6d76407c5ad1bb0d4c1',
         'info_dict': {
-            'display_id': 'maischberger-die-woche',
-            'id': '100',
+            'id': 'maischberger-die-woche-video100',
+            'display_id': 'maischberger-die-woche-video100',
             'ext': 'mp4',
             'duration': 3687.0,
             'title': 'maischberger. die woche vom 7. Januar 2021',
@@ -305,16 +305,28 @@ class ARDIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
         },
     }, {
-        'url': 'https://www.daserste.de/information/reportage-dokumentation/erlebnis-erde/videosextern/woelfe-und-herdenschutzhunde-ungleiche-brueder-102.html',
+        'url': 'https://www.daserste.de/information/politik-weltgeschehen/morgenmagazin/videosextern/dominik-kahun-aus-der-nhl-direkt-zur-weltmeisterschaft-100.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.daserste.de/information/nachrichten-wetter/tagesthemen/videosextern/tagesthemen-17736.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.daserste.de/unterhaltung/serie/in-aller-freundschaft-die-jungen-aerzte/videos/diversity-tag-sanam-afrashteh100.html',
         'only_matching': True,
     }, {
         'url': 'http://www.daserste.de/information/reportage-dokumentation/dokus/videos/die-story-im-ersten-mission-unter-falscher-flagge-100.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.daserste.de/unterhaltung/serie/in-aller-freundschaft-die-jungen-aerzte/Drehpause-100.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.daserste.de/unterhaltung/film/filmmittwoch-im-ersten/videos/making-ofwendezeit-video-100.html',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
-        display_id = mobj.group('display_id')
+        display_id = mobj.group('id')
 
         player_url = mobj.group('mainurl') + '~playerXml.xml'
         doc = self._download_xml(player_url, display_id)
@@ -365,7 +377,7 @@ class ARDIE(InfoExtractor):
         self._sort_formats(formats)
 
         return {
-            'id': mobj.group('id'),
+            'id': xpath_text(video_node, './videoId', default=display_id),
             'formats': formats,
             'display_id': display_id,
             'title': video_node.find('./title').text,

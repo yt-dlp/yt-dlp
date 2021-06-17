@@ -41,6 +41,7 @@ class SponSkrubPP(PostProcessor):
                 return None
         return path
 
+    @PostProcessor._restrict_to(images=False)
     def run(self, information):
         if self.path is None:
             return [], information

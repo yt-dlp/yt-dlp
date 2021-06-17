@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -11,7 +12,17 @@ from ..utils import (
 
 
 class VootIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?voot\.com/(?:[^/]+/)+(?P<id>\d+)'
+    _VALID_URL = r'''(?x)
+                    (?:
+                        voot:|
+                        (?:https?://)(?:www\.)?voot\.com/?
+                        (?:
+                            movies/[^/]+/|
+                            (?:shows|kids)/(?:[^/]+/){4}
+                        )
+                     )
+                    (?P<id>\d{3,})
+                    '''
     _GEO_COUNTRIES = ['IN']
     _TESTS = [{
         'url': 'https://www.voot.com/shows/ishq-ka-rang-safed/1/360558/is-this-the-end-of-kamini-/441353',
@@ -22,7 +33,6 @@ class VootIE(InfoExtractor):
             'description': 'md5:06291fbbbc4dcbe21235c40c262507c1',
             'timestamp': 1472162937,
             'upload_date': '20160825',
-            'duration': 1146,
             'series': 'Ishq Ka Rang Safed',
             'season_number': 1,
             'episode': 'Is this the end of Kamini?',
@@ -44,7 +54,6 @@ class VootIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         media_info = self._download_json(
             'https://wapi.voot.com/ws/ott/getMediaInfo.json', video_id,
             query={
@@ -82,7 +91,6 @@ class VootIE(InfoExtractor):
                 episode = value
             elif key == 'EpisodeNo':
                 episode_number = int_or_none(value)
-
         return {
             'extractor_key': 'Kaltura',
             'id': entry_id,
@@ -98,3 +106,45 @@ class VootIE(InfoExtractor):
             'like_count': int_or_none(media.get('like_counter')),
             'formats': formats,
         }
+
+
+class VootSeriesIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?voot\.com/shows/[^/]+/(?P<id>\d{3,})'
+    _TESTS = [{
+        'url': 'https://www.voot.com/shows/chakravartin-ashoka-samrat/100002',
+        'playlist_mincount': 442,
+        'info_dict': {
+            'id': '100002',
+        },
+    }, {
+        'url': 'https://www.voot.com/shows/ishq-ka-rang-safed/100003',
+        'playlist_mincount': 341,
+        'info_dict': {
+            'id': '100003',
+        },
+    }]
+    _SHOW_API = 'https://psapi.voot.com/media/voot/v1/voot-web/content/generic/season-by-show?sort=season%3Aasc&id={}&responseType=common'
+    _SEASON_API = 'https://psapi.voot.com/media/voot/v1/voot-web/content/generic/series-wise-episode?sort=episode%3Aasc&id={}&responseType=common&page={:d}'
+
+    def _entries(self, show_id):
+        show_json = self._download_json(self._SHOW_API.format(show_id), video_id=show_id)
+        for season in show_json.get('result', []):
+            page_num = 1
+            season_id = try_get(season, lambda x: x['id'], compat_str)
+            season_json = self._download_json(self._SEASON_API.format(season_id, page_num),
+                                              video_id=season_id,
+                                              note='Downloading JSON metadata page %d' % page_num)
+            episodes_json = season_json.get('result', [])
+            while episodes_json:
+                page_num += 1
+                for episode in episodes_json:
+                    video_id = episode.get('id')
+                    yield self.url_result(
+                        'voot:%s' % video_id, ie=VootIE.ie_key(), video_id=video_id)
+                episodes_json = self._download_json(self._SEASON_API.format(season_id, page_num),
+                                                    video_id=season_id,
+                                                    note='Downloading JSON metadata page %d' % page_num)['result']
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
+        return self.playlist_result(self._entries(show_id), playlist_id=show_id)

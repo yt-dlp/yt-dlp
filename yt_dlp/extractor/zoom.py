@@ -10,6 +10,7 @@ from ..utils import (
     js_to_json,
     parse_filesize,
     urlencode_postdata,
+    urljoin,
 )
 
 
@@ -55,10 +56,19 @@ class ZoomIE(InfoExtractor):
             r'(?s)window\.__data__\s*=\s*({.+?});',
             webpage, 'data'), play_id, js_to_json)
 
+        subtitles = {}
+        for _type in ('transcript', 'cc'):
+            if data.get('%sUrl' % _type):
+                subtitles[_type] = [{
+                    'url': urljoin(base_url, data['%sUrl' % _type]),
+                    'ext': 'vtt',
+                }]
+
         return {
             'id': play_id,
             'title': data['topic'],
             'url': data['viewMp4Url'],
+            'subtitles': subtitles,
             'width': int_or_none(data.get('viewResolvtionsWidth')),
             'height': int_or_none(data.get('viewResolvtionsHeight')),
             'http_headers': {

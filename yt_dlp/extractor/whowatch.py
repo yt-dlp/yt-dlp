@@ -47,8 +47,7 @@ class WhoWatchIE(InfoExtractor):
 
             if hls_url:
                 hls_fmts = self._extract_m3u8_formats(
-                    hls_url, video_id, ext='mp4', entry_protocol='m3u8',
-                    m3u8_id='hls-%s' % name, quality=quality)
+                    hls_url, video_id, ext='mp4', m3u8_id='hls-%s' % name, quality=quality)
                 formats.extend(hls_fmts)
             else:
                 hls_fmts = []
@@ -71,8 +70,7 @@ class WhoWatchIE(InfoExtractor):
 
         # This contains the same formats as the above manifests and is used only as a fallback
         formats.extend(self._extract_m3u8_formats(
-            hls_url, video_id, ext='mp4', entry_protocol='m3u8',
-            m3u8_id='hls'))
+            hls_url, video_id, ext='mp4', m3u8_id='hls'))
         self._remove_duplicate_formats(formats)
         self._sort_formats(formats)
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 from __future__ import unicode_literals
@@ -24,6 +24,7 @@ from .utils import (
     DateRange,
     decodeOption,
     DownloadError,
+    error_to_compat_str,
     ExistingVideoReached,
     expand_path,
     match_filter_func,
@@ -31,20 +32,26 @@ from .utils import (
     preferredencoding,
     read_batch_urls,
     RejectedVideoReached,
-    REMUX_EXTENSIONS,
     render_table,
     SameFileError,
     setproctitle,
     std_headers,
     write_string,
 )
-from .update import update_self
+from .update import run_update
 from .downloader import (
     FileDownloader,
 )
 from .extractor import gen_extractors, list_extractors
 from .extractor.common import InfoExtractor
 from .extractor.adobepass import MSO_INFO
+from .postprocessor.ffmpeg import (
+    FFmpegExtractAudioPP,
+    FFmpegSubtitlesConvertorPP,
+    FFmpegThumbnailsConvertorPP,
+    FFmpegVideoConvertorPP,
+    FFmpegVideoRemuxerPP,
+)
 from .postprocessor.metadatafromfield import MetadataFromFieldPP
 from .YoutubeDL import YoutubeDL
 
@@ -209,25 +216,25 @@ def _real_main(argv=None):
     if opts.playlistend not in (-1, None) and opts.playlistend < opts.playliststart:
         raise ValueError('Playlist end must be greater than playlist start')
     if opts.extractaudio:
-        if opts.audioformat not in ['best', 'aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav']:
+        if opts.audioformat not in ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS):
             parser.error('invalid audio format specified')
     if opts.audioquality:
         opts.audioquality = opts.audioquality.strip('k').strip('K')
         if not opts.audioquality.isdigit():
             parser.error('invalid audio quality specified')
     if opts.recodevideo is not None:
-        if opts.recodevideo not in REMUX_EXTENSIONS:
-            parser.error('invalid video recode format specified')
+        opts.recodevideo = opts.recodevideo.replace(' ', '')
+        if not re.match(FFmpegVideoConvertorPP.FORMAT_RE, opts.recodevideo):
+            parser.error('invalid video remux format specified')
     if opts.remuxvideo is not None:
         opts.remuxvideo = opts.remuxvideo.replace(' ', '')
-        remux_regex = r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(REMUX_EXTENSIONS))
-        if not re.match(remux_regex, opts.remuxvideo):
+        if not re.match(FFmpegVideoRemuxerPP.FORMAT_RE, opts.remuxvideo):
             parser.error('invalid video remux format specified')
     if opts.convertsubtitles is not None:
-        if opts.convertsubtitles not in ('srt', 'vtt', 'ass', 'lrc'):
+        if opts.convertsubtitles not in FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS:
             parser.error('invalid subtitle format specified')
     if opts.convertthumbnails is not None:
-        if opts.convertthumbnails not in ('jpg', 'png'):
+        if opts.convertthumbnails not in FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS:
             parser.error('invalid thumbnail format specified')
 
     if opts.date is not None:
@@ -258,9 +265,10 @@ def _real_main(argv=None):
         return parsed_compat_opts
 
     all_compat_opts = [
-        'filename', 'format-sort', 'abort-on-error', 'format-spec', 'multistreams',
-        'no-playlist-metafiles', 'no-live-chat', 'playlist-index', 'list-formats',
+        'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
+        'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
         'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
+        'embed-thumbnail-atomicparsley',
     ]
     compat_opts = parse_compat_opts()
 
@@ -300,6 +308,16 @@ def _real_main(argv=None):
             opts.outtmpl.update({'default': outtmpl_default})
         else:
             _unused_compat_opt('filename')
+
+    def validate_outtmpl(tmpl, msg):
+        err = YoutubeDL.validate_outtmpl(tmpl)
+        if err:
+            parser.error('invalid %s %r: %s' % (msg, tmpl, error_to_compat_str(err)))
+
+    for k, tmpl in opts.outtmpl.items():
+        validate_outtmpl(tmpl, '%s output template' % k)
+    for tmpl in opts.forceprint:
+        validate_outtmpl(tmpl, 'print template')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'
@@ -480,10 +498,10 @@ def _real_main(argv=None):
         opts.postprocessor_args['default'] = opts.postprocessor_args['default-compat']
 
     final_ext = (
-        opts.recodevideo
-        or (opts.remuxvideo in REMUX_EXTENSIONS) and opts.remuxvideo
-        or (opts.extractaudio and opts.audioformat != 'best') and opts.audioformat
-        or None)
+        opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
+        else opts.remuxvideo if opts.remuxvideo in FFmpegVideoRemuxerPP.SUPPORTED_EXTS
+        else opts.audioformat if (opts.extractaudio and opts.audioformat != 'best')
+        else None)
 
     match_filter = (
         None if opts.match_filter is None
@@ -657,7 +675,7 @@ def _real_main(argv=None):
         # Update version
         if opts.update_self:
             # If updater returns True, exit. Required for windows
-            if update_self(ydl.to_screen, opts.verbose, ydl._opener):
+            if run_update(ydl):
                 if actual_use:
                     sys.exit('ERROR: The program must exit for the update to complete')
                 sys.exit()

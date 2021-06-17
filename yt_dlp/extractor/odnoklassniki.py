@@ -247,8 +247,7 @@ class OdnoklassnikiIE(InfoExtractor):
         m3u8_url = metadata.get('hlsMasterPlaylistUrl')
         if m3u8_url:
             formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, 'mp4', entry_protocol='m3u8',
-                m3u8_id='hls', fatal=False))
+                m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
         rtmp_url = metadata.get('rtmpUrl')
         if rtmp_url:
             formats.append({
