@@ -301,7 +301,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
-    def _generate_sapisidhash_header(self):
+    def _generate_sapisidhash_header(self, origin="https://www.youtube.com"):
         # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
         # See: https://github.com/yt-dlp/yt-dlp/issues/393
         # TODO: origin
@@ -317,7 +317,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 '.youtube.com', 'SAPISID', sapisid_cookie.value, secure=True, expire_time=time_now + 3600)
         # SAPISIDHASH algorithm from https://stackoverflow.com/a/32065323
         sapisidhash = hashlib.sha1(
-            f'{time_now} {sapisid_cookie.value} https://www.youtube.com'.encode('utf-8')).hexdigest()
+            f'{time_now} {sapisid_cookie.value} {origin}'.encode('utf-8')).hexdigest()
         return f'SAPISIDHASH {time_now}_{sapisidhash}'
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
@@ -1991,7 +1991,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_context = {
             'playbackContext': {
                 'contentPlaybackContext': {
-                    'signatureTimestamp': 18768  # TODO: extract from js player
+                    'signatureTimestamp': 18793  # TODO: extract from js player
                 }
             }
         }
