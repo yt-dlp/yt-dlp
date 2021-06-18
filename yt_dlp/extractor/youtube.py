@@ -2031,15 +2031,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 video_id, 'initial player response')
 
         ytcfg = self._extract_ytcfg(video_id, webpage)
+        headers = self._generate_api_headers(
+            ytcfg,
+            self._extract_identity_token(webpage, video_id),
+            self._extract_account_syncid(ytcfg)
+        )
         # backup request for player_response if regex fails
         # and/or Youtube removes player response on initial page
         if not player_response:
-            headers = self._generate_api_headers(
-                ytcfg,
-                self._extract_identity_token(webpage, video_id),
-                self._extract_account_syncid(ytcfg)
-            )
-
             yt_query = {'videoId': video_id}
             yt_query.update(player_context)
             player_response = self._extract_response(
@@ -2069,7 +2068,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     item_id=video_id, ep='player', query=yt_age_query,
                     ytcfg=ytcfg_age, headers=age_headers, fatal=False,
                     note='Refetching age-gated player API JSON'
-                )
+                ) or {}
 
         trailer_video_id = try_get(
             playability_status,
@@ -2456,8 +2455,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_DATA_RE, video_id,
                 'yt initial data')
         if not initial_data:
-            initial_data = self._call_api(
-                'next', {'videoId': video_id}, video_id, fatal=False, api_key=self._extract_api_key(ytcfg))
+            initial_data = self._extract_response(
+                item_id=video_id, ep='next', fatal=False,
+                ytcfg=ytcfg, headers=headers, query={'videoId': video_id},
+                note='Downloading initial data API JSON')
 
         if not is_live:
             try:
