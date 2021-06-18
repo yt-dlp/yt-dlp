@@ -2021,7 +2021,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 item_id=video_id, ep='player', query=ytm_query,
                 ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
                 api_hostname='music.youtube.com',
-                note='Downloading music player API JSON')
+                note='Downloading YouTube Music player API JSON')
 
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
 
@@ -2052,7 +2052,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # TODO: default context/ytcfg if this fails
             embed_webpage = self._download_webpage(
                 'https://www.youtube-nocookie.com/embed/%s?html5=1' % video_id,
-                video_id=video_id, note='Downloading embed config')
+                video_id=video_id, note='Downloading age-gated embed config')
             ytcfg_age = self._extract_ytcfg(video_id, embed_webpage)
             embedded_pr = self._parse_json(try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response']), video_id=video_id)
             embedded_ps = embedded_pr.get('playabilityStatus') or {}
