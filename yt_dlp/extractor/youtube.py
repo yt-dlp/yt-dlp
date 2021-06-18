@@ -493,7 +493,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
             else:
                 # Youtube may send alerts if there was an issue with the continuation page
-                self._extract_and_report_alerts(response, expected=False)
+                try:
+                    self._extract_and_report_alerts(response, expected=False)
+                except ExtractorError as e:
+                    if fatal:
+                        raise
+                    self.report_warning(error_to_compat_str(e))
+                    return
                 if not check_get_keys or dict_get(response, check_get_keys):
                     break
                 # Youtube sometimes sends incomplete data
@@ -3651,60 +3657,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 item_id=item_id, headers=headers, query=query,
                 check_get_keys='contents', fatal=False,
                 note='Downloading API JSON with unavailable videos')
-
-    def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
-                          ytcfg=None, check_get_keys=None, ep='browse', fatal=True):
-        response = None
-        last_error = None
-        count = -1
-        retries = self.get_param('extractor_retries', 3)
-        if check_get_keys is None:
-            check_get_keys = []
-        while count < retries:
-            count += 1
-            if last_error:
-                self.report_warning('%s. Retrying ...' % last_error)
-            try:
-                response = self._call_api(
-                    ep=ep, fatal=True, headers=headers,
-                    video_id=item_id, query=query,
-                    context=self._extract_context(ytcfg),
-                    api_key=self._extract_api_key(ytcfg),
-                    note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
-            except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
-                    # Downloading page may result in intermittent 5xx HTTP error
-                    # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
-                    last_error = 'HTTP Error %s' % e.cause.code
-                    if count < retries:
-                        continue
-                if fatal:
-                    raise
-                else:
-                    self.report_warning(error_to_compat_str(e))
-                    return
-
-            else:
-                # Youtube may send alerts if there was an issue with the continuation page
-                try:
-                    self._extract_and_report_alerts(response, expected=False)
-                except ExtractorError as e:
-                    if fatal:
-                        raise
-                    self.report_warning(error_to_compat_str(e))
-                    return
-                if not check_get_keys or dict_get(response, check_get_keys):
-                    break
-                # Youtube sometimes sends incomplete data
-                # See: https://github.com/ytdl-org/youtube-dl/issues/28194
-                last_error = 'Incomplete data received'
-                if count >= retries:
-                    if fatal:
-                        raise ExtractorError(last_error)
-                    else:
-                        self.report_warning(last_error)
-                        return
-        return response
 
     def _extract_webpage(self, url, item_id):
         retries = self.get_param('extractor_retries', 3)
