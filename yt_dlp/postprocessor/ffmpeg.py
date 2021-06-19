@@ -702,9 +702,6 @@ class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
 
 
 class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
-    # NOTE: uses feature that is available on FFmpeg 4.4 or later
-    # Failing on this fixup means that playing downloaded video requires \
-    # advanced skills
 
     def __init__(self, downloader=None, trim=0.001):
         # "trim" should be used when the video contains unintended packets
@@ -716,13 +713,13 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
     def run(self, info):
         required_version = '4.4'
         if is_outdated_version(self._versions[self.basename], required_version):
-            self.report_warning('Please install FFmpeg 4.4 or later to fix seeking')
-            return
-        self._fixup(
-            'Fixing frame timestamp', info['filepath'],
-            # NOTE: actually, there is a way to fix PTS without very recent versions,
-            # but with this way re-encoding is required (-vf "setpts=PTS-STARTPTS")
-            ['-c', 'copy', '-map', '0', '-dn', '-ss', self.trim, '-bsf', 'setts=ts=TS-STARTPTS'])
+            self.report_warning(
+                'A re-encode is needed to fix timestamps in older versions of ffmpeg. '
+                'Please install ffmpeg {required_version} or later to fixup without re-encoding')
+            opts = ['-c', 'copy', '-vf', 'setpts=PTS-STARTPTS']
+        else:
+            opts = ['-bsf', 'setts=ts=TS-STARTPTS']
+        self._fixup('Fixing frame timestamp', info['filepath'], opts + ['-map', '0', '-dn', '-ss', self.trim])
         return [], info
 
 
@@ -731,7 +728,6 @@ class FFmpegFixupDurationPP(FFmpegFixupPostProcessor):
     def run(self, info):
         self._fixup('Fixing video duration', info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
         return [], info
-
 
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
