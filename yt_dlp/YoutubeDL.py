@@ -127,13 +127,14 @@ from .downloader import (
 )
 from .downloader.rtmp import rtmpdump_version
 from .postprocessor import (
+    get_postprocessor,
+    FFmpegFixupDurationPP,
     FFmpegFixupM3u8PP,
     FFmpegFixupM4aPP,
     FFmpegFixupStretchedPP,
+    FFmpegFixupTimestampPP,
     FFmpegMergerPP,
     FFmpegPostProcessor,
-    # FFmpegSubtitlesConvertorPP,
-    get_postprocessor,
     MoveFilesAfterDownloadPP,
 )
 from .version import __version__
@@ -2720,6 +2721,8 @@ class YoutubeDL(object):
                     downloader = (get_suitable_downloader(info_dict, self.params).__name__
                                   if 'protocol' in info_dict else None)
                     ffmpeg_fixup(downloader == 'HlsFD', 'malformed AAC bitstream detected', FFmpegFixupM3u8PP)
+                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'malformed timestamps detected', FFmpegFixupTimestampPP)
+                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'malformed duration detected', FFmpegFixupDurationPP)
 
                 fixup()
                 try:

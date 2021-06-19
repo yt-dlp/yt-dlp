@@ -112,15 +112,7 @@ class TwitCastingIE(InfoExtractor):
                     'ext': 'mp4',
                     'preference': -100,
                     'quality': qq(mode),
-
-                    '__postprocessors': [{
-                        'key': 'FFmpegFixupTimestamp',
-                    }, {
-                        'key': 'FFmpegFixupDuration',
-                    }],
-
-                    # TwitCasting simply sends moof atom directly over WS
-                    'protocol': 'websocket_frag',
+                    'protocol': 'websocket_frag',  # TwitCasting simply sends moof atom directly over WS
                 })
 
         thumbnail = video_js_data.get('thumbnailUrl') or self._og_search_thumbnail(webpage)
