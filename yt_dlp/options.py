@@ -1230,11 +1230,12 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,
-        choices=('never', 'ignore', 'warn', 'detect_or_warn'),
+        choices=('never', 'ignore', 'warn', 'detect_or_warn', 'force'),
         help=(
             'Automatically correct known faults of the file. '
             'One of never (do nothing), warn (only emit a warning), '
-            'detect_or_warn (the default; fix file if we can, warn otherwise)'))
+            'detect_or_warn (the default; fix file if we can, warn otherwise), '
+            'force (try fixing even if file already exists'))
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',

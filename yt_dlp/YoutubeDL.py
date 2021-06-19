@@ -2690,7 +2690,10 @@ class YoutubeDL(object):
                         return
                     elif fixup_policy == 'warn':
                         do_fixup = False
-                    assert fixup_policy in ('detect_or_warn', None)
+                    elif fixup_policy != 'force':
+                        assert fixup_policy in ('detect_or_warn', None)
+                        if not info_dict.get('__real_download'):
+                            do_fixup = False
 
                     def ffmpeg_fixup(cndn, msg, cls):
                         if not cndn:

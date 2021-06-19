@@ -665,7 +665,7 @@ class FFmpegFixupPostProcessor(FFmpegPostProcessor):
     def _fixup(self, msg, filename, options):
         temp_filename = prepend_extension(filename, 'temp')
 
-        self.to_screen('{msg} of "{filename}"')
+        self.to_screen(f'{msg} of "{filename}"')
         self.run_ffmpeg(filename, temp_filename, options)
 
         os.remove(encodeFilename(filename))
