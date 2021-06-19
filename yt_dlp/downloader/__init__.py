@@ -54,6 +54,7 @@ def shorten_protocol_name(proto, simplify=False):
         'rtmp_ffmpeg': 'rtmp_f',
         'http_dash_segments': 'dash',
         'niconico_dmc': 'dmc',
+        'websocket_frag': 'WSfrag',
     }
     if simplify:
         short_protocol_names.update({

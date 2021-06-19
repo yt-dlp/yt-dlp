@@ -1141,7 +1141,7 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
  - `lang`: Language preference as given by the extractor
  - `quality`: The quality of the format as given by the extractor
  - `source`: Preference of the source as given by the extractor
- - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native` > `m3u8` > `http_dash_segments` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
+ - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
  - `acodec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac3` > `dts` > other > unknown)
  - `codec`: Equivalent to `vcodec,acodec`
