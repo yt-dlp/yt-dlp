@@ -661,58 +661,42 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         return True
 
 
-class FFmpegFixupStretchedPP(FFmpegPostProcessor):
+class FFmpegFixupPostProcessor(FFmpegPostProcessor):
+    def _fixup(self, msg, filename, options):
+        temp_filename = prepend_extension(filename, 'temp')
+
+        self.to_screen('{msg} of "{filename}"')
+        self.run_ffmpeg(filename, temp_filename, options)
+
+        os.remove(encodeFilename(filename))
+        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+
+
+class FFmpegFixupStretchedPP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False, audio=False)
     def run(self, info):
         stretched_ratio = info.get('stretched_ratio')
-        if stretched_ratio is None or stretched_ratio == 1:
-            return [], info
-
-        filename = info['filepath']
-        temp_filename = prepend_extension(filename, 'temp')
-
-        options = ['-c', 'copy', '-map', '0', '-dn', '-aspect', '%f' % stretched_ratio]
-        self.to_screen('Fixing aspect ratio in "%s"' % filename)
-        self.run_ffmpeg(filename, temp_filename, options)
-
-        os.remove(encodeFilename(filename))
-        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
-
+        if stretched_ratio not in (None, 1):
+            self._fixup('Fixing aspect ratio', info['filepath'], [
+                '-c', 'copy', '-map', '0', '-dn', '-aspect', '%f' % stretched_ratio])
         return [], info
 
 
-class FFmpegFixupM4aPP(FFmpegPostProcessor):
+class FFmpegFixupM4aPP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False, video=False)
     def run(self, info):
-        if info.get('container') != 'm4a_dash':
-            return [], info
-
-        filename = info['filepath']
-        temp_filename = prepend_extension(filename, 'temp')
-
-        options = ['-c', 'copy', '-map', '0', '-dn', '-f', 'mp4']
-        self.to_screen('Correcting container in "%s"' % filename)
-        self.run_ffmpeg(filename, temp_filename, options)
-
-        os.remove(encodeFilename(filename))
-        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
-
+        if info.get('container') == 'm4a_dash':
+            self._fixup('Correcting container', info['filepath'], [
+                '-c', 'copy', '-map', '0', '-dn', '-f', 'mp4'])
         return [], info
 
 
-class FFmpegFixupM3u8PP(FFmpegPostProcessor):
+class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        filename = info['filepath']
-        if self.get_audio_codec(filename) == 'aac':
-            temp_filename = prepend_extension(filename, 'temp')
-
-            options = ['-c', 'copy', '-map', '0', '-dn', '-f', 'mp4', '-bsf:a', 'aac_adtstoasc']
-            self.to_screen('Fixing malformed AAC bitstream in "%s"' % filename)
-            self.run_ffmpeg(filename, temp_filename, options)
-
-            os.remove(encodeFilename(filename))
-            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+        if self.get_audio_codec(info['filepath']) == 'aac':
+            self._fixup('Fixing malformed AAC bitstream', info['filepath'], [
+                '-c', 'copy', '-map', '0', '-dn', '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
         return [], info
 
 
