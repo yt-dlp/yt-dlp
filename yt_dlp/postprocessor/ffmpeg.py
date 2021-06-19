@@ -701,56 +701,35 @@ class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
         return [], info
 
 
-class FFmpegFixupTimestampPP(FFmpegPostProcessor):
+class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
     # NOTE: uses feature that is available on FFmpeg 4.4 or later
     # Failing on this fixup means that playing downloaded video requires \
     # advanced skills
 
-    def __init__(self, downloader=None, trim=None):
+    def __init__(self, downloader=None, trim=0.001):
         # "trim" should be used when the video contains unintended packets
         super(FFmpegFixupTimestampPP, self).__init__(downloader)
-        self.trim = str_or_none(trim) or '0.001'
+        assert isinstance(trim, (int, float))
+        self.trim = str(trim)
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if self.basename != 'ffmpeg':
-            self.report_warning('You have to install to FFmpeg 4.4 or later to fix seeking in the player')
-            return [], info
-
         required_version = '4.4'
-        if is_outdated_version(
-                self._versions[self.basename], required_version):
+        if is_outdated_version(self._versions[self.basename], required_version):
             self.report_warning('Please install FFmpeg 4.4 or later to fix seeking')
-            return [], info
-
-        filename = info['filepath']
-
-        temp_filename = prepend_extension(filename, 'temp')
-
-        # NOTE: actually, there is a way to fix PTS without very recent versions,
-        # but with this way re-encoding is required (-vf "setpts=PTS-STARTPTS")
-        options = ['-c', 'copy', '-ss', self.trim, '-bsf', 'setts=ts=TS-STARTPTS']
-        self.to_screen('Fixing frame timestamp in "%s"' % filename)
-        self.run_ffmpeg(filename, temp_filename, options)
-
-        os.remove(encodeFilename(filename))
-        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+            return
+        self._fixup(
+            'Fixing frame timestamp', info['filepath'],
+            # NOTE: actually, there is a way to fix PTS without very recent versions,
+            # but with this way re-encoding is required (-vf "setpts=PTS-STARTPTS")
+            ['-c', 'copy', '-map', '0', '-dn', '-ss', self.trim, '-bsf', 'setts=ts=TS-STARTPTS'])
         return [], info
 
 
-class FFmpegFixupDurationPP(FFmpegPostProcessor):
-
+class FFmpegFixupDurationPP(FFmpegFixupPostProcessor):
+    @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        filename = info['filepath']
-
-        temp_filename = prepend_extension(filename, 'temp')
-
-        options = ['-c', 'copy']
-        self.to_screen('Fixing video duration in "%s"' % filename)
-        self.run_ffmpeg(filename, temp_filename, options)
-
-        os.remove(encodeFilename(filename))
-        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+        self._fixup('Fixing video duration', info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
         return [], info
 
 
