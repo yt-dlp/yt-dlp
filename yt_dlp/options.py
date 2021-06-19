@@ -1206,13 +1206,13 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='embedthumbnail',
         help='Do not embed thumbnail (default)')
     postproc.add_option(
-        '--add-metadata',
+        '--embed-metadata', '--add-metadata',
         action='store_true', dest='addmetadata', default=False,
-        help='Write metadata to the video file')
+        help='Embed metadata including chapter markers (if supported by the format) to the video file (Alias: --add-metadata)')
     postproc.add_option(
-        '--no-add-metadata',
+        '--no-embed-metadata', '--no-add-metadata',
         action='store_false', dest='addmetadata',
-        help='Do not write metadata (default)')
+        help='Do not write metadata (default)  (Alias: --no-add-metadata)')
     postproc.add_option(
         '--metadata-from-title',
         metavar='FORMAT', dest='metafromtitle',
