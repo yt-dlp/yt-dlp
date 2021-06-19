@@ -391,8 +391,9 @@ class YoutubeDL(object):
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        Note that only format-sort, format-spec, no-live-chat,
                        no-attach-info-json, playlist-index, list-formats,
-                       no-direct-merge, no-youtube-channel-redirect,
-                       and no-youtube-unavailable-videos works when used via the API
+                       no-direct-merge, embed-thumbnail-atomicparsley,
+                       no-youtube-unavailable-videos, no-youtube-channel-redirect,
+                       works when used via the API
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
@@ -569,14 +570,9 @@ class YoutubeDL(object):
             self.add_default_info_extractors()
 
         for pp_def_raw in self.params.get('postprocessors', []):
-            pp_class = get_postprocessor(pp_def_raw['key'])
             pp_def = dict(pp_def_raw)
-            del pp_def['key']
-            if 'when' in pp_def:
-                when = pp_def['when']
-                del pp_def['when']
-            else:
-                when = 'post_process'
+            when = pp_def.pop('when', 'post_process')
+            pp_class = get_postprocessor(pp_def.pop('key'))
             pp = pp_class(self, **compat_kwargs(pp_def))
             self.add_post_processor(pp, when=when)
 
@@ -933,7 +929,7 @@ class YoutubeDL(object):
             fmt = outer_mobj.group('format')
             mobj = re.match(INTERNAL_FORMAT_RE, key)
             if mobj is None:
-                value, default = None, na
+                value, default, mobj = None, na, {'fields': ''}
             else:
                 mobj = mobj.groupdict()
                 default = mobj['default'] if mobj['default'] is not None else na
@@ -943,7 +939,6 @@ class YoutubeDL(object):
                 fmt = '0{:d}d'.format(field_size_compat_map[key])
 
             value = default if value is None else value
-            key += '\0%s' % fmt
 
             if fmt == 'c':
                 value = compat_str(value)
@@ -961,7 +956,8 @@ class YoutubeDL(object):
                     # So we convert it to repr first
                     value, fmt = repr(value), '%ss' % fmt[:-1]
                 if fmt[-1] in 'csr':
-                    value = sanitize(key, value)
+                    value = sanitize(mobj['fields'].split('.')[-1], value)
+            key += '\0%s' % fmt
             TMPL_DICT[key] = value
             return '%({key}){fmt}'.format(key=key, fmt=fmt)
 
@@ -2684,65 +2680,48 @@ class YoutubeDL(object):
                 return
 
             if success and full_filename != '-':
-                # Fixup content
-                fixup_policy = self.params.get('fixup')
-                if fixup_policy is None:
-                    fixup_policy = 'detect_or_warn'
 
-                INSTALL_FFMPEG_MESSAGE = 'Install ffmpeg to fix this automatically.'
+                def fixup():
+                    do_fixup = True
+                    fixup_policy = self.params.get('fixup')
+                    vid = info_dict['id']
 
-                stretched_ratio = info_dict.get('stretched_ratio')
-                if stretched_ratio is not None and stretched_ratio != 1:
-                    if fixup_policy == 'warn':
-                        self.report_warning('%s: Non-uniform pixel ratio (%s)' % (
-                            info_dict['id'], stretched_ratio))
-                    elif fixup_policy == 'detect_or_warn':
-                        stretched_pp = FFmpegFixupStretchedPP(self)
-                        if stretched_pp.available:
-                            info_dict['__postprocessors'].append(stretched_pp)
+                    if fixup_policy in ('ignore', 'never'):
+                        return
+                    elif fixup_policy == 'warn':
+                        do_fixup = False
+                    assert fixup_policy in ('detect_or_warn', None)
+
+                    def ffmpeg_fixup(cndn, msg, cls):
+                        if not cndn:
+                            return
+                        if not do_fixup:
+                            self.report_warning(f'{vid}: {msg}')
+                            return
+                        pp = cls(self)
+                        if pp.available:
+                            info_dict['__postprocessors'].append(pp)
                         else:
-                            self.report_warning(
-                                '%s: Non-uniform pixel ratio (%s). %s'
-                                % (info_dict['id'], stretched_ratio, INSTALL_FFMPEG_MESSAGE))
-                    else:
-                        assert fixup_policy in ('ignore', 'never')
+                            self.report_warning(f'{vid}: {msg}. Install ffmpeg to fix this automatically')
 
-                if (info_dict.get('requested_formats') is None
-                        and info_dict.get('container') == 'm4a_dash'
-                        and info_dict.get('ext') == 'm4a'):
-                    if fixup_policy == 'warn':
-                        self.report_warning(
-                            '%s: writing DASH m4a. '
-                            'Only some players support this container.'
-                            % info_dict['id'])
-                    elif fixup_policy == 'detect_or_warn':
-                        fixup_pp = FFmpegFixupM4aPP(self)
-                        if fixup_pp.available:
-                            info_dict['__postprocessors'].append(fixup_pp)
-                        else:
-                            self.report_warning(
-                                '%s: writing DASH m4a. '
-                                'Only some players support this container. %s'
-                                % (info_dict['id'], INSTALL_FFMPEG_MESSAGE))
-                    else:
-                        assert fixup_policy in ('ignore', 'never')
+                    stretched_ratio = info_dict.get('stretched_ratio')
+                    ffmpeg_fixup(
+                        stretched_ratio not in (1, None),
+                        f'Non-uniform pixel ratio {stretched_ratio}',
+                        FFmpegFixupStretchedPP)
 
-                if ('protocol' in info_dict
-                        and get_suitable_downloader(info_dict, self.params).__name__ == 'HlsFD'):
-                    if fixup_policy == 'warn':
-                        self.report_warning('%s: malformed AAC bitstream detected.' % (
-                            info_dict['id']))
-                    elif fixup_policy == 'detect_or_warn':
-                        fixup_pp = FFmpegFixupM3u8PP(self)
-                        if fixup_pp.available:
-                            info_dict['__postprocessors'].append(fixup_pp)
-                        else:
-                            self.report_warning(
-                                '%s: malformed AAC bitstream detected. %s'
-                                % (info_dict['id'], INSTALL_FFMPEG_MESSAGE))
-                    else:
-                        assert fixup_policy in ('ignore', 'never')
+                    ffmpeg_fixup(
+                        (info_dict.get('requested_formats') is None
+                         and info_dict.get('container') == 'm4a_dash'
+                         and info_dict.get('ext') == 'm4a'),
+                        'writing DASH m4a. Only some players support this container',
+                        FFmpegFixupM4aPP)
 
+                    downloader = (get_suitable_downloader(info_dict, self.params).__name__
+                                  if 'protocol' in info_dict else None)
+                    ffmpeg_fixup(downloader == 'HlsFD', 'malformed AAC bitstream detected', FFmpegFixupM3u8PP)
+
+                fixup()
                 try:
                     info_dict = self.post_process(dl_filename, info_dict, files_to_move)
                 except PostProcessingError as err:

@@ -1230,6 +1230,7 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,
+        choices=('never', 'ignore', 'warn', 'detect_or_warn'),
         help=(
             'Automatically correct known faults of the file. '
             'One of never (do nothing), warn (only emit a warning), '
