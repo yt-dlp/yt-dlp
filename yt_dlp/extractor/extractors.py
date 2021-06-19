@@ -1065,6 +1065,7 @@ from .rcs import (
     RCSEmbedsIE,
     RCSVariousIE,
 )
+from .rcti import RCTIPlusIE
 from .rds import RDSIE
 from .redbulltv import (
     RedBullTVIE,
