@@ -30,6 +30,10 @@ class FFmpegSinkFD(FileDownloader):
                 os.kill(os.getpid(), signal.SIGINT)
 
         class FFmpegStdinFD(FFmpegFD):
+            @classmethod
+            def get_basename(cls):
+                return FFmpegFD.get_basename()
+
             def on_process_started(self, proc, stdin):
                 thread = threading.Thread(target=asyncio.run, daemon=True, args=(call_conn(proc, stdin), ))
                 thread.start()
