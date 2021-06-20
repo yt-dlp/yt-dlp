@@ -105,6 +105,7 @@ class YoutubeLiveChatFD(FragmentFD):
             return None
 
         live_offset = [0]  # Python 2 doesnot support nonlocal
+
         def parse_actions_live(live_chat_continuation):
             continuation_id = None
             processed_fragment = bytearray()
