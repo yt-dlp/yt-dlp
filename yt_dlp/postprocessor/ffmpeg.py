@@ -23,7 +23,6 @@ from ..utils import (
     ISO639Utils,
     process_communicate_or_kill,
     replace_extension,
-    str_or_none,
     traverse_obj,
 )
 
@@ -666,7 +665,7 @@ class FFmpegFixupPostProcessor(FFmpegPostProcessor):
     def _fixup(self, msg, filename, options):
         temp_filename = prepend_extension(filename, 'temp')
 
-        self.to_screen('{msg} of "{filename}"')
+        self.to_screen(f'{msg} of "{filename}"')
         self.run_ffmpeg(filename, temp_filename, options)
 
         os.remove(encodeFilename(filename))
@@ -715,7 +714,7 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
         if is_outdated_version(self._versions[self.basename], required_version):
             self.report_warning(
                 'A re-encode is needed to fix timestamps in older versions of ffmpeg. '
-                'Please install ffmpeg {required_version} or later to fixup without re-encoding')
+                f'Please install ffmpeg {required_version} or later to fixup without re-encoding')
             opts = ['-c', 'copy', '-vf', 'setpts=PTS-STARTPTS']
         else:
             opts = ['-bsf', 'setts=ts=TS-STARTPTS']
