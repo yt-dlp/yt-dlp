@@ -121,9 +121,14 @@ class YoutubeLiveChatFD(FragmentFD):
                 }
                 processed_fragment.extend(
                     json.dumps(pseudo_action, ensure_ascii=False).encode('utf-8') + b'\n')
-            continuation_data = try_get(
-                live_chat_continuation,
-                lambda x: x['continuations'][0]['invalidationContinuationData'], dict)
+            continuation_data = (
+                try_get(
+                    live_chat_continuation,
+                    lambda x: x['continuations'][0]['invalidationContinuationData'], dict)
+                or try_get(
+                    live_chat_continuation,
+                    lambda x: x['continuations'][0]['timedContinuationData'], dict)
+            )
             if continuation_data:
                 continuation_id = try_get(continuation_data, lambda x: x['continuation'])
                 timeout_ms = try_get(continuation_data, lambda x: x['timeoutMs'])
