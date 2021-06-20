@@ -73,7 +73,7 @@ class FragmentFD(FileDownloader):
 
     def report_retry_fragment(self, err, frag_index, count, retries):
         self.to_screen(
-            '[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
+            '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
             % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
 
     def report_skip_fragment(self, frag_index):
@@ -342,7 +342,7 @@ class FragmentFD(FileDownloader):
 
             # Never skip the first fragment
             fatal = (fragment.get('index') or frag_index) == 0 or not skip_unavailable_fragments
-            count = 0
+            count, frag_content = 0, None
             while count <= fragment_retries:
                 try:
                     success, frag_content = self._download_fragment(ctx, fragment['url'], info_dict, headers)
@@ -409,7 +409,7 @@ class FragmentFD(FileDownloader):
                 _, frag_index = download_fragment(fragment)
                 return fragment, frag_index, ctx.get('fragment_filename_sanitized')
 
-            self.report_warning('The download speed shown is only of one thread. This is a known issue')
+            self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 futures = [pool.submit(_download_fragment, fragment) for fragment in fragments]
                 done, not_done = concurrent.futures.wait(futures, timeout=0)  # timeout must be 0 to return instantly
@@ -427,6 +427,7 @@ class FragmentFD(FileDownloader):
             for fragment, frag_index, frag_filename in map(lambda x: x.result(), futures):
                 if not frag_filename:  # if the download was skipped
                     continue
+                ctx['fragment_index'] = frag_index
                 ctx['fragment_filename_sanitized'] = frag_filename
                 result = append_fragment(
                     decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index)
