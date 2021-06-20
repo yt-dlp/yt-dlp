@@ -280,6 +280,8 @@ class Aria2cFD(ExternalFD):
                '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
             cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
+        else:
+            cmd += ['--min-split-size', '1M']
 
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
