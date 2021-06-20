@@ -24,7 +24,7 @@ from .rtsp import RtspFD
 from .ism import IsmFD
 from .mhtml import MhtmlFD
 from .niconico import NiconicoDmcFD
-from .ws import WebSocketFragmentFD
+from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatReplayFD
 from .external import (
     get_external_downloader,
