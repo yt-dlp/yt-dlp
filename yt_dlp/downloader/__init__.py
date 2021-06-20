@@ -24,7 +24,7 @@ from .rtsp import RtspFD
 from .ism import IsmFD
 from .mhtml import MhtmlFD
 from .niconico import NiconicoDmcFD
-from .youtube_live_chat import YoutubeLiveChatReplayFD
+from .youtube_live_chat import YoutubeLiveChatFD
 from .external import (
     get_external_downloader,
     FFmpegFD,
@@ -42,7 +42,8 @@ PROTOCOL_MAP = {
     'ism': IsmFD,
     'mhtml': MhtmlFD,
     'niconico_dmc': NiconicoDmcFD,
-    'youtube_live_chat_replay': YoutubeLiveChatReplayFD,
+    'youtube_live_chat_replay': YoutubeLiveChatFD,
+    'youtube_live_chat': YoutubeLiveChatFD,
 }
 
 

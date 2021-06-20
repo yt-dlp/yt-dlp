@@ -2339,18 +2339,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             initial_data = self._call_api(
                 'next', {'videoId': video_id}, video_id, fatal=False, api_key=self._extract_api_key(ytcfg))
 
-        if not is_live:
-            try:
-                # This will error if there is no livechat
-                initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
-                info['subtitles']['live_chat'] = [{
-                    'url': 'https://www.youtube.com/watch?v=%s' % video_id,  # url is needed to set cookies
-                    'video_id': video_id,
-                    'ext': 'json',
-                    'protocol': 'youtube_live_chat_replay',
-                }]
-            except (KeyError, IndexError, TypeError):
-                pass
+        try:
+            # This will error if there is no livechat
+            initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
+            info['subtitles']['live_chat'] = [{
+                'url': 'https://www.youtube.com/watch?v=%s' % video_id,  # url is needed to set cookies
+                'video_id': video_id,
+                'ext': 'json',
+                'protocol': 'youtube_live_chat' if is_live else 'youtube_live_chat_replay',
+            }]
+        except (KeyError, IndexError, TypeError):
+            pass
 
         if initial_data:
             chapters = self._extract_chapters_from_json(

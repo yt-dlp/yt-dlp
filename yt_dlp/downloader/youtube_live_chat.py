@@ -1,6 +1,7 @@
 from __future__ import division, unicode_literals
 
 import json
+import time
 
 from .fragment import FragmentFD
 from ..compat import compat_urllib_error
@@ -11,10 +12,10 @@ from ..utils import (
 from ..extractor.youtube import YoutubeBaseInfoExtractor as YT_BaseIE
 
 
-class YoutubeLiveChatReplayFD(FragmentFD):
-    """ Downloads YouTube live chat replays fragment by fragment """
+class YoutubeLiveChatFD(FragmentFD):
+    """ Downloads YouTube live chats fragment by fragment """
 
-    FD_NAME = 'youtube_live_chat_replay'
+    FD_NAME = 'youtube_live_chat'
 
     def real_download(self, filename, info_dict):
         video_id = info_dict['video_id']
@@ -31,12 +32,109 @@ class YoutubeLiveChatReplayFD(FragmentFD):
 
         ie = YT_BaseIE(self.ydl)
 
+        start_time = int(time.time() * 1000)
+
         def dl_fragment(url, data=None, headers=None):
             http_headers = info_dict.get('http_headers', {})
             if headers:
                 http_headers = http_headers.copy()
                 http_headers.update(headers)
             return self._download_fragment(ctx, url, info_dict, http_headers, data)
+
+        def parse_actions_replay(live_chat_continuation):
+            offset = continuation_id = None
+            processed_fragment = bytearray()
+            for action in live_chat_continuation.get('actions', []):
+                if 'replayChatItemAction' in action:
+                    replay_chat_item_action = action['replayChatItemAction']
+                    offset = int(replay_chat_item_action['videoOffsetTimeMsec'])
+                processed_fragment.extend(
+                    json.dumps(action, ensure_ascii=False).encode('utf-8') + b'\n')
+            if offset is not None:
+                continuation_id = try_get(
+                    live_chat_continuation,
+                    lambda x: x['continuations'][0]['liveChatReplayContinuationData']['continuation'])
+            self._append_fragment(ctx, processed_fragment)
+            return continuation_id, offset
+
+        def parse_live_timestamp(action):
+            action_content = (
+                try_get(action, lambda x: x['addChatItemAction'], dict)
+                or try_get(action, lambda x: x['addLiveChatTickerItemAction'], dict)
+                or try_get(action, lambda x: x['addBannerToLiveChatCommand'], dict)
+            )
+            if action_content is None or type(action_content) != dict:
+                return None
+            item = (
+                try_get(action_content, lambda x: x['item'], dict)
+                or try_get(action_content, lambda x: x['bannerRenderer'], dict)
+            )
+            if item is None:
+                return None
+            renderer = (
+                # text
+                try_get(item, lambda x: x['liveChatTextMessageRenderer'], dict)
+                or try_get(item, lambda x: x['liveChatPaidMessageRenderer'], dict)
+                or try_get(item, lambda x: x['liveChatMembershipItemRenderer'], dict)
+                or try_get(item, lambda x: x['liveChatPaidStickerRenderer'], dict)
+                # ticker
+                or try_get(item, lambda x: x['liveChatTickerPaidMessageItemRenderer'], dict)
+                or try_get(item, lambda x: x['liveChatTickerSponsorItemRenderer'], dict)
+                # banner
+                or try_get(item, lambda x: x['liveChatBannerRenderer'], dict)
+            )
+            if renderer is None:
+                return None
+            parent_item = (
+                try_get(
+                    renderer,
+                    lambda x: x['showItemEndpoint']['showLiveChatItemEndpoint']['renderer'], dict)
+                or try_get(renderer, lambda x: x['contents'], dict)
+            )
+            if parent_item:
+                renderer = (
+                    try_get(parent_item, lambda x: x['liveChatTextMessageRenderer'], dict)
+                    or try_get(parent_item, lambda x: x['liveChatPaidMessageRenderer'], dict)
+                    or try_get(parent_item, lambda x: x['liveChatMembershipItemRenderer'], dict)
+                    or try_get(parent_item, lambda x: x['liveChatPaidStickerRenderer'], dict)
+                )
+            if renderer:
+                timestamp_usec = try_get(renderer, lambda x: x['timestampUsec'], str)
+                if timestamp_usec:
+                    return int(int(timestamp_usec) / 1000)
+            return None
+
+        live_offset = [0]  # Python 2 doesnot support nonlocal
+        def parse_actions_live(live_chat_continuation):
+            continuation_id = None
+            processed_fragment = bytearray()
+            for action in live_chat_continuation.get('actions', []):
+                timestamp = parse_live_timestamp(action)
+                if timestamp is not None:
+                    live_offset[0] = timestamp - start_time
+                # compatibility with replay format
+                pseudo_action = {
+                    'replayChatItemAction': {'actions': [action]},
+                    'videoOffsetTimeMsec': str(live_offset[0]),
+                    'isLive': True,
+                }
+                processed_fragment.extend(
+                    json.dumps(pseudo_action, ensure_ascii=False).encode('utf-8') + b'\n')
+            continuation_data = try_get(
+                live_chat_continuation,
+                lambda x: x['continuations'][0]['invalidationContinuationData'], dict)
+            if continuation_data:
+                continuation_id = try_get(continuation_data, lambda x: x['continuation'])
+                timeout_ms = try_get(continuation_data, lambda x: x['timeoutMs'])
+                if timeout_ms is not None:
+                    time.sleep(int(timeout_ms) / 1000)
+            self._append_fragment(ctx, processed_fragment)
+            return continuation_id, live_offset[0]
+
+        if info_dict['protocol'] == 'youtube_live_chat_replay':
+            parse_actions = parse_actions_replay
+        elif info_dict['protocol'] == 'youtube_live_chat':
+            parse_actions = parse_actions_live
 
         def download_and_parse_fragment(url, frag_index, request_data):
             count = 0
@@ -54,20 +152,7 @@ class YoutubeLiveChatReplayFD(FragmentFD):
                     live_chat_continuation = try_get(
                         data,
                         lambda x: x['continuationContents']['liveChatContinuation'], dict) or {}
-                    offset = continuation_id = None
-                    processed_fragment = bytearray()
-                    for action in live_chat_continuation.get('actions', []):
-                        if 'replayChatItemAction' in action:
-                            replay_chat_item_action = action['replayChatItemAction']
-                            offset = int(replay_chat_item_action['videoOffsetTimeMsec'])
-                        processed_fragment.extend(
-                            json.dumps(action, ensure_ascii=False).encode('utf-8') + b'\n')
-                    if offset is not None:
-                        continuation_id = try_get(
-                            live_chat_continuation,
-                            lambda x: x['continuations'][0]['liveChatReplayContinuationData']['continuation'])
-                    self._append_fragment(ctx, processed_fragment)
-
+                    continuation_id, offset = parse_actions(live_chat_continuation)
                     return True, continuation_id, offset
                 except compat_urllib_error.HTTPError as err:
                     count += 1
@@ -100,7 +185,10 @@ class YoutubeLiveChatReplayFD(FragmentFD):
         innertube_context = try_get(ytcfg, lambda x: x['INNERTUBE_CONTEXT'])
         if not api_key or not innertube_context:
             return False
-        url = 'https://www.youtube.com/youtubei/v1/live_chat/get_live_chat_replay?key=' + api_key
+        if info_dict['protocol'] == 'youtube_live_chat_replay':
+            url = 'https://www.youtube.com/youtubei/v1/live_chat/get_live_chat_replay?key=' + api_key
+        elif info_dict['protocol'] == 'youtube_live_chat':
+            url = 'https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?key=' + api_key
 
         frag_index = offset = 0
         while continuation_id is not None:
