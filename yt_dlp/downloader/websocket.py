@@ -5,22 +5,21 @@ import signal
 import asyncio
 import threading
 try:
-    from websockets import connect
+    import websockets
+    has_websockets = True
 except ImportError:
-    pass
+    has_websockets = False
 
 from .common import FileDownloader
 from .external import FFmpegFD
-from ..compat import compat_str
 
 
-class LiveStreamSinkBaseFD(FileDownloader):
-    """ Just a sink to ffmpeg for downloading fragments in any form """
+class FFmpegSinkFD(FileDownloader):
+    """ A sink to ffmpeg for downloading fragments in any form """
 
     def real_download(self, filename, info_dict):
-        new_infodict = {}
-        new_infodict.update(info_dict)
-        new_infodict['url'] = '-'
+        info_dict = info_dict.copy()
+        info_dict['url'] = '-'
 
         async def call_conn(proc, stdin):
             try:
@@ -32,24 +31,21 @@ class LiveStreamSinkBaseFD(FileDownloader):
 
         class FFmpegStdinFD(FFmpegFD):
             def on_process_started(self, proc, stdin):
-                # asyncio.create_task(call_conn(proc, stdin))  # don't work somehow
                 thread = threading.Thread(target=asyncio.run, daemon=True, args=(call_conn(proc, stdin), ))
                 thread.start()
 
-        return FFmpegStdinFD(self.ydl, self.params or {}).download(filename, new_infodict)
+        return FFmpegStdinFD(self.ydl, self.params or {}).download(filename, info_dict)
 
     async def real_connection(self, sink, info_dict):
-        """
-        Override this in subclasses.
-        Just return the function if the stream have finished.
-        """
+        """ Override this in subclasses """
+        raise NotImplementedError('This method must be implemented by subclasses')
 
 
-class WebSocketFragmentFD(LiveStreamSinkBaseFD):
+class WebSocketFragmentFD(FFmpegSinkFD):
     async def real_connection(self, sink, info_dict):
-        async with connect(info_dict['url'], extra_headers=info_dict.get('http_headers', {})) as ws:
+        async with websockets.connect(info_dict['url'], extra_headers=info_dict.get('http_headers', {})) as ws:
             while True:
                 recv = await ws.recv()
-                if isinstance(recv, compat_str):
+                if isinstance(recv, str):
                     recv = recv.encode('utf8')
                 sink.write(recv)

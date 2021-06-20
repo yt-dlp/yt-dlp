@@ -3,13 +3,9 @@ from __future__ import unicode_literals
 
 import itertools
 import re
-try:
-    import websockets  # noqa: F401
-    have_websocket = True
-except ImportError:
-    have_websocket = False
 
 from .common import InfoExtractor
+from ..downloader.websocket import has_websockets
 from ..utils import (
     clean_html,
     float_or_none,
@@ -103,7 +99,7 @@ class TwitCastingIE(InfoExtractor):
         formats = []
         if is_live and not m3u8_url:
             m3u8_url = 'https://twitcasting.tv/%s/metastream.m3u8' % uploader_id
-        if is_live and have_websocket and stream_server_data:
+        if is_live and has_websockets and stream_server_data:
             qq = qualities(['base', 'mobilesource', 'main'])
             for mode, ws_url in stream_server_data['llfmp4']['streams'].items():
                 formats.append({
