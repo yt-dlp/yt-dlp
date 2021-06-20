@@ -715,9 +715,9 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
             self.report_warning(
                 'A re-encode is needed to fix timestamps in older versions of ffmpeg. '
                 f'Please install ffmpeg {required_version} or later to fixup without re-encoding')
-            opts = ['-c', 'copy', '-vf', 'setpts=PTS-STARTPTS']
+            opts = ['-vf', 'setpts=PTS-STARTPTS']
         else:
-            opts = ['-bsf', 'setts=ts=TS-STARTPTS']
+            opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']
         self._fixup('Fixing frame timestamp', info['filepath'], opts + ['-map', '0', '-dn', '-ss', self.trim])
         return [], info
 
