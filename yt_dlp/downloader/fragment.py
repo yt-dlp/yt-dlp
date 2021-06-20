@@ -404,35 +404,21 @@ class FragmentFD(FileDownloader):
         if can_threaded_download and max_workers > 1:
 
             def _download_fragment(fragment):
-                # Do not keep frag_content in memory. Instead we only need the
-                # fragment filename so that the content can be read again
-                _, frag_index = download_fragment(fragment)
-                return fragment, frag_index, ctx.get('fragment_filename_sanitized')
+                try:
+                    frag_content, frag_index = download_fragment(fragment, ctx)
+                    return fragment, frag_content, frag_index, ctx.get('fragment_filename_sanitized')
+                except Exception:
+                    # Return immediately on exception so that it is raised in the main thread
+                    return
 
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
-                futures = [pool.submit(_download_fragment, fragment) for fragment in fragments]
-                done, not_done = concurrent.futures.wait(futures, timeout=0)  # timeout must be 0 to return instantly
-                try:
-                    while not_done:
-                        # Check every 1 second for KeyboardInterrupt
-                        freshly_done, not_done = concurrent.futures.wait(not_done, timeout=1)
-                        done |= freshly_done
-                except KeyboardInterrupt:
-                    for future in not_done:
-                        future.cancel()
-                    concurrent.futures.wait(not_done, timeout=None)  # timeout must be none to cancel
-                    raise KeyboardInterrupt
-
-            for fragment, frag_index, frag_filename in map(lambda x: x.result(), futures):
-                if not frag_filename:  # if the download was skipped
-                    continue
-                ctx['fragment_index'] = frag_index
-                ctx['fragment_filename_sanitized'] = frag_filename
-                result = append_fragment(
-                    decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index)
-                if not result:
-                    return False
+                for fragment, frag_content, frag_index, frag_filename in pool.map(_download_fragment, fragments):
+                    ctx['fragment_filename_sanitized'] = frag_filename
+                    ctx['fragment_index'] = frag_index
+                    result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index, ctx)
+                    if not result:
+                        return False
         else:
             for fragment in fragments:
                 frag_content, frag_index = download_fragment(fragment)
