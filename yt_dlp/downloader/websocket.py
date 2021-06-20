@@ -18,8 +18,8 @@ class FFmpegSinkFD(FileDownloader):
     """ A sink to ffmpeg for downloading fragments in any form """
 
     def real_download(self, filename, info_dict):
-        info_dict = info_dict.copy()
-        info_dict['url'] = '-'
+        info_copy = info_dict.copy()
+        info_copy['url'] = '-'
 
         async def call_conn(proc, stdin):
             try:
@@ -34,7 +34,7 @@ class FFmpegSinkFD(FileDownloader):
                 thread = threading.Thread(target=asyncio.run, daemon=True, args=(call_conn(proc, stdin), ))
                 thread.start()
 
-        return FFmpegStdinFD(self.ydl, self.params or {}).download(filename, info_dict)
+        return FFmpegStdinFD(self.ydl, self.params or {}).download(filename, info_copy)
 
     async def real_connection(self, sink, info_dict):
         """ Override this in subclasses """
