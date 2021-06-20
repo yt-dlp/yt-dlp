@@ -182,6 +182,7 @@ While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly
 * [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the [sponskrub options](#sponskrub-sponsorblock-options). Licenced under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licenced under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
 * [**pycryptodome**](https://github.com/Legrandin/pycryptodome) - For decrypting various data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
+* [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licenced under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
 * [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen is not present. Licenced under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](http://rtmpdump.mplayerhq.hu)
 * [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
@@ -190,14 +191,14 @@ While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
 
-Note that the windows releases are already built with the python interpreter, mutagen and pycryptodome included.
+Note that the windows releases are already built with the python interpreter, mutagen, pycryptodome and websockets included.
 
 ### COMPILE
 
 **For Windows**:
-To build the Windows executable, you must have pyinstaller (and optionally mutagen and pycryptodome)
+To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodome, websockets)
 
-    python3 -m pip install --upgrade pyinstaller mutagen pycryptodome
+    python3 -m pip install --upgrade pyinstaller mutagen pycryptodome websockets
 
 Once you have all the necessary dependencies installed, just run `py pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
 
