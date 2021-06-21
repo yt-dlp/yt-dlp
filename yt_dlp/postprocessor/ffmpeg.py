@@ -700,6 +700,35 @@ class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
         return [], info
 
 
+class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
+
+    def __init__(self, downloader=None, trim=0.001):
+        # "trim" should be used when the video contains unintended packets
+        super(FFmpegFixupTimestampPP, self).__init__(downloader)
+        assert isinstance(trim, (int, float))
+        self.trim = str(trim)
+
+    @PostProcessor._restrict_to(images=False)
+    def run(self, info):
+        required_version = '4.4'
+        if is_outdated_version(self._versions[self.basename], required_version):
+            self.report_warning(
+                'A re-encode is needed to fix timestamps in older versions of ffmpeg. '
+                f'Please install ffmpeg {required_version} or later to fixup without re-encoding')
+            opts = ['-vf', 'setpts=PTS-STARTPTS']
+        else:
+            opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']
+        self._fixup('Fixing frame timestamp', info['filepath'], opts + ['-map', '0', '-dn', '-ss', self.trim])
+        return [], info
+
+
+class FFmpegFixupDurationPP(FFmpegFixupPostProcessor):
+    @PostProcessor._restrict_to(images=False)
+    def run(self, info):
+        self._fixup('Fixing video duration', info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
+        return [], info
+
+
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = ('srt', 'vtt', 'ass', 'lrc')
 
