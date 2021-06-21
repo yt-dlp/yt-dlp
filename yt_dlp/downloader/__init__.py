@@ -26,7 +26,6 @@ from .mhtml import MhtmlFD
 from .niconico import NiconicoDmcFD
 from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
-from .youtube_live_chat import YoutubeLiveChatReplayFD
 from .external import (
     get_external_downloader,
     FFmpegFD,
