@@ -59,41 +59,6 @@ class YoutubeLiveChatFD(FragmentFD):
             self._append_fragment(ctx, processed_fragment)
             return continuation_id, offset
 
-        def parse_live_timestamp(action):
-            action_content = dict_get(
-                action,
-                ['addChatItemAction', 'addLiveChatTickerItemAction', 'addBannerToLiveChatCommand'])
-            if action_content is None or not isinstance(action_content, dict):
-                return None
-            item = dict_get(action_content, ['item', 'bannerRenderer'])
-            if item is None or not isinstance(item, dict):
-                return None
-            renderer = dict_get(item, [
-                # text
-                'liveChatTextMessageRenderer', 'liveChatPaidMessageRenderer',
-                'liveChatMembershipItemRenderer', 'liveChatPaidStickerRenderer',
-                # ticker
-                'liveChatTickerPaidMessageItemRenderer',
-                'liveChatTickerSponsorItemRenderer',
-                # banner
-                'liveChatBannerRenderer',
-            ])
-            if renderer is None or not isinstance(renderer, dict):
-                return None
-            parent_item_getters = [
-                lambda x: x['showItemEndpoint']['showLiveChatItemEndpoint']['renderer'],
-                lambda x: x['contents'],
-            ]
-            parent_item = try_get(renderer, parent_item_getters, dict)
-            if parent_item:
-                renderer = dict_get(parent_item, [
-                    'liveChatTextMessageRenderer', 'liveChatPaidMessageRenderer',
-                    'liveChatMembershipItemRenderer', 'liveChatPaidStickerRenderer',
-                ])
-                if renderer is None or not isinstance(renderer, dict):
-                    return None
-            return int_or_none(renderer.get('timestampUsec'), 1000)
-
         live_offset = 0
 
         def parse_actions_live(live_chat_continuation):
@@ -101,7 +66,7 @@ class YoutubeLiveChatFD(FragmentFD):
             continuation_id = None
             processed_fragment = bytearray()
             for action in live_chat_continuation.get('actions', []):
-                timestamp = parse_live_timestamp(action)
+                timestamp = self.parse_live_timestamp(action)
                 if timestamp is not None:
                     live_offset = timestamp - start_time
                 # compatibility with replay format
@@ -202,3 +167,39 @@ class YoutubeLiveChatFD(FragmentFD):
 
         self._finish_frag_download(ctx)
         return True
+
+    @staticmethod
+    def parse_live_timestamp(action):
+        action_content = dict_get(
+            action,
+            ['addChatItemAction', 'addLiveChatTickerItemAction', 'addBannerToLiveChatCommand'])
+        if action_content is None or not isinstance(action_content, dict):
+            return None
+        item = dict_get(action_content, ['item', 'bannerRenderer'])
+        if item is None or not isinstance(item, dict):
+            return None
+        renderer = dict_get(item, [
+            # text
+            'liveChatTextMessageRenderer', 'liveChatPaidMessageRenderer',
+            'liveChatMembershipItemRenderer', 'liveChatPaidStickerRenderer',
+            # ticker
+            'liveChatTickerPaidMessageItemRenderer',
+            'liveChatTickerSponsorItemRenderer',
+            # banner
+            'liveChatBannerRenderer',
+        ])
+        if renderer is None or not isinstance(renderer, dict):
+            return None
+        parent_item_getters = [
+            lambda x: x['showItemEndpoint']['showLiveChatItemEndpoint']['renderer'],
+            lambda x: x['contents'],
+        ]
+        parent_item = try_get(renderer, parent_item_getters, dict)
+        if parent_item:
+            renderer = dict_get(parent_item, [
+                'liveChatTextMessageRenderer', 'liveChatPaidMessageRenderer',
+                'liveChatMembershipItemRenderer', 'liveChatPaidStickerRenderer',
+            ])
+            if renderer is None or not isinstance(renderer, dict):
+                return None
+        return int_or_none(renderer.get('timestampUsec'), 1000)
