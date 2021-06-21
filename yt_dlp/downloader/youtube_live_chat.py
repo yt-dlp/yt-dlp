@@ -7,6 +7,8 @@ from .fragment import FragmentFD
 from ..compat import compat_urllib_error
 from ..utils import (
     try_get,
+    dict_get,
+    int_or_none,
     RegexNotFoundError,
 )
 from ..extractor.youtube import YoutubeBaseInfoExtractor as YT_BaseIE
@@ -58,51 +60,39 @@ class YoutubeLiveChatFD(FragmentFD):
             return continuation_id, offset
 
         def parse_live_timestamp(action):
-            action_content = (
-                try_get(action, lambda x: x['addChatItemAction'], dict)
-                or try_get(action, lambda x: x['addLiveChatTickerItemAction'], dict)
-                or try_get(action, lambda x: x['addBannerToLiveChatCommand'], dict)
-            )
-            if action_content is None or type(action_content) != dict:
+            action_content = dict_get(
+                action,
+                ['addChatItemAction', 'addLiveChatTickerItemAction', 'addBannerToLiveChatCommand'])
+            if action_content is None or not isinstance(action_content, dict):
                 return None
-            item = (
-                try_get(action_content, lambda x: x['item'], dict)
-                or try_get(action_content, lambda x: x['bannerRenderer'], dict)
-            )
-            if item is None:
+            item = dict_get(action_content, ['item', 'bannerRenderer'])
+            if item is None or not isinstance(item, dict):
                 return None
-            renderer = (
+            renderer = dict_get(item, [
                 # text
-                try_get(item, lambda x: x['liveChatTextMessageRenderer'], dict)
-                or try_get(item, lambda x: x['liveChatPaidMessageRenderer'], dict)
-                or try_get(item, lambda x: x['liveChatMembershipItemRenderer'], dict)
-                or try_get(item, lambda x: x['liveChatPaidStickerRenderer'], dict)
+                'liveChatTextMessageRenderer', 'liveChatPaidMessageRenderer',
+                'liveChatMembershipItemRenderer', 'liveChatPaidStickerRenderer',
                 # ticker
-                or try_get(item, lambda x: x['liveChatTickerPaidMessageItemRenderer'], dict)
-                or try_get(item, lambda x: x['liveChatTickerSponsorItemRenderer'], dict)
+                'liveChatTickerPaidMessageItemRenderer',
+                'liveChatTickerSponsorItemRenderer',
                 # banner
-                or try_get(item, lambda x: x['liveChatBannerRenderer'], dict)
-            )
-            if renderer is None:
+                'liveChatBannerRenderer',
+            ])
+            if renderer is None or not isinstance(renderer, dict):
                 return None
-            parent_item = (
-                try_get(
-                    renderer,
-                    lambda x: x['showItemEndpoint']['showLiveChatItemEndpoint']['renderer'], dict)
-                or try_get(renderer, lambda x: x['contents'], dict)
-            )
+            parent_item_getters = [
+                lambda x: x['showItemEndpoint']['showLiveChatItemEndpoint']['renderer'],
+                lambda x: x['contents'],
+            ]
+            parent_item = try_get(renderer, parent_item_getters, dict)
             if parent_item:
-                renderer = (
-                    try_get(parent_item, lambda x: x['liveChatTextMessageRenderer'], dict)
-                    or try_get(parent_item, lambda x: x['liveChatPaidMessageRenderer'], dict)
-                    or try_get(parent_item, lambda x: x['liveChatMembershipItemRenderer'], dict)
-                    or try_get(parent_item, lambda x: x['liveChatPaidStickerRenderer'], dict)
-                )
-            if renderer:
-                timestamp_usec = try_get(renderer, lambda x: x['timestampUsec'], str)
-                if timestamp_usec:
-                    return int(int(timestamp_usec) / 1000)
-            return None
+                renderer = dict_get(parent_item, [
+                    'liveChatTextMessageRenderer', 'liveChatPaidMessageRenderer',
+                    'liveChatMembershipItemRenderer', 'liveChatPaidStickerRenderer',
+                ])
+                if renderer is None or not isinstance(renderer, dict):
+                    return None
+            return int_or_none(renderer.get('timestampUsec'), 1000)
 
         live_offset = 0
 
@@ -122,17 +112,14 @@ class YoutubeLiveChatFD(FragmentFD):
                 }
                 processed_fragment.extend(
                     json.dumps(pseudo_action, ensure_ascii=False).encode('utf-8') + b'\n')
-            continuation_data = (
-                try_get(
-                    live_chat_continuation,
-                    lambda x: x['continuations'][0]['invalidationContinuationData'], dict)
-                or try_get(
-                    live_chat_continuation,
-                    lambda x: x['continuations'][0]['timedContinuationData'], dict)
-            )
+            continuation_data_getters = [
+                lambda x: x['continuations'][0]['invalidationContinuationData'],
+                lambda x: x['continuations'][0]['timedContinuationData'],
+            ]
+            continuation_data = try_get(live_chat_continuation, continuation_data_getters, dict)
             if continuation_data:
-                continuation_id = try_get(continuation_data, lambda x: x['continuation'])
-                timeout_ms = try_get(continuation_data, lambda x: x['timeoutMs'])
+                continuation_id = continuation_data.get('continuation')
+                timeout_ms = int_or_none(continuation_data.get('timeoutMs'))
                 if timeout_ms is not None:
                     time.sleep(int(timeout_ms) / 1000)
             self._append_fragment(ctx, processed_fragment)
