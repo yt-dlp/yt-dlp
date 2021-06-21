@@ -1,32 +1,18 @@
 from __future__ import unicode_literals
 
-import errno
 import re
 import io
 import binascii
-try:
-    from Crypto.Cipher import AES
-    can_decrypt_frag = True
-except ImportError:
-    can_decrypt_frag = False
-try:
-    import concurrent.futures
-    can_threaded_download = True
-except ImportError:
-    can_threaded_download = False
 
 from ..downloader import _get_real_downloader
-from .fragment import FragmentFD
+from .fragment import FragmentFD, can_decrypt_frag
 from .external import FFmpegFD
 
 from ..compat import (
-    compat_urllib_error,
     compat_urlparse,
-    compat_struct_pack,
 )
 from ..utils import (
     parse_m3u8_attributes,
-    sanitize_open,
     update_url_query,
     bug_reports_message,
 )
@@ -151,10 +137,6 @@ class HlsFD(FragmentFD):
 
         extra_state = ctx.setdefault('extra_state', {})
 
-        fragment_retries = self.params.get('fragment_retries', 0)
-        skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
-        test = self.params.get('test', False)
-
         format_index = info_dict.get('format_index')
         extra_query = None
         extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
@@ -258,7 +240,7 @@ class HlsFD(FragmentFD):
                 media_sequence += 1
 
         # We only download the first fragment during the test
-        if test:
+        if self.params.get('test', False):
             fragments = [fragments[0] if fragments else None]
 
         if real_downloader:
@@ -272,55 +254,6 @@ class HlsFD(FragmentFD):
             if not success:
                 return False
         else:
-            def decrypt_fragment(fragment, frag_content):
-                decrypt_info = fragment['decrypt_info']
-                if decrypt_info['METHOD'] != 'AES-128':
-                    return frag_content
-                iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
-                decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
-                    self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
-                # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
-                # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
-                # not what it decrypts to.
-                if test:
-                    return frag_content
-                return AES.new(decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
-
-            def download_fragment(fragment):
-                frag_index = fragment['frag_index']
-                frag_url = fragment['url']
-                byte_range = fragment['byte_range']
-
-                ctx['fragment_index'] = frag_index
-
-                count = 0
-                headers = info_dict.get('http_headers', {})
-                if byte_range:
-                    headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
-                while count <= fragment_retries:
-                    try:
-                        success, frag_content = self._download_fragment(
-                            ctx, frag_url, info_dict, headers)
-                        if not success:
-                            return False, frag_index
-                        break
-                    except compat_urllib_error.HTTPError as err:
-                        # Unavailable (possibly temporary) fragments may be served.
-                        # First we try to retry then either skip or abort.
-                        # See https://github.com/ytdl-org/youtube-dl/issues/10165,
-                        # https://github.com/ytdl-org/youtube-dl/issues/10448).
-                        count += 1
-                        if count <= fragment_retries:
-                            self.report_retry_fragment(err, frag_index, count, fragment_retries)
-                if count > fragment_retries:
-                    ctx['dest_stream'].close()
-                    self.report_error('Giving up after %s fragment retries' % fragment_retries)
-                    return False, frag_index
-
-                return decrypt_fragment(fragment, frag_content), frag_index
-
-            pack_fragment = lambda frag_content, _: frag_content
-
             if is_webvtt:
                 def pack_fragment(frag_content, frag_index):
                     output = io.StringIO()
@@ -388,75 +321,7 @@ class HlsFD(FragmentFD):
                         block.write_into(output)
 
                     return output.getvalue().encode('utf-8')
-
-            def append_fragment(frag_content, frag_index):
-                fatal = frag_index == 1 or not skip_unavailable_fragments
-                if frag_content:
-                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
-                    try:
-                        file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
-                        ctx['fragment_filename_sanitized'] = frag_sanitized
-                        file.close()
-                        frag_content = pack_fragment(frag_content, frag_index)
-                        self._append_fragment(ctx, frag_content)
-                        return True
-                    except EnvironmentError as ose:
-                        if ose.errno != errno.ENOENT:
-                            raise
-                        # FileNotFoundError
-                        if not fatal:
-                            self.report_skip_fragment(frag_index)
-                            return True
-                        else:
-                            ctx['dest_stream'].close()
-                            self.report_error(
-                                'fragment %s not found, unable to continue' % frag_index)
-                            return False
-                else:
-                    if not fatal:
-                        self.report_skip_fragment(frag_index)
-                        return True
-                    else:
-                        ctx['dest_stream'].close()
-                        self.report_error(
-                            'fragment %s not found, unable to continue' % frag_index)
-                        return False
-
-            max_workers = self.params.get('concurrent_fragment_downloads', 1)
-            if can_threaded_download and max_workers > 1:
-                self.report_warning('The download speed shown is only of one thread. This is a known issue')
-                _download_fragment = lambda f: (f, download_fragment(f)[1])
-                with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
-                    futures = [pool.submit(_download_fragment, fragment) for fragment in fragments]
-                    # timeout must be 0 to return instantly
-                    done, not_done = concurrent.futures.wait(futures, timeout=0)
-                    try:
-                        while not_done:
-                            # Check every 1 second for KeyboardInterrupt
-                            freshly_done, not_done = concurrent.futures.wait(not_done, timeout=1)
-                            done |= freshly_done
-                    except KeyboardInterrupt:
-                        for future in not_done:
-                            future.cancel()
-                        # timeout must be none to cancel
-                        concurrent.futures.wait(not_done, timeout=None)
-                        raise KeyboardInterrupt
-
-                for fragment, frag_index in map(lambda x: x.result(), futures):
-                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
-                    down, frag_sanitized = sanitize_open(fragment_filename, 'rb')
-                    fragment['fragment_filename_sanitized'] = frag_sanitized
-                    frag_content = down.read()
-                    down.close()
-                    result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index)
-                    if not result:
-                        return False
             else:
-                for fragment in fragments:
-                    frag_content, frag_index = download_fragment(fragment)
-                    result = append_fragment(frag_content, frag_index)
-                    if not result:
-                        return False
-
-            self._finish_frag_download(ctx)
+                pack_fragment = None
+            self.download_and_append_fragments(ctx, fragments, info_dict, pack_fragment)
         return True
