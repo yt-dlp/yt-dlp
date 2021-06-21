@@ -6,6 +6,7 @@ import sys
 # import os
 import platform
 
+from PyInstaller.utils.hooks import collect_submodules
 from PyInstaller.utils.win32.versioninfo import (
     VarStruct, VarFileInfo, StringStruct, StringTable,
     StringFileInfo, FixedFileInfo, VSVersionInfo, SetVersion,
@@ -66,16 +67,15 @@ VERSION_FILE = VSVersionInfo(
     ]
 )
 
+dependancies = ['Crypto', 'mutagen'] + collect_submodules('websockets')
+excluded_modules = ['test', 'ytdlp_plugins', 'youtube-dl', 'youtube-dlc']
+
 PyInstaller.__main__.run([
     '--name=yt-dlp%s' % _x86,
     '--onefile',
     '--icon=devscripts/cloud.ico',
-    '--exclude-module=youtube_dl',
-    '--exclude-module=youtube_dlc',
-    '--exclude-module=test',
-    '--exclude-module=ytdlp_plugins',
-    '--hidden-import=mutagen',
-    '--hidden-import=Crypto',
+    *[f'--exclude-module={module}' for module in excluded_modules],
+    *[f'--hidden-import={module}' for module in dependancies],
     '--upx-exclude=vcruntime140.dll',
     'yt_dlp/__main__.py',
 ])
