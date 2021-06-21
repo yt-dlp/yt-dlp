@@ -3030,6 +3030,22 @@ except AttributeError:
     compat_Match = type(re.compile('').match(''))
 
 
+import asyncio
+try:
+    compat_asyncio_run = asyncio.run
+    asyncio.xxx
+except AttributeError:
+    def compat_asyncio_run(coro):
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        loop.run_until_complete(coro)
+
+    asyncio.run = compat_asyncio_run
+
+
 __all__ = [
     'compat_HTMLParseError',
     'compat_HTMLParser',
