@@ -19,7 +19,7 @@ LONG_DESCRIPTION = '\n\n'.join((
     '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
     open('README.md', 'r', encoding='utf-8').read()))
 
-REQUIREMENTS = ['mutagen', 'pycryptodome']
+REQUIREMENTS = ['mutagen', 'pycryptodome', 'websockets']
 
 if sys.argv[1:2] == ['py2exe']:
     raise NotImplementedError('py2exe is not currently supported; instead, use "pyinst.py" to build with pyinstaller')
