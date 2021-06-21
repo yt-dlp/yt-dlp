@@ -333,7 +333,7 @@ class FragmentFD(FileDownloader):
         if not pack_func:
             pack_func = lambda frag_content, _: frag_content
 
-        def download_fragment(fragment):
+        def download_fragment(fragment, ctx):
             frag_index = ctx['fragment_index'] = fragment['frag_index']
             headers = info_dict.get('http_headers', {})
             byte_range = fragment.get('byte_range')
@@ -386,7 +386,7 @@ class FragmentFD(FileDownloader):
                 return frag_content
             return AES.new(decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
 
-        def append_fragment(frag_content, frag_index):
+        def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
                 fatal = frag_index == 1 or not skip_unavailable_fragments
                 if not fatal:
@@ -405,8 +405,9 @@ class FragmentFD(FileDownloader):
 
             def _download_fragment(fragment):
                 try:
-                    frag_content, frag_index = download_fragment(fragment, ctx)
-                    return fragment, frag_content, frag_index, ctx.get('fragment_filename_sanitized')
+                    ctx_copy = ctx.copy()
+                    frag_content, frag_index = download_fragment(fragment, ctx_copy)
+                    return fragment, frag_content, frag_index, ctx_copy.get('fragment_filename_sanitized')
                 except Exception:
                     # Return immediately on exception so that it is raised in the main thread
                     return
@@ -421,8 +422,8 @@ class FragmentFD(FileDownloader):
                         return False
         else:
             for fragment in fragments:
-                frag_content, frag_index = download_fragment(fragment)
-                result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index)
+                frag_content, frag_index = download_fragment(fragment, ctx)
+                result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index, ctx)
                 if not result:
                     return False
 
