@@ -104,19 +104,20 @@ class YoutubeLiveChatFD(FragmentFD):
                     return int(int(timestamp_usec) / 1000)
             return None
 
-        live_offset = [0]  # Python 2 doesnot support nonlocal
+        live_offset = 0
 
         def parse_actions_live(live_chat_continuation):
+            nonlocal live_offset
             continuation_id = None
             processed_fragment = bytearray()
             for action in live_chat_continuation.get('actions', []):
                 timestamp = parse_live_timestamp(action)
                 if timestamp is not None:
-                    live_offset[0] = timestamp - start_time
+                    live_offset = timestamp - start_time
                 # compatibility with replay format
                 pseudo_action = {
                     'replayChatItemAction': {'actions': [action]},
-                    'videoOffsetTimeMsec': str(live_offset[0]),
+                    'videoOffsetTimeMsec': str(live_offset),
                     'isLive': True,
                 }
                 processed_fragment.extend(
@@ -135,7 +136,7 @@ class YoutubeLiveChatFD(FragmentFD):
                 if timeout_ms is not None:
                     time.sleep(int(timeout_ms) / 1000)
             self._append_fragment(ctx, processed_fragment)
-            return continuation_id, live_offset[0]
+            return continuation_id, live_offset
 
         if info_dict['protocol'] == 'youtube_live_chat_replay':
             parse_actions = parse_actions_replay
