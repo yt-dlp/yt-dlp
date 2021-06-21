@@ -86,7 +86,7 @@ class YoutubeLiveChatFD(FragmentFD):
                 continuation_id = continuation_data.get('continuation')
                 timeout_ms = int_or_none(continuation_data.get('timeoutMs'))
                 if timeout_ms is not None:
-                    time.sleep(int(timeout_ms) / 1000)
+                    time.sleep(timeout_ms / 1000)
             self._append_fragment(ctx, processed_fragment)
             return continuation_id, live_offset
 
