@@ -173,10 +173,10 @@ class YoutubeLiveChatFD(FragmentFD):
         action_content = dict_get(
             action,
             ['addChatItemAction', 'addLiveChatTickerItemAction', 'addBannerToLiveChatCommand'])
-        if action_content is None or not isinstance(action_content, dict):
+        if not isinstance(action_content, dict):
             return None
         item = dict_get(action_content, ['item', 'bannerRenderer'])
-        if item is None or not isinstance(item, dict):
+        if not isinstance(item, dict):
             return None
         renderer = dict_get(item, [
             # text
@@ -188,7 +188,7 @@ class YoutubeLiveChatFD(FragmentFD):
             # banner
             'liveChatBannerRenderer',
         ])
-        if renderer is None or not isinstance(renderer, dict):
+        if not isinstance(renderer, dict):
             return None
         parent_item_getters = [
             lambda x: x['showItemEndpoint']['showLiveChatItemEndpoint']['renderer'],
@@ -200,6 +200,6 @@ class YoutubeLiveChatFD(FragmentFD):
                 'liveChatTextMessageRenderer', 'liveChatPaidMessageRenderer',
                 'liveChatMembershipItemRenderer', 'liveChatPaidStickerRenderer',
             ])
-            if renderer is None or not isinstance(renderer, dict):
+            if not isinstance(renderer, dict):
                 return None
         return int_or_none(renderer.get('timestampUsec'), 1000)
