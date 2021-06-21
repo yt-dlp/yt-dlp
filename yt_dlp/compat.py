@@ -3033,7 +3033,6 @@ except AttributeError:
 import asyncio
 try:
     compat_asyncio_run = asyncio.run
-    asyncio.xxx
 except AttributeError:
     def compat_asyncio_run(coro):
         try:
@@ -3053,6 +3052,7 @@ __all__ = [
     'compat_Match',
     'compat_Pattern',
     'compat_Struct',
+    'compat_asyncio_run',
     'compat_b64decode',
     'compat_basestring',
     'compat_chr',
