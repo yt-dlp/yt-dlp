@@ -11,7 +11,8 @@ from ..utils import (
     int_or_none,
     js_to_json,
     ExtractorError,
-    urlencode_postdata
+    urlencode_postdata,
+    urljoin
 )
 
 
@@ -109,6 +110,7 @@ class FunimationIE(InfoExtractor):
         if series:
             title = '%s - %s' % (series, title)
         description = self._html_search_meta(['description', 'og:description'], webpage, fatal=True)
+        subtitles = self.extract_subtitles(url, video_id, display_id)
 
         try:
             headers = {}
@@ -153,6 +155,31 @@ class FunimationIE(InfoExtractor):
             'season_number': int_or_none(title_data.get('seasonNum') or _search_kane('season')),
             'episode_number': int_or_none(title_data.get('episodeNum')),
             'episode': episode,
+            'subtitles': subtitles,
             'season_id': title_data.get('seriesId'),
             'formats': formats,
         }
+
+    def _get_subtitles(self, url, video_id, display_id):
+        player_url = urljoin(url, '/player/' + video_id)
+        player_page = self._download_webpage(player_url, display_id)
+        text_tracks_json_string = self._search_regex(
+            r'"textTracks": (\[{.+?}\])',
+            player_page, 'subtitles data', default='')
+        if not text_tracks_json_string:
+            # Funimation player page unavailable due to robot detection.
+            # Don't warn so that unit tests still pass this step.
+            return {}
+        text_tracks = self._parse_json(
+            text_tracks_json_string, display_id, js_to_json, fatal=False) or []
+        subtitles = {}
+        for text_track in text_tracks:
+            url_element = {'url': text_track.get('src')}
+            language = text_track.get('language')
+            if text_track.get('type') == 'CC':
+                language += 'CC'
+            if language in subtitles:
+                subtitles[language].append(url_element)
+            else:
+                subtitles[language] = [url_element]
+        return subtitles
