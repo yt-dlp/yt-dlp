@@ -2504,6 +2504,11 @@ class RejectedVideoReached(YoutubeDLError):
     pass
 
 
+class ThrottledDownload(YoutubeDLError):
+    """ Download speed below --throttled-rate. """
+    pass
+
+
 class MaxDownloadsReached(YoutubeDLError):
     """ --max-downloads limit has been reached. """
     pass

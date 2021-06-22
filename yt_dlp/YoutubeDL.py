@@ -101,6 +101,7 @@ from .utils import (
     str_or_none,
     strftime_or_none,
     subtitles_filename,
+    ThrottledDownload,
     to_high_limit_path,
     traverse_obj,
     UnavailableVideoError,
@@ -398,10 +399,9 @@ class YoutubeDL(object):
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
-    nopart, updatetime, buffersize, ratelimit, min_filesize, max_filesize, test,
-    noresizebuffer, retries, continuedl, noprogress, consoletitle,
-    xattr_set_filesize, external_downloader_args, hls_use_mpegts,
-    http_chunk_size.
+    nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
+    max_filesize, test, noresizebuffer, retries, continuedl, noprogress, consoletitle,
+    xattr_set_filesize, external_downloader_args, hls_use_mpegts, http_chunk_size.
 
     The following options are used by the post processors:
     prefer_ffmpeg:     If False, use avconv instead of ffmpeg if both are available,
@@ -1145,6 +1145,10 @@ class YoutubeDL(object):
                 self.report_error(msg)
             except ExtractorError as e:  # An error we somewhat expected
                 self.report_error(compat_str(e), e.format_traceback())
+            except ThrottledDownload:
+                self.to_stderr('\r')
+                self.report_warning('The download speed is below throttle limit. Re-extracting data')
+                return wrapper(self, *args, **kwargs)
             except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
                 raise
             except Exception as e:

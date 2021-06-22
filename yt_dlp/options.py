@@ -600,6 +600,10 @@ def parseOpts(overrideArguments=None):
         dest='ratelimit', metavar='RATE',
         help='Maximum download rate in bytes per second (e.g. 50K or 4.2M)')
     downloader.add_option(
+        '--throttled-rate',
+        dest='throttledratelimit', metavar='RATE',
+        help='Minimum download rate in bytes per second below which throttling is assumed and the video data is re-extracted (e.g. 100K)')
+    downloader.add_option(
         '-R', '--retries',
         dest='retries', metavar='RETRIES', default=10,
         help='Number of retries (default is %default), or "infinite"')
