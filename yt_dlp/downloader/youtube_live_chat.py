@@ -60,9 +60,10 @@ class YoutubeLiveChatFD(FragmentFD):
             return continuation_id, offset
 
         def try_refresh_replay_beginning(live_chat_continuation):
+            # choose the second option that contains the unfiltered live chat replay
             refresh_continuation_id = try_get(
                 live_chat_continuation,
-                lambda x: x['header']['liveChatHeaderRenderer']['viewSelector']['sortFilterSubMenuRenderer']['subMenuItems'][0]['continuation']['reloadContinuationData']['continuation'], str)
+                lambda x: x['header']['liveChatHeaderRenderer']['viewSelector']['sortFilterSubMenuRenderer']['subMenuItems'][1]['continuation']['reloadContinuationData']['continuation'], str)
             if refresh_continuation_id:
                 # no data yet but required to call _append_fragment
                 self._append_fragment(ctx, b'')
