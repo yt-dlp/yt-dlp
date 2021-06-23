@@ -2181,6 +2181,8 @@ class YoutubeDL(object):
 
         formats_to_download = list(format_selector(ctx))
         if not formats_to_download:
+            # Process what we can, even without any available formats.
+            self.process_info(dict(info_dict))
             if not self.params.get('ignore_no_formats_error'):
                 raise ExtractorError('Requested format is not available', expected=True)
             else:
@@ -2301,7 +2303,6 @@ class YoutubeDL(object):
         if self.params.get('forceduration', False) and info_dict.get('duration') is not None:
             self.to_stdout(formatSeconds(info_dict['duration']))
         print_mandatory('format')
-
         if self.params.get('forcejson', False):
             self.post_extract(info_dict)
             self.to_stdout(json.dumps(info_dict, default=repr))
@@ -2349,7 +2350,7 @@ class YoutubeDL(object):
         # TODO: backward compatibility, to be removed
         info_dict['fulltitle'] = info_dict['title']
 
-        if 'format' not in info_dict:
+        if 'format' not in info_dict and 'ext' in info_dict:
             info_dict['format'] = info_dict['ext']
 
         if self._match_entry(info_dict) is not None:
@@ -2364,7 +2365,7 @@ class YoutubeDL(object):
         files_to_move = {}
 
         # Forced printings
-        self.__forced_printings(info_dict, full_filename, incomplete=False)
+        self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
 
         if self.params.get('simulate', False):
             if self.params.get('force_write_download_archive', False):
