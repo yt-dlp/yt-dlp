@@ -19,6 +19,39 @@
 -->
 
 
+### 2021.06.23
+
+* Merge youtube-dl: Upto [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)
+* **Add option `--throttled-rate`** below which video data is re-extracted
+* [fragment] **Merge during download for `-N`**, and refactor `hls`/`dash`
+* [websockets] Add `WebSocketFragmentFD`by [nao20010128nao](https://github.com/nao20010128nao), [pukkandan](https://github.com/pukkandan)
+* Allow `images` formats in addition to video/audio
+* [downloader/mhtml] Add new downloader for slideshows/storyboards by [fstirlitz](https://github.com/fstirlitz)
+* [youtube] Temporary **fix for age-gate**
+* [youtube] Support ongoing live chat by [siikamiika](https://github.com/siikamiika)
+* [youtube] Improve SAPISID cookie handling by [colethedj](https://github.com/colethedj)
+* [youtube] Login is not needed for `:ytrec`
+* [youtube] Non-fatal alert reporting for unavailable videos page by [colethedj](https://github.com/colethedj)
+* [twitcasting] Websocket support by [nao20010128nao](https://github.com/nao20010128nao)
+* [mediasite] Extract slides by [fstirlitz](https://github.com/fstirlitz)
+* [funimation] Extract subtitles 
+* [pornhub] Extract `cast`
+* [hotstar] Use server time for authentication instead of local time
+* [EmbedThumbnail] Fix for already downloaded thumbnail
+* [EmbedThumbnail] Add compat-option `embed-thumbnail-atomicparsley`
+* Expand `--check-formats` to thumbnails
+* Fix id sanitization in filenames
+* Skip fixup of existing files and add `--fixup force` to force it
+* Better error handling of syntax errors in `-f`
+* Use `NamedTemporaryFile` for `--check-formats`
+* [aria2c] Lower `--min-split-size` for HTTP downloads
+* [options] Rename `--add-metadata` to `--embed-metadata`
+* [utils] Improve `LazyList` and add tests
+* [build] Build Windows x86 version with py3.7 and remove redundant tests by [pukkandan](https://github.com/pukkandan), [shirt](https://github.com/shirt-dev)
+* [docs] Clarify that `--embed-metadata` embeds chapter markers
+* [cleanup] Refactor fixup
+
+
 ### 2021.06.09
 
 * Fix bug where `%(field)d` in filename template throws error
@@ -34,7 +67,7 @@
 * [extractor] Fix FourCC fallback when parsing ISM by [fstirlitz](https://github.com/fstirlitz)
 * [twitcasting] Add TwitCastingUserIE, TwitCastingLiveIE by [pukkandan](https://github.com/pukkandan), [nao20010128nao](https://github.com/nao20010128nao)
 * [vidio] Add VidioPremierIE and VidioLiveIE by [MinePlayersPE](Https://github.com/MinePlayersPE)
-* [viki] Fix extraction from by [ytdl-org/youtube-dl@59e583f](https://github.com/ytdl-org/youtube-dl/commit/59e583f7e8530ca92776c866897d895c072e2a82)
+* [viki] Fix extraction from [ytdl-org/youtube-dl@59e583f](https://github.com/ytdl-org/youtube-dl/commit/59e583f7e8530ca92776c866897d895c072e2a82)
 * [youtube] Support shorts URL
 * [zoom] Extract transcripts as subtitles
 * Add field `original_url` with the user-inputted URL
