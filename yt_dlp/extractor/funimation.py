@@ -166,10 +166,6 @@ class FunimationIE(InfoExtractor):
         text_tracks_json_string = self._search_regex(
             r'"textTracks": (\[{.+?}\])',
             player_page, 'subtitles data', default='')
-        if not text_tracks_json_string:
-            # Funimation player page unavailable due to robot detection.
-            # Don't warn so that unit tests still pass this step.
-            return {}
         text_tracks = self._parse_json(
             text_tracks_json_string, display_id, js_to_json, fatal=False) or []
         subtitles = {}
