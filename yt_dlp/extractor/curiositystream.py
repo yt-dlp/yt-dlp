@@ -177,7 +177,7 @@ class CuriosityStreamCollectionIE(CuriosityStreamBaseIE):
         entries = []
         for media in collection.get('media', []):
             media_id = compat_str(media.get('id'))
-            media_type, ie = ('series', CuriosityStreamSeriesIE) if media.get('is_collection') else ('video', CuriosityStreamIE)
+            media_type, ie = ('series', CuriosityStreamCollectionIE) if media.get('is_collection') else ('video', CuriosityStreamIE)
             entries.append(self.url_result(
                 'https://curiositystream.com/%s/%s' % (media_type, media_id),
                 ie=ie.ie_key(), video_id=media_id))

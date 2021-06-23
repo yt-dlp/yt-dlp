@@ -66,7 +66,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl [commit/c2350ca](https://github.com/ytdl-org/youtube-dl/commit/c2350cac243ba1ec1586fe85b0d62d1b700047a2)**: (v2021.06.06) You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)**: (v2021.06.06) You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
@@ -374,6 +374,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (default is 1)
     -r, --limit-rate RATE            Maximum download rate in bytes per second
                                      (e.g. 50K or 4.2M)
+    --throttled-rate RATE            Minimum download rate in bytes per second
+                                     below which throttling is assumed and the
+                                     video data is re-extracted (e.g. 100K)
     -R, --retries RETRIES            Number of retries (default is 10), or
                                      "infinite"
     --fragment-retries RETRIES       Number of retries for a fragment (default
@@ -712,7 +715,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      Metadata, EmbedSubtitle, EmbedThumbnail,
                                      SubtitlesConvertor, ThumbnailsConvertor,
                                      VideoRemuxer, VideoConvertor, SponSkrub,
-                                     FixupStretched, FixupM4a and FixupM3u8. The
+                                     FixupStretched, FixupM4a, FixupM3u8,
+                                     FixupTimestamp and FixupDuration. The
                                      supported executables are: AtomicParsley,
                                      FFmpeg, FFprobe, and SponSkrub. You can
                                      also specify "PP+EXE:ARGS" to give the
@@ -736,10 +740,13 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --embed-subs                     Embed subtitles in the video (only for mp4,
                                      webm and mkv videos)
     --no-embed-subs                  Do not embed subtitles (default)
-    --embed-thumbnail                Embed thumbnail in the audio as cover art
+    --embed-thumbnail                Embed thumbnail in the video as cover art
     --no-embed-thumbnail             Do not embed thumbnail (default)
-    --add-metadata                   Write metadata to the video file
-    --no-add-metadata                Do not write metadata (default)
+    --embed-metadata                 Embed metadata including chapter markers
+                                     (if supported by the format) to the video
+                                     file (Alias: --add-metadata)
+    --no-embed-metadata              Do not write metadata (default)
+                                     (Alias: --no-add-metadata)
     --parse-metadata FROM:TO         Parse additional metadata like title/artist
                                      from other fields; see "MODIFYING METADATA"
                                      for details
@@ -749,7 +756,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      file. One of never (do nothing), warn (only
                                      emit a warning), detect_or_warn (the
                                      default; fix file if we can, warn
-                                     otherwise)
+                                     otherwise), force (try fixing even if file
+                                     already exists
     --ffmpeg-location PATH           Location of the ffmpeg binary; either the
                                      path to the binary or its containing
                                      directory

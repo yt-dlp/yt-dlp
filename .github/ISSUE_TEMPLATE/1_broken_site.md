@@ -21,7 +21,7 @@ assignees: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
-- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is 2021.06.09. If it's not, see https://github.com/yt-dlp/yt-dlp on how to update. Issues with outdated version will be REJECTED.
+- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is 2021.06.23. If it's not, see https://github.com/yt-dlp/yt-dlp on how to update. Issues with outdated version will be REJECTED.
 - Make sure that all provided video/audio/playlist URLs (if any) are alive and playable in a browser.
 - Make sure that all URLs and arguments with special characters are properly quoted or escaped as explained in https://github.com/yt-dlp/yt-dlp.
 - Search the bugtracker for similar issues: https://github.com/yt-dlp/yt-dlp. DO NOT post duplicates.
@@ -29,7 +29,7 @@ Carefully read and work through this check list in order to prevent the most com
 -->
 
 - [ ] I'm reporting a broken site support
-- [ ] I've verified that I'm running yt-dlp version **2021.06.09**
+- [ ] I've verified that I'm running yt-dlp version **2021.06.23**
 - [ ] I've checked that all provided URLs are alive and playable in a browser
 - [ ] I've checked that all URLs and arguments with special characters are properly quoted or escaped
 - [ ] I've searched the bugtracker for similar issues including closed ones
@@ -44,7 +44,7 @@ Add the `-v` flag to your command line you run yt-dlp with (`yt-dlp -v <your com
  [debug] User config: []
  [debug] Command-line args: [u'-v', u'http://www.youtube.com/watch?v=BaW_jenozKcj']
  [debug] Encodings: locale cp1251, fs mbcs, out cp866, pref cp1251
- [debug] yt-dlp version 2021.06.09
+ [debug] yt-dlp version 2021.06.23
  [debug] Python version 2.7.11 - Windows-2003Server-5.2.3790-SP2
  [debug] exe versions: ffmpeg N-75573-g1d0487f, ffprobe N-75573-g1d0487f, rtmpdump 2.4
  [debug] Proxy map: {}
