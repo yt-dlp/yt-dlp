@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import random
+import re
 import string
 
 from .common import InfoExtractor
@@ -180,7 +181,7 @@ class FunimationIE(InfoExtractor):
 
 class FunimationShowPlaylistIE(FunimationIE):
     IE_NAME = 'funimation:playlist'
-    _VALID_URL = r'https?://(?:www\.)?funimation(?:\.com|now\.uk)/(?:[^/]+/)?shows/(?P<id>[^/?#&]+)/?$'
+    _VALID_URL = r'https?://(?:www\.)?funimation(?:\.com|now\.uk)/(?P<locale>[^/]+)?/?shows/(?P<id>[^/?#&]+)/?$'
 
     _TESTS = [{
         'url': 'https://www.funimation.com/en/shows/sk8-the-infinity/',
@@ -194,16 +195,23 @@ class FunimationShowPlaylistIE(FunimationIE):
         },
     }, {
         # without lang code
-        'url': 'https://www.funimation.com/shows/hacksign/',
-        'only_matching': True,
+        'url': 'https://www.funimation.com/shows/ouran-high-school-host-club/',
+        'info_dict': {
+            'id': 39643,
+            'title': 'Ouran High School Host Club'
+        },
+        'playlist_count': 26,
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        locale, display_id = re.match(self._VALID_URL, url).groups()
 
         show_info = self._download_json(
-            'https://title-api.prd.funimationsvc.com/v2/shows/%s?region=US&deviceType=web&locale=en'
-            % display_id, display_id)
+            'https://title-api.prd.funimationsvc.com/v2/shows/%s?region=US&deviceType=web&locale=%s'
+            % (display_id, locale or 'en'), display_id)
 
         items = self._download_json(
             'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
