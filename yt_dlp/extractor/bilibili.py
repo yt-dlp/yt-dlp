@@ -281,7 +281,7 @@ class BiliBiliIE(InfoExtractor):
             webpage)
         if uploader_mobj:
             info.update({
-                'uploader': uploader_mobj.group('name'),
+                'uploader': uploader_mobj.group('name').strip(),
                 'uploader_id': uploader_mobj.group('id'),
             })
 
