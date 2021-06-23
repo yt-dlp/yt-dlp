@@ -27,8 +27,8 @@ from ..utils import (
 class HotStarBaseIE(InfoExtractor):
     _AKAMAI_ENCRYPTION_KEY = b'\x05\xfc\x1a\x01\xca\xc9\x4b\xc4\x12\xfc\x53\x12\x07\x75\xf9\xee'
 
-    def _call_api_impl(self, path, video_id, query):
-        st = int(time.time())
+    def _call_api_impl(self, path, video_id, query, st=None):
+        st = int_or_none(st) or int(time.time())
         exp = st + 6000
         auth = 'st=%d~exp=%d~acl=/*' % (st, exp)
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
@@ -75,9 +75,9 @@ class HotStarBaseIE(InfoExtractor):
             'tas': 10000,
         })
 
-    def _call_api_v2(self, path, video_id):
+    def _call_api_v2(self, path, video_id, st=None):
         return self._call_api_impl(
-            '%s/content/%s' % (path, video_id), video_id, {
+            '%s/content/%s' % (path, video_id), video_id, st=st, query={
                 'desired-config': 'audio_channel:stereo|dynamic_range:sdr|encryption:plain|ladder:tv|package:dash|resolution:hd|subs-tag:HotstarVIP|video_codec:vp9',
                 'device-id': compat_str(uuid.uuid4()),
                 'os-name': 'Windows',
@@ -131,7 +131,8 @@ class HotStarIE(HotStarBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        webpage, urlh = self._download_webpage_handle(url, video_id)
+        st = urlh.headers.get('x-origin-date')
         app_state = self._parse_json(self._search_regex(
             r'<script>window\.APP_STATE\s*=\s*({.+?})</script>',
             webpage, 'app state'), video_id)
@@ -155,7 +156,7 @@ class HotStarIE(HotStarBaseIE):
         formats = []
         geo_restricted = False
         # change to v2 in the future
-        playback_sets = self._call_api_v2('play/v1/playback', video_id)['playBackSets']
+        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st)['playBackSets']
         for playback_set in playback_sets:
             if not isinstance(playback_set, dict):
                 continue

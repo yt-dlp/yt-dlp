@@ -4,9 +4,26 @@ import os
 import time
 import json
 
+try:
+    from Crypto.Cipher import AES
+    can_decrypt_frag = True
+except ImportError:
+    can_decrypt_frag = False
+
+try:
+    import concurrent.futures
+    can_threaded_download = True
+except ImportError:
+    can_threaded_download = False
+
 from .common import FileDownloader
 from .http import HttpFD
+from ..compat import (
+    compat_urllib_error,
+    compat_struct_pack,
+)
 from ..utils import (
+    DownloadError,
     error_to_compat_str,
     encodeFilename,
     sanitize_open,
@@ -56,7 +73,7 @@ class FragmentFD(FileDownloader):
 
     def report_retry_fragment(self, err, frag_index, count, retries):
         self.to_screen(
-            '[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
+            '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
             % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
 
     def report_skip_fragment(self, frag_index):
@@ -112,11 +129,15 @@ class FragmentFD(FileDownloader):
             return False, None
         if fragment_info_dict.get('filetime'):
             ctx['fragment_filetime'] = fragment_info_dict.get('filetime')
-        down, frag_sanitized = sanitize_open(fragment_filename, 'rb')
+        ctx['fragment_filename_sanitized'] = fragment_filename
+        return True, self._read_fragment(ctx)
+
+    def _read_fragment(self, ctx):
+        down, frag_sanitized = sanitize_open(ctx['fragment_filename_sanitized'], 'rb')
         ctx['fragment_filename_sanitized'] = frag_sanitized
         frag_content = down.read()
         down.close()
-        return True, frag_content
+        return frag_content
 
     def _append_fragment(self, ctx, frag_content):
         try:
@@ -304,3 +325,106 @@ class FragmentFD(FileDownloader):
             'tmpfilename': tmpfilename,
             'fragment_index': 0,
         })
+
+    def download_and_append_fragments(self, ctx, fragments, info_dict, pack_func=None):
+        fragment_retries = self.params.get('fragment_retries', 0)
+        skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
+        test = self.params.get('test', False)
+        if not pack_func:
+            pack_func = lambda frag_content, _: frag_content
+
+        def download_fragment(fragment, ctx):
+            frag_index = ctx['fragment_index'] = fragment['frag_index']
+            headers = info_dict.get('http_headers', {})
+            byte_range = fragment.get('byte_range')
+            if byte_range:
+                headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
+
+            # Never skip the first fragment
+            fatal = (fragment.get('index') or frag_index) == 0 or not skip_unavailable_fragments
+            count, frag_content = 0, None
+            while count <= fragment_retries:
+                try:
+                    success, frag_content = self._download_fragment(ctx, fragment['url'], info_dict, headers)
+                    if not success:
+                        return False, frag_index
+                    break
+                except compat_urllib_error.HTTPError as err:
+                    # Unavailable (possibly temporary) fragments may be served.
+                    # First we try to retry then either skip or abort.
+                    # See https://github.com/ytdl-org/youtube-dl/issues/10165,
+                    # https://github.com/ytdl-org/youtube-dl/issues/10448).
+                    count += 1
+                    if count <= fragment_retries:
+                        self.report_retry_fragment(err, frag_index, count, fragment_retries)
+                except DownloadError:
+                    # Don't retry fragment if error occurred during HTTP downloading
+                    # itself since it has own retry settings
+                    if not fatal:
+                        break
+                    raise
+
+            if count > fragment_retries:
+                if not fatal:
+                    return False, frag_index
+                ctx['dest_stream'].close()
+                self.report_error('Giving up after %s fragment retries' % fragment_retries)
+                return False, frag_index
+            return frag_content, frag_index
+
+        def decrypt_fragment(fragment, frag_content):
+            decrypt_info = fragment.get('decrypt_info')
+            if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
+                return frag_content
+            iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
+            decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
+                self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
+            # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
+            # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
+            # not what it decrypts to.
+            if test:
+                return frag_content
+            return AES.new(decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
+
+        def append_fragment(frag_content, frag_index, ctx):
+            if not frag_content:
+                fatal = frag_index == 1 or not skip_unavailable_fragments
+                if not fatal:
+                    self.report_skip_fragment(frag_index)
+                    return True
+                else:
+                    ctx['dest_stream'].close()
+                    self.report_error(
+                        'fragment %s not found, unable to continue' % frag_index)
+                    return False
+            self._append_fragment(ctx, pack_func(frag_content, frag_index))
+            return True
+
+        max_workers = self.params.get('concurrent_fragment_downloads', 1)
+        if can_threaded_download and max_workers > 1:
+
+            def _download_fragment(fragment):
+                try:
+                    ctx_copy = ctx.copy()
+                    frag_content, frag_index = download_fragment(fragment, ctx_copy)
+                    return fragment, frag_content, frag_index, ctx_copy.get('fragment_filename_sanitized')
+                except Exception:
+                    # Return immediately on exception so that it is raised in the main thread
+                    return
+
+            self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
+            with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
+                for fragment, frag_content, frag_index, frag_filename in pool.map(_download_fragment, fragments):
+                    ctx['fragment_filename_sanitized'] = frag_filename
+                    ctx['fragment_index'] = frag_index
+                    result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index, ctx)
+                    if not result:
+                        return False
+        else:
+            for fragment in fragments:
+                frag_content, frag_index = download_fragment(fragment, ctx)
+                result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index, ctx)
+                if not result:
+                    return False
+
+        self._finish_frag_download(ctx)

@@ -600,6 +600,10 @@ def parseOpts(overrideArguments=None):
         dest='ratelimit', metavar='RATE',
         help='Maximum download rate in bytes per second (e.g. 50K or 4.2M)')
     downloader.add_option(
+        '--throttled-rate',
+        dest='throttledratelimit', metavar='RATE',
+        help='Minimum download rate in bytes per second below which throttling is assumed and the video data is re-extracted (e.g. 100K)')
+    downloader.add_option(
         '-R', '--retries',
         dest='retries', metavar='RETRIES', default=10,
         help='Number of retries (default is %default), or "infinite"')
@@ -1165,7 +1169,7 @@ def parseOpts(overrideArguments=None):
             'to give the argument to the specified postprocessor/executable. Supported PP are: '
             'Merger, ExtractAudio, SplitChapters, Metadata, EmbedSubtitle, EmbedThumbnail, '
             'SubtitlesConvertor, ThumbnailsConvertor, VideoRemuxer, VideoConvertor, '
-            'SponSkrub, FixupStretched, FixupM4a and FixupM3u8. '
+            'SponSkrub, FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
             'The supported executables are: AtomicParsley, FFmpeg, FFprobe, and SponSkrub. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
@@ -1200,19 +1204,19 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--embed-thumbnail',
         action='store_true', dest='embedthumbnail', default=False,
-        help='Embed thumbnail in the video/audio as cover art')
+        help='Embed thumbnail in the video as cover art')
     postproc.add_option(
         '--no-embed-thumbnail',
         action='store_false', dest='embedthumbnail',
         help='Do not embed thumbnail (default)')
     postproc.add_option(
-        '--add-metadata',
+        '--embed-metadata', '--add-metadata',
         action='store_true', dest='addmetadata', default=False,
-        help='Write metadata to the video file')
+        help='Embed metadata including chapter markers (if supported by the format) to the video file (Alias: --add-metadata)')
     postproc.add_option(
-        '--no-add-metadata',
+        '--no-embed-metadata', '--no-add-metadata',
         action='store_false', dest='addmetadata',
-        help='Do not write metadata (default)')
+        help='Do not write metadata (default)  (Alias: --no-add-metadata)')
     postproc.add_option(
         '--metadata-from-title',
         metavar='FORMAT', dest='metafromtitle',
@@ -1230,10 +1234,12 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,
+        choices=('never', 'ignore', 'warn', 'detect_or_warn', 'force'),
         help=(
             'Automatically correct known faults of the file. '
             'One of never (do nothing), warn (only emit a warning), '
-            'detect_or_warn (the default; fix file if we can, warn otherwise)'))
+            'detect_or_warn (the default; fix file if we can, warn otherwise), '
+            'force (try fixing even if file already exists'))
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',

@@ -151,6 +151,11 @@ def _real_main(argv=None):
         if numeric_limit is None:
             parser.error('invalid rate limit specified')
         opts.ratelimit = numeric_limit
+    if opts.throttledratelimit is not None:
+        numeric_limit = FileDownloader.parse_bytes(opts.throttledratelimit)
+        if numeric_limit is None:
+            parser.error('invalid rate limit specified')
+        opts.throttledratelimit = numeric_limit
     if opts.min_filesize is not None:
         numeric_limit = FileDownloader.parse_bytes(opts.min_filesize)
         if numeric_limit is None:
@@ -552,6 +557,7 @@ def _real_main(argv=None):
         'ignoreerrors': opts.ignoreerrors,
         'force_generic_extractor': opts.force_generic_extractor,
         'ratelimit': opts.ratelimit,
+        'throttledratelimit': opts.throttledratelimit,
         'overwrites': opts.overwrites,
         'retries': opts.retries,
         'fragment_retries': opts.fragment_retries,
