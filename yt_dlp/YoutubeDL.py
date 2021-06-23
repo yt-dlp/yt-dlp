@@ -2190,6 +2190,8 @@ class YoutubeDL(object):
                 raise ExtractorError('Requested format is not available', expected=True)
             else:
                 self.report_warning('Requested format is not available')
+                # Process what we can, even without any available formats.
+                self.process_info(dict(info_dict))
         elif download:
             self.to_screen(
                 '[info] %s: Downloading %d format(s): %s' % (
@@ -2354,7 +2356,7 @@ class YoutubeDL(object):
         # TODO: backward compatibility, to be removed
         info_dict['fulltitle'] = info_dict['title']
 
-        if 'format' not in info_dict:
+        if 'format' not in info_dict and 'ext' in info_dict:
             info_dict['format'] = info_dict['ext']
 
         if self._match_entry(info_dict) is not None:
@@ -2369,7 +2371,7 @@ class YoutubeDL(object):
         files_to_move = {}
 
         # Forced printings
-        self.__forced_printings(info_dict, full_filename, incomplete=False)
+        self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
 
         if self.params.get('simulate', False):
             if self.params.get('force_write_download_archive', False):
