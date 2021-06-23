@@ -14,7 +14,6 @@ from ..utils import (
     format_bytes,
     shell_quote,
     timeconvert,
-    ThrottledDownload,
 )
 
 
@@ -172,7 +171,7 @@ class FileDownloader(object):
     def slow_down(self, start_time, now, byte_counter):
         """Sleep if the download speed is over the rate limit."""
         rate_limit = self.params.get('ratelimit')
-        if byte_counter == 0:
+        if rate_limit is None or byte_counter == 0:
             return
         if now is None:
             now = time.time()
@@ -180,7 +179,7 @@ class FileDownloader(object):
         if elapsed <= 0.0:
             return
         speed = float(byte_counter) / elapsed
-        if rate_limit is not None and speed > rate_limit:
+        if speed > rate_limit:
             sleep_time = float(byte_counter) / rate_limit - elapsed
             if sleep_time > 0:
                 time.sleep(sleep_time)
