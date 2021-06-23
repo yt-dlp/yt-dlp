@@ -19,7 +19,7 @@ from ..utils import (
 
 
 class PlutoTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?pluto\.tv/on-demand/(?P<video_type>movies|series)/(?P<slug>.*)/?$'
+    _VALID_URL = r'https?://(?:www\.)?pluto\.tv(?:/en)?/on-demand/(?P<video_type>movies|series)/(?P<slug>.*)/?$'
     _INFO_URL = 'https://service-vod.clusters.pluto.tv/v3/vod/slugs/'
     _INFO_QUERY_PARAMS = {
         'appName': 'web',
@@ -48,24 +48,21 @@ class PlutoTVIE(InfoExtractor):
                 'episode_number': 3,
                 'duration': 3600,
             }
-        },
-        {
+        }, {
             'url': 'https://pluto.tv/on-demand/series/i-love-money/season/1/',
             'playlist_count': 11,
             'info_dict': {
                 'id': '5de6c582e9379ae4912dedbd',
                 'title': 'I Love Money - Season 1',
             }
-        },
-        {
+        }, {
             'url': 'https://pluto.tv/on-demand/series/i-love-money/',
             'playlist_count': 26,
             'info_dict': {
                 'id': '5de6c582e9379ae4912dedbd',
                 'title': 'I Love Money',
             }
-        },
-        {
+        }, {
             'url': 'https://pluto.tv/on-demand/movies/arrival-2015-1-1',
             'md5': '3cead001d317a018bf856a896dee1762',
             'info_dict': {
@@ -75,7 +72,10 @@ class PlutoTVIE(InfoExtractor):
                 'description': 'When mysterious spacecraft touch down across the globe, an elite team - led by expert translator Louise Banks (Academy Award® nominee Amy Adams) – races against time to decipher their intent.',
                 'duration': 9000,
             }
-        },
+        }, {
+            'url': 'https://pluto.tv/en/on-demand/series/manhunters-fugitive-task-force/seasons/1/episode/third-times-the-charm-1-1',
+            'only_matching': True,
+        }
     ]
 
     def _to_ad_free_formats(self, video_id, formats, subtitles):
