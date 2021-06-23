@@ -2231,7 +2231,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             video_details.get('lengthSeconds')
             or microformat.get('lengthSeconds')) \
             or parse_duration(search_meta('duration'))
-        is_live = video_details.get('isLive')
+        live_broadcast_details = microformat.get('liveBroadcastDetails')
+        is_live = video_details.get('isLive') \
+            or try_get(live_broadcast_details, lambda x: x['isLiveNow'], dict)
+        is_upcoming = video_details.get('isUpcoming'),
         owner_profile_url = microformat.get('ownerProfileUrl')
 
         info = {
@@ -2262,8 +2265,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'categories': [category] if category else None,
             'tags': keywords,
             'is_live': is_live,
+            'is_upcoming': is_upcoming,
             'playable_in_embed': playability_status.get('playableInEmbed'),
             'was_live': video_details.get('isLiveContent'),
+            'live_starttime': try_get(live_broadcast_details, lambda x: x['startTimestamp'], dict),
+            'live_endtime': try_get(live_broadcast_details, lambda x: x['endTimestamp'], dict),
         }
 
         pctr = try_get(
