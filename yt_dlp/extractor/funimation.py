@@ -183,29 +183,31 @@ class FunimationShowPlaylistIE(FunimationIE):
     _VALID_URL = r'https?://(?:www\.)?funimation(?:\.com|now\.uk)/(?:[^/]+/)?shows/(?P<id>[^/?#&]+)/?$'
 
     _TESTS = [{
-        'url': 'https://www.funimation.com/en/shows/hacksign/',
+        'url': 'https://www.funimation.com/en/shows/sk8-the-infinity/',
         'info_dict': {
-            'id': 90646,
-            'title': '.hack//SIGN'
+            'id': 1315000,
+            'title': 'SK8 the Infinity'
         },
-        'playlist_count': 28,
+        'playlist_count': 13,
         'params': {
             'skip_download': True,
         },
+    }, {
+        # without lang code
+        'url': 'https://www.funimation.com/shows/hacksign/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, display_id)
-        title_data = self._parse_json(self._search_regex(
-            r'TITLE_DATA\s*=\s*({[^}]+})',
-            webpage, 'title data', default=''),
-            display_id, js_to_json, fatal=False) or {}
+        show_info = self._download_json(
+            'https://title-api.prd.funimationsvc.com/v2/shows/%s?region=US&deviceType=web&locale=en'
+            % display_id, display_id)
 
         items = self._download_json(
             'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
-            % title_data.get('id'), display_id).get('items')
+            % show_info.get('id'), display_id).get('items')
 
         vod_items = list(map(lambda k:
                          (k.get('mostRecentSvod') or k.get('mostRecentAvod'))
@@ -220,7 +222,7 @@ class FunimationShowPlaylistIE(FunimationIE):
 
         return {
             '_type': 'playlist',
-            'id': title_data.get('id'),
-            'title': title_data.get('title'),
+            'id': show_info.get('id'),
+            'title': show_info.get('name'),
             'entries': entries,
         }
