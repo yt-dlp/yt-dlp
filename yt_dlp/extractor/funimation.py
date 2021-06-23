@@ -10,9 +10,9 @@ from ..utils import (
     determine_ext,
     int_or_none,
     js_to_json,
-    ExtractorError,
     urlencode_postdata,
-    urljoin
+    urljoin,
+    ExtractorError,
 )
 
 
