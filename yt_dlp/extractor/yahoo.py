@@ -289,19 +289,11 @@ class YahooIE(InfoExtractor):
         if item.get('type') != 'video':
             entries = []
 
-            cover = item.get('cover') or {}
-            if cover.get('type') == 'yvideo':
-                cover_url = cover.get('url')
-                if cover_url:
-                    entries.append(self.url_result(
-                        cover_url, 'Yahoo', cover.get('uuid')))
-
-            for e in (item.get('body') or []):
-                if e.get('type') == 'videoIframe':
-                    iframe_url = e.get('url')
-                    if not iframe_url:
-                        continue
-                    entries.append(self.url_result(iframe_url))
+            if item.get('type') == 'storywithleadvideo':
+                iframe_url = try_get(item, lambda x: x['meta']['player']['url'])
+                if not iframe_url:
+                    raise ExtractorError('No iframe_url found', expected=False)
+                entries.append(self.url_result(iframe_url))
 
             return self.playlist_result(
                 entries, item.get('uuid'),
