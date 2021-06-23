@@ -173,6 +173,6 @@ class FunimationIE(InfoExtractor):
             url_element = {'url': text_track.get('src')}
             language = text_track.get('language')
             if text_track.get('type') == 'CC':
-                language += 'CC'
+                language += '_CC'
             subtitles.setdefault(language, []).append(url_element)
         return subtitles
