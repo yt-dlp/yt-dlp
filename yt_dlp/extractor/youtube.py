@@ -372,13 +372,28 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                             }
                     },
                     'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID'  # TODO
+                },
+                'ANDROID_MUSIC': {
+                    'INNERTUBE_API_VERSION': 'v1',
+                    'INNERTUBE_CLIENT_NAME': 'ANDROID_MUSIC',
+                    'INNERTUBE_CLIENT_VERSION': '4.32',
+                    'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
+                    'INNERTUBE_CONTEXT': {
+                        'client': {
+                            'clientName': 'ANDROID_MUSIC',
+                            'clientVersion': '4.32',
+                            'hl': 'en',
+                        }
+                    },
+                    'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_MUSIC'  # TODO
                 }
     }
 
     _YT_DEFAULT_INNERTUBE_HOSTS = {
         'DIRECT': 'youtubei.googleapis.com',
         'WEB': 'www.youtube.com',
-        'WEB_REMIX': 'music.youtube.com'
+        'WEB_REMIX': 'music.youtube.com',
+        'ANDROID_MUSIC': 'music.youtube.com'
     }
 
     def _get_default_ytcfg(self, client='WEB'):
@@ -503,7 +518,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                               visitor_data=None, api_hostname=None, client='WEB'):
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(client))
         headers = {
-            'X-YouTube-Client-Name': compat_str(self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], int, client)),
+            'X-YouTube-Client-Name': compat_str(self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=client)),
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, client),
             'Origin': origin
         }
@@ -573,7 +588,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     video_id=item_id, query=query,
                     context=self._extract_context(ytcfg, default_client),
                     api_key=self._extract_api_key(ytcfg, default_client),
-                    api_hostname=api_hostname,
+                    api_hostname=api_hostname, default_client=default_client,
                     note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
@@ -2068,6 +2083,33 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'comment_count': len(comments),
         }
 
+    @staticmethod
+    def _generate_player_context(sts=None):
+        context = {
+            'html5Preference': 'HTML5_PREF_WANTS',
+        }
+        if sts is not None:
+            context['signatureTimestamp'] = sts
+        return {
+            'playbackContext': {
+                'contentPlaybackContext': context
+            }
+        }
+
+    def _extract_signature_timestamp(self, ytcfg):
+        # TODO: Sync with what player we are using
+        return ytcfg.get('STS')
+
+    @staticmethod
+    def _get_video_info_params(video_id):
+        return {
+            'video_id': video_id,
+            'eurl': 'https://youtube.googleapis.com/v/' + video_id,
+            'html5': '1',
+            'c': 'TVHTML5',
+            'cver': '6.20180913',
+        }
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
@@ -2078,12 +2120,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage_url = base_url + 'watch?v=' + video_id
         webpage = self._download_webpage(
             webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
+
         ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
+        identity_token = self._extract_identity_token(webpage, video_id)
+        syncid = self._extract_account_syncid(ytcfg)
         headers = self._generate_api_headers(
-            ytcfg,
-            self._extract_identity_token(webpage, video_id),
-            self._extract_account_syncid(ytcfg)
+            ytcfg, identity_token, syncid
         )
+        compat_opts = self.get_param('compat_opts', [])
 
         def get_text(x):
             if not x:
@@ -2096,34 +2140,35 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
             return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
 
-        # TODO: Extract player context params from js player
-        player_context = {
-            'playbackContext': {
-                'contentPlaybackContext': {
-                    'signatureTimestamp': 18799  # TODO: extract from js player
-                }
-            }
-        }
         ytm_streaming_data = {}
         if is_music_url:
-            # TODO: better way to fetch ytcfg?
-            ytm_webpage = self._download_webpage(
-                "%s//music.youtube.com/watch?v=%s&bpctr=9999999999&has_verified=1" % (self.http_scheme(), video_id),
-                video_id, fatal=False, note="Downloading YouTube Music config")
+            ytm_webpage = None
+            if 'youtube-limit-requests' not in compat_opts:  # TODO: better compat opt name
+               ytm_webpage = self._download_webpage(
+                   'https://music.youtube.com',
+                   video_id, fatal=False, note="Downloading web remix config")
+
             ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
+            sts = self._extract_signature_timestamp(ytcfg)
+            ytm_client = 'WEB_REMIX'
+            if not sts:
+                # Android client already has signature descrambled
+                # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
+                self.report_warning('Falling back to mobile remix client for player API.')
+                ytm_client = 'ANDROID_MUSIC'
+                ytm_cfg = self._get_default_ytcfg(ytm_client)
+
             ytm_headers = self._generate_api_headers(
-                ytm_cfg,
-                self._extract_identity_token(webpage, video_id),
-                self._extract_account_syncid(ytcfg),
-                client='WEB_REMIX')
+                ytm_cfg, identity_token, syncid,
+                client=ytm_client)
             ytm_query = {'videoId': video_id}
-            ytm_query.update(player_context)
+            ytm_query.update(self._generate_player_context(sts))
 
             ytm_player_response = self._extract_response(
                 item_id=video_id, ep='player', query=ytm_query,
                 ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
-                api_hostname='music.youtube.com', default_client='WEB_REMIX',
-                note='Downloading YouTube Music player API JSON')
+                default_client=ytm_client,
+                note='Downloading web remix player API JSON')
 
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
 
@@ -2132,41 +2177,74 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
-
-        # backup request for player_response if regex fails
+        # Backup request for player_response if regex fails
         # and/or Youtube removes player response on initial page
         if not player_response:
+            sts = self._extract_signature_timestamp(ytcfg)
+            yt_client = 'WEB'
+            ytpcfg = ytcfg
+            ytp_headers = headers
+            if not sts:
+                # Android client already has signature descrambled
+                # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
+                self.report_warning('Falling back to mobile client for player API.')
+                ytpcfg = self._get_default_ytcfg('ANDROID')
+                yt_client = 'ANDROID'
+                ytp_headers = self._generate_api_headers(ytpcfg, identity_token, syncid, yt_client)
+
             yt_query = {'videoId': video_id}
-            yt_query.update(player_context)
+            yt_query.update(self._generate_player_context(sts))
             player_response = self._extract_response(
                 item_id=video_id, ep='player', query=yt_query,
-                ytcfg=ytcfg, headers=headers, fatal=False,
+                ytcfg=ytpcfg, headers=ytp_headers, fatal=False,
+                default_client=yt_client,
                 note='Downloading player API JSON'
             )
 
+        # Age-gate workarounds
         playability_status = player_response.get('playabilityStatus') or {}
         if playability_status.get('reason') == 'Sign in to confirm your age':
-            # TODO: default context/ytcfg if this fails
-            embed_webpage = self._download_webpage(
-                'https://www.youtube-nocookie.com/embed/%s?html5=1' % video_id,
-                video_id=video_id, note='Downloading age-gated embed config')
-            ytcfg_age = self._extract_ytcfg(video_id, embed_webpage) or {}
-            embedded_pr = self._parse_json(try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response']), video_id=video_id)
-            embedded_ps = embedded_pr.get('playabilityStatus') or {}
-            if embedded_ps.get('reason') != 'Sorry, this content is age-restricted.':
-                age_headers = self._generate_api_headers(
-                    ytcfg_age,
-                    self._extract_identity_token(webpage, video_id),
-                    self._extract_account_syncid(ytcfg), client='WEB_EMBEDDED_PLAYER'
+            pr = self._parse_json(try_get(compat_parse_qs(
+                self._download_webpage(
+                    base_url + 'get_video_info', video_id,
+                    'Refetching age-gated info webpage', 'unable to download video info webpage',
+                    query=self._get_video_info_params(video_id), fatal=False)),
+                lambda x: x['player_response'][0],
+                compat_str) or '{}', video_id)
+            if not pr:
+                self.report_warning('Falling back to embedded-only age-gate workaround.')
+                embed_webpage = None
+                if 'youtube-limit-requests' not in compat_opts:  # TODO: better compat opt name
+                    embed_webpage = self._download_webpage(
+                        'https://www.youtube.com/embed/%s?html5=1' % video_id,
+                        video_id=video_id, note='Downloading age-gated embed config')
+
+                ytcfg_age = self._extract_ytcfg(video_id, embed_webpage) or {}
+                yt_client = 'WEB_EMBEDDED_PLAYER'
+                ytage_headers = self._generate_api_headers(
+                    ytcfg, identity_token, syncid, client=yt_client
                 )
-                yt_age_query = {'videoId': video_id}
-                yt_age_query.update(player_context)
-                player_response = self._extract_response(
-                    item_id=video_id, ep='player', query=yt_age_query,
-                    ytcfg=ytcfg_age, headers=age_headers, fatal=False,
-                    default_client='WEB_EMBEDDED_PLAYER',
-                    note='Refetching age-gated player API JSON'
-                ) or {}
+                sts = self._extract_signature_timestamp(ytcfg)
+                if not sts:
+                    self.report_warning('Unable to extract signature functions.')
+
+                # If we extracted the embed webpage, it'll tell us if we can view the video
+                embedded_pr = self._parse_json(
+                    try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response'], str) or {}, video_id=video_id)
+                embedded_ps_reason = try_get(embedded_pr, lambda x: x['playabilityStatus']['reason'], str) or ''
+
+                if 'age-restricted' not in embedded_ps_reason:
+                    yt_age_query = {'videoId': video_id}
+                    yt_age_query.update(self._generate_player_context(sts))
+                    pr = self._extract_response(
+                        item_id=video_id, ep='player', query=yt_age_query,
+                        ytcfg=ytcfg_age, headers=ytage_headers, fatal=False,
+                        default_client=yt_client,
+                        note='Downloading age-gated player API JSON'
+                    ) or {}
+
+            if pr:
+                player_response = pr
 
         trailer_video_id = try_get(
             playability_status,
