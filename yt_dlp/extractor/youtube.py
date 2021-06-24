@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import calendar
+import copy
 import hashlib
 import itertools
 import json
@@ -301,6 +302,125 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
+    _YT_DEFAULT_YTCFGS = {
+                '_BASE': {
+                    'INNERTUBE_API_VERSION': 'v1',
+                    'INNERTUBE_CLIENT_NAME': '',
+                    'INNERTUBE_CLIENT_VERSION': '',
+                    'INNERTUBE_API_KEY': '',
+                    'INNERTUBE_CONTEXT': {
+                            'client': {
+                                'clientName': '',
+                                'clientVersion': '',
+                                'hl': 'en',
+                            }
+                    },
+                    'INNERTUBE_CONTEXT_CLIENT_NAME': -1
+                },
+                'WEB': {
+                    'INNERTUBE_API_VERSION': 'v1',
+                    'INNERTUBE_CLIENT_NAME': 'WEB',
+                    'INNERTUBE_CLIENT_VERSION': '2.20210622.10.00',
+                    'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+                    'INNERTUBE_CONTEXT': {
+                            'client': {
+                                'clientName': 'WEB',
+                                'clientVersion': '2.20210622.10.00',
+                                'hl': 'en',
+                            }
+                    },
+                    'INNERTUBE_CONTEXT_CLIENT_NAME': 1
+                },
+                'WEB_REMIX': {
+                    'INNERTUBE_API_VERSION': 'v1',
+                    'INNERTUBE_CLIENT_NAME': 'WEB_REMIX',
+                    'INNERTUBE_CLIENT_VERSION': '1.20210621.00.00',
+                    'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
+                    'INNERTUBE_CONTEXT': {
+                            'client': {
+                                'clientName': 'WEB_REMIX',
+                                'clientVersion': '1.20210621.00.00',
+                                'hl': 'en',
+                            }
+                    },
+                    'INNERTUBE_CONTEXT_CLIENT_NAME': 67
+                },
+                'WEB_EMBEDDED_PLAYER': {
+                    'INNERTUBE_API_VERSION': 'v1',
+                    'INNERTUBE_CLIENT_NAME': 'WEB_EMBEDDED_PLAYER',
+                    'INNERTUBE_CLIENT_VERSION': '1.20210620.0.1',
+                    'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+                    'INNERTUBE_CONTEXT': {
+                            'client': {
+                                'clientName': 'WEB_EMBEDDED_PLAYER',
+                                'clientVersion': '1.20210620.0.1',
+                                'hl': 'en',
+                            }
+                    },
+                    'INNERTUBE_CONTEXT_CLIENT_NAME': 56
+                },
+                'ANDROID': {
+                    'INNERTUBE_API_VERSION': 'v1',
+                    'INNERTUBE_CLIENT_NAME': 'ANDROID',
+                    'INNERTUBE_CLIENT_VERSION': '16.20',
+                    'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+                    'INNERTUBE_CONTEXT': {
+                            'client': {
+                                'clientName': 'ANDROID',
+                                'clientVersion': '16.20',
+                                'hl': 'en',
+                            }
+                    },
+                    'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID'  # TODO
+                }
+    }
+
+    _YT_DEFAULT_INNERTUBE_HOSTS = {
+        'DIRECT': 'youtubei.googleapis.com',
+        'WEB': 'www.youtube.com',
+        'WEB_REMIX': 'music.youtube.com'
+    }
+
+    def _get_default_ytcfg(self, client='WEB'):
+        if client in self._YT_DEFAULT_YTCFGS:
+            return copy.deepcopy(self._YT_DEFAULT_YTCFGS[client])
+        return copy.deepcopy(self._YT_DEFAULT_YTCFGS['WEB'])
+
+    def _get_innertube_host(self, client='WEB'):
+        return dict_get(self._YT_DEFAULT_INNERTUBE_HOSTS, (client, 'WEB'))
+
+    def _ytcfg_get_safe(self, ytcfg, getter, expected_type=None, default_client='WEB'):
+        _func = lambda y: try_get(y, getter, expected_type)
+        return _func(ytcfg) or _func(self._get_default_ytcfg(default_client))
+
+    def _extract_client_name(self, ytcfg, default_client='WEB'):
+        return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CLIENT_NAME'], compat_str, default_client)
+
+    def _extract_client_version(self, ytcfg, default_client='WEB'):
+        return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CLIENT_VERSION'], compat_str, default_client)
+
+    def _extract_api_key(self, ytcfg=None, default_client='WEB'):
+        return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_API_KEY'], compat_str, default_client)
+
+    def _extract_context(self, ytcfg=None, default_client='WEB'):
+        _get_context = lambda y: try_get(y, lambda x: x['INNERTUBE_CONTEXT'], dict)
+        context = _get_context(ytcfg)
+        if context:
+            return context
+
+        context = _get_context(self._get_default_ytcfg(default_client))
+        if not ytcfg:
+            return context
+
+        # Recreate the client context (required)
+        context['client'].update({
+            'clientVersion': self._extract_client_version(ytcfg, default_client),
+            'clientName': self._extract_client_name(ytcfg, default_client),
+            'visitorData': self._ytcfg_get_safe(
+                ytcfg, try_get(ytcfg, lambda x: x['VISITOR_DATA'], compat_str, default_client))
+        })
+        return context
+
     def _generate_sapisidhash_header(self, origin="https://www.youtube.com"):
         # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
         # See: https://github.com/yt-dlp/yt-dlp/issues/393
@@ -322,22 +442,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page',
-                  context=None, api_key=None, api_hostname=None):
+                  context=None, api_key=None, api_hostname=None, default_client='WEB'):
 
-        data = {'context': context} if context else {'context': self._extract_context()}
+        data = {'context': context} if context else {'context': self._extract_context(default_client=default_client)}
         data.update(query)
-        real_headers = self._generate_api_headers()
+        real_headers = self._generate_api_headers(client=default_client)
         real_headers.update({'content-type': 'application/json'})
         if headers:
             real_headers.update(headers)
         return self._download_json(
-            'https://%s/youtubei/v1/%s' % (api_hostname or self._YT_INNERTUBE_API_HOST, ep),
+            'https://%s/youtubei/v1/%s' % (api_hostname or self._get_innertube_host(default_client), ep),
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
             data=json.dumps(data).encode('utf8'), headers=real_headers,
             query={'key': api_key or self._extract_api_key()})
-
-    def _extract_api_key(self, ytcfg=None):
-        return try_get(ytcfg, lambda x: x['INNERTUBE_API_KEY'], compat_str) or self._YT_INNERTUBE_API_KEY
 
     def _extract_yt_initial_data(self, video_id, webpage):
         return self._parse_json(
@@ -380,44 +497,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', webpage, 'ytcfg',
                 default='{}'), video_id, fatal=False) or {}
 
-    def __extract_client_version(self, ytcfg):
-        return try_get(ytcfg, lambda x: x['INNERTUBE_CLIENT_VERSION'], compat_str) or self._YT_WEB_CLIENT_VERSION
-
-    def _extract_context(self, ytcfg=None):
-        context = try_get(ytcfg, lambda x: x['INNERTUBE_CONTEXT'], dict)
-        if context:
-            return context
-
-        # Recreate the client context (required)
-        client_version = self.__extract_client_version(ytcfg)
-        client_name = try_get(ytcfg, (lambda x: x['INNERTUBE_CLIENT_NAME'],
-                                      lambda x: x['INNERTUBE_CONTEXT_CLIENT_VERSION']), compat_str) or 'WEB'
-        context = {
-            'client': {
-                'clientName': client_name,
-                'clientVersion': client_version,
-            }
-        }
-        visitor_data = try_get(ytcfg, lambda x: x['VISITOR_DATA'], compat_str)
-        if visitor_data:
-            context['client']['visitorData'] = visitor_data
-        return context
-
     def _generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None,
-                              visitor_data=None, api_hostname=None):
-        origin = 'https://' + (api_hostname if api_hostname else self._YT_INNERTUBE_API_HOST)
+                              visitor_data=None, api_hostname=None, client='WEB'):
+        origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(client))
         headers = {
-            'X-YouTube-Client-Name': compat_str(try_get(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], int) or '1'),
-            'X-YouTube-Client-Version': self.__extract_client_version(ytcfg),
+            'X-YouTube-Client-Name': compat_str(self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], int, client)),
+            'X-YouTube-Client-Version': self._extract_client_version(ytcfg, client),
             'Origin': origin
         }
         if identity_token:
-            headers['x-youtube-identity-token'] = identity_token
+            headers['X-Youtube-Identity-Token'] = identity_token
         if account_syncid:
             headers['X-Goog-PageId'] = account_syncid
             headers['X-Goog-AuthUser'] = 0
         if visitor_data:
-            headers['x-goog-visitor-id'] = visitor_data
+            headers['X-Goog-Visitor-Id'] = visitor_data
         auth = self._generate_sapisidhash_header(origin)
         if auth is not None:
             headers['Authorization'] = auth
@@ -459,7 +553,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
-                          ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None):
+                          ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
+                          default_client='WEB'):
         response = None
         last_error = None
         count = -1
@@ -474,8 +569,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 response = self._call_api(
                     ep=ep, fatal=True, headers=headers,
                     video_id=item_id, query=query,
-                    context=self._extract_context(ytcfg),
-                    api_key=self._extract_api_key(ytcfg),
+                    context=self._extract_context(ytcfg, default_client),
+                    api_key=self._extract_api_key(ytcfg, default_client),
                     api_hostname=api_hostname,
                     note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
             except ExtractorError as e:
@@ -1981,6 +2076,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage_url = base_url + 'watch?v=' + video_id
         webpage = self._download_webpage(
             webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
+        ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
+        headers = self._generate_api_headers(
+            ytcfg,
+            self._extract_identity_token(webpage, video_id),
+            self._extract_account_syncid(ytcfg)
+        )
 
         def get_text(x):
             if not x:
@@ -1997,7 +2098,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_context = {
             'playbackContext': {
                 'contentPlaybackContext': {
-                    'signatureTimestamp': 18793  # TODO: extract from js player
+                    'signatureTimestamp': 18799  # TODO: extract from js player
                 }
             }
         }
@@ -2007,20 +2108,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             ytm_webpage = self._download_webpage(
                 "%s//music.youtube.com/watch?v=%s&bpctr=9999999999&has_verified=1" % (self.http_scheme(), video_id),
                 video_id, fatal=False, note="Downloading YouTube Music config")
-
-            ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage)
+            ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
             ytm_headers = self._generate_api_headers(
                 ytm_cfg,
-                self._extract_identity_token(ytm_webpage, video_id),
-                self._extract_account_syncid(ytm_cfg),
-                api_hostname='music.youtube.com')
+                self._extract_identity_token(webpage, video_id),
+                self._extract_account_syncid(ytcfg),
+                client='WEB_REMIX')
             ytm_query = {'videoId': video_id}
             ytm_query.update(player_context)
 
             ytm_player_response = self._extract_response(
                 item_id=video_id, ep='player', query=ytm_query,
                 ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
-                api_hostname='music.youtube.com',
+                api_hostname='music.youtube.com', default_client='WEB_REMIX',
                 note='Downloading YouTube Music player API JSON')
 
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
@@ -2030,12 +2130,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
-        ytcfg = self._extract_ytcfg(video_id, webpage)
-        headers = self._generate_api_headers(
-            ytcfg,
-            self._extract_identity_token(webpage, video_id),
-            self._extract_account_syncid(ytcfg)
-        )
+
         # backup request for player_response if regex fails
         # and/or Youtube removes player response on initial page
         if not player_response:
@@ -2053,20 +2148,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             embed_webpage = self._download_webpage(
                 'https://www.youtube-nocookie.com/embed/%s?html5=1' % video_id,
                 video_id=video_id, note='Downloading age-gated embed config')
-            ytcfg_age = self._extract_ytcfg(video_id, embed_webpage)
+            ytcfg_age = self._extract_ytcfg(video_id, embed_webpage) or {}
             embedded_pr = self._parse_json(try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response']), video_id=video_id)
             embedded_ps = embedded_pr.get('playabilityStatus') or {}
             if embedded_ps.get('reason') != 'Sorry, this content is age-restricted.':
                 age_headers = self._generate_api_headers(
                     ytcfg_age,
-                    self._extract_identity_token(embed_webpage, video_id),
-                    self._extract_account_syncid(ytcfg_age)
+                    self._extract_identity_token(webpage, video_id),
+                    self._extract_account_syncid(ytcfg), client='WEB_EMBEDDED_PLAYER'
                 )
                 yt_age_query = {'videoId': video_id}
                 yt_age_query.update(player_context)
                 player_response = self._extract_response(
                     item_id=video_id, ep='player', query=yt_age_query,
                     ytcfg=ytcfg_age, headers=age_headers, fatal=False,
+                    default_client='WEB_EMBEDDED_PLAYER',
                     note='Refetching age-gated player API JSON'
                 ) or {}
 
