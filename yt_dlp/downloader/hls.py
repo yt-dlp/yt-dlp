@@ -250,9 +250,7 @@ class HlsFD(FragmentFD):
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
-            success = fd.real_download(filename, info_copy)
-            if not success:
-                return False
+            return fd.real_download(filename, info_copy)
         else:
             if is_webvtt:
                 def pack_fragment(frag_content, frag_index):
@@ -323,5 +321,4 @@ class HlsFD(FragmentFD):
                     return output.getvalue().encode('utf-8')
             else:
                 pack_fragment = None
-            self.download_and_append_fragments(ctx, fragments, info_dict, pack_fragment)
-        return True
+            return self.download_and_append_fragments(ctx, fragments, info_dict, pack_fragment)

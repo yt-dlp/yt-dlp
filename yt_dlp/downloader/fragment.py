@@ -428,3 +428,4 @@ class FragmentFD(FileDownloader):
                     return False
 
         self._finish_frag_download(ctx)
+        return True
