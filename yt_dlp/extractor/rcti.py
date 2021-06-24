@@ -17,7 +17,8 @@ from ..utils import (
 class RCTIPlusBaseIE(InfoExtractor):
     def _real_initialize(self):
         self._AUTH_KEY = self._download_json(
-            'https://api.rctiplus.com/api/v1/visitor?platform=web', None, 'Fetching authorization key')['data']['access_token']
+            'https://api.rctiplus.com/api/v1/visitor?platform=web',  # platform can be web, mweb, android, ios
+            None, 'Fetching authorization key')['data']['access_token']
 
     def _call_api(self, url, video_id, note=None):
         json = self._download_json(
@@ -155,8 +156,8 @@ class RCTIPlusIE(RCTIPlusBaseIE):
 
 
 class RCTIPlusSeriesIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
-    _TEST = {
+    _VALID_URL = r'https://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)(?:\W)*$'
+    _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/540/upin-ipin',
         'playlist_mincount': 417,
         'info_dict': {
@@ -164,7 +165,10 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'title': 'Upin & Ipin',
             'description': 'md5:22cc912381f389664416844e1ec4f86b',
         },
-    }
+    }, {
+        'url': 'https://www.rctiplus.com/programs/540/upin-ipin/#',
+        'only_matching': True,
+    }]
     _AGE_RATINGS = {  # Based off https://id.wikipedia.org/wiki/Sistem_rating_konten_televisi with additional ratings
         'S-SU': 2,
         'SU': 2,
