@@ -303,90 +303,90 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
     _YT_DEFAULT_YTCFGS = {
-                '_BASE': {
-                    'INNERTUBE_API_VERSION': 'v1',
-                    'INNERTUBE_CLIENT_NAME': '',
-                    'INNERTUBE_CLIENT_VERSION': '',
-                    'INNERTUBE_API_KEY': '',
-                    'INNERTUBE_CONTEXT': {
-                            'client': {
-                                'clientName': '',
-                                'clientVersion': '',
-                                'hl': 'en',
-                            }
-                    },
-                    'INNERTUBE_CONTEXT_CLIENT_NAME': -1
-                },
-                'WEB': {
-                    'INNERTUBE_API_VERSION': 'v1',
-                    'INNERTUBE_CLIENT_NAME': 'WEB',
-                    'INNERTUBE_CLIENT_VERSION': '2.20210622.10.00',
-                    'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-                    'INNERTUBE_CONTEXT': {
-                            'client': {
-                                'clientName': 'WEB',
-                                'clientVersion': '2.20210622.10.00',
-                                'hl': 'en',
-                            }
-                    },
-                    'INNERTUBE_CONTEXT_CLIENT_NAME': 1
-                },
-                'WEB_REMIX': {
-                    'INNERTUBE_API_VERSION': 'v1',
-                    'INNERTUBE_CLIENT_NAME': 'WEB_REMIX',
-                    'INNERTUBE_CLIENT_VERSION': '1.20210621.00.00',
-                    'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
-                    'INNERTUBE_CONTEXT': {
-                            'client': {
-                                'clientName': 'WEB_REMIX',
-                                'clientVersion': '1.20210621.00.00',
-                                'hl': 'en',
-                            }
-                    },
-                    'INNERTUBE_CONTEXT_CLIENT_NAME': 67
-                },
-                'WEB_EMBEDDED_PLAYER': {
-                    'INNERTUBE_API_VERSION': 'v1',
-                    'INNERTUBE_CLIENT_NAME': 'WEB_EMBEDDED_PLAYER',
-                    'INNERTUBE_CLIENT_VERSION': '1.20210620.0.1',
-                    'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-                    'INNERTUBE_CONTEXT': {
-                            'client': {
-                                'clientName': 'WEB_EMBEDDED_PLAYER',
-                                'clientVersion': '1.20210620.0.1',
-                                'hl': 'en',
-                            }
-                    },
-                    'INNERTUBE_CONTEXT_CLIENT_NAME': 56
-                },
-                'ANDROID': {
-                    'INNERTUBE_API_VERSION': 'v1',
-                    'INNERTUBE_CLIENT_NAME': 'ANDROID',
-                    'INNERTUBE_CLIENT_VERSION': '16.20',
-                    'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-                    'INNERTUBE_CONTEXT': {
-                            'client': {
-                                'clientName': 'ANDROID',
-                                'clientVersion': '16.20',
-                                'hl': 'en',
-                            }
-                    },
-                    'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID'  # TODO
-                },
-                'ANDROID_MUSIC': {
-                    'INNERTUBE_API_VERSION': 'v1',
-                    'INNERTUBE_CLIENT_NAME': 'ANDROID_MUSIC',
-                    'INNERTUBE_CLIENT_VERSION': '4.32',
-                    'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
-                    'INNERTUBE_CONTEXT': {
-                        'client': {
-                            'clientName': 'ANDROID_MUSIC',
-                            'clientVersion': '4.32',
-                            'hl': 'en',
-                        }
-                    },
-                    'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_MUSIC'  # TODO
+        '_BASE': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': '',
+            'INNERTUBE_CLIENT_VERSION': '',
+            'INNERTUBE_API_KEY': '',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': '',
+                    'clientVersion': '',
+                    'hl': 'en',
                 }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': -1
+        },
+        'WEB': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'WEB',
+            'INNERTUBE_CLIENT_VERSION': '2.20210622.10.00',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'WEB',
+                    'clientVersion': '2.20210622.10.00',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 1
+        },
+        'WEB_REMIX': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'WEB_REMIX',
+            'INNERTUBE_CLIENT_VERSION': '1.20210621.00.00',
+            'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'WEB_REMIX',
+                    'clientVersion': '1.20210621.00.00',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 67
+        },
+        'WEB_EMBEDDED_PLAYER': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'WEB_EMBEDDED_PLAYER',
+            'INNERTUBE_CLIENT_VERSION': '1.20210620.0.1',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'WEB_EMBEDDED_PLAYER',
+                    'clientVersion': '1.20210620.0.1',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 56
+        },
+        'ANDROID': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'ANDROID',
+            'INNERTUBE_CLIENT_VERSION': '16.20',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'ANDROID',
+                    'clientVersion': '16.20',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID'  # TODO
+        },
+        'ANDROID_MUSIC': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'ANDROID_MUSIC',
+            'INNERTUBE_CLIENT_VERSION': '4.32',
+            'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'ANDROID_MUSIC',
+                    'clientVersion': '4.32',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_MUSIC'  # TODO
+        }
     }
 
     _YT_DEFAULT_INNERTUBE_HOSTS = {
@@ -2144,9 +2144,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if is_music_url:
             ytm_webpage = None
             if 'youtube-limit-requests' not in compat_opts:  # TODO: better compat opt name
-               ytm_webpage = self._download_webpage(
-                   'https://music.youtube.com',
-                   video_id, fatal=False, note="Downloading web remix config")
+                ytm_webpage = self._download_webpage(
+                    'https://music.youtube.com',
+                    video_id, fatal=False, note="Downloading web remix config")
 
             ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
             sts = self._extract_signature_timestamp(ytcfg)
@@ -2188,8 +2188,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Android client already has signature descrambled
                 # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
                 self.report_warning('Falling back to mobile client for player API.')
-                ytpcfg = self._get_default_ytcfg('ANDROID')
                 yt_client = 'ANDROID'
+                ytpcfg = self._get_default_ytcfg(yt_client)
                 ytp_headers = self._generate_api_headers(ytpcfg, identity_token, syncid, yt_client)
 
             yt_query = {'videoId': video_id}
