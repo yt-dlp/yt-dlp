@@ -9,6 +9,7 @@ from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
     determine_ext,
+    dict_get,
     int_or_none,
     js_to_json,
     urlencode_postdata,
@@ -179,12 +180,12 @@ class FunimationIE(InfoExtractor):
         return subtitles
 
 
-class FunimationShowPlaylistIE(FunimationIE):
-    IE_NAME = 'funimation:playlist'
-    _VALID_URL = r'https?://(?:www\.)?funimation(?:\.com|now\.uk)/(?P<locale>[^/]+)?/?shows/(?P<id>[^/?#&]+)/?$'
+class FunimationShowIE(FunimationIE):
+    IE_NAME = 'funimation:show'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?funimation(?:\.com|now\.uk)/(?P<locale>[^/]+)?/?shows/(?P<id>[^/?#&]+))/?(?:[?#]|$)'
 
     _TESTS = [{
-        'url': 'https://www.funimation.com/en/shows/sk8-the-infinity/',
+        'url': 'https://www.funimation.com/en/shows/sk8-the-infinity',
         'info_dict': {
             'id': 1315000,
             'title': 'SK8 the Infinity'
@@ -207,30 +208,23 @@ class FunimationShowPlaylistIE(FunimationIE):
     }]
 
     def _real_extract(self, url):
-        locale, display_id = re.match(self._VALID_URL, url).groups()
+        base_url, locale, display_id = re.match(self._VALID_URL, url).groups()
 
         show_info = self._download_json(
             'https://title-api.prd.funimationsvc.com/v2/shows/%s?region=US&deviceType=web&locale=%s'
             % (display_id, locale or 'en'), display_id)
-
         items = self._download_json(
             'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
             % show_info.get('id'), display_id).get('items')
-
-        vod_items = list(map(lambda k:
-                         (k.get('mostRecentSvod') or k.get('mostRecentAvod'))
-                         .get('item'), items))
-        vod_items = sorted(vod_items, key=lambda k: k.get('episodeOrder'))
-        entries = []
-        for vod_item in vod_items:
-            entries.append(
-                self.url_result(urljoin(url, vod_item.get('episodeSlug')),
-                                'Funimation', vod_item.get('episodeId'),
-                                vod_item.get('episodeSlug')))
+        vod_items = map(lambda k: dict_get(k, ('mostRecentSvod', 'mostRecentAvod')).get('item'), items)
 
         return {
             '_type': 'playlist',
-            'id': show_info.get('id'),
-            'title': show_info.get('name'),
-            'entries': entries,
+            'id': show_info['id'],
+            'title': show_info['name'],
+            'entries': [
+                self.url_result(
+                    '%s/%s' % (base_url, vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
+                    vod_item.get('episodeId'), vod_item.get('episodeName'))
+                for vod_item in sorted(vod_items, key=lambda x: x.get('episodeOrder'))],
         }

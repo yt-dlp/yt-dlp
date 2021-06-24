@@ -457,7 +457,7 @@ from .frontendmasters import (
 from .fujitv import FujiTVFODPlus7IE
 from .funimation import (
     FunimationIE,
-    FunimationShowPlaylistIE
+    FunimationShowIE
 )
 from .funk import FunkIE
 from .fusion import FusionIE
