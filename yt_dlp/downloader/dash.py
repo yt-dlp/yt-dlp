@@ -58,5 +58,5 @@ class DashSegmentsFD(FragmentFD):
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_copy)
-        else:
-            return self.download_and_append_fragments(ctx, fragments_to_download, info_dict)
+
+        return self.download_and_append_fragments(ctx, fragments_to_download, info_dict)
