@@ -301,15 +301,16 @@ class YahooIE(InfoExtractor):
             for e in (item.get('body') or []):
                 if e.get('type') == 'videoIframe':
                     iframe_url = e.get('url')
-                    if not iframe_url:
-                        continue
-                    entries.append(self.url_result(iframe_url))
+                    if iframe_url:
+                        entries.append(self.url_result(iframe_url))
 
             if item.get('type') == 'storywithleadvideo':
                 iframe_url = try_get(item, lambda x: x['meta']['player']['url'])
-                if not iframe_url:
-                    raise ExtractorError("Yahoo didn't provide an iframe url for this storywithleadvideo", expected=False)
-                entries.append(self.url_result(iframe_url))
+                if iframe_url:
+                    entries.append(self.url_result(iframe_url))
+                else:
+                    self.report_warning("Yahoo didn't provide an iframe url for this storywithleadvideo")
+
             if items.get('markup'):
                 entries.extend(
                     self.url_result(yt_url) for yt_url in YoutubeIE._extract_urls(items['markup']))
