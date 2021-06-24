@@ -384,6 +384,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _get_default_ytcfg(self, client='WEB'):
         if client in self._YT_DEFAULT_YTCFGS:
             return copy.deepcopy(self._YT_DEFAULT_YTCFGS[client])
+        self.write_debug(f'INNERTUBE default client {client} does not exist - falling back to WEB client.')
         return copy.deepcopy(self._YT_DEFAULT_YTCFGS['WEB'])
 
     def _get_innertube_host(self, client='WEB'):
@@ -416,9 +417,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         context['client'].update({
             'clientVersion': self._extract_client_version(ytcfg, default_client),
             'clientName': self._extract_client_name(ytcfg, default_client),
-            'visitorData': self._ytcfg_get_safe(
-                ytcfg, try_get(ytcfg, lambda x: x['VISITOR_DATA'], compat_str, default_client))
         })
+        visitor_data = try_get(ytcfg, lambda x: x['VISITOR_DATA'], compat_str)
+        if visitor_data:
+            context['client']['visitorData'] = visitor_data
         return context
 
     def _generate_sapisidhash_header(self, origin="https://www.youtube.com"):
