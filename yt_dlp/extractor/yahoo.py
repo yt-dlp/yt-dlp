@@ -39,6 +39,7 @@ class YahooIE(InfoExtractor):
             'timestamp': 1369812016,
             'upload_date': '20130529',
         },
+        'skip': 'No longer exists',
     }, {
         'url': 'https://screen.yahoo.com/community/community-sizzle-reel-203225340.html?format=embed',
         'md5': '7993e572fac98e044588d0b5260f4352',
@@ -51,6 +52,7 @@ class YahooIE(InfoExtractor):
             'timestamp': 1406838636,
             'upload_date': '20140731',
         },
+        'skip': 'Unfortunately, this video is not available in your region',
     }, {
         'url': 'https://uk.screen.yahoo.com/editor-picks/cute-raccoon-freed-drain-using-091756545.html',
         'md5': '71298482f7c64cbb7fa064e4553ff1c1',
@@ -62,7 +64,8 @@ class YahooIE(InfoExtractor):
             'duration': 97,
             'timestamp': 1414489862,
             'upload_date': '20141028',
-        }
+        },
+        'skip': 'No longer exists',
     }, {
         'url': 'http://news.yahoo.com/video/china-moses-crazy-blues-104538833.html',
         'md5': '88e209b417f173d86186bef6e4d1f160',
@@ -121,6 +124,7 @@ class YahooIE(InfoExtractor):
             'season_number': 6,
             'episode_number': 1,
         },
+        'skip': 'No longer exists',
     }, {
         # ytwnews://cavideo/
         'url': 'https://tw.video.yahoo.com/movie-tw/單車天使-中文版預-092316541.html',
@@ -166,7 +170,7 @@ class YahooIE(InfoExtractor):
         'params': {
             'playlistend': 2,
         },
-        'expected_warnings': ['HTTP Error 404'],
+        'expected_warnings': ['HTTP Error 404',  'Ignoring subtitle tracks'],
     }, {
         'url': 'https://malaysia.news.yahoo.com/video/bystanders-help-ontario-policeman-bust-190932818.html',
         'only_matching': True,
