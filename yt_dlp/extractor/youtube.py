@@ -671,20 +671,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Invidious instances taken from https://github.com/iv-org/documentation/blob/master/Invidious-Instances.md
         r'(?:www\.)?invidious\.pussthecat\.org',
         r'(?:www\.)?invidious\.zee\.li',
-        r'(?:(?:www|au)\.)?ytprivate\.com',
-        r'(?:www\.)?invidious\.namazso\.eu',
         r'(?:www\.)?invidious\.ethibox\.fr',
-        r'(?:www\.)?w6ijuptxiku4xpnnaetxvnkc5vqcdu7mgns2u77qefoixi63vbvnpnqd\.onion',
-        r'(?:www\.)?kbjggqkzv65ivcqj6bumvp337z6264huv5kpkwuv6gu5yjiskvan7fad\.onion',
         r'(?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion',
-        r'(?:www\.)?grwp24hodrefzvjjuccrkw3mjq4tzhaaq32amf33dzpmuxe7ilepcmad\.onion',
         # youtube-dl invidious instances list
         r'(?:(?:www|no)\.)?invidiou\.sh',
         r'(?:(?:www|fi)\.)?invidious\.snopyta\.org',
         r'(?:www\.)?invidious\.kabi\.tk',
         r'(?:www\.)?invidious\.mastodon\.host',
         r'(?:www\.)?invidious\.zapashcanon\.fr',
-        r'(?:www\.)?invidious\.kavin\.rocks',
+        r'(?:www\.)?(?:invidious(?:-us)?|piped)\.kavin\.rocks',
         r'(?:www\.)?invidious\.tinfoil-hat\.net',
         r'(?:www\.)?invidious\.himiko\.cloud',
         r'(?:www\.)?invidious\.reallyancient\.tech',
@@ -711,6 +706,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'(?:www\.)?invidious\.toot\.koeln',
         r'(?:www\.)?invidious\.fdn\.fr',
         r'(?:www\.)?watch\.nettohikari\.com',
+        r'(?:www\.)?invidious\.namazso\.eu',
+        r'(?:www\.)?invidious\.silkky\.cloud',
+        r'(?:www\.)?invidious\.exonip\.de',
+        r'(?:www\.)?invidious\.riverside\.rocks',
+        r'(?:www\.)?invidious\.blamefran\.net',
+        r'(?:www\.)?invidious\.moomoo\.de',
+        r'(?:www\.)?ytb\.trom\.tf',
+        r'(?:www\.)?yt\.cyberhost\.uk',
         r'(?:www\.)?kgg2m7yk5aybusll\.onion',
         r'(?:www\.)?qklhadlycap4cnod\.onion',
         r'(?:www\.)?axqzx4s6s54s32yentfqojs3x5i7faxza6xo3ehd4bzzsg2ii4fv2iid\.onion',
@@ -719,6 +722,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         r'(?:www\.)?invidious\.l4qlywnpwqsluw65ts7md3khrivpirse744un3x7mlskqauz5pyuzgqd\.onion',
         r'(?:www\.)?owxfohz4kjyv25fvlqilyxast7inivgiktls3th44jhk3ej3i7ya\.b32\.i2p',
         r'(?:www\.)?4l2dgddgsrkf2ous66i6seeyi6etzfgrue332grh2n7madpwopotugyd\.onion',
+        r'(?:www\.)?w6ijuptxiku4xpnnaetxvnkc5vqcdu7mgns2u77qefoixi63vbvnpnqd\.onion',
+        r'(?:www\.)?kbjggqkzv65ivcqj6bumvp337z6264huv5kpkwuv6gu5yjiskvan7fad\.onion',
+        r'(?:www\.)?grwp24hodrefzvjjuccrkw3mjq4tzhaaq32amf33dzpmuxe7ilepcmad\.onion',
+        r'(?:www\.)?hpniueoejy4opn7bc4ftgazyqjoeqwlvh2uiku2xqku6zpoa4bf5ruid\.onion',
     )
     _VALID_URL = r"""(?x)^
                      (
@@ -2207,8 +2214,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pr = self._parse_json(try_get(compat_parse_qs(
                 self._download_webpage(
                     base_url + 'get_video_info', video_id,
-                    'Refetching age-gated info webpage', 'unable to download video info webpage',
-                    query=self._get_video_info_params(video_id), fatal=False)),
+                    'Refetching age-gated info webpage',
+                    'unable to download video info webpage', query={
+                        'video_id': video_id,
+                        'eurl': 'https://youtube.googleapis.com/v/' + video_id,
+                        'html5': '1',
+                    }, fatal=False)),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
             if not pr:
@@ -2636,18 +2647,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 ytcfg=ytcfg, headers=headers, query={'videoId': video_id},
                 note='Downloading initial data API JSON')
 
-        if not is_live:
-            try:
-                # This will error if there is no livechat
-                initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
-                info['subtitles']['live_chat'] = [{
-                    'url': 'https://www.youtube.com/watch?v=%s' % video_id,  # url is needed to set cookies
-                    'video_id': video_id,
-                    'ext': 'json',
-                    'protocol': 'youtube_live_chat_replay',
-                }]
-            except (KeyError, IndexError, TypeError):
-                pass
+        try:
+            # This will error if there is no livechat
+            initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
+            info['subtitles']['live_chat'] = [{
+                'url': 'https://www.youtube.com/watch?v=%s' % video_id,  # url is needed to set cookies
+                'video_id': video_id,
+                'ext': 'json',
+                'protocol': 'youtube_live_chat' if is_live else 'youtube_live_chat_replay',
+            }]
+        except (KeyError, IndexError, TypeError):
+            pass
 
         if initial_data:
             chapters = self._extract_chapters_from_json(

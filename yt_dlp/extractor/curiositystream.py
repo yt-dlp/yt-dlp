@@ -143,9 +143,9 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
         }
 
 
-class CuriosityStreamCollectionsIE(CuriosityStreamBaseIE):
-    IE_NAME = 'curiositystream:collections'
-    _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/collections/(?P<id>\d+)'
+class CuriosityStreamCollectionIE(CuriosityStreamBaseIE):
+    IE_NAME = 'curiositystream:collection'
+    _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/(?:collections?|series)/(?P<id>\d+)'
     _API_BASE_URL = 'https://api.curiositystream.com/v2/collections/'
     _TESTS = [{
         'url': 'https://curiositystream.com/collections/86',
@@ -155,6 +155,20 @@ class CuriosityStreamCollectionsIE(CuriosityStreamBaseIE):
             'description': 'Wondering where to start? Here are a few of our favorite series and films... from our couch to yours.',
         },
         'playlist_mincount': 7,
+    }, {
+        'url': 'https://app.curiositystream.com/collection/2',
+        'info_dict': {
+            'id': '2',
+            'title': 'Curious Minds: The Internet',
+            'description': 'How is the internet shaping our lives in the 21st Century?',
+        },
+        'playlist_mincount': 16,
+    }, {
+        'url': 'https://curiositystream.com/series/2',
+        'only_matching': True,
+    }, {
+        'url': 'https://curiositystream.com/collections/36',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -163,25 +177,10 @@ class CuriosityStreamCollectionsIE(CuriosityStreamBaseIE):
         entries = []
         for media in collection.get('media', []):
             media_id = compat_str(media.get('id'))
-            media_type, ie = ('series', CuriosityStreamSeriesIE) if media.get('is_collection') else ('video', CuriosityStreamIE)
+            media_type, ie = ('series', CuriosityStreamCollectionIE) if media.get('is_collection') else ('video', CuriosityStreamIE)
             entries.append(self.url_result(
                 'https://curiositystream.com/%s/%s' % (media_type, media_id),
                 ie=ie.ie_key(), video_id=media_id))
         return self.playlist_result(
             entries, collection_id,
             collection.get('title'), collection.get('description'))
-
-
-class CuriosityStreamSeriesIE(CuriosityStreamCollectionsIE):
-    IE_NAME = 'curiositystream:series'
-    _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/series/(?P<id>\d+)'
-    _API_BASE_URL = 'https://api.curiositystream.com/v2/series/'
-    _TESTS = [{
-        'url': 'https://app.curiositystream.com/series/2',
-        'info_dict': {
-            'id': '2',
-            'title': 'Curious Minds: The Internet',
-            'description': 'How is the internet shaping our lives in the 21st Century?',
-        },
-        'playlist_mincount': 16,
-    }]

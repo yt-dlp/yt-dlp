@@ -225,8 +225,7 @@
  - **Culturebox**
  - **CultureUnplugged**
  - **curiositystream**
- - **curiositystream:collections**
- - **curiositystream:series**
+ - **curiositystream:collection**
  - **CWTV**
  - **DagelijkseKost**: dagelijksekost.een.be
  - **DailyMail**
@@ -497,8 +496,6 @@
  - **LinuxAcademy**
  - **LiTV**
  - **LiveJournal**
- - **LiveLeak**
- - **LiveLeakEmbed**
  - **livestream**
  - **livestream:original**
  - **LnkGo**

@@ -66,7 +66,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with youtube-dl [commit/c2350ca](https://github.com/ytdl-org/youtube-dl/commit/c2350cac243ba1ec1586fe85b0d62d1b700047a2)**: (v2021.06.06) You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
+* **Merged with youtube-dl [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)**: (v2021.06.06) You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
@@ -182,6 +182,7 @@ While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly
 * [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the [sponskrub options](#sponskrub-sponsorblock-options). Licenced under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licenced under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
 * [**pycryptodome**](https://github.com/Legrandin/pycryptodome) - For decrypting various data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
+* [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licenced under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
 * [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen is not present. Licenced under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](http://rtmpdump.mplayerhq.hu)
 * [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
@@ -190,14 +191,14 @@ While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
 
-Note that the windows releases are already built with the python interpreter, mutagen and pycryptodome included.
+Note that the windows releases are already built with the python interpreter, mutagen, pycryptodome and websockets included.
 
 ### COMPILE
 
 **For Windows**:
-To build the Windows executable, you must have pyinstaller (and optionally mutagen and pycryptodome)
+To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodome, websockets)
 
-    python3 -m pip install --upgrade pyinstaller mutagen pycryptodome
+    python3 -m pip install --upgrade pyinstaller mutagen pycryptodome websockets
 
 Once you have all the necessary dependencies installed, just run `py pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
 
@@ -373,6 +374,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (default is 1)
     -r, --limit-rate RATE            Maximum download rate in bytes per second
                                      (e.g. 50K or 4.2M)
+    --throttled-rate RATE            Minimum download rate in bytes per second
+                                     below which throttling is assumed and the
+                                     video data is re-extracted (e.g. 100K)
     -R, --retries RETRIES            Number of retries (default is 10), or
                                      "infinite"
     --fragment-retries RETRIES       Number of retries for a fragment (default
@@ -711,7 +715,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      Metadata, EmbedSubtitle, EmbedThumbnail,
                                      SubtitlesConvertor, ThumbnailsConvertor,
                                      VideoRemuxer, VideoConvertor, SponSkrub,
-                                     FixupStretched, FixupM4a and FixupM3u8. The
+                                     FixupStretched, FixupM4a, FixupM3u8,
+                                     FixupTimestamp and FixupDuration. The
                                      supported executables are: AtomicParsley,
                                      FFmpeg, FFprobe, and SponSkrub. You can
                                      also specify "PP+EXE:ARGS" to give the
@@ -735,10 +740,13 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --embed-subs                     Embed subtitles in the video (only for mp4,
                                      webm and mkv videos)
     --no-embed-subs                  Do not embed subtitles (default)
-    --embed-thumbnail                Embed thumbnail in the audio as cover art
+    --embed-thumbnail                Embed thumbnail in the video as cover art
     --no-embed-thumbnail             Do not embed thumbnail (default)
-    --add-metadata                   Write metadata to the video file
-    --no-add-metadata                Do not write metadata (default)
+    --embed-metadata                 Embed metadata including chapter markers
+                                     (if supported by the format) to the video
+                                     file (Alias: --add-metadata)
+    --no-embed-metadata              Do not write metadata (default)
+                                     (Alias: --no-add-metadata)
     --parse-metadata FROM:TO         Parse additional metadata like title/artist
                                      from other fields; see "MODIFYING METADATA"
                                      for details
@@ -748,7 +756,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      file. One of never (do nothing), warn (only
                                      emit a warning), detect_or_warn (the
                                      default; fix file if we can, warn
-                                     otherwise)
+                                     otherwise), force (try fixing even if file
+                                     already exists
     --ffmpeg-location PATH           Location of the ffmpeg binary; either the
                                      path to the binary or its containing
                                      directory
@@ -1141,7 +1150,7 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
  - `lang`: Language preference as given by the extractor
  - `quality`: The quality of the format as given by the extractor
  - `source`: Preference of the source as given by the extractor
- - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native` > `m3u8` > `http_dash_segments` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
+ - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
  - `acodec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac3` > `dts` > other > unknown)
  - `codec`: Equivalent to `vcodec,acodec`
