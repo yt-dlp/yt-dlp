@@ -22,6 +22,7 @@ from ..utils import (
 )
 
 from .brightcove import BrightcoveNewIE
+from .youtube import YoutubeIE
 
 
 class YahooIE(InfoExtractor):
@@ -38,6 +39,7 @@ class YahooIE(InfoExtractor):
             'timestamp': 1369812016,
             'upload_date': '20130529',
         },
+        'skip': 'No longer exists',
     }, {
         'url': 'https://screen.yahoo.com/community/community-sizzle-reel-203225340.html?format=embed',
         'md5': '7993e572fac98e044588d0b5260f4352',
@@ -50,6 +52,7 @@ class YahooIE(InfoExtractor):
             'timestamp': 1406838636,
             'upload_date': '20140731',
         },
+        'skip': 'Unfortunately, this video is not available in your region',
     }, {
         'url': 'https://uk.screen.yahoo.com/editor-picks/cute-raccoon-freed-drain-using-091756545.html',
         'md5': '71298482f7c64cbb7fa064e4553ff1c1',
@@ -61,7 +64,8 @@ class YahooIE(InfoExtractor):
             'duration': 97,
             'timestamp': 1414489862,
             'upload_date': '20141028',
-        }
+        },
+        'skip': 'No longer exists',
     }, {
         'url': 'http://news.yahoo.com/video/china-moses-crazy-blues-104538833.html',
         'md5': '88e209b417f173d86186bef6e4d1f160',
@@ -120,6 +124,7 @@ class YahooIE(InfoExtractor):
             'season_number': 6,
             'episode_number': 1,
         },
+        'skip': 'No longer exists',
     }, {
         # ytwnews://cavideo/
         'url': 'https://tw.video.yahoo.com/movie-tw/單車天使-中文版預-092316541.html',
@@ -156,7 +161,7 @@ class YahooIE(InfoExtractor):
                 'id': '352CFDOQrKg',
                 'ext': 'mp4',
                 'title': 'Kyndal Inskeep "Performs the Hell Out of" Sia\'s "Elastic Heart" - The Voice Knockouts 2019',
-                'description': 'md5:35b61e94c2ae214bc965ff4245f80d11',
+                'description': 'md5:7fe8e3d5806f96002e55f190d1d94479',
                 'uploader': 'The Voice',
                 'uploader_id': 'NBCTheVoice',
                 'upload_date': '20191029',
@@ -165,7 +170,7 @@ class YahooIE(InfoExtractor):
         'params': {
             'playlistend': 2,
         },
-        'expected_warnings': ['HTTP Error 404'],
+        'expected_warnings': ['HTTP Error 404', 'Ignoring subtitle tracks'],
     }, {
         'url': 'https://malaysia.news.yahoo.com/video/bystanders-help-ontario-policeman-bust-190932818.html',
         'only_matching': True,
@@ -280,12 +285,13 @@ class YahooIE(InfoExtractor):
         else:
             country = country.split('-')[0]
 
-        item = self._download_json(
+        items = self._download_json(
             'https://%s.yahoo.com/caas/content/article' % country, display_id,
             'Downloading content JSON metadata', query={
                 'url': url
-            })['items'][0]['data']['partnerData']
+            })['items'][0]
 
+        item = items['data']['partnerData']
         if item.get('type') != 'video':
             entries = []
 
@@ -299,9 +305,19 @@ class YahooIE(InfoExtractor):
             for e in (item.get('body') or []):
                 if e.get('type') == 'videoIframe':
                     iframe_url = e.get('url')
-                    if not iframe_url:
-                        continue
+                    if iframe_url:
+                        entries.append(self.url_result(iframe_url))
+
+            if item.get('type') == 'storywithleadvideo':
+                iframe_url = try_get(item, lambda x: x['meta']['player']['url'])
+                if iframe_url:
                     entries.append(self.url_result(iframe_url))
+                else:
+                    self.report_warning("Yahoo didn't provide an iframe url for this storywithleadvideo")
+
+            if items.get('markup'):
+                entries.extend(
+                    self.url_result(yt_url) for yt_url in YoutubeIE._extract_urls(items['markup']))
 
             return self.playlist_result(
                 entries, item.get('uuid'),
