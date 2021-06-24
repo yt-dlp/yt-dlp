@@ -104,6 +104,7 @@ from .utils import (
     ThrottledDownload,
     to_high_limit_path,
     traverse_obj,
+    try_get,
     UnavailableVideoError,
     url_basename,
     version_tuple,
@@ -1176,13 +1177,17 @@ class YoutubeDL(object):
             return ie_result
 
     def add_default_extra_info(self, ie_result, ie, url):
-        self.add_extra_info(ie_result, {
-            'extractor': ie.IE_NAME,
-            'webpage_url': url,
-            'original_url': url,
-            'webpage_url_basename': url_basename(url),
-            'extractor_key': ie.ie_key(),
-        })
+        if url is not None:
+            self.add_extra_info(ie_result, {
+                'webpage_url': url,
+                'original_url': url,
+                'webpage_url_basename': url_basename(url),
+            })
+        if ie is not None:
+            self.add_extra_info(ie_result, {
+                'extractor': ie.IE_NAME,
+                'extractor_key': ie.ie_key(),
+            })
 
     def process_ie_result(self, ie_result, download=True, extra_info={}):
         """
@@ -1201,8 +1206,8 @@ class YoutubeDL(object):
                     or extract_flat is True):
                 info_copy = ie_result.copy()
                 self.add_extra_info(info_copy, extra_info)
-                self.add_default_extra_info(
-                    info_copy, self.get_info_extractor(ie_result.get('ie_key')), ie_result['url'])
+                ie = try_get(ie_result.get('ie_key'), self.get_info_extractor)
+                self.add_default_extra_info(info_copy, ie, ie_result['url'])
                 self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
                 return ie_result
 
@@ -2187,6 +2192,8 @@ class YoutubeDL(object):
                 raise ExtractorError('Requested format is not available', expected=True)
             else:
                 self.report_warning('Requested format is not available')
+                # Process what we can, even without any available formats.
+                self.process_info(dict(info_dict))
         elif download:
             self.to_screen(
                 '[info] %s: Downloading %d format(s): %s' % (
