@@ -2186,8 +2186,6 @@ class YoutubeDL(object):
 
         formats_to_download = list(format_selector(ctx))
         if not formats_to_download:
-            # Process what we can, even without any available formats.
-            self.process_info(dict(info_dict))
             if not self.params.get('ignore_no_formats_error'):
                 raise ExtractorError('Requested format is not available', expected=True)
             else:
@@ -2310,6 +2308,7 @@ class YoutubeDL(object):
         if self.params.get('forceduration', False) and info_dict.get('duration') is not None:
             self.to_stdout(formatSeconds(info_dict['duration']))
         print_mandatory('format')
+
         if self.params.get('forcejson', False):
             self.post_extract(info_dict)
             self.to_stdout(json.dumps(info_dict, default=repr))
