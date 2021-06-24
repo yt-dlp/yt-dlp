@@ -22,6 +22,7 @@ from ..utils import (
 )
 
 from .brightcove import BrightcoveNewIE
+from .youtube import YoutubeIE
 
 
 class YahooIE(InfoExtractor):
@@ -156,7 +157,7 @@ class YahooIE(InfoExtractor):
                 'id': '352CFDOQrKg',
                 'ext': 'mp4',
                 'title': 'Kyndal Inskeep "Performs the Hell Out of" Sia\'s "Elastic Heart" - The Voice Knockouts 2019',
-                'description': 'md5:35b61e94c2ae214bc965ff4245f80d11',
+                'description': 'md5:7fe8e3d5806f96002e55f190d1d94479',
                 'uploader': 'The Voice',
                 'uploader_id': 'NBCTheVoice',
                 'upload_date': '20191029',
@@ -280,12 +281,13 @@ class YahooIE(InfoExtractor):
         else:
             country = country.split('-')[0]
 
-        item = self._download_json(
+        items = self._download_json(
             'https://%s.yahoo.com/caas/content/article' % country, display_id,
             'Downloading content JSON metadata', query={
                 'url': url
-            })['items'][0]['data']['partnerData']
+            })['items'][0]
 
+        item = items['data']['partnerData']
         if item.get('type') != 'video':
             entries = []
 
@@ -308,6 +310,9 @@ class YahooIE(InfoExtractor):
                 if not iframe_url:
                     raise ExtractorError("Yahoo didn't provide an iframe url for this storywithleadvideo", expected=False)
                 entries.append(self.url_result(iframe_url))
+            if items.get('markup'):
+                entries.extend(
+                    self.url_result(yt_url) for yt_url in YoutubeIE._extract_urls(items['markup']))
 
             return self.playlist_result(
                 entries, item.get('uuid'),
