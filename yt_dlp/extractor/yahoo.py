@@ -170,7 +170,7 @@ class YahooIE(InfoExtractor):
         'params': {
             'playlistend': 2,
         },
-        'expected_warnings': ['HTTP Error 404',  'Ignoring subtitle tracks'],
+        'expected_warnings': ['HTTP Error 404', 'Ignoring subtitle tracks'],
     }, {
         'url': 'https://malaysia.news.yahoo.com/video/bystanders-help-ontario-policeman-bust-190932818.html',
         'only_matching': True,
