@@ -328,8 +328,7 @@ class FragmentFD(FileDownloader):
 
     def download_and_append_fragments(self, ctx, fragments, info_dict, pack_func=None):
         fragment_retries = self.params.get('fragment_retries', 0)
-        skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
-        test = self.params.get('test', False)
+        is_fatal = (lambda idx: idx == 0) if self.params.get('skip_unavailable_fragments', True) else (lambda _: True)
         if not pack_func:
             pack_func = lambda frag_content, _: frag_content
 
@@ -341,7 +340,7 @@ class FragmentFD(FileDownloader):
                 headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
 
             # Never skip the first fragment
-            fatal = (fragment.get('index') or frag_index) == 0 or not skip_unavailable_fragments
+            fatal = is_fatal(fragment.get('index') or (frag_index - 1))
             count, frag_content = 0, None
             while count <= fragment_retries:
                 try:
@@ -382,14 +381,13 @@ class FragmentFD(FileDownloader):
             # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
             # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
             # not what it decrypts to.
-            if test:
+            if self.params.get('test', False):
                 return frag_content
             return AES.new(decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
 
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
-                fatal = frag_index == 1 or not skip_unavailable_fragments
-                if not fatal:
+                if not is_fatal(frag_index - 1):
                     self.report_skip_fragment(frag_index)
                     return True
                 else:
@@ -428,3 +426,4 @@ class FragmentFD(FileDownloader):
                     return False
 
         self._finish_frag_download(ctx)
+        return True

@@ -57,9 +57,6 @@ class DashSegmentsFD(FragmentFD):
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
-            success = fd.real_download(filename, info_copy)
-            if not success:
-                return False
-        else:
-            self.download_and_append_fragments(ctx, fragments_to_download, info_dict)
-        return True
+            return fd.real_download(filename, info_copy)
+
+        return self.download_and_append_fragments(ctx, fragments_to_download, info_dict)

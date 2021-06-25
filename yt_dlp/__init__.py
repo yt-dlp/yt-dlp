@@ -631,6 +631,7 @@ def _real_main(argv=None):
         'include_ads': opts.include_ads,
         'default_search': opts.default_search,
         'dynamic_mpd': opts.dynamic_mpd,
+        'extractor_args': opts.extractor_args,
         'youtube_include_dash_manifest': opts.youtube_include_dash_manifest,
         'youtube_include_hls_manifest': opts.youtube_include_hls_manifest,
         'encoding': opts.encoding,

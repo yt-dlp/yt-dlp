@@ -1974,6 +1974,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'pbj': 1,
                         'type': 'next',
                     }
+                    if 'itct' in continuation:
+                        query['itct'] = continuation['itct']
                     if parent:
                         query['action_get_comment_replies'] = 1
                     else:
@@ -2019,19 +2021,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     response = try_get(browse,
                                        (lambda x: x['response'],
-                                        lambda x: x[1]['response'])) or {}
+                                        lambda x: x[1]['response']), dict) or {}
 
                     if response.get('continuationContents'):
                         break
 
                     # YouTube sometimes gives reload: now json if something went wrong (e.g. bad auth)
-                    if browse.get('reload'):
-                        raise ExtractorError('Invalid or missing params in continuation request', expected=False)
+                    if isinstance(browse, dict):
+                        if browse.get('reload'):
+                            raise ExtractorError('Invalid or missing params in continuation request', expected=False)
 
-                    # TODO: not tested, merged from old extractor
-                    err_msg = browse.get('externalErrorMessage')
+                        # TODO: not tested, merged from old extractor
+                        err_msg = browse.get('externalErrorMessage')
+                        if err_msg:
+                            last_error = err_msg
+                            continue
+
+                    response_error = try_get(response, lambda x: x['responseContext']['errors']['error'][0], dict) or {}
+                    err_msg = response_error.get('externalErrorMessage')
                     if err_msg:
-                        raise ExtractorError('YouTube said: %s' % err_msg, expected=False)
+                        last_error = err_msg
+                        continue
 
                     # Youtube sometimes sends incomplete data
                     # See: https://github.com/ytdl-org/youtube-dl/issues/28194
@@ -2441,8 +2451,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             formats.append(dct)
 
+        skip_manifests = self._configuration_arg('skip') or []
+        get_dash = 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True)
+        get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
+
         for sd in (streaming_data, ytm_streaming_data):
-            hls_manifest_url = sd.get('hlsManifestUrl')
+            hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 for f in self._extract_m3u8_formats(
                         hls_manifest_url, video_id, 'mp4', fatal=False):
@@ -2452,23 +2466,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f['format_id'] = itag
                     formats.append(f)
 
-        if self.get_param('youtube_include_dash_manifest', True):
-            for sd in (streaming_data, ytm_streaming_data):
-                dash_manifest_url = sd.get('dashManifestUrl')
-                if dash_manifest_url:
-                    for f in self._extract_mpd_formats(
-                            dash_manifest_url, video_id, fatal=False):
-                        itag = f['format_id']
-                        if itag in itags:
-                            continue
-                        if itag in itag_qualities:
-                            f['quality'] = q(itag_qualities[itag])
-                        filesize = int_or_none(self._search_regex(
-                            r'/clen/(\d+)', f.get('fragment_base_url')
-                            or f['url'], 'file size', default=None))
-                        if filesize:
-                            f['filesize'] = filesize
-                        formats.append(f)
+            dash_manifest_url = get_dash and sd.get('dashManifestUrl')
+            if dash_manifest_url:
+                for f in self._extract_mpd_formats(
+                        dash_manifest_url, video_id, fatal=False):
+                    itag = f['format_id']
+                    if itag in itags:
+                        continue
+                    if itag in itag_qualities:
+                        f['quality'] = q(itag_qualities[itag])
+                    filesize = int_or_none(self._search_regex(
+                        r'/clen/(\d+)', f.get('fragment_base_url')
+                        or f['url'], 'file size', default=None))
+                    if filesize:
+                        f['filesize'] = filesize
+                    formats.append(f)
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and streaming_data.get('licenseInfos'):
@@ -2627,7 +2639,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         automatic_captions, base_url, translation_language_code,
-                        try_get(translation_language, lambda x: x['languageName']['simpleText']),
+                        try_get(translation_language, (
+                            lambda x: x['languageName']['simpleText'],
+                            lambda x: x['languageName']['runs'][0]['text'])),
                         {'tlang': translation_language_code})
                 info['automatic_captions'] = automatic_captions
         info['subtitles'] = subtitles
