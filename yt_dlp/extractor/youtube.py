@@ -2215,12 +2215,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pr = self._parse_json(try_get(compat_parse_qs(
                 self._download_webpage(
                     base_url + 'get_video_info', video_id,
-                    'Refetching age-gated info webpage',
-                    'unable to download video info webpage', query={
-                        'video_id': video_id,
-                        'eurl': 'https://youtube.googleapis.com/v/' + video_id,
-                        'html5': '1',
-                    }, fatal=False)),
+                    'Refetching age-gated info webpage', 'unable to download video info webpage',
+                    query=self._get_video_info_params(video_id), fatal=False)),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
             if not pr:
