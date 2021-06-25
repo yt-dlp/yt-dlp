@@ -2119,8 +2119,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             formats.append(dct)
 
+        skip_manifests = self._configuration_arg('skip') or []
+        get_dash = 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True)
+        get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
+
         for sd in (streaming_data, ytm_streaming_data):
-            hls_manifest_url = sd.get('hlsManifestUrl')
+            hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 for f in self._extract_m3u8_formats(
                         hls_manifest_url, video_id, 'mp4', fatal=False):
@@ -2130,23 +2134,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f['format_id'] = itag
                     formats.append(f)
 
-        if self.get_param('youtube_include_dash_manifest', True):
-            for sd in (streaming_data, ytm_streaming_data):
-                dash_manifest_url = sd.get('dashManifestUrl')
-                if dash_manifest_url:
-                    for f in self._extract_mpd_formats(
-                            dash_manifest_url, video_id, fatal=False):
-                        itag = f['format_id']
-                        if itag in itags:
-                            continue
-                        if itag in itag_qualities:
-                            f['quality'] = q(itag_qualities[itag])
-                        filesize = int_or_none(self._search_regex(
-                            r'/clen/(\d+)', f.get('fragment_base_url')
-                            or f['url'], 'file size', default=None))
-                        if filesize:
-                            f['filesize'] = filesize
-                        formats.append(f)
+            dash_manifest_url = get_dash and sd.get('dashManifestUrl')
+            if dash_manifest_url:
+                for f in self._extract_mpd_formats(
+                        dash_manifest_url, video_id, fatal=False):
+                    itag = f['format_id']
+                    if itag in itags:
+                        continue
+                    if itag in itag_qualities:
+                        f['quality'] = q(itag_qualities[itag])
+                    filesize = int_or_none(self._search_regex(
+                        r'/clen/(\d+)', f.get('fragment_base_url')
+                        or f['url'], 'file size', default=None))
+                    if filesize:
+                        f['filesize'] = filesize
+                    formats.append(f)
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and streaming_data.get('licenseInfos'):

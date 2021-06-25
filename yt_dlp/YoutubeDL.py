@@ -420,11 +420,16 @@ class YoutubeDL(object):
     dynamic_mpd:       Whether to process dynamic DASH manifests (default: True)
     hls_split_discontinuity: Split HLS playlists to different formats at
                        discontinuities such as ad breaks (default: False)
-    youtube_include_dash_manifest: If True (default), DASH manifests and related
+    extractor_args:    A dictionary of arguments to be passed to the extractors.
+                       See "EXTRACTOR ARGUMENTS" for details.
+                       Eg: {'youtube': {'skip': ['dash', 'hls']}}
+    youtube_include_dash_manifest: Deprecated - Use extractor_args instead.
+                       If True (default), DASH manifests and related
                        data will be downloaded and processed by extractor.
                        You can reduce network I/O by disabling it if you don't
                        care about DASH. (only for youtube)
-    youtube_include_hls_manifest: If True (default), HLS manifests and related
+    youtube_include_hls_manifest: Deprecated - Use extractor_args instead.
+                       If True (default), HLS manifests and related
                        data will be downloaded and processed by extractor.
                        You can reduce network I/O by disabling it if you don't
                        care about HLS. (only for youtube)
