@@ -224,7 +224,7 @@ class FunimationShowIE(FunimationIE):
             'title': show_info['name'],
             'entries': [
                 self.url_result(
-                    '%s/%s' % (base_url, vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
+                    '%s/%s' % (base_url, vod_item.get('episodeSlug')), FunimationIE.ie_key(),
                     vod_item.get('episodeId'), vod_item.get('episodeName'))
                 for vod_item in sorted(vod_items, key=lambda x: x.get('episodeOrder'))],
         }
