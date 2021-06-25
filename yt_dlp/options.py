@@ -716,7 +716,8 @@ def parseOpts(overrideArguments=None):
         help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '
-            'You can use this option multiple times (Alias: --external-downloader-args)'))
+            'You can use this option multiple times to give different arguments to different downloaders '
+            '(Alias: --external-downloader-args)'))
 
     workarounds = optparse.OptionGroup(parser, 'Workarounds')
     workarounds.add_option(
@@ -1344,21 +1345,33 @@ def parseOpts(overrideArguments=None):
         dest='hls_split_discontinuity', action='store_false',
         help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
     extractor.add_option(
+        '--extractor-args',
+        metavar='KEY:ARGS', dest='extractor_args', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'multiple_keys': False,
+            'process': lambda val: dict(
+                (lambda x: (x[0], x[1].split(',')))(arg.split('=', 1) + ['', '']) for arg in val.split(';'))
+        },
+        help=(
+            'Pass these arguments to the extractor. See "EXTRACTOR ARGUMENTS" for details. '
+            'You can use this option multiple times to give different arguments to different extractors'))
+    extractor.add_option(
         '--youtube-include-dash-manifest', '--no-youtube-skip-dash-manifest',
         action='store_true', dest='youtube_include_dash_manifest', default=True,
-        help='Download the DASH manifests and related data on YouTube videos (default) (Alias: --no-youtube-skip-dash-manifest)')
+        help=optparse.SUPPRESS_HELP)
     extractor.add_option(
         '--youtube-skip-dash-manifest', '--no-youtube-include-dash-manifest',
         action='store_false', dest='youtube_include_dash_manifest',
-        help='Do not download the DASH manifests and related data on YouTube videos (Alias: --no-youtube-include-dash-manifest)')
+        help=optparse.SUPPRESS_HELP)
     extractor.add_option(
         '--youtube-include-hls-manifest', '--no-youtube-skip-hls-manifest',
         action='store_true', dest='youtube_include_hls_manifest', default=True,
-        help='Download the HLS manifests and related data on YouTube videos (default) (Alias: --no-youtube-skip-hls-manifest)')
+        help=optparse.SUPPRESS_HELP)
     extractor.add_option(
         '--youtube-skip-hls-manifest', '--no-youtube-include-hls-manifest',
         action='store_false', dest='youtube_include_hls_manifest',
-        help='Do not download the HLS manifests and related data on YouTube videos (Alias: --no-youtube-include-hls-manifest)')
+        help=optparse.SUPPRESS_HELP)
 
     parser.add_option_group(general)
     parser.add_option_group(network)
