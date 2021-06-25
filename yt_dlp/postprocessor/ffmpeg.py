@@ -896,6 +896,8 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
             _, thumbnail_ext = os.path.splitext(original_thumbnail)
             if thumbnail_ext:
                 thumbnail_ext = thumbnail_ext[1:].lower()
+            if thumbnail_ext == 'jpeg':
+                thumbnail_ext = 'jpg'
             if thumbnail_ext == self.format:
                 self.to_screen('Thumbnail "%s" is already in the requested format' % original_thumbnail)
                 continue
