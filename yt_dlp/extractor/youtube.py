@@ -1748,7 +1748,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_id = self._extract_player_info(player_url)
                 code = self._code_cache[player_id]
                 sts = int_or_none(self._search_regex(
-                    r'(?:signatureTimestamp|sts):(?P<sts>[0-9]{5})', code,
+                    r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
                     'JS player signature timestamp', group='sts', fatal=fatal))
         return sts
 
