@@ -6,24 +6,24 @@ import re
 import string
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..compat import compat_HTTPError, compat_str
 from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
     js_to_json,
+    try_get,
     urlencode_postdata,
     urljoin,
     ExtractorError,
 )
 
 
-class FunimationIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?funimation(?:\.com|now\.uk)/(?:[^/]+/)?shows/[^/]+/(?P<id>[^/?#&]+)'
+class FunimationPageIE(InfoExtractor):
+    IE_NAME = 'funimation:page'
+    _VALID_URL = r'(?P<origin>https?://(?:www\.)?funimation(?:\.com|now\.uk))/(?P<lang>[^/]+/)?(?P<path>shows/(?P<id>[^/]+/[^/?#&]+).*$)'
 
-    _NETRC_MACHINE = 'funimation'
-    _TOKEN = None
-
+    # TODO: Fix tests
     _TESTS = [{
         'url': 'https://www.funimation.com/shows/hacksign/role-play/',
         'info_dict': {
@@ -60,6 +60,50 @@ class FunimationIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _real_extract(self, url):
+        mobj = re.match(self._VALID_URL, url)
+        display_id = mobj.group('id').replace('/', '_')
+        if not mobj.group('lang'):
+            url = '%s/en/%s' % (mobj.group('origin'), mobj.group('path'))
+
+        webpage = self._download_webpage(url, display_id)
+        title_data = self._parse_json(self._search_regex(
+            r'TITLE_DATA\s*=\s*({[^}]+})',
+            webpage, 'title data', default=''),
+            display_id, js_to_json, fatal=False) or {}
+
+        video_id = (
+            title_data.get('id')
+            or self._search_regex(
+                (r"KANE_customdimensions.videoID\s*=\s*'(\d+)';", r'<iframe[^>]+src="/player/(\d+)'),
+                webpage, 'video_id', default=None)
+            or self._search_regex(
+                r'/player/(\d+)',
+                self._html_search_meta(['al:web:url', 'og:video:url', 'og:video:secure_url'], webpage, fatal=True),
+                'video id'))
+        return self.url_result(f'https://www.funimation.com/player/{video_id}', FunimationIE.ie_key(), video_id)
+
+class FunimationIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?funimation\.com/player/(?P<id>\d+)'
+
+    _NETRC_MACHINE = 'funimation'
+    _TOKEN = None
+
+    # TODO: Fix test
+    _TESTS = [{
+        'url': 'https://www.funimation.com/player/210051',
+        'info_dict': {
+            'id': '210051',
+            'display_id': 'attack-on-titan-junior-high_broadcast-dub-preview',
+            'ext': 'mp4',
+            'title': 'Attack on Titan: Junior High - Broadcast Dub Preview',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }]
+
     def _login(self):
         username, password = self._get_login_info()
         if username is None:
@@ -81,84 +125,93 @@ class FunimationIE(InfoExtractor):
     def _real_initialize(self):
         self._login()
 
+    def _get_episode(self, webpage, experience_id):
+        show = self._parse_json(
+            self._search_regex(
+                r'show\s*=\s*({.+?})\s*;', webpage, 'show data'),
+            experience_id, transform_source=js_to_json)
+        for season in show['seasons']:
+            for episode in season.get('episodes'):
+                for lang_data in episode['languages'].values():
+                    for video_data in lang_data.values():
+                        for f in video_data.values():
+                            if f.get('experienceId') == experience_id:
+                                return episode, season, show
+        raise ExtractorError('Unable to find episode information')
+
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        experience_id = self._match_id(url)
+        webpage = self._download_webpage(url, experience_id)
+        episode, season, show = self._get_episode(webpage, int(experience_id))
+        display_id = '%s_%s' % (show.get('showSlug'), episode.get('slug'))
 
-        def _search_kane(name):
-            return self._search_regex(
-                r"KANE_customdimensions\.%s\s*=\s*'([^']+)';" % name,
-                webpage, name, default=None)
+        available_formats, thumbnails, duration, subtitles = [], [], 0, {}
+        for lang, lang_data in episode['languages'].items():
+            for video_data in lang_data.values():
+                for uncut_type, f in video_data.items():
+                    thumbnails.append({'url': f.get('poster')})
+                    duration = max(duration, f.get('duration', 0))
+                    # TODO: Subtitles can be extracted here
+                    available_formats.append({
+                        'id': f['experienceId'],
+                        'lang': lang,
+                        'uncut': uncut_type,
+                    })
 
-        title_data = self._parse_json(self._search_regex(
-            r'TITLE_DATA\s*=\s*({[^}]+})',
-            webpage, 'title data', default=''),
-            display_id, js_to_json, fatal=False) or {}
+        formats = []
+        for fmt in available_formats:
+            subtitles = self.extract_subtitles(url, fmt['id'], fmt['id'])
 
-        video_id = title_data.get('id') or self._search_regex([
-            r"KANE_customdimensions.videoID\s*=\s*'(\d+)';",
-            r'<iframe[^>]+src="/player/(\d+)',
-        ], webpage, 'video_id', default=None)
-        if not video_id:
-            player_url = self._html_search_meta([
-                'al:web:url',
-                'og:video:url',
-                'og:video:secure_url',
-            ], webpage, fatal=True)
-            video_id = self._search_regex(r'/player/(\d+)', player_url, 'video id')
-
-        title = episode = title_data.get('title') or _search_kane('videoTitle') or self._og_search_title(webpage)
-        series = _search_kane('showName')
-        if series:
-            title = '%s - %s' % (series, title)
-        description = self._html_search_meta(['description', 'og:description'], webpage, fatal=True)
-        subtitles = self.extract_subtitles(url, video_id, display_id)
-
-        try:
             headers = {}
             if self._TOKEN:
                 headers['Authorization'] = 'Token %s' % self._TOKEN
-            sources = self._download_json(
-                'https://www.funimation.com/api/showexperience/%s/' % video_id,
-                video_id, headers=headers, query={
+            page = self._download_json(
+                'https://www.funimation.com/api/showexperience/%s/' % fmt['id'],
+                display_id, headers=headers, expected_status=403, query={
                     'pinst_id': ''.join([random.choice(string.digits + string.ascii_letters) for _ in range(8)]),
-                })['items']
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                error = self._parse_json(e.cause.read(), video_id)['errors'][0]
-                raise ExtractorError('%s said: %s' % (
-                    self.IE_NAME, error.get('detail') or error.get('title')), expected=True)
-            raise
+                }, note='Downloading %s %s (%s) JSON' % (fmt['uncut'], fmt['lang'], fmt['id']))
+            sources = page.get('items') or []
+            if not sources:
+                error = try_get(page, lambda x: x['errors'][0], dict)
+                if error:
+                    self.report_warning('%s said: Error %s - %s' % (
+                        self.IE_NAME, error.get('code'), error.get('detail') or error.get('title')))
+                else:
+                    self.report_warning('No sources found for format')
 
-        formats = []
-        for source in sources:
-            source_url = source.get('src')
-            if not source_url:
-                continue
-            source_type = source.get('videoType') or determine_ext(source_url)
-            if source_type == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    source_url, video_id, 'mp4',
-                    m3u8_id='hls', fatal=False))
-            else:
-                formats.append({
-                    'format_id': source_type,
-                    'url': source_url,
-                })
+            current_formats = []
+            for source in sources:
+                source_url = source.get('src')
+                source_type = source.get('videoType') or determine_ext(source_url)
+                if source_type == 'm3u8':
+                    current_formats.extend(self._extract_m3u8_formats(
+                        source_url, display_id, 'mp4', m3u8_id='%s-%s' % (fmt['id'], 'hls'), fatal=False,
+                        note='Downloading %s %s (%s) m3u8 information' % (fmt['uncut'], fmt['lang'], fmt['id'])))
+                else:
+                    current_formats.append({
+                        'format_id': '%s-%s' % (fmt['id'], source_type),
+                        'url': source_url,
+                    })
+                for f in current_formats:
+                    # TODO: Convert language to code
+                    f.update({'language': fmt['lang'], 'format_note': fmt['uncut']})
+                formats.extend(current_formats)
+        self._remove_duplicate_formats(formats)
         self._sort_formats(formats)
 
         return {
-            'id': video_id,
+            'id': compat_str(episode['episodePk']),
             'display_id': display_id,
-            'title': title,
-            'description': description,
-            'thumbnail': self._og_search_thumbnail(webpage),
-            'series': series,
-            'season_number': int_or_none(title_data.get('seasonNum') or _search_kane('season')),
-            'episode_number': int_or_none(title_data.get('episodeNum')),
-            'episode': episode,
-            'subtitles': subtitles,
-            'season_id': title_data.get('seriesId'),
+            'title': episode['episodeTitle'],
+            'description': episode.get('episodeSummary'),
+            'episode': episode.get('episodeTitle'),
+            'episode_number': int_or_none(episode.get('episodeId')),
+            'episode_id': episode.get('slug'),
+            'season': season.get('seasonTitle'),
+            'season_number': int_or_none(season.get('seasonId')),
+            'season_id': compat_str(season.get('seasonPk')),
+            'series': show.get('showTitle'),
+            'thumbnails': thumbnails,
             'formats': formats,
         }
 
@@ -224,7 +277,7 @@ class FunimationShowIE(FunimationIE):
             'title': show_info['name'],
             'entries': [
                 self.url_result(
-                    '%s/%s' % (base_url, vod_item.get('episodeSlug')), FunimationIE.ie_key(),
+                    '%s/%s' % (base_url, vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
                     vod_item.get('episodeId'), vod_item.get('episodeName'))
                 for vod_item in sorted(vod_items, key=lambda x: x.get('episodeOrder'))],
         }
