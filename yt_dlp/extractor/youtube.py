@@ -2230,7 +2230,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note='Downloading remix player API JSON')
 
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
-
+        player_response = None
         if webpage:
             player_response = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
