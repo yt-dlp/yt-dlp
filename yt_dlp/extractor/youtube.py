@@ -2290,8 +2290,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         ytcfg_age = {}
 
                     ytage_headers = self._generate_api_headers(
-                        ytcfg_age, identity_token, syncid, client=yt_client
-                    )
+                        ytcfg_age, identity_token, syncid, client=yt_client)
                     yt_age_query = {'videoId': video_id}
                     yt_age_query.update(self._generate_player_context(sts))
                     pr = self._extract_response(
