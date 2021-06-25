@@ -2803,7 +2803,7 @@ class YoutubeDL(object):
             info = self.filter_requested_info(json.loads('\n'.join(f)), self.params.get('clean_infojson', True))
         try:
             self.process_ie_result(info, download=True)
-        except (DownloadError, EntryNotInPlaylist):
+        except (DownloadError, EntryNotInPlaylist, ThrottledDownload):
             webpage_url = info.get('webpage_url')
             if webpage_url is not None:
                 self.report_warning('The info failed to download, trying with "%s"' % webpage_url)
