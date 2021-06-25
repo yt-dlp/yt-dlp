@@ -2282,8 +2282,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if 'age-restricted' not in embedded_ps_reason:
                     yt_client = 'WEB_EMBEDDED_PLAYER'
                     if not sts:
-                        # Note that this doesn't have all formats
-                        self.report_warning('Falling back to mobile embedded client for player API.')
+                        # Android client already has signature descrambled
+                        # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
+                        self.report_warning(
+                            'Falling back to mobile embedded client for player API (note: some formats may be missing).')
                         yt_client = 'ANDROID_EMBEDDED_PLAYER'
                         ytcfg_age = {}
 
