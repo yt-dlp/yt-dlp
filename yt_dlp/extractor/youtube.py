@@ -2150,13 +2150,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         ytm_streaming_data = {}
         if is_music_url:
             ytm_webpage = None
-            if 'youtube-limit-requests' not in compat_opts:  # TODO: better compat opt name
+            sts = self._extract_signature_timestamp(ytcfg)
+
+            if sts and 'youtube-limit-requests' not in compat_opts:  # TODO: better compat opt name
                 ytm_webpage = self._download_webpage(
                     'https://music.youtube.com',
-                    video_id, fatal=False, note="Downloading web remix config")
+                    video_id, fatal=False, note="Downloading remix client config")
 
             ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
-            sts = self._extract_signature_timestamp(ytcfg)
             ytm_client = 'WEB_REMIX'
             if not sts:
                 # Android client already has signature descrambled
@@ -2175,7 +2176,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 item_id=video_id, ep='player', query=ytm_query,
                 ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
                 default_client=ytm_client,
-                note='Downloading web remix player API JSON')
+                note='Downloading remix player API JSON')
 
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
 
@@ -2225,7 +2226,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not pr:
                 self.report_warning('Falling back to embedded-only age-gate workaround.')
                 embed_webpage = None
-                if 'youtube-limit-requests' not in compat_opts:  # TODO: better compat opt name
+                sts = self._extract_signature_timestamp(ytcfg)
+                if sts and 'youtube-limit-requests' not in compat_opts:  # TODO: better compat opt name
                     embed_webpage = self._download_webpage(
                         'https://www.youtube.com/embed/%s?html5=1' % video_id,
                         video_id=video_id, note='Downloading age-gated embed config')
@@ -2235,13 +2237,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 ytage_headers = self._generate_api_headers(
                     ytcfg, identity_token, syncid, client=yt_client
                 )
-                sts = self._extract_signature_timestamp(ytcfg)
                 if not sts:
                     self.report_warning('Unable to extract signature functions.')
 
                 # If we extracted the embed webpage, it'll tell us if we can view the video
                 embedded_pr = self._parse_json(
-                    try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response'], str) or {}, video_id=video_id)
+                    try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response'], str) or '{}', video_id=video_id)
                 embedded_ps_reason = try_get(embedded_pr, lambda x: x['playabilityStatus']['reason'], str) or ''
 
                 if 'age-restricted' not in embedded_ps_reason:
