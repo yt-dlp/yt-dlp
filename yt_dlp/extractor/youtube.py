@@ -2307,7 +2307,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         automatic_captions, base_url, translation_language_code,
-                        try_get(translation_language, lambda x: x['languageName']['simpleText']),
+                        try_get(translation_language, (
+                            lambda x: x['languageName']['simpleText'],
+                            lambda x: x['languageName']['runs'][0]['text'])),
                         {'tlang': translation_language_code})
                 info['automatic_captions'] = automatic_captions
         info['subtitles'] = subtitles
