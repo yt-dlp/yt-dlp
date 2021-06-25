@@ -2177,9 +2177,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
         identity_token = self._extract_identity_token(webpage, video_id)
         syncid = self._extract_account_syncid(ytcfg)
-        headers = self._generate_api_headers(
-            ytcfg, identity_token, syncid
-        )
+        headers = self._generate_api_headers(ytcfg, identity_token, syncid)
 
         player_url = self._extract_player_url(ytcfg, webpage)
         compat_opts = self.get_param('compat_opts', [])
