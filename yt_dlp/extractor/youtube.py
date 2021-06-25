@@ -451,7 +451,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             context['client']['visitorData'] = visitor_data
         return context
 
-    def _generate_sapisidhash_header(self, origin="https://www.youtube.com"):
+    def _generate_sapisidhash_header(self, origin='https://www.youtube.com'):
         # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
         # See: https://github.com/yt-dlp/yt-dlp/issues/393
         yt_cookies = self._get_cookies('https://www.youtube.com')
