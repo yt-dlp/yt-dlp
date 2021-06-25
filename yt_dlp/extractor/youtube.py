@@ -2230,8 +2230,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
-        # Backup request for player_response if regex fails
-        # and/or Youtube removes player response on initial page
         if not player_response:
             sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
             yt_client = 'WEB'
