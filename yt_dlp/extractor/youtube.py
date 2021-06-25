@@ -420,6 +420,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return dict_get(self._YT_DEFAULT_INNERTUBE_HOSTS, (client, 'WEB'))
 
     def _ytcfg_get_safe(self, ytcfg, getter, expected_type=None, default_client='WEB'):
+        # try_get but with fallback of default ytcfg client values
+        # Note: only for when the relevant key is present in default ytcfg
         _func = lambda y: try_get(y, getter, expected_type)
         return _func(ytcfg) or _func(self._get_default_ytcfg(default_client))
 
@@ -455,7 +457,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _generate_sapisidhash_header(self, origin="https://www.youtube.com"):
         # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
         # See: https://github.com/yt-dlp/yt-dlp/issues/393
-        # TODO: origin
         yt_cookies = self._get_cookies('https://www.youtube.com')
         sapisid_cookie = dict_get(
             yt_cookies, ('__Secure-3PAPISID', 'SAPISID'))
@@ -532,7 +533,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                               visitor_data=None, api_hostname=None, client='WEB'):
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(client))
         headers = {
-            'X-YouTube-Client-Name': compat_str(self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=client)),
+            'X-YouTube-Client-Name': compat_str(
+                self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=client)),
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, client),
             'Origin': origin
         }
@@ -1585,6 +1587,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._code_cache = {}
         self._player_cache = {}
 
+    def _extract_player_url(self, ytcfg=None, webpage=None):
+        player_url = try_get(ytcfg, (lambda x: x['PLAYER_JS_URL']), str)
+        if not player_url:
+            player_url = self._search_regex(
+                r'"(?:PLAYER_JS_URL|jsUrl)"\s*:\s*"([^"]+)"',
+                webpage, 'player URL', fatal=False)
+        if player_url.startswith('//'):
+            player_url = 'https:' + player_url
+        elif not re.match(r'https?://', player_url):
+            player_url = compat_urlparse.urljoin(
+                'https://www.youtube.com', player_url)
+        return player_url
+
     def _signature_cache_id(self, example_sig):
         """ Return a string representation of a signature """
         return '.'.join(compat_str(len(part)) for part in example_sig.split('.'))
@@ -1599,6 +1614,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Cannot identify player %r' % player_url)
         return id_m.group('id')
 
+    def _load_player(self, video_id, player_url, fatal=True) -> bool:
+        player_id = self._extract_player_info(player_url)
+        if player_id not in self._code_cache:
+            self._code_cache[player_id] = self._download_webpage(
+                player_url, video_id, fatal=fatal,
+                note='Downloading player ' + player_id,
+                errnote='Download of %s failed' % player_url)
+        return player_id in self._code_cache
+
     def _extract_signature_function(self, video_id, player_url, example_sig):
         player_id = self._extract_player_info(player_url)
 
@@ -1611,20 +1635,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if cache_spec is not None:
             return lambda s: ''.join(s[i] for i in cache_spec)
 
-        if player_id not in self._code_cache:
-            self._code_cache[player_id] = self._download_webpage(
-                player_url, video_id,
-                note='Downloading player ' + player_id,
-                errnote='Download of %s failed' % player_url)
-        code = self._code_cache[player_id]
-        res = self._parse_sig_js(code)
+        if self._load_player(video_id, player_url):
+            code = self._code_cache[player_id]
+            res = self._parse_sig_js(code)
 
-        test_string = ''.join(map(compat_chr, range(len(example_sig))))
-        cache_res = res(test_string)
-        cache_spec = [ord(c) for c in cache_res]
+            test_string = ''.join(map(compat_chr, range(len(example_sig))))
+            cache_res = res(test_string)
+            cache_spec = [ord(c) for c in cache_res]
 
-        self._downloader.cache.store('youtube-sigfuncs', func_id, cache_spec)
-        return res
+            self._downloader.cache.store('youtube-sigfuncs', func_id, cache_spec)
+            return res
 
     def _print_sig_code(self, func, example_sig):
         def gen_sig_code(idxs):
@@ -1695,11 +1715,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if player_url is None:
             raise ExtractorError('Cannot decrypt signature without player_url')
 
-        if player_url.startswith('//'):
-            player_url = 'https:' + player_url
-        elif not re.match(r'https?://', player_url):
-            player_url = compat_urlparse.urljoin(
-                'https://www.youtube.com', player_url)
         try:
             player_id = (player_url, self._signature_cache_id(s))
             if player_id not in self._player_cache:
@@ -1715,6 +1730,31 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             tb = traceback.format_exc()
             raise ExtractorError(
                 'Signature extraction failed: ' + tb, cause=e)
+
+    def _extract_signature_timestamp(self, video_id, player_url, ytcfg=None, fatal=False):
+        """
+        Extract signatureTimestamp (sts)
+        Required to tell API what sig/player version is in use.
+        """
+        sts = None
+        if isinstance(ytcfg, dict):
+            sts = int_or_none(ytcfg.get('STS'))
+
+        if not sts:
+            # Attempt to extract from player
+            if player_url is None:
+                error_msg = 'Cannot extract signature timestamp without player_url.'
+                if fatal:
+                    raise ExtractorError(error_msg)
+                self.report_warning(error_msg)
+                return
+            if self._load_player(video_id, player_url, fatal=fatal):
+                player_id = self._extract_player_info(player_url)
+                code = self._code_cache[player_id]
+                sts = int_or_none(self._search_regex(
+                    r'(?:signatureTimestamp|sts):(?P<sts>[0-9]{5})', code,
+                    'JS player signature timestamp', group='sts', fatal=fatal))
+        return sts
 
     def _mark_watched(self, video_id, player_response):
         playback_url = url_or_none(try_get(
@@ -2117,10 +2157,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             }
         }
 
-    def _extract_signature_timestamp(self, ytcfg):
-        # TODO: Sync with what player we are using
-        return ytcfg.get('STS')
-
     @staticmethod
     def _get_video_info_params(video_id):
         return {
@@ -2148,6 +2184,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         headers = self._generate_api_headers(
             ytcfg, identity_token, syncid
         )
+
+        player_url = self._extract_player_url(ytcfg, webpage)
         compat_opts = self.get_param('compat_opts', [])
 
         def get_text(x):
@@ -2164,8 +2202,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         ytm_streaming_data = {}
         if is_music_url:
             ytm_webpage = None
-            sts = self._extract_signature_timestamp(ytcfg)
-
+            sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
             if sts and 'youtube-limit-requests' not in compat_opts:  # TODO: better compat opt name
                 ytm_webpage = self._download_webpage(
                     'https://music.youtube.com',
@@ -2202,7 +2239,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Backup request for player_response if regex fails
         # and/or Youtube removes player response on initial page
         if not player_response:
-            sts = self._extract_signature_timestamp(ytcfg)
+            sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
             yt_client = 'WEB'
             ytpcfg = ytcfg
             ytp_headers = headers
@@ -2236,7 +2273,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not pr:
                 self.report_warning('Falling back to embedded-only age-gate workaround.')
                 embed_webpage = None
-                sts = self._extract_signature_timestamp(ytcfg)
+                sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
                 if sts and 'youtube-limit-requests' not in compat_opts:  # TODO: better compat opt name
                     embed_webpage = self._download_webpage(
                         'https://www.youtube.com/embed/%s?html5=1' % video_id,
@@ -2342,7 +2379,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         formats, itags, stream_ids = [], [], []
         itag_qualities = {}
-        player_url = None
         q = qualities([
             'tiny', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
@@ -2382,12 +2418,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not (sc and fmt_url and encrypted_sig):
                     continue
-                if not player_url:
-                    if not webpage:
-                        continue
-                    player_url = self._search_regex(
-                        r'"(?:PLAYER_JS_URL|jsUrl)"\s*:\s*"([^"]+)"',
-                        webpage, 'player URL', fatal=False)
                 if not player_url:
                     continue
                 signature = self._decrypt_signature(sc['s'][0], video_id, player_url)
