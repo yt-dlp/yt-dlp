@@ -417,8 +417,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return dict_get(self._YT_DEFAULT_INNERTUBE_HOSTS, (client, 'WEB'))
 
     def _ytcfg_get_safe(self, ytcfg, getter, expected_type=None, default_client='WEB'):
-        # try_get but with fallback of default ytcfg client values
-        # Note: only for when the relevant key is present in default ytcfg
+        # try_get but with fallback to default ytcfg client values when present
         _func = lambda y: try_get(y, getter, expected_type)
         return _func(ytcfg) or _func(self._get_default_ytcfg(default_client))
 
