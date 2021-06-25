@@ -83,6 +83,7 @@ class FunimationPageIE(InfoExtractor):
                 'video id'))
         return self.url_result(f'https://www.funimation.com/player/{video_id}', FunimationIE.ie_key(), video_id)
 
+
 class FunimationIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?funimation\.com/player/(?P<id>\d+)'
 
@@ -202,6 +203,7 @@ class FunimationIE(InfoExtractor):
         return {
             'id': compat_str(episode['episodePk']),
             'display_id': display_id,
+            'duration': duration,
             'title': episode['episodeTitle'],
             'description': episode.get('episodeSummary'),
             'episode': episode.get('episodeTitle'),
@@ -211,8 +213,9 @@ class FunimationIE(InfoExtractor):
             'season_number': int_or_none(season.get('seasonId')),
             'season_id': compat_str(season.get('seasonPk')),
             'series': show.get('showTitle'),
-            'thumbnails': thumbnails,
             'formats': formats,
+            'thumbnails': thumbnails,
+            'subtitles': subtitles,
         }
 
     def _get_subtitles(self, url, video_id, display_id):
