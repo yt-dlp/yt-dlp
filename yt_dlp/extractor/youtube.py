@@ -300,20 +300,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
     _YT_DEFAULT_YTCFGS = {
-        '_BASE': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': '',
-            'INNERTUBE_CLIENT_VERSION': '',
-            'INNERTUBE_API_KEY': '',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': '',
-                    'clientVersion': '',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': -1
-        },
         'WEB': {
             'INNERTUBE_API_VERSION': 'v1',
             'INNERTUBE_CLIENT_NAME': 'WEB',
