@@ -373,6 +373,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             },
             'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID'  # TODO
         },
+        'ANDROID_EMBEDDED_PLAYER': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'ANDROID_EMBEDDED_PLAYER',
+            'INNERTUBE_CLIENT_VERSION': '16.20',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'ANDROID_EMBEDDED_PLAYER',
+                    'clientVersion': '16.20',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_EMBEDDED_PLAYER'  # TODO
+        },
         'ANDROID_MUSIC': {
             'INNERTUBE_API_VERSION': 'v1',
             'INNERTUBE_CLIENT_NAME': 'ANDROID_MUSIC',
@@ -2229,19 +2243,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         video_id=video_id, note='Downloading age-gated embed config')
 
                 ytcfg_age = self._extract_ytcfg(video_id, embed_webpage) or {}
-                yt_client = 'WEB_EMBEDDED_PLAYER'
-                ytage_headers = self._generate_api_headers(
-                    ytcfg, identity_token, syncid, client=yt_client
-                )
-                if not sts:
-                    self.report_warning('Unable to extract signature functions.')
-
                 # If we extracted the embed webpage, it'll tell us if we can view the video
                 embedded_pr = self._parse_json(
-                    try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response'], str) or '{}', video_id=video_id)
+                    try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response'], str) or '{}',
+                    video_id=video_id)
                 embedded_ps_reason = try_get(embedded_pr, lambda x: x['playabilityStatus']['reason'], str) or ''
-
                 if 'age-restricted' not in embedded_ps_reason:
+                    yt_client = 'WEB_EMBEDDED_PLAYER'
+                    ytage_headers = self._generate_api_headers(
+                        ytcfg_age, identity_token, syncid, client=yt_client
+                    )
+                    if not sts:
+                        # Note that this doesn't have all formats
+                        self.report_warning('Falling back to mobile embedded client for player API.')
+                        yt_client = 'ANDROID_EMBEDDED_PLAYER'
+                        ytcfg_age = self._get_default_ytcfg(yt_client)
+                        ytage_headers = self._generate_api_headers(
+                            ytcfg_age, identity_token, syncid, client=yt_client
+                        )
+
                     yt_age_query = {'videoId': video_id}
                     yt_age_query.update(self._generate_player_context(sts))
                     pr = self._extract_response(
