@@ -295,9 +295,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not self._login():
             return
 
-    _YT_WEB_CLIENT_VERSION = '2.20210407.08.00'
-    _YT_INNERTUBE_API_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'
-    _YT_INNERTUBE_API_HOST = "www.youtube.com"
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
@@ -371,7 +368,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     'hl': 'en',
                 }
             },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID'  # TODO
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID'
         },
         'ANDROID_EMBEDDED_PLAYER': {
             'INNERTUBE_API_VERSION': 'v1',
@@ -385,7 +382,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     'hl': 'en',
                 }
             },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_EMBEDDED_PLAYER'  # TODO
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_EMBEDDED_PLAYER'
         },
         'ANDROID_MUSIC': {
             'INNERTUBE_API_VERSION': 'v1',
@@ -399,7 +396,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     'hl': 'en',
                 }
             },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_MUSIC'  # TODO
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_MUSIC'
         }
     }
 
