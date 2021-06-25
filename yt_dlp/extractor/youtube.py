@@ -2215,7 +2215,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
                 self.report_warning('Falling back to mobile remix client for player API.')
                 ytm_client = 'ANDROID_MUSIC'
-                ytm_cfg = self._get_default_ytcfg(ytm_client)
+                ytm_cfg = {}
 
             ytm_headers = self._generate_api_headers(
                 ytm_cfg, identity_token, syncid,
@@ -2248,7 +2248,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
                 self.report_warning('Falling back to mobile client for player API.')
                 yt_client = 'ANDROID'
-                ytpcfg = self._get_default_ytcfg(yt_client)
+                ytpcfg = {}
                 ytp_headers = self._generate_api_headers(ytpcfg, identity_token, syncid, yt_client)
 
             yt_query = {'videoId': video_id}
@@ -2287,18 +2287,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 embedded_ps_reason = try_get(embedded_pr, lambda x: x['playabilityStatus']['reason'], str) or ''
                 if 'age-restricted' not in embedded_ps_reason:
                     yt_client = 'WEB_EMBEDDED_PLAYER'
-                    ytage_headers = self._generate_api_headers(
-                        ytcfg_age, identity_token, syncid, client=yt_client
-                    )
                     if not sts:
                         # Note that this doesn't have all formats
                         self.report_warning('Falling back to mobile embedded client for player API.')
                         yt_client = 'ANDROID_EMBEDDED_PLAYER'
-                        ytcfg_age = self._get_default_ytcfg(yt_client)
-                        ytage_headers = self._generate_api_headers(
-                            ytcfg_age, identity_token, syncid, client=yt_client
-                        )
+                        ytcfg_age = {}
 
+                    ytage_headers = self._generate_api_headers(
+                        ytcfg_age, identity_token, syncid, client=yt_client
+                    )
                     yt_age_query = {'videoId': video_id}
                     yt_age_query.update(self._generate_player_context(sts))
                     pr = self._extract_response(
