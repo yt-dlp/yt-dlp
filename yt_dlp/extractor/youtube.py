@@ -1731,6 +1731,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'pbj': 1,
                         'type': 'next',
                     }
+                    if 'itct' in continuation:
+                        query['itct'] = continuation['itct']
                     if parent:
                         query['action_get_comment_replies'] = 1
                     else:
@@ -1776,19 +1778,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     response = try_get(browse,
                                        (lambda x: x['response'],
-                                        lambda x: x[1]['response'])) or {}
+                                        lambda x: x[1]['response']), dict) or {}
 
                     if response.get('continuationContents'):
                         break
 
                     # YouTube sometimes gives reload: now json if something went wrong (e.g. bad auth)
-                    if browse.get('reload'):
-                        raise ExtractorError('Invalid or missing params in continuation request', expected=False)
+                    if isinstance(browse, dict):
+                        if browse.get('reload'):
+                            raise ExtractorError('Invalid or missing params in continuation request', expected=False)
 
-                    # TODO: not tested, merged from old extractor
-                    err_msg = browse.get('externalErrorMessage')
+                        # TODO: not tested, merged from old extractor
+                        err_msg = browse.get('externalErrorMessage')
+                        if err_msg:
+                            last_error = err_msg
+                            continue
+
+                    response_error = try_get(response, lambda x: x['responseContext']['errors']['error'][0], dict) or {}
+                    err_msg = response_error.get('externalErrorMessage')
                     if err_msg:
-                        raise ExtractorError('YouTube said: %s' % err_msg, expected=False)
+                        last_error = err_msg
+                        continue
 
                     # Youtube sometimes sends incomplete data
                     # See: https://github.com/ytdl-org/youtube-dl/issues/28194
