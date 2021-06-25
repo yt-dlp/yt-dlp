@@ -149,18 +149,24 @@ class FunimationIE(InfoExtractor):
         available_formats, thumbnails, duration, subtitles = [], [], 0, {}
         for lang, lang_data in episode['languages'].items():
             for video_data in lang_data.values():
-                for uncut_type, f in video_data.items():
+                for version, f in video_data.items():
                     thumbnails.append({'url': f.get('poster')})
                     duration = max(duration, f.get('duration', 0))
                     # TODO: Subtitles can be extracted here
                     available_formats.append({
                         'id': f['experienceId'],
                         'lang': lang,
-                        'uncut': uncut_type,
+                        'version': version,
                     })
 
         formats = []
+        requested_languages = self._configuration_arg('language')
+        requested_versions = self._configuration_arg('version')
         for fmt in available_formats:
+            if requested_languages and fmt['lang'] not in requested_languages:
+                continue
+            if requested_versions and fmt['version'] not in requested_versions:
+                continue
             subtitles = self.extract_subtitles(url, fmt['id'], fmt['id'])
 
             headers = {}
@@ -170,7 +176,7 @@ class FunimationIE(InfoExtractor):
                 'https://www.funimation.com/api/showexperience/%s/' % fmt['id'],
                 display_id, headers=headers, expected_status=403, query={
                     'pinst_id': ''.join([random.choice(string.digits + string.ascii_letters) for _ in range(8)]),
-                }, note='Downloading %s %s (%s) JSON' % (fmt['uncut'], fmt['lang'], fmt['id']))
+                }, note='Downloading %s %s (%s) JSON' % (fmt['version'], fmt['lang'], fmt['id']))
             sources = page.get('items') or []
             if not sources:
                 error = try_get(page, lambda x: x['errors'][0], dict)
@@ -187,7 +193,7 @@ class FunimationIE(InfoExtractor):
                 if source_type == 'm3u8':
                     current_formats.extend(self._extract_m3u8_formats(
                         source_url, display_id, 'mp4', m3u8_id='%s-%s' % (fmt['id'], 'hls'), fatal=False,
-                        note='Downloading %s %s (%s) m3u8 information' % (fmt['uncut'], fmt['lang'], fmt['id'])))
+                        note='Downloading %s %s (%s) m3u8 information' % (fmt['version'], fmt['lang'], fmt['id'])))
                 else:
                     current_formats.append({
                         'format_id': '%s-%s' % (fmt['id'], source_type),
@@ -195,7 +201,7 @@ class FunimationIE(InfoExtractor):
                     })
                 for f in current_formats:
                     # TODO: Convert language to code
-                    f.update({'language': fmt['lang'], 'format_note': fmt['uncut']})
+                    f.update({'language': fmt['lang'], 'format_note': fmt['version']})
                 formats.extend(current_formats)
         self._remove_duplicate_formats(formats)
         self._sort_formats(formats)
