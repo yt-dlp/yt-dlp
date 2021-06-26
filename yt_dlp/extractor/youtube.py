@@ -2183,7 +2183,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         force_mobile_client = player_client.upper() == 'MOBILE'
         player_skip = self._configuration_arg('player_skip') or []
 
-
         def get_text(x):
             if not x:
                 return
