@@ -45,7 +45,7 @@ class TBSIE(TurnerBaseIE):
         drupal_settings = self._parse_json(self._search_regex(
             r'<script[^>]+?data-drupal-selector="drupal-settings-json"[^>]*?>({.+?})</script>',
             webpage, 'drupal setting'), display_id)
-        isLive = "watchtnt" in path
+        isLive = 'watchtnt' in path
         video_data = next(v for v in drupal_settings['turner_playlist'] if isLive or v.get('url') == path)
 
         media_id = video_data['mediaID']
