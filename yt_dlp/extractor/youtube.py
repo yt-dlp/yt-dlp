@@ -2223,7 +2223,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 item_id=video_id, ep='player', query=ytm_query,
                 ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
                 default_client=ytm_client,
-                note='Downloading %sremix player API JSON' % ('mobile' if force_mobile_client else ''))
+                note='Downloading %sremix player API JSON' % ('mobile ' if force_mobile_client else ''))
 
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
         player_response = None
