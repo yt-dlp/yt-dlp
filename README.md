@@ -1332,6 +1332,8 @@ Some extractors accept additional arguments which can be passed using `--extract
 The following extractors use this feature:
 * **youtube**
     * `skip`: `hls` or `dash` (or both) to skip download of the respective manifests
+    * `player_client`: `web`(default) or `mobile` (force use the mobile client fallbacks for video extraction)
+    * `player_skip`: `configs`, `old_gate`  - skip requests if applicable for client configs and use defaults, skip old age-gate bypass
 
 # PLUGINS
 
