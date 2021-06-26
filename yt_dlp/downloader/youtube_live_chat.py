@@ -72,7 +72,7 @@ class YoutubeLiveChatFD(FragmentFD):
                 self._append_fragment(ctx, b'')
                 refresh_continuation_id = refresh_continuation.get('continuation')
                 offset = 0
-                click_tracking_params = refresh_continuation.get('clickTrackingParams')
+                click_tracking_params = refresh_continuation.get('trackingParams')
                 return refresh_continuation_id, offset, click_tracking_params
             return parse_actions_replay(live_chat_continuation)
 
