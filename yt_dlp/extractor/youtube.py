@@ -1551,7 +1551,32 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # multiple subtitles with same lang_code
             'url': 'https://www.youtube.com/watch?v=wsQiKKfKxug',
             'only_matching': True,
+        }, {
+            # Force use android client fallback
+            'url': 'https://www.youtube.com/watch?v=YOelRv7fMxY',
+            'info_dict': {
+                'id': 'YOelRv7fMxY',
+                'title': 'Digging a Secret Tunnel from my Workshop',
+                'ext': '3gp',
+                'upload_date': '20210624',
+                'channel_id': 'UCp68_FLety0O-n9QU6phsgw',
+                'uploader': 'colinfurze',
+                'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCp68_FLety0O-n9QU6phsgw',
+                'description': 'md5:ecb672623246d98c6c562eed6ae798c3'
+            },
+            'params': {
+                'format': '17',  # 3gp format available on android
+                'extractor_args': {'youtube': {'player_client': ['android']}},
+            },
         },
+        {
+            # Skip download of additional client configs (remix client config in this case)
+            'url': 'https://music.youtube.com/watch?v=MgNrAu2pzNs',
+            'only_matching': True,
+            'params': {
+                'extractor_args': {'youtube': {'player_skip': ['configs']}},
+            },
+        }
     ]
 
     @classmethod
