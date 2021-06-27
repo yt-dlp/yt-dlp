@@ -1545,8 +1545,8 @@ Line 1
         self.assertEqual(repr(LazyList(it)), repr(it))
         self.assertEqual(str(LazyList(it)), str(it))
 
-        self.assertEqual(list(reversed(LazyList(it))), it[::-1])
-        self.assertEqual(list(reversed(LazyList(it))[1:3:7]), it[::-1][1:3:7])
+        self.assertEqual(list(LazyList(it).reverse()), it[::-1])
+        self.assertEqual(list(LazyList(it).reverse()[1:3:7]), it[::-1][1:3:7])
 
     def test_LazyList_laziness(self):
 
@@ -1559,13 +1559,13 @@ Line 1
         test(ll, 5, 5, range(6))
         test(ll, -3, 7, range(10))
 
-        ll = reversed(LazyList(range(10)))
+        ll = LazyList(range(10)).reverse()
         test(ll, -1, 0, range(1))
         test(ll, 3, 6, range(10))
 
         ll = LazyList(itertools.count())
         test(ll, 10, 10, range(11))
-        reversed(ll)
+        ll.reverse()
         test(ll, -15, 14, range(15))
 
 

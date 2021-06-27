@@ -3976,20 +3976,23 @@ class LazyList(collections.Sequence):
     def __iter__(self):
         if self.__reversed:
             # We need to consume the entire iterable to iterate in reverse
-            yield from self.exhaust()[::-1]
+            yield from self.exhaust()
             return
         yield from self.__cache
         for item in self.__iterable:
             self.__cache.append(item)
             yield item
 
-    def exhaust(self):
-        ''' Evaluate the entire iterable '''
+    def __exhaust(self):
         self.__cache.extend(self.__iterable)
         return self.__cache
 
+    def exhaust(self):
+        ''' Evaluate the entire iterable '''
+        return self.__exhaust()[::-1 if self.__reversed else 1]
+
     @staticmethod
-    def _reverse_index(x):
+    def __reverse_index(x):
         return -(x + 1)
 
     def __getitem__(self, idx):
@@ -3998,18 +4001,18 @@ class LazyList(collections.Sequence):
             start = idx.start if idx.start is not None else 0 if step > 0 else -1
             stop = idx.stop if idx.stop is not None else -1 if step > 0 else 0
             if self.__reversed:
-                start, stop, step = map(self._reverse_index, (start, stop, step))
+                (start, stop), step = map(self.__reverse_index, (start, stop)), -step
                 idx = slice(start, stop, step)
         elif isinstance(idx, int):
             if self.__reversed:
-                idx = self._reverse_index(idx)
+                idx = self.__reverse_index(idx)
             start = stop = idx
         else:
             raise TypeError('indices must be integers or slices')
         if start < 0 or stop < 0:
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
-            return self.exhaust()[idx]
+            return self.__exhaust()[idx]
 
         n = max(start, stop) - len(self.__cache) + 1
         if n > 0:
@@ -4027,7 +4030,7 @@ class LazyList(collections.Sequence):
         self.exhaust()
         return len(self.__cache)
 
-    def __reversed__(self):
+    def reverse(self):
         self.__reversed = not self.__reversed
         return self
 
