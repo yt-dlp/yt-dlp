@@ -2178,9 +2178,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_url = self._extract_player_url(ytcfg, webpage)
 
         player_client = try_get(self._configuration_arg('player_client'), lambda x: x[0], str) or ''
-        if player_client.upper() not in ('WEB', 'MOBILE'):
+        if player_client.upper() not in ('WEB', 'ANDROID'):
             player_client = 'WEB'
-        force_mobile_client = player_client.upper() == 'MOBILE'
+        force_mobile_client = player_client.upper() == 'ANDROID'
         player_skip = self._configuration_arg('player_skip') or []
 
         def get_text(x):
@@ -2227,12 +2227,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
         player_response = None
-        if webpage and not force_mobile_client:
+        if webpage:
             player_response = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
-        if not player_response:
+        if not player_response or force_mobile_client:
             sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
             yt_client = 'WEB'
             ytpcfg = ytcfg
@@ -2258,15 +2258,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Age-gate workarounds
         playability_status = player_response.get('playabilityStatus') or {}
         if playability_status.get('reason') == 'Sign in to confirm your age':
-            pr = None
-            if 'old_gate' not in player_skip:
-                pr = self._parse_json(try_get(compat_parse_qs(
-                    self._download_webpage(
-                        base_url + 'get_video_info', video_id,
-                        'Refetching age-gated info webpage', 'unable to download video info webpage',
-                        query=self._get_video_info_params(video_id), fatal=False)),
-                    lambda x: x['player_response'][0],
-                    compat_str) or '{}', video_id)
+            pr = self._parse_json(try_get(compat_parse_qs(
+                self._download_webpage(
+                    base_url + 'get_video_info', video_id,
+                    'Refetching age-gated info webpage', 'unable to download video info webpage',
+                    query=self._get_video_info_params(video_id), fatal=False)),
+                lambda x: x['player_response'][0],
+                compat_str) or '{}', video_id)
             if not pr:
                 self.report_warning('Falling back to embedded-only age-gate workaround.')
                 embed_webpage = None
