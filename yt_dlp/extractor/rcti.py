@@ -83,9 +83,6 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             'series': 'iNews Malam',
             'channel': 'INews',
         },
-        'params': {
-            'format': 'bestvideo, bestaudio',
-        }
     }]
 
     def _search_auth_key(self, webpage):
@@ -121,20 +118,20 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         if video_meta.get('portrait_image'):
             thumbnails.append({
                 'id': 'portrait_image',
-                'url': image_path + '2000' + video_meta['portrait_image']
+                'url': '%s%d%s' % (image_path, '2000', video_meta['portrait_image'])  # 2000px seems to be the highest resolution that can be given
             })
         if video_meta.get('landscape_image'):
             thumbnails.append({
                 'id': 'landscape_image',
-                'url': image_path + '2000' + video_meta['landscape_image']
+                'url': '%s%d%s' % (image_path, '2000', video_meta['landscape_image'])
             })
 
         formats = self._extract_m3u8_formats(video_url, display_id, 'mp4', headers={'Referer': 'https://www.rctiplus.com/'})
-        self._sort_formats(formats)
-
         for f in formats:
             if 'akamaized' in f['url']:
                 f.setdefault('http_headers', {})['Referer'] = 'https://www.rctiplus.com/'  # Referer header is required for akamai CDNs
+
+        self._sort_formats(formats)
 
         return {
             'id': video_meta.get('product_id') or video_json.get('product_id'),
@@ -200,10 +197,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
             for video_json in episode_list:
                 link = video_json['share_link']
-                result = self.url_result(link, 'RCTIPlus', video_json.get('product_id'), video_json.get('title'))
-                result.update(metadata)
-                entries.append(result)
-        return entries
+                yield self.url_result(link, 'RCTIPlus', video_json.get('product_id'), video_json.get('title')).update(metadata)
 
     def _real_extract(self, url):
         series_id, display_id = re.match(self._VALID_URL, url).groups()
@@ -225,7 +219,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
         tags = []
         for tag in series_meta.get('tag', []):
-            cast.append(strip_or_none(tag.get('name')))
+            tags.append(strip_or_none(tag.get('name')))
         metadata['tag'] = tags
 
         entries = []
