@@ -200,7 +200,9 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
             for video_json in episode_list:
                 link = video_json['share_link']
-                yield self.url_result(link, 'RCTIPlus', video_json.get('product_id'), video_json.get('title')).update(metadata)
+                url_res = self.url_result(link, 'RCTIPlus', video_json.get('product_id'), video_json.get('title'))
+                url_res.update(metadata)
+                yield url_res
 
     def _real_extract(self, url):
         series_id, display_id = re.match(self._VALID_URL, url).groups()
