@@ -104,6 +104,7 @@ from .utils import (
     ThrottledDownload,
     to_high_limit_path,
     traverse_obj,
+    try_get,
     UnavailableVideoError,
     url_basename,
     version_tuple,
@@ -419,11 +420,16 @@ class YoutubeDL(object):
     dynamic_mpd:       Whether to process dynamic DASH manifests (default: True)
     hls_split_discontinuity: Split HLS playlists to different formats at
                        discontinuities such as ad breaks (default: False)
-    youtube_include_dash_manifest: If True (default), DASH manifests and related
+    extractor_args:    A dictionary of arguments to be passed to the extractors.
+                       See "EXTRACTOR ARGUMENTS" for details.
+                       Eg: {'youtube': {'skip': ['dash', 'hls']}}
+    youtube_include_dash_manifest: Deprecated - Use extractor_args instead.
+                       If True (default), DASH manifests and related
                        data will be downloaded and processed by extractor.
                        You can reduce network I/O by disabling it if you don't
                        care about DASH. (only for youtube)
-    youtube_include_hls_manifest: If True (default), HLS manifests and related
+    youtube_include_hls_manifest: Deprecated - Use extractor_args instead.
+                       If True (default), HLS manifests and related
                        data will be downloaded and processed by extractor.
                        You can reduce network I/O by disabling it if you don't
                        care about HLS. (only for youtube)
@@ -1176,13 +1182,17 @@ class YoutubeDL(object):
             return ie_result
 
     def add_default_extra_info(self, ie_result, ie, url):
-        self.add_extra_info(ie_result, {
-            'extractor': ie.IE_NAME,
-            'webpage_url': url,
-            'original_url': url,
-            'webpage_url_basename': url_basename(url),
-            'extractor_key': ie.ie_key(),
-        })
+        if url is not None:
+            self.add_extra_info(ie_result, {
+                'webpage_url': url,
+                'original_url': url,
+                'webpage_url_basename': url_basename(url),
+            })
+        if ie is not None:
+            self.add_extra_info(ie_result, {
+                'extractor': ie.IE_NAME,
+                'extractor_key': ie.ie_key(),
+            })
 
     def process_ie_result(self, ie_result, download=True, extra_info={}):
         """
@@ -1201,8 +1211,8 @@ class YoutubeDL(object):
                     or extract_flat is True):
                 info_copy = ie_result.copy()
                 self.add_extra_info(info_copy, extra_info)
-                self.add_default_extra_info(
-                    info_copy, self.get_info_extractor(ie_result.get('ie_key')), ie_result['url'])
+                ie = try_get(ie_result.get('ie_key'), self.get_info_extractor)
+                self.add_default_extra_info(info_copy, ie, ie_result['url'])
                 self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
                 return ie_result
 
@@ -2185,6 +2195,8 @@ class YoutubeDL(object):
                 raise ExtractorError('Requested format is not available', expected=True)
             else:
                 self.report_warning('Requested format is not available')
+                # Process what we can, even without any available formats.
+                self.process_info(dict(info_dict))
         elif download:
             self.to_screen(
                 '[info] %s: Downloading %d format(s): %s' % (
@@ -2349,7 +2361,7 @@ class YoutubeDL(object):
         # TODO: backward compatibility, to be removed
         info_dict['fulltitle'] = info_dict['title']
 
-        if 'format' not in info_dict:
+        if 'format' not in info_dict and 'ext' in info_dict:
             info_dict['format'] = info_dict['ext']
 
         if self._match_entry(info_dict) is not None:
@@ -2364,7 +2376,7 @@ class YoutubeDL(object):
         files_to_move = {}
 
         # Forced printings
-        self.__forced_printings(info_dict, full_filename, incomplete=False)
+        self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
 
         if self.params.get('simulate', False):
             if self.params.get('force_write_download_archive', False):
@@ -2791,7 +2803,7 @@ class YoutubeDL(object):
             info = self.filter_requested_info(json.loads('\n'.join(f)), self.params.get('clean_infojson', True))
         try:
             self.process_ie_result(info, download=True)
-        except (DownloadError, EntryNotInPlaylist):
+        except (DownloadError, EntryNotInPlaylist, ThrottledDownload):
             webpage_url = info.get('webpage_url')
             if webpage_url is not None:
                 self.report_warning('The info failed to download, trying with "%s"' % webpage_url)
@@ -3072,7 +3084,7 @@ class YoutubeDL(object):
             'Available %s for %s:' % (name, video_id))
 
         def _row(lang, formats):
-            exts, names = zip(*((f['ext'], f.get('name', 'unknown')) for f in reversed(formats)))
+            exts, names = zip(*((f['ext'], f.get('name') or 'unknown') for f in reversed(formats)))
             if len(set(names)) == 1:
                 names = [] if names[0] == 'unknown' else names[:1]
             return [lang, ', '.join(names), ', '.join(exts)]

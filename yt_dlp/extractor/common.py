@@ -70,6 +70,7 @@ from ..utils import (
     str_or_none,
     str_to_int,
     strip_or_none,
+    traverse_obj,
     unescapeHTML,
     unified_strdate,
     unified_timestamp,
@@ -3566,6 +3567,10 @@ class InfoExtractor(object):
             else 'unlisted' if is_unlisted
             else 'public' if all_known
             else None)
+
+    def _configuration_arg(self, key):
+        return traverse_obj(
+            self._downloader.params, ('extractor_args', self.ie_key().lower(), key))
 
 
 class SearchInfoExtractor(InfoExtractor):

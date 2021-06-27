@@ -44,7 +44,7 @@ class YoutubeLiveChatFD(FragmentFD):
             return self._download_fragment(ctx, url, info_dict, http_headers, data)
 
         def parse_actions_replay(live_chat_continuation):
-            offset = continuation_id = None
+            offset = continuation_id = click_tracking_params = None
             processed_fragment = bytearray()
             for action in live_chat_continuation.get('actions', []):
                 if 'replayChatItemAction' in action:
@@ -53,17 +53,34 @@ class YoutubeLiveChatFD(FragmentFD):
                 processed_fragment.extend(
                     json.dumps(action, ensure_ascii=False).encode('utf-8') + b'\n')
             if offset is not None:
-                continuation_id = try_get(
+                continuation = try_get(
                     live_chat_continuation,
-                    lambda x: x['continuations'][0]['liveChatReplayContinuationData']['continuation'])
+                    lambda x: x['continuations'][0]['liveChatReplayContinuationData'], dict)
+                if continuation:
+                    continuation_id = continuation.get('continuation')
+                    click_tracking_params = continuation.get('clickTrackingParams')
             self._append_fragment(ctx, processed_fragment)
-            return continuation_id, offset
+            return continuation_id, offset, click_tracking_params
+
+        def try_refresh_replay_beginning(live_chat_continuation):
+            # choose the second option that contains the unfiltered live chat replay
+            refresh_continuation = try_get(
+                live_chat_continuation,
+                lambda x: x['header']['liveChatHeaderRenderer']['viewSelector']['sortFilterSubMenuRenderer']['subMenuItems'][1]['continuation']['reloadContinuationData'], dict)
+            if refresh_continuation:
+                # no data yet but required to call _append_fragment
+                self._append_fragment(ctx, b'')
+                refresh_continuation_id = refresh_continuation.get('continuation')
+                offset = 0
+                click_tracking_params = refresh_continuation.get('trackingParams')
+                return refresh_continuation_id, offset, click_tracking_params
+            return parse_actions_replay(live_chat_continuation)
 
         live_offset = 0
 
         def parse_actions_live(live_chat_continuation):
             nonlocal live_offset
-            continuation_id = None
+            continuation_id = click_tracking_params = None
             processed_fragment = bytearray()
             for action in live_chat_continuation.get('actions', []):
                 timestamp = self.parse_live_timestamp(action)
@@ -84,37 +101,44 @@ class YoutubeLiveChatFD(FragmentFD):
             continuation_data = try_get(live_chat_continuation, continuation_data_getters, dict)
             if continuation_data:
                 continuation_id = continuation_data.get('continuation')
+                click_tracking_params = continuation_data.get('clickTrackingParams')
                 timeout_ms = int_or_none(continuation_data.get('timeoutMs'))
                 if timeout_ms is not None:
                     time.sleep(timeout_ms / 1000)
             self._append_fragment(ctx, processed_fragment)
-            return continuation_id, live_offset
+            return continuation_id, live_offset, click_tracking_params
 
-        if info_dict['protocol'] == 'youtube_live_chat_replay':
-            parse_actions = parse_actions_replay
-        elif info_dict['protocol'] == 'youtube_live_chat':
-            parse_actions = parse_actions_live
-
-        def download_and_parse_fragment(url, frag_index, request_data, headers):
+        def download_and_parse_fragment(url, frag_index, request_data=None, headers=None):
             count = 0
             while count <= fragment_retries:
                 try:
                     success, raw_fragment = dl_fragment(url, request_data, headers)
                     if not success:
-                        return False, None, None
-                    data = json.loads(raw_fragment)
+                        return False, None, None, None
+                    try:
+                        data = ie._extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
+                    except RegexNotFoundError:
+                        data = None
+                    if not data:
+                        data = json.loads(raw_fragment)
                     live_chat_continuation = try_get(
                         data,
                         lambda x: x['continuationContents']['liveChatContinuation'], dict) or {}
-                    continuation_id, offset = parse_actions(live_chat_continuation)
-                    return True, continuation_id, offset
+                    if info_dict['protocol'] == 'youtube_live_chat_replay':
+                        if frag_index == 1:
+                            continuation_id, offset, click_tracking_params = try_refresh_replay_beginning(live_chat_continuation)
+                        else:
+                            continuation_id, offset, click_tracking_params = parse_actions_replay(live_chat_continuation)
+                    elif info_dict['protocol'] == 'youtube_live_chat':
+                        continuation_id, offset, click_tracking_params = parse_actions_live(live_chat_continuation)
+                    return True, continuation_id, offset, click_tracking_params
                 except compat_urllib_error.HTTPError as err:
                     count += 1
                     if count <= fragment_retries:
                         self.report_retry_fragment(err, frag_index, count, fragment_retries)
             if count > fragment_retries:
                 self.report_error('giving up after %s fragment retries' % fragment_retries)
-                return False, None, None
+                return False, None, None, None
 
         self._prepare_and_start_frag_download(ctx)
 
@@ -142,10 +166,13 @@ class YoutubeLiveChatFD(FragmentFD):
         visitor_data = try_get(innertube_context, lambda x: x['client']['visitorData'], str)
         if info_dict['protocol'] == 'youtube_live_chat_replay':
             url = 'https://www.youtube.com/youtubei/v1/live_chat/get_live_chat_replay?key=' + api_key
+            chat_page_url = 'https://www.youtube.com/live_chat_replay?continuation=' + continuation_id
         elif info_dict['protocol'] == 'youtube_live_chat':
             url = 'https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?key=' + api_key
+            chat_page_url = 'https://www.youtube.com/live_chat?continuation=' + continuation_id
 
         frag_index = offset = 0
+        click_tracking_params = None
         while continuation_id is not None:
             frag_index += 1
             request_data = {
@@ -154,11 +181,16 @@ class YoutubeLiveChatFD(FragmentFD):
             }
             if frag_index > 1:
                 request_data['currentPlayerState'] = {'playerOffsetMs': str(max(offset - 5000, 0))}
-            headers = ie._generate_api_headers(ytcfg, visitor_data=visitor_data)
-            headers.update({'content-type': 'application/json'})
-            fragment_request_data = json.dumps(request_data, ensure_ascii=False).encode('utf-8') + b'\n'
-            success, continuation_id, offset = download_and_parse_fragment(
-                url, frag_index, fragment_request_data, headers)
+                if click_tracking_params:
+                    request_data['context']['clickTracking'] = {'clickTrackingParams': click_tracking_params}
+                headers = ie._generate_api_headers(ytcfg, visitor_data=visitor_data)
+                headers.update({'content-type': 'application/json'})
+                fragment_request_data = json.dumps(request_data, ensure_ascii=False).encode('utf-8') + b'\n'
+                success, continuation_id, offset, click_tracking_params = download_and_parse_fragment(
+                    url, frag_index, fragment_request_data, headers)
+            else:
+                success, continuation_id, offset, click_tracking_params = download_and_parse_fragment(
+                    chat_page_url, frag_index)
             if not success:
                 return False
             if test:

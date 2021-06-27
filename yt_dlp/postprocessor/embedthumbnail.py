@@ -92,7 +92,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         # format, there will be some additional data loss.
         # PNG, on the other hand, is lossless.
         thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:]
-        if thumbnail_ext not in ('jpg', 'png'):
+        if thumbnail_ext not in ('jpg', 'jpeg', 'png'):
             thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
             thumbnail_ext = 'png'
 
