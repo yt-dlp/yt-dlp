@@ -84,6 +84,9 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             'series': 'iNews Malam',
             'channel': 'INews',
         },
+        'params': {
+            'format': 'bestvideo',
+        },
     }]
 
     def _search_auth_key(self, webpage):
