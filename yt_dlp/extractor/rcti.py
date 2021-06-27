@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import itertools
 import re
 
 from .openload import PhantomJSwrapper
@@ -189,7 +190,6 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
         if total_pages <= 0:
             return []
 
-        entries = []
         for page_num in range(1, total_pages + 1):
             episode_list = self._call_api(
                 '%s&length=20&page=%s' % (url, page_num),
@@ -222,16 +222,16 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             tags.append(strip_or_none(tag.get('name')))
         metadata['tag'] = tags
 
-        entries = []
+        entries = ()
         seasons_list = self._call_api(
             'https://api.rctiplus.com/api/v1/program/%s/season' % series_id, display_id, 'Downloading seasons list JSON')[0]
         for season in seasons_list:
-            entries.extend(self._entries('https://api.rctiplus.com/api/v2/program/%s/episode?season=%s' % (series_id, season['season']),
-                                         display_id, 'Downloading season %s episode entries' % season['season'], metadata))
+            entries += (self._entries('https://api.rctiplus.com/api/v2/program/%s/episode?season=%s' % (series_id, season['season']),
+                                      display_id, 'Downloading season %s episode entries' % season['season'], metadata),)
 
-        entries.extend(self._entries('https://api.rctiplus.com/api/v2/program/%s/clip?content_id=0' % series_id,
-                                     display_id, 'Downloading clip entries', metadata))
-        entries.extend(self._entries('https://api.rctiplus.com/api/v2/program/%s/extra?content_id=0' % series_id,
-                                     display_id, 'Downloading extra entries', metadata))
+        entries += (self._entries('https://api.rctiplus.com/api/v2/program/%s/clip?content_id=0' % series_id,
+                                  display_id, 'Downloading clip entries', metadata),)
+        entries += (self._entries('https://api.rctiplus.com/api/v2/program/%s/extra?content_id=0' % series_id,
+                                  display_id, 'Downloading extra entries', metadata),)
 
-        return self.playlist_result(entries, series_id, series_meta.get('title'), series_meta.get('summary'))
+        return self.playlist_result(itertools.chain(*entries), series_id, series_meta.get('title'), series_meta.get('summary'))
