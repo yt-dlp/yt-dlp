@@ -1057,7 +1057,17 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--no-clean-infojson',
         action='store_false', dest='clean_infojson',
-        help='Write all fields to the infojson')
+        help='Write all fields to the infojson including private fields')
+    filesystem.add_option(
+        '--redact-formats-infojson',
+        action='store_true', dest='redact_formats_infojson', default=True,
+        help=(
+            'Remove some possible sensitive information such as video URLs from the infojson. '
+            'Must be specified with --clean-infojson to work'))
+    filesystem.add_option(
+        '--no-redact-formats-infojson',
+        action='store_false', dest='redact_formats_infojson',
+        help='Write all fields to the infojson including possible sensitive information')
     filesystem.add_option(
         '--write-comments', '--get-comments',
         action='store_true', dest='getcomments', default=False,

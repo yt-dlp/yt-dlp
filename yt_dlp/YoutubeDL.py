@@ -239,6 +239,7 @@ class YoutubeDL(object):
     writedescription:  Write the video description to a .description file
     writeinfojson:     Write the video description to a .info.json file
     clean_infojson:    Remove private fields from the infojson
+    redact_formats_infojson: Remove formats and url from the infojson 
     writecomments:     Extract video comments. This will not be written to disk
                        unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
@@ -1415,7 +1416,7 @@ class YoutubeDL(object):
                 else:
                     self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
                     try:
-                        write_json_file(self.filter_requested_info(ie_result, self.params.get('clean_infojson', True)), infofn)
+                        write_json_file(self.filter_requested_info(ie_result, self.params.get('clean_infojson', True), self.params.get('redact_formats_infojson', True)), infofn)
                     except (OSError, IOError):
                         self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
 
@@ -2478,7 +2479,7 @@ class YoutubeDL(object):
             else:
                 self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
                 try:
-                    write_json_file(self.filter_requested_info(info_dict, self.params.get('clean_infojson', True)), infofn)
+                    write_json_file(self.filter_requested_info(info_dict, self.params.get('clean_infojson', True), self.params.get('redact_formats_infojson', True)), infofn)
                 except (OSError, IOError):
                     self.report_error('Cannot write video metadata to JSON file ' + infofn)
                     return
@@ -2800,7 +2801,7 @@ class YoutubeDL(object):
                 [info_filename], mode='r',
                 openhook=fileinput.hook_encoded('utf-8'))) as f:
             # FileInput doesn't have a read method, we can't call json.load
-            info = self.filter_requested_info(json.loads('\n'.join(f)), self.params.get('clean_infojson', True))
+            info = self.filter_requested_info(json.loads('\n'.join(f)), self.params.get('clean_infojson', True), self.params.get('redact_formats_infojson', True))
         try:
             self.process_ie_result(info, download=True)
         except (DownloadError, EntryNotInPlaylist, ThrottledDownload):
@@ -2813,11 +2814,13 @@ class YoutubeDL(object):
         return self._download_retcode
 
     @staticmethod
-    def filter_requested_info(info_dict, actually_filter=True):
+    def filter_requested_info(info_dict, actually_filter=True, redact_formats=False):
         remove_keys = ['__original_infodict']  # Always remove this since this may contain a copy of the entire dict
         keep_keys = ['_type'],  # Always keep this to facilitate load-info-json
         if actually_filter:
             remove_keys += ('requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries', 'original_url')
+            if redact_formats:
+                remove_keys += ('formats', 'url')
             empty_values = (None, {}, [], set(), tuple())
             reject = lambda k, v: k not in keep_keys and (
                 k.startswith('_') or k in remove_keys or v in empty_values)
