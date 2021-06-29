@@ -872,6 +872,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
 
+    _AGE_GATE_REASONS = (
+        'Sign in to confirm your age',
+        'This video may be inappropriate for some users.',
+        'Sorry, this content is age-restricted.')
+
     _GEO_BYPASS = False
 
     IE_NAME = 'youtube'
@@ -2282,7 +2287,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Age-gate workarounds
         playability_status = player_response.get('playabilityStatus') or {}
-        if playability_status.get('reason') == 'Sign in to confirm your age':
+        if playability_status.get('reason') in self._AGE_GATE_REASONS:
             pr = self._parse_json(try_get(compat_parse_qs(
                 self._download_webpage(
                     base_url + 'get_video_info', video_id,
@@ -2305,7 +2310,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response'], str) or '{}',
                     video_id=video_id)
                 embedded_ps_reason = try_get(embedded_pr, lambda x: x['playabilityStatus']['reason'], str) or ''
-                if 'age-restricted' not in embedded_ps_reason:
+                if embedded_ps_reason not in self._AGE_GATE_REASONS:
                     yt_client = 'WEB_EMBEDDED_PLAYER'
                     if not sts or force_mobile_client:
                         # Android client already has signature descrambled
