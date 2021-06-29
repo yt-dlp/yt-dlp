@@ -239,7 +239,7 @@ class YoutubeDL(object):
     writedescription:  Write the video description to a .description file
     writeinfojson:     Write the video description to a .info.json file
     clean_infojson:    Remove private fields from the infojson
-    redact_formats_infojson: Remove formats and url from the infojson 
+    redact_formats_infojson: Remove formats and url from the infojson
     writecomments:     Extract video comments. This will not be written to disk
                        unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
