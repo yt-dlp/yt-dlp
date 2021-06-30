@@ -2604,6 +2604,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or microformat.get('lengthSeconds')) \
             or parse_duration(search_meta('duration'))
         is_live = video_details.get('isLive')
+        is_upcoming = video_details.get('isUpcoming')
         owner_profile_url = microformat.get('ownerProfileUrl')
 
         info = {
@@ -2729,7 +2730,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'url': 'https://www.youtube.com/watch?v=%s' % video_id,  # url is needed to set cookies
                 'video_id': video_id,
                 'ext': 'json',
-                'protocol': 'youtube_live_chat' if is_live else 'youtube_live_chat_replay',
+                'protocol': 'youtube_live_chat' if is_live or is_upcoming else 'youtube_live_chat_replay',
             }]
         except (KeyError, IndexError, TypeError):
             pass
