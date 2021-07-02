@@ -1758,6 +1758,8 @@ class YoutubeDL(object):
             return new_dict
 
         def _check_formats(formats):
+            if not check_formats:
+                yield from formats
             for f in formats:
                 self.to_screen('[info] Testing format %s' % f['format_id'])
                 temp_file = tempfile.NamedTemporaryFile(
@@ -1765,16 +1767,16 @@ class YoutubeDL(object):
                     dir=self.get_output_path('temp') or None)
                 temp_file.close()
                 try:
-                    dl, _ = self.dl(temp_file.name, f, test=True)
-                except (ExtractorError, IOError, OSError, ValueError) + network_exceptions:
-                    dl = False
+                    success, _ = self.dl(temp_file.name, f, test=True)
+                except (DownloadError, IOError, OSError, ValueError) + network_exceptions:
+                    success = False
                 finally:
                     if os.path.exists(temp_file.name):
                         try:
                             os.remove(temp_file.name)
                         except OSError:
                             self.report_warning('Unable to delete temporary file "%s"' % temp_file.name)
-                if dl:
+                if success:
                     yield f
                 else:
                     self.to_screen('[info] Unable to download format %s. Skipping...' % f['format_id'])
@@ -1785,8 +1787,7 @@ class YoutubeDL(object):
 
                 def selector_function(ctx):
                     for f in fs:
-                        for format in f(ctx):
-                            yield format
+                        yield from f(ctx)
                 return selector_function
 
             elif selector.type == GROUP:  # ()
@@ -1802,22 +1803,24 @@ class YoutubeDL(object):
                             return picked_formats
                     return []
 
+            elif selector.type == MERGE:  # +
+                selector_1, selector_2 = map(_build_selector_function, selector.selector)
+
+                def selector_function(ctx):
+                    for pair in itertools.product(
+                            selector_1(copy.deepcopy(ctx)), selector_2(copy.deepcopy(ctx))):
+                        yield _merge(pair)
+
             elif selector.type == SINGLE:  # atom
                 format_spec = selector.selector or 'best'
 
                 # TODO: Add allvideo, allaudio etc by generalizing the code with best/worst selector
                 if format_spec == 'all':
                     def selector_function(ctx):
-                        formats = list(ctx['formats'])
-                        if check_formats:
-                            formats = _check_formats(formats)
-                        for f in formats:
-                            yield f
+                        yield from _check_formats(ctx['formats'])
                 elif format_spec == 'mergeall':
                     def selector_function(ctx):
-                        formats = ctx['formats']
-                        if check_formats:
-                            formats = list(_check_formats(formats))
+                        formats = list(_check_formats(ctx['formats']))
                         if not formats:
                             return
                         merged_format = formats[-1]
@@ -1855,29 +1858,17 @@ class YoutubeDL(object):
 
                     def selector_function(ctx):
                         formats = list(ctx['formats'])
-                        if not formats:
-                            return
                         matches = list(filter(filter_f, formats)) if filter_f is not None else formats
                         if format_fallback and ctx['incomplete_formats'] and not matches:
                             # for extractors with incomplete formats (audio only (soundcloud)
                             # or video only (imgur)) best/worst will fallback to
                             # best/worst {video,audio}-only format
                             matches = formats
-                        if format_reverse:
-                            matches = matches[::-1]
-                        if check_formats:
-                            matches = list(itertools.islice(_check_formats(matches), format_idx))
-                        n = len(matches)
-                        if -n <= format_idx - 1 < n:
+                        matches = LazyList(_check_formats(matches[::-1 if format_reverse else 1]))
+                        try:
                             yield matches[format_idx - 1]
-
-            elif selector.type == MERGE:        # +
-                selector_1, selector_2 = map(_build_selector_function, selector.selector)
-
-                def selector_function(ctx):
-                    for pair in itertools.product(
-                            selector_1(copy.deepcopy(ctx)), selector_2(copy.deepcopy(ctx))):
-                        yield _merge(pair)
+                        except IndexError:
+                            return
 
             filters = [self._build_format_filter(f) for f in selector.filters]
 
@@ -1971,7 +1962,7 @@ class YoutubeDL(object):
                     t['resolution'] = '%dx%d' % (t['width'], t['height'])
                 t['url'] = sanitize_url(t['url'])
             if self.params.get('check_formats'):
-                info_dict['thumbnails'] = reversed(LazyList(filter(test_thumbnail, thumbnails[::-1])))
+                info_dict['thumbnails'] = LazyList(filter(test_thumbnail, thumbnails[::-1])).reverse()
 
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
@@ -3267,7 +3258,7 @@ class YoutubeDL(object):
         multiple = write_all and len(thumbnails) > 1
 
         ret = []
-        for t in thumbnails[::1 if write_all else -1]:
+        for t in thumbnails[::-1]:
             thumb_ext = determine_ext(t['url'], 'jpg')
             suffix = '%s.' % t['id'] if multiple else ''
             thumb_display_id = '%s ' % t['id'] if multiple else ''
