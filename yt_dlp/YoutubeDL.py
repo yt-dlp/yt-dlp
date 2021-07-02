@@ -2002,10 +2002,6 @@ class YoutubeDL(object):
 
         self._sanitize_thumbnails(info_dict)
 
-        if self.params.get('list_thumbnails'):
-            self.list_thumbnails(info_dict)
-            return
-
         thumbnail = info_dict.get('thumbnail')
         thumbnails = info_dict.get('thumbnails')
         if thumbnail:
@@ -2047,13 +2043,6 @@ class YoutubeDL(object):
 
         automatic_captions = info_dict.get('automatic_captions')
         subtitles = info_dict.get('subtitles')
-
-        if self.params.get('listsubtitles', False):
-            if 'automatic_captions' in info_dict:
-                self.list_subtitles(
-                    info_dict['id'], automatic_captions, 'automatic captions')
-            self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
-            return
 
         info_dict['requested_subtitles'] = self.process_subtitles(
             info_dict['id'], subtitles, automatic_captions)
@@ -2142,10 +2131,20 @@ class YoutubeDL(object):
 
         info_dict, _ = self.pre_process(info_dict)
 
-        if self.params.get('listformats'):
-            if not info_dict.get('formats'):
-                raise ExtractorError('No video formats found', expected=True)
-            self.list_formats(info_dict)
+        list_only = self.params.get('list_thumbnails') or self.params.get('listformats') or self.params.get('listsubtitles')
+        if list_only:
+            self.__forced_printings(info_dict, self.prepare_filename(info_dict), incomplete=True)
+            if self.params.get('list_thumbnails'):
+                self.list_thumbnails(info_dict)
+            if self.params.get('listformats'):
+                if not info_dict.get('formats'):
+                    raise ExtractorError('No video formats found', expected=True)
+                self.list_formats(info_dict)
+            if self.params.get('listsubtitles'):
+                if 'automatic_captions' in info_dict:
+                    self.list_subtitles(
+                        info_dict['id'], automatic_captions, 'automatic captions')
+                self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
             return
 
         format_selector = self.format_selector
@@ -3013,7 +3012,7 @@ class YoutubeDL(object):
         formats = info_dict.get('formats', [info_dict])
         new_format = (
             'list-formats' not in self.params.get('compat_opts', [])
-            and self.params.get('list_formats_as_table', True) is not False)
+            and self.params.get('listformats_table', True) is not False)
         if new_format:
             table = [
                 [
@@ -3048,12 +3047,13 @@ class YoutubeDL(object):
             header_line = ['format code', 'extension', 'resolution', 'note']
 
         self.to_screen(
-            '[info] Available formats for %s:\n%s' % (info_dict['id'], render_table(
+            '[info] Available formats for %s:' % info_dict['id'])
+        self.to_stdout(render_table(
                 header_line,
                 table,
                 delim=new_format,
                 extraGap=(0 if new_format else 1),
-                hideEmpty=new_format)))
+                hideEmpty=new_format))
 
     def list_thumbnails(self, info_dict):
         thumbnails = list(info_dict.get('thumbnails'))
@@ -3063,7 +3063,7 @@ class YoutubeDL(object):
 
         self.to_screen(
             '[info] Thumbnails for %s:' % info_dict['id'])
-        self.to_screen(render_table(
+        self.to_stdout(render_table(
             ['ID', 'width', 'height', 'URL'],
             [[t['id'], t.get('width', 'unknown'), t.get('height', 'unknown'), t['url']] for t in thumbnails]))
 
@@ -3080,7 +3080,7 @@ class YoutubeDL(object):
                 names = [] if names[0] == 'unknown' else names[:1]
             return [lang, ', '.join(names), ', '.join(exts)]
 
-        self.to_screen(render_table(
+        self.to_stdout(render_table(
             ['Language', 'Name', 'Formats'],
             [_row(lang, formats) for lang, formats in subtitles.items()],
             hideEmpty=True))
