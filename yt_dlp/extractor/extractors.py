@@ -1063,6 +1063,10 @@ from .rcs import (
     RCSEmbedsIE,
     RCSVariousIE,
 )
+from .rcti import (
+    RCTIPlusIE,
+    RCTIPlusSeriesIE,
+)
 from .rds import RDSIE
 from .redbulltv import (
     RedBullTVIE,
