@@ -227,16 +227,16 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             tags.append(strip_or_none(tag.get('name')))
         metadata['tag'] = tags
 
-        entries = ()
+        entries = []
         seasons_list = self._call_api(
             'https://api.rctiplus.com/api/v1/program/%s/season' % series_id, display_id, 'Downloading seasons list JSON')[0]
         for season in seasons_list:
-            entries += (self._entries('https://api.rctiplus.com/api/v2/program/%s/episode?season=%s' % (series_id, season['season']),
-                                      display_id, 'Downloading season %s episode entries' % season['season'], metadata),)
+            entries.append(self._entries('https://api.rctiplus.com/api/v2/program/%s/episode?season=%s' % (series_id, season['season']),
+                                      display_id, 'Downloading season %s episode entries' % season['season'], metadata))
 
-        entries += (self._entries('https://api.rctiplus.com/api/v2/program/%s/clip?content_id=0' % series_id,
-                                  display_id, 'Downloading clip entries', metadata),)
-        entries += (self._entries('https://api.rctiplus.com/api/v2/program/%s/extra?content_id=0' % series_id,
-                                  display_id, 'Downloading extra entries', metadata),)
+        entries.append(self._entries('https://api.rctiplus.com/api/v2/program/%s/clip?content_id=0' % series_id,
+                                  display_id, 'Downloading clip entries', metadata))
+        entries.append(self._entries('https://api.rctiplus.com/api/v2/program/%s/extra?content_id=0' % series_id,
+                                  display_id, 'Downloading extra entries', metadata))
 
-        return self.playlist_result(itertools.chain(*entries), series_id, series_meta.get('title'), series_meta.get('summary'))
+        return self.playlist_result(itertools.chain(*entries), series_id, series_meta.get('title'), series_meta.get('summary'), **metadata)
