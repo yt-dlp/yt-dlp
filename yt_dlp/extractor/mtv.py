@@ -249,6 +249,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
             if info:
                 entries.append(info)
 
+        # TODO: should be multi-video
         return self.playlist_result(
             entries, playlist_title=title, playlist_description=description)
 

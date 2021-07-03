@@ -3049,11 +3049,7 @@ class YoutubeDL(object):
         self.to_screen(
             '[info] Available formats for %s:' % info_dict['id'])
         self.to_stdout(render_table(
-                header_line,
-                table,
-                delim=new_format,
-                extraGap=(0 if new_format else 1),
-                hideEmpty=new_format))
+            header_line, table, delim=new_format, extraGap=(0 if new_format else 1), hideEmpty=new_format))
 
     def list_thumbnails(self, info_dict):
         thumbnails = list(info_dict.get('thumbnails'))
