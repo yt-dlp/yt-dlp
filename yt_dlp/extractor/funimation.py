@@ -126,57 +126,59 @@ class FunimationIE(InfoExtractor):
     def _real_initialize(self):
         self._login()
 
-    def _get_episode(self, webpage, experience_id):
+    @staticmethod
+    def _get_experiences(episode):
+        for lang, lang_data in episode.get('languages', {}).items():
+            for video_data in lang_data.values():
+                for version, f in video_data.items():
+                    yield lang, version.title(), f
+
+    def _get_episode(self, webpage, experience_id=None):
+        ''' Extract the episode, season and show objects given the experience id '''
         show = self._parse_json(
             self._search_regex(
                 r'show\s*=\s*({.+?})\s*;', webpage, 'show data'),
-            experience_id, transform_source=js_to_json)
-        for season in show['seasons']:
-            for episode in season.get('episodes'):
-                for lang_data in episode['languages'].values():
-                    for video_data in lang_data.values():
-                        for f in video_data.values():
-                            if f.get('experienceId') == experience_id:
-                                return episode, season, show
+            experience_id, transform_source=js_to_json) or []
+        for season in show.get('seasons', []):
+            for episode in season.get('episodes', []):
+                if episode_id is not None:
+                    if str(episode.get('episodePk')) == episode_id:
+                        return episode, season, show
+                    continue
+                for _, _, f in self._get_experiences(episode):
+                    if f.get('experienceId') == experience_id:
+                        return episode, season, show
         raise ExtractorError('Unable to find episode information')
 
     def _real_extract(self, url):
-        experience_id = self._match_id(url)
-        webpage = self._download_webpage(url, experience_id)
-        episode, season, show = self._get_episode(webpage, int(experience_id))
-        display_id = '%s_%s' % (show.get('showSlug'), episode.get('slug'))
+        initial_experience_id = self._match_id(url)
+        webpage = self._download_webpage(
+            url, initial_experience_id, note=f'Downloading player webpage for {initial_experience_id}')
+        episode, season, show = self._get_episode(webpage, experience_id=int(initial_experience_id))
+        episode_id = str(episode['episodePk'])
+        display_id = episode.get('slug') or episode_id
 
-        available_formats, thumbnails, duration, subtitles = [], [], 0, {}
-        for lang, lang_data in episode['languages'].items():
-            for video_data in lang_data.values():
-                for version, f in video_data.items():
-                    thumbnails.append({'url': f.get('poster')})
-                    duration = max(duration, f.get('duration', 0))
-                    # TODO: Subtitles can be extracted here
-                    available_formats.append({
-                        'id': f['experienceId'],
-                        'lang': lang,
-                        'version': version,
-                    })
+        formats, subtitles, thumbnails, duration = [], {}, [], 0
+        requested_languages, requested_versions = self._configuration_arg('language'),  self._configuration_arg('version')
 
-        formats = []
-        requested_languages = self._configuration_arg('language')
-        requested_versions = self._configuration_arg('version')
-        for fmt in available_formats:
-            if requested_languages and fmt['lang'] not in requested_languages:
+        for lang, version, fmt in self._get_experiences(episode):
+            experience_id = fmt['experienceId']
+            if (requested_languages and lang not in requested_languages
+                    or requested_versions and version not in requested_versions):
                 continue
-            if requested_versions and fmt['version'] not in requested_versions:
-                continue
-            subtitles = self.extract_subtitles(url, fmt['id'], fmt['id'])
+            # subtitles = self.extract_subtitles(url, fmt['id'], fmt['id'])
+            thumbnails.append({'url': fmt.get('poster')})
+            duration = max(duration, fmt.get('duration', 0))
+            format_name = '%s %s (%s)' % (version, lang, experience_id)
 
             headers = {}
             if self._TOKEN:
                 headers['Authorization'] = 'Token %s' % self._TOKEN
             page = self._download_json(
-                'https://www.funimation.com/api/showexperience/%s/' % fmt['id'],
+                'https://www.funimation.com/api/showexperience/%s/' % experience_id,
                 display_id, headers=headers, expected_status=403, query={
                     'pinst_id': ''.join([random.choice(string.digits + string.ascii_letters) for _ in range(8)]),
-                }, note='Downloading %s %s (%s) JSON' % (fmt['version'], fmt['lang'], fmt['id']))
+                }, note=f'Downloading {format_name} JSON')
             sources = page.get('items') or []
             if not sources:
                 error = try_get(page, lambda x: x['errors'][0], dict)
@@ -192,22 +194,22 @@ class FunimationIE(InfoExtractor):
                 source_type = source.get('videoType') or determine_ext(source_url)
                 if source_type == 'm3u8':
                     current_formats.extend(self._extract_m3u8_formats(
-                        source_url, display_id, 'mp4', m3u8_id='%s-%s' % (fmt['id'], 'hls'), fatal=False,
-                        note='Downloading %s %s (%s) m3u8 information' % (fmt['version'], fmt['lang'], fmt['id'])))
+                        source_url, display_id, 'mp4', m3u8_id='%s-%s' % (experience_id, 'hls'), fatal=False,
+                        note=f'Downloading {format_name} m3u8 information'))
                 else:
                     current_formats.append({
-                        'format_id': '%s-%s' % (fmt['id'], source_type),
+                        'format_id': '%s-%s' % (experience_id, source_type),
                         'url': source_url,
                     })
                 for f in current_formats:
                     # TODO: Convert language to code
-                    f.update({'language': fmt['lang'], 'format_note': fmt['version']})
+                    f.update({'language': lang, 'format_note': version})
                 formats.extend(current_formats)
         self._remove_duplicate_formats(formats)
         self._sort_formats(formats)
 
         return {
-            'id': compat_str(episode['episodePk']),
+            'id': episode_id,
             'display_id': display_id,
             'duration': duration,
             'title': episode['episodeTitle'],
