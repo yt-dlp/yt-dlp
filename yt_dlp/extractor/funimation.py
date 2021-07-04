@@ -164,10 +164,12 @@ class FunimationIE(InfoExtractor):
 
         formats, subtitles, thumbnails, duration = [], {}, [], 0
         requested_languages, requested_versions = self._configuration_arg('language'),  self._configuration_arg('version')
+        only_initial_experience = 'funimation-single-player' in self.get_param('compat_opts', [])
 
         for lang, version, fmt in self._get_experiences(episode):
-            experience_id = fmt['experienceId']
-            if (requested_languages and lang not in requested_languages
+            experience_id = str(fmt['experienceId'])
+            if (only_initial_experience and experience_id != initial_experience_id
+                    or requested_languages and lang not in requested_languages
                     or requested_versions and version not in requested_versions):
                 continue
             thumbnails.append({'url': fmt.get('poster')})
@@ -215,7 +217,7 @@ class FunimationIE(InfoExtractor):
         self._sort_formats(formats)
 
         return {
-            'id': episode_id,
+            'id': initial_experience_id if only_initial_experience else episode_id,
             'display_id': display_id,
             'duration': duration,
             'title': episode['episodeTitle'],
