@@ -133,12 +133,12 @@ class FunimationIE(InfoExtractor):
                 for version, f in video_data.items():
                     yield lang, version.title(), f
 
-    def _get_episode(self, webpage, experience_id=None):
-        ''' Extract the episode, season and show objects given the experience id '''
+    def _get_episode(self, webpage, experience_id=None, episode_id=None, fatal=True):
+        ''' Extract the episode, season and show objects given either episode/experience id '''
         show = self._parse_json(
             self._search_regex(
-                r'show\s*=\s*({.+?})\s*;', webpage, 'show data'),
-            experience_id, transform_source=js_to_json) or []
+                r'show\s*=\s*({.+?})\s*;', webpage, 'show data', fatal=fatal),
+            experience_id, transform_source=js_to_json, fatal=fatal) or []
         for season in show.get('seasons', []):
             for episode in season.get('episodes', []):
                 if episode_id is not None:
@@ -148,7 +148,11 @@ class FunimationIE(InfoExtractor):
                 for _, _, f in self._get_experiences(episode):
                     if f.get('experienceId') == experience_id:
                         return episode, season, show
-        raise ExtractorError('Unable to find episode information')
+        if fatal:
+            raise ExtractorError('Unable to find episode information')
+        else:
+            self.report_warning('Unable to find episode information')
+        return {}, {}, {}
 
     def _real_extract(self, url):
         initial_experience_id = self._match_id(url)
@@ -166,10 +170,12 @@ class FunimationIE(InfoExtractor):
             if (requested_languages and lang not in requested_languages
                     or requested_versions and version not in requested_versions):
                 continue
-            # subtitles = self.extract_subtitles(url, fmt['id'], fmt['id'])
             thumbnails.append({'url': fmt.get('poster')})
             duration = max(duration, fmt.get('duration', 0))
             format_name = '%s %s (%s)' % (version, lang, experience_id)
+            self.extract_subtitles(
+                subtitles, experience_id, display_id=display_id, format_name=format_name,
+                episode=episode if experience_id == initial_experience_id else episode_id)
 
             headers = {}
             if self._TOKEN:
@@ -226,21 +232,28 @@ class FunimationIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
-    def _get_subtitles(self, url, video_id, display_id):
-        player_url = urljoin(url, '/player/' + video_id)
-        player_page = self._download_webpage(player_url, display_id)
-        text_tracks_json_string = self._search_regex(
-            r'"textTracks": (\[{.+?}\])',
-            player_page, 'subtitles data', default='')
-        text_tracks = self._parse_json(
-            text_tracks_json_string, display_id, js_to_json, fatal=False) or []
-        subtitles = {}
-        for text_track in text_tracks:
-            url_element = {'url': text_track.get('src')}
-            language = text_track.get('language')
-            if text_track.get('type') == 'CC':
-                language += '_CC'
-            subtitles.setdefault(language, []).append(url_element)
+    def _get_subtitles(self, subtitles, experience_id, episode, display_id, format_name):
+        if isinstance(episode, str):
+            webpage = self._download_webpage(
+                f'https://www.funimation.com/player/{experience_id}', display_id,
+                fatal=False, note=f'Downloading player webpage for {format_name}')
+            episode, _, _ = self._get_episode(webpage, episode_id=episode, fatal=False)
+
+        for _, version, f in self._get_experiences(episode):
+            for source in f.get('sources'):
+                for text_track in source.get('textTracks'):
+                    if not text_track.get('src'):
+                        continue
+                    sub_type = text_track.get('type').upper()
+                    sub_type = sub_type if sub_type != 'FULL' else None
+                    current_sub = {
+                        'url': text_track['src'],
+                        'name': ' '.join(filter(None, (version, text_track.get('label'), sub_type)))
+                    }
+                    lang = '_'.join(filter(None, (
+                        text_track.get('language', 'und'), version if version != 'Simulcast' else None, sub_type)))
+                    if current_sub not in subtitles.get(lang, []):
+                        subtitles.setdefault(lang, []).append(current_sub)
         return subtitles
 
 
