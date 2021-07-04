@@ -597,7 +597,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             ctp = continuation_ep.get('clickTrackingParams')
             return cls._build_continuation_query(continuation, ctp)
 
-
     @staticmethod
     def _extract_alerts(data):
         for alert_dict in try_get(data, lambda x: x['alerts'], list) or []:
