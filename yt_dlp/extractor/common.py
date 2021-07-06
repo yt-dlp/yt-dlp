@@ -1038,7 +1038,9 @@ class InfoExtractor(object):
             metadata_available=False, method='any'):
         if metadata_available and self.get_param('ignore_no_formats_error'):
             self.report_warning(msg)
-        raise ExtractorError('%s. %s' % (msg, self._LOGIN_HINTS[method]), expected=True)
+        if method is not None:
+            msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
+        raise ExtractorError(msg, expected=True)
 
     def raise_geo_restricted(
             self, msg='This video is not available from your location due to geo restriction',
@@ -3442,16 +3444,8 @@ class InfoExtractor(object):
         return ret
 
     @classmethod
-    def _merge_subtitles(cls, *dicts, **kwargs):
+    def _merge_subtitles(cls, *dicts, target=None):
         """ Merge subtitle dictionaries, language by language. """
-
-        target = (lambda target=None: target)(**kwargs)
-        # The above lambda extracts the keyword argument 'target' from kwargs
-        # while ensuring there are no stray ones. When Python 2 support
-        # is dropped, remove it and change the function signature to:
-        #
-        #     def _merge_subtitles(cls, *dicts, target=None):
-
         if target is None:
             target = {}
         for d in dicts:
