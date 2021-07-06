@@ -42,6 +42,8 @@ class FancodeVodIE(InfoExtractor):
     _ACCESS_TOKEN = None
     _NETRC_MACHINE = 'fancode'
 
+    _LOGIN_HINT = 'Use "--user refresh --password <refresh_token>" to login using a refresh token'
+
     headers = {
         'content-type': 'application/json',
         'origin': 'https://fancode.com',
@@ -67,11 +69,20 @@ class FancodeVodIE(InfoExtractor):
                 self.report_warning('Failed to get Access token')
             else:
                 self.headers.update({'Authorization': 'Bearer %s' % self._ACCESS_TOKEN})
-        else:
-            self.report_warning('Usage:- yt-dlp -u refresh -p <refresh_token>')
+        elif username is not None:
+            self.report_warning(f'Login using username and password is not currently supported. {self._LOGIN_HINT}')
 
     def _real_initialize(self):
         self._login()
+
+    def _check_login_required(self, is_available, is_premium):
+        msg = None
+        if is_premium and self._ACCESS_TOKEN is None:
+            msg = f'This video is only available for registered users. {self._LOGIN_HINT}'
+        elif not is_available and self._ACCESS_TOKEN is not None:
+            msg = 'This video isn\'t available to the current logged in account'
+        if msg:
+            self.raise_login_required(msg, metadata_available=True, method=None)
 
     def download_gql(self, variable, data, note, fatal=False, headers=headers):
         return self._download_json(
@@ -105,12 +116,8 @@ class FancodeVodIE(InfoExtractor):
             raise ExtractorError('Unable to extract brightcove Video ID')
 
         is_premium = media.get('isPremium')
-        is_available = media.get('isUserEntitled')
 
-        if is_premium and self._ACCESS_TOKEN is None:
-            self.raise_login_required(method='yt-dlp -u "refresh" -p <refresh_token>')
-        if not is_available and self._ACCESS_TOKEN is not None:
-            self.raise_login_required("This video isn't available to the current logged in account")
+        self._check_login_required(media.get('isUserEntitled'), is_premium)
 
         return {
             '_type': 'url_transparent',
@@ -166,14 +173,9 @@ class FancodeLiveIE(FancodeVodIE):
 
         match_info = try_get(info_json, lambda x: x['data']['match'])
 
-        is_available = match_info.get('isUserEntitled')
-        # No need to check isPremium, all live streams are premium only
-
-        if not is_available and self._ACCESS_TOKEN is not None:
-            self.raise_login_required('This video isn\'t available to the current logged in account')
-
         if match_info.get('status') != "LIVE":
             raise ExtractorError('The stream can\'t be accessed', expected=True)
+        self._check_login_required(match_info.get('isUserEntitled'), True)  # all live streams are premium only
 
         return {
             'id': id,
