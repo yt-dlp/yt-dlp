@@ -28,12 +28,14 @@ from ..utils import (
 
 class VikiBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.)?viki\.(?:com|net|mx|jp|fr)/'
-    _API_QUERY_TEMPLATE = '/v4/%sapp=%s&t=%s&site=www.viki.com'
-    _API_URL_TEMPLATE = 'https://api.viki.io%s&sig=%s'
+    _API_QUERY_TEMPLATE = '/%s/%sapp=%s'
+    _API_URL_TEMPLATE = 'https://api.viki.io%s'
 
+    _API_VER_5 = 'v5'
+    _API_VER_4 = 'v4'
     _APP = '100005a'
-    _APP_VERSION = '6.0.0'
-    _APP_SECRET = 'MM_d*yP@`&1@]@!AVrXf_o-HVEnoTnm$O-ti4[G~$JDI/Dc-&piU&z&5.;:}95=Iad'
+    _APP_VERSION = '6.11.3'
+    _APP_SECRET = 'd96704b180208dbb2efa30fe44c48bd8690441af9f567ba8fd710a72badc85198f7472'
 
     _GEO_BYPASS = False
     _NETRC_MACHINE = 'viki'
@@ -46,47 +48,50 @@ class VikiBaseIE(InfoExtractor):
         'paywall': 'Sorry, this content is only available to Viki Pass Plus subscribers',
     }
 
-    def _prepare_call(self, path, timestamp=None, post_data=None):
+    def _prepare_call(self, path, timestamp=None):
         path += '?' if '?' not in path else '&'
         if not timestamp:
             timestamp = int(time.time())
-        query = self._API_QUERY_TEMPLATE % (path, self._APP, timestamp)
+            
+        query = self._API_QUERY_TEMPLATE % (self._API_VER_5, path, self._APP)
         if self._token:
             query += '&token=%s' % self._token
         sig = hmac.new(
-            self._APP_SECRET.encode('ascii'),
-            query.encode('ascii'),
+            self._APP_SECRET.encode('ascii'), f'{query}&t={timestamp}'.encode('ascii'),
             hashlib.sha1
         ).hexdigest()
-        url = self._API_URL_TEMPLATE % (query, sig)
-        return sanitized_Request(
-            url, json.dumps(post_data).encode('utf-8')) if post_data else url
 
-    def _call_api(self, path, video_id, note, timestamp=None, post_data=None):
-        resp = self._download_json(
-            self._prepare_call(path, timestamp, post_data),
-            video_id, note,
-            headers={
-                'x-client-user-agent': std_headers['User-Agent'],
-                'x-viki-as-id': self._APP,
-                'x-viki-app-ver': self._APP_VERSION,
-            })
+        api = self._API_URL_TEMPLATE % query
+        return api, sig
+
+    def _call_api(self, path, video_id, note, post_data=None):
+        timestamp = int(time.time())
+        url, sig = self._prepare_call(path, timestamp)
+            
+        if post_data:
+            headers = {'x-viki-app-ver': self._APP_VERSION}
+        else:
+            
+            #this is required headers for android api. But this can be change as well
+            headers = {
+                'X-Viki-manufacturer': 'vivo',
+                'X-Viki-device-model': 'vivo 1606',
+                'X-Viki-device-os-ver': '6.0.1',
+                'X-Viki-connection-type': 'CELLULAR',
+                'X-Viki-carrier': 'GLOBE',
+                'X-Viki-as-id': '100005a-1625321982-3932',
+            }
+
+            headers.update({
+                'timestamp': str(timestamp),
+                'signature': str(sig),
+                'x-viki-app-ver': self._APP_VERSION})
+        
+        resp = self._download_json(url, video_id, note, data=json.dumps(post_data).encode('utf-8') if post_data else None, headers=headers, errnote=None)
 
         error = resp.get('error')
         if error:
-            if error == 'invalid timestamp':
-                resp = self._download_json(
-                    self._prepare_call(path, int(resp['current_timestamp']), post_data),
-                    video_id, '%s (retry)' % note,
-                    headers={
-                        'x-client-user-agent': std_headers['User-Agent'],
-                        'x-viki-as-id': self._APP,
-                        'x-viki-app-ver': self._APP_VERSION,
-                    })
-                error = resp.get('error')
-            if error:
-                self._raise_error(resp['error'])
-
+            self._raise_error(resp['error'])
         return resp
 
     def _raise_error(self, error):
@@ -114,7 +119,7 @@ class VikiBaseIE(InfoExtractor):
             return
 
         login_form = {
-            'login_id': username,
+            'username': username,
             'password': password,
         }
 
@@ -264,16 +269,26 @@ class VikiIE(VikiBaseIE):
         },
     }]
 
+    def search_another_mpd_url(self, mpd_url, video_id):
+        mpd_content = self._download_webpage(mpd_url, video_id, note='Checking for another mpd url')
+        #Usually for flat manifest, 1080p is hidden in another mpd which can be found in the current manifest content
+        url = re.search(r'<BaseURL>(http.+.mpd)', mpd_content, re.M | re.IGNORECASE)
+        if url is None:
+            return mpd_url
+        
+        new_mpd_url = url.group(1) 
+        return new_mpd_url 
+    
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        resp = self._download_json(
+        metadata = self._download_json(
             'https://www.viki.com/api/videos/' + video_id,
             video_id, 'Downloading video JSON', headers={
                 'x-client-user-agent': std_headers['User-Agent'],
-                'x-viki-app-ver': '3.0.0',
+                'x-viki-app-ver': self._APP_VERSION,
             })
-        video = resp['video']
+        video = metadata['video']
 
         self._check_errors(video)
 
@@ -295,15 +310,7 @@ class VikiIE(VikiBaseIE):
                 'id': thumbnail_id,
                 'url': thumbnail.get('url'),
             })
-
-        subtitles = {}
-        for subtitle_lang, _ in (video.get('subtitle_completions') or {}).items():
-            subtitles[subtitle_lang] = [{
-                'ext': subtitles_format,
-                'url': self._prepare_call(
-                    'videos/%s/subtitles/%s.%s' % (video_id, subtitle_lang, subtitles_format)),
-            } for subtitles_format in ('srt', 'vtt')]
-
+        
         result = {
             'id': video_id,
             'title': title,
@@ -315,83 +322,36 @@ class VikiIE(VikiBaseIE):
             'like_count': like_count,
             'age_limit': parse_age_limit(video.get('rating')),
             'thumbnails': thumbnails,
-            'subtitles': subtitles,
+            'subtitles': None,
             'episode_number': episode_number,
         }
+        
+        stream_url = 'playback_streams/%s.json?drms=dt1,dt2&device_id=86085977d&token=%s' % (video_id,  self._token)
+        resp = self._call_api(stream_url, video_id,'Downloading video streams JSON')
 
+        stream_id = resp['main'][0]['properties']['track']['stream_id']
+        
+        subtitle_format = 'https://api.viki.io/v4/videos/%s/auth_subtitles/%s.%s?app=%s&stream_id=%s'
+        subtitles = {}
+        for subtitle_lang, _ in (video.get('subtitle_completions') or {}).items():
+
+            subtitles[subtitle_lang] = [{
+                'ext': subtitles_format,
+                'url': subtitle_format % (video_id, subtitle_lang, subtitle_format, self._APP, stream_id)
+            } for subtitles_format in ('srt', 'vtt')]
+
+        mpd_url = self.search_another_mpd_url(resp['main'][0]['url'], video_id)
+
+        '''
+        NOTE: audio formats should be sorted by height which can get from audio dash url.
+        '''
         formats = []
-
-        def add_format(format_id, format_dict, protocol='http'):
-            # rtmps URLs does not seem to work
-            if protocol == 'rtmps':
-                return
-            format_url = format_dict.get('url')
-            if not format_url:
-                return
-            qs = compat_parse_qs(compat_urllib_parse_urlparse(format_url).query)
-            stream = qs.get('stream', [None])[0]
-            if stream:
-                format_url = base64.b64decode(stream).decode()
-            if format_id in ('m3u8', 'hls'):
-                m3u8_formats = self._extract_m3u8_formats(
-                    format_url, video_id, 'mp4',
-                    entry_protocol='m3u8_native',
-                    m3u8_id='m3u8-%s' % protocol, fatal=False)
-                # Despite CODECS metadata in m3u8 all video-only formats
-                # are actually video+audio
-                for f in m3u8_formats:
-                    if not self.get_param('allow_unplayable_formats') and '_drm/index_' in f['url']:
-                        continue
-                    if f.get('acodec') == 'none' and f.get('vcodec') != 'none':
-                        f['acodec'] = None
-                    formats.append(f)
-            elif format_id in ('mpd', 'dash'):
-                formats.extend(self._extract_mpd_formats(
-                    format_url, video_id, 'mpd-%s' % protocol, fatal=False))
-            elif format_url.startswith('rtmp'):
-                mobj = re.search(
-                    r'^(?P<url>rtmp://[^/]+/(?P<app>.+?))/(?P<playpath>mp4:.+)$',
-                    format_url)
-                if not mobj:
-                    return
-                formats.append({
-                    'format_id': 'rtmp-%s' % format_id,
-                    'ext': 'flv',
-                    'url': mobj.group('url'),
-                    'play_path': mobj.group('playpath'),
-                    'app': mobj.group('app'),
-                    'page_url': url,
-                })
-            else:
-                urlh = self._request_webpage(
-                    HEADRequest(format_url), video_id, 'Checking file size', fatal=False)
-                formats.append({
-                    'url': format_url,
-                    'format_id': '%s-%s' % (format_id, protocol),
-                    'height': int_or_none(self._search_regex(
-                        r'^(\d+)[pP]$', format_id, 'height', default=None)),
-                    'filesize': int_or_none(urlh.headers.get('Content-Length')),
-                })
-
-        for format_id, format_dict in (resp.get('streams') or {}).items():
-            add_format(format_id, format_dict)
-        if not formats:
-            streams = self._call_api(
-                'videos/%s/streams.json' % video_id, video_id,
-                'Downloading video streams JSON')
-
-            if 'external' in streams:
-                result.update({
-                    '_type': 'url_transparent',
-                    'url': streams['external']['url'],
-                })
-                return result
-
-            for format_id, stream_dict in streams.items():
-                for protocol, format_dict in stream_dict.items():
-                    add_format(format_id, format_dict, protocol)
+        formats.append({
+            'url': mpd_url,
+            'format_id': '%s-%s' % ('dash', 'https'),
+        })
+        formats.extend(self._extract_mpd_formats(mpd_url, video_id))
         self._sort_formats(formats)
-
         result['formats'] = formats
         return result
 
