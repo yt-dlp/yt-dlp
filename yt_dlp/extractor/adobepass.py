@@ -1564,7 +1564,7 @@ class AdobePassIE(InfoExtractor):
                             'RelayState': relay_state,
                         }), headers={
                             'Content-Type': 'application/x-www-form-urlencoded'
-                        }) 
+                        })
                 else:
                     # Some providers (e.g. DIRECTV NOW) have another meta refresh
                     # based redirect that should be followed.
