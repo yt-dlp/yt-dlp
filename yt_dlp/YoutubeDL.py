@@ -392,11 +392,9 @@ class YoutubeDL(object):
                        if True, otherwise use ffmpeg/avconv if False, otherwise
                        use downloader suggested by extractor if None.
     compat_opts:       Compatibility options. See "Differences in default behavior".
-                       Note that only format-sort, format-spec, no-live-chat,
-                       no-attach-info-json, playlist-index, list-formats,
-                       no-direct-merge, embed-thumbnail-atomicparsley,
-                       no-youtube-unavailable-videos, no-youtube-channel-redirect,
-                       works when used via the API
+                       The following options do not work when used through the API:
+                       filename, abort-on-error, multistreams, no-live-chat,
+                       no-playlist-metafiles. Refer __init__.py for their implementation
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
