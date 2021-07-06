@@ -311,21 +311,7 @@ class VikiIE(VikiBaseIE):
                 'url': thumbnail.get('url'),
             })
         
-        result = {
-            'id': video_id,
-            'title': title,
-            'description': description,
-            'duration': int_or_none(video.get('duration')),
-            'timestamp': parse_iso8601(video.get('created_at')),
-            'uploader': video.get('author'),
-            'uploader_url': video.get('author_url'),
-            'like_count': like_count,
-            'age_limit': parse_age_limit(video.get('rating')),
-            'thumbnails': thumbnails,
-            'subtitles': None,
-            'episode_number': episode_number,
-        }
-        
+ 
         stream_url = 'playback_streams/%s.json?drms=dt1,dt2&device_id=86085977d&token=%s' % (video_id,  self._token)
         resp = self._call_api(stream_url, video_id,'Downloading video streams JSON')
 
@@ -352,6 +338,23 @@ class VikiIE(VikiBaseIE):
         })
         formats.extend(self._extract_mpd_formats(mpd_url, video_id))
         self._sort_formats(formats)
+        
+        
+        result = {
+            'id': video_id,
+            'title': title,
+            'description': description,
+            'duration': int_or_none(video.get('duration')),
+            'timestamp': parse_iso8601(video.get('created_at')),
+            'uploader': video.get('author'),
+            'uploader_url': video.get('author_url'),
+            'like_count': like_count,
+            'age_limit': parse_age_limit(video.get('rating')),
+            'thumbnails': thumbnails,
+            'subtitles': subtitles,
+            'episode_number': episode_number,
+        }
+        
         result['formats'] = formats
         return result
 
