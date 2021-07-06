@@ -7,7 +7,8 @@ from ..compat import compat_str
 from ..utils import (
     parse_iso8601,
     ExtractorError,
-    try_get
+    try_get,
+    mimetype2ext
 )
 
 
@@ -38,16 +39,54 @@ class FancodeVodIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _ACCESS_TOKEN = None
+    _REFRESH_TOKEN = None
+    _NETRC_MACHINE = 'fancode'
+
+    headers = {
+        'content-type': 'application/json',
+        'origin': 'https://fancode.com',
+        'referer': 'https://fancode.com',
+    }
+
+    def _login(self):
+        # Access tokens are shortlived, so get them using the refresh token.
+        username, password = self._get_login_info()
+        if username == 'refresh' and password is not None:
+            self.report_login()
+            data = '''{
+                "query":"mutation RefreshToken($refreshToken: String\\u0021) { refreshToken(refreshToken: $refreshToken) { accessToken }}",
+                "variables":{
+                    "refreshToken":"%s"
+                },
+                "operationName":"RefreshToken"
+            }''' % password
+
+            token_json = self.download_gql('refresh token', data, "Getting the Access token")
+            self._ACCESS_TOKEN = try_get(token_json, lambda x: x['data']['refreshToken']['accessToken'])
+            if self._ACCESS_TOKEN is None:
+                raise ExtractorError('Failed to get Access token')
+            else:
+                self._REFRESH_TOKEN = password
+                self.headers.update({'Authorization': 'Bearer %s' % self._ACCESS_TOKEN})
+        else:
+            pass
+
+    def _real_initialize(self):
+        self._login()
+
+    def download_gql(self, variable, data, note, fatal=False, headers=headers):
+        return self._download_json(
+            'https://www.fancode.com/graphql', variable,
+            data=data.encode(), note=note,
+            headers=headers, fatal=fatal)
+
     def _real_extract(self, url):
 
         BRIGHTCOVE_URL_TEMPLATE = 'https://players.brightcove.net/%s/default_default/index.html?videoId=%s'
-
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        brightcove_user_id = self._html_search_regex(
-            r'(?:https?://)?players\.brightcove\.net/(\d+)/default_default/index(?:\.min)?\.js',
-            webpage, 'user id')
 
+        brightcove_user_id = '6008340455001'
         data = '''{
             "query":"query Video($id: Int\\u0021, $filter: SegmentFilter) { media(id: $id, filter: $filter) { id contentId title contentId publishedTime totalViews totalUpvotes provider thumbnail { src } mediaSource {brightcove } duration isPremium isUserEntitled tags duration }}",
             "variables":{
@@ -57,15 +96,9 @@ class FancodeVodIE(InfoExtractor):
                 }
             },
             "operationName":"Video"
-            }''' % video_id
+        }''' % video_id
 
-        metadata_json = self._download_json(
-            'https://www.fancode.com/graphql', video_id, data=data.encode(), note='Downloading metadata',
-            headers={
-                'content-type': 'application/json',
-                'origin': 'https://fancode.com',
-                'referer': url,
-            })
+        metadata_json = self.download_gql(video_id, data, note='Downloading metadata')
 
         media = try_get(metadata_json, lambda x: x['data']['media'], dict) or {}
         brightcove_video_id = try_get(media, lambda x: x['mediaSource']['brightcove'], compat_str)
@@ -74,8 +107,12 @@ class FancodeVodIE(InfoExtractor):
             raise ExtractorError('Unable to extract brightcove Video ID')
 
         is_premium = media.get('isPremium')
-        if is_premium:
-            self.report_warning('this video requires a premium account', video_id)
+        is_available = media.get('isUserEntitled')
+
+        if is_premium and self._ACCESS_TOKEN is None:
+            self.raise_login_required()
+        if not is_available and self._ACCESS_TOKEN is not None:
+            self.raise_login_required("This video isn't available to the current logged in account")
 
         return {
             '_type': 'url_transparent',
@@ -88,4 +125,63 @@ class FancodeVodIE(InfoExtractor):
             'tags': media.get('tags'),
             'release_timestamp': parse_iso8601(media.get('publishedTime')),
             'availability': self._availability(needs_premium=is_premium),
+        }
+
+
+class FancodeLiveIE(FancodeVodIE):
+    IE_NAME = 'fancode:live'
+
+    _VALID_URL = r'https?://(www\.)?fancode\.com/match/(?P<id>[0-9]+).+'
+
+    _TESTS = [{
+        'url': 'https://fancode.com/match/35328/cricket-fancode-ecs-hungary-2021-bub-vs-blb?slug=commentary',
+        'info_dict': {
+            'id': '35328',
+            'ext': 'mp4',
+            'title': 'BUB vs BLB',
+            "timestamp": 1624863600,
+            'is_live': True,
+            'upload_date': '20210628',
+        },
+        'skip': 'Ended'
+    }, {
+        'url': 'https://fancode.com/match/35328/',
+        'only_matching': True,
+    }, {
+        'url': 'https://fancode.com/match/35567?slug=scorecard',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+
+        id = self._match_id(url)
+        data = '''{
+            "query":"query MatchResponse($id: Int\\u0021, $isLoggedIn: Boolean\\u0021) { match: matchWithScores(id: $id) { id matchDesc mediaId videoStreamId videoStreamUrl { ...VideoSource } liveStreams { videoStreamId videoStreamUrl { ...VideoSource } contentId } name startTime streamingStatus isPremium isUserEntitled @include(if: $isLoggedIn) status metaTags bgImage { src } sport { name slug } tour { id name } squads { name shortName } liveStreams { contentId } mediaId }}fragment VideoSource on VideoSource { title description posterUrl url deliveryType playerType}",
+            "variables":{
+                "id":%s,
+                "isLoggedIn":true
+            },
+            "operationName":"MatchResponse"
+        }''' % id
+
+        info_json = self.download_gql(id, data, "Info json")
+
+        match_info = try_get(info_json, lambda x: x['data']['match'])
+
+        is_available = match_info.get('isUserEntitled')
+        # No need to check isPremium, all live streams are premium only
+
+        if not is_available and self._ACCESS_TOKEN is not None:
+            self.raise_login_required('This video isn\'t available to the current logged in account')
+
+        if match_info.get('status') != "LIVE":
+            raise ExtractorError('The stream can\'t be accessed', expected=True)
+
+        return {
+            'id': id,
+            'title': match_info.get('name'),
+            'formats': self._extract_akamai_formats(try_get(match_info, lambda x: x['videoStreamUrl']['url']), id),
+            'ext': mimetype2ext(try_get(match_info, lambda x: x['videoStreamUrl']['deliveryType'])),
+            'is_live': True,
+            'release_timestamp': parse_iso8601(match_info.get('startTime'))
         }
