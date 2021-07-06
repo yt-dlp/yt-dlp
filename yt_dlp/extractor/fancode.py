@@ -40,7 +40,6 @@ class FancodeVodIE(InfoExtractor):
     }]
 
     _ACCESS_TOKEN = None
-    _REFRESH_TOKEN = None
     _NETRC_MACHINE = 'fancode'
 
     headers = {
@@ -65,12 +64,11 @@ class FancodeVodIE(InfoExtractor):
             token_json = self.download_gql('refresh token', data, "Getting the Access token")
             self._ACCESS_TOKEN = try_get(token_json, lambda x: x['data']['refreshToken']['accessToken'])
             if self._ACCESS_TOKEN is None:
-                raise ExtractorError('Failed to get Access token')
+                self.report_warning('Failed to get Access token')
             else:
-                self._REFRESH_TOKEN = password
                 self.headers.update({'Authorization': 'Bearer %s' % self._ACCESS_TOKEN})
         else:
-            pass
+            self.report_warning('Usage:- yt-dlp -u refresh -p <refresh_token>')
 
     def _real_initialize(self):
         self._login()
@@ -110,7 +108,7 @@ class FancodeVodIE(InfoExtractor):
         is_available = media.get('isUserEntitled')
 
         if is_premium and self._ACCESS_TOKEN is None:
-            self.raise_login_required()
+            self.raise_login_required(method='yt-dlp -u "refresh" -p <refresh_token>')
         if not is_available and self._ACCESS_TOKEN is not None:
             self.raise_login_required("This video isn't available to the current logged in account")
 
