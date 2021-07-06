@@ -6,12 +6,13 @@ import re
 import string
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_str
+from ..compat import compat_HTTPError
 from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
     js_to_json,
+    str_or_none,
     try_get,
     urlencode_postdata,
     ExtractorError,
@@ -243,7 +244,7 @@ class FunimationIE(InfoExtractor):
             'episode_id': episode_id,
             'season': season.get('seasonTitle'),
             'season_number': int_or_none(season.get('seasonId')),
-            'season_id': compat_str(season.get('seasonPk')),
+            'season_id': str_or_none(season.get('seasonPk')),
             'series': show.get('showTitle'),
             'formats': formats,
             'thumbnails': thumbnails,
