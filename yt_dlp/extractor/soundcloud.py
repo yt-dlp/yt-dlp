@@ -321,20 +321,21 @@ class SoundcloudIE(InfoExtractor):
         if username is None:
             return
 
-        if username == 'oauth':
-            if password:
-                self._access_token = password
-                query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
-                payload = {'session': {'access_token': self._access_token}}
-                token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
-                response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
-                if response is not False:
-                    self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
-                    self.report_login()
-                else:
-                    self.report_warning('Provided authorization token seems to be invalid. Continue as guest.')
+        if username == 'oauth' and password is not None:
+            self._access_token = password
+            query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
+            payload = {'session': {'access_token': self._access_token}}
+            token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
+            response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
+            if response is not False:
+                self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
+                self.report_login()
             else:
-                self.report_warning('No token for authentication provided!')
+                self.report_warning('Provided authorization token seems to be invalid. Continue as guest')
+        elif username is not None:
+            self.report_warning(
+                'Login using username and password is not currently supported. '
+                'Use "--user oauth --password <oauth_token>" to login using an oauth token')
 
         r'''
         def genDevId():
