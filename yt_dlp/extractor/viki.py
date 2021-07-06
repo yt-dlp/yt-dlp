@@ -32,7 +32,7 @@ class VikiBaseIE(InfoExtractor):
     _API_URL_TEMPLATE = 'https://api.viki.io%s'
 
     _API_VER_5 = 'v5'
-    _API_VER_4 = 'v4'
+    _DEVICE_ID = '86085977d' #use for android api
     _APP = '100005a'
     _APP_VERSION = '6.11.3'
     _APP_SECRET = 'd96704b180208dbb2efa30fe44c48bd8690441af9f567ba8fd710a72badc85198f7472'
@@ -71,7 +71,6 @@ class VikiBaseIE(InfoExtractor):
         if post_data:
             headers = {'x-viki-app-ver': self._APP_VERSION}
         else:
-            
             #this is required headers for android api. But this can be change as well
             headers = {
                 'X-Viki-manufacturer': 'vivo',
@@ -311,9 +310,8 @@ class VikiIE(VikiBaseIE):
                 'url': thumbnail.get('url'),
             })
         
- 
-        stream_url = 'playback_streams/%s.json?drms=dt1,dt2&device_id=86085977d&token=%s' % (video_id,  self._token)
-        resp = self._call_api(stream_url, video_id,'Downloading video streams JSON')
+        stream_url = 'playback_streams/%s.json?drms=dt1,dt2&device_id=%s&token=%s' % (video_id, self._DEVICE_ID, self._token)
+        resp = self._call_api(stream_url, video_id, 'Downloading video streams JSON')
 
         stream_id = resp['main'][0]['properties']['track']['stream_id']
         
