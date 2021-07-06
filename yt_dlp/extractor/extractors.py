@@ -461,7 +461,8 @@ from .frontendmasters import (
 from .fujitv import FujiTVFODPlus7IE
 from .funimation import (
     FunimationIE,
-    FunimationShowIE
+    FunimationPageIE,
+    FunimationShowIE,
 )
 from .funk import FunkIE
 from .fusion import FusionIE
@@ -1066,6 +1067,10 @@ from .rcs import (
     RCSIE,
     RCSEmbedsIE,
     RCSVariousIE,
+)
+from .rcti import (
+    RCTIPlusIE,
+    RCTIPlusSeriesIE,
 )
 from .rds import RDSIE
 from .redbulltv import (

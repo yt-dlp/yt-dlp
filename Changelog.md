@@ -24,7 +24,7 @@
 * Merge youtube-dl: Upto [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)
 * **Add option `--throttled-rate`** below which video data is re-extracted
 * [fragment] **Merge during download for `-N`**, and refactor `hls`/`dash`
-* [websockets] Add `WebSocketFragmentFD`by [nao20010128nao](https://github.com/nao20010128nao), [pukkandan](https://github.com/pukkandan)
+* [websockets] Add `WebSocketFragmentFD` by [nao20010128nao](https://github.com/nao20010128nao), [pukkandan](https://github.com/pukkandan)
 * Allow `images` formats in addition to video/audio
 * [downloader/mhtml] Add new downloader for slideshows/storyboards by [fstirlitz](https://github.com/fstirlitz)
 * [youtube] Temporary **fix for age-gate**

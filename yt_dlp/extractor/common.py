@@ -1038,7 +1038,9 @@ class InfoExtractor(object):
             metadata_available=False, method='any'):
         if metadata_available and self.get_param('ignore_no_formats_error'):
             self.report_warning(msg)
-        raise ExtractorError('%s. %s' % (msg, self._LOGIN_HINTS[method]), expected=True)
+        if method is not None:
+            msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
+        raise ExtractorError(msg, expected=True)
 
     def raise_geo_restricted(
             self, msg='This video is not available from your location due to geo restriction',
@@ -1979,24 +1981,33 @@ class InfoExtractor(object):
             preference=None, quality=None, m3u8_id=None, live=False, note=None,
             errnote=None, fatal=True, data=None, headers={}, query={},
             video_id=None):
+        formats, subtitles = [], {}
 
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
-            return [], {}
+            return formats, subtitles
 
         if (not self.get_param('allow_unplayable_formats')
                 and re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)):  # Apple FairPlay
-            return [], {}
+            return formats, subtitles
 
-        formats = []
+        def format_url(url):
+            return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)
 
-        subtitles = {}
+        if self.get_param('hls_split_discontinuity', False):
+            def _extract_m3u8_playlist_indices(manifest_url=None, m3u8_doc=None):
+                if not m3u8_doc:
+                    if not manifest_url:
+                        return []
+                    m3u8_doc = self._download_webpage(
+                        manifest_url, video_id, fatal=fatal, data=data, headers=headers,
+                        note=False, errnote='Failed to download m3u8 playlist information')
+                    if m3u8_doc is False:
+                        return []
+                return range(1 + sum(line.startswith('#EXT-X-DISCONTINUITY') for line in m3u8_doc.splitlines()))
 
-        format_url = lambda u: (
-            u
-            if re.match(r'^https?://', u)
-            else compat_urlparse.urljoin(m3u8_url, u))
-
-        split_discontinuity = self.get_param('hls_split_discontinuity', False)
+        else:
+            def _extract_m3u8_playlist_indices(*args, **kwargs):
+                return [None]
 
         # References:
         # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-21
@@ -2014,68 +2025,16 @@ class InfoExtractor(object):
         # media playlist and MUST NOT appear in master playlist thus we can
         # clearly detect media playlist with this criterion.
 
-        def _extract_m3u8_playlist_formats(format_url=None, m3u8_doc=None, video_id=None,
-                                           fatal=True, data=None, headers={}):
-            if not m3u8_doc:
-                if not format_url:
-                    return []
-                res = self._download_webpage_handle(
-                    format_url, video_id,
-                    note=False,
-                    errnote='Failed to download m3u8 playlist information',
-                    fatal=fatal, data=data, headers=headers)
-
-                if res is False:
-                    return []
-
-                m3u8_doc, urlh = res
-                format_url = urlh.geturl()
-
-            playlist_formats = []
-            i = (
-                0
-                if split_discontinuity
-                else None)
-            format_info = {
-                'index': i,
-                'key_data': None,
-                'files': [],
-            }
-            for line in m3u8_doc.splitlines():
-                if not line.startswith('#'):
-                    format_info['files'].append(line)
-                elif split_discontinuity and line.startswith('#EXT-X-DISCONTINUITY'):
-                    i += 1
-                    playlist_formats.append(format_info)
-                    format_info = {
-                        'index': i,
-                        'url': format_url,
-                        'files': [],
-                    }
-            playlist_formats.append(format_info)
-            return playlist_formats
-
         if '#EXT-X-TARGETDURATION' in m3u8_doc:  # media playlist, return as is
-
-            playlist_formats = _extract_m3u8_playlist_formats(m3u8_doc=m3u8_doc)
-
-            for format in playlist_formats:
-                format_id = []
-                if m3u8_id:
-                    format_id.append(m3u8_id)
-                format_index = format.get('index')
-                if format_index:
-                    format_id.append(str(format_index))
-                f = {
-                    'format_id': '-'.join(format_id),
-                    'format_index': format_index,
-                    'url': m3u8_url,
-                    'ext': ext,
-                    'protocol': entry_protocol,
-                    'preference': preference,
-                    'quality': quality,
-                }
-                formats.append(f)
+            formats = [{
+                'format_id': '-'.join(map(str, filter(None, [m3u8_id, idx]))),
+                'format_index': idx,
+                'url': m3u8_url,
+                'ext': ext,
+                'protocol': entry_protocol,
+                'preference': preference,
+                'quality': quality,
+            } for idx in _extract_m3u8_playlist_indices(m3u8_doc=m3u8_doc)]
 
             return formats, subtitles
 
@@ -2115,32 +2074,19 @@ class InfoExtractor(object):
             media_url = media.get('URI')
             if media_url:
                 manifest_url = format_url(media_url)
-                format_id = []
-                playlist_formats = _extract_m3u8_playlist_formats(manifest_url, video_id=video_id,
-                                                                  fatal=fatal, data=data, headers=headers)
-
-                for format in playlist_formats:
-                    format_index = format.get('index')
-                    for v in (m3u8_id, group_id, name):
-                        if v:
-                            format_id.append(v)
-                    if format_index:
-                        format_id.append(str(format_index))
-                    f = {
-                        'format_id': '-'.join(format_id),
-                        'format_note': name,
-                        'format_index': format_index,
-                        'url': manifest_url,
-                        'manifest_url': m3u8_url,
-                        'language': media.get('LANGUAGE'),
-                        'ext': ext,
-                        'protocol': entry_protocol,
-                        'preference': preference,
-                        'quality': quality,
-                    }
-                    if media_type == 'AUDIO':
-                        f['vcodec'] = 'none'
-                    formats.append(f)
+                formats.extend({
+                    'format_id': '-'.join(map(str, filter(None, (m3u8_id, group_id, name, idx)))),
+                    'format_note': name,
+                    'format_index': idx,
+                    'url': manifest_url,
+                    'manifest_url': m3u8_url,
+                    'language': media.get('LANGUAGE'),
+                    'ext': ext,
+                    'protocol': entry_protocol,
+                    'preference': preference,
+                    'quality': quality,
+                    'vcodec': 'none' if media_type == 'AUDIO' else None,
+                } for idx in _extract_m3u8_playlist_indices(manifest_url))
 
         def build_stream_name():
             # Despite specification does not mention NAME attribute for
@@ -2179,25 +2125,17 @@ class InfoExtractor(object):
                     or last_stream_inf.get('BANDWIDTH'), scale=1000)
                 manifest_url = format_url(line.strip())
 
-                playlist_formats = _extract_m3u8_playlist_formats(manifest_url, video_id=video_id,
-                                                                  fatal=fatal, data=data, headers=headers)
-
-                for frmt in playlist_formats:
-                    format_id = []
-                    if m3u8_id:
-                        format_id.append(m3u8_id)
-                    format_index = frmt.get('index')
-                    stream_name = build_stream_name()
+                for idx in _extract_m3u8_playlist_indices(manifest_url):
+                    format_id = [m3u8_id, None, idx]
                     # Bandwidth of live streams may differ over time thus making
                     # format_id unpredictable. So it's better to keep provided
                     # format_id intact.
                     if not live:
-                        format_id.append(stream_name if stream_name else '%d' % (tbr if tbr else len(formats)))
-                    if format_index:
-                        format_id.append(str(format_index))
+                        stream_name = build_stream_name()
+                        format_id[1] = stream_name if stream_name else '%d' % (tbr if tbr else len(formats))
                     f = {
-                        'format_id': '-'.join(format_id),
-                        'format_index': format_index,
+                        'format_id': '-'.join(map(str, filter(None, format_id))),
+                        'format_index': idx,
                         'url': manifest_url,
                         'manifest_url': m3u8_url,
                         'tbr': tbr,
@@ -3506,16 +3444,8 @@ class InfoExtractor(object):
         return ret
 
     @classmethod
-    def _merge_subtitles(cls, *dicts, **kwargs):
+    def _merge_subtitles(cls, *dicts, target=None):
         """ Merge subtitle dictionaries, language by language. """
-
-        target = (lambda target=None: target)(**kwargs)
-        # The above lambda extracts the keyword argument 'target' from kwargs
-        # while ensuring there are no stray ones. When Python 2 support
-        # is dropped, remove it and change the function signature to:
-        #
-        #     def _merge_subtitles(cls, *dicts, target=None):
-
         if target is None:
             target = {}
         for d in dicts:
