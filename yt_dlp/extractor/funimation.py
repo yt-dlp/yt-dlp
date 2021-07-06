@@ -117,7 +117,7 @@ class FunimationIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'm3u8',
-            'compat_opts': ['funimation-single-player'],
+            'compat_opts': ['seperate-video-versions'],
         },
     }]
 
@@ -180,7 +180,7 @@ class FunimationIE(InfoExtractor):
 
         formats, subtitles, thumbnails, duration = [], {}, [], 0
         requested_languages, requested_versions = self._configuration_arg('language'), self._configuration_arg('version')
-        only_initial_experience = 'funimation-single-player' in self.get_param('compat_opts', [])
+        only_initial_experience = 'seperate-video-versions' in self.get_param('compat_opts', [])
 
         for lang, version, fmt in self._get_experiences(episode):
             experience_id = str(fmt['experienceId'])
