@@ -315,14 +315,13 @@ class SoundcloudIE(InfoExtractor):
     _access_token = None
     _HEADERS = {}
     _NETRC_MACHINE = 'soundcloud'
-    _reserved_usernames = ['token', 'auth', 'oauth', 'bearer', 'authorization']
 
     def _login(self):
         username, password = self._get_login_info()
         if username is None:
             return
 
-        if username in self._reserved_usernames:
+        if username == 'oauth':
             if password:
                 self._access_token = password
                 query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
@@ -337,7 +336,7 @@ class SoundcloudIE(InfoExtractor):
             else:
                 self.report_warning('No token for authentication provided!')
 
-        '''
+        r'''
         def genDevId():
             def genNumBlock():
                 return ''.join([str(random.randrange(10)) for i in range(6)])
@@ -358,11 +357,10 @@ class SoundcloudIE(InfoExtractor):
 
         query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
         login = sanitized_Request(self._API_AUTH_URL_PW % query, json.dumps(payload).encode('utf-8'))
-        response = self._download_json(login, None, fatal=False)
-        if response is not False:
-            self._access_token = response.get('session').get('access_token')
+        response = self._download_json(login, None)
+        self._access_token = response.get('session').get('access_token')
         if not self._access_token:
-            self.report_warning('Unable to get access token, login may has failed. Try cookies/authorization header instead')
+            self.report_warning('Unable to get access token, login may has failed')
         else:
             self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
         '''
@@ -488,7 +486,6 @@ class SoundcloudIE(InfoExtractor):
             format_urls.add(stream_url)
             stream_format = t.get('format') or {}
             protocol = stream_format.get('protocol')
-            # https://api-v2.soundcloud.com/media/soundcloud:tracks:<trackID>/<transcodingIdentifier>/stream/hls
             if protocol != 'hls' and '/hls' in format_url:
                 protocol = 'hls'
             ext = None
