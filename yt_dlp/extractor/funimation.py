@@ -23,40 +23,28 @@ class FunimationPageIE(InfoExtractor):
     IE_NAME = 'funimation:page'
     _VALID_URL = r'(?P<origin>https?://(?:www\.)?funimation(?:\.com|now\.uk))/(?P<lang>[^/]+/)?(?P<path>shows/(?P<id>[^/]+/[^/?#&]+).*$)'
 
-    # TODO: Fix tests
     _TESTS = [{
-        'url': 'https://www.funimation.com/shows/hacksign/role-play/',
-        'info_dict': {
-            'id': '91144',
-            'display_id': 'role-play',
-            'ext': 'mp4',
-            'title': '.hack//SIGN - Role Play',
-            'description': 'md5:b602bdc15eef4c9bbb201bb6e6a4a2dd',
-            'thumbnail': r're:https?://.*\.jpg',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-    }, {
         'url': 'https://www.funimation.com/shows/attack-on-titan-junior-high/broadcast-dub-preview/',
         'info_dict': {
-            'id': '210051',
-            'display_id': 'broadcast-dub-preview',
+            'id': '210050',
             'ext': 'mp4',
-            'title': 'Attack on Titan: Junior High - Broadcast Dub Preview',
-            'thumbnail': r're:https?://.*\.(?:jpg|png)',
+            'title': 'Broadcast Dub Preview',
+            # Other metadata is tested in FunimationIE
         },
         'params': {
-            # m3u8 download
-            'skip_download': True,
+            'skip_download': 'm3u8',
         },
+        'add_ie': ['Funimation'],
     }, {
-        'url': 'https://www.funimationnow.uk/shows/puzzle-dragons-x/drop-impact/simulcast/',
+        # Not available in US
+        'url': 'https://www.funimation.com/shows/hacksign/role-play/',
         'only_matching': True,
     }, {
         # with lang code
         'url': 'https://www.funimation.com/en/shows/hacksign/role-play/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.funimationnow.uk/shows/puzzle-dragons-x/drop-impact/simulcast/',
         'only_matching': True,
     }]
 
@@ -90,18 +78,47 @@ class FunimationIE(InfoExtractor):
     _NETRC_MACHINE = 'funimation'
     _TOKEN = None
 
-    # TODO: Fix test
     _TESTS = [{
         'url': 'https://www.funimation.com/player/210051',
         'info_dict': {
-            'id': '210051',
-            'display_id': 'attack-on-titan-junior-high_broadcast-dub-preview',
+            'id': '210050',
+            'display_id': 'broadcast-dub-preview',
             'ext': 'mp4',
-            'title': 'Attack on Titan: Junior High - Broadcast Dub Preview',
+            'title': 'Broadcast Dub Preview',
             'thumbnail': r're:https?://.*\.(?:jpg|png)',
+            'episode': 'Broadcast Dub Preview',
+            'episode_id': '210050',
+            'season': 'Extras',
+            'season_id': '166038',
+            'season_number': 99,
+            'series': 'Attack on Titan: Junior High',
+            'description': '',
+            'duration': 154,
         },
         'params': {
             'skip_download': 'm3u8',
+        },
+    }, {
+        'note': 'player_id should be extracted with the relevent compat-opt',
+        'url': 'https://www.funimation.com/player/210051',
+        'info_dict': {
+            'id': '210051',
+            'display_id': 'broadcast-dub-preview',
+            'ext': 'mp4',
+            'title': 'Broadcast Dub Preview',
+            'thumbnail': r're:https?://.*\.(?:jpg|png)',
+            'episode': 'Broadcast Dub Preview',
+            'episode_id': '210050',
+            'season': 'Extras',
+            'season_id': '166038',
+            'season_number': 99,
+            'series': 'Attack on Titan: Junior High',
+            'description': '',
+            'duration': 154,
+        },
+        'params': {
+            'skip_download': 'm3u8',
+            'compat_opts': ['funimation-single-player'],
         },
     }]
 
@@ -224,7 +241,7 @@ class FunimationIE(InfoExtractor):
             'description': episode.get('episodeSummary'),
             'episode': episode.get('episodeTitle'),
             'episode_number': int_or_none(episode.get('episodeId')),
-            'episode_id': episode.get('slug'),
+            'episode_id': episode_id,
             'season': season.get('seasonTitle'),
             'season_number': int_or_none(season.get('seasonId')),
             'season_id': compat_str(season.get('seasonPk')),
