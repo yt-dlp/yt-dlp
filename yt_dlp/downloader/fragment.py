@@ -402,13 +402,9 @@ class FragmentFD(FileDownloader):
         if can_threaded_download and max_workers > 1:
 
             def _download_fragment(fragment):
-                try:
-                    ctx_copy = ctx.copy()
-                    frag_content, frag_index = download_fragment(fragment, ctx_copy)
-                    return fragment, frag_content, frag_index, ctx_copy.get('fragment_filename_sanitized')
-                except Exception:
-                    # Return immediately on exception so that it is raised in the main thread
-                    return
+                ctx_copy = ctx.copy()
+                frag_content, frag_index = download_fragment(fragment, ctx_copy)
+                return fragment, frag_content, frag_index, ctx_copy.get('fragment_filename_sanitized')
 
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:

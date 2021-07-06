@@ -12,6 +12,7 @@ from ..utils import (
     mimetype2ext,
     parse_codecs,
     update_url_query,
+    urljoin,
     xpath_element,
     xpath_text,
 )
@@ -19,6 +20,7 @@ from ..compat import (
     compat_b64decode,
     compat_ord,
     compat_struct_pack,
+    compat_urlparse,
 )
 
 
@@ -95,9 +97,13 @@ class VideaIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        query = {'v': video_id}
-        player_page = self._download_webpage(
-            'https://videa.hu/player', video_id, query=query)
+
+        video_page = self._download_webpage(url, video_id)
+
+        player_url = self._search_regex(
+            r'<iframe.*?src="(/player\?[^"]+)"', video_page, 'player url')
+        player_url = urljoin(url, player_url)
+        player_page = self._download_webpage(player_url, video_id)
 
         nonce = self._search_regex(
             r'_xt\s*=\s*"([^"]+)"', player_page, 'nonce')
@@ -107,6 +113,7 @@ class VideaIE(InfoExtractor):
         for i in range(0, 32):
             result += s[i - (self._STATIC_SECRET.index(l[i]) - 31)]
 
+        query = compat_urlparse.parse_qs(compat_urlparse.urlparse(player_url).query)
         random_seed = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
         query['_s'] = random_seed
         query['_t'] = result[:16]

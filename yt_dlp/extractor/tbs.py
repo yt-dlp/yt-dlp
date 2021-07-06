@@ -16,7 +16,7 @@ from ..utils import (
 
 
 class TBSIE(TurnerBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<site>tbs|tntdrama)\.com(?P<path>/(?:movies|shows/[^/]+/(?:clips|season-\d+/episode-\d+))/(?P<id>[^/?#]+))'
+    _VALID_URL = r'https?://(?:www\.)?(?P<site>tbs|tntdrama)\.com(?P<path>/(?:movies|watchtnt|shows/[^/]+/(?:clips|season-\d+/episode-\d+))/(?P<id>[^/?#]+))'
     _TESTS = [{
         'url': 'http://www.tntdrama.com/shows/the-alienist/clips/monster',
         'info_dict': {
@@ -45,7 +45,8 @@ class TBSIE(TurnerBaseIE):
         drupal_settings = self._parse_json(self._search_regex(
             r'<script[^>]+?data-drupal-selector="drupal-settings-json"[^>]*?>({.+?})</script>',
             webpage, 'drupal setting'), display_id)
-        video_data = next(v for v in drupal_settings['turner_playlist'] if v.get('url') == path)
+        isLive = 'watchtnt' in path
+        video_data = next(v for v in drupal_settings['turner_playlist'] if isLive or v.get('url') == path)
 
         media_id = video_data['mediaID']
         title = video_data['title']
@@ -56,7 +57,8 @@ class TBSIE(TurnerBaseIE):
             media_id, tokenizer_query, {
                 'url': url,
                 'site_name': site[:3].upper(),
-                'auth_required': video_data.get('authRequired') == '1',
+                'auth_required': video_data.get('authRequired') == '1' or isLive,
+                'is_live': isLive
             })
 
         thumbnails = []
@@ -85,5 +87,6 @@ class TBSIE(TurnerBaseIE):
             'season_number': int_or_none(video_data.get('season')),
             'episode_number': int_or_none(video_data.get('episode')),
             'thumbnails': thumbnails,
+            'is_live': isLive
         })
         return info

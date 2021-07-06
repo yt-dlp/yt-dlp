@@ -377,8 +377,6 @@ class FFmpegFD(ExternalFD):
             # http://trac.ffmpeg.org/ticket/6125#comment:10
             args += ['-seekable', '1' if seekable else '0']
 
-        args += self._configuration_args()
-
         # start_time = info_dict.get('start_time') or 0
         # if start_time:
         #     args += ['-ss', compat_str(start_time)]
@@ -446,7 +444,8 @@ class FFmpegFD(ExternalFD):
 
         for url in urls:
             args += ['-i', url]
-        args += ['-c', 'copy']
+
+        args += self._configuration_args() + ['-c', 'copy']
         if info_dict.get('requested_formats'):
             for (i, fmt) in enumerate(info_dict['requested_formats']):
                 if fmt.get('acodec') != 'none':

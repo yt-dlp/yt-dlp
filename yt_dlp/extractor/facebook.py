@@ -629,16 +629,11 @@ class FacebookIE(InfoExtractor):
 
         process_formats(formats)
 
+        description = self._html_search_meta('description', webpage, default=None)
         video_title = self._html_search_regex(
-            r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>([^<]*)</h2>', webpage,
-            'title', default=None)
-        if not video_title:
-            video_title = self._html_search_regex(
-                r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(.*?)</span>',
-                webpage, 'alternative title', default=None)
-        if not video_title:
-            video_title = self._html_search_meta(
-                'description', webpage, 'title', default=None)
+            (r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>([^<]*)</h2>',
+             r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(.*?)</span>'),
+            webpage, 'title', default=None) or self._og_search_title(webpage, default=None) or description
         if video_title:
             video_title = limit_length(video_title, 80)
         else:
@@ -662,6 +657,7 @@ class FacebookIE(InfoExtractor):
             'formats': formats,
             'uploader': uploader,
             'timestamp': timestamp,
+            'description': description,
             'thumbnail': thumbnail,
             'view_count': view_count,
             'subtitles': subtitles,
