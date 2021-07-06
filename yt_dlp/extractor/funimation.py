@@ -14,7 +14,6 @@ from ..utils import (
     js_to_json,
     try_get,
     urlencode_postdata,
-    urljoin,
     ExtractorError,
 )
 
@@ -180,7 +179,7 @@ class FunimationIE(InfoExtractor):
         display_id = episode.get('slug') or episode_id
 
         formats, subtitles, thumbnails, duration = [], {}, [], 0
-        requested_languages, requested_versions = self._configuration_arg('language'),  self._configuration_arg('version')
+        requested_languages, requested_versions = self._configuration_arg('language'), self._configuration_arg('version')
         only_initial_experience = 'funimation-single-player' in self.get_param('compat_opts', [])
 
         for lang, version, fmt in self._get_experiences(episode):
