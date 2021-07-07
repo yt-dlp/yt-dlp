@@ -25,13 +25,11 @@ from ..utils import (
     try_get,
 )
 
-
 class VikiBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.)?viki\.(?:com|net|mx|jp|fr)/'
-    _API_QUERY_TEMPLATE = '/%s/%sapp=%s'
+    _API_QUERY_TEMPLATE = '/v5/%sapp=%s'
     _API_URL_TEMPLATE = 'https://api.viki.io%s'
-
-    _API_VER_5 = 'v5'
+    
     _DEVICE_ID = '86085977d' #use for android api
     _APP = '100005a'
     _APP_VERSION = '6.11.3'
@@ -48,43 +46,35 @@ class VikiBaseIE(InfoExtractor):
         'paywall': 'Sorry, this content is only available to Viki Pass Plus subscribers',
     }
 
+    def _stream_headers(self, timestamp, sig):
+        return {
+            'X-Viki-manufacturer': 'vivo',
+            'X-Viki-device-model': 'vivo 1606',
+            'X-Viki-device-os-ver': '6.0.1',
+            'X-Viki-connection-type': 'WIFI',
+            'X-Viki-carrier': '',
+            'X-Viki-as-id': '100005a-1625321982-3932',
+            'timestamp': str(timestamp),
+            'signature': str(sig),
+            'x-viki-app-ver': self._APP_VERSION
+        }
+    
     def _prepare_call(self, path, timestamp=None):
         path += '?' if '?' not in path else '&'
         if not timestamp:
             timestamp = int(time.time())
             
-        query = self._API_QUERY_TEMPLATE % (self._API_VER_5, path, self._APP)
+        query = self._API_QUERY_TEMPLATE % (path, self._APP)
         if self._token:
             query += '&token=%s' % self._token
-        sig = hmac.new(
-            self._APP_SECRET.encode('ascii'), f'{query}&t={timestamp}'.encode('ascii'),
-            hashlib.sha1
-        ).hexdigest()
-
-        api = self._API_URL_TEMPLATE % query
-        return api, sig
+        sig = hmac.new(self._APP_SECRET.encode('ascii'), f'{query}&t={timestamp}'.encode('ascii'), hashlib.sha1).hexdigest()
+        return sig, self._API_URL_TEMPLATE % query
 
     def _call_api(self, path, video_id, note, post_data=None):
         timestamp = int(time.time())
-        url, sig = self._prepare_call(path, timestamp)
-            
-        if post_data:
-            headers = {'x-viki-app-ver': self._APP_VERSION}
-        else:
-            #this is required headers for android api. But this can be change as well
-            headers = {
-                'X-Viki-manufacturer': 'vivo',
-                'X-Viki-device-model': 'vivo 1606',
-                'X-Viki-device-os-ver': '6.0.1',
-                'X-Viki-connection-type': 'WIFI',
-                'X-Viki-carrier': '',
-                'X-Viki-as-id': '100005a-1625321982-3932',
-            }
-
-            headers.update({
-                'timestamp': str(timestamp),
-                'signature': str(sig),
-                'x-viki-app-ver': self._APP_VERSION})
+        sig, url = self._prepare_call(path, timestamp)
+        
+        headers = {'x-viki-app-ver': self._APP_VERSION} if post_data else self._stream_headers(timestamp, sig)
         
         resp = self._download_json(url, video_id, note, data=json.dumps(post_data).encode('utf-8') if post_data else None, headers=headers, errnote=None)
 
@@ -117,10 +107,7 @@ class VikiBaseIE(InfoExtractor):
         if username is None:
             return
 
-        login_form = {
-            'username': username,
-            'password': password,
-        }
+        login_form = {'username': username, 'password': password}
 
         login = self._call_api(
             'sessions.json', None,
@@ -324,22 +311,20 @@ class VikiIE(VikiBaseIE):
                 'url': subtitle_format % (video_id, subtitle_lang, subtitle_format, self._APP, stream_id)
             } for subtitles_format in ('srt', 'vtt')]
 
-        mpd_url = self.search_another_mpd_url(resp['main'][0]['url'], video_id)
+        format_url = self.search_another_mpd_url(resp['main'][0]['url'], video_id)
 
-        '''
-        NOTE: audio formats should be sorted by height which can get from audio dash url.
-        '''
         formats = []
         formats.append({
-            'url': mpd_url,
+            'url': format_url,
             'format_id': '%s-%s' % ('dash', 'https'),
         })
-        formats.extend(self._extract_mpd_formats(mpd_url, video_id))
+        formats.extend(self._extract_mpd_formats(format_url, video_id))
         self._sort_formats(formats)
         
         
-        result = {
+        return {
             'id': video_id,
+            'formats': formats,
             'title': title,
             'description': description,
             'duration': int_or_none(video.get('duration')),
@@ -352,10 +337,6 @@ class VikiIE(VikiBaseIE):
             'subtitles': subtitles,
             'episode_number': episode_number,
         }
-        
-        result['formats'] = formats
-        return result
-
 
 class VikiChannelIE(VikiBaseIE):
     IE_NAME = 'viki:channel'
