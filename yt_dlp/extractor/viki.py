@@ -76,8 +76,8 @@ class VikiBaseIE(InfoExtractor):
                 'X-Viki-manufacturer': 'vivo',
                 'X-Viki-device-model': 'vivo 1606',
                 'X-Viki-device-os-ver': '6.0.1',
-                'X-Viki-connection-type': 'CELLULAR',
-                'X-Viki-carrier': 'GLOBE',
+                'X-Viki-connection-type': 'WIFI',
+                'X-Viki-carrier': '',
                 'X-Viki-as-id': '100005a-1625321982-3932',
             }
 
