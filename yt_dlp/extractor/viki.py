@@ -1,27 +1,17 @@
 # coding: utf-8
 from __future__ import unicode_literals
-
-import base64
 import hashlib
 import hmac
-import itertools
 import json
 import re
 import time
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
-    HEADRequest,
     parse_age_limit,
     parse_iso8601,
-    sanitized_Request,
-    std_headers,
     try_get,
 )
 
@@ -67,7 +57,8 @@ class VikiBaseIE(InfoExtractor):
         query = self._API_QUERY_TEMPLATE % (path, self._APP)
         if self._token:
             query += '&token=%s' % self._token
-        sig = hmac.new(self._APP_SECRET.encode('ascii'), f'{query}&t={timestamp}'.encode('ascii'), hashlib.sha1).hexdigest()
+        sig = hmac.new(self._APP_SECRET.encode('ascii'), f'{query}&t={timestamp}'.encode('ascii'), 
+                       hashlib.sha1).hexdigest()
         return sig, self._API_URL_TEMPLATE % query
 
     def _call_api(self, path, video_id, note, post_data=None):
@@ -76,7 +67,7 @@ class VikiBaseIE(InfoExtractor):
         
         headers = {'x-viki-app-ver': self._APP_VERSION} if post_data else self._stream_headers(timestamp, sig)
         
-        resp = self._download_json(url, video_id, note, data=json.dumps(post_data).encode('utf-8') if post_data else None, headers=headers, errnote=None)
+        resp = self._download_json(url, video_id, note, data=json.dumps(post_data).encode('utf-8') if post_data else None, headers=headers)
 
         error = resp.get('error')
         if error:
@@ -95,6 +86,8 @@ class VikiBaseIE(InfoExtractor):
                 if reason == 'geo':
                     self.raise_geo_restricted(msg=message)
                 elif reason == 'paywall':
+                    if data['paywallable']['tvod']:
+                        self._raise_error('TVOD (Transactional Video On demand) or for rent video only')
                     self.raise_login_required(message)
                 raise ExtractorError('%s said: %s' % (
                     self.IE_NAME, message), expected=True)
@@ -255,7 +248,7 @@ class VikiIE(VikiBaseIE):
         },
     }]
 
-    def search_another_mpd_url(self, mpd_url, video_id):
+    def _search_another_mpd_url(self, mpd_url, video_id):
         mpd_content = self._download_webpage(mpd_url, video_id, note='Checking for another mpd url')
         #Usually for flat manifest, 1080p is hidden in another mpd which can be found in the current manifest content
         url = re.search(r'<BaseURL>(http.+.mpd)', mpd_content, re.M | re.IGNORECASE)
@@ -267,17 +260,14 @@ class VikiIE(VikiBaseIE):
     
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        metadata = self._download_json(
-            'https://www.viki.com/api/videos/' + video_id,
-            video_id, 'Downloading video JSON', headers={
-                'x-client-user-agent': std_headers['User-Agent'],
-                'x-viki-app-ver': self._APP_VERSION,
-            })
-        video = metadata['video']
+        
+        #metadata doesn't required any headers
+        video = self._download_json(
+            'https://api.viki.io/v4/videos/%s.json?app=%s&token=%s' % (video_id, self._APP, self._token),
+            video_id, 'Downloading video JSON')  
 
         self._check_errors(video)
-
+        
         title = self.dict_selection(video.get('titles', {}), 'en', allow_fallback=False)
         episode_number = int_or_none(video.get('number'))
         if not title:
@@ -311,7 +301,7 @@ class VikiIE(VikiBaseIE):
                 'url': subtitle_format % (video_id, subtitle_lang, subtitle_format, self._APP, stream_id)
             } for subtitles_format in ('srt', 'vtt')]
 
-        format_url = self.search_another_mpd_url(resp['main'][0]['url'], video_id)
+        format_url = self._search_another_mpd_url(resp['main'][0]['url'], video_id)
 
         formats = []
         formats.append({
@@ -320,8 +310,7 @@ class VikiIE(VikiBaseIE):
         })
         formats.extend(self._extract_mpd_formats(format_url, video_id))
         self._sort_formats(formats)
-        
-        
+
         return {
             'id': video_id,
             'formats': formats,
@@ -374,28 +363,41 @@ class VikiChannelIE(VikiBaseIE):
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
-        channel = self._call_api(
-            'containers/%s.json' % channel_id, channel_id,
-            'Downloading channel JSON')
+        channel = self._call_api('containers/%s.json' % channel_id, channel_id, 'Downloading channel JSON')
 
         self._check_errors(channel)
 
         title = self.dict_selection(channel['titles'], 'en')
-
         description = self.dict_selection(channel['descriptions'], 'en')
-
+        
+        max_page = 30
+        page_num = 1
         entries = []
-        for video_type in ('episodes', 'clips', 'movies'):
-            for page_num in itertools.count(1):
-                page = self._call_api(
-                    'containers/%s/%s.json?per_page=%d&sort=number&direction=asc&with_paging=true&page=%d'
-                    % (channel_id, video_type, self._PER_PAGE, page_num), channel_id,
-                    'Downloading %s JSON page #%d' % (video_type, page_num))
-                for video in page['response']:
-                    video_id = video['id']
-                    entries.append(self.url_result(
-                        'https://www.viki.com/videos/%s' % video_id, 'Viki'))
-                if not page['pagination']['next']:
-                    break
+        
+        is_movie = True if channel['type'] == 'film' else False
+        video_type = 'movies' if is_movie else 'episodes'
+        params = {'app': self._APP, 'token': self._token}
+        
+        #get only video ids
+        while True:
+            if is_movie:
+                params.update({'blocked': 'true', 'only_ids':'true'})
+            else:
+                params.update({
+                    'direction': 'desc', 'sort': 'number', 'only_ids': 'true',
+                    'with_upcoming': 'true', 'page': page_num, 'per_page': max_page,
+                    'with_paging': 'true', 'blocked': 'true', 'with_kcp': 'true',
+                })
 
+            url = self._API_URL_TEMPLATE % '/v4/{}/{}/{}.json?'.format('films' if is_movie else 'series', channel_id, video_type)
+            res = self._download_json(url, channel_id, query=params)
+
+            for video_id in res['response']: 
+                entries.append(self.url_result('https://www.viki.com/videos/%s' % video_id, 'Viki', video_id))
+            
+            if not res['more']:
+                break
+            page_num += 1
+            self.to_screen('Downloading %s JSON page #%d' % (video_type, page_num))
+        
         return self.playlist_result(entries, channel_id, title, description)
