@@ -306,6 +306,7 @@
  - **EyedoTV**
  - **facebook**
  - **FacebookPluginsVideo**
+ - **fancode:live**
  - **fancode:vod**
  - **faz.net**
  - **fc2**
@@ -343,6 +344,8 @@
  - **FrontendMastersLesson**
  - **FujiTVFODPlus7**
  - **Funimation**
+ - **funimation:page**
+ - **funimation:show**
  - **Funk**
  - **Fusion**
  - **Fux**
@@ -808,6 +811,8 @@
  - **RCS**
  - **RCSEmbeds**
  - **RCSVarious**
+ - **RCTIPlus**
+ - **RCTIPlusSeries**
  - **RDS**: RDS.ca
  - **RedBull**
  - **RedBullEmbed**
