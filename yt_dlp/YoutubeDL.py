@@ -1758,6 +1758,7 @@ class YoutubeDL(object):
         def _check_formats(formats):
             if not check_formats:
                 yield from formats
+                return
             for f in formats:
                 self.to_screen('[info] Testing format %s' % f['format_id'])
                 temp_file = tempfile.NamedTemporaryFile(

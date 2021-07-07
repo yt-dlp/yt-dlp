@@ -35,6 +35,9 @@ class YDL(FakeYDL):
     def to_screen(self, msg):
         self.msgs.append(msg)
 
+    def dl(self, *args, **kwargs):
+        assert False, 'Downloader must not be invoked for test_YoutubeDL'
+
 
 def _make_result(formats, **kwargs):
     res = {
@@ -117,35 +120,24 @@ class TestFormatSelection(unittest.TestCase):
         ]
         info_dict = _make_result(formats)
 
-        ydl = YDL({'format': '20/47'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '47')
+        def test(inp, *expected, multi=False):
+            ydl = YDL({
+                'format': inp,
+                'allow_multiple_video_streams': multi,
+                'allow_multiple_audio_streams': multi,
+            })
+            ydl.process_ie_result(info_dict.copy())
+            downloaded = map(lambda x: x['format_id'], ydl.downloaded_info_dicts)
+            self.assertEqual(list(downloaded), list(expected))
 
-        ydl = YDL({'format': '20/71/worst'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '35')
-
-        ydl = YDL()
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '2')
-
-        ydl = YDL({'format': 'webm/mp4'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '47')
-
-        ydl = YDL({'format': '3gp/40/mp4'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '35')
-
-        ydl = YDL({'format': 'example-with-dashes'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], 'example-with-dashes')
+        test('20/47', '47')
+        test('20/71/worst', '35')
+        test(None, '2')
+        test('webm/mp4', '47')
+        test('3gp/40/mp4', '35')
+        test('example-with-dashes', 'example-with-dashes')
+        test('all', '35', 'example-with-dashes', '45', '47', '2')  # Order doesn't actually matter for this
+        test('mergeall', '2+47+45+example-with-dashes+35', multi=True)
 
     def test_format_selection_audio(self):
         formats = [
