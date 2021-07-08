@@ -275,7 +275,7 @@ class VikiIE(VikiBaseIE):
                 f'videos/{video_id}/auth_subtitles/{lang}.{ext}', stream_id=stream_id)
         } for ext in ('srt', 'vtt')]) for lang in (video.get('subtitle_completions') or {}).keys())
 
-        mpd_url = resp['main'][0]['url']
+        mpd_url = resp['url']
         # 1080p is hidden in another mpd which can be found in the current manifest content
         mpd_content = self._download_webpage(mpd_url, video_id, note='Downloading initial MPD manifest')
         mpd_url = self._search_regex(
