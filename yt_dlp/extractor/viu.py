@@ -1,403 +1,397 @@
 # coding: utf-8
 from __future__ import unicode_literals
-
+import hashlib
+import hmac
 import json
 import re
+import time
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_kwargs,
-    compat_str,
-    compat_urlparse,
-    compat_urllib_request,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
+    parse_age_limit,
+    parse_iso8601,
     try_get,
-    smuggle_url,
-    unsmuggle_url,
 )
 
+class VikiBaseIE(InfoExtractor):
+    _VALID_URL_BASE = r'https?://(?:www\.)?viki\.(?:com|net|mx|jp|fr)/'
+    _API_QUERY_TEMPLATE = '/v5/%sapp=%s'
+    _API_URL_TEMPLATE = 'https://api.viki.io%s'
+    
+    _DEVICE_ID = '86085977d' #use for android api
+    _APP = '100005a'
+    _APP_VERSION = '6.11.3'
+    _APP_SECRET = 'd96704b180208dbb2efa30fe44c48bd8690441af9f567ba8fd710a72badc85198f7472'
 
-class ViuBaseIE(InfoExtractor):
+    _GEO_BYPASS = False
+    _NETRC_MACHINE = 'viki'
+
+    _token = None
+
+    _ERRORS = {
+        'geo': 'Sorry, this content is not available in your region.',
+        'upcoming': 'Sorry, this content is not yet available.',
+        'paywall': 'Sorry, this content is only available to Viki Pass Plus subscribers',
+    }
+
+    def _stream_headers(self, timestamp, sig):
+        return {
+            'X-Viki-manufacturer': 'vivo',
+            'X-Viki-device-model': 'vivo 1606',
+            'X-Viki-device-os-ver': '6.0.1',
+            'X-Viki-connection-type': 'WIFI',
+            'X-Viki-carrier': '',
+            'X-Viki-as-id': '100005a-1625321982-3932',
+            'timestamp': str(timestamp),
+            'signature': str(sig),
+            'x-viki-app-ver': self._APP_VERSION
+        }
+    
+    def _prepare_call(self, path, timestamp=None):
+        path += '?' if '?' not in path else '&'
+        if not timestamp:
+            timestamp = int(time.time())
+            
+        query = self._API_QUERY_TEMPLATE % (path, self._APP)
+        if self._token:
+            query += '&token=%s' % self._token
+        sig = hmac.new(self._APP_SECRET.encode('ascii'), f'{query}&t={timestamp}'.encode('ascii'), 
+                       hashlib.sha1).hexdigest()
+        return sig, self._API_URL_TEMPLATE % query
+
+    def _call_api(self, path, video_id, note, post_data=None):
+        timestamp = int(time.time())
+        sig, url = self._prepare_call(path, timestamp)
+        
+        headers = {'x-viki-app-ver': self._APP_VERSION} if post_data else self._stream_headers(timestamp, sig)
+        
+        resp = self._download_json(url, video_id, note, data=json.dumps(post_data).encode('utf-8') if post_data else None, headers=headers)
+
+        error = resp.get('error')
+        if error:
+            self._raise_error(resp['error'])
+        return resp
+
+    def _raise_error(self, error):
+        raise ExtractorError(
+            '%s returned error: %s' % (self.IE_NAME, error),
+            expected=True)
+
+    def _check_errors(self, data):
+        for reason, status in (data.get('blocking') or {}).items():
+            if status and reason in self._ERRORS:
+                message = self._ERRORS[reason]
+                if reason == 'geo':
+                    self.raise_geo_restricted(msg=message)
+                elif reason == 'paywall':
+                    if data['paywallable']['tvod']:
+                        self._raise_error('TVOD (Transactional Video On demand) or for rent video only')
+                    self.raise_login_required(message)
+                raise ExtractorError('%s said: %s' % (
+                    self.IE_NAME, message), expected=True)
+
     def _real_initialize(self):
-        viu_auth_res = self._request_webpage(
-            'https://www.viu.com/api/apps/v2/authenticate', None,
-            'Requesting Viu auth', query={
-                'acct': 'test',
-                'appid': 'viu_desktop',
-                'fmt': 'json',
-                'iid': 'guest',
-                'languageid': 'default',
-                'platform': 'desktop',
-                'userid': 'guest',
-                'useridtype': 'guest',
-                'ver': '1.0'
-            }, headers=self.geo_verification_headers())
-        self._auth_token = viu_auth_res.info()['X-VIU-AUTH']
+        self._login()
 
-    def _call_api(self, path, *args, **kwargs):
-        headers = self.geo_verification_headers()
-        headers.update({
-            'X-VIU-AUTH': self._auth_token
-        })
-        headers.update(kwargs.get('headers', {}))
-        kwargs['headers'] = headers
-        response = self._download_json(
-            'https://www.viu.com/api/' + path, *args,
-            **compat_kwargs(kwargs))['response']
-        if response.get('status') != 'success':
-            raise ExtractorError('%s said: %s' % (
-                self.IE_NAME, response['message']), expected=True)
-        return response
+    def _login(self):
+        username, password = self._get_login_info()
+        if username is None:
+            return
+
+        login_form = {'username': username, 'password': password}
+
+        login = self._call_api(
+            'sessions.json', None,
+            'Logging in', post_data=login_form)
+
+        self._token = login.get('token')
+        if not self._token:
+            self.report_warning('Unable to get session token, login has probably failed')
+
+    @staticmethod
+    def dict_selection(dict_obj, preferred_key, allow_fallback=True):
+        if preferred_key in dict_obj:
+            return dict_obj.get(preferred_key)
+
+        if not allow_fallback:
+            return
+
+        filtered_dict = list(filter(None, [dict_obj.get(k) for k in dict_obj.keys()]))
+        return filtered_dict[0] if filtered_dict else None
 
 
-class ViuIE(ViuBaseIE):
-    _VALID_URL = r'(?:viu:|https?://[^/]+\.viu\.com/[a-z]{2}/media/)(?P<id>\d+)'
+class VikiIE(VikiBaseIE):
+    IE_NAME = 'viki'
+    _VALID_URL = r'%s(?:videos|player)/(?P<id>[0-9]+v)' % VikiBaseIE._VALID_URL_BASE
     _TESTS = [{
-        'url': 'https://www.viu.com/en/media/1116705532?containerId=playlist-22168059',
+        'note': 'Free non-DRM video with storyboards in MPD',
+        'url': 'https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1',
         'info_dict': {
-            'id': '1116705532',
+            'id': '1175236v',
             'ext': 'mp4',
-            'title': 'Citizen Khan - Ep 1',
-            'description': 'md5:d7ea1604f49e5ba79c212c551ce2110e',
+            'title': 'Choosing Spouse by Lottery - Episode 1',
+            'timestamp': 1606463239,
+            'age_limit': 13,
+            'uploader': 'FCC',
+            'upload_date': '20201127',
         },
         'params': {
-            'skip_download': 'm3u8 download',
+            'format': 'bestvideo',
         },
-        'skip': 'Geo-restricted to India',
     }, {
-        'url': 'https://www.viu.com/en/media/1130599965',
+        'url': 'http://www.viki.com/videos/1023585v-heirs-episode-14',
         'info_dict': {
-            'id': '1130599965',
+            'id': '1023585v',
             'ext': 'mp4',
-            'title': 'Jealousy Incarnate - Episode 1',
-            'description': 'md5:d3d82375cab969415d2720b6894361e9',
+            'title': 'Heirs - Episode 14',
+            'uploader': 'SBS Contents Hub',
+            'timestamp': 1385047627,
+            'upload_date': '20131121',
+            'age_limit': 13,
+            'duration': 3570,
+            'episode_number': 14,
         },
         'params': {
-            'skip_download': 'm3u8 download',
+            'format': 'bestvideo',
         },
-        'skip': 'Geo-restricted to Indonesia',
+        'skip': 'Blocked in the US',
     }, {
-        'url': 'https://india.viu.com/en/media/1126286865',
+        # clip
+        'url': 'http://www.viki.com/videos/1067139v-the-avengers-age-of-ultron-press-conference',
+        'md5': '86c0b5dbd4d83a6611a79987cc7a1989',
+        'info_dict': {
+            'id': '1067139v',
+            'ext': 'mp4',
+            'title': "'The Avengers: Age of Ultron' Press Conference",
+            'description': 'md5:d70b2f9428f5488321bfe1db10d612ea',
+            'duration': 352,
+            'timestamp': 1430380829,
+            'upload_date': '20150430',
+            'uploader': 'Arirang TV',
+            'like_count': int,
+            'age_limit': 0,
+        },
+        'skip': 'Sorry. There was an error loading this video',
+    }, {
+        'url': 'http://www.viki.com/videos/1048879v-ankhon-dekhi',
+        'info_dict': {
+            'id': '1048879v',
+            'ext': 'mp4',
+            'title': 'Ankhon Dekhi',
+            'duration': 6512,
+            'timestamp': 1408532356,
+            'upload_date': '20140820',
+            'uploader': 'Spuul',
+            'like_count': int,
+            'age_limit': 13,
+        },
+        'skip': 'Blocked in the US',
+    }, {
+        # episode
+        'url': 'http://www.viki.com/videos/44699v-boys-over-flowers-episode-1',
+        'md5': '0a53dc252e6e690feccd756861495a8c',
+        'info_dict': {
+            'id': '44699v',
+            'ext': 'mp4',
+            'title': 'Boys Over Flowers - Episode 1',
+            'description': 'md5:b89cf50038b480b88b5b3c93589a9076',
+            'duration': 4172,
+            'timestamp': 1270496524,
+            'upload_date': '20100405',
+            'uploader': 'group8',
+            'like_count': int,
+            'age_limit': 13,
+            'episode_number': 1,
+        },
+        'params': {
+            'format': 'bestvideo',
+        },
+    }, {
+        # youtube external
+        'url': 'http://www.viki.com/videos/50562v-poor-nastya-complete-episode-1',
+        'md5': '63f8600c1da6f01b7640eee7eca4f1da',
+        'info_dict': {
+            'id': '50562v',
+            'ext': 'webm',
+            'title': 'Poor Nastya [COMPLETE] - Episode 1',
+            'description': '',
+            'duration': 606,
+            'timestamp': 1274949505,
+            'upload_date': '20101213',
+            'uploader': 'ad14065n',
+            'uploader_id': 'ad14065n',
+            'like_count': int,
+            'age_limit': 13,
+        },
+        'skip': 'Page not found!',
+    }, {
+        'url': 'http://www.viki.com/player/44699v',
+        'only_matching': True,
+    }, {
+        # non-English description
+        'url': 'http://www.viki.com/videos/158036v-love-in-magic',
+        'md5': '41faaba0de90483fb4848952af7c7d0d',
+        'info_dict': {
+            'id': '158036v',
+            'ext': 'mp4',
+            'uploader': 'I Planet Entertainment',
+            'upload_date': '20111122',
+            'timestamp': 1321985454,
+            'description': 'md5:44b1e46619df3a072294645c770cef36',
+            'title': 'Love In Magic',
+            'age_limit': 13,
+        },
+        'params': {
+            'format': 'bestvideo',
+        },
+    }]
+
+    def _search_another_mpd_url(self, mpd_url, video_id):
+        mpd_content = self._download_webpage(mpd_url, video_id, note='Checking for another mpd url')
+        #Usually for flat manifest, 1080p is hidden in another mpd which can be found in the current manifest content
+        url = re.search(r'<BaseURL>(http.+.mpd)', mpd_content, re.M | re.IGNORECASE)
+        if url is None:
+            return mpd_url
+        
+        new_mpd_url = url.group(1) 
+        return new_mpd_url 
+    
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        
+        #metadata doesn't required any headers
+        video = self._download_json(
+            'https://api.viki.io/v4/videos/%s.json?app=%s&token=%s' % (video_id, self._APP, self._token),
+            video_id, 'Downloading video JSON')  
+
+        self._check_errors(video)
+        
+        title = self.dict_selection(video.get('titles', {}), 'en', allow_fallback=False)
+        episode_number = int_or_none(video.get('number'))
+        if not title:
+            title = 'Episode %d' % episode_number if video.get('type') == 'episode' else video.get('id') or video_id
+            container_titles = try_get(video, lambda x: x['container']['titles'], dict) or {}
+            container_title = self.dict_selection(container_titles, 'en')
+            title = '%s - %s' % (container_title, title)
+
+        description = self.dict_selection(video.get('descriptions', {}), 'en')
+
+        like_count = int_or_none(try_get(video, lambda x: x['likes']['count']))
+
+        thumbnails = []
+        for thumbnail_id, thumbnail in (video.get('images') or {}).items():
+            thumbnails.append({
+                'id': thumbnail_id,
+                'url': thumbnail.get('url'),
+            })
+        
+        stream_url = 'playback_streams/%s.json?drms=dt1,dt2&device_id=%s&token=%s' % (video_id, self._DEVICE_ID, self._token)
+        resp = self._call_api(stream_url, video_id, 'Downloading video streams JSON')
+
+        stream_id = resp['main'][0]['properties']['track']['stream_id']
+        
+        subtitle_format = 'https://api.viki.io/v4/videos/%s/auth_subtitles/%s.%s?app=%s&stream_id=%s'
+        subtitles = {}
+        for subtitle_lang, _ in (video.get('subtitle_completions') or {}).items():
+
+            subtitles[subtitle_lang] = [{
+                'ext': subtitles_ext,
+                'url': subtitle_format % (video_id, subtitle_lang, subtitles_ext, self._APP, stream_id)
+            } for subtitles_ext in ('srt', 'vtt')]
+        
+        mpd_url = self._search_another_mpd_url(resp['main'][0]['url'], video_id)
+        formats = self._extract_mpd_formats(mpd_url, video_id)
+        self._sort_formats(formats)
+        
+        return {
+            'id': video_id,
+            'formats': formats,
+            'title': title,
+            'description': description,
+            'duration': int_or_none(video.get('duration')),
+            'timestamp': parse_iso8601(video.get('created_at')),
+            'uploader': video.get('author'),
+            'uploader_url': video.get('author_url'),
+            'like_count': like_count,
+            'age_limit': parse_age_limit(video.get('rating')),
+            'thumbnails': thumbnails,
+            'subtitles': subtitles,
+            'episode_number': episode_number,
+        }
+
+class VikiChannelIE(VikiBaseIE):
+    IE_NAME = 'viki:channel'
+    _VALID_URL = r'%s(?:tv|news|movies|artists)/(?P<id>[0-9]+c)' % VikiBaseIE._VALID_URL_BASE
+    _TESTS = [{
+        'url': 'http://www.viki.com/tv/50c-boys-over-flowers',
+        'info_dict': {
+            'id': '50c',
+            'title': 'Boys Over Flowers',
+            'description': 'md5:804ce6e7837e1fd527ad2f25420f4d59',
+        },
+        'playlist_mincount': 71,
+    }, {
+        'url': 'http://www.viki.com/tv/1354c-poor-nastya-complete',
+        'info_dict': {
+            'id': '1354c',
+            'title': 'Poor Nastya [COMPLETE]',
+            'description': 'md5:05bf5471385aa8b21c18ad450e350525',
+        },
+        'playlist_count': 127,
+        'skip': 'Page not found',
+    }, {
+        'url': 'http://www.viki.com/news/24569c-showbiz-korea',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.viki.com/movies/22047c-pride-and-prejudice-2005',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.viki.com/artists/2141c-shinee',
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        video_data = self._call_api(
-            'clip/load', video_id, 'Downloading video data', query={
-                'appid': 'viu_desktop',
-                'fmt': 'json',
-                'id': video_id
-            })['item'][0]
-
-        title = video_data['title']
-
-        m3u8_url = None
-        url_path = video_data.get('urlpathd') or video_data.get('urlpath')
-        tdirforwhole = video_data.get('tdirforwhole')
-        # #EXT-X-BYTERANGE is not supported by native hls downloader
-        # and ffmpeg (#10955)
-        # hls_file = video_data.get('hlsfile')
-        hls_file = video_data.get('jwhlsfile')
-        if url_path and tdirforwhole and hls_file:
-            m3u8_url = '%s/%s/%s' % (url_path, tdirforwhole, hls_file)
-        else:
-            # m3u8_url = re.sub(
-            #     r'(/hlsc_)[a-z]+(\d+\.m3u8)',
-            #     r'\1whe\2', video_data['href'])
-            m3u8_url = video_data['href']
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
-        self._sort_formats(formats)
-
-        subtitles = {}
-        for key, value in video_data.items():
-            mobj = re.match(r'^subtitle_(?P<lang>[^_]+)_(?P<ext>(vtt|srt))', key)
-            if not mobj:
-                continue
-            subtitles.setdefault(mobj.group('lang'), []).append({
-                'url': value,
-                'ext': mobj.group('ext')
-            })
-
-        return {
-            'id': video_id,
-            'title': title,
-            'description': video_data.get('description'),
-            'series': video_data.get('moviealbumshowname'),
-            'episode': title,
-            'episode_number': int_or_none(video_data.get('episodeno')),
-            'duration': int_or_none(video_data.get('duration')),
-            'formats': formats,
-            'subtitles': subtitles,
-        }
-
-
-class ViuPlaylistIE(ViuBaseIE):
-    IE_NAME = 'viu:playlist'
-    _VALID_URL = r'https?://www\.viu\.com/[^/]+/listing/playlist-(?P<id>\d+)'
-    _TEST = {
-        'url': 'https://www.viu.com/en/listing/playlist-22461380',
-        'info_dict': {
-            'id': '22461380',
-            'title': 'The Good Wife',
-        },
-        'playlist_count': 16,
-        'skip': 'Geo-restricted to Indonesia',
-    }
+    _PER_PAGE = 25
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        playlist_data = self._call_api(
-            'container/load', playlist_id,
-            'Downloading playlist info', query={
-                'appid': 'viu_desktop',
-                'fmt': 'json',
-                'id': 'playlist-' + playlist_id
-            })['container']
+        channel_id = self._match_id(url)
 
+        channel = self._call_api('containers/%s.json' % channel_id, channel_id, 'Downloading channel JSON')
+
+        self._check_errors(channel)
+
+        title = self.dict_selection(channel['titles'], 'en')
+        description = self.dict_selection(channel['descriptions'], 'en')
+        
+        max_page = 30
+        page_num = 1
         entries = []
-        for item in playlist_data.get('item', []):
-            item_id = item.get('id')
-            if not item_id:
-                continue
-            item_id = compat_str(item_id)
-            entries.append(self.url_result(
-                'viu:' + item_id, 'Viu', item_id))
-
-        return self.playlist_result(
-            entries, playlist_id, playlist_data.get('title'))
-
-
-class ViuOTTIE(InfoExtractor):
-    IE_NAME = 'viu:ott'
-    _NETRC_MACHINE = 'viu'
-    _VALID_URL = r'https?://(?:www\.)?viu\.com/ott/(?P<country_code>[a-z]{2})/(?P<lang_code>[a-z]{2}-[a-z]{2})/vod/(?P<id>\d+)'
-    _TESTS = [{
-        'url': 'http://www.viu.com/ott/sg/en-us/vod/3421/The%20Prime%20Minister%20and%20I',
-        'info_dict': {
-            'id': '3421',
-            'ext': 'mp4',
-            'title': 'A New Beginning',
-            'description': 'md5:1e7486a619b6399b25ba6a41c0fe5b2c',
-        },
-        'params': {
-            'skip_download': 'm3u8 download',
-            'noplaylist': True,
-        },
-        'skip': 'Geo-restricted to Singapore',
-    }, {
-        'url': 'http://www.viu.com/ott/hk/zh-hk/vod/7123/%E5%A4%A7%E4%BA%BA%E5%A5%B3%E5%AD%90',
-        'info_dict': {
-            'id': '7123',
-            'ext': 'mp4',
-            'title': '這就是我的生活之道',
-            'description': 'md5:4eb0d8b08cf04fcdc6bbbeb16043434f',
-        },
-        'params': {
-            'skip_download': 'm3u8 download',
-            'noplaylist': True,
-        },
-        'skip': 'Geo-restricted to Hong Kong',
-    }, {
-        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/68776/%E6%99%82%E5%B0%9A%E5%AA%BD%E5%92%AA',
-        'playlist_count': 12,
-        'info_dict': {
-            'id': '3916',
-            'title': '時尚媽咪',
-        },
-        'params': {
-            'skip_download': 'm3u8 download',
-            'noplaylist': False,
-        },
-        'skip': 'Geo-restricted to Hong Kong',
-    }]
-
-    _AREA_ID = {
-        'HK': 1,
-        'SG': 2,
-        'TH': 4,
-        'PH': 5,
-    }
-    _LANGUAGE_FLAG = {
-        'zh-hk': 1,
-        'zh-cn': 2,
-        'en-us': 3,
-    }
-    _user_info = None
-
-    def _detect_error(self, response):
-        code = response.get('status', {}).get('code')
-        if code > 0:
-            message = try_get(response, lambda x: x['status']['message'])
-            raise ExtractorError('%s said: %s (%s)' % (
-                self.IE_NAME, message, code), expected=True)
-        return response['data']
-
-    def _raise_login_required(self):
-        raise ExtractorError(
-            'This video requires login. '
-            'Specify --username and --password or --netrc (machine: %s) '
-            'to provide account credentials.' % self._NETRC_MACHINE,
-            expected=True)
-
-    def _login(self, country_code, video_id):
-        if not self._user_info:
-            username, password = self._get_login_info()
-            if username is None or password is None:
-                return
-
-            data = self._download_json(
-                compat_urllib_request.Request(
-                    'https://www.viu.com/ott/%s/index.php' % country_code, method='POST'),
-                video_id, 'Logging in', errnote=False, fatal=False,
-                query={'r': 'user/login'},
-                data=json.dumps({
-                    'username': username,
-                    'password': password,
-                    'platform_flag_label': 'web',
-                }).encode())
-            self._user_info = self._detect_error(data)['user']
-
-        return self._user_info
-
-    def _real_extract(self, url):
-        url, idata = unsmuggle_url(url, {})
-        country_code, lang_code, video_id = re.match(self._VALID_URL, url).groups()
-
-        query = {
-            'r': 'vod/ajax-detail',
-            'platform_flag_label': 'web',
-            'product_id': video_id,
-        }
-
-        area_id = self._AREA_ID.get(country_code.upper())
-        if area_id:
-            query['area_id'] = area_id
-
-        product_data = self._download_json(
-            'http://www.viu.com/ott/%s/index.php' % country_code, video_id,
-            'Downloading video info', query=query)['data']
-
-        video_data = product_data.get('current_product')
-        if not video_data:
-            raise ExtractorError('This video is not available in your region.', expected=True)
-
-        series_id = video_data.get('series_id')
-        if not self.get_param('noplaylist') and not idata.get('force_noplaylist'):
-            self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % series_id)
-            series = product_data.get('series', {})
-            product = series.get('product')
-            if product:
-                entries = []
-                for entry in sorted(product, key=lambda x: int_or_none(x.get('number', 0))):
-                    item_id = entry.get('product_id')
-                    if not item_id:
-                        continue
-                    item_id = compat_str(item_id)
-                    entries.append(self.url_result(
-                        smuggle_url(
-                            'http://www.viu.com/ott/%s/%s/vod/%s/' % (country_code, lang_code, item_id),
-                            {'force_noplaylist': True}),  # prevent infinite recursion
-                        'ViuOTT',
-                        item_id,
-                        entry.get('synopsis', '').strip()))
-
-                return self.playlist_result(entries, series_id, series.get('name'), series.get('description'))
-
-        if self.get_param('noplaylist'):
-            self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
-
-        duration_limit = False
-        query = {
-            'ccs_product_id': video_data['ccs_product_id'],
-            'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or '3',
-        }
-        headers = {
-            'Referer': url,
-            'Origin': url,
-        }
-        try:
-            stream_data = self._download_json(
-                'https://d1k2us671qcoau.cloudfront.net/distribute_web_%s.php' % country_code,
-                video_id, 'Downloading stream info', query=query, headers=headers)
-            stream_data = self._detect_error(stream_data)['stream']
-        except (ExtractorError, KeyError):
-            stream_data = None
-            if video_data.get('user_level', 0) > 0:
-                user = self._login(country_code, video_id)
-                if user:
-                    query['identity'] = user['identity']
-                    stream_data = self._download_json(
-                        'https://d1k2us671qcoau.cloudfront.net/distribute_web_%s.php' % country_code,
-                        video_id, 'Downloading stream info', query=query, headers=headers)
-                    stream_data = self._detect_error(stream_data).get('stream')
-                else:
-                    # preview is limited to 3min for non-members
-                    # try to bypass the duration limit
-                    duration_limit = True
-                    query['duration'] = '180'
-                    stream_data = self._download_json(
-                        'https://d1k2us671qcoau.cloudfront.net/distribute_web_%s.php' % country_code,
-                        video_id, 'Downloading stream info', query=query, headers=headers)
-                    try:
-                        stream_data = self._detect_error(stream_data)['stream']
-                    except (ExtractorError, KeyError):  # if still not working, give up
-                        self._raise_login_required()
-
-        if not stream_data:
-            raise ExtractorError('Cannot get stream info', expected=True)
-
-        stream_sizes = stream_data.get('size', {})
-        formats = []
-        for vid_format, stream_url in stream_data.get('url', {}).items():
-            height = int_or_none(self._search_regex(
-                r's(\d+)p', vid_format, 'height', default=None))
-
-            # bypass preview duration limit
-            if duration_limit:
-                stream_url = compat_urlparse.urlparse(stream_url)
-                query = dict(compat_urlparse.parse_qsl(stream_url.query, keep_blank_values=True))
-                time_duration = int_or_none(video_data.get('time_duration'))
-                query.update({
-                    'duration': time_duration if time_duration > 0 else '9999999',
-                    'duration_start': '0',
+        
+        is_movie = True if channel['type'] == 'film' else False
+        video_type = 'movies' if is_movie else 'episodes'
+        params = {'app': self._APP, 'token': self._token}
+        
+        #get only video ids
+        while True:
+            if is_movie:
+                params.update({'blocked': 'true', 'only_ids':'true'})
+            else:
+                params.update({
+                    'direction': 'desc', 'sort': 'number', 'only_ids': 'true',
+                    'with_upcoming': 'true', 'page': page_num, 'per_page': max_page,
+                    'with_paging': 'true', 'blocked': 'true', 'with_kcp': 'true',
                 })
-                stream_url = stream_url._replace(query=compat_urlparse.urlencode(query)).geturl()
 
-            formats.append({
-                'format_id': vid_format,
-                'url': stream_url,
-                'height': height,
-                'ext': 'mp4',
-                'filesize': int_or_none(stream_sizes.get(vid_format))
-            })
-        self._sort_formats(formats)
+            url = self._API_URL_TEMPLATE % '/v4/{}/{}/{}.json?'.format('films' if is_movie else 'series', channel_id, video_type)
+            res = self._download_json(url, channel_id, query=params)
 
-        subtitles = {}
-        for sub in video_data.get('subtitle', []):
-            sub_url = sub.get('url')
-            if not sub_url:
-                continue
-            subtitles.setdefault(sub.get('name'), []).append({
-                'url': sub_url,
-                'ext': 'srt',
-            })
-
-        title = video_data['synopsis'].strip()
-
-        return {
-            'id': video_id,
-            'title': title,
-            'description': video_data.get('description'),
-            'series': product_data.get('series', {}).get('name'),
-            'episode': title,
-            'episode_number': int_or_none(video_data.get('number')),
-            'duration': int_or_none(stream_data.get('duration')),
-            'thumbnail': video_data.get('cover_image_url'),
-            'formats': formats,
-            'subtitles': subtitles,
-        }
+            for video_id in res['response']: 
+                entries.append(self.url_result('https://www.viki.com/videos/%s' % video_id, 'Viki', video_id))
+            
+            if not res['more']:
+                break
+            page_num += 1
+            self.to_screen('Downloading %s JSON page #%d' % (video_type, page_num))
+        
+        return self.playlist_result(entries, channel_id, title, description)
