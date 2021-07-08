@@ -2207,11 +2207,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         player_url = self._extract_player_url(ytcfg, webpage)
 
-        player_client = try_get(self._configuration_arg('player_client'), lambda x: x[0], str) or ''
-        if player_client.upper() not in ('WEB', 'ANDROID'):
-            player_client = 'WEB'
-        force_mobile_client = player_client.upper() == 'ANDROID'
-        player_skip = self._configuration_arg('player_skip') or []
+        player_client = (self._configuration_arg('player_client') or [''])[0]
+        if player_client not in ('web', 'android', ''):
+            self.report_warning(f'Invalid player_client {player_client} given. Falling back to WEB')
+        force_mobile_client = player_client == 'android'
+        player_skip = self._configuration_arg('player_skip')
 
         def get_text(x):
             if not x:
@@ -2404,6 +2404,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         formats, itags, stream_ids = [], [], []
         itag_qualities = {}
         q = qualities([
+            # "tiny" is the smallest video-only format. But some audio-only formats
+            # was also labeled "tiny". It is not clear if such formats still exist
             'tiny', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
@@ -2467,13 +2469,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'width': fmt.get('width'),
                 'language': audio_track.get('id', '').split('.')[0],
             }
-            mimetype = fmt.get('mimeType')
-            if mimetype:
-                mobj = re.match(
-                    r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', mimetype)
-                if mobj:
-                    dct['ext'] = mimetype2ext(mobj.group(1))
-                    dct.update(parse_codecs(mobj.group(2)))
+            mime_mobj = re.match(
+                r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
+            if mime_mobj:
+                dct['ext'] = mimetype2ext(mime_mobj.group(1))
+                dct.update(parse_codecs(mime_mobj.group(2)))
+                # The 3gp format in android client has a quality of "small",
+                # but is actually worse than all other formats
+                if dct['ext'] == '3gp':
+                    dct['quality'] = q('tiny')
             no_audio = dct.get('acodec') == 'none'
             no_video = dct.get('vcodec') == 'none'
             if no_audio:
@@ -2489,7 +2493,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             formats.append(dct)
 
-        skip_manifests = self._configuration_arg('skip') or []
+        skip_manifests = self._configuration_arg('skip')
         get_dash = 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True)
         get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
 
