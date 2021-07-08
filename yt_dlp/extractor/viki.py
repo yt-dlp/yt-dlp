@@ -76,7 +76,7 @@ class VikiBaseIE(InfoExtractor):
                      else None))
 
         self._raise_error(resp.get('error'), fatal)
-        return resp
+        return resp or {}
 
     def _raise_error(self, error, fatal=True):
         if error is None:
@@ -309,7 +309,7 @@ class VikiChannelIE(VikiBaseIE):
             'title': 'Boys Over Flowers',
             'description': 'md5:804ce6e7837e1fd527ad2f25420f4d59',
         },
-        'playlist_mincount': 71,
+        'playlist_mincount': 51,
     }, {
         'url': 'http://www.viki.com/tv/1354c-poor-nastya-complete',
         'info_dict': {
@@ -330,45 +330,28 @@ class VikiChannelIE(VikiBaseIE):
         'only_matching': True,
     }]
 
-    _PER_PAGE = 25
+    def _entries(self, channel_id):
+        params = {
+            'app': self._APP, 'token': self._token, 'only_ids': 'true',
+            'direction': 'asc', 'sort': 'number', 'per_page': 30
+        }
+        for video_type in ('episodes', 'movies', 'clips', 'trailers'):
+            page_num = 0
+            while True:
+                page_num += 1
+                params['page'] = page_num
+                res = self._call_api(f'containers/{channel_id}/{video_type}.json', channel_id, query=params, fatal=False)
+
+                for video_id in res.get('response') or []:
+                    yield self.url_result(f'https://www.viki.com/videos/{video_id}', VikiIE.ie_key(), video_id)
+                if not res.get('more'):
+                    break
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-
         channel = self._call_api('containers/%s.json' % channel_id, channel_id, 'Downloading channel JSON')
-
         self._check_errors(channel)
-
-        title = self.dict_selection(channel['titles'], 'en')
-        description = self.dict_selection(channel['descriptions'], 'en')
-
-        max_page = 30; page_num = 1; entries = []
-
-        is_movie = True if channel['type'] == 'film' else False
-        video_type = 'movies' if is_movie else 'episodes'
-        query = {'app': self._APP, 'token': self._token}
-
-        def get_video_ids():
-            url = self._API_URL_TEMPLATE % '/v4/{}/{}/{}.json?'.format('films' if is_movie else 'series', channel_id, video_type)
-            res = self._download_json(url, channel_id, query=query, note='Downloading %s JSON page #%d' % (video_type, page_num))
-            for video_id in res['response']:
-                entries.append(self.url_result('https://www.viki.com/videos/%s' % video_id, 'Viki', video_id))
-            return res['more']
-
-        if is_movie:
-            query.update({'blocked': 'true', 'only_ids': 'true'})
-            get_video_ids()
-        else:
-            #get only video ids
-            while True:
-                query.update({
-                    'direction': 'desc', 'sort': 'number', 'only_ids': 'true',
-                    'with_upcoming': 'true', 'page': page_num, 'per_page': max_page,
-                    'with_paging': 'true', 'blocked': 'true', 'with_kcp': 'true',
-                })
-                more = get_video_ids()
-                if not more:
-                    break
-                page_num += 1
-
-        return self.playlist_result(entries, channel_id, title, description)
+        return self.playlist_result(
+            self._entries(channel_id), channel_id,
+            self.dict_selection(channel['titles'], 'en'),
+            self.dict_selection(channel['descriptions'], 'en'))
