@@ -301,9 +301,7 @@ class VikiIE(VikiBaseIE):
                 'url': subtitle_format % (video_id, subtitle_lang, subtitles_ext, self._APP, stream_id)
             } for subtitles_ext in ('srt', 'vtt')]
         
-
-        format_url = self._search_another_mpd_url(resp['main'][0]['url'], video_id)
-
+        mpd_url = self._search_another_mpd_url(resp['main'][0]['url'], video_id)
         formats = self._extract_mpd_formats(mpd_url, video_id)
         self._sort_formats(formats)
         
