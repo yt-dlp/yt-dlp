@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import hashlib
 import hmac
 import json
-import re
 import time
 
 from .common import InfoExtractor
@@ -14,6 +13,7 @@ from ..utils import (
     parse_iso8601,
     try_get,
 )
+
 
 class VikiBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.)?viki\.(?:com|net|mx|jp|fr)/'
@@ -298,6 +298,7 @@ class VikiIE(VikiBaseIE):
             'subtitles': subtitles,
             'episode_number': episode_number,
         }
+
 
 class VikiChannelIE(VikiBaseIE):
     IE_NAME = 'viki:channel'
