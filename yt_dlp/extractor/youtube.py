@@ -600,9 +600,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                           lambda x: x['continuationItemRenderer']['button']['buttonRenderer']['command']),
                 dict)
             continuation = cls._extract_continuation_ep_data(continuation_ep)
-            if not continuation:
-                continue
-            return continuation
+            if continuation:
+                return continuation
 
     @staticmethod
     def _extract_alerts(data):
@@ -2015,8 +2014,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                          ytcfg, parent=None, comment_counts=None):
 
         def extract_header(contents):
-            total_comments = 0
-            continuation = None
+            _total_comments = 0
+            _continuation = None
             for content in contents:
                 comments_header_renderer = try_get(content, lambda x: x['commentsHeaderRenderer'])
                 expected_comment_count = try_get(comments_header_renderer,
@@ -2026,7 +2025,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if expected_comment_count:
                     comment_counts[1] = str_to_int(expected_comment_count)
                     self.to_screen('Downloading ~%d comments' % str_to_int(expected_comment_count))
-                    total_comments = comment_counts[1]
+                    _total_comments = comment_counts[1]
 
                 sort_mode_str = try_get(self._configuration_arg('comment_sort'), lambda x: x[0], str) or ''
                 comment_sort_index = int(sort_mode_str != 'popular')
@@ -2038,12 +2037,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # If this fails, the initial continuation page
                 # starts off with popular anyways.
                 if sort_continuation_ep:
-                    continuation = self._extract_continuation_ep_data(sort_continuation_ep)
-                    if not continuation:
+                    _continuation = self._extract_continuation_ep_data(sort_continuation_ep)
+                    if not _continuation:
                         continue
                     self.to_screen('Sorting comments by %s' % ('popular' if comment_sort_index == 0 else 'newest'))
                     break
-            return total_comments, continuation
+            return _total_comments, _continuation
 
         def extract_thread(contents):
             if not parent:
