@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import json
 import re
 import time
 import xml.etree.ElementTree as etree
@@ -58,6 +59,11 @@ MSO_INFO = {
     },
     'Charter_Direct': {
         'name': 'Charter Spectrum',
+        'username_field': 'IDToken1',
+        'password_field': 'IDToken2',
+    },
+    'Spectrum': {
+        'name': 'Spectrum',
         'username_field': 'IDToken1',
         'password_field': 'IDToken2',
     },
@@ -1521,6 +1527,41 @@ class AdobePassIE(InfoExtractor):
                         'Confirming Login', data=urlencode_postdata({
                             'SAMLResponse': saml_response_json['SAMLResponse'],
                             'RelayState': saml_response_json['RelayState']
+                        }), headers={
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        })
+                elif mso_id == 'Spectrum':
+                    # Spectrum's login for is dynamically loaded via JS so we need to hardcode the flow
+                    # as a one-off implementation.
+                    provider_redirect_page, urlh = provider_redirect_page_res
+                    provider_login_page_res = post_form(
+                        provider_redirect_page_res, self._DOWNLOADING_LOGIN_PAGE)
+                    saml_login_page, urlh = provider_login_page_res
+                    relay_state = self._search_regex(
+                        r'RelayState\s*=\s*"(?P<relay>.+?)";',
+                        saml_login_page, 'RelayState', group='relay')
+                    saml_request = self._search_regex(
+                        r'SAMLRequest\s*=\s*"(?P<saml_request>.+?)";',
+                        saml_login_page, 'SAMLRequest', group='saml_request')
+                    login_json = {
+                        mso_info['username_field']: username,
+                        mso_info['password_field']: password,
+                        'RelayState': relay_state,
+                        'SAMLRequest': saml_request,
+                    }
+                    saml_response_json = self._download_json(
+                        'https://tveauthn.spectrum.net/tveauthentication/api/v1/manualAuth', video_id,
+                        'Downloading SAML Response',
+                        data=json.dumps(login_json).encode(),
+                        headers={
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        })
+                    self._download_webpage(
+                        saml_response_json['SAMLRedirectUri'], video_id,
+                        'Confirming Login', data=urlencode_postdata({
+                            'SAMLResponse': saml_response_json['SAMLResponse'],
+                            'RelayState': relay_state,
                         }), headers={
                             'Content-Type': 'application/x-www-form-urlencoded'
                         })

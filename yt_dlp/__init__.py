@@ -273,7 +273,7 @@ def _real_main(argv=None):
         'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
         'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
         'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
-        'embed-thumbnail-atomicparsley',
+        'embed-thumbnail-atomicparsley', 'seperate-video-versions',
     ]
     compat_opts = parse_compat_opts()
 

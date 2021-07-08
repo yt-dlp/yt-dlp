@@ -12,6 +12,10 @@ from ..utils import (
 
 
 class PeriscopeBaseIE(InfoExtractor):
+    _M3U8_HEADERS = {
+        'Referer': 'https://www.periscope.tv/'
+    }
+
     def _call_api(self, method, query, item_id):
         return self._download_json(
             'https://api.periscope.tv/api/v2/%s' % method,
@@ -54,9 +58,11 @@ class PeriscopeBaseIE(InfoExtractor):
             m3u8_url, video_id, 'mp4',
             entry_protocol='m3u8_native'
             if state in ('ended', 'timed_out') else 'm3u8',
-            m3u8_id=format_id, fatal=fatal)
+            m3u8_id=format_id, fatal=fatal, headers=self._M3U8_HEADERS)
         if len(m3u8_formats) == 1:
             self._add_width_and_height(m3u8_formats[0], width, height)
+        for f in m3u8_formats:
+            f.setdefault('http_headers', {}).update(self._M3U8_HEADERS)
         return m3u8_formats
 
 

@@ -137,7 +137,11 @@ def parseOpts(overrideArguments=None):
         else:
             raise optparse.OptionValueError(
                 'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
-        val = process(val) if callable(process) else val
+        try:
+            val = process(val) if process else val
+        except Exception as err:
+            raise optparse.OptionValueError(
+                'wrong %s formatting; %s' % (opt_str, err))
         for key in keys:
             out_dict[key] = val
 
@@ -1344,6 +1348,7 @@ def parseOpts(overrideArguments=None):
         '--no-hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_false',
         help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
+    _extractor_arg_parser = lambda key, vals='': (key.strip().lower(), [val.strip() for val in vals.split(',')])
     extractor.add_option(
         '--extractor-args',
         metavar='KEY:ARGS', dest='extractor_args', default={}, type='str',
@@ -1351,11 +1356,11 @@ def parseOpts(overrideArguments=None):
         callback_kwargs={
             'multiple_keys': False,
             'process': lambda val: dict(
-                (lambda x: (x[0], x[1].split(',')))(arg.split('=', 1) + ['', '']) for arg in val.split(';'))
+                _extractor_arg_parser(*arg.split('=', 1)) for arg in val.split(';'))
         },
         help=(
             'Pass these arguments to the extractor. See "EXTRACTOR ARGUMENTS" for details. '
-            'You can use this option multiple times to give different arguments to different extractors'))
+            'You can use this option multiple times to give arguments for different extractors'))
     extractor.add_option(
         '--youtube-include-dash-manifest', '--no-youtube-skip-dash-manifest',
         action='store_true', dest='youtube_include_dash_manifest', default=True,

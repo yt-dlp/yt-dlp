@@ -569,15 +569,15 @@ class PeerTubeIE(InfoExtractor):
             formats.append(f)
         self._sort_formats(formats)
 
-        full_description = self._call_api(
-            host, video_id, 'description', note='Downloading description JSON',
-            fatal=False)
+        description = video.get('description')
+        if len(description) >= 250:
+            # description is shortened
+            full_description = self._call_api(
+                host, video_id, 'description', note='Downloading description JSON',
+                fatal=False)
 
-        description = None
-        if isinstance(full_description, dict):
-            description = str_or_none(full_description.get('description'))
-        if not description:
-            description = video.get('description')
+            if isinstance(full_description, dict):
+                description = str_or_none(full_description.get('description')) or description
 
         subtitles = self.extract_subtitles(host, video_id)
 

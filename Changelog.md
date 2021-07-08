@@ -19,6 +19,58 @@
 -->
 
 
+### 2021.07.07
+
+* Merge youtube-dl: Upto [commit/a803582](https://github.com/ytdl-org/youtube-dl/commit/a8035827177d6b59aca03bd717acb6a9bdd75ada)
+* Add `--extractor-args` to pass some extractor-specific arguments. See [readme](https://github.com/yt-dlp/yt-dlp#extractor-arguments)
+    * Add extractor option `skip` for `youtube`. Eg: `--extractor-args youtube:skip=hls,dash`
+    * Deprecates `--youtube-skip-dash-manifest`, `--youtube-skip-hls-manifest`, `--youtube-include-dash-manifest`, `--youtube-include-hls-manifest`
+* Allow `--list...` options to work with `--print`, `--quiet` and other `--list...` options
+* [youtube] Use `player` API for additional video extraction requests by [colethedj](https://github.com/colethedj)
+    * **Fixes youtube premium music** (format 141) extraction
+    * Adds extractor option `player_client` = `web`/`android`
+        * **`--extractor-args youtube:player_client=android` works around the throttling** for the time-being
+    * Adds extractor option `player_skip=config`
+    * Adds age-gate fallback using embedded client
+* [youtube] Choose correct Live chat API for upcoming streams by [krichbanana](https://github.com/krichbanana)
+* [youtube] Fix subtitle names for age-gated videos
+* [youtube:comments] Fix error handling and add `itct` to params by [colethedj](https://github.com/colethedj)
+* [youtube_live_chat] Fix download with cookies by [siikamiika](https://github.com/siikamiika)
+* [youtube_live_chat] use `clickTrackingParams` by [siikamiika](https://github.com/siikamiika)
+* [Funimation] Rewrite extractor
+    * Add `FunimationShowIE` by [Mevious](https://github.com/Mevious)
+    * **Treat the different versions of an episode as different formats of a single video**
+        * This changes the video `id` and will break break existing archives
+        * Compat option `seperate-video-versions` to fall back to old behavior including using the old video ids
+    * Support direct `/player/` URL
+    * Extractor options `language` and `version` to pre-select them during extraction
+        * These options may be removed in the future if we can extract all formats without additional network requests
+        * Do not rely on these for format selection and use `-f` filters instead
+* [AdobePass] Add Spectrum MSO by [kevinoconnor7](https://github.com/kevinoconnor7), [ohmybahgosh](https://github.com/ohmybahgosh)
+* [facebook] Extract description and fix title
+* [fancode] Fix extraction, support live and allow login with refresh token by [zenerdi0de](https://github.com/zenerdi0de)
+* [plutotv] Improve `_VALID_URL`
+* [RCTIPlus] Add extractor by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [Soundcloud] Allow login using oauth token by [blackjack4494](https://github.com/blackjack4494)
+* [TBS] Support livestreams by [llacb47](https://github.com/llacb47)
+* [videa] Fix extraction by [nyuszika7h](https://github.com/nyuszika7h)
+* [yahoo] Fix extraction by [llacb47](https://github.com/llacb47), [pukkandan](https://github.com/pukkandan)
+* Process videos when using `--ignore-no-formats-error` by [krichbanana](https://github.com/krichbanana)
+* Fix `--throttled-rate` when using `--load-info-json`
+* Fix `--flat-playlist` when entry has no `ie_key`
+* Fix `check_formats` catching `ExtractorError` instead of `DownloadError`
+* Fix deprecated option `--list-formats-old`
+* [downloader/ffmpeg] Fix `--ppa` when using simultaneous download
+* [extractor] Prevent unnecessary download of hls manifests and refactor `hls_split_discontinuity`
+* [fragment] Handle status of download and errors in threads correctly; and minor refactoring
+* [thumbnailsconvertor] Treat `jpeg` as `jpg`
+* [utils] Fix issues with `LazyList` reversal
+* [extractor] Allow extractors to set their own login hint
+* [cleanup] Simplify format selector code with `LazyList` and `yield from`
+* [cleanup] Clean `extractor.common._merge_subtitles` signature
+* [cleanup] Fix some typos
+
+
 ### 2021.06.23
 
 * Merge youtube-dl: Upto [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)

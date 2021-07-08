@@ -398,7 +398,11 @@ from .facebook import (
     FacebookIE,
     FacebookPluginsVideoIE,
 )
-from .fancode import FancodeVodIE
+from .fancode import (
+    FancodeVodIE,
+    FancodeLiveIE
+)
+
 from .faz import FazIE
 from .fc2 import (
     FC2IE,
@@ -457,7 +461,8 @@ from .frontendmasters import (
 from .fujitv import FujiTVFODPlus7IE
 from .funimation import (
     FunimationIE,
-    FunimationShowIE
+    FunimationPageIE,
+    FunimationShowIE,
 )
 from .funk import FunkIE
 from .fusion import FusionIE
