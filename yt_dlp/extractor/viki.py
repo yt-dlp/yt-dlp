@@ -304,14 +304,9 @@ class VikiIE(VikiBaseIE):
 
         format_url = self._search_another_mpd_url(resp['main'][0]['url'], video_id)
 
-        formats = []
-        formats.append({
-            'url': format_url,
-            'format_id': '%s-%s' % ('dash', 'https'),
-        })
-        formats.extend(self._extract_mpd_formats(format_url, video_id))
+        formats = self._extract_mpd_formats(mpd_url, video_id)
         self._sort_formats(formats)
-
+        
         return {
             'id': video_id,
             'formats': formats,
