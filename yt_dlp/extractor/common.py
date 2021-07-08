@@ -3498,9 +3498,18 @@ class InfoExtractor(object):
             else 'public' if all_known
             else None)
 
-    def _configuration_arg(self, key):
-        return traverse_obj(
+    def _configuration_arg(self, key, default=NO_DEFAULT, casesense=False):
+        '''
+        @returns            A list of values for the extractor argument given by "key"
+                            or "default" if no such key is present
+        @param default      The default value to return when the key is not present (default: [])
+        @param casesense    When false, the values are converted to lower case
+        '''
+        val = traverse_obj(
             self._downloader.params, ('extractor_args', self.ie_key().lower(), key))
+        if val is None:
+            return [] if default is NO_DEFAULT else default
+        return list(val) if casesense else [x.lower() for x in val]
 
 
 class SearchInfoExtractor(InfoExtractor):

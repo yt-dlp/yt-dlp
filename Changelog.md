@@ -22,9 +22,9 @@
 ### 2021.07.07
 
 * Merge youtube-dl: Upto [commit/a803582](https://github.com/ytdl-org/youtube-dl/commit/a8035827177d6b59aca03bd717acb6a9bdd75ada)
-* Add `--extractor-args` to pass extractor-specific arguments
+* Add `--extractor-args` to pass some extractor-specific arguments. See [readme](https://github.com/yt-dlp/yt-dlp#extractor-arguments)
     * Add extractor option `skip` for `youtube`. Eg: `--extractor-args youtube:skip=hls,dash`
-    * Deprecates --youtube-skip-dash-manifest, --youtube-skip-hls-manifest, --youtube-include-dash-manifest, --youtube-include-hls-manifest
+    * Deprecates `--youtube-skip-dash-manifest`, `--youtube-skip-hls-manifest`, `--youtube-include-dash-manifest`, `--youtube-include-hls-manifest`
 * Allow `--list...` options to work with `--print`, `--quiet` and other `--list...` options
 * [youtube] Use `player` API for additional video extraction requests by [colethedj](https://github.com/colethedj)
     * **Fixes youtube premium music** (format 141) extraction

@@ -186,8 +186,8 @@ class FunimationIE(InfoExtractor):
         for lang, version, fmt in self._get_experiences(episode):
             experience_id = str(fmt['experienceId'])
             if (only_initial_experience and experience_id != initial_experience_id
-                    or requested_languages and lang not in requested_languages
-                    or requested_versions and version not in requested_versions):
+                    or requested_languages and lang.lower() not in requested_languages
+                    or requested_versions and version.lower() not in requested_versions):
                 continue
             thumbnails.append({'url': fmt.get('poster')})
             duration = max(duration, fmt.get('duration', 0))
