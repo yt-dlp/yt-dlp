@@ -73,10 +73,10 @@ class VikiBaseIE(InfoExtractor):
             data=json.dumps(data).encode('utf-8') if data else None,
             headers=({'x-viki-app-ver': self._APP_VERSION} if data
                      else self._stream_headers(timestamp, sig) if query is None
-                     else None))
+                     else None)) or {}
 
         self._raise_error(resp.get('error'), fatal)
-        return resp or {}
+        return resp
 
     def _raise_error(self, error, fatal=True):
         if error is None:
@@ -330,17 +330,24 @@ class VikiChannelIE(VikiBaseIE):
         'only_matching': True,
     }]
 
+    _video_types = ('episodes', 'movies', 'clips', 'trailers')
+
     def _entries(self, channel_id):
         params = {
             'app': self._APP, 'token': self._token, 'only_ids': 'true',
             'direction': 'asc', 'sort': 'number', 'per_page': 30
         }
-        for video_type in ('episodes', 'movies', 'clips', 'trailers'):
+        video_types = self._configuration_arg('video_types') or self._video_types
+        for video_type in video_types:
+            if video_type not in self._video_types:
+                self.report_warning(f'Unknown video_type: {video_type}')
             page_num = 0
             while True:
                 page_num += 1
                 params['page'] = page_num
-                res = self._call_api(f'containers/{channel_id}/{video_type}.json', channel_id, query=params, fatal=False)
+                res = self._call_api(
+                    f'containers/{channel_id}/{video_type}.json', channel_id, query=params, fatal=False,
+                    note='Downloading %s JSON page %d' % (video_type.title(), page_num))
 
                 for video_id in res.get('response') or []:
                     yield self.url_result(f'https://www.viki.com/videos/{video_id}', VikiIE.ie_key(), video_id)

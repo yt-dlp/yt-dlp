@@ -1340,6 +1340,9 @@ The following extractors use this feature:
     * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
     * `version`: The video version to extract - `uncut` or `simulcast`
 
+* **vikiChannel**
+    * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
+
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
 
