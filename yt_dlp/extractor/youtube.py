@@ -2096,7 +2096,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             comment_prog_str = '(%d/%d)' % (comment_counts[0], comment_counts[1])
             if page_num == 0:
                 if is_first_continuation:
-                    note_prefix = 'Downloading comment section API JSON page'
+                    note_prefix = 'Downloading comment section API JSON'
                 else:
                     note_prefix = '    Downloading comment API JSON reply thread %d %s' % (
                         comment_counts[2], comment_prog_str)
@@ -2120,6 +2120,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 response, (lambda x: x['onResponseReceivedEndpoints'],
                            lambda x: x['continuationContents']))
 
+            continuation = None
             if isinstance(continuation_contents, list):
                 for continuation_section in continuation_contents:
                     if not isinstance(continuation_section, dict):
