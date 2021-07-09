@@ -101,8 +101,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if username:
             warn('Logging in using username and password is broken. %s' % self._LOGIN_HINTS['cookies'])
         return
-        # Everything below this is broken!
 
+        # Everything below this is broken!
+        r'''
         # No authentication to be performed
         if username is None:
             if self._LOGIN_REQUIRED and self.get_param('cookiefile') is None:
@@ -275,6 +276,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return False
 
         return True
+        '''
 
     def _initialize_consent(self):
         cookies = self._get_cookies('https://www.youtube.com/')
@@ -2121,9 +2123,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 lambda x: x['responseContext']['webResponseContextExtensionData']['ytConfigData']['visitorData'],
                 compat_str) or visitor_data
 
-            continuation_contents = try_get(
-                response, (lambda x: x['onResponseReceivedEndpoints'],
-                           lambda x: x['continuationContents']))
+            continuation_contents = dict_get(response, ('onResponseReceivedEndpoints', 'continuationContents'))
 
             continuation = None
             if isinstance(continuation_contents, list):
@@ -2312,7 +2312,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 default_client=ytm_client,
                 note='Downloading %sremix player API JSON' % ('mobile ' if force_mobile_client else ''))
 
-            ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
+            ytm_streaming_data = ytm_player_response.get('streamingData') or {}
         player_response = None
         if webpage:
             player_response = self._extract_yt_initial_variable(
@@ -2729,7 +2729,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         subtitles, base_url, lang_code,
-                        try_get(caption_track, lambda x: x.get('name').get('simpleText')),
+                        try_get(caption_track, lambda x: x['name']['simpleText']),
                         {})
                     continue
                 automatic_captions = {}
