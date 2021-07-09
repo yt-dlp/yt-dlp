@@ -2041,8 +2041,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 _continuation = self._extract_continuation_ep_data(sort_continuation_ep) or self._extract_continuation(sort_menu_item)
                 if not _continuation:
                     continue
-                # TODO: use sort_menu_item sorting for text
-                self.to_screen('Sorting comments by %s' % ('popular' if comment_sort_index == 0 else 'newest'))
+
+                sort_text = sort_menu_item.get('title')
+                if isinstance(sort_text, compat_str):
+                    sort_text = sort_text.lower()
+                else:
+                    sort_text = 'top comments' if comment_sort_index == 0 else 'newest first'
+                self.to_screen('Sorting comments by %s' % sort_text)
                 break
             return _total_comments, _continuation
 
@@ -2137,13 +2142,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if continuation:
                             break
                         continue
-
-                    for entry in extract_thread(continuation_items):
+                    count = 0
+                    for count, entry in enumerate(extract_thread(continuation_items)):
                         yield entry
                     continuation = self._extract_continuation({'contents': continuation_items})
                     if continuation:
+                        # Sometimes YouTube provides a continuation without any comments
+                        # In most cases we end up just downloading these with very little comments to come.
+                        if count == 0:
+                            if not parent:
+                                self.report_warning("No comments received - assuming end of comments.")
+                            continuation = None
                         break
 
+            # Deprecated response structure
             elif isinstance(continuation_contents, dict):
                 known_continuation_renderers = ('itemSectionContinuation', 'commentRepliesContinuation')
                 for key, continuation_renderer in continuation_contents.items():
@@ -2160,7 +2172,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if continuation:
                             break
 
-                    for entry in extract_thread(continuation_renderer.get('contents') or [continuation_renderer]):
+                    # Sometimes YouTube provides a continuation without any comments
+                    # In most cases we end up just downloading these with very little comments to come.
+                    if 'contents' not in continuation_renderer:
+                        if not parent:
+                            self.report_warning("No comments received - assuming end of comments.")
+                        break
+                    for entry in extract_thread(continuation_renderer.get('contents')):
                         yield entry
                     continuation = self._extract_continuation(continuation_renderer)
                     break
