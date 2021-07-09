@@ -544,8 +544,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         query = {
             'continuation': continuation
         }
-        # TODO: clickTrackingParams appears to be contained within the context
-        # which is extracted from ytcfg (and is different from one extracted with continuation)
         if ctp:
             query['clickTracking'] = {'clickTrackingParams': ctp}
         return query
@@ -2086,8 +2084,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             comment_counts = [0, 0, 0]
 
         continuation = self._extract_continuation(root_continuation_data)
-        if len(continuation['ctoken']) < 27:
-            self.report_warning("Detected old API continuation token. Generating new API compatible token.")
+        if continuation and len(continuation['ctoken']) < 27:
+            self.report_warning('Detected old API continuation token. Generating new API compatible token.')
             continuation_token = self._generate_comment_continuation(video_id)
             continuation = self._build_continuation_query(continuation_token, None)
 
@@ -2151,7 +2149,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # In most cases we end up just downloading these with very little comments to come.
                         if count == 0:
                             if not parent:
-                                self.report_warning("No comments received - assuming end of comments.")
+                                self.report_warning('No comments received - assuming end of comments.')
                             continuation = None
                         break
 
@@ -2176,7 +2174,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # In most cases we end up just downloading these with very little comments to come.
                     if 'contents' not in continuation_renderer:
                         if not parent:
-                            self.report_warning("No comments received - assuming end of comments.")
+                            self.report_warning('No comments received - assuming end of comments.')
                         break
                     for entry in extract_thread(continuation_renderer.get('contents')):
                         yield entry
@@ -2206,10 +2204,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if key not in known_entry_comment_renderers:
                     continue
                 comment_iter = self._comment_entries(
-                    renderer, video_id=video_id,
+                    renderer, video_id=video_id, ytcfg=ytcfg,
                     identity_token=self._extract_identity_token(webpage, item_id=video_id),
-                    account_syncid=self._extract_account_syncid(ytcfg),
-                    ytcfg=ytcfg)
+                    account_syncid=self._extract_account_syncid(ytcfg))
 
                 for comment in comment_iter:
                     if isinstance(comment, int):
