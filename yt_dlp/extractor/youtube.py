@@ -2151,7 +2151,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # In most cases we end up just downloading these with very little comments to come.
                         if count == 0:
                             if not parent:
-                                self.report_warning("No comments received - assuming end of comments.")
+                                self.report_warning('No comments received - assuming end of comments')
                             continuation = None
                         break
 
@@ -2176,7 +2176,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # In most cases we end up just downloading these with very little comments to come.
                     if 'contents' not in continuation_renderer:
                         if not parent:
-                            self.report_warning("No comments received - assuming end of comments.")
+                            self.report_warning('No comments received - assuming end of comments')
                         break
                     for entry in extract_thread(continuation_renderer.get('contents')):
                         yield entry
@@ -2288,7 +2288,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if sts and not force_mobile_client and 'configs' not in player_skip:
                 ytm_webpage = self._download_webpage(
                     'https://music.youtube.com',
-                    video_id, fatal=False, note="Downloading remix client config")
+                    video_id, fatal=False, note='Downloading remix client config')
 
             ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
             ytm_client = 'WEB_REMIX'
