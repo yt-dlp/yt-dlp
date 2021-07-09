@@ -2030,7 +2030,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_counts[1] = str_to_int(expected_comment_count)
                     self.to_screen('Downloading ~%d comments' % str_to_int(expected_comment_count))
                     _total_comments = comment_counts[1]
-                sort_mode_str = try_get(self._configuration_arg('comment_sort'), lambda x: x[0], str) or ''
+                sort_mode_str = self._configuration_arg('comment_sort', [''])[0]
                 comment_sort_index = int(sort_mode_str != 'popular')  # 1 = newest, 0 = popular
 
                 sort_menu_item = try_get(
@@ -2264,7 +2264,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         player_url = self._extract_player_url(ytcfg, webpage)
 
-        player_client = (self._configuration_arg('player_client') or [''])[0]
+        player_client = self._configuration_arg('player_client', [''])[0]
         if player_client not in ('web', 'android', ''):
             self.report_warning(f'Invalid player_client {player_client} given. Falling back to WEB')
         force_mobile_client = player_client == 'android'
