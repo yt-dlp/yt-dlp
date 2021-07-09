@@ -101,8 +101,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if username:
             warn('Logging in using username and password is broken. %s' % self._LOGIN_HINTS['cookies'])
         return
-        # Everything below this is broken!
 
+        # Everything below this is broken!
+        r'''
         # No authentication to be performed
         if username is None:
             if self._LOGIN_REQUIRED and self.get_param('cookiefile') is None:
@@ -275,6 +276,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return False
 
         return True
+        '''
 
     def _initialize_consent(self):
         cookies = self._get_cookies('https://www.youtube.com/')
@@ -2028,7 +2030,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_counts[1] = str_to_int(expected_comment_count)
                     self.to_screen('Downloading ~%d comments' % str_to_int(expected_comment_count))
                     _total_comments = comment_counts[1]
-                sort_mode_str = try_get(self._configuration_arg('comment_sort'), lambda x: x[0], str) or ''
+                sort_mode_str = self._configuration_arg('comment_sort', [''])[0]
                 comment_sort_index = int(sort_mode_str != 'popular')  # 1 = newest, 0 = popular
 
                 sort_menu_item = try_get(
@@ -2119,9 +2121,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 lambda x: x['responseContext']['webResponseContextExtensionData']['ytConfigData']['visitorData'],
                 compat_str) or visitor_data
 
-            continuation_contents = try_get(
-                response, (lambda x: x['onResponseReceivedEndpoints'],
-                           lambda x: x['continuationContents']))
+            continuation_contents = dict_get(response, ('onResponseReceivedEndpoints', 'continuationContents'))
 
             continuation = None
             if isinstance(continuation_contents, list):
@@ -2149,7 +2149,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # In most cases we end up just downloading these with very little comments to come.
                         if count == 0:
                             if not parent:
-                                self.report_warning('No comments received - assuming end of comments.')
+                                self.report_warning('No comments received - assuming end of comments')
                             continuation = None
                         break
 
@@ -2174,7 +2174,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # In most cases we end up just downloading these with very little comments to come.
                     if 'contents' not in continuation_renderer:
                         if not parent:
-                            self.report_warning('No comments received - assuming end of comments.')
+                            self.report_warning('No comments received - assuming end of comments')
                         break
                     for entry in extract_thread(continuation_renderer.get('contents')):
                         yield entry
@@ -2261,7 +2261,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         player_url = self._extract_player_url(ytcfg, webpage)
 
-        player_client = (self._configuration_arg('player_client') or [''])[0]
+        player_client = self._configuration_arg('player_client', [''])[0]
         if player_client not in ('web', 'android', ''):
             self.report_warning(f'Invalid player_client {player_client} given. Falling back to WEB')
         force_mobile_client = player_client == 'android'
@@ -2285,7 +2285,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if sts and not force_mobile_client and 'configs' not in player_skip:
                 ytm_webpage = self._download_webpage(
                     'https://music.youtube.com',
-                    video_id, fatal=False, note="Downloading remix client config")
+                    video_id, fatal=False, note='Downloading remix client config')
 
             ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
             ytm_client = 'WEB_REMIX'
@@ -2309,7 +2309,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 default_client=ytm_client,
                 note='Downloading %sremix player API JSON' % ('mobile ' if force_mobile_client else ''))
 
-            ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
+            ytm_streaming_data = ytm_player_response.get('streamingData') or {}
         player_response = None
         if webpage:
             player_response = self._extract_yt_initial_variable(
@@ -2726,7 +2726,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         subtitles, base_url, lang_code,
-                        try_get(caption_track, lambda x: x.get('name').get('simpleText')),
+                        try_get(caption_track, lambda x: x['name']['simpleText']),
                         {})
                     continue
                 automatic_captions = {}
