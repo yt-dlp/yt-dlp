@@ -568,7 +568,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     @classmethod
     def _extract_next_continuation_data(cls, renderer):
         next_continuation = try_get(
-            renderer, lambda x: x['continuations'][0]['nextContinuationData'], dict)
+            renderer, (lambda x: x['continuations'][0]['nextContinuationData'],
+                       lambda x: x['continuation']['reloadContinuationData']), dict)
         if not next_continuation:
             return
         continuation = next_continuation.get('continuation')
@@ -2029,22 +2030,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_counts[1] = str_to_int(expected_comment_count)
                     self.to_screen('Downloading ~%d comments' % str_to_int(expected_comment_count))
                     _total_comments = comment_counts[1]
-
                 sort_mode_str = try_get(self._configuration_arg('comment_sort'), lambda x: x[0], str) or ''
                 comment_sort_index = int(sort_mode_str != 'popular')  # 1 = newest, 0 = popular
 
-                sort_continuation_ep = try_get(
+                sort_menu_item = try_get(
                     comments_header_renderer,
-                    lambda x: x['sortMenu']['sortFilterSubMenuRenderer']['subMenuItems']
-                    [comment_sort_index]['serviceEndpoint'], dict)
-                # If this fails, the initial continuation page
-                # starts off with popular anyways.
-                if sort_continuation_ep:
-                    _continuation = self._extract_continuation_ep_data(sort_continuation_ep)
-                    if not _continuation:
-                        continue
-                    self.to_screen('Sorting comments by %s' % ('popular' if comment_sort_index == 0 else 'newest'))
-                    break
+                    lambda x: x['sortMenu']['sortFilterSubMenuRenderer']['subMenuItems'][comment_sort_index], dict) or {}
+                sort_continuation_ep = sort_menu_item.get('serviceEndpoint') or {}
+
+                _continuation = self._extract_continuation_ep_data(sort_continuation_ep) or self._extract_continuation(sort_menu_item)
+                if not _continuation:
+                    continue
+                # TODO: use sort_menu_item sorting for text
+                self.to_screen('Sorting comments by %s' % ('popular' if comment_sort_index == 0 else 'newest'))
+                break
             return _total_comments, _continuation
 
         def extract_thread(contents):
@@ -2083,11 +2082,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         continuation = self._extract_continuation(root_continuation_data)
         if len(continuation['ctoken']) < 27:
-            self.report_warning("Detected old API continuation. Generating new API compatible token.")
+            self.report_warning("Detected old API continuation token. Generating new API compatible token.")
             continuation_token = self._generate_comment_continuation(video_id)
             continuation = self._build_continuation_query(continuation_token, None)
-            ytcfg = None  # visitorData in innertube context is used to link what response structure API gives
-            self.report_warning("Due to API changes, you may need to set --extractor-retries to a higher value")
 
         visitor_data = None
         is_first_continuation = parent is None
@@ -2111,7 +2108,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             response = self._extract_response(
                 item_id=None, query=self._continuation_query_ajax_to_api(continuation),
                 ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                check_get_keys=('onResponseReceivedEndpoints',))
+                check_get_keys=('onResponseReceivedEndpoints', 'continuationContents'))
             if not response:
                 break
             visitor_data = try_get(
@@ -2119,30 +2116,52 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 lambda x: x['responseContext']['webResponseContextExtensionData']['ytConfigData']['visitorData'],
                 compat_str) or visitor_data
 
-            # extract next root continuation from the results
             continuation_contents = try_get(
-                response, lambda x: x['onResponseReceivedEndpoints'], list) or []
+                response, (lambda x: x['onResponseReceivedEndpoints'],
+                           lambda x: x['continuationContents']))
 
-            for continuation_section in continuation_contents:
-                if not isinstance(continuation_section, dict):
-                    continue
-                continuation_items = try_get(continuation_section,
-                                             (lambda x: x['reloadContinuationItemsCommand']['continuationItems'],
-                                              lambda x: x['appendContinuationItemsAction']['continuationItems']),
-                                             list) or []
-                if is_first_continuation:
-                    total_comments, continuation = extract_header(continuation_items)
-                    if total_comments:
-                        yield total_comments
-                    is_first_continuation = False
+            if isinstance(continuation_contents, list):
+                for continuation_section in continuation_contents:
+                    if not isinstance(continuation_section, dict):
+                        continue
+                    continuation_items = try_get(continuation_section,
+                                                 (lambda x: x['reloadContinuationItemsCommand']['continuationItems'],
+                                                  lambda x: x['appendContinuationItemsAction']['continuationItems']),
+                                                 list) or []
+                    if is_first_continuation:
+                        total_comments, continuation = extract_header(continuation_items)
+                        if total_comments:
+                            yield total_comments
+                        is_first_continuation = False
+                        if continuation:
+                            break
+                        continue
+
+                    for entry in extract_thread(continuation_items):
+                        yield entry
+                    continuation = self._extract_continuation({'contents': continuation_items})
                     if continuation:
                         break
-                    continue
 
-                for entry in extract_thread(continuation_items):
-                    yield entry
-                continuation = self._extract_continuation({'contents': continuation_items})
-                if continuation:
+            elif isinstance(continuation_contents, dict):
+                known_continuation_renderers = ('itemSectionContinuation', 'commentRepliesContinuation')
+                for key, continuation_renderer in continuation_contents.items():
+                    if key not in known_continuation_renderers:
+                        continue
+                    if not isinstance(continuation_renderer, dict):
+                        continue
+                    if is_first_continuation:
+                        header_continuation_items = [continuation_renderer.get('header') or {}]
+                        total_comments, continuation = extract_header(header_continuation_items)
+                        if total_comments:
+                            yield total_comments
+                        is_first_continuation = False
+                        if continuation:
+                            break
+
+                    for entry in extract_thread(continuation_renderer.get('contents') or [continuation_renderer]):
+                        yield entry
+                    continuation = self._extract_continuation(continuation_renderer)
                     break
 
     @staticmethod
