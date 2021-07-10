@@ -9,7 +9,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-18.04]
-        python-version: [3.7, 3.8, 3.9, pypy-3.6, pypy-3.7]
+        python-version: [3.7, 3.8, 3.9, 3.10-dev, pypy-3.6, pypy-3.7]
         run-tests-ext: [sh]
         include:
         - os: windows-latest
