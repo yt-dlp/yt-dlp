@@ -2128,10 +2128,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 for continuation_section in continuation_contents:
                     if not isinstance(continuation_section, dict):
                         continue
-                    continuation_items = try_get(continuation_section,
-                                                 (lambda x: x['reloadContinuationItemsCommand']['continuationItems'],
-                                                  lambda x: x['appendContinuationItemsAction']['continuationItems']),
-                                                 list) or []
+                    continuation_items = try_get(
+                        continuation_section,
+                        (lambda x: x['reloadContinuationItemsCommand']['continuationItems'],
+                         lambda x: x['appendContinuationItemsAction']['continuationItems']),
+                        list) or []
                     if is_first_continuation:
                         total_comments, continuation = extract_header(continuation_items)
                         if total_comments:
