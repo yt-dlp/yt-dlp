@@ -8,6 +8,8 @@ from ..utils import (
     smuggle_url,
     update_url_query,
     int_or_none,
+    float_or_none,
+    try_get,
 )
 
 
@@ -24,6 +26,11 @@ class BravoTVIE(AdobePassIE):
             'uploader': 'NBCU-BRAV',
             'upload_date': '20190314',
             'timestamp': 1552591860,
+            'season_number': 16,
+            'episode_number': 15,
+            'series': 'Top Chef',
+            'episode': 'The Top Chef Season 16 Winner Is...',
+            'duration': 190.0,
         }
     }, {
         'url': 'http://www.bravotv.com/below-deck/season-3/ep-14-reunion-part-1',
@@ -79,12 +86,38 @@ class BravoTVIE(AdobePassIE):
                 'episode_number': int_or_none(metadata.get('episode_num')),
             })
             query['switch'] = 'progressive'
+
+        tp_url = 'http://link.theplatform.com/s/%s/%s' % (account_pid, tp_path)
+
+        tp_metadata = self._download_json(
+            update_url_query(tp_url, {'format': 'preview'}),
+            display_id, fatal=False)
+        if tp_metadata:
+            info.update({
+                'title': tp_metadata.get('title'),
+                'description': tp_metadata.get('description'),
+                'duration': float_or_none(tp_metadata.get('duration'), 1000),
+                'season_number': (
+                    int_or_none(tp_metadata.get('pl1$seasonNumber'))
+                    or int_or_none(tp_metadata.get('nbcu$seasonNumber'))),
+                'episode_number': (
+                    int_or_none(tp_metadata.get('pl1$episodeNumber'))
+                    or int_or_none(tp_metadata.get('nbcu$episodeNumber'))),
+                # For some reason the series is sometimes wrapped into a single element array.
+                'series': try_get(
+                    tp_metadata.get('pl1$show') or tp_metadata.get('nbcu$show'),
+                    lambda x: x[0] if isinstance(x, list) else x,
+                    expected_type=str),
+                'episode': (
+                    tp_metadata.get('pl1$episodeName')
+                    or tp_metadata.get('nbcu$episodeName')
+                    or tp_metadata.get('title')),
+            })
+
         info.update({
             '_type': 'url_transparent',
             'id': release_pid,
-            'url': smuggle_url(update_url_query(
-                'http://link.theplatform.com/s/%s/%s' % (account_pid, tp_path),
-                query), {'force_smil_url': True}),
+            'url': smuggle_url(update_url_query(tp_url, query), {'force_smil_url': True}),
             'ie_key': 'ThePlatform',
         })
         return info
