@@ -235,12 +235,12 @@ class FFmpegPostProcessor(PostProcessor):
             None)
         return num, len(streams)
 
-    def run_ffmpeg_multiple_files(self, input_paths, out_path, opts):
+    def run_ffmpeg_multiple_files(self, input_paths, out_path, opts, **kwargs):
         return self.real_run_ffmpeg(
             [(path, []) for path in input_paths],
-            [(out_path, opts)])
+            [(out_path, opts)], **kwargs)
 
-    def real_run_ffmpeg(self, input_path_opts, output_path_opts):
+    def real_run_ffmpeg(self, input_path_opts, output_path_opts, *, expected_retcodes=(0,)):
         self.check_version()
 
         oldest_mtime = min(
@@ -270,7 +270,7 @@ class FFmpegPostProcessor(PostProcessor):
         self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdout, stderr = process_communicate_or_kill(p)
-        if p.returncode != 0:
+        if p.returncode not in variadic(expected_retcodes):
             stderr = stderr.decode('utf-8', 'replace').strip()
             if self.get_param('verbose', False):
                 self.report_error(stderr)
@@ -280,8 +280,8 @@ class FFmpegPostProcessor(PostProcessor):
                 self.try_utime(out_path, oldest_mtime, oldest_mtime)
         return stderr.decode('utf-8', 'replace')
 
-    def run_ffmpeg(self, path, out_path, opts):
-        return self.run_ffmpeg_multiple_files([path], out_path, opts)
+    def run_ffmpeg(self, path, out_path, opts, **kwargs):
+        return self.run_ffmpeg_multiple_files([path], out_path, opts, **kwargs)
 
     def _ffmpeg_filename_argument(self, fn):
         # Always use 'file:' because the filename may contain ':' (ffmpeg
