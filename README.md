@@ -211,7 +211,7 @@ You can also build the executable without any version info or metadata by using:
 Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment
 
 **For Unix**:
-You will need the required build tools: `python`, `make` (GNU), `pandoc`, `zip`, `nosetests`  
+You will need the required build tools: `python`, `make` (GNU), `pandoc`, `zip`, `pytest`  
 Then simply run `make`. You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files
 
 **Note**: In either platform, `devscripts\update-version.py` can be used to automatically update the version number

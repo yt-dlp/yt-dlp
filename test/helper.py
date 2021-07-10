@@ -22,6 +22,14 @@ from yt_dlp.utils import (
 )
 
 
+if "pytest" in sys.modules:
+    import pytest
+    is_download_test = pytest.mark.download
+else:
+    def is_download_test(testClass):
+        return testClass
+
+
 def get_params(override=None):
     PARAMETERS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                    "parameters.json")

@@ -8,7 +8,7 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import FakeYDL
+from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import IqiyiIE
 
 
@@ -31,6 +31,7 @@ class WarningLogger(object):
         pass
 
 
+@is_download_test
 class TestIqiyiSDKInterpreter(unittest.TestCase):
     def test_iqiyi_sdk_interpreter(self):
         '''

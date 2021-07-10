@@ -44,6 +44,7 @@ cookies.txt
 # Python
 *.pyc
 *.pyo
+.pytest_cache
 wine-py2exe/
 py2exe.log
 build/
@@ -78,6 +79,7 @@ README.txt
 *.tar.gz
 *.zsh
 *.spec
+test/testdata/player-*.js
 
 # Binary
 /youtube-dl

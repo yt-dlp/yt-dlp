@@ -23,11 +23,9 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install nose
-      run: pip install nose
+    - name: Install pytest
+      run: pip install pytest
     - name: Run tests
       continue-on-error: False
-      env:
-        YTDL_TEST_SET: core
-      run: ./devscripts/run_tests.${{ matrix.run-tests-ext }}
+      run: ./devscripts/run_tests.${{ matrix.run-tests-ext }} core
   # Linter is in quick-test

@@ -1,17 +1,16 @@
+@setlocal
 @echo off
+cd /d %~dp0..
 
-rem Keep this list in sync with the `offlinetest` target in Makefile
-set DOWNLOAD_TESTS="age_restriction^|download^|iqiyi_sdk_interpreter^|socks^|subtitles^|write_annotations^|youtube_lists^|youtube_signature^|post_hooks"
-
-if "%YTDL_TEST_SET%" == "core" (
-    set test_set="-I test_("%DOWNLOAD_TESTS%")\.py"
-    set multiprocess_args=""
-) else if "%YTDL_TEST_SET%" == "download" (
-    set test_set="-I test_(?!"%DOWNLOAD_TESTS%").+\.py"
-    set multiprocess_args="--processes=4 --process-timeout=540"
+if ["%~1"]==[""] (
+    set "test_set="
+) else if ["%~1"]==["core"] (
+    set "test_set=-k "not download""
+) else if ["%~1"]==["download"] (
+    set "test_set=-k download"
 ) else (
-    echo YTDL_TEST_SET is not set or invalid
+    echo.Invalid test type "%~1". Use "core" ^| "download"
     exit /b 1
 )
 
-nosetests test --verbose %test_set:"=% %multiprocess_args:"=%
+pytest %test_set%
