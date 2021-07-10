@@ -19,6 +19,7 @@ from ..utils import (
     std_headers,
     try_get,
     url_or_none,
+    variadic,
 )
 
 
@@ -188,9 +189,7 @@ class InstagramIE(InfoExtractor):
             uploader_id = media.get('owner', {}).get('username')
 
             def get_count(keys, kind):
-                if not isinstance(keys, (list, tuple)):
-                    keys = [keys]
-                for key in keys:
+                for key in variadic(keys):
                     count = int_or_none(try_get(
                         media, (lambda x: x['edge_media_%s' % key]['count'],
                                 lambda x: x['%ss' % kind]['count'])))

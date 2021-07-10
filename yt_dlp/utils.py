@@ -4289,9 +4289,7 @@ def dict_get(d, key_or_keys, default=None, skip_false_values=True):
 
 
 def try_get(src, getter, expected_type=None):
-    if not isinstance(getter, (list, tuple)):
-        getter = [getter]
-    for get in getter:
+    for get in variadic(getter):
         try:
             v = get(src)
         except (AttributeError, KeyError, TypeError, IndexError):
@@ -4964,11 +4962,9 @@ def cli_configuration_args(argdict, keys, default=[], use_compat=True):
 
     assert isinstance(keys, (list, tuple))
     for key_list in keys:
-        if isinstance(key_list, compat_str):
-            key_list = (key_list,)
         arg_list = list(filter(
             lambda x: x is not None,
-            [argdict.get(key.lower()) for key in key_list]))
+            [argdict.get(key.lower()) for key in variadic(key_list)]))
         if arg_list:
             return [arg for args in arg_list for arg in args]
     return default
@@ -6265,3 +6261,7 @@ def traverse_dict(dictn, keys, casesense=True):
     ''' For backward compatibility. Do not use '''
     return traverse_obj(dictn, keys, casesense=casesense,
                         is_user_input=True, traverse_string=True)
+
+
+def variadic(x, allowed_types=str):
+    return x if isinstance(x, collections.Iterable) and not isinstance(x, allowed_types) else (x,)

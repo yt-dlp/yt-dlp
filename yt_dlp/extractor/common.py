@@ -19,7 +19,6 @@ from ..compat import (
     compat_etree_Element,
     compat_etree_fromstring,
     compat_getpass,
-    compat_integer_types,
     compat_http_client,
     compat_os_name,
     compat_str,
@@ -79,6 +78,7 @@ from ..utils import (
     urljoin,
     url_basename,
     url_or_none,
+    variadic,
     xpath_element,
     xpath_text,
     xpath_with_ns,
@@ -628,14 +628,10 @@ class InfoExtractor(object):
         assert isinstance(err, compat_urllib_error.HTTPError)
         if expected_status is None:
             return False
-        if isinstance(expected_status, compat_integer_types):
-            return err.code == expected_status
-        elif isinstance(expected_status, (list, tuple)):
-            return err.code in expected_status
         elif callable(expected_status):
             return expected_status(err.code) is True
         else:
-            assert False
+            return err.code in variadic(expected_status)
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
         """
@@ -1207,8 +1203,7 @@ class InfoExtractor(object):
                     [^>]+?content=(["\'])(?P<content>.*?)\2''' % re.escape(prop)
 
     def _og_search_property(self, prop, html, name=None, **kargs):
-        if not isinstance(prop, (list, tuple)):
-            prop = [prop]
+        prop = variadic(prop)
         if name is None:
             name = 'OpenGraph %s' % prop[0]
         og_regexes = []
@@ -1238,8 +1233,7 @@ class InfoExtractor(object):
         return self._og_search_property('url', html, **kargs)
 
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
-        if not isinstance(name, (list, tuple)):
-            name = [name]
+        name = variadic(name)
         if display_name is None:
             display_name = name[0]
         return self._html_search_regex(

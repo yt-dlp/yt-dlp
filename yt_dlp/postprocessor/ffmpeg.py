@@ -24,6 +24,7 @@ from ..utils import (
     process_communicate_or_kill,
     replace_extension,
     traverse_obj,
+    variadic,
 )
 
 
@@ -533,15 +534,9 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         def add(meta_list, info_list=None):
             if not meta_list:
                 return
-            if not info_list:
-                info_list = meta_list
-            if not isinstance(meta_list, (list, tuple)):
-                meta_list = (meta_list,)
-            if not isinstance(info_list, (list, tuple)):
-                info_list = (info_list,)
-            for info_f in info_list:
+            for info_f in variadic(info_list or meta_list):
                 if isinstance(info.get(info_f), (compat_str, compat_numeric_types)):
-                    for meta_f in meta_list:
+                    for meta_f in variadic(meta_list):
                         metadata[meta_f] = info[info_f]
                     break
 
