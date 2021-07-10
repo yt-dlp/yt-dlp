@@ -2310,7 +2310,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 default_client=ytm_client,
                 note='Downloading %sremix player API JSON' % ('mobile ' if force_mobile_client else ''))
 
-            ytm_streaming_data = ytm_player_response.get('streamingData') or {}
+            if isinstance(ytm_player_response, dict):
+                ytm_streaming_data = ytm_player_response.get('streamingData') or {}
         player_response = None
         if webpage:
             player_response = self._extract_yt_initial_variable(
