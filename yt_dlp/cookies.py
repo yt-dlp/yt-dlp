@@ -708,17 +708,16 @@ class YDLLogger(Logger):
         self._ydl = ydl
 
     def debug(self, message):
-        if self._ydl.params.get('verbose'):
-            self._ydl.to_screen('[debug] ' + message)
+        self._ydl.write_debug(message)
 
     def info(self, message):
         self._ydl.to_screen(message)
 
     def warning(self, message):
-        self._ydl.to_stderr(message)
+        self._ydl.report_warning(message)
 
     def error(self, message):
-        self._ydl.to_stderr(message)
+        self._ydl.report_error(message)
 
 
 def _is_path(value):
