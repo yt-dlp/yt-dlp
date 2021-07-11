@@ -2018,7 +2018,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
     def _comment_entries(self, root_continuation_data, identity_token, account_syncid,
-                         ytcfg, parent=None, comment_counts=None, video_id=None):
+                         ytcfg, video_id, parent=None, comment_counts=None):
 
         def extract_header(contents):
             _total_comments = 0
@@ -2078,8 +2078,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_counts[2] += 1
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, identity_token, account_syncid, ytcfg,
-                        parent=comment.get('id'),
-                        comment_counts=comment_counts)
+                        video_id, parent=comment.get('id'), comment_counts=comment_counts)
 
                     for reply_comment in comment_entries_iter:
                         yield reply_comment
