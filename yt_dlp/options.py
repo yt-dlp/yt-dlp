@@ -1084,7 +1084,7 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--cookies-from-browser',
         dest='cookiesfrombrowser', metavar='BROWSER[:PROFILE]',
-        help='Load cookies from a user profile of the given web browser: {}. You can specify an alternative user profile name or directory using "BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH"'.format(', '.join(SUPPORTED_BROWSERS)))
+        help='Load cookies from a user profile of the given web browser: {}. You can specify an alternative user profile name or directory using "BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH"'.format(', '.join(sorted(SUPPORTED_BROWSERS))))
     filesystem.add_option(
         '--no-cookies',
         action='store_const', const=None, dest='cookiefile', metavar='FILE',
