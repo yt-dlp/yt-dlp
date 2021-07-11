@@ -621,6 +621,7 @@ def _real_main(argv=None):
         'break_on_reject': opts.break_on_reject,
         'skip_playlist_after_errors': opts.skip_playlist_after_errors,
         'cookiefile': opts.cookiefile,
+        'cookiesfrombrowser': opts.cookiesfrombrowser,
         'nocheckcertificate': opts.no_check_certificate,
         'prefer_insecure': opts.prefer_insecure,
         'proxy': opts.proxy,
