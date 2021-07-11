@@ -10,6 +10,7 @@ from ..utils import (
     int_or_none,
     float_or_none,
     try_get,
+    dict_get,
 )
 
 
@@ -97,21 +98,17 @@ class BravoTVIE(AdobePassIE):
                 'title': tp_metadata.get('title'),
                 'description': tp_metadata.get('description'),
                 'duration': float_or_none(tp_metadata.get('duration'), 1000),
-                'season_number': (
-                    int_or_none(tp_metadata.get('pl1$seasonNumber'))
-                    or int_or_none(tp_metadata.get('nbcu$seasonNumber'))),
-                'episode_number': (
-                    int_or_none(tp_metadata.get('pl1$episodeNumber'))
-                    or int_or_none(tp_metadata.get('nbcu$episodeNumber'))),
+                'season_number': int_or_none(
+                    dict_get(tp_metadata, ('pl1$seasonNumber', 'nbcu$seasonNumber'))),
+                'episode_number': int_or_none(
+                    dict_get(tp_metadata, ('pl1$episodeNumber', 'nbcu$episodeNumber'))),
                 # For some reason the series is sometimes wrapped into a single element array.
                 'series': try_get(
-                    tp_metadata.get('pl1$show') or tp_metadata.get('nbcu$show'),
+                    dict_get(tp_metadata, ('pl1$show', 'nbcu$show')),
                     lambda x: x[0] if isinstance(x, list) else x,
                     expected_type=str),
-                'episode': (
-                    tp_metadata.get('pl1$episodeName')
-                    or tp_metadata.get('nbcu$episodeName')
-                    or tp_metadata.get('title')),
+                'episode': dict_get(
+                    tp_metadata, ('pl1$episodeName', 'nbcu$episodeName', 'title')),
             })
 
         info.update({
