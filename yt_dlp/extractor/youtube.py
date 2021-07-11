@@ -29,7 +29,6 @@ from ..jsinterp import JSInterpreter
 from ..utils import (
     bool_or_none,
     bytes_to_intlist,
-    intlist_to_bytes,
     clean_html,
     dict_get,
     datetime_from_str,
@@ -38,6 +37,7 @@ from ..utils import (
     format_field,
     float_or_none,
     int_or_none,
+    intlist_to_bytes,
     mimetype2ext,
     parse_codecs,
     parse_duration,
