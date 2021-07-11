@@ -8,6 +8,7 @@ import subprocess
 import sys
 import warnings
 from datetime import datetime, timedelta
+from hashlib import pbkdf2_hmac
 
 from yt_dlp.aes import aes_cbc_decrypt
 from yt_dlp.compat import compat_cookiejar_Cookie, compat_b64decode, compat_TemporaryDirectory
@@ -590,22 +591,8 @@ def _get_windows_v10_key(browser_root, logger):
     return _decrypt_windows_dpapi(encrypted_key[len(prefix):], logger)
 
 
-PBKDF2_AVAILABLE = sys.version_info[:2] >= (3, 4) or CRYPTO_AVAILABLE
-
-
 def pbkdf2_sha1(password, salt, iterations, key_length):
-    try:
-        from hashlib import pbkdf2_hmac
-        return pbkdf2_hmac('sha1', password, salt, iterations, key_length)
-    except ImportError:
-        try:
-            from Crypto.Protocol.KDF import PBKDF2
-            from Crypto.Hash import SHA1
-            return PBKDF2(password, salt, key_length, iterations, hmac_hash_module=SHA1)
-        except ImportError:
-            warnings.warn('PBKDF2 is not available. You must either upgrade to '
-                          'python >= 3.4 or install the pycryptodome package')
-            return None
+    return pbkdf2_hmac('sha1', password, salt, iterations, key_length)
 
 
 def _decrypt_aes_cbc(ciphertext, key, initialization_vector=b' ' * 16):

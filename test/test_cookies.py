@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from yt_dlp import cookies
 from yt_dlp.cookies import LinuxChromeCookieDecryptor, WindowsChromeCookieDecryptor, CRYPTO_AVAILABLE, \
-    MacChromeCookieDecryptor, Logger, parse_safari_cookies, pbkdf2_sha1, PBKDF2_AVAILABLE
+    MacChromeCookieDecryptor, Logger, parse_safari_cookies, pbkdf2_sha1
 
 
 class MonkeyPatch:
@@ -23,17 +23,14 @@ class MonkeyPatch:
 
 
 class TestCookies(unittest.TestCase):
-    @unittest.skipIf(not PBKDF2_AVAILABLE, 'PBKDF2 not available')
     def test_chrome_cookie_decryptor_linux_derive_key(self):
         key = LinuxChromeCookieDecryptor.derive_key(b'abc')
         assert key == b'7\xa1\xec\xd4m\xfcA\xc7\xb19Z\xd0\x19\xdcM\x17'
 
-    @unittest.skipIf(not PBKDF2_AVAILABLE, 'PBKDF2 not available')
     def test_chrome_cookie_decryptor_mac_derive_key(self):
         key = MacChromeCookieDecryptor.derive_key(b'abc')
         assert key == b'Y\xe2\xc0\xd0P\xf6\xf4\xe1l\xc1\x8cQ\xcb|\xcdY'
 
-    @unittest.skipIf(not PBKDF2_AVAILABLE, 'PBKDF2 not available')
     def test_chrome_cookie_decryptor_linux_v10(self):
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v10\xccW%\xcd\xe6\xe6\x9fM" \xa7\xb0\xca\xe4\x07\xd6'
@@ -41,7 +38,6 @@ class TestCookies(unittest.TestCase):
             decryptor = LinuxChromeCookieDecryptor('Chrome')
             assert decryptor.decrypt(encrypted_value) == value
 
-    @unittest.skipIf(not PBKDF2_AVAILABLE, 'PBKDF2 not available')
     def test_chrome_cookie_decryptor_linux_v11(self):
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b'',
                                    'KEYRING_AVAILABLE': True}):
@@ -50,7 +46,6 @@ class TestCookies(unittest.TestCase):
             decryptor = LinuxChromeCookieDecryptor('Chrome')
             assert decryptor.decrypt(encrypted_value) == value
 
-    @unittest.skipIf(not PBKDF2_AVAILABLE, 'PBKDF2 not available')
     @unittest.skipIf(not CRYPTO_AVAILABLE, 'cryptography library not available')
     def test_chrome_cookie_decryptor_windows_v10(self):
         with MonkeyPatch(cookies, {
@@ -61,7 +56,6 @@ class TestCookies(unittest.TestCase):
             decryptor = WindowsChromeCookieDecryptor('', Logger())
             assert decryptor.decrypt(encrypted_value) == value
 
-    @unittest.skipIf(not PBKDF2_AVAILABLE, 'PBKDF2 not available')
     def test_chrome_cookie_decryptor_mac_v10(self):
         with MonkeyPatch(cookies, {'_get_mac_keyring_password': lambda *args, **kwargs: b'6eIDUdtKAacvlHwBVwvg/Q=='}):
             encrypted_value = b'v10\xb3\xbe\xad\xa1[\x9fC\xa1\x98\xe0\x9a\x01\xd9\xcf\xbfc'
