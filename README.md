@@ -105,6 +105,8 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Self-updater**: The releases can be updated using `yt-dlp -U`
 
+* **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser <browser_name>`
+
 
 See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
 
