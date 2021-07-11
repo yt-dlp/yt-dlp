@@ -1083,7 +1083,7 @@ def parseOpts(overrideArguments=None):
         help='File to read cookies from and dump cookie jar in')
     filesystem.add_option(
         '--cookies-from-browser',
-        dest='cookiesfrombrowser', metavar='BROWSER',
+        dest='cookiesfrombrowser', metavar='BROWSER[:PROFILE]',
         help='Load cookies from a user profile of the given web browser: {}. You can specify an alternative user profile name or directory using "BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH"'.format(', '.join(SUPPORTED_BROWSERS)))
     filesystem.add_option(
         '--no-cookies',
