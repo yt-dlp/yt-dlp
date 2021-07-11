@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import base64
 import calendar
 import copy
 import hashlib
@@ -27,6 +28,7 @@ from ..compat import (
 from ..jsinterp import JSInterpreter
 from ..utils import (
     bool_or_none,
+    bytes_to_intlist,
     clean_html,
     dict_get,
     datetime_from_str,
@@ -35,6 +37,7 @@ from ..utils import (
     format_field,
     float_or_none,
     int_or_none,
+    intlist_to_bytes,
     mimetype2ext,
     parse_codecs,
     parse_duration,
@@ -98,8 +101,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if username:
             warn('Logging in using username and password is broken. %s' % self._LOGIN_HINTS['cookies'])
         return
-        # Everything below this is broken!
 
+        # Everything below this is broken!
+        r'''
         # No authentication to be performed
         if username is None:
             if self._LOGIN_REQUIRED and self.get_param('cookiefile') is None:
@@ -272,6 +276,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return False
 
         return True
+        '''
 
     def _initialize_consent(self):
         cookies = self._get_cookies('https://www.youtube.com/')
@@ -520,6 +525,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, client),
             'Origin': origin
         }
+        if not visitor_data and ytcfg:
+            visitor_data = try_get(
+                self._extract_context(ytcfg, client), lambda x: x['client']['visitorData'], compat_str)
         if identity_token:
             headers['X-Youtube-Identity-Token'] = identity_token
         if account_syncid:
@@ -532,6 +540,75 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers['Authorization'] = auth
             headers['X-Origin'] = origin
         return headers
+
+    @staticmethod
+    def _build_api_continuation_query(continuation, ctp=None):
+        query = {
+            'continuation': continuation
+        }
+        # TODO: Inconsistency with clickTrackingParams.
+        # Currently we have a fixed ctp contained within context (from ytcfg)
+        # and a ctp in root query for continuation.
+        if ctp:
+            query['clickTracking'] = {'clickTrackingParams': ctp}
+        return query
+
+    @classmethod
+    def _continuation_query_ajax_to_api(cls, continuation_query):
+        continuation = dict_get(continuation_query, ('continuation', 'ctoken'))
+        return cls._build_api_continuation_query(continuation, continuation_query.get('itct'))
+
+    @staticmethod
+    def _build_continuation_query(continuation, ctp=None):
+        query = {
+            'ctoken': continuation,
+            'continuation': continuation,
+        }
+        if ctp:
+            query['itct'] = ctp
+        return query
+
+    @classmethod
+    def _extract_next_continuation_data(cls, renderer):
+        next_continuation = try_get(
+            renderer, (lambda x: x['continuations'][0]['nextContinuationData'],
+                       lambda x: x['continuation']['reloadContinuationData']), dict)
+        if not next_continuation:
+            return
+        continuation = next_continuation.get('continuation')
+        if not continuation:
+            return
+        ctp = next_continuation.get('clickTrackingParams')
+        return cls._build_continuation_query(continuation, ctp)
+
+    @classmethod
+    def _extract_continuation_ep_data(cls, continuation_ep: dict):
+        if isinstance(continuation_ep, dict):
+            continuation = try_get(
+                continuation_ep, lambda x: x['continuationCommand']['token'], compat_str)
+            if not continuation:
+                return
+            ctp = continuation_ep.get('clickTrackingParams')
+            return cls._build_continuation_query(continuation, ctp)
+
+    @classmethod
+    def _extract_continuation(cls, renderer):
+        next_continuation = cls._extract_next_continuation_data(renderer)
+        if next_continuation:
+            return next_continuation
+        contents = []
+        for key in ('contents', 'items'):
+            contents.extend(try_get(renderer, lambda x: x[key], list) or [])
+        for content in contents:
+            if not isinstance(content, dict):
+                continue
+            continuation_ep = try_get(
+                content, (lambda x: x['continuationItemRenderer']['continuationEndpoint'],
+                          lambda x: x['continuationItemRenderer']['button']['buttonRenderer']['command']),
+                dict)
+            continuation = cls._extract_continuation_ep_data(continuation_ep)
+            if continuation:
+                return continuation
 
     @staticmethod
     def _extract_alerts(data):
@@ -1941,10 +2018,43 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
     def _comment_entries(self, root_continuation_data, identity_token, account_syncid,
-                         ytcfg, session_token_list, parent=None, comment_counts=None):
+                         ytcfg, video_id, parent=None, comment_counts=None):
 
-        def extract_thread(parent_renderer):
-            contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
+        def extract_header(contents):
+            _total_comments = 0
+            _continuation = None
+            for content in contents:
+                comments_header_renderer = try_get(content, lambda x: x['commentsHeaderRenderer'])
+                expected_comment_count = try_get(comments_header_renderer,
+                                                 (lambda x: x['countText']['runs'][0]['text'],
+                                                  lambda x: x['commentsCount']['runs'][0]['text']),
+                                                 compat_str)
+                if expected_comment_count:
+                    comment_counts[1] = str_to_int(expected_comment_count)
+                    self.to_screen('Downloading ~%d comments' % str_to_int(expected_comment_count))
+                    _total_comments = comment_counts[1]
+                sort_mode_str = self._configuration_arg('comment_sort', [''])[0]
+                comment_sort_index = int(sort_mode_str != 'top')  # 1 = new, 0 = top
+
+                sort_menu_item = try_get(
+                    comments_header_renderer,
+                    lambda x: x['sortMenu']['sortFilterSubMenuRenderer']['subMenuItems'][comment_sort_index], dict) or {}
+                sort_continuation_ep = sort_menu_item.get('serviceEndpoint') or {}
+
+                _continuation = self._extract_continuation_ep_data(sort_continuation_ep) or self._extract_continuation(sort_menu_item)
+                if not _continuation:
+                    continue
+
+                sort_text = sort_menu_item.get('title')
+                if isinstance(sort_text, compat_str):
+                    sort_text = sort_text.lower()
+                else:
+                    sort_text = 'top comments' if comment_sort_index == 0 else 'newest first'
+                self.to_screen('Sorting comments by %s' % sort_text)
+                break
+            return _total_comments, _continuation
+
+        def extract_thread(contents):
             if not parent:
                 comment_counts[2] = 0
             for content in contents:
@@ -1968,117 +2078,48 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_counts[2] += 1
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, identity_token, account_syncid, ytcfg,
-                        parent=comment.get('id'), session_token_list=session_token_list,
-                        comment_counts=comment_counts)
+                        video_id, parent=comment.get('id'), comment_counts=comment_counts)
 
                     for reply_comment in comment_entries_iter:
                         yield reply_comment
 
+        # YouTube comments have a max depth of 2
+        max_depth = int_or_none(self._configuration_arg('max_comment_depth', [''])[0]) or float('inf')
+        if max_depth == 1 and parent:
+            return
         if not comment_counts:
             # comment so far, est. total comments, current comment thread #
             comment_counts = [0, 0, 0]
 
-        # TODO: Generalize the download code with TabIE
-        context = self._extract_context(ytcfg)
-        visitor_data = try_get(context, lambda x: x['client']['visitorData'], compat_str)
-        continuation = YoutubeTabIE._extract_continuation(root_continuation_data)  # TODO
-        first_continuation = False
-        if parent is None:
-            first_continuation = True
+        continuation = self._extract_continuation(root_continuation_data)
+        if continuation and len(continuation['ctoken']) < 27:
+            self.write_debug('Detected old API continuation token. Generating new API compatible token.')
+            continuation_token = self._generate_comment_continuation(video_id)
+            continuation = self._build_continuation_query(continuation_token, None)
+
+        visitor_data = None
+        is_first_continuation = parent is None
 
         for page_num in itertools.count(0):
             if not continuation:
                 break
             headers = self._generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
-            retries = self.get_param('extractor_retries', 3)
-            count = -1
-            last_error = None
-
-            while count < retries:
-                count += 1
-                if last_error:
-                    self.report_warning('%s. Retrying ...' % last_error)
-                try:
-                    query = {
-                        'ctoken': continuation['ctoken'],
-                        'pbj': 1,
-                        'type': 'next',
-                    }
-                    if 'itct' in continuation:
-                        query['itct'] = continuation['itct']
-                    if parent:
-                        query['action_get_comment_replies'] = 1
-                    else:
-                        query['action_get_comments'] = 1
-
-                    comment_prog_str = '(%d/%d)' % (comment_counts[0], comment_counts[1])
-                    if page_num == 0:
-                        if first_continuation:
-                            note_prefix = 'Downloading initial comment continuation page'
-                        else:
-                            note_prefix = '    Downloading comment reply thread %d %s' % (comment_counts[2], comment_prog_str)
-                    else:
-                        note_prefix = '%sDownloading comment%s page %d %s' % (
-                            '       ' if parent else '',
-                            ' replies' if parent else '',
-                            page_num,
-                            comment_prog_str)
-
-                    browse = self._download_json(
-                        'https://www.youtube.com/comment_service_ajax', None,
-                        '%s %s' % (note_prefix, '(retry #%d)' % count if count else ''),
-                        headers=headers, query=query,
-                        data=urlencode_postdata({
-                            'session_token': session_token_list[0]
-                        }))
-                except ExtractorError as e:
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404, 413):
-                        if e.cause.code == 413:
-                            self.report_warning('Assumed end of comments (received HTTP Error 413)')
-                            return
-                        # Downloading page may result in intermittent 5xx HTTP error
-                        # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
-                        last_error = 'HTTP Error %s' % e.cause.code
-                        if e.cause.code == 404:
-                            last_error = last_error + ' (this API is probably deprecated)'
-                        if count < retries:
-                            continue
-                    raise
+            comment_prog_str = '(%d/%d)' % (comment_counts[0], comment_counts[1])
+            if page_num == 0:
+                if is_first_continuation:
+                    note_prefix = 'Downloading comment section API JSON'
                 else:
-                    session_token = try_get(browse, lambda x: x['xsrf_token'], compat_str)
-                    if session_token:
-                        session_token_list[0] = session_token
+                    note_prefix = '    Downloading comment API JSON reply thread %d %s' % (
+                        comment_counts[2], comment_prog_str)
+            else:
+                note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
+                    '       ' if parent else '', ' replies' if parent else '',
+                    page_num, comment_prog_str)
 
-                    response = try_get(browse,
-                                       (lambda x: x['response'],
-                                        lambda x: x[1]['response']), dict) or {}
-
-                    if response.get('continuationContents'):
-                        break
-
-                    # YouTube sometimes gives reload: now json if something went wrong (e.g. bad auth)
-                    if isinstance(browse, dict):
-                        if browse.get('reload'):
-                            raise ExtractorError('Invalid or missing params in continuation request', expected=False)
-
-                        # TODO: not tested, merged from old extractor
-                        err_msg = browse.get('externalErrorMessage')
-                        if err_msg:
-                            last_error = err_msg
-                            continue
-
-                    response_error = try_get(response, lambda x: x['responseContext']['errors']['error'][0], dict) or {}
-                    err_msg = response_error.get('externalErrorMessage')
-                    if err_msg:
-                        last_error = err_msg
-                        continue
-
-                    # Youtube sometimes sends incomplete data
-                    # See: https://github.com/ytdl-org/youtube-dl/issues/28194
-                    last_error = 'Incomplete data received'
-                    if count >= retries:
-                        raise ExtractorError(last_error)
-
+            response = self._extract_response(
+                item_id=None, query=self._continuation_query_ajax_to_api(continuation),
+                ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
+                check_get_keys=('onResponseReceivedEndpoints', 'continuationContents'))
             if not response:
                 break
             visitor_data = try_get(
@@ -2086,80 +2127,107 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 lambda x: x['responseContext']['webResponseContextExtensionData']['ytConfigData']['visitorData'],
                 compat_str) or visitor_data
 
-            known_continuation_renderers = {
-                'itemSectionContinuation': extract_thread,
-                'commentRepliesContinuation': extract_thread
-            }
+            continuation_contents = dict_get(response, ('onResponseReceivedEndpoints', 'continuationContents'))
 
-            # extract next root continuation from the results
-            continuation_contents = try_get(
-                response, lambda x: x['continuationContents'], dict) or {}
-
-            for key, value in continuation_contents.items():
-                if key not in known_continuation_renderers:
-                    continue
-                continuation_renderer = value
-
-                if first_continuation:
-                    first_continuation = False
-                    expected_comment_count = try_get(
-                        continuation_renderer,
-                        (lambda x: x['header']['commentsHeaderRenderer']['countText']['runs'][0]['text'],
-                         lambda x: x['header']['commentsHeaderRenderer']['commentsCount']['runs'][0]['text']),
-                        compat_str)
-
-                    if expected_comment_count:
-                        comment_counts[1] = str_to_int(expected_comment_count)
-                        self.to_screen('Downloading ~%d comments' % str_to_int(expected_comment_count))
-                        yield comment_counts[1]
-
-                    # TODO: cli arg.
-                    # 1/True for newest, 0/False for popular (default)
-                    comment_sort_index = int(True)
-                    sort_continuation_renderer = try_get(
-                        continuation_renderer,
-                        lambda x: x['header']['commentsHeaderRenderer']['sortMenu']['sortFilterSubMenuRenderer']['subMenuItems']
-                        [comment_sort_index]['continuation']['reloadContinuationData'], dict)
-                    # If this fails, the initial continuation page
-                    # starts off with popular anyways.
-                    if sort_continuation_renderer:
-                        continuation = YoutubeTabIE._build_continuation_query(
-                            continuation=sort_continuation_renderer.get('continuation'),
-                            ctp=sort_continuation_renderer.get('clickTrackingParams'))
-                        self.to_screen('Sorting comments by %s' % ('popular' if comment_sort_index == 0 else 'newest'))
+            continuation = None
+            if isinstance(continuation_contents, list):
+                for continuation_section in continuation_contents:
+                    if not isinstance(continuation_section, dict):
+                        continue
+                    continuation_items = try_get(
+                        continuation_section,
+                        (lambda x: x['reloadContinuationItemsCommand']['continuationItems'],
+                         lambda x: x['appendContinuationItemsAction']['continuationItems']),
+                        list) or []
+                    if is_first_continuation:
+                        total_comments, continuation = extract_header(continuation_items)
+                        if total_comments:
+                            yield total_comments
+                        is_first_continuation = False
+                        if continuation:
+                            break
+                        continue
+                    count = 0
+                    for count, entry in enumerate(extract_thread(continuation_items)):
+                        yield entry
+                    continuation = self._extract_continuation({'contents': continuation_items})
+                    if continuation:
+                        # Sometimes YouTube provides a continuation without any comments
+                        # In most cases we end up just downloading these with very little comments to come.
+                        if count == 0:
+                            if not parent:
+                                self.report_warning('No comments received - assuming end of comments')
+                            continuation = None
                         break
 
-                for entry in known_continuation_renderers[key](continuation_renderer):
-                    yield entry
-
-                continuation = YoutubeTabIE._extract_continuation(continuation_renderer)  # TODO
-                break
-
-    def _extract_comments(self, ytcfg, video_id, contents, webpage, xsrf_token):
-        """Entry for comment extraction"""
-        comments = []
-        known_entry_comment_renderers = (
-            'itemSectionRenderer',
-        )
-        estimated_total = 0
-        for entry in contents:
-            for key, renderer in entry.items():
-                if key not in known_entry_comment_renderers:
-                    continue
-
-                comment_iter = self._comment_entries(
-                    renderer,
-                    identity_token=self._extract_identity_token(webpage, item_id=video_id),
-                    account_syncid=self._extract_account_syncid(ytcfg),
-                    ytcfg=ytcfg,
-                    session_token_list=[xsrf_token])
-
-                for comment in comment_iter:
-                    if isinstance(comment, int):
-                        estimated_total = comment
+            # Deprecated response structure
+            elif isinstance(continuation_contents, dict):
+                known_continuation_renderers = ('itemSectionContinuation', 'commentRepliesContinuation')
+                for key, continuation_renderer in continuation_contents.items():
+                    if key not in known_continuation_renderers:
                         continue
-                    comments.append(comment)
-                break
+                    if not isinstance(continuation_renderer, dict):
+                        continue
+                    if is_first_continuation:
+                        header_continuation_items = [continuation_renderer.get('header') or {}]
+                        total_comments, continuation = extract_header(header_continuation_items)
+                        if total_comments:
+                            yield total_comments
+                        is_first_continuation = False
+                        if continuation:
+                            break
+
+                    # Sometimes YouTube provides a continuation without any comments
+                    # In most cases we end up just downloading these with very little comments to come.
+                    count = 0
+                    for count, entry in enumerate(extract_thread(continuation_renderer.get('contents') or {})):
+                        yield entry
+                    continuation = self._extract_continuation(continuation_renderer)
+                    if count == 0:
+                        if not parent:
+                            self.report_warning('No comments received - assuming end of comments')
+                        continuation = None
+                    break
+
+    @staticmethod
+    def _generate_comment_continuation(video_id):
+        """
+        Generates initial comment section continuation token from given video id
+        """
+        b64_vid_id = base64.b64encode(bytes(video_id.encode('utf-8')))
+        parts = ('Eg0SCw==', b64_vid_id, 'GAYyJyIRIgs=', b64_vid_id, 'MAB4AjAAQhBjb21tZW50cy1zZWN0aW9u')
+        new_continuation_intlist = list(itertools.chain.from_iterable(
+            [bytes_to_intlist(base64.b64decode(part)) for part in parts]))
+        return base64.b64encode(intlist_to_bytes(new_continuation_intlist)).decode('utf-8')
+
+    def _extract_comments(self, ytcfg, video_id, contents, webpage):
+        """Entry for comment extraction"""
+        def _real_comment_extract(contents):
+            if isinstance(contents, list):
+                for entry in contents:
+                    for key, renderer in entry.items():
+                        if key not in known_entry_comment_renderers:
+                            continue
+                        yield from self._comment_entries(
+                            renderer, video_id=video_id, ytcfg=ytcfg,
+                            identity_token=self._extract_identity_token(webpage, item_id=video_id),
+                            account_syncid=self._extract_account_syncid(ytcfg))
+                        break
+        comments = []
+        known_entry_comment_renderers = ('itemSectionRenderer',)
+        estimated_total = 0
+        max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0]) or float('inf')
+
+        try:
+            for comment in _real_comment_extract(contents):
+                if len(comments) >= max_comments:
+                    break
+                if isinstance(comment, int):
+                    estimated_total = comment
+                    continue
+                comments.append(comment)
+        except KeyboardInterrupt:
+            self.to_screen('Interrupted by user')
         self.to_screen('Downloaded %d/%d comments' % (len(comments), estimated_total))
         return {
             'comments': comments,
@@ -2207,7 +2275,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         player_url = self._extract_player_url(ytcfg, webpage)
 
-        player_client = (self._configuration_arg('player_client') or [''])[0]
+        player_client = self._configuration_arg('player_client', [''])[0]
         if player_client not in ('web', 'android', ''):
             self.report_warning(f'Invalid player_client {player_client} given. Falling back to WEB')
         force_mobile_client = player_client == 'android'
@@ -2231,7 +2299,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if sts and not force_mobile_client and 'configs' not in player_skip:
                 ytm_webpage = self._download_webpage(
                     'https://music.youtube.com',
-                    video_id, fatal=False, note="Downloading remix client config")
+                    video_id, fatal=False, note='Downloading remix client config')
 
             ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
             ytm_client = 'WEB_REMIX'
@@ -2254,8 +2322,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
                 default_client=ytm_client,
                 note='Downloading %sremix player API JSON' % ('mobile ' if force_mobile_client else ''))
+            ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData'], dict) or {}
 
-            ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData']) or {}
         player_response = None
         if webpage:
             player_response = self._extract_yt_initial_variable(
@@ -2672,7 +2740,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         subtitles, base_url, lang_code,
-                        try_get(caption_track, lambda x: x.get('name').get('simpleText')),
+                        try_get(caption_track, lambda x: x['name']['simpleText']),
                         {})
                     continue
                 automatic_captions = {}
@@ -2928,7 +2996,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     data=urlencode_postdata({xsrf_field_name: xsrf_token}))
 
         if get_comments:
-            info['__post_extractor'] = lambda: self._extract_comments(ytcfg, video_id, contents, webpage, xsrf_token)
+            info['__post_extractor'] = lambda: self._extract_comments(ytcfg, video_id, contents, webpage)
 
         self.mark_watched(video_id, player_response)
 
@@ -3553,52 +3621,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 if entry:
                     yield entry
     '''
-
-    @staticmethod
-    def _build_continuation_query(continuation, ctp=None):
-        query = {
-            'ctoken': continuation,
-            'continuation': continuation,
-        }
-        if ctp:
-            query['itct'] = ctp
-        return query
-
-    @staticmethod
-    def _extract_next_continuation_data(renderer):
-        next_continuation = try_get(
-            renderer, lambda x: x['continuations'][0]['nextContinuationData'], dict)
-        if not next_continuation:
-            return
-        continuation = next_continuation.get('continuation')
-        if not continuation:
-            return
-        ctp = next_continuation.get('clickTrackingParams')
-        return YoutubeTabIE._build_continuation_query(continuation, ctp)
-
-    @classmethod
-    def _extract_continuation(cls, renderer):
-        next_continuation = cls._extract_next_continuation_data(renderer)
-        if next_continuation:
-            return next_continuation
-        contents = []
-        for key in ('contents', 'items'):
-            contents.extend(try_get(renderer, lambda x: x[key], list) or [])
-        for content in contents:
-            if not isinstance(content, dict):
-                continue
-            continuation_ep = try_get(
-                content, lambda x: x['continuationItemRenderer']['continuationEndpoint'],
-                dict)
-            if not continuation_ep:
-                continue
-            continuation = try_get(
-                continuation_ep, lambda x: x['continuationCommand']['token'], compat_str)
-            if not continuation:
-                continue
-            ctp = continuation_ep.get('clickTrackingParams')
-            return YoutubeTabIE._build_continuation_query(continuation, ctp)
-
     def _entries(self, tab, item_id, identity_token, account_syncid, ytcfg):
 
         def extract_entries(parent_renderer):  # this needs to called again for continuation to work with feeds
