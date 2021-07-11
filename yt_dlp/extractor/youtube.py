@@ -91,7 +91,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             self.report_warning(message)
 
         # username+password login is broken
-        if self._LOGIN_REQUIRED and self.get_param('cookiefile') is None:
+        if (self._LOGIN_REQUIRED
+                and self.get_param('cookiefile') is None
+                and self.get_param('cookiesfrombrowser') is None):
             self.raise_login_required(
                 'Login details are needed to download this content', method='cookies')
         username, password = self._get_login_info()
