@@ -2034,7 +2034,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self.to_screen('Downloading ~%d comments' % str_to_int(expected_comment_count))
                     _total_comments = comment_counts[1]
                 sort_mode_str = self._configuration_arg('comment_sort', [''])[0]
-                comment_sort_index = int(sort_mode_str != 'popular')  # 1 = newest, 0 = popular
+                comment_sort_index = int(sort_mode_str != 'top')  # 1 = new, 0 = top
 
                 sort_menu_item = try_get(
                     comments_header_renderer,
