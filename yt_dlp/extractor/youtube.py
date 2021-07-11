@@ -2199,30 +2199,32 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
+        def _real_comment_extract(contents):
+            if isinstance(contents, list):
+                for entry in contents:
+                    for key, renderer in entry.items():
+                        if key not in known_entry_comment_renderers:
+                            continue
+                        yield from self._comment_entries(
+                            renderer, video_id=video_id, ytcfg=ytcfg,
+                            identity_token=self._extract_identity_token(webpage, item_id=video_id),
+                            account_syncid=self._extract_account_syncid(ytcfg))
+                        break
         comments = []
-        known_entry_comment_renderers = (
-            'itemSectionRenderer',
-        )
+        known_entry_comment_renderers = ('itemSectionRenderer',)
         estimated_total = 0
         max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0]) or float('inf')
-        if isinstance(contents, list):
-            for entry in contents:
-                for key, renderer in entry.items():
-                    if key not in known_entry_comment_renderers:
-                        continue
-                    comment_iter = self._comment_entries(
-                        renderer, video_id=video_id, ytcfg=ytcfg,
-                        identity_token=self._extract_identity_token(webpage, item_id=video_id),
-                        account_syncid=self._extract_account_syncid(ytcfg))
 
-                    for comment in comment_iter:
-                        if len(comments) >= max_comments:
-                            break
-                        if isinstance(comment, int):
-                            estimated_total = comment
-                            continue
-                        comments.append(comment)
+        try:
+            for comment in _real_comment_extract(contents):
+                if len(comments) >= max_comments:
                     break
+                if isinstance(comment, int):
+                    estimated_total = comment
+                    continue
+                comments.append(comment)
+        except KeyboardInterrupt:
+            self.to_screen('Interrupted by user')
         self.to_screen('Downloaded %d/%d comments' % (len(comments), estimated_total))
         return {
             'comments': comments,
