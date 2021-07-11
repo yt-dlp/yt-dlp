@@ -2180,13 +2180,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     # Sometimes YouTube provides a continuation without any comments
                     # In most cases we end up just downloading these with very little comments to come.
-                    if 'contents' not in continuation_renderer:
-                        if not parent:
-                            self.report_warning('No comments received - assuming end of comments')
-                        break
-                    for entry in extract_thread(continuation_renderer.get('contents')):
+                    count = 0
+                    for count, entry in enumerate(extract_thread(continuation_renderer.get('contents') or {})):
                         yield entry
                     continuation = self._extract_continuation(continuation_renderer)
+                    if count == 0:
+                        if not parent:
+                            self.report_warning('No comments received - assuming end of comments')
+                        continuation = None
                     break
 
     @staticmethod
