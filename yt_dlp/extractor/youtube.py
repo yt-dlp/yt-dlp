@@ -2200,21 +2200,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'itemSectionRenderer',
         )
         estimated_total = 0
-        for entry in contents:
-            for key, renderer in entry.items():
-                if key not in known_entry_comment_renderers:
-                    continue
-                comment_iter = self._comment_entries(
-                    renderer, video_id=video_id, ytcfg=ytcfg,
-                    identity_token=self._extract_identity_token(webpage, item_id=video_id),
-                    account_syncid=self._extract_account_syncid(ytcfg))
-
-                for comment in comment_iter:
-                    if isinstance(comment, int):
-                        estimated_total = comment
+        if isinstance(contents, list):
+            for entry in contents:
+                for key, renderer in entry.items():
+                    if key not in known_entry_comment_renderers:
                         continue
-                    comments.append(comment)
-                break
+                    comment_iter = self._comment_entries(
+                        renderer, video_id=video_id, ytcfg=ytcfg,
+                        identity_token=self._extract_identity_token(webpage, item_id=video_id),
+                        account_syncid=self._extract_account_syncid(ytcfg))
+
+                    for comment in comment_iter:
+                        if isinstance(comment, int):
+                            estimated_total = comment
+                            continue
+                        comments.append(comment)
+                    break
         self.to_screen('Downloaded %d/%d comments' % (len(comments), estimated_total))
         return {
             'comments': comments,
