@@ -1336,7 +1336,8 @@ The following extractors use this feature:
     * `player_client`: `web` (default) or `android` (force use the android client fallbacks for video extraction)
     * `player_skip`: `configs` - skip requests if applicable for client configs and use defaults
     * `comment_sort`: `popular` or `newest` (default) - choose comment sorting mode on YouTube's side.
-
+    * `max_comments`: Maximum amount of comments to download (default all).
+    * `max_comment_depth`: maximum depth for nested comments. YouTube supports depths 1 or 2 (default). 
 * **funimation**
     * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
     * `version`: The video version to extract - `uncut` or `simulcast`

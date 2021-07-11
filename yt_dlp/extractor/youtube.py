@@ -2081,6 +2081,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     for reply_comment in comment_entries_iter:
                         yield reply_comment
 
+        # YouTube comments have a max depth of 2
+        max_depth = int_or_none(self._configuration_arg('max_comment_depth', [''])[0]) or float('inf')
+        if max_depth == 1 and parent:
+            return
         if not comment_counts:
             # comment so far, est. total comments, current comment thread #
             comment_counts = [0, 0, 0]
@@ -2200,6 +2204,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'itemSectionRenderer',
         )
         estimated_total = 0
+        max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0]) or float('inf')
         if isinstance(contents, list):
             for entry in contents:
                 for key, renderer in entry.items():
@@ -2211,6 +2216,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         account_syncid=self._extract_account_syncid(ytcfg))
 
                     for comment in comment_iter:
+                        if len(comments) >= max_comments:
+                            break
                         if isinstance(comment, int):
                             estimated_total = comment
                             continue
