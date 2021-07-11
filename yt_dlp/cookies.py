@@ -11,7 +11,8 @@ from datetime import datetime, timedelta
 
 from yt_dlp.aes import aes_cbc_decrypt
 from yt_dlp.compat import compat_cookiejar_Cookie, compat_b64decode, compat_TemporaryDirectory
-from yt_dlp.utils import YoutubeDLCookieJar, expand_path, bytes_to_intlist, intlist_to_bytes
+from yt_dlp.utils import YoutubeDLCookieJar, expand_path, bytes_to_intlist, intlist_to_bytes, \
+    process_communicate_or_kill
 
 try:
     from Crypto.Cipher import AES
@@ -562,10 +563,10 @@ def _get_mac_keyring_password(browser_keyring_name):
                                  '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL)
-        proc.wait()
-        if proc.returncode == 0:
-            return proc.stdout.read().strip()
-        else:
+        try:
+            stdout, stderr = process_communicate_or_kill(proc)
+            return stdout
+        except:
             return None
 
 
