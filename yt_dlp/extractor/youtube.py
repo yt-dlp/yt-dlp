@@ -546,6 +546,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         query = {
             'continuation': continuation
         }
+        # TODO: Inconsistency with clickTrackingParams.
+        # Currently we have a fixed ctp contained within context (from ytcfg)
+        # and a ctp in root query for continuation.
         if ctp:
             query['clickTracking'] = {'clickTrackingParams': ctp}
         return query
