@@ -2094,7 +2094,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         continuation = self._extract_continuation(root_continuation_data)
         if continuation and len(continuation['ctoken']) < 27:
-            self.report_warning('Detected old API continuation token. Generating new API compatible token.')
+            self.write_debug('Detected old API continuation token. Generating new API compatible token.')
             continuation_token = self._generate_comment_continuation(video_id)
             continuation = self._build_continuation_query(continuation_token, None)
 
