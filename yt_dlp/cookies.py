@@ -26,8 +26,8 @@ except ImportError:
     KEYRING_AVAILABLE = False
 
 
-SUPPORTED_BROWSERS = ['brave', 'chrome', 'chromium', 'edge' 'firefox', 'opera', 'safari', 'vivaldi']
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge' 'opera', 'vivaldi'}
+SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS  | {'firefox', 'safari'}
 
 
 class Logger:
