@@ -178,9 +178,15 @@ class VLiveIE(VLiveBaseIE):
         if video_type == 'VOD':
             inkey = self._call_api('video/v1.0/vod/%s/inkey', video_id)['inkey']
             vod_id = video['vodId']
-            return merge_dicts(
+            info_dict = merge_dicts(
                 get_common_fields(),
                 self._extract_video_info(video_id, vod_id, inkey))
+            thumbnail = video.get('thumb')
+            if thumbnail:
+                if not info_dict.get('thumbnails') and info_dict.get('thumbnail'):
+                    info_dict['thumbnails'] = [{'url': info_dict.pop('thumbnail')}]
+                info_dict.setdefault('thumbnails', []).append({'url': thumbnail, 'preference': 1})
+            return info_dict
         elif video_type == 'LIVE':
             status = video.get('status')
             if status == 'ON_AIR':
