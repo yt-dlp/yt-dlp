@@ -2249,14 +2249,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
     @staticmethod
-    def _get_video_info_params(video_id):
-        return {
+    def _get_video_info_params(video_id, client='TVHTML5'):
+        WORKING_CLIENTS = {
+            'ANDROID': {
+                'c': 'ANDROID',
+                'cver': '16.20',
+            },
+            'TVHTML5': {
+                'c': 'TVHTML5',
+                'cver': '6.20180913',
+            }
+        }
+        query = {
             'video_id': video_id,
             'eurl': 'https://youtube.googleapis.com/v/' + video_id,
-            'html5': '1',
-            'c': 'TVHTML5',
-            'cver': '6.20180913',
+            'html5': '1'
         }
+        query.update(WORKING_CLIENTS.get(client))
+        return query
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -2360,8 +2370,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pr = self._parse_json(try_get(compat_parse_qs(
                 self._download_webpage(
                     base_url + 'get_video_info', video_id,
-                    'Refetching age-gated info webpage', 'unable to download video info webpage',
-                    query=self._get_video_info_params(video_id), fatal=False)),
+                    'Refetching age-gated %sinfo webpage' % ('mobile ' if force_mobile_client else ''),
+                    'unable to download video info webpage', fatal=False,
+                    query=self._get_video_info_params(video_id, client='ANDROID' if force_mobile_client else 'TVHTML5'))),
                 lambda x: x['player_response'][0],
                 compat_str) or '{}', video_id)
             if not pr:
