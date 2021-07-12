@@ -86,7 +86,4 @@ class TestCookies(unittest.TestCase):
 
     def test_pbkdf2_sha1(self):
         key = pbkdf2_sha1(b'peanuts', b' ' * 16, 1, 16)
-        if PBKDF2_AVAILABLE:
-            assert key == b'g\xe1\x8e\x0fQ\x1c\x9b\xf3\xc9`!\xaa\x90\xd9\xd34'
-        else:
-            assert key is None
+        assert key == b'g\xe1\x8e\x0fQ\x1c\x9b\xf3\xc9`!\xaa\x90\xd9\xd34'
