@@ -576,7 +576,7 @@ def _get_mac_keyring_password(browser_keyring_name):
         try:
             stdout, stderr = process_communicate_or_kill(proc)
             return stdout
-        except:
+        except BaseException:
             return None
 
 
