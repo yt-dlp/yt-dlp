@@ -11,9 +11,18 @@ from datetime import datetime, timedelta
 from hashlib import pbkdf2_hmac
 
 from yt_dlp.aes import aes_cbc_decrypt
-from yt_dlp.compat import compat_cookiejar_Cookie, compat_b64decode, compat_TemporaryDirectory
-from yt_dlp.utils import YoutubeDLCookieJar, expand_path, bytes_to_intlist, intlist_to_bytes, \
-    process_communicate_or_kill
+from yt_dlp.compat import (
+    compat_b64decode,
+    compat_cookiejar_Cookie,
+    compat_TemporaryDirectory,
+)
+from yt_dlp.utils import (
+    bytes_to_intlist,
+    expand_path,
+    intlist_to_bytes,
+    process_communicate_or_kill,
+    YoutubeDLCookieJar,
+)
 
 try:
     from Crypto.Cipher import AES
