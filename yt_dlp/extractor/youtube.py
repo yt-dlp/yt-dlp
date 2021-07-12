@@ -2002,14 +2002,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                    lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], compat_str)
 
         author_is_uploader = try_get(comment_renderer, lambda x: x['authorIsChannelOwner'], bool)
-        is_liked = try_get(comment_renderer, lambda x: x['isLiked'], bool)
+        is_favorited = 'creatorHeart' in (try_get(
+            comment_renderer, lambda x: x['actionButtons']['commentActionButtonsRenderer'], dict) or {})
         return {
             'id': comment_id,
             'text': text,
             'timestamp': timestamp,
             'time_text': time_text,
             'like_count': votes,
-            'is_favorited': is_liked,
+            'is_favorited': is_favorited,
             'author': author,
             'author_id': author_id,
             'author_thumbnail': author_thumbnail,
