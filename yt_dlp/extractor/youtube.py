@@ -359,7 +359,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     'hl': 'en',
                 }
             },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID'
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 3
         },
         'ANDROID_EMBEDDED_PLAYER': {
             'INNERTUBE_API_VERSION': 'v1',
@@ -373,7 +373,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     'hl': 'en',
                 }
             },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_EMBEDDED_PLAYER'
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 55
         },
         'ANDROID_MUSIC': {
             'INNERTUBE_API_VERSION': 'v1',
@@ -387,7 +387,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     'hl': 'en',
                 }
             },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 'ANDROID_MUSIC'
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 21
         }
     }
 
