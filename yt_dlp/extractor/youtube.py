@@ -2250,7 +2250,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @staticmethod
     def _get_video_info_params(video_id, client='TVHTML5'):
-        WORKING_CLIENTS = {
+        GVI_CLIENTS = {
             'ANDROID': {
                 'c': 'ANDROID',
                 'cver': '16.20',
@@ -2265,7 +2265,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'eurl': 'https://youtube.googleapis.com/v/' + video_id,
             'html5': '1'
         }
-        query.update(WORKING_CLIENTS.get(client))
+        query.update(GVI_CLIENTS.get(client))
         return query
 
     def _real_extract(self, url):
@@ -2288,8 +2288,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         player_client = self._configuration_arg('player_client', [''])[0]
         if player_client not in ('web', 'android', ''):
-            self.report_warning(f'Invalid player_client {player_client} given. Falling back to WEB')
-        force_mobile_client = player_client == 'android'
+            self.report_warning(f'Invalid player_client {player_client} given. Falling back to android client.')
+        force_mobile_client = player_client != 'web'
         player_skip = self._configuration_arg('player_skip')
 
         def get_text(x):
@@ -2362,19 +2362,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 ytcfg=ytpcfg, headers=ytp_headers, fatal=False,
                 default_client=yt_client,
                 note='Downloading %splayer API JSON' % ('mobile ' if force_mobile_client else '')
-            )
+            ) or player_response
 
         # Age-gate workarounds
         playability_status = player_response.get('playabilityStatus') or {}
         if playability_status.get('reason') in self._AGE_GATE_REASONS:
-            pr = self._parse_json(try_get(compat_parse_qs(
-                self._download_webpage(
-                    base_url + 'get_video_info', video_id,
-                    'Refetching age-gated %sinfo webpage' % ('mobile ' if force_mobile_client else ''),
-                    'unable to download video info webpage', fatal=False,
-                    query=self._get_video_info_params(video_id, client='ANDROID' if force_mobile_client else 'TVHTML5'))),
-                lambda x: x['player_response'][0],
-                compat_str) or '{}', video_id)
+            gvi_clients = (('ANDROID', 'TVHTML5') if force_mobile_client else ('TVHTML5', 'ANDROID'))
+            for gvi_client in gvi_clients:
+                pr = self._parse_json(try_get(compat_parse_qs(
+                    self._download_webpage(
+                        base_url + 'get_video_info', video_id,
+                        'Refetching age-gated %s info webpage' % gvi_client.lower(),
+                        'unable to download video info webpage', fatal=False,
+                        query=self._get_video_info_params(video_id, client=gvi_client))),
+                    lambda x: x['player_response'][0],
+                    compat_str) or '{}', video_id)
+                if pr:
+                    break
             if not pr:
                 self.report_warning('Falling back to embedded-only age-gate workaround.')
                 embed_webpage = None
