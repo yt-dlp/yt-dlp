@@ -2318,7 +2318,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Android client already has signature descrambled
                 # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
                 if not sts:
-                    self.report_warning('Falling back to mobile remix client for player API.')
+                    self.report_warning('Falling back to android remix client for player API.')
                 ytm_client = 'ANDROID_MUSIC'
                 ytm_cfg = {}
 
@@ -2332,7 +2332,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 item_id=video_id, ep='player', query=ytm_query,
                 ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
                 default_client=ytm_client,
-                note='Downloading %sremix player API JSON' % ('mobile ' if force_mobile_client else ''))
+                note='Downloading %sremix player API JSON' % ('android ' if force_mobile_client else ''))
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData'], dict) or {}
 
         player_response = None
@@ -2350,7 +2350,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Android client already has signature descrambled
                 # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
                 if not sts:
-                    self.report_warning('Falling back to mobile client for player API.')
+                    self.report_warning('Falling back to android client for player API.')
                 yt_client = 'ANDROID'
                 ytpcfg = {}
                 ytp_headers = self._generate_api_headers(ytpcfg, identity_token, syncid, yt_client)
@@ -2361,7 +2361,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 item_id=video_id, ep='player', query=yt_query,
                 ytcfg=ytpcfg, headers=ytp_headers, fatal=False,
                 default_client=yt_client,
-                note='Downloading %splayer API JSON' % ('mobile ' if force_mobile_client else '')
+                note='Downloading %splayer API JSON' % ('android ' if force_mobile_client else '')
             ) or player_response
 
         # Age-gate workarounds
@@ -2401,7 +2401,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
                         if not sts:
                             self.report_warning(
-                                'Falling back to mobile embedded client for player API (note: some formats may be missing).')
+                                'Falling back to android embedded client for player API (note: some formats may be missing).')
                         yt_client = 'ANDROID_EMBEDDED_PLAYER'
                         ytcfg_age = {}
 
@@ -2413,7 +2413,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         item_id=video_id, ep='player', query=yt_age_query,
                         ytcfg=ytcfg_age, headers=ytage_headers, fatal=False,
                         default_client=yt_client,
-                        note='Downloading %sage-gated player API JSON' % ('mobile ' if force_mobile_client else '')
+                        note='Downloading %sage-gated player API JSON' % ('android ' if force_mobile_client else '')
                     ) or {}
 
             if pr:
