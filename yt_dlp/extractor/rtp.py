@@ -36,16 +36,10 @@ class RTPIE(InfoExtractor):
         if data.startswith('{'):
             data = self._RX_OBFUSCATION.sub(
                 lambda m: json.dumps(
-                    base64.b64decode(
-                        urllib.parse.unquote(
-                            ''.join(
-                                self._parse_json(m.group(1), video_id)
-                            )
-                        )
-                    ).decode('iso-8859-1')
-                ),
-                data
-            )
+                    base64.b64decode(urllib.parse.unquote(
+                        ''.join(self._parse_json(m.group(1), video_id))
+                    )).decode('iso-8859-1')),
+                data)
         return js_to_json(data)
 
     def _real_extract(self, url):
@@ -64,27 +58,21 @@ class RTPIE(InfoExtractor):
 
         f = self._parse_json(
             f, video_id,
-            lambda data: self.__unobfuscate(data, video_id=video_id)
-        )
+            lambda data: self.__unobfuscate(data, video_id=video_id))
         config = self._parse_json(
             config, video_id,
-            lambda data: self.__unobfuscate(data, video_id=video_id)
-        )
+            lambda data: self.__unobfuscate(data, video_id=video_id))
 
         formats = []
-
         if isinstance(f, dict):
             f_hls = f.get('hls')
             if f_hls is not None:
                 formats.extend(self._extract_m3u8_formats(
-                    f_hls, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls'))
+                    f_hls, video_id, 'mp4', 'm3u8_native', m3u8_id='hls'))
 
             f_dash = f.get('dash')
             if f_dash is not None:
-                formats.extend(self._extract_mpd_formats(
-                    f_dash, video_id,
-                    mpd_id='dash'))
+                formats.extend(self._extract_mpd_formats(f_dash, video_id, mpd_id='dash'))
         else:
             formats.append({
                 'format_id': 'f',
