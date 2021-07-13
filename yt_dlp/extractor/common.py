@@ -1111,6 +1111,8 @@ class InfoExtractor(object):
             if group is None:
                 # return the first matching group
                 return next(g for g in mobj.groups() if g is not None)
+            elif isinstance(group, tuple):
+                return tuple(mobj.group(g) for g in group)
             else:
                 return mobj.group(group)
         elif default is not NO_DEFAULT:
