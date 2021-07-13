@@ -2367,7 +2367,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Age-gate workarounds
         playability_status = player_response.get('playabilityStatus') or {}
         if playability_status.get('reason') in self._AGE_GATE_REASONS:
-            gvi_clients = (('ANDROID', 'TVHTML5') if force_mobile_client else ('TVHTML5', 'ANDROID'))
+            gvi_clients = ('ANDROID', 'TVHTML5') if force_mobile_client else ('TVHTML5', 'ANDROID')
             for gvi_client in gvi_clients:
                 pr = self._parse_json(try_get(compat_parse_qs(
                     self._download_webpage(
