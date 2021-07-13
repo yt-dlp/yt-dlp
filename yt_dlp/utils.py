@@ -4365,7 +4365,7 @@ def strip_jsonp(code):
 
 def js_to_json(code, vars={}):
     # vars is a dict of var, val pairs to substitute
-    COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*'
+    COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*\n'
     SKIP_RE = r'\s*(?:{comment})?\s*'.format(comment=COMMENT_RE)
     INTEGER_TABLE = (
         (r'(?s)^(0[xX][0-9a-fA-F]+){skip}:?$'.format(skip=SKIP_RE), 16),
