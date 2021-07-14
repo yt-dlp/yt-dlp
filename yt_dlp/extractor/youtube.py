@@ -652,6 +652,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 badges.add(label.lower())
         return badges
 
+    @staticmethod
+    def _join_text_entries(runs):
+        text = None
+        for run in runs:
+            if not isinstance(run, dict):
+                continue
+            sub_text = try_get(run, lambda x: x['text'], compat_str)
+            if sub_text:
+                if not text:
+                    text = sub_text
+                    continue
+                text += sub_text
+        return text
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
                           default_client='WEB'):
@@ -1977,20 +1990,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         time_text_split = time_text.split(' ')
         if len(time_text_split) >= 3:
             return datetime_from_str('now-%s%s' % (time_text_split[0], time_text_split[1]), precision='auto')
-
-    @staticmethod
-    def _join_text_entries(runs):
-        text = None
-        for run in runs:
-            if not isinstance(run, dict):
-                continue
-            sub_text = try_get(run, lambda x: x['text'], compat_str)
-            if sub_text:
-                if not text:
-                    text = sub_text
-                    continue
-                text += sub_text
-        return text
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
@@ -3927,12 +3926,28 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         is_private = is_unlisted = None
         renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
         badge_lbls = self._extract_badges(renderer)
+
+        # Personal playlists when auth given have a dropdown selector rather a badge
+        privacy_dropdown_entries = try_get(
+            renderer, lambda x: x['privacyForm']['dropdownFormFieldRenderer']['dropdown']['dropdownRenderer']['entries'], list) or []
+        for renderer_dict in privacy_dropdown_entries:
+            is_selected = try_get(
+                renderer_dict, lambda x: x['privacyDropdownItemRenderer']['isSelected'], bool) or False
+            if not is_selected:
+                continue
+            label = self._join_text_entries(
+                try_get(renderer_dict, lambda x: x['privacyDropdownItemRenderer']['label']['runs'], list) or [])
+            if label:
+                badge_lbls.add(label.lower())
+                break
+
         for badge_lbl in badge_lbls:
             if badge_lbl == 'unlisted':
                 is_unlisted = True
             elif badge_lbl == 'private':
                 is_private = True
-        # TODO: availability for personal playlists (as they have edit button instead)
+            elif badge_lbl == 'public':
+                return self._availability(*itertools.repeat(False, 5))
         return self._availability(
             is_private=is_private,
             is_unlisted=is_unlisted)
