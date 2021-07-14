@@ -835,6 +835,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      interactively
     --ap-list-mso                    List all supported multiple-system
                                      operators
+    --certificate CERTFILE           Path to client certificate file in PEM format. May include the private key.
+    --certificate-key KEYFILE        Path to private key file for client certificate
+    --certificate-key-pass PASSWORD  Password for certificate key file, if encrypted. If not provided and the key file is encrypted, yt-dlp will ask interactively
 
 ## Post-Processing Options:
     -x, --extract-audio              Convert video files to audio-only files

@@ -955,6 +955,10 @@ def make_HTTPS_handler(params, **kwargs):
                     for storename in ('CA', 'ROOT'):
                         _ssl_load_windows_store_certs(context, storename)
                 context.set_default_verify_paths()
+    client_certfile = params.get('certificate')
+    if client_certfile:
+        context.load_cert_chain(
+            client_certfile, keyfile=params.get('certificatekey'), password=params.get('certificatekeypass'))
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 

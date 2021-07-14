@@ -568,6 +568,19 @@ def create_parser():
         '--ap-list-mso',
         action='store_true', dest='ap_list_mso', default=False,
         help='List all supported multiple-system operators')
+    authentication.add_option(
+        '--certificate',
+        dest='certificate', metavar='CERTFILE', default=False,
+        help='Path to client certificate file in PEM format. May include the private key.')
+    authentication.add_option(
+        '--certificate-key',
+        dest='certificatekey', metavar='KEYFILE', default=False,
+        help='Path to private key file for client certificate')
+    authentication.add_option(
+        '--certificate-key-pass',
+        dest='certificatekeypass', metavar='PASSWORD', default=False,
+        help='Password for certificate key file, if encrypted. '
+             'If not provided and the key file is encrypted, yt-dlp will ask interactively')
 
     video_format = optparse.OptionGroup(parser, 'Video Format Options')
     video_format.add_option(
