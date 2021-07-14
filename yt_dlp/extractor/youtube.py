@@ -665,6 +665,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     continue
                 text += sub_text
         return text
+
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
                           default_client='WEB'):
