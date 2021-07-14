@@ -493,20 +493,23 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'identity token', default=None)
 
     @staticmethod
-    def _extract_account_syncid(data):
+    def _extract_account_syncid(*args):
         """
         Extract syncId required to download private playlists of secondary channels
-        @param data Either response or ytcfg
+        @params response and/or ytcfg
         """
-        sync_ids = (try_get(
-            data, (lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'],
-                   lambda x: x['DATASYNC_ID']), compat_str) or '').split("||")
-        if len(sync_ids) >= 2 and sync_ids[1]:
-            # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
-            # and just "user_syncid||" for primary channel. We only want the channel_syncid
-            return sync_ids[0]
-        # ytcfg includes channel_syncid if on secondary channel
-        return data.get('DELEGATED_SESSION_ID')
+        for data in args:
+            # ytcfg includes channel_syncid if on secondary channel
+            delegated_sid = try_get(data, lambda x: x['DELEGATED_SESSION_ID'], compat_str)
+            if delegated_sid:
+                return delegated_sid
+            sync_ids = (try_get(
+                data, (lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'],
+                       lambda x: x['DATASYNC_ID']), compat_str) or '').split("||")
+            if len(sync_ids) >= 2 and sync_ids[1]:
+                # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
+                # and just "user_syncid||" for primary channel. We only want the channel_syncid
+                return sync_ids[0]
 
     def _extract_ytcfg(self, video_id, webpage):
         if not webpage:
@@ -2268,8 +2271,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
         identity_token = self._extract_identity_token(webpage, video_id)
-        syncid = self._extract_account_syncid(ytcfg)
-        headers = self._generate_api_headers(ytcfg, identity_token, syncid)
+
 
         player_url = self._extract_player_url(ytcfg, webpage)
 
@@ -2289,6 +2291,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not isinstance(runs, list):
                 return
             return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
+
+        player_response = None
+        if webpage:
+            player_response = self._extract_yt_initial_variable(
+                webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
+                video_id, 'initial player response')
+
+        syncid = self._extract_account_syncid(ytcfg, player_response)
+        headers = self._generate_api_headers(ytcfg, identity_token, syncid)
 
         ytm_streaming_data = {}
         if is_music_url:
@@ -2321,12 +2332,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 default_client=ytm_client,
                 note='Downloading %sremix player API JSON' % ('android ' if force_mobile_client else ''))
             ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData'], dict) or {}
-
-        player_response = None
-        if webpage:
-            player_response = self._extract_yt_initial_variable(
-                webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
-                video_id, 'initial player response')
 
         if not player_response or force_mobile_client:
             sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
@@ -3836,19 +3841,20 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'channel': metadata['uploader'],
             'channel_id': metadata['uploader_id'],
             'channel_url': metadata['uploader_url']})
+        ytcfg = self._extract_ytcfg(item_id, webpage)
         return self.playlist_result(
             self._entries(
                 selected_tab, playlist_id,
                 self._extract_identity_token(webpage, item_id),
-                self._extract_account_syncid(data),
-                self._extract_ytcfg(item_id, webpage)),
+                self._extract_account_syncid(ytcfg, data), ytcfg
+                ),
             **metadata)
 
     def _extract_mix_playlist(self, playlist, playlist_id, data, webpage):
         first_id = last_id = None
         ytcfg = self._extract_ytcfg(playlist_id, webpage)
         headers = self._generate_api_headers(
-            ytcfg, account_syncid=self._extract_account_syncid(data),
+            ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
             identity_token=self._extract_identity_token(webpage, item_id=playlist_id))
         for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
@@ -3929,7 +3935,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
             ytcfg = self._extract_ytcfg(item_id, webpage)
             headers = self._generate_api_headers(
-                ytcfg, account_syncid=self._extract_account_syncid(ytcfg),
+                ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
                 identity_token=self._extract_identity_token(webpage, item_id=item_id))
             query = {
                 'params': params or 'wgYCCAA=',
