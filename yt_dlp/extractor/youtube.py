@@ -554,21 +554,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return query
 
     @classmethod
-    def _continuation_query_ajax_to_api(cls, continuation_query):
-        continuation = dict_get(continuation_query, ('continuation', 'ctoken'))
-        return cls._build_api_continuation_query(continuation, continuation_query.get('itct'))
-
-    @staticmethod
-    def _build_continuation_query(continuation, ctp=None):
-        query = {
-            'ctoken': continuation,
-            'continuation': continuation,
-        }
-        if ctp:
-            query['itct'] = ctp
-        return query
-
-    @classmethod
     def _extract_next_continuation_data(cls, renderer):
         next_continuation = try_get(
             renderer, (lambda x: x['continuations'][0]['nextContinuationData'],
@@ -579,7 +564,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not continuation:
             return
         ctp = next_continuation.get('clickTrackingParams')
-        return cls._build_continuation_query(continuation, ctp)
+        return cls._build_api_continuation_query(continuation, ctp)
 
     @classmethod
     def _extract_continuation_ep_data(cls, continuation_ep: dict):
@@ -589,16 +574,18 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             if not continuation:
                 return
             ctp = continuation_ep.get('clickTrackingParams')
-            return cls._build_continuation_query(continuation, ctp)
+            return cls._build_api_continuation_query(continuation, ctp)
 
     @classmethod
     def _extract_continuation(cls, renderer):
         next_continuation = cls._extract_next_continuation_data(renderer)
         if next_continuation:
             return next_continuation
+
         contents = []
         for key in ('contents', 'items'):
             contents.extend(try_get(renderer, lambda x: x[key], list) or [])
+
         for content in contents:
             if not isinstance(content, dict):
                 continue
@@ -2093,10 +2080,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             comment_counts = [0, 0, 0]
 
         continuation = self._extract_continuation(root_continuation_data)
-        if continuation and len(continuation['ctoken']) < 27:
+        if continuation and len(continuation['continuation']) < 27:
             self.write_debug('Detected old API continuation token. Generating new API compatible token.')
             continuation_token = self._generate_comment_continuation(video_id)
-            continuation = self._build_continuation_query(continuation_token, None)
+            continuation = self._build_api_continuation_query(continuation_token, None)
 
         visitor_data = None
         is_first_continuation = parent is None
@@ -2118,7 +2105,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     page_num, comment_prog_str)
 
             response = self._extract_response(
-                item_id=None, query=self._continuation_query_ajax_to_api(continuation),
+                item_id=None, query=continuation,
                 ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
                 check_get_keys=('onResponseReceivedEndpoints', 'continuationContents'))
             if not response:
@@ -3694,11 +3681,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         for page_num in itertools.count(1):
             if not continuation:
                 break
-            query = self._continuation_query_ajax_to_api(continuation)
             headers = self._generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
             response = self._extract_response(
                 item_id='%s page %s' % (item_id, page_num),
-                query=query, headers=headers, ytcfg=ytcfg,
+                query=continuation, headers=headers, ytcfg=ytcfg,
                 check_get_keys=('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints'))
 
             if not response:
@@ -4284,7 +4270,9 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
         if self._SEARCH_PARAMS:
             data['params'] = self._SEARCH_PARAMS
         total = 0
+        continuation = {}
         for page_num in itertools.count(1):
+            data.update(continuation)
             search = self._extract_response(
                 item_id='query "%s" page %s' % (query, page_num), ep='search', query=data,
                 check_get_keys=('contents', 'onResponseReceivedCommands')
@@ -4302,13 +4290,10 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
             # Youtube sometimes adds promoted content to searches,
             # changing the index location of videos and token.
             # So we search through all entries till we find them.
-            continuation_token = None
+            continuation = None
             for slr_content in slr_contents:
-                if continuation_token is None:
-                    continuation_token = try_get(
-                        slr_content,
-                        lambda x: x['continuationItemRenderer']['continuationEndpoint']['continuationCommand']['token'],
-                        compat_str)
+                if not continuation:
+                    continuation = self._extract_continuation({'contents': [slr_content]})
 
                 isr_contents = try_get(
                     slr_content,
@@ -4331,9 +4316,8 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                     if total == n:
                         return
 
-            if not continuation_token:
+            if not continuation:
                 break
-            data['continuation'] = continuation_token
 
     def _get_n_results(self, query, n):
         """Get a specified number of results for a query"""
