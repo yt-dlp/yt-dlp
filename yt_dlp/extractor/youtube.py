@@ -3689,16 +3689,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         for entry in extract_entries(parent_renderer):
             yield entry
         continuation = continuation_list[0]
-        context = self._extract_context(ytcfg)
-        visitor_data = try_get(context, lambda x: x['client']['visitorData'], compat_str)
+        visitor_data = None
 
         for page_num in itertools.count(1):
             if not continuation:
                 break
-            query = {
-                'continuation': continuation['continuation'],
-                'clickTracking': {'clickTrackingParams': continuation['itct']}
-            }
+            query = self._continuation_query_ajax_to_api(continuation)
             headers = self._generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
             response = self._extract_response(
                 item_id='%s page %s' % (item_id, page_num),
@@ -3867,8 +3863,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         ytcfg = self._extract_ytcfg(playlist_id, webpage)
         headers = self._generate_api_headers(
             ytcfg, account_syncid=self._extract_account_syncid(data),
-            identity_token=self._extract_identity_token(webpage, item_id=playlist_id),
-            visitor_data=try_get(self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
+            identity_token=self._extract_identity_token(webpage, item_id=playlist_id))
         for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
             if not videos:
@@ -3893,9 +3888,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             }
             response = self._extract_response(
                 item_id='%s page %d' % (playlist_id, page_num),
-                query=query,
-                ep='next',
-                headers=headers,
+                query=query, ep='next', headers=headers, ytcfg=ytcfg,
                 check_get_keys='contents'
             )
             playlist = try_get(
@@ -3951,16 +3944,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             ytcfg = self._extract_ytcfg(item_id, webpage)
             headers = self._generate_api_headers(
                 ytcfg, account_syncid=self._extract_account_syncid(ytcfg),
-                identity_token=self._extract_identity_token(webpage, item_id=item_id),
-                visitor_data=try_get(
-                    self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
+                identity_token=self._extract_identity_token(webpage, item_id=item_id))
             query = {
                 'params': params or 'wgYCCAA=',
                 'browseId': browse_id or 'VL%s' % item_id
             }
             return self._extract_response(
                 item_id=item_id, headers=headers, query=query,
-                check_get_keys='contents', fatal=False,
+                check_get_keys='contents', fatal=False, ytcfg=ytcfg,
                 note='Downloading API JSON with unavailable videos')
 
     def _extract_webpage(self, url, item_id):
