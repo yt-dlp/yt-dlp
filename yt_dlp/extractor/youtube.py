@@ -2965,23 +2965,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if initial_data and is_private is not None:
             is_membersonly = False
             is_premium = False
-            contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list)
-            for content in contents or []:
-                badges = try_get(content, lambda x: x['videoPrimaryInfoRenderer']['badges'], list)
-                for badge in badges or []:
-                    label = try_get(badge, lambda x: x['metadataBadgeRenderer']['label']) or ''
-                    if label.lower() == 'members only':
-                        is_membersonly = True
-                        break
-                    elif label.lower() == 'premium':
-                        is_premium = True
-                        break
-                    elif label.lower() == 'unlisted':
-                        is_unlisted = True
-                if is_membersonly or is_premium:
-                    break
+            contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list) or []
+            badge_lbls = set()
+            for content in contents:
+                badge_lbls.update(self._extract_badges(content.get('videoPrimaryInfoRenderer')))
+            for badge_lbl in badge_lbls:
+                if badge_lbl.lower() == 'members only':
+                    is_membersonly = True
+                elif badge_lbl.lower() == 'premium':
+                    is_premium = True
+                elif badge_lbl.lower() == 'unlisted':
+                    is_unlisted = True
 
-        # TODO: Add this for playlists
         info['availability'] = self._availability(
             is_private=is_private,
             needs_premium=is_premium,
