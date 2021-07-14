@@ -2966,17 +2966,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_membersonly = False
             is_premium = False
             contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list) or []
-            badge_lbls = set()
+            badge_labels = set()
             for content in contents:
                 if not isinstance(content, dict):
                     continue
-                badge_lbls.update(self._extract_badges(content.get('videoPrimaryInfoRenderer')))
-            for badge_lbl in badge_lbls:
-                if badge_lbl.lower() == 'members only':
+                badge_labels.update(self._extract_badges(content.get('videoPrimaryInfoRenderer')))
+            for badge_label in badge_labels:
+                if badge_label.lower() == 'members only':
                     is_membersonly = True
-                elif badge_lbl.lower() == 'premium':
+                elif badge_label.lower() == 'premium':
                     is_premium = True
-                elif badge_lbl.lower() == 'unlisted':
+                elif badge_label.lower() == 'unlisted':
                     is_unlisted = True
 
         info['availability'] = self._availability(
@@ -3923,7 +3923,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     def _extract_availability(self, data):
         is_private = is_unlisted = None
         renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
-        badge_lbls = self._extract_badges(renderer)
+        badge_labels = self._extract_badges(renderer)
 
         # Personal playlists when auth given have a dropdown selector rather a badge
         privacy_dropdown_entries = try_get(
@@ -3936,15 +3936,15 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             label = self._join_text_entries(
                 try_get(renderer_dict, lambda x: x['privacyDropdownItemRenderer']['label']['runs'], list) or [])
             if label:
-                badge_lbls.add(label.lower())
+                badge_labels.add(label.lower())
                 break
 
-        for badge_lbl in badge_lbls:
-            if badge_lbl == 'unlisted':
+        for badge_label in badge_labels:
+            if badge_label == 'unlisted':
                 is_unlisted = True
-            elif badge_lbl == 'private':
+            elif badge_label == 'private':
                 is_private = True
-            elif badge_lbl == 'public':
+            elif badge_label == 'public':
                 return self._availability(*itertools.repeat(False, 5))
         return self._availability(
             is_private=is_private,
