@@ -647,8 +647,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_badges(self, renderer: dict):
         badges = set()
         for badge in try_get(renderer, lambda x: x['badges'], list) or []:
-            label = try_get(badge, lambda x: x['metadataBadgeRenderer']['label']) or ''
-            if label != '':
+            label = try_get(badge, lambda x: x['metadataBadgeRenderer']['label'], compat_str)
+            if label:
                 badges.add(label.lower())
         return badges
 
