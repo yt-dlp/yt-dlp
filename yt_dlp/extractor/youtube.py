@@ -44,6 +44,7 @@ from ..utils import (
     network_exceptions,
     orderedSet,
     parse_codecs,
+    parse_count,
     parse_duration,
     parse_iso8601,
     qualities,
@@ -2211,8 +2212,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         author = self._get_text(comment_renderer, 'authorText')
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
-        votes = str_to_int(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
-                                                      lambda x: x['likeCount']), compat_str)) or 0
+        votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
+                                                       lambda x: x['likeCount']), compat_str)) or 0
         author_thumbnail = try_get(comment_renderer,
                                    lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], compat_str)
 
