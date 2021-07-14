@@ -2968,6 +2968,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list) or []
             badge_lbls = set()
             for content in contents:
+                if not isinstance(content, dict):
+                    continue
                 badge_lbls.update(self._extract_badges(content.get('videoPrimaryInfoRenderer')))
             for badge_lbl in badge_lbls:
                 if badge_lbl.lower() == 'members only':
