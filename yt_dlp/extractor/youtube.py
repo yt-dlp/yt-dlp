@@ -40,6 +40,7 @@ from ..utils import (
     intlist_to_bytes,
     mimetype2ext,
     parse_codecs,
+    parse_count,
     parse_duration,
     qualities,
     remove_start,
@@ -1992,12 +1993,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         text = self._join_text_entries(comment_text_runs) or ''
         comment_time_text = try_get(comment_renderer, lambda x: x['publishedTimeText']['runs']) or []
         time_text = self._join_text_entries(comment_time_text)
+        # note: timestamp is an estimate calculated from the current time and time_text
         timestamp = calendar.timegm(self.parse_time_text(time_text).timetuple())
         author = try_get(comment_renderer, lambda x: x['authorText']['simpleText'], compat_str)
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
-        votes = str_to_int(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
-                                                      lambda x: x['likeCount']), compat_str)) or 0
+        votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
+                                                       lambda x: x['likeCount']), compat_str)) or 0
         author_thumbnail = try_get(comment_renderer,
                                    lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], compat_str)
 
