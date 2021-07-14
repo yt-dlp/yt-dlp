@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_str
+from ..compat import compat_str, compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     parse_iso8601,
@@ -85,6 +85,16 @@ class NebulaIE(InfoExtractor):
 
         username, password = self._get_login_info()
         if not (username and password):
+
+            # attempt auth via cookie jar
+            nebula_cookies = self._get_cookies('https://nebula.app')
+            nebula_cookie = nebula_cookies.get('nebula-auth')
+            if nebula_cookie:
+                self.to_screen('Authenticating to Nebula with credentials from cookie jar')
+                nebula_cookie_value = compat_urllib_parse_unquote(nebula_cookie.value)
+                nebula_token = self._parse_json(nebula_cookie_value, video_id).get('apiToken')
+                return nebula_token
+
             self.raise_login_required()
 
         self.report_login()
