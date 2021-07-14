@@ -2271,8 +2271,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
         identity_token = self._extract_identity_token(webpage, video_id)
-
-
         player_url = self._extract_player_url(ytcfg, webpage)
 
         player_client = self._configuration_arg('player_client', [''])[0]
@@ -3846,8 +3844,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self._entries(
                 selected_tab, playlist_id,
                 self._extract_identity_token(webpage, item_id),
-                self._extract_account_syncid(ytcfg, data), ytcfg
-                ),
+                self._extract_account_syncid(ytcfg, data), ytcfg),
             **metadata)
 
     def _extract_mix_playlist(self, playlist, playlist_id, data, webpage):
