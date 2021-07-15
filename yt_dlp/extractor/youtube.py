@@ -58,6 +58,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
     variadic,
+    LazyList,
 )
 
 
@@ -2288,22 +2289,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         query.update(GVI_CLIENTS.get(client))
         return query
 
-    def _real_extract(self, url):
-        url, smuggled_data = unsmuggle_url(url, {})
-        video_id = self._match_id(url)
-
-        is_music_url = smuggled_data.get('is_music_url') or self.is_music_url(url)
-
-        base_url = self.http_scheme() + '//www.youtube.com/'
-        webpage_url = base_url + 'watch?v=' + video_id
-        webpage = self._download_webpage(
-            webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
-
-        ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
-        identity_token = self._extract_identity_token(webpage, video_id)
-        session_index = self._extract_session_index(ytcfg)
-        player_url = self._extract_player_url(ytcfg, webpage)
-
+    def _extract_player_responses(
+            self, video_id, webpage, is_music_url, ytcfg, player_url, identity_token, syncid, headers, session_index):
         player_client = self._configuration_arg('player_client', [''])[0]
         if player_client not in ('web', 'android', ''):
             self.report_warning(f'Invalid player_client {player_client} given. Falling back to android client.')
@@ -2315,10 +2302,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
+        session_index = self._extract_session_index(ytcfg)
         syncid = self._extract_account_syncid(ytcfg, player_response)
         headers = self._generate_api_headers(ytcfg, identity_token, syncid, session_index=session_index)
 
-        ytm_streaming_data = {}
+        ytm_player_response = {}
         if is_music_url:
             ytm_webpage = None
             sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
@@ -2348,7 +2336,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
                 default_client=ytm_client,
                 note='Downloading %sremix player API JSON' % ('android ' if force_mobile_client else ''))
-            ytm_streaming_data = try_get(ytm_player_response, lambda x: x['streamingData'], dict) or {}
 
         if not player_response or force_mobile_client:
             sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
@@ -2381,7 +2368,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             for gvi_client in gvi_clients:
                 pr = self._parse_json(try_get(compat_parse_qs(
                     self._download_webpage(
-                        base_url + 'get_video_info', video_id,
+                        self.http_scheme() + '//www.youtube.com/get_video_info', video_id,
                         'Refetching age-gated %s info webpage' % gvi_client.lower(),
                         'unable to download video info webpage', fatal=False,
                         query=self._get_video_info_params(video_id, client=gvi_client))),
@@ -2430,73 +2417,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pr:
                 player_response = pr
 
-        trailer_video_id = try_get(
-            playability_status,
-            lambda x: x['errorScreen']['playerLegacyDesktopYpcTrailerRenderer']['trailerVideoId'],
-            compat_str)
-        if trailer_video_id:
-            return self.url_result(
-                trailer_video_id, self.ie_key(), trailer_video_id)
+        return [player_response, ytm_player_response]
 
-        search_meta = (
-            lambda x: self._html_search_meta(x, webpage, default=None)) \
-            if webpage else lambda x: None
-
-        video_details = player_response.get('videoDetails') or {}
-        microformat = try_get(
-            player_response,
-            lambda x: x['microformat']['playerMicroformatRenderer'],
-            dict) or {}
-        video_title = video_details.get('title') \
-            or self._get_text(microformat.get('title')) \
-            or search_meta(['og:title', 'twitter:title', 'title'])
-        video_description = video_details.get('shortDescription')
-
-        if not smuggled_data.get('force_singlefeed', False):
-            if not self.get_param('noplaylist'):
-                multifeed_metadata_list = try_get(
-                    player_response,
-                    lambda x: x['multicamera']['playerLegacyMulticameraRenderer']['metadataList'],
-                    compat_str)
-                if multifeed_metadata_list:
-                    entries = []
-                    feed_ids = []
-                    for feed in multifeed_metadata_list.split(','):
-                        # Unquote should take place before split on comma (,) since textual
-                        # fields may contain comma as well (see
-                        # https://github.com/ytdl-org/youtube-dl/issues/8536)
-                        feed_data = compat_parse_qs(
-                            compat_urllib_parse_unquote_plus(feed))
-
-                        def feed_entry(name):
-                            return try_get(
-                                feed_data, lambda x: x[name][0], compat_str)
-
-                        feed_id = feed_entry('id')
-                        if not feed_id:
-                            continue
-                        feed_title = feed_entry('title')
-                        title = video_title
-                        if feed_title:
-                            title += ' (%s)' % feed_title
-                        entries.append({
-                            '_type': 'url_transparent',
-                            'ie_key': 'Youtube',
-                            'url': smuggle_url(
-                                base_url + 'watch?v=' + feed_data['id'][0],
-                                {'force_singlefeed': True}),
-                            'title': title,
-                        })
-                        feed_ids.append(feed_id)
-                    self.to_screen(
-                        'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
-                        % (', '.join(feed_ids), video_id))
-                    return self.playlist_result(
-                        entries, video_id, video_title, video_description)
-            else:
-                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
-
-        formats, itags, stream_ids = [], [], []
+    def _extract_formats(self, streaming_data, video_id, player_url):
+        itags, stream_ids = [], []
         itag_qualities = {}
         q = qualities([
             # "tiny" is the smallest video-only format. But some audio-only formats
@@ -2504,12 +2428,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'tiny', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
-
-        streaming_data = player_response.get('streamingData') or {}
-        streaming_formats = streaming_data.get('formats') or []
-        streaming_formats.extend(streaming_data.get('adaptiveFormats') or [])
-        streaming_formats.extend(ytm_streaming_data.get('formats') or [])
-        streaming_formats.extend(ytm_streaming_data.get('adaptiveFormats') or [])
+        streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
 
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
@@ -2586,13 +2505,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }
                 if dct.get('ext'):
                     dct['container'] = dct['ext'] + '_dash'
-            formats.append(dct)
+            yield dct
 
         skip_manifests = self._configuration_arg('skip')
         get_dash = 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True)
         get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
 
-        for sd in (streaming_data, ytm_streaming_data):
+        for sd in streaming_data:
             hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 for f in self._extract_m3u8_formats(
@@ -2601,7 +2520,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         r'/itag/(\d+)', f['url'], 'itag', default=None)
                     if itag:
                         f['format_id'] = itag
-                    formats.append(f)
+                    yield f
 
             dash_manifest_url = get_dash and sd.get('dashManifestUrl')
             if dash_manifest_url:
@@ -2617,10 +2536,101 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         or f['url'], 'file size', default=None))
                     if filesize:
                         f['filesize'] = filesize
-                    formats.append(f)
+                    yield f
+
+    def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
+        video_id = self._match_id(url)
+
+        is_music_url = smuggled_data.get('is_music_url') or self.is_music_url(url)
+
+        base_url = self.http_scheme() + '//www.youtube.com/'
+        webpage_url = base_url + 'watch?v=' + video_id
+        webpage = self._download_webpage(
+            webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
+
+        ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
+        player_url = self._extract_player_url(ytcfg, webpage)
+        identity_token = self._extract_identity_token(webpage, video_id)
+        syncid = self._extract_account_syncid(ytcfg)
+        headers = self._generate_api_headers(ytcfg, identity_token, syncid)
+
+        player_responses = LazyList(filter(None, self._extract_player_responses(
+            video_id, webpage, is_music_url, ytcfg, player_url, identity_token, syncid, headers)))
+        player_response = player_responses[0]
+        playability_status = player_response.get('playabilityStatus') or {}
+
+        trailer_video_id = try_get(
+            playability_status,
+            lambda x: x['errorScreen']['playerLegacyDesktopYpcTrailerRenderer']['trailerVideoId'],
+            compat_str)
+        if trailer_video_id:
+            return self.url_result(
+                trailer_video_id, self.ie_key(), trailer_video_id)
+
+        search_meta = (
+            lambda x: self._html_search_meta(x, webpage, default=None)) \
+            if webpage else lambda x: None
+
+        video_details = player_response.get('videoDetails') or {}
+        microformat = try_get(
+            player_response,
+            lambda x: x['microformat']['playerMicroformatRenderer'],
+            dict) or {}
+        video_title = video_details.get('title') \
+            or self._get_text(microformat.get('title')) \
+            or search_meta(['og:title', 'twitter:title', 'title'])
+        video_description = video_details.get('shortDescription')
+
+        if not smuggled_data.get('force_singlefeed', False):
+            if not self.get_param('noplaylist'):
+                multifeed_metadata_list = try_get(
+                    player_response,
+                    lambda x: x['multicamera']['playerLegacyMulticameraRenderer']['metadataList'],
+                    compat_str)
+                if multifeed_metadata_list:
+                    entries = []
+                    feed_ids = []
+                    for feed in multifeed_metadata_list.split(','):
+                        # Unquote should take place before split on comma (,) since textual
+                        # fields may contain comma as well (see
+                        # https://github.com/ytdl-org/youtube-dl/issues/8536)
+                        feed_data = compat_parse_qs(
+                            compat_urllib_parse_unquote_plus(feed))
+
+                        def feed_entry(name):
+                            return try_get(
+                                feed_data, lambda x: x[name][0], compat_str)
+
+                        feed_id = feed_entry('id')
+                        if not feed_id:
+                            continue
+                        feed_title = feed_entry('title')
+                        title = video_title
+                        if feed_title:
+                            title += ' (%s)' % feed_title
+                        entries.append({
+                            '_type': 'url_transparent',
+                            'ie_key': 'Youtube',
+                            'url': smuggle_url(
+                                '%swatch?v=%s' % (base_url, feed_data['id'][0]),
+                                {'force_singlefeed': True}),
+                            'title': title,
+                        })
+                        feed_ids.append(feed_id)
+                    self.to_screen(
+                        'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
+                        % (', '.join(feed_ids), video_id))
+                    return self.playlist_result(
+                        entries, video_id, video_title, video_description)
+            else:
+                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+
+        streaming_data = list(traverse_obj(player_responses, (..., 'streamingData'), default=[]))
+        formats = list(self._extract_formats(streaming_data, video_id, player_url))
 
         if not formats:
-            if not self.get_param('allow_unplayable_formats') and streaming_data.get('licenseInfos'):
+            if not self.get_param('allow_unplayable_formats') and streaming_data[0].get('licenseInfos'):
                 self.raise_no_formats(
                     'This video is DRM protected.', expected=True)
             pemr = try_get(
