@@ -209,6 +209,9 @@ class YoutubeDL(object):
                        into a single file
     allow_multiple_audio_streams:   Allow multiple audio streams to be merged
                        into a single file
+    check_formats      Whether to test if the formats are downloadable.
+                       Can be True (check all), False (check none)
+                       or None (check only if requested by extractor)
     paths:             Dictionary of output paths. The allowed keys are 'home'
                        'temp' and the keys of OUTTMPL_TYPES (in utils.py)
     outtmpl:           Dictionary of templates for output names. Allowed keys
@@ -1944,15 +1947,24 @@ class YoutubeDL(object):
                 t.get('id') if t.get('id') is not None else '',
                 t.get('url')))
 
-            def test_thumbnail(t):
-                self.to_screen('[info] Testing thumbnail %s' % t['id'])
-                try:
-                    self.urlopen(HEADRequest(t['url']))
-                except network_exceptions as err:
-                    self.to_screen('[info] Unable to connect to thumbnail %s URL "%s" - %s. Skipping...' % (
-                        t['id'], t['url'], error_to_compat_str(err)))
-                    return False
-                return True
+            def thumbnail_tester():
+                if self.params.get('check_formats'):
+                    def to_screen(msg):
+                        return self.to_screen(f'[info] {msg}')
+                else:
+                    to_screen = self.write_debug
+
+                def test_thumbnail(t):
+                    to_screen('Testing thumbnail %s' % t['id'])
+                    try:
+                        self.urlopen(HEADRequest(t['url']))
+                    except network_exceptions as err:
+                        to_screen('Unable to connect to thumbnail %s URL "%s" - %s. Skipping...' % (
+                            t['id'], t['url'], error_to_compat_str(err)))
+                        return False
+                    return True
+
+                return test_thumbnail
 
             for i, t in enumerate(thumbnails):
                 if t.get('id') is None:
@@ -1960,8 +1972,11 @@ class YoutubeDL(object):
                 if t.get('width') and t.get('height'):
                     t['resolution'] = '%dx%d' % (t['width'], t['height'])
                 t['url'] = sanitize_url(t['url'])
-            if self.params.get('check_formats'):
-                info_dict['thumbnails'] = LazyList(filter(test_thumbnail, thumbnails[::-1])).reverse()
+
+            if self.params.get('check_formats') is not False:
+                info_dict['thumbnails'] = LazyList(filter(thumbnail_tester(), thumbnails[::-1])).reverse()
+            else:
+                info_dict['thumbnails'] = thumbnails
 
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'

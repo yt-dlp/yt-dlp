@@ -638,7 +638,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-prefer-free-formats         Don't give any special preference to free
                                      containers (default)
     --check-formats                  Check that the formats selected are
-                                     actually downloadable (Experimental)
+                                     actually downloadable
+    --no-check-formats               Do not check that the formats selected are
+                                     actually downloadable
     -F, --list-formats               List all available formats of requested
                                      videos
     --merge-output-format FORMAT     If a merge is required (e.g.

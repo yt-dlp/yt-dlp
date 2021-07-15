@@ -2645,7 +2645,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                 f['stretched_ratio'] = ratio
                         break
 
+        category = microformat.get('category') or search_meta('genre')
+        channel_id = video_details.get('channelId') \
+            or microformat.get('externalChannelId') \
+            or search_meta('channelId')
+        duration = int_or_none(
+            video_details.get('lengthSeconds')
+            or microformat.get('lengthSeconds')) \
+            or parse_duration(search_meta('duration'))
+        is_live = video_details.get('isLive')
+        is_upcoming = video_details.get('isUpcoming')
+        owner_profile_url = microformat.get('ownerProfileUrl')
+
         thumbnails = []
+        thumbnail_types = ['maxresdefault', 'sddefault', 'hqdefault', '0', 'mqdefault', 'default', '1', '2', '3']
+
         for container in (video_details, microformat):
             for thumbnail in (try_get(
                     container,
@@ -2662,33 +2676,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'url': thumbnail_url,
                     'height': int_or_none(thumbnail.get('height')),
                     'width': int_or_none(thumbnail.get('width')),
-                    'preference': 1 if 'maxresdefault' in thumbnail_url else -1
                 })
         thumbnail_url = search_meta(['og:image', 'twitter:image'])
         if thumbnail_url:
             thumbnails.append({
                 'url': thumbnail_url,
-                'preference': 1 if 'maxresdefault' in thumbnail_url else -1
             })
-        # All videos have a maxresdefault thumbnail, but sometimes it does not appear in the webpage
-        # See: https://github.com/ytdl-org/youtube-dl/issues/29049
-        thumbnails.append({
-            'url': 'https://i.ytimg.com/vi/%s/maxresdefault.jpg' % video_id,
-            'preference': 1,
-        })
+        # The best resolution thumbnails sometimes does not appear in the webpage
+        # See: https://github.com/ytdl-org/youtube-dl/issues/29049, https://github.com/yt-dlp/yt-dlp/issues/340
+        thumbnails.extend({
+            'url': 'https://i.ytimg.com/vi{webp}/{video_id}/{name}{live}.{ext}'.format(
+                video_id=video_id, name=name, ext=ext,
+                webp='_webp' if ext == 'webp' else '', live='_live' if is_live else ''),
+            '_test_url': True,
+        } for name in thumbnail_types for ext in ('webp', 'jpg'))
+        for thumb in thumbnails:
+            i = next((i for i, t in enumerate(thumbnail_types) if f'/{video_id}/{t}' in thumb['url']), 20)
+            thumb['preference'] = (0 if '.webp' in thumb['url'] else -1) - (2 * i)
         self._remove_duplicate_formats(thumbnails)
-
-        category = microformat.get('category') or search_meta('genre')
-        channel_id = video_details.get('channelId') \
-            or microformat.get('externalChannelId') \
-            or search_meta('channelId')
-        duration = int_or_none(
-            video_details.get('lengthSeconds')
-            or microformat.get('lengthSeconds')) \
-            or parse_duration(search_meta('duration'))
-        is_live = video_details.get('isLive')
-        is_upcoming = video_details.get('isUpcoming')
-        owner_profile_url = microformat.get('ownerProfileUrl')
 
         info = {
             'id': video_id,
