@@ -644,18 +644,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return badges
 
     @staticmethod
-    def _join_text_entries(runs):
-        text = None
-        for run in runs:
-            if not isinstance(run, dict):
-                continue
-            sub_text = try_get(run, lambda x: x['text'], compat_str)
-            if sub_text:
-                if not text:
-                    text = sub_text
+    def _get_text(data):
+        text = try_get(data, lambda x: x['simpleText'], compat_str)
+        if text:
+            return text
+        runs = try_get(data, lambda x: x['runs'], list) or []
+        if not runs and isinstance(data, list):
+            runs = data
+
+        def get_runs(runs):
+            for run in runs:
+                if not isinstance(run, dict):
                     continue
-                text += sub_text
-        return text
+                yield try_get(run, lambda x: x['text'], compat_str) or ''
+        return ''.join(get_runs(runs)) or None
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
@@ -719,24 +721,18 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
-        title = try_get(
-            renderer,
-            (lambda x: x['title']['runs'][0]['text'],
-             lambda x: x['title']['simpleText']), compat_str)
-        description = try_get(
-            renderer, lambda x: x['descriptionSnippet']['runs'][0]['text'],
-            compat_str)
-        duration = parse_duration(try_get(
-            renderer, lambda x: x['lengthText']['simpleText'], compat_str))
-        view_count_text = try_get(
-            renderer, lambda x: x['viewCountText']['simpleText'], compat_str) or ''
+        title = self._get_text(renderer.get('title'))
+        description = self._get_text(renderer.get('descriptionSnippet'))
+        duration = parse_duration(self._get_text(renderer.get('lengthText')))
+        view_count_text = self._get_text(renderer.get('viewCountText')) or ''
         view_count = str_to_int(self._search_regex(
             r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
             'view count', default=None))
-        uploader = try_get(
-            renderer,
-            (lambda x: x['ownerText']['runs'][0]['text'],
-             lambda x: x['shortBylineText']['runs'][0]['text']), compat_str)
+
+        # TODO
+        uploader = self._get_text(renderer.get('ownerText')) or \
+                   self._get_text(renderer.get('shortBylineText'))
+
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -1987,15 +1983,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         comment_id = comment_renderer.get('commentId')
         if not comment_id:
             return
-        comment_text_runs = try_get(comment_renderer, lambda x: x['contentText']['runs']) or []
-        text = self._join_text_entries(comment_text_runs) or ''
-        comment_time_text = try_get(comment_renderer, lambda x: x['publishedTimeText']['runs']) or []
-        time_text = self._join_text_entries(comment_time_text)
+
+        text = self._get_text(comment_renderer.get('contentText'))
+        time_text = self._get_text(comment_renderer.get('publishedTimeText'))
         # note: timestamp is an estimate calculated from the current time and time_text
         timestamp = calendar.timegm(self.parse_time_text(time_text).timetuple())
-        author = try_get(comment_renderer, lambda x: x['authorText']['simpleText'], compat_str)
+        author = self._get_text(comment_renderer.get('authorText'))
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
+
+        # TODO
         votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
                                                        lambda x: x['likeCount']), compat_str)) or 0
         author_thumbnail = try_get(comment_renderer,
@@ -2288,18 +2285,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(f'Invalid player_client {player_client} given. Falling back to android client.')
         force_mobile_client = player_client != 'web'
         player_skip = self._configuration_arg('player_skip')
-
-        def get_text(x):
-            if not x:
-                return
-            text = x.get('simpleText')
-            if text and isinstance(text, compat_str):
-                return text
-            runs = x.get('runs')
-            if not isinstance(runs, list):
-                return
-            return ''.join([r['text'] for r in runs if isinstance(r.get('text'), compat_str)])
-
         player_response = None
         if webpage:
             player_response = self._extract_yt_initial_variable(
@@ -2437,7 +2422,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             lambda x: x['microformat']['playerMicroformatRenderer'],
             dict) or {}
         video_title = video_details.get('title') \
-            or get_text(microformat.get('title')) \
+            or self._get_text(microformat.get('title')) \
             or search_meta(['og:title', 'twitter:title', 'title'])
         video_description = video_details.get('shortDescription')
 
@@ -2616,10 +2601,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 playability_status,
                 lambda x: x['errorScreen']['playerErrorMessageRenderer'],
                 dict) or {}
-            reason = get_text(pemr.get('reason')) or playability_status.get('reason')
+            reason = self._get_text(pemr.get('reason')) or playability_status.get('reason')
             subreason = pemr.get('subreason')
             if subreason:
-                subreason = clean_html(get_text(subreason))
+                subreason = clean_html(self._get_text(subreason))
                 if subreason == 'The uploader has not made this video available in your country.':
                     countries = microformat.get('availableCountries')
                     if not countries:
@@ -2836,7 +2821,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                     def chapter_time(mmlir):
                         return parse_duration(
-                            get_text(mmlir.get('timeDescription')))
+                            self._get_text(mmlir.get('timeDescription')))
 
                     chapters = []
                     for next_num, content in enumerate(contents, start=1):
@@ -2850,7 +2835,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         chapters.append({
                             'start_time': start_time,
                             'end_time': end_time,
-                            'title': get_text(mmlir.get('title')),
+                            'title': self._get_text(mmlir.get('title')),
                         })
                     if chapters:
                         break
@@ -2866,7 +2851,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if vpir:
                     stl = vpir.get('superTitleLink')
                     if stl:
-                        stl = get_text(stl)
+                        stl = self._get_text(stl)
                         if try_get(
                                 vpir,
                                 lambda x: x['superTitleIcon']['iconType']) == 'LOCATION_PIN':
@@ -2906,7 +2891,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         })
                 vsir = content.get('videoSecondaryInfoRenderer')
                 if vsir:
-                    info['channel'] = get_text(try_get(
+                    info['channel'] = self._get_text(try_get(
                         vsir,
                         lambda x: x['owner']['videoOwnerRenderer']['title'],
                         dict))
@@ -2924,8 +2909,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         mrr_title = mrr.get('title')
                         if not mrr_title:
                             continue
-                        mrr_title = get_text(mrr['title'])
-                        mrr_contents_text = get_text(mrr['contents'][0])
+                        mrr_title = self._get_text(mrr['title'])
+                        mrr_contents_text = self._get_text(mrr['contents'][0])
                         if mrr_title == 'License':
                             info['license'] = mrr_contents_text
                         elif not multiple_songs:
@@ -3933,8 +3918,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 renderer_dict, lambda x: x['privacyDropdownItemRenderer']['isSelected'], bool) or False
             if not is_selected:
                 continue
-            label = self._join_text_entries(
-                try_get(renderer_dict, lambda x: x['privacyDropdownItemRenderer']['label']['runs'], list) or [])
+            label = self._get_text(
+                try_get(renderer_dict, lambda x: x['privacyDropdownItemRenderer']['label'], dict) or [])
             if label:
                 badge_labels.add(label.lower())
                 break
