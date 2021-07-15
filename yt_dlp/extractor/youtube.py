@@ -3452,6 +3452,17 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'title': 'Album - Royalty Free Music Library V2 (50 Songs)',
         },
         'playlist_count': 50,
+    }, {
+        'note': 'unlisted single video playlist',
+        'url': 'https://www.youtube.com/playlist?list=PLwL24UFy54GrB3s2KMMfjZscDi1x5Dajf',
+        'info_dict': {
+            'uploader_id': 'UC9zHu_mHU96r19o-wV5Qs1Q',
+            'uploader': 'colethedj',
+            'id': 'PLwL24UFy54GrB3s2KMMfjZscDi1x5Dajf',
+            'title': 'yt-dlp unlisted playlist test',
+            'availability': 'unlisted'
+        },
+        'playlist_count': 1,
     }]
 
     @classmethod
@@ -3921,11 +3932,16 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             playlist_id=playlist_id, playlist_title=title)
 
     def _extract_availability(self, data):
+        """
+        Gets the availability of a given playlist/tab.
+        Note: Unless YouTube tells us explicitly, we do not assume it is public
+        @param data: response
+        """
         is_private = is_unlisted = None
         renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
         badge_labels = self._extract_badges(renderer)
 
-        # Personal playlists when auth given have a dropdown selector rather a badge
+        # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
         privacy_dropdown_entries = try_get(
             renderer, lambda x: x['privacyForm']['dropdownFormFieldRenderer']['dropdown']['dropdownRenderer']['entries'], list) or []
         for renderer_dict in privacy_dropdown_entries:
@@ -3945,10 +3961,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             elif badge_label == 'private':
                 is_private = True
             elif badge_label == 'public':
-                return self._availability(*itertools.repeat(False, 5))
-        return self._availability(
-            is_private=is_private,
-            is_unlisted=is_unlisted)
+                is_unlisted = is_private = False
+        return self._availability(is_private, False, False, False, is_unlisted)
 
     @staticmethod
     def _extract_sidebar_info_renderer(data, info_renderer, expected_type=dict):
