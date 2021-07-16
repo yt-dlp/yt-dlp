@@ -636,7 +636,7 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
     _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?!(?:news|anime-news|library|forum|launchcalendar|lineup|store|comics|freetrial|login|media-\d+))(?P<id>[\w\-]+))/?(?:\?|$)'
 
     _TESTS = [{
-        'url': 'http://www.crunchyroll.com/a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
+        'url': 'https://www.crunchyroll.com/a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
         'info_dict': {
             'id': 'a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
             'title': 'A Bridge to the Starry Skies - Hoshizora e Kakaru Hashi'
@@ -661,7 +661,8 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
         show_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            self._add_skip_wall(url), show_id,
+            # https:// gives a 403, but http:// does not
+            self._add_skip_wall(url).replace('https://', 'http://'), show_id,
             headers=self.geo_verification_headers())
         title = self._html_search_meta('name', webpage, default=None)
 
