@@ -3580,7 +3580,7 @@ class GenericIE(InfoExtractor):
 
             ext = determine_ext(video_url)
             if ext == 'smil':
-                entry_info_dict['formats'] = self._extract_smil_formats(video_url, video_id)
+                entry_info_dict = {**self._extract_smil_info(video_url, video_id), **entry_info_dict}
             elif ext == 'xspf':
                 return self.playlist_result(self._extract_xspf_playlist(video_url, video_id), video_id)
             elif ext == 'm3u8':
