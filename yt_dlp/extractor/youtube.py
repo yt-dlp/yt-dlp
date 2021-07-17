@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import base64
 import calendar
 import copy
+import datetime
 import hashlib
 import itertools
 import json
@@ -54,7 +55,8 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlencode_postdata,
-    urljoin
+    urljoin,
+    variadic
 )
 
 
@@ -601,8 +603,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             if continuation:
                 return continuation
 
-    @staticmethod
-    def _extract_alerts(data):
+    @classmethod
+    def _extract_alerts(cls, data):
         for alert_dict in try_get(data, lambda x: x['alerts'], list) or []:
             if not isinstance(alert_dict, dict):
                 continue
@@ -610,11 +612,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 alert_type = alert.get('type')
                 if not alert_type:
                     continue
-                message = try_get(alert, lambda x: x['text']['simpleText'], compat_str) or ''
-                if message:
-                    yield alert_type, message
-                for run in try_get(alert, lambda x: x['text']['runs'], list) or []:
-                    message += try_get(run, lambda x: x['text'], compat_str)
+                message = cls._get_text(alert.get('text'))
                 if message:
                     yield alert_type, message
 
@@ -644,20 +642,23 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return badges
 
     @staticmethod
-    def _get_text(data):
-        text = try_get(data, lambda x: x['simpleText'], compat_str)
-        if text:
-            return text
-        runs = try_get(data, lambda x: x['runs'], list) or []
-        if not runs and isinstance(data, list):
-            runs = data
+    def _get_text(data, getter=None, max_runs=None):
+        for get in variadic(getter):
+            d = try_get(data, get) or data
+            text = try_get(d, lambda x: x['simpleText'], compat_str)
+            if text:
+                return text
+            runs = try_get(d, lambda x: x['runs'], list) or []
+            if not runs and isinstance(d, list):
+                runs = d
 
-        def get_runs(runs):
-            for run in runs:
-                if not isinstance(run, dict):
-                    continue
-                yield try_get(run, lambda x: x['text'], compat_str) or ''
-        return ''.join(get_runs(runs)) or None
+            def get_runs(runs):
+                for i in range(0, min(len(runs), max_runs or len(runs))):
+                    yield try_get(runs[i], lambda x: x['text'], compat_str) or ''
+
+            text = ''.join(get_runs(runs))
+            if text:
+                return text
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
@@ -729,9 +730,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
             'view count', default=None))
 
-        # TODO
-        uploader = self._get_text(renderer.get('ownerText')) or \
-                   self._get_text(renderer.get('shortBylineText'))
+        uploader = self._get_text(renderer, (lambda x: x['ownerText'], lambda x: x['shortBylineText']))
 
         return {
             '_type': 'url',
@@ -1985,14 +1984,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return
 
         text = self._get_text(comment_renderer.get('contentText'))
-        time_text = self._get_text(comment_renderer.get('publishedTimeText'))
+
         # note: timestamp is an estimate calculated from the current time and time_text
-        timestamp = calendar.timegm(self.parse_time_text(time_text).timetuple())
+        time_text = self._get_text(comment_renderer.get('publishedTimeText')) or ''
+        time_text_dt = self.parse_time_text(time_text)
+        if isinstance(time_text_dt, datetime.datetime):
+            timestamp = calendar.timegm(time_text_dt.timetuple())
         author = self._get_text(comment_renderer.get('authorText'))
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
 
-        # TODO
         votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
                                                        lambda x: x['likeCount']), compat_str)) or 0
         author_thumbnail = try_get(comment_renderer,
@@ -2023,13 +2024,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             _continuation = None
             for content in contents:
                 comments_header_renderer = try_get(content, lambda x: x['commentsHeaderRenderer'])
-                expected_comment_count = try_get(comments_header_renderer,
-                                                 (lambda x: x['countText']['runs'][0]['text'],
-                                                  lambda x: x['commentsCount']['runs'][0]['text']),
-                                                 compat_str)
+                expected_comment_count = parse_count(self._get_text(
+                    comments_header_renderer, (lambda x: x['countText'], lambda x: x['commentsCount']), max_runs=1))
+
                 if expected_comment_count:
-                    comment_counts[1] = str_to_int(expected_comment_count)
-                    self.to_screen('Downloading ~%d comments' % str_to_int(expected_comment_count))
+                    comment_counts[1] = expected_comment_count
+                    self.to_screen('Downloading ~%d comments' % expected_comment_count)
                     _total_comments = comment_counts[1]
                 sort_mode_str = self._configuration_arg('comment_sort', [''])[0]
                 comment_sort_index = int(sort_mode_str != 'top')  # 1 = new, 0 = top
@@ -2751,9 +2751,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         automatic_captions, base_url, translation_language_code,
-                        try_get(translation_language, (
-                            lambda x: x['languageName']['simpleText'],
-                            lambda x: x['languageName']['runs'][0]['text'])),
+                        self._get_text(translation_language.get('languageName'), max_runs=1),
                         {'tlang': translation_language_code})
                 info['automatic_captions'] = automatic_captions
         info['subtitles'] = subtitles
@@ -3481,9 +3479,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             renderer = self._extract_basic_item_renderer(item)
             if not isinstance(renderer, dict):
                 continue
-            title = try_get(
-                renderer, (lambda x: x['title']['runs'][0]['text'],
-                           lambda x: x['title']['simpleText']), compat_str)
+            title = self._get_text(renderer.get('title'))
+
             # playlist
             playlist_id = renderer.get('playlistId')
             if playlist_id:
@@ -3500,8 +3497,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             # channel
             channel_id = renderer.get('channelId')
             if channel_id:
-                title = try_get(
-                    renderer, lambda x: x['title']['simpleText'], compat_str)
                 yield self.url_result(
                     'https://www.youtube.com/channel/%s' % channel_id,
                     ie=YoutubeTabIE.ie_key(), video_title=title)
@@ -3544,8 +3539,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             # will not work
             if skip_channels and '/channels?' in shelf_url:
                 return
-            title = try_get(
-                shelf_renderer, lambda x: x['title']['runs'][0]['text'], compat_str)
+            title = self._get_text(shelf_renderer, lambda x: x['title'])
             yield self.url_result(shelf_url, video_title=title)
         # Shelf may not contain shelf URL, fallback to extraction from content
         for entry in self._shelf_entries_from_content(shelf_renderer):
