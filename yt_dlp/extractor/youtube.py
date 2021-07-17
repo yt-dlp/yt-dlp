@@ -533,7 +533,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers['X-Youtube-Identity-Token'] = identity_token
         if account_syncid:
             headers['X-Goog-PageId'] = account_syncid
-            headers['X-Goog-AuthUser'] = 0
+        session_index = try_get(ytcfg, lambda x: x['SESSION_INDEX'], compat_str)
+        if account_syncid or session_index:
+            headers['X-Goog-AuthUser'] = session_index or 0
         if visitor_data:
             headers['X-Goog-Visitor-Id'] = visitor_data
         auth = self._generate_sapisidhash_header(origin)
