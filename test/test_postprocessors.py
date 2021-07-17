@@ -124,11 +124,11 @@ class TestModifyChaptersPP(unittest.TestCase):
     def test_remove_marked_arrange_sponsors_ChapterWithSponsors(self):
         chapters = self._chapters([7], ['c']) + [
             self._sponsor_chapter(1, 2, 'sponsor'),
-            self._sponsor_chapter(3, 4, 'selfpromo'),
+            self._sponsor_chapter(3, 4, 'preview'),
             self._sponsor_chapter(5, 6, 'sponsor')]
         expected = self._chapters(
             [1, 2, 3, 4, 5, 6, 7],
-            ['c - 1', '[SponsorBlock]: Sponsor - 1', 'c - 2', '[SponsorBlock]: Self-Promotion',
+            ['c - 1', '[SponsorBlock]: Sponsor - 1', 'c - 2', '[SponsorBlock]: Preview/Recap',
              'c - 3', '[SponsorBlock]: Sponsor - 2', 'c - 4'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [], True)
 

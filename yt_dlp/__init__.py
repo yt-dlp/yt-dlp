@@ -363,8 +363,10 @@ def _real_main(argv=None):
     if opts.sponskrub_cut and opts.split_chapters and opts.sponskrub is not False:
         report_conflict('--split-chapter', '--sponskrub-cut')
         opts.sponskrub_cut = False
-    if opts.sponskrub and opts.sponsorblock:
-        report_conflict('--sponsorblock', '--sponskrub')
+    # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
+    if opts.sponskrub is not False and opts.sponsorblock:
+        if opts.sponskrub:
+            report_conflict('--sponsorblock', '--sponskrub')
         opts.sponskrub = False
 
     if opts.allow_unplayable_formats:
