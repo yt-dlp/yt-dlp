@@ -59,6 +59,7 @@ from ..utils import (
     urljoin,
     variadic,
     LazyList,
+    orderedSet,
 )
 
 
@@ -401,6 +402,18 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'WEB': 'www.youtube.com',
         'WEB_REMIX': 'music.youtube.com',
         'ANDROID_MUSIC': 'music.youtube.com'
+    }
+
+    # clients starting with _ cannot be explicity requested by the user
+    _YT_CLIENTS = {
+        'web': 'WEB',
+        'web_music': 'WEB_REMIX',
+        '_web_embedded': 'WEB_EMBEDDED_PLAYER',
+        '_web_agegate': 'TVHTML5',
+        'android': 'ANDROID',
+        'android_music': 'ANDROID_MUSIC',
+        '_android_embedded': 'ANDROID_EMBEDDED_PLAYER',
+        '_android_agegate': 'ANDROID',
     }
 
     def _get_default_ytcfg(self, client='WEB'):
@@ -2289,135 +2302,100 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         query.update(GVI_CLIENTS.get(client))
         return query
 
-    def _extract_player_responses(
-            self, video_id, webpage, is_music_url, ytcfg, player_url, identity_token, syncid, headers, session_index):
-        player_client = self._configuration_arg('player_client', [''])[0]
-        if player_client not in ('web', 'android', ''):
-            self.report_warning(f'Invalid player_client {player_client} given. Falling back to android client.')
-        force_mobile_client = player_client != 'web'
-        player_skip = self._configuration_arg('player_skip')
-        player_response = None
+    def _extract_player_response(self, client, video_id, ytcfg, ytpcfg, identity_token, player_url, initial_pr):
+
+        session_index = self._extract_session_index(ytcfg)
+        syncid = self._extract_account_syncid(ytpcfg, ytcfg, initial_pr)
+        sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
+        headers = self._generate_api_headers(
+            ytcfg, identity_token, syncid, client=self._YT_CLIENTS[client], session_index=session_index)
+
+        yt_query = {'videoId': video_id}
+        yt_query.update(self._generate_player_context(sts))
+        return self._extract_response(
+            item_id=video_id, ep='player', query=yt_query,
+            ytcfg=ytpcfg, headers=headers, fatal=False,
+            default_client=self._YT_CLIENTS[client],
+            note=f'Downloading {client} player API JSON'
+        ) or None
+
+    def _extract_age_gated_player_response(self, client, video_id, ytcfg, identity_token, player_url, initial_pr):
+        gvi_client = self._YT_CLIENTS.get(f'_{client}_agegate')
+        if not gvi_client:
+            return
+
+        pr = self._parse_json(traverse_obj(
+            compat_parse_qs(self._download_webpage(
+                self.http_scheme() + '//www.youtube.com/get_video_info', video_id,
+                'Refetching age-gated %s info webpage' % gvi_client.lower(),
+                'unable to download video info webpage', fatal=False,
+                query=self._get_video_info_params(video_id, client=gvi_client))),
+            ('player_response', 0), expected_type=str) or '{}', video_id)
+        if pr:
+            return pr
+
+        self.report_warning('Falling back to embedded-only age-gate workaround')
+        embed_webpage = None
+        if client == 'web' and 'configs' not in self._configuration_arg('player_skip'):
+            embed_webpage = self._download_webpage(
+                'https://www.youtube.com/embed/%s?html5=1' % video_id,
+                video_id=video_id, note='Downloading age-gated embed config')
+
+        ytcfg_age = self._extract_ytcfg(video_id, embed_webpage) or {}
+        # If we extracted the embed webpage, it'll tell us if we can view the video
+        embedded_pr = self._parse_json(
+            traverse_obj(ytcfg_age, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
+            video_id=video_id)
+        embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
+        if embedded_ps_reason in self._AGE_GATE_REASONS:
+            return
+        return self._extract_player_response(
+            f'_{client}_embedded', video_id,
+            ytcfg_age or ytcfg, ytcfg_age if client == 'web' else {},
+            identity_token, player_url, initial_pr)
+
+    def _get_requested_clients(self, url, smuggled_data):
+        requested_clients = [client for client in self._configuration_arg('player_client')
+                             if client[:0] != '_' and client in self._YT_CLIENTS]
+        if not requested_clients:
+            requested_clients = ['android', 'web']
+        else:
+            # The first requested client must be from the main clients
+            requested_clients = (
+                [next(filter(lambda x: '_music' not in x, requested_clients), 'android')]
+                + requested_clients)
+
+        if smuggled_data.get('is_music_url') or self.is_music_url(url):
+            if 'android' in requested_clients:
+                requested_clients.append('android_music')
+            if 'web' in requested_clients:
+                requested_clients.append('web_music')
+
+        return orderedSet(requested_clients)
+
+    def _extract_player_responses(self, clients, video_id, webpage, ytcfg, player_url, identity_token):
         if webpage:
-            player_response = self._extract_yt_initial_variable(
+            initial_pr = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
-        session_index = self._extract_session_index(ytcfg)
-        syncid = self._extract_account_syncid(ytcfg, player_response)
-        headers = self._generate_api_headers(ytcfg, identity_token, syncid, session_index=session_index)
-
-        ytm_player_response = {}
-        if is_music_url:
-            ytm_webpage = None
-            sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
-            if sts and not force_mobile_client and 'configs' not in player_skip:
-                ytm_webpage = self._download_webpage(
-                    'https://music.youtube.com',
-                    video_id, fatal=False, note='Downloading remix client config')
-
-            ytm_cfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
-            ytm_client = 'WEB_REMIX'
-            if not sts or force_mobile_client:
-                # Android client already has signature descrambled
-                # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
-                if not sts:
-                    self.report_warning('Falling back to android remix client for player API.')
-                ytm_client = 'ANDROID_MUSIC'
-                ytm_cfg = {}
-
-            ytm_headers = self._generate_api_headers(
-                ytm_cfg, identity_token, syncid,
-                client=ytm_client, session_index=session_index)
-            ytm_query = {'videoId': video_id}
-            ytm_query.update(self._generate_player_context(sts))
-
-            ytm_player_response = self._extract_response(
-                item_id=video_id, ep='player', query=ytm_query,
-                ytcfg=ytm_cfg, headers=ytm_headers, fatal=False,
-                default_client=ytm_client,
-                note='Downloading %sremix player API JSON' % ('android ' if force_mobile_client else ''))
-
-        if not player_response or force_mobile_client:
-            sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
-            yt_client = 'WEB'
-            ytpcfg = ytcfg
-            ytp_headers = headers
-            if not sts or force_mobile_client:
-                # Android client already has signature descrambled
-                # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
-                if not sts:
-                    self.report_warning('Falling back to android client for player API.')
-                yt_client = 'ANDROID'
-                ytpcfg = {}
-                ytp_headers = self._generate_api_headers(ytpcfg, identity_token, syncid,
-                                                         client=yt_client, session_index=session_index)
-
-            yt_query = {'videoId': video_id}
-            yt_query.update(self._generate_player_context(sts))
-            player_response = self._extract_response(
-                item_id=video_id, ep='player', query=yt_query,
-                ytcfg=ytpcfg, headers=ytp_headers, fatal=False,
-                default_client=yt_client,
-                note='Downloading %splayer API JSON' % ('android ' if force_mobile_client else '')
-            ) or player_response
-
-        # Age-gate workarounds
-        playability_status = player_response.get('playabilityStatus') or {}
-        if playability_status.get('reason') in self._AGE_GATE_REASONS:
-            gvi_clients = ('ANDROID', 'TVHTML5') if force_mobile_client else ('TVHTML5', 'ANDROID')
-            for gvi_client in gvi_clients:
-                pr = self._parse_json(try_get(compat_parse_qs(
-                    self._download_webpage(
-                        self.http_scheme() + '//www.youtube.com/get_video_info', video_id,
-                        'Refetching age-gated %s info webpage' % gvi_client.lower(),
-                        'unable to download video info webpage', fatal=False,
-                        query=self._get_video_info_params(video_id, client=gvi_client))),
-                    lambda x: x['player_response'][0],
-                    compat_str) or '{}', video_id)
-                if pr:
-                    break
-            if not pr:
-                self.report_warning('Falling back to embedded-only age-gate workaround.')
-                embed_webpage = None
-                sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
-                if sts and not force_mobile_client and 'configs' not in player_skip:
-                    embed_webpage = self._download_webpage(
-                        'https://www.youtube.com/embed/%s?html5=1' % video_id,
-                        video_id=video_id, note='Downloading age-gated embed config')
-
-                ytcfg_age = self._extract_ytcfg(video_id, embed_webpage) or {}
-                # If we extracted the embed webpage, it'll tell us if we can view the video
-                embedded_pr = self._parse_json(
-                    try_get(ytcfg_age, lambda x: x['PLAYER_VARS']['embedded_player_response'], str) or '{}',
-                    video_id=video_id)
-                embedded_ps_reason = try_get(embedded_pr, lambda x: x['playabilityStatus']['reason'], str) or ''
-                if embedded_ps_reason not in self._AGE_GATE_REASONS:
-                    yt_client = 'WEB_EMBEDDED_PLAYER'
-                    if not sts or force_mobile_client:
-                        # Android client already has signature descrambled
-                        # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/562
-                        if not sts:
-                            self.report_warning(
-                                'Falling back to android embedded client for player API (note: some formats may be missing).')
-                        yt_client = 'ANDROID_EMBEDDED_PLAYER'
-                        ytcfg_age = {}
-
-                    ytage_headers = self._generate_api_headers(
-                        ytcfg_age, identity_token, syncid,
-                        client=yt_client, session_index=session_index)
-                    yt_age_query = {'videoId': video_id}
-                    yt_age_query.update(self._generate_player_context(sts))
-                    pr = self._extract_response(
-                        item_id=video_id, ep='player', query=yt_age_query,
-                        ytcfg=ytcfg_age, headers=ytage_headers, fatal=False,
-                        default_client=yt_client,
-                        note='Downloading %sage-gated player API JSON' % ('android ' if force_mobile_client else '')
-                    ) or {}
-
-            if pr:
-                player_response = pr
-
-        return [player_response, ytm_player_response]
+        for client in clients:
+            ytpcfg = ytcfg if client == 'web' else {}
+            if client == 'web' and initial_pr:
+                pr = initial_pr
+            else:
+                if client == 'web_music' and 'configs' not in self._configuration_arg('player_skip'):
+                    ytm_webpage = self._download_webpage(
+                        'https://music.youtube.com',
+                        video_id, fatal=False, note='Downloading remix client config')
+                    ytpcfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
+                pr = self._extract_player_response(
+                    client, video_id, ytpcfg or ytcfg, ytpcfg, identity_token, player_url, initial_pr)
+            yield pr
+            if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
+                pr = self._extract_age_gated_player_response(
+                    client, video_id, ytpcfg or ytcfg, identity_token, player_url, initial_pr)
+                yield pr
 
     def _extract_formats(self, streaming_data, video_id, player_url):
         itags, stream_ids = [], []
@@ -2474,7 +2452,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': itag,
-                'format_note': audio_track.get('displayName') or fmt.get('qualityLabel') or quality,
+                'format_note': ', '.join(filter(None, (
+                    audio_track.get('displayName'), fmt.get('qualityLabel') or quality))),
                 'fps': int_or_none(fmt.get('fps')),
                 'height': int_or_none(fmt.get('height')),
                 'quality': q(quality),
@@ -2492,6 +2471,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # but is actually worse than all other formats
                 if dct['ext'] == '3gp':
                     dct['quality'] = q('tiny')
+                    dct['preference'] = -10
             no_audio = dct.get('acodec') == 'none'
             no_video = dct.get('vcodec') == 'none'
             if no_audio:
@@ -2518,8 +2498,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         hls_manifest_url, video_id, 'mp4', fatal=False):
                     itag = self._search_regex(
                         r'/itag/(\d+)', f['url'], 'itag', default=None)
+                    if itag in itags:
+                        continue
                     if itag:
                         f['format_id'] = itag
+                        itags.append(itag)
                     yield f
 
             dash_manifest_url = get_dash and sd.get('dashManifestUrl')
@@ -2529,6 +2512,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     itag = f['format_id']
                     if itag in itags:
                         continue
+                    if itag:
+                        itags.append(itag)
                     if itag in itag_qualities:
                         f['quality'] = q(itag_qualities[itag])
                     filesize = int_or_none(self._search_regex(
@@ -2542,8 +2527,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
 
-        is_music_url = smuggled_data.get('is_music_url') or self.is_music_url(url)
-
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
         webpage = self._download_webpage(
@@ -2556,7 +2539,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         headers = self._generate_api_headers(ytcfg, identity_token, syncid)
 
         player_responses = LazyList(filter(None, self._extract_player_responses(
-            video_id, webpage, is_music_url, ytcfg, player_url, identity_token, syncid, headers)))
+            self._get_requested_clients(url, smuggled_data),
+            video_id, webpage, ytcfg, player_url, identity_token)))
         player_response = player_responses[0]
         playability_status = player_response.get('playabilityStatus') or {}
 
@@ -2650,6 +2634,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 reason += '\n' + subreason
             if reason:
                 self.raise_no_formats(reason, expected=True)
+
+        for f in formats:
+            # TODO: detect if throttled
+            if '&n=' in f['url']:  # possibly throttled
+                f['source_preference'] = -10
+                # note = f.get('format_note')
+                # f['format_note'] = f'{note} (throttled)' if note else '(throttled)'
 
         self._sort_formats(formats)
 
