@@ -653,8 +653,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 runs = d
 
             def get_runs(runs):
-                for i in range(0, min(len(runs), max_runs or len(runs))):
-                    yield try_get(runs[i], lambda x: x['text'], compat_str) or ''
+                for run in runs[:min(len(runs), max_runs or len(runs))]:
+                    yield try_get(run, lambda x: x['text'], compat_str) or ''
 
             text = ''.join(get_runs(runs))
             if text:
