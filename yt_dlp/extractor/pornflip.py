@@ -14,7 +14,6 @@ class PornFlipIE(InfoExtractor):
     _TESTS = [
         {
             'url': 'https://www.pornflip.com/dzv9Mtw1qj2/sv/brazzers-double-dare-two-couples-fucked-jenna-reid-maya-bijou',
-            'md5': 'ebe8472ba48d5246ba0788cb2a608799',
             'info_dict': {
                 'id': 'dzv9Mtw1qj2',
                 'ext': 'mp4',
@@ -30,9 +29,7 @@ class PornFlipIE(InfoExtractor):
                 'age_limit': 18,
             },
             'params': {
-                'format': 'dash-f1-v1-x3',
-                # skip as pornflip uses init segments smaller than 10000 bytes
-                # AssertionError: Expected test_PornFlip_dzv9Mtw1qj2.mp4 to be at least 9.77KiB, but it's only 675.00B
+                'format': 'bestvideo',
                 'skip_download': True,
             },
         },
