@@ -418,6 +418,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_client_name(self, ytcfg, default_client='WEB'):
         return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CLIENT_NAME'], compat_str, default_client)
 
+    @staticmethod
+    def _extract_session_index(ytcfg):
+        return int_or_none(try_get(ytcfg, lambda x: x['SESSION_INDEX']))
+
     def _extract_client_version(self, ytcfg, default_client='WEB'):
         return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CLIENT_VERSION'], compat_str, default_client)
 
@@ -523,7 +527,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 default='{}'), video_id, fatal=False) or {}
 
     def _generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None,
-                              visitor_data=None, api_hostname=None, client='WEB'):
+                              visitor_data=None, api_hostname=None, client='WEB', session_index=None):
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(client))
         headers = {
             'X-YouTube-Client-Name': compat_str(
@@ -538,7 +542,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             headers['X-Youtube-Identity-Token'] = identity_token
         if account_syncid:
             headers['X-Goog-PageId'] = account_syncid
-            headers['X-Goog-AuthUser'] = 0
+        if session_index is None and ytcfg:
+            session_index = self._extract_session_index(ytcfg)
+        if account_syncid or session_index is not None:
+            headers['X-Goog-AuthUser'] = session_index if session_index is not None else 0
         if visitor_data:
             headers['X-Goog-Visitor-Id'] = visitor_data
         auth = self._generate_sapisidhash_header(origin)
@@ -2278,6 +2285,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
         identity_token = self._extract_identity_token(webpage, video_id)
+        session_index = self._extract_session_index(ytcfg)
         player_url = self._extract_player_url(ytcfg, webpage)
 
         player_client = self._configuration_arg('player_client', [''])[0]
@@ -2292,7 +2300,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 video_id, 'initial player response')
 
         syncid = self._extract_account_syncid(ytcfg, player_response)
-        headers = self._generate_api_headers(ytcfg, identity_token, syncid)
+        headers = self._generate_api_headers(ytcfg, identity_token, syncid, session_index=session_index)
 
         ytm_streaming_data = {}
         if is_music_url:
@@ -2315,7 +2323,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             ytm_headers = self._generate_api_headers(
                 ytm_cfg, identity_token, syncid,
-                client=ytm_client)
+                client=ytm_client, session_index=session_index)
             ytm_query = {'videoId': video_id}
             ytm_query.update(self._generate_player_context(sts))
 
@@ -2338,7 +2346,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self.report_warning('Falling back to android client for player API.')
                 yt_client = 'ANDROID'
                 ytpcfg = {}
-                ytp_headers = self._generate_api_headers(ytpcfg, identity_token, syncid, yt_client)
+                ytp_headers = self._generate_api_headers(ytpcfg, identity_token, syncid,
+                                                         client=yt_client, session_index=session_index)
 
             yt_query = {'videoId': video_id}
             yt_query.update(self._generate_player_context(sts))
@@ -2391,7 +2400,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         ytcfg_age = {}
 
                     ytage_headers = self._generate_api_headers(
-                        ytcfg_age, identity_token, syncid, client=yt_client)
+                        ytcfg_age, identity_token, syncid,
+                        client=yt_client, session_index=session_index)
                     yt_age_query = {'videoId': video_id}
                     yt_age_query.update(self._generate_player_context(sts))
                     pr = self._extract_response(
