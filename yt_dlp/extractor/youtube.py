@@ -644,7 +644,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     @staticmethod
     def _get_text(data, getter=None, max_runs=None):
         for get in variadic(getter):
-            d = try_get(data, get) or data
+            d = try_get(data, get) if get is not None else data
             text = try_get(d, lambda x: x['simpleText'], compat_str)
             if text:
                 return text
