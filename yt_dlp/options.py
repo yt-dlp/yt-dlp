@@ -1266,6 +1266,10 @@ def parseOpts(overrideArguments=None):
             'An additional field "filepath" that contains the final path of the downloaded file is also available. '
             'If no fields are passed, "%(filepath)s" is appended to the end of the command'))
     postproc.add_option(
+        '--exec-before-download',
+        metavar='CMD', dest='exec_before_dl_cmd',
+        help='Execute a command before the actual download. The syntax is the same as --exec')
+    postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(

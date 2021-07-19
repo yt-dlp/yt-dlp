@@ -773,6 +773,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      downloaded file is also available. If no
                                      fields are passed, "%(filepath)s" is
                                      appended to the end of the command
+    --exec-before-download CMD       Execute a command before the actual
+                                     download. The syntax is the same as --exec
     --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
