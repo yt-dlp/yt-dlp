@@ -1949,12 +1949,15 @@ class YoutubeDL(object):
 
             def thumbnail_tester():
                 if self.params.get('check_formats'):
-                    def to_screen(msg):
-                        return self.to_screen(f'[info] {msg}')
+                    test_all = True
+                    to_screen = lambda msg: self.to_screen(f'[info] {msg}')
                 else:
+                    test_all = False
                     to_screen = self.write_debug
 
                 def test_thumbnail(t):
+                    if not test_all and not t.get('_test_url'):
+                        return True
                     to_screen('Testing thumbnail %s' % t['id'])
                     try:
                         self.urlopen(HEADRequest(t['url']))
