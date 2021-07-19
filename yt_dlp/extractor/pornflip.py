@@ -14,6 +14,7 @@ class PornFlipIE(InfoExtractor):
     _TESTS = [
         {
             'url': 'https://www.pornflip.com/dzv9Mtw1qj2/sv/brazzers-double-dare-two-couples-fucked-jenna-reid-maya-bijou',
+            'md5': 'ebe8472ba48d5246ba0788cb2a608799',
             'info_dict': {
                 'id': 'dzv9Mtw1qj2',
                 'ext': 'mp4',
@@ -26,9 +27,12 @@ class PornFlipIE(InfoExtractor):
                 'timestamp': 1617846819,
                 'upload_date': '20210408',
                 'uploader': 'Brazzers',
+                'age_limit': 18,
             },
             'params': {
-                'format': 'bestvideo',
+                'format': 'dash-f1-v1-x3',
+                # skip as pornflip uses init segments smaller than 10000 bytes
+                # AssertionError: Expected test_PornFlip_dzv9Mtw1qj2.mp4 to be at least 9.77KiB, but it's only 675.00B
                 'skip_download': True,
             },
         },
@@ -52,19 +56,11 @@ class PornFlipIE(InfoExtractor):
         webpage = self._download_webpage(
             'https://{}/sv/{}'.format(self._HOST, video_id), video_id, headers={'host': self._HOST})
         description = self._html_search_regex(r'&p\[summary\]=(.*?)\s*&p', webpage, 'description', fatal=False)
-
         duration = self._search_regex(r'"duration":\s+"([^"]+)",', webpage, 'duration', fatal=False)
-        if duration:
-            duration = parse_duration(duration)
-
         view_count = self._search_regex(r'"interactionCount":\s+"([^"]+)"', webpage, 'view_count', fatal=False)
         title = self._html_search_regex(r'id="mediaPlayerTitleLink"[^>]*>(.+)</a>', webpage, 'title', fatal=False)
         uploader = self._html_search_regex(r'class="title-chanel"[^>]*>[^<]*<a[^>]*>([^<]+)<', webpage, 'uploader', fatal=False)
-
         upload_date = self._search_regex(r'"uploadDate":\s+"([^"]+)",', webpage, 'upload_date', fatal=False)
-        if upload_date:
-            upload_date = parse_iso8601(upload_date)
-
         likes = self._html_search_regex(
             r'class="btn btn-up-rating[^>]*>[^<]*<i[^>]*>[^<]*</i>[^>]*<span[^>]*>[^0-9]*([0-9]+)[^<0-9]*<', webpage, 'like_count', fatal=False)
         dislikes = self._html_search_regex(
@@ -74,13 +70,14 @@ class PornFlipIE(InfoExtractor):
         self._sort_formats(formats)
 
         return {
+            'age_limit': 18,
             'description': description,
             'dislike_count': int_or_none(dislikes),
-            'duration': duration,
+            'duration': parse_duration(duration),
             'formats': formats,
             'id': video_id,
             'like_count': int_or_none(likes),
-            'timestamp': upload_date,
+            'timestamp': parse_iso8601(upload_date),
             'thumbnail': self._og_search_thumbnail(webpage),
             'title': title,
             'uploader': uploader,
