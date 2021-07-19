@@ -18,7 +18,7 @@ class PornFlipIE(InfoExtractor):
                 'id': 'dzv9Mtw1qj2',
                 'ext': 'mp4',
                 'title': 'Brazzers - Double Dare Two couples fucked Jenna Reid Maya Bijou',
-                'description': 'Tight teens Jenna and Maya play a hot game of truth or dare with their boyfriends. It starts off innocent, but each player quickly learns the others are willing to do anything for a dare, and it takes a quick sexual turn until a four-way romp ensues.',
+                'description': 'md5:d2b69e6cc743c5fd158e162aa7f05821',
                 'duration': 476,
                 'like_count': int,
                 'dislike_count': int,
