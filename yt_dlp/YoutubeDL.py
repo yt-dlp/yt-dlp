@@ -450,7 +450,7 @@ class YoutubeDL(object):
     params = None
     _ies = []
     _pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
-    __prepare_filename_warned = False
+    _reported_warnings = set()
     _first_webpage_request = True
     _download_retcode = None
     _num_downloads = None
@@ -465,7 +465,7 @@ class YoutubeDL(object):
         self._ies = []
         self._ies_instances = {}
         self._pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
-        self.__prepare_filename_warned = False
+        self._reported_warnings = set()
         self._first_webpage_request = True
         self._post_hooks = []
         self._progress_hooks = []
@@ -755,11 +755,15 @@ class YoutubeDL(object):
         self.to_stdout(
             message, skip_eol, quiet=self.params.get('quiet', False))
 
-    def report_warning(self, message):
+    def report_warning(self, message, only_once=False):
         '''
         Print the message to stderr, it will be prefixed with 'WARNING:'
         If stderr is a tty file the 'WARNING:' will be colored
         '''
+        if only_once:
+            if message in self._reported_warnings:
+                return
+            self._reported_warnings.add(message)
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
         else:
@@ -1017,13 +1021,13 @@ class YoutubeDL(object):
 
         filename = self._prepare_filename(info_dict, dir_type or 'default')
 
-        if warn and not self.__prepare_filename_warned:
+        if warn:
             if not self.params.get('paths'):
                 pass
             elif filename == '-':
-                self.report_warning('--paths is ignored when an outputting to stdout')
+                self.report_warning('--paths is ignored when an outputting to stdout', only_once=True)
             elif os.path.isabs(filename):
-                self.report_warning('--paths is ignored since an absolute path is given in output template')
+                self.report_warning('--paths is ignored since an absolute path is given in output template', only_once=True)
             self.__prepare_filename_warned = True
         if filename == '-' or not filename:
             return filename
@@ -1363,13 +1367,18 @@ class YoutubeDL(object):
         if not isinstance(ie_entries, (list, PagedList)):
             ie_entries = LazyList(ie_entries)
 
+        def get_entry(i):
+            return YoutubeDL.__handle_extraction_exceptions(
+                lambda self, i: ie_entries[i - 1]
+            )(self, i)
+
         entries = []
         for i in playlistitems or itertools.count(playliststart):
             if playlistitems is None and playlistend is not None and playlistend < i:
                 break
             entry = None
             try:
-                entry = ie_entries[i - 1]
+                entry = get_entry(i)
                 if entry is None:
                     raise EntryNotInPlaylist()
             except (IndexError, EntryNotInPlaylist):
