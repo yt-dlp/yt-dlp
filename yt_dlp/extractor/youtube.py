@@ -1622,6 +1622,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'only_matching': True,
         },
         {
+            # controversial video, requires bpctr/contentCheckOk
+            'url': 'https://www.youtube.com/watch?v=SZJvDhaSDnc',
+            'info_dict': {
+                'id': 'SZJvDhaSDnc',
+                'ext': 'mp4',
+                'title': 'San Diego teen commits suicide after bullying over embarrassing video',
+                'channel_id': 'UC-SJ6nODDmufqBzPBwCvYvQ',
+                'uploader': 'CBS This Morning',
+                'upload_date': '20140716',
+                'description': 'md5:acde3a73d3f133fc97e837a9f76b53b7'
+            }
+        },
+        {
             # restricted location, https://github.com/ytdl-org/youtube-dl/issues/28685
             'url': 'cBvYw8_A0vQ',
             'info_dict': {
