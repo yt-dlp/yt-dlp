@@ -297,8 +297,23 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             consent_id = random.randint(100, 999)
         self._set_cookie('.youtube.com', 'CONSENT', 'YES+cb.20210328-17-p0.en+FX+%s' % consent_id)
 
+    def _initialize_pref(self):
+        # Force English regardless of account setting to prevent parsing issues
+        # See: https://github.com/yt-dlp/yt-dlp/issues/532
+        cookies = self._get_cookies('https://www.youtube.com/')
+        pref_cookie = cookies.get('PREF')
+        pref = {}
+        if pref_cookie:
+            try:
+                pref = dict(compat_urlparse.parse_qsl(pref_cookie.value))
+            except ValueError:
+                self.write_debug('Failed to parse user PREF cookie')
+        pref.update({'hl': 'en'})
+        self._set_cookie('.youtube.com', name='PREF', value=compat_urllib_parse_urlencode(pref))
+
     def _real_initialize(self):
         self._initialize_consent()
+        self._initialize_pref()
         if self._downloader is None:
             return
         if not self._login():
