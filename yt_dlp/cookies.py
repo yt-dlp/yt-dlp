@@ -58,7 +58,7 @@ class Logger:
 def load_cookies(cookie_file, browser_specification, ydl):
     cookie_jars = []
     if browser_specification is not None:
-        browser_name, profile = _parse_browser_specification(browser_specification)
+        browser_name, profile = _parse_browser_specification(*browser_specification)
         cookie_jars.append(extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl)))
 
     if cookie_file is not None:
@@ -721,14 +721,9 @@ def _is_path(value):
     return os.path.sep in value
 
 
-def _parse_browser_specification(browser_specification):
-    parts = browser_specification.split(':')
-    while len(parts) < 2:
-        parts.append('')
-    parts = [p.strip() or None for p in parts]
-    if not parts[0] or len(parts) > 2:
-        raise ValueError('invalid browser specification: "{}"'.format(browser_specification))
-    browser_name, profile = parts
+def _parse_browser_specification(browser_name, profile=None):
+    if browser_name not in SUPPORTED_BROWSERS:
+        raise ValueError(f'unsupported browser: "{browser_name}"')
     if profile is not None and _is_path(profile):
         profile = os.path.expanduser(profile)
     return browser_name, profile

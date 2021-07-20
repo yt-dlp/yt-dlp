@@ -286,6 +286,9 @@ class YoutubeDL(object):
     break_on_reject:   Stop the download process when encountering a video that
                        has been filtered out.
     cookiefile:        File name where cookies should be read from and dumped to
+    cookiesfrombrowser: A tuple containing the name of the browser and the profile
+                       name/path from where cookies are loaded.
+                       Eg: ('chrome', ) or (vivaldi, 'default')
     nocheckcertificate:Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.
