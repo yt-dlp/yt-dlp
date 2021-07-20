@@ -28,18 +28,18 @@ from ..compat import (
 )
 from ..jsinterp import JSInterpreter
 from ..utils import (
-    bool_or_none,
     bytes_to_intlist,
     clean_html,
-    dict_get,
     datetime_from_str,
+    dict_get,
     error_to_compat_str,
     ExtractorError,
-    format_field,
     float_or_none,
+    format_field,
     int_or_none,
     intlist_to_bytes,
     mimetype2ext,
+    orderedSet,
     parse_codecs,
     parse_count,
     parse_duration,
@@ -58,8 +58,6 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
     variadic,
-    LazyList,
-    orderedSet,
 )
 
 
@@ -1151,7 +1149,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': 'olympic',
                 'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/olympic',
                 'description': 'HO09  - Women -  GER-AUS - Hockey - 31 July 2012 - London 2012 Olympic Games',
-                'uploader': 'Olympic',
+                'uploader': 'Olympics',
                 'title': 'Hockey - Women -  GER-AUS - London 2012 Olympic Games',
             },
             'params': {
@@ -1316,16 +1314,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'lsguqyKfVQg',
                 'ext': 'mp4',
                 'title': '{dark walk}; Loki/AC/Dishonored; collab w/Elflover21',
-                'alt_title': 'Dark Walk - Position Music',
+                'alt_title': 'Dark Walk',
                 'description': 'md5:8085699c11dc3f597ce0410b0dcbb34a',
                 'duration': 133,
                 'upload_date': '20151119',
                 'uploader_id': 'IronSoulElf',
                 'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/IronSoulElf',
                 'uploader': 'IronSoulElf',
-                'creator': 'Todd Haberman,  Daniel Law Heath and Aaron Kaplan',
-                'track': 'Dark Walk - Position Music',
-                'artist': 'Todd Haberman,  Daniel Law Heath and Aaron Kaplan',
+                'creator': 'Todd Haberman;\nDaniel Law Heath and Aaron Kaplan',
+                'track': 'Dark Walk',
+                'artist': 'Todd Haberman;\nDaniel Law Heath and Aaron Kaplan',
                 'album': 'Position Music - Production Music Vol. 143 - Dark Walk',
             },
             'params': {
@@ -1668,13 +1666,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'url': 'https://www.youtube.com/watch?v=YOelRv7fMxY',
             'info_dict': {
                 'id': 'YOelRv7fMxY',
-                'title': 'Digging a Secret Tunnel from my Workshop',
+                'title': 'DIGGING A SECRET TUNNEL Part 1',
                 'ext': '3gp',
                 'upload_date': '20210624',
                 'channel_id': 'UCp68_FLety0O-n9QU6phsgw',
                 'uploader': 'colinfurze',
                 'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCp68_FLety0O-n9QU6phsgw',
-                'description': 'md5:ecb672623246d98c6c562eed6ae798c3'
+                'description': 'md5:b5096f56af7ccd7a555c84db81738b22'
             },
             'params': {
                 'format': '17',  # 3gp format available on android
@@ -2391,11 +2389,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     ytpcfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
                 pr = self._extract_player_response(
                     client, video_id, ytpcfg or ytcfg, ytpcfg, identity_token, player_url, initial_pr)
-            yield pr
+            if pr:
+                yield pr
             if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
                 pr = self._extract_age_gated_player_response(
                     client, video_id, ytpcfg or ytcfg, identity_token, player_url, initial_pr)
-                yield pr
+                if pr:
+                    yield pr
 
     def _extract_formats(self, streaming_data, video_id, player_url):
         itags, stream_ids = [], []
@@ -2538,7 +2538,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         syncid = self._extract_account_syncid(ytcfg)
         headers = self._generate_api_headers(ytcfg, identity_token, syncid)
 
-        player_responses = LazyList(filter(None, self._extract_player_responses(
+        player_responses = list(self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
             video_id, webpage, ytcfg, player_url, identity_token))
 
@@ -2556,9 +2556,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return self.url_result(
                 trailer_video_id, self.ie_key(), trailer_video_id)
 
-        search_meta = (
-            lambda x: self._html_search_meta(x, webpage, default=None)) \
-            if webpage else lambda x: None
+        search_meta = (lambda x: self._html_search_meta(x, webpage, default=None)
+                       if webpage else lambda x: None)
 
         video_details = traverse_obj(
             player_responses, (..., 'videoDetails'), expected_type=dict, default=[])
@@ -2615,7 +2614,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
-        streaming_data = list(traverse_obj(player_responses, (..., 'streamingData'), default=[]))
+        streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
         formats = list(self._extract_formats(streaming_data, video_id, player_url))
 
         if not formats:
@@ -2634,7 +2633,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         regions_allowed = search_meta('regionsAllowed')
                         countries = regions_allowed.split(',') if regions_allowed else None
                     self.raise_geo_restricted(subreason, countries, metadata_available=True)
-                reason += '\n' + subreason
+                reason += f'. {subreason}'
             if reason:
                 self.raise_no_formats(reason, expected=True)
 
@@ -3291,7 +3290,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'X1whbWASnNQ',  # This will keep changing
+            'id': 'FMtPN8yp5LU',  # This will keep changing
             'ext': 'mp4',
             'title': compat_str,
             'uploader': 'Sky News',
@@ -4169,6 +4168,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'id': 'PLBB231211A4F62143',
             'uploader': 'Wickydoo',
             'uploader_id': 'UCKSpbfbl5kRQpTdL7kMc-1Q',
+            'description': 'md5:8fa6f52abb47a9552002fa3ddfc57fc2',
         },
         'playlist_mincount': 29,
     }, {
@@ -4191,12 +4191,13 @@ class YoutubePlaylistIE(InfoExtractor):
         }
     }, {
         'url': 'http://www.youtube.com/embed/_xDOZElKyNU?list=PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
-        'playlist_mincount': 982,
+        'playlist_mincount': 654,
         'info_dict': {
             'title': '2018 Chinese New Singles (11/6 updated)',
             'id': 'PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
             'uploader': 'LBK',
             'uploader_id': 'UC21nz3_MesPLqtDqwdvnoxA',
+            'description': 'md5:da521864744d60a198e3a88af4db0d9d',
         }
     }, {
         'url': 'TLGGrESM50VT6acwMjAyMjAxNw',
@@ -4370,7 +4371,7 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
 
     def _get_n_results(self, query, n):
         """Get a specified number of results for a query"""
-        return self.playlist_result(self._entries(query, n), query)
+        return self.playlist_result(self._entries(query, n), query, query)
 
 
 class YoutubeSearchDateIE(YoutubeSearchIE):
@@ -4389,6 +4390,7 @@ class YoutubeSearchURLIE(YoutubeSearchIE):
         'url': 'https://www.youtube.com/results?baz=bar&search_query=youtube-dl+test+video&filters=video&lclk=video',
         'playlist_mincount': 5,
         'info_dict': {
+            'id': 'youtube-dl test video',
             'title': 'youtube-dl test video',
         }
     }, {
