@@ -2265,7 +2265,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {
             'playbackContext': {
                 'contentPlaybackContext': context
-            }
+            },
+            'contentCheckOk': True
         }
 
     @staticmethod
