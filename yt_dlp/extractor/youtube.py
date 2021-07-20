@@ -2396,6 +2396,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     client, video_id, ytpcfg or ytcfg, identity_token, player_url, initial_pr)
                 if pr:
                     yield pr
+        # Android player_response does not have microFormats which are needed for
+        # extraction of some data. So we return the initial_pr with formats
+        # stripped out even if not requested by the user
+        # See: https://github.com/yt-dlp/yt-dlp/issues/501
+        if initial_pr and 'web' not in clients:
+            initial_pr['streamingData'] = None
+            yield initial_pr
 
     def _extract_formats(self, streaming_data, video_id, player_url):
         itags, stream_ids = [], []
