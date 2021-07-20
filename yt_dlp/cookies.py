@@ -37,7 +37,7 @@ except ImportError:
     KEYRING_AVAILABLE = False
 
 
-CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge' 'opera', 'vivaldi'}
+CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
