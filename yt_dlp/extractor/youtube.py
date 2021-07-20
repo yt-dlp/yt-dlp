@@ -1074,21 +1074,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'format': '141/bestaudio[ext=m4a]',
             },
         },
-        # Controversy video
-        {
-            'url': 'https://www.youtube.com/watch?v=T4XJQO3qol8',
-            'info_dict': {
-                'id': 'T4XJQO3qol8',
-                'ext': 'mp4',
-                'duration': 219,
-                'upload_date': '20100909',
-                'uploader': 'Amazing Atheist',
-                'uploader_id': 'TheAmazingAtheist',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/TheAmazingAtheist',
-                'title': 'Burning Everyone\'s Koran',
-                'description': 'SUBSCRIBE: http://www.youtube.com/saturninefilms \r\n\r\nEven Obama has taken a stand against freedom on this issue: http://www.huffingtonpost.com/2010/09/09/obama-gma-interview-quran_n_710282.html',
-            }
-        },
         # Normal age-gate video (embed allowed)
         {
             'url': 'https://youtube.com/watch?v=HtVdAasjOgU',
@@ -1620,6 +1605,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # controversial video, only works with bpctr when authenticated with cookies
             'url': 'https://www.youtube.com/watch?v=nGC3D_FkCmg',
             'only_matching': True,
+        },
+        {
+            # controversial video, requires bpctr/contentCheckOk
+            'url': 'https://www.youtube.com/watch?v=SZJvDhaSDnc',
+            'info_dict': {
+                'id': 'SZJvDhaSDnc',
+                'ext': 'mp4',
+                'title': 'San Diego teen commits suicide after bullying over embarrassing video',
+                'channel_id': 'UC-SJ6nODDmufqBzPBwCvYvQ',
+                'uploader': 'CBS This Morning',
+                'upload_date': '20140716',
+                'description': 'md5:acde3a73d3f133fc97e837a9f76b53b7'
+            }
         },
         {
             # restricted location, https://github.com/ytdl-org/youtube-dl/issues/28685
@@ -2265,7 +2263,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return {
             'playbackContext': {
                 'contentPlaybackContext': context
-            }
+            },
+            'contentCheckOk': True
         }
 
     @staticmethod
