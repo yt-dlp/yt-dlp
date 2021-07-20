@@ -83,7 +83,7 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=Logger()):
 
 
 def _extract_firefox_cookies(profile, logger):
-    logger.info('extracting cookies from firefox')
+    logger.info('Extracting cookies from firefox')
 
     if profile is None:
         search_root = _firefox_browser_dir()
@@ -110,7 +110,7 @@ def _extract_firefox_cookies(profile, logger):
                     path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
                     comment=None, comment_url=None, rest={})
                 jar.set_cookie(cookie)
-            logger.info('extracted {} cookies from firefox'.format(len(jar)))
+            logger.info('Extracted {} cookies from firefox'.format(len(jar)))
             return jar
         finally:
             if cursor is not None:
@@ -188,7 +188,7 @@ def _get_chromium_based_browser_settings(browser_name):
 
 
 def _extract_chrome_cookies(browser_name, profile, logger):
-    logger.info('extracting cookies from {}'.format(browser_name))
+    logger.info('Extracting cookies from {}'.format(browser_name))
     config = _get_chromium_based_browser_settings(browser_name)
 
     if profile is None:
@@ -243,7 +243,7 @@ def _extract_chrome_cookies(browser_name, profile, logger):
                 failed_message = ' ({} could not be decrypted)'.format(failed_cookies)
             else:
                 failed_message = ''
-            logger.info('extracted {} cookies from {}{}'.format(len(jar), browser_name, failed_message))
+            logger.info('Extracted {} cookies from {}{}'.format(len(jar), browser_name, failed_message))
             return jar
         finally:
             if cursor is not None:
@@ -398,7 +398,7 @@ def _extract_safari_cookies(profile, logger):
         cookies_data = f.read()
 
     jar = parse_safari_cookies(cookies_data, logger=logger)
-    logger.info('extracted {} cookies from safari'.format(len(jar)))
+    logger.info('Extracted {} cookies from safari'.format(len(jar)))
     return jar
 
 
@@ -708,7 +708,7 @@ class YDLLogger(Logger):
         self._ydl.write_debug(message)
 
     def info(self, message):
-        self._ydl.to_screen(message)
+        self._ydl.to_screen(f'[Cookies] {message}')
 
     def warning(self, message):
         self._ydl.report_warning(message)
