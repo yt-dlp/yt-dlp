@@ -1875,10 +1875,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'JS player signature timestamp', group='sts', fatal=fatal))
         return sts
 
-    def _mark_watched(self, video_id, player_response):
-        playback_url = url_or_none(try_get(
-            player_response,
-            lambda x: x['playbackTracking']['videostatsPlaybackUrl']['baseUrl']))
+    def _mark_watched(self, video_id, player_responses):
+        playback_url = url_or_none((traverse_obj(
+            player_responses, ('playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
+            expected_type=str) or [None])[0])
         if not playback_url:
             return
         parsed_playback_url = compat_urlparse.urlparse(playback_url)
@@ -2540,14 +2540,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         player_responses = LazyList(filter(None, self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, ytcfg, player_url, identity_token)))
-        player_response = player_responses[0]
-        playability_status = player_response.get('playabilityStatus') or {}
+            video_id, webpage, ytcfg, player_url, identity_token))
 
-        trailer_video_id = try_get(
-            playability_status,
-            lambda x: x['errorScreen']['playerLegacyDesktopYpcTrailerRenderer']['trailerVideoId'],
-            compat_str)
+        get_first = lambda obj, keys, **kwargs: (
+            traverse_obj(obj, (..., *variadic(keys)), **kwargs) or [None])[0]
+
+        playability_statuses = traverse_obj(
+            player_responses, (..., 'playabilityStatus'), expected_type=dict, default=[])
+
+        trailer_video_id = get_first(
+            playability_statuses,
+            ('errorScreen', 'playerLegacyDesktopYpcTrailerRenderer', 'trailerVideoId'),
+            expected_type=str)
         if trailer_video_id:
             return self.url_result(
                 trailer_video_id, self.ie_key(), trailer_video_id)
@@ -2556,22 +2560,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             lambda x: self._html_search_meta(x, webpage, default=None)) \
             if webpage else lambda x: None
 
-        video_details = player_response.get('videoDetails') or {}
-        microformat = try_get(
-            player_response,
-            lambda x: x['microformat']['playerMicroformatRenderer'],
-            dict) or {}
-        video_title = video_details.get('title') \
-            or self._get_text(microformat.get('title')) \
-            or search_meta(['og:title', 'twitter:title', 'title'])
-        video_description = video_details.get('shortDescription')
+        video_details = traverse_obj(
+            player_responses, (..., 'videoDetails'), expected_type=dict, default=[])
+        microformats = traverse_obj(
+            player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
+            expected_type=dict, default=[])
+        video_title = (
+            get_first(video_details, 'title')
+            or self._get_text(microformats, (..., 'title'))
+            or search_meta(['og:title', 'twitter:title', 'title']))
+        video_description = get_first(video_details, 'shortDescription')
 
         if not smuggled_data.get('force_singlefeed', False):
             if not self.get_param('noplaylist'):
-                multifeed_metadata_list = try_get(
-                    player_response,
-                    lambda x: x['multicamera']['playerLegacyMulticameraRenderer']['metadataList'],
-                    compat_str)
+                multifeed_metadata_list = get_first(
+                    player_responses,
+                    ('multicamera', 'playerLegacyMulticameraRenderer', 'metadataList'),
+                    expected_type=str)
                 if multifeed_metadata_list:
                     entries = []
                     feed_ids = []
@@ -2614,19 +2619,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         formats = list(self._extract_formats(streaming_data, video_id, player_url))
 
         if not formats:
-            if not self.get_param('allow_unplayable_formats') and streaming_data[0].get('licenseInfos'):
+            if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
                 self.raise_no_formats(
                     'This video is DRM protected.', expected=True)
-            pemr = try_get(
-                playability_status,
-                lambda x: x['errorScreen']['playerErrorMessageRenderer'],
-                dict) or {}
-            reason = self._get_text(pemr.get('reason')) or playability_status.get('reason')
-            subreason = pemr.get('subreason')
+            pemr = get_first(
+                playability_statuses,
+                ('errorScreen', 'playerErrorMessageRenderer'), expected_type=dict) or {}
+            reason = self._get_text(pemr, 'reason') or get_first(playability_statuses, 'reason')
+            subreason = clean_html(self._get_text(pemr, 'subreason') or '')
             if subreason:
-                subreason = clean_html(self._get_text(subreason))
                 if subreason == 'The uploader has not made this video available in your country.':
-                    countries = microformat.get('availableCountries')
+                    countries = get_first(microformats, 'availableCountries')
                     if not countries:
                         regions_allowed = search_meta('regionsAllowed')
                         countries = regions_allowed.split(',') if regions_allowed else None
@@ -2644,7 +2647,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         self._sort_formats(formats)
 
-        keywords = video_details.get('keywords') or []
+        keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:
             keywords = [
                 unescapeHTML(m.group('content'))
@@ -2662,36 +2665,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                 f['stretched_ratio'] = ratio
                         break
 
-        category = microformat.get('category') or search_meta('genre')
-        channel_id = video_details.get('channelId') \
-            or microformat.get('externalChannelId') \
+        category = get_first(microformats, 'category') or search_meta('genre')
+        channel_id = get_first(video_details, 'channelId') \
+            or get_first(microformats, 'externalChannelId') \
             or search_meta('channelId')
         duration = int_or_none(
-            video_details.get('lengthSeconds')
-            or microformat.get('lengthSeconds')) \
+            get_first(video_details, 'lengthSeconds')
+            or get_first(microformats, 'lengthSeconds')) \
             or parse_duration(search_meta('duration'))
-        is_live = video_details.get('isLive')
-        is_upcoming = video_details.get('isUpcoming')
-        owner_profile_url = microformat.get('ownerProfileUrl')
+        is_live = get_first(video_details, 'isLive')
+        is_upcoming = get_first(video_details, 'isUpcoming')
+        owner_profile_url = get_first(microformats, 'ownerProfileUrl')
 
         thumbnails = []
-        for container in (video_details, microformat):
-            for thumbnail in (try_get(
-                    container,
-                    lambda x: x['thumbnail']['thumbnails'], list) or []):
-                thumbnail_url = thumbnail.get('url')
-                if not thumbnail_url:
-                    continue
-                # Sometimes youtube gives a wrong thumbnail URL. See:
-                # https://github.com/yt-dlp/yt-dlp/issues/233
-                # https://github.com/ytdl-org/youtube-dl/issues/28023
-                if 'maxresdefault' in thumbnail_url:
-                    thumbnail_url = thumbnail_url.split('?')[0]
-                thumbnails.append({
-                    'url': thumbnail_url,
-                    'height': int_or_none(thumbnail.get('height')),
-                    'width': int_or_none(thumbnail.get('width')),
-                })
+        thumbnail_dicts = traverse_obj(
+            (video_details, microformats), (..., ..., 'thumbnail', 'thumbnails', ...),
+            expected_type=dict, default=[])
+        for thumbnail in thumbnail_dicts:
+            thumbnail_url = thumbnail.get('url')
+            if not thumbnail_url:
+                continue
+            # Sometimes youtube gives a wrong thumbnail URL. See:
+            # https://github.com/yt-dlp/yt-dlp/issues/233
+            # https://github.com/ytdl-org/youtube-dl/issues/28023
+            if 'maxresdefault' in thumbnail_url:
+                thumbnail_url = thumbnail_url.split('?')[0]
+            thumbnails.append({
+                'url': thumbnail_url,
+                'height': int_or_none(thumbnail.get('height')),
+                'width': int_or_none(thumbnail.get('width')),
+            })
         thumbnail_url = search_meta(['og:image', 'twitter:image'])
         if thumbnail_url:
             thumbnails.append({
@@ -2727,34 +2730,31 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'thumbnails': thumbnails,
             'description': video_description,
             'upload_date': unified_strdate(
-                microformat.get('uploadDate')
+                get_first(microformats, 'uploadDate')
                 or search_meta('uploadDate')),
-            'uploader': video_details['author'],
+            'uploader': get_first(video_details, 'author'),
             'uploader_id': self._search_regex(r'/(?:channel|user)/([^/?&#]+)', owner_profile_url, 'uploader id') if owner_profile_url else None,
             'uploader_url': owner_profile_url,
             'channel_id': channel_id,
-            'channel_url': 'https://www.youtube.com/channel/' + channel_id if channel_id else None,
+            'channel_url': f'https://www.youtube.com/channel/{channel_id}' if channel_id else None,
             'duration': duration,
             'view_count': int_or_none(
-                video_details.get('viewCount')
-                or microformat.get('viewCount')
+                get_first((video_details, microformats), (..., 'viewCount'))
                 or search_meta('interactionCount')),
-            'average_rating': float_or_none(video_details.get('averageRating')),
+            'average_rating': float_or_none(get_first(video_details, 'averageRating')),
             'age_limit': 18 if (
-                microformat.get('isFamilySafe') is False
+                get_first(microformats, 'isFamilySafe') is False
                 or search_meta('isFamilyFriendly') == 'false'
                 or search_meta('og:restrictions:age') == '18+') else 0,
             'webpage_url': webpage_url,
             'categories': [category] if category else None,
             'tags': keywords,
             'is_live': is_live,
-            'playable_in_embed': playability_status.get('playableInEmbed'),
-            'was_live': video_details.get('isLiveContent'),
+            'playable_in_embed': get_first(playability_statuses, 'playableInEmbed'),
+            'was_live': get_first(video_details, 'isLiveContent'),
         }
 
-        pctr = try_get(
-            player_response,
-            lambda x: x['captions']['playerCaptionsTracklistRenderer'], dict)
+        pctr = get_first(player_responses, ('captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
         subtitles = {}
         if pctr:
             def process_language(container, base_url, lang_code, sub_name, query):
@@ -2945,8 +2945,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if v:
                 info[d_k] = v
 
-        is_private = bool_or_none(video_details.get('isPrivate'))
-        is_unlisted = bool_or_none(microformat.get('isUnlisted'))
+        is_private = get_first(video_details, 'isPrivate', expected_type=bool)
+        is_unlisted = get_first(microformats, 'isUnlisted', expected_type=bool)
         is_membersonly = None
         is_premium = None
         if initial_data and is_private is not None:
@@ -2988,8 +2988,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # annotations
         if get_annotations:
-            invideo_url = try_get(
-                player_response, lambda x: x['annotations'][0]['playerAnnotationsUrlsRenderer']['invideoUrl'], compat_str)
+            invideo_url = get_first(
+                player_responses,
+                ('annotations', 0, 'playerAnnotationsUrlsRenderer', 'invideoUrl'),
+                expected_type=str)
             if xsrf_token and invideo_url:
                 xsrf_field_name = None
                 if ytcfg:
@@ -3008,7 +3010,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if get_comments:
             info['__post_extractor'] = lambda: self._extract_comments(ytcfg, video_id, contents, webpage)
 
-        self.mark_watched(video_id, player_response)
+        self.mark_watched(video_id, player_responses)
 
         return info
 
