@@ -41,18 +41,25 @@ CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'viva
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
-class Logger:
+class YDLLogger:
+    def __init__(self, ydl=None):
+        self._ydl = ydl
+
     def debug(self, message):
-        print(message)
+        if self._ydl:
+            self._ydl.write_debug(message)
 
     def info(self, message):
-        print(message)
+        if self._ydl:
+            self._ydl.to_screen(f'[Cookies] {message}')
 
     def warning(self, message):
-        print(message, file=sys.stderr)
+        if self._ydl:
+            self._ydl.report_warning(message)
 
     def error(self, message):
-        print(message, file=sys.stderr)
+        if self._ydl:
+            self._ydl.report_error(message)
 
 
 def load_cookies(cookie_file, browser_specification, ydl):
@@ -71,7 +78,7 @@ def load_cookies(cookie_file, browser_specification, ydl):
     return _merge_cookie_jars(cookie_jars)
 
 
-def extract_cookies_from_browser(browser_name, profile=None, logger=Logger()):
+def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger()):
     if browser_name == 'firefox':
         return _extract_firefox_cookies(profile, logger)
     elif browser_name == 'safari':
@@ -530,7 +537,7 @@ def _parse_safari_cookies_record(data, jar, logger):
     return record_size
 
 
-def parse_safari_cookies(data, jar=None, logger=Logger()):
+def parse_safari_cookies(data, jar=None, logger=YDLLogger()):
     """
     References:
         - https://github.com/libyal/dtformats/blob/main/documentation/Safari%20Cookies.asciidoc
@@ -698,23 +705,6 @@ def _merge_cookie_jars(jars):
         if jar.filename is not None:
             output_jar.filename = jar.filename
     return output_jar
-
-
-class YDLLogger(Logger):
-    def __init__(self, ydl):
-        self._ydl = ydl
-
-    def debug(self, message):
-        self._ydl.write_debug(message)
-
-    def info(self, message):
-        self._ydl.to_screen(f'[Cookies] {message}')
-
-    def warning(self, message):
-        self._ydl.report_warning(message)
-
-    def error(self, message):
-        self._ydl.report_error(message)
 
 
 def _is_path(value):
