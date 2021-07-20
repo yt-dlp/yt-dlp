@@ -48,6 +48,7 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     str_to_int,
+    traverse_obj,
     try_get,
     unescapeHTML,
     unified_strdate,
@@ -56,7 +57,7 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
-    variadic
+    variadic,
 )
 
 
@@ -1930,44 +1931,56 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         video_id = mobj.group(2)
         return video_id
 
-    def _extract_chapters_from_json(self, data, video_id, duration):
-        chapters_list = try_get(
-            data,
-            lambda x: x['playerOverlays']
-                       ['playerOverlayRenderer']
-                       ['decoratedPlayerBarRenderer']
-                       ['decoratedPlayerBarRenderer']
-                       ['playerBar']
-                       ['chapteredPlayerBarRenderer']
-                       ['chapters'],
-            list)
-        if not chapters_list:
-            return
+    def _extract_chapters_from_json(self, data, duration):
+        chapter_list = traverse_obj(
+            data, (
+                'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer',
+                'decoratedPlayerBarRenderer', 'playerBar', 'chapteredPlayerBarRenderer', 'chapters'
+            ), expected_type=list)
 
-        def chapter_time(chapter):
-            return float_or_none(
-                try_get(
-                    chapter,
-                    lambda x: x['chapterRenderer']['timeRangeStartMillis'],
-                    int),
-                scale=1000)
+        return self._extract_chapters(
+            chapter_list,
+            chapter_time=lambda chapter: float_or_none(
+                traverse_obj(chapter, ('chapterRenderer', 'timeRangeStartMillis')), scale=1000),
+            chapter_title=lambda chapter: traverse_obj(
+                chapter, ('chapterRenderer', 'title', 'simpleText'), expected_type=str),
+            duration=duration)
+
+    def _extract_chapters_from_engagement_panel(self, data, duration):
+        content_list = traverse_obj(
+            data,
+            ('engagementPanels', ..., 'engagementPanelSectionListRenderer', 'content', 'macroMarkersListRenderer', 'contents'),
+            expected_type=list)
+        chapter_time = lambda chapter: parse_duration(self._get_text(chapter.get('timeDescription')))
+        chapter_title = lambda chapter: self._get_text(chapter.get('title'))
+
+        return next((
+            filter(None, (
+                self._extract_chapters(
+                    traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
+                    chapter_time, chapter_title, duration)
+                for contents in content_list
+            ))), [])
+
+    def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration):
         chapters = []
-        for next_num, chapter in enumerate(chapters_list, start=1):
+        last_chapter = {'start_time': 0}
+        for idx, chapter in enumerate(chapter_list or []):
+            title = chapter_title(chapter)
             start_time = chapter_time(chapter)
             if start_time is None:
                 continue
-            end_time = (chapter_time(chapters_list[next_num])
-                        if next_num < len(chapters_list) else duration)
-            if end_time is None:
-                continue
-            title = try_get(
-                chapter, lambda x: x['chapterRenderer']['title']['simpleText'],
-                compat_str)
-            chapters.append({
-                'start_time': start_time,
-                'end_time': end_time,
-                'title': title,
-            })
+            last_chapter['end_time'] = start_time
+            if start_time < last_chapter['start_time']:
+                if idx == 1:
+                    chapters.pop()
+                    self.report_warning('Invalid start time for chapter "%s"' % last_chapter['title'])
+                else:
+                    self.report_warning(f'Invalid start time for chapter "{title}"')
+                    continue
+            last_chapter = {'start_time': start_time, 'title': title}
+            chapters.append(last_chapter)
+        last_chapter['end_time'] = duration
         return chapters
 
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
@@ -2830,38 +2843,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pass
 
         if initial_data:
-            chapters = self._extract_chapters_from_json(
-                initial_data, video_id, duration)
-            if not chapters:
-                for engagment_pannel in (initial_data.get('engagementPanels') or []):
-                    contents = try_get(
-                        engagment_pannel, lambda x: x['engagementPanelSectionListRenderer']['content']['macroMarkersListRenderer']['contents'],
-                        list)
-                    if not contents:
-                        continue
-
-                    def chapter_time(mmlir):
-                        return parse_duration(
-                            self._get_text(mmlir.get('timeDescription')))
-
-                    chapters = []
-                    for next_num, content in enumerate(contents, start=1):
-                        mmlir = content.get('macroMarkersListItemRenderer') or {}
-                        start_time = chapter_time(mmlir)
-                        end_time = chapter_time(try_get(
-                            contents, lambda x: x[next_num]['macroMarkersListItemRenderer'])) \
-                            if next_num < len(contents) else duration
-                        if start_time is None or end_time is None:
-                            continue
-                        chapters.append({
-                            'start_time': start_time,
-                            'end_time': end_time,
-                            'title': self._get_text(mmlir.get('title')),
-                        })
-                    if chapters:
-                        break
-            if chapters:
-                info['chapters'] = chapters
+            info['chapters'] = (
+                self._extract_chapters_from_json(initial_data, duration)
+                or self._extract_chapters_from_engagement_panel(initial_data, duration)
+                or None)
 
             contents = try_get(
                 initial_data,
