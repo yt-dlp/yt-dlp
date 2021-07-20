@@ -432,8 +432,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CLIENT_NAME'], compat_str, default_client)
 
     @staticmethod
-    def _extract_session_index(ytcfg):
-        return int_or_none(try_get(ytcfg, lambda x: x['SESSION_INDEX']))
+    def _extract_session_index(*data):
+        for ytcfg in data:
+            session_index = int_or_none(try_get(ytcfg, lambda x: x['SESSION_INDEX']))
+            if session_index is not None:
+                return session_index
 
     def _extract_client_version(self, ytcfg, default_client='WEB'):
         return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CLIENT_VERSION'], compat_str, default_client)
@@ -2301,9 +2304,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_player_response(self, client, video_id, master_ytcfg, ytpcfg, identity_token, player_url, initial_pr):
 
-        session_index = self._extract_session_index(ytcfg)
-        syncid = self._extract_account_syncid(ytpcfg, ytcfg, initial_pr)
-        sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
+        session_index = self._extract_session_index(ytpcfg, master_ytcfg)
+        syncid = self._extract_account_syncid(ytpcfg, master_ytcfg, initial_pr)
+        sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
         headers = self._generate_api_headers(
             master_ytcfg, identity_token, syncid, client=self._YT_CLIENTS[client], session_index=session_index)
 
@@ -2543,8 +2546,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         master_ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
         player_url = self._extract_player_url(master_ytcfg, webpage)
         identity_token = self._extract_identity_token(webpage, video_id)
-        syncid = self._extract_account_syncid(ytcfg)
-        headers = self._generate_api_headers(ytcfg, identity_token, syncid)
 
         player_responses = list(self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
@@ -2836,6 +2837,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_DATA_RE, video_id,
                 'yt initial data')
         if not initial_data:
+            headers = self._generate_api_headers(
+                master_ytcfg, identity_token, self._extract_account_syncid(master_ytcfg),
+                session_index=self._extract_session_index(master_ytcfg))
+
             initial_data = self._extract_response(
                 item_id=video_id, ep='next', fatal=False,
                 ytcfg=master_ytcfg, headers=headers, query={'videoId': video_id},
