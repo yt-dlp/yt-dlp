@@ -1950,7 +1950,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         content_list = traverse_obj(
             data,
             ('engagementPanels', ..., 'engagementPanelSectionListRenderer', 'content', 'macroMarkersListRenderer', 'contents'),
-            expected_type=list)
+            expected_type=list, default=[])
         chapter_time = lambda chapter: parse_duration(self._get_text(chapter.get('timeDescription')))
         chapter_title = lambda chapter: self._get_text(chapter.get('title'))
 
@@ -1996,7 +1996,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         """
         time_text_split = time_text.split(' ')
         if len(time_text_split) >= 3:
-            return datetime_from_str('now-%s%s' % (time_text_split[0], time_text_split[1]), precision='auto')
+            try:
+                return datetime_from_str('now-%s%s' % (time_text_split[0], time_text_split[1]), precision='auto')
+            except ValueError:
+                return None
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
