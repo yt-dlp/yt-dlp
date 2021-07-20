@@ -2,9 +2,10 @@
 from __future__ import unicode_literals
 
 import json
+import time
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_urllib_parse_unquote
+from ..compat import compat_str, compat_urllib_parse_unquote, compat_urllib_parse_quote
 from ..utils import (
     ExtractorError,
     parse_iso8601,
@@ -111,6 +112,21 @@ class NebulaIE(InfoExtractor):
             errnote='Authentication failed or rejected')
         if not response or not response.get('key'):
             self.raise_login_required()
+        self._set_cookie(
+            'nebula.app',
+            'nebula-auth',
+            compat_urllib_parse_quote(
+              json.dumps(
+                {
+                  "apiToken":response["key"],
+                  "isLoggingIn":False,
+                  "isLoggingOut":False
+                },
+                separators=(",",":")
+              ),
+            ),
+            expire_time = int(time.time()) + 86400 * 365
+          )
         return response['key']
 
     def _retrieve_zype_api_key(self, page_url, display_id):
