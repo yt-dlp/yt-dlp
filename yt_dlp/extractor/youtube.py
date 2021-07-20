@@ -2299,13 +2299,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         query.update(GVI_CLIENTS.get(client))
         return query
 
-    def _extract_player_response(self, client, video_id, ytcfg, ytpcfg, identity_token, player_url, initial_pr):
+    def _extract_player_response(self, client, video_id, master_ytcfg, ytpcfg, identity_token, player_url, initial_pr):
 
         session_index = self._extract_session_index(ytcfg)
         syncid = self._extract_account_syncid(ytpcfg, ytcfg, initial_pr)
         sts = self._extract_signature_timestamp(video_id, player_url, ytcfg, fatal=False)
         headers = self._generate_api_headers(
-            ytcfg, identity_token, syncid, client=self._YT_CLIENTS[client], session_index=session_index)
+            master_ytcfg, identity_token, syncid, client=self._YT_CLIENTS[client], session_index=session_index)
 
         yt_query = {'videoId': video_id}
         yt_query.update(self._generate_player_context(sts))
@@ -2370,14 +2370,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return orderedSet(requested_clients)
 
-    def _extract_player_responses(self, clients, video_id, webpage, ytcfg, player_url, identity_token):
+    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, player_url, identity_token):
         if webpage:
             initial_pr = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
         for client in clients:
-            ytpcfg = ytcfg if client == 'web' else {}
+            ytpcfg = master_ytcfg if client == 'web' else {}
             if client == 'web' and initial_pr:
                 pr = initial_pr
             else:
@@ -2387,18 +2387,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         video_id, fatal=False, note='Downloading remix client config')
                     ytpcfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
                 pr = self._extract_player_response(
-                    client, video_id, ytpcfg or ytcfg, ytpcfg, identity_token, player_url, initial_pr)
+                    client, video_id, ytpcfg or master_ytcfg, ytpcfg, identity_token, player_url, initial_pr)
             if pr:
                 yield pr
             if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
                 pr = self._extract_age_gated_player_response(
-                    client, video_id, ytpcfg or ytcfg, identity_token, player_url, initial_pr)
+                    client, video_id, ytpcfg or master_ytcfg, identity_token, player_url, initial_pr)
                 if pr:
                     yield pr
         # Android player_response does not have microFormats which are needed for
         # extraction of some data. So we return the initial_pr with formats
         # stripped out even if not requested by the user
         # See: https://github.com/yt-dlp/yt-dlp/issues/501
+
+        # TODO: think there is adaptive formats
         if initial_pr and 'web' not in clients:
             initial_pr['streamingData'] = None
             yield initial_pr
@@ -2538,15 +2540,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = self._download_webpage(
             webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
 
-        ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
-        player_url = self._extract_player_url(ytcfg, webpage)
+        master_ytcfg = self._extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
+        player_url = self._extract_player_url(master_ytcfg, webpage)
         identity_token = self._extract_identity_token(webpage, video_id)
         syncid = self._extract_account_syncid(ytcfg)
         headers = self._generate_api_headers(ytcfg, identity_token, syncid)
 
         player_responses = list(self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, ytcfg, player_url, identity_token))
+            video_id, webpage, master_ytcfg, player_url, identity_token))
 
         get_first = lambda obj, keys, **kwargs: (
             traverse_obj(obj, (..., *variadic(keys)), **kwargs) or [None])[0]
@@ -2836,7 +2838,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not initial_data:
             initial_data = self._extract_response(
                 item_id=video_id, ep='next', fatal=False,
-                ytcfg=ytcfg, headers=headers, query={'videoId': video_id},
+                ytcfg=master_ytcfg, headers=headers, query={'videoId': video_id},
                 note='Downloading initial data API JSON')
 
         try:
@@ -2983,9 +2985,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         get_comments = self.get_param('getcomments', False)
         if get_annotations or get_comments:
             xsrf_token = None
-            ytcfg = self._extract_ytcfg(video_id, webpage)
-            if ytcfg:
-                xsrf_token = try_get(ytcfg, lambda x: x['XSRF_TOKEN'], compat_str)
+            if master_ytcfg:
+                xsrf_token = try_get(master_ytcfg, lambda x: x['XSRF_TOKEN'], compat_str)
             if not xsrf_token:
                 xsrf_token = self._search_regex(
                     r'([\'"])XSRF_TOKEN\1\s*:\s*([\'"])(?P<xsrf_token>(?:(?!\2).)+)\2',
@@ -2999,8 +3000,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 expected_type=str)
             if xsrf_token and invideo_url:
                 xsrf_field_name = None
-                if ytcfg:
-                    xsrf_field_name = try_get(ytcfg, lambda x: x['XSRF_FIELD_NAME'], compat_str)
+                if master_ytcfg:
+                    xsrf_field_name = try_get(master_ytcfg, lambda x: x['XSRF_FIELD_NAME'], compat_str)
                 if not xsrf_field_name:
                     xsrf_field_name = self._search_regex(
                         r'([\'"])XSRF_FIELD_NAME\1\s*:\s*([\'"])(?P<xsrf_field_name>\w+)\2',
@@ -3013,7 +3014,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     data=urlencode_postdata({xsrf_field_name: xsrf_token}))
 
         if get_comments:
-            info['__post_extractor'] = lambda: self._extract_comments(ytcfg, video_id, contents, webpage)
+            info['__post_extractor'] = lambda: self._extract_comments(master_ytcfg, video_id, contents, webpage)
 
         self.mark_watched(video_id, player_responses)
 
