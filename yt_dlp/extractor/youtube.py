@@ -3729,6 +3729,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             known_renderers = {
                 'gridPlaylistRenderer': (self._grid_entries, 'items'),
                 'gridVideoRenderer': (self._grid_entries, 'items'),
+                'gridChannelRenderer': (self._grid_entries, 'items'),
                 'playlistVideoRenderer': (self._playlist_entries, 'contents'),
                 'itemSectionRenderer': (extract_entries, 'contents'),  # for feeds
                 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
