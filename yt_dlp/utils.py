@@ -6287,8 +6287,8 @@ def traverse_obj(
         if val is not None:
             if depth:
                 for _ in range(depth - 1):
-                    val = itertools.chain.from_iterable(filter(None, val))
-                val = (list(filter(None, val)) if expected_type is None
+                    val = itertools.chain.from_iterable(v for v in val if v is not None)
+                val = ([v for v in val if v is not None] if expected_type is None
                        else [v for v in val if isinstance(v, expected_type)])
                 if val:
                     return val
