@@ -1074,21 +1074,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'format': '141/bestaudio[ext=m4a]',
             },
         },
-        # Controversy video
-        {
-            'url': 'https://www.youtube.com/watch?v=T4XJQO3qol8',
-            'info_dict': {
-                'id': 'T4XJQO3qol8',
-                'ext': 'mp4',
-                'duration': 219,
-                'upload_date': '20100909',
-                'uploader': 'Amazing Atheist',
-                'uploader_id': 'TheAmazingAtheist',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/TheAmazingAtheist',
-                'title': 'Burning Everyone\'s Koran',
-                'description': 'SUBSCRIBE: http://www.youtube.com/saturninefilms \r\n\r\nEven Obama has taken a stand against freedom on this issue: http://www.huffingtonpost.com/2010/09/09/obama-gma-interview-quran_n_710282.html',
-            }
-        },
         # Normal age-gate video (embed allowed)
         {
             'url': 'https://youtube.com/watch?v=HtVdAasjOgU',
