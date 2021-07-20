@@ -1099,6 +1099,10 @@ def parseOpts(overrideArguments=None):
             'If no profile is given, the most recently accessed one is used'.format(
                 '|'.join(sorted(SUPPORTED_BROWSERS)))))
     filesystem.add_option(
+        '--no-cookies-from-browser',
+        action='store_const', const=None, dest='cookiesfrombrowser',
+        help='Do not load cookies from browser (default)')
+    filesystem.add_option(
         '--cache-dir', dest='cachedir', default=None, metavar='DIR',
         help='Location in the filesystem where youtube-dl can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/youtube-dl or ~/.cache/youtube-dl')
     filesystem.add_option(
