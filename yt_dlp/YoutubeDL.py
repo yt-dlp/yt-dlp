@@ -1363,13 +1363,18 @@ class YoutubeDL(object):
         if not isinstance(ie_entries, (list, PagedList)):
             ie_entries = LazyList(ie_entries)
 
+        def get_entry(i):
+            return YoutubeDL.__handle_extraction_exceptions(
+                lambda self, i: ie_entries[i - 1]
+            )(self, i)
+
         entries = []
         for i in playlistitems or itertools.count(playliststart):
             if playlistitems is None and playlistend is not None and playlistend < i:
                 break
             entry = None
             try:
-                entry = ie_entries[i - 1]
+                entry = get_entry(i)
                 if entry is None:
                     raise EntryNotInPlaylist()
             except (IndexError, EntryNotInPlaylist):
