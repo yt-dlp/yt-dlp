@@ -433,6 +433,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         _get_context = lambda y: try_get(y, lambda x: x['INNERTUBE_CONTEXT'], dict)
         context = _get_context(ytcfg)
         if context:
+            # Force English regardless of account setting to prevent parsing issues
+            # See: https://github.com/yt-dlp/yt-dlp/issues/532
+            if isinstance(context.get('client'), dict):
+                context['client']['hl'] = 'en'
             return context
 
         context = _get_context(self._get_default_ytcfg(default_client))
