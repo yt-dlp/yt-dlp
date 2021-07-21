@@ -589,8 +589,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', webpage, 'ytcfg',
                 default='{}'), video_id, fatal=False) or {}
 
-    def generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None,
-                              visitor_data=None, api_hostname=None, default_client='WEB', session_index=None):
+    def generate_api_headers(
+            self, ytcfg=None, identity_token=None, account_syncid=None,
+            visitor_data=None, api_hostname=None, default_client='WEB', session_index=None):
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(default_client))
         headers = {
             'X-YouTube-Client-Name': compat_str(
@@ -1677,6 +1678,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'San Diego teen commits suicide after bullying over embarrassing video',
                 'channel_id': 'UC-SJ6nODDmufqBzPBwCvYvQ',
                 'uploader': 'CBS This Morning',
+                'uploader_id': 'CBSThisMorning',
                 'upload_date': '20140716',
                 'description': 'md5:acde3a73d3f133fc97e837a9f76b53b7'
             }
@@ -1719,6 +1721,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'upload_date': '20210624',
                 'channel_id': 'UCp68_FLety0O-n9QU6phsgw',
                 'uploader': 'colinfurze',
+                'uploader_id': 'colinfurze',
                 'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCp68_FLety0O-n9QU6phsgw',
                 'description': 'md5:b5096f56af7ccd7a555c84db81738b22'
             },
@@ -2368,7 +2371,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=False,
             default_client=self._YT_CLIENTS[client],
-            note=f'Downloading {client} player API JSON'
+            note=f'Downloading %s player API JSON' % client.replace('_', ' ').strip()
         ) or None
 
     def _extract_age_gated_player_response(self, client, video_id, ytcfg, identity_token, player_url, initial_pr):
@@ -2391,7 +2394,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if client == 'web' and 'configs' not in self._configuration_arg('player_skip'):
             embed_webpage = self._download_webpage(
                 'https://www.youtube.com/embed/%s?html5=1' % video_id,
-                video_id=video_id, note='Downloading age-gated embed config')
+                video_id=video_id, note=f'Downloading age-gated {client} embed config')
 
         ytcfg_age = self.extract_ytcfg(video_id, embed_webpage) or {}
         # If we extracted the embed webpage, it'll tell us if we can view the video
@@ -2458,7 +2461,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             initial_pr['streamingData'] = None
             yield initial_pr
 
-    def _extract_formats(self, streaming_data, video_id, player_url):
+    def _extract_formats(self, streaming_data, video_id, player_url, is_live):
         itags, stream_ids = [], []
         itag_qualities = {}
         q = qualities([
@@ -2549,7 +2552,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield dct
 
         skip_manifests = self._configuration_arg('skip')
-        get_dash = 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True)
+        get_dash = not is_live and 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True)
         get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
 
         for sd in streaming_data:
@@ -2673,8 +2676,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
+        category = get_first(microformats, 'category') or search_meta('genre')
+        channel_id = get_first(video_details, 'channelId') \
+            or get_first(microformats, 'externalChannelId') \
+            or search_meta('channelId')
+        duration = int_or_none(
+            get_first(video_details, 'lengthSeconds')
+            or get_first(microformats, 'lengthSeconds')) \
+            or parse_duration(search_meta('duration'))
+        is_live = get_first(video_details, 'isLive')
+        is_upcoming = get_first(video_details, 'isUpcoming')
+        owner_profile_url = get_first(microformats, 'ownerProfileUrl')
+
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
-        formats = list(self._extract_formats(streaming_data, video_id, player_url))
+        formats = list(self._extract_formats(streaming_data, video_id, player_url, is_live))
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
@@ -2722,18 +2737,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             if f.get('vcodec') != 'none':
                                 f['stretched_ratio'] = ratio
                         break
-
-        category = get_first(microformats, 'category') or search_meta('genre')
-        channel_id = get_first(video_details, 'channelId') \
-            or get_first(microformats, 'externalChannelId') \
-            or search_meta('channelId')
-        duration = int_or_none(
-            get_first(video_details, 'lengthSeconds')
-            or get_first(microformats, 'lengthSeconds')) \
-            or parse_duration(search_meta('duration'))
-        is_live = get_first(video_details, 'isLive')
-        is_upcoming = get_first(video_details, 'isUpcoming')
-        owner_profile_url = get_first(microformats, 'ownerProfileUrl')
 
         thumbnails = []
         thumbnail_dicts = traverse_obj(
