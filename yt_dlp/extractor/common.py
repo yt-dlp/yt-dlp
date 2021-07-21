@@ -297,6 +297,8 @@ class InfoExtractor(object):
                     live stream that goes on instead of a fixed-length video.
     was_live:       True, False, or None (=unknown). Whether this video was
                     originally a live stream.
+    live_status:    'is_live', 'upcoming', 'was_live', 'not_live' or None (=unknown)
+                    If absent, automatically set from is_live, was_live
     start_time:     Time in seconds where the reproduction should start, as
                     specified in the URL.
     end_time:       Time in seconds where the reproduction should end, as

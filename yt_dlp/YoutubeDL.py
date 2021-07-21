@@ -2036,7 +2036,7 @@ class YoutubeDL(object):
         elif thumbnails:
             info_dict['thumbnail'] = thumbnails[-1]['url']
 
-        if 'display_id' not in info_dict and 'id' in info_dict:
+        if info_dict.get('display_id') is None and 'id' in info_dict:
             info_dict['display_id'] = info_dict['id']
 
         for ts_key, date_key in (
@@ -2051,6 +2051,23 @@ class YoutubeDL(object):
                     info_dict[date_key] = upload_date.strftime('%Y%m%d')
                 except (ValueError, OverflowError, OSError):
                     pass
+
+        live_keys = ('is_live', 'was_live')
+        live_status = info_dict.get('live_status')
+        if live_status is None:
+            for key in live_keys:
+                if info_dict.get(key) is False:
+                    continue
+                if info_dict.get(key):
+                    live_status = key
+                break
+            if all(info_dict.get(key) is False for key in live_keys):
+                live_status = 'not_live'
+        if live_status:
+            info_dict['live_status'] = live_status
+            for key in live_keys:
+                if info_dict.get(key) is None:
+                    info_dict[key] = (live_status == key)
 
         # Auto generate title fields corresponding to the *_number fields when missing
         # in order to always have clean titles. This is very common for TV series.
