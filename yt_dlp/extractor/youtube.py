@@ -2320,7 +2320,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=False,
             default_client=self._YT_CLIENTS[client],
-            note=f'Downloading {client} player API JSON'
+            note=f'Downloading %s player API JSON' % client.replace('_', ' ').strip()
         ) or None
 
     def _extract_age_gated_player_response(self, client, video_id, ytcfg, identity_token, player_url, initial_pr):
@@ -2343,7 +2343,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if client == 'web' and 'configs' not in self._configuration_arg('player_skip'):
             embed_webpage = self._download_webpage(
                 'https://www.youtube.com/embed/%s?html5=1' % video_id,
-                video_id=video_id, note='Downloading age-gated embed config')
+                video_id=video_id, note=f'Downloading age-gated {client} embed config')
 
         ytcfg_age = self.extract_ytcfg(video_id, embed_webpage) or {}
         # If we extracted the embed webpage, it'll tell us if we can view the video
