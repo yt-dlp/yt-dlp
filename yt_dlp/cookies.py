@@ -334,7 +334,8 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
 class MacChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_keyring_name, logger):
         self._logger = logger
-        self._v10_key = self.derive_key(_get_mac_keyring_password(browser_keyring_name))
+        password = _get_mac_keyring_password(browser_keyring_name)
+        self._v10_key = None if password is None else self.derive_key(password)
 
     @staticmethod
     def derive_key(password):
@@ -347,6 +348,10 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
         ciphertext = encrypted_value[3:]
 
         if version == b'v10':
+            if self._v10_key is None:
+                self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
+                return None
+
             return _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
 
         else:
@@ -366,7 +371,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
 
         if version == b'v10':
             if self._v10_key is None:
-                self._logger.warning('cannot decrypt cookie', only_once=True)
+                self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
                 return None
             elif not CRYPTO_AVAILABLE:
                 self._logger.warning('cannot decrypt cookie as the `pycryptodome` module is not installed. '
