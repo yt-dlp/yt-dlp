@@ -488,7 +488,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         data = {'context': context} if context else {'context': self._extract_context(default_client=default_client)}
         data.update(query)
-        real_headers = self._generate_api_headers(client=default_client)
+        real_headers = self._generate_api_headers(default_client=default_client)
         real_headers.update({'content-type': 'application/json'})
         if headers:
             real_headers.update(headers)
@@ -543,11 +543,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 default='{}'), video_id, fatal=False) or {}
 
     def _generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None,
-                              visitor_data=None, api_hostname=None, client='WEB', session_index=None):
+                              visitor_data=None, api_hostname=None, default_client='WEB', session_index=None):
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(client))
         headers = {
             'X-YouTube-Client-Name': compat_str(
-                self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=client)),
+                self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=default_client)),
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, client),
             'Origin': origin
         }
@@ -2308,7 +2308,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
         sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
         headers = self._generate_api_headers(
-            master_ytcfg, identity_token, syncid, client=self._YT_CLIENTS[client], session_index=session_index)
+            player_ytcfg, identity_token, syncid,
+            default_client=self._YT_CLIENTS[client], session_index=session_index)
 
         yt_query = {'videoId': video_id}
         yt_query.update(self._generate_player_context(sts))
