@@ -2420,10 +2420,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             requested_clients = ['android', 'web']
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
-            if 'android' in requested_clients:
-                requested_clients.append('android_music')
-            if 'web' in requested_clients:
-                requested_clients.append('web_music')
+            requested_clients.extend(
+                f'{client}_music' for client in requested_clients if not client.endswith('_music'))
 
         return orderedSet(requested_clients)
 
