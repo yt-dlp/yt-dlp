@@ -1631,6 +1631,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'San Diego teen commits suicide after bullying over embarrassing video',
                 'channel_id': 'UC-SJ6nODDmufqBzPBwCvYvQ',
                 'uploader': 'CBS This Morning',
+                'uploader_id': 'CBSThisMorning',
                 'upload_date': '20140716',
                 'description': 'md5:acde3a73d3f133fc97e837a9f76b53b7'
             }
@@ -1673,6 +1674,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'upload_date': '20210624',
                 'channel_id': 'UCp68_FLety0O-n9QU6phsgw',
                 'uploader': 'colinfurze',
+                'uploader_id': 'colinfurze',
                 'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCp68_FLety0O-n9QU6phsgw',
                 'description': 'md5:b5096f56af7ccd7a555c84db81738b22'
             },
