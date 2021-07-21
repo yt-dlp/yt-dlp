@@ -2408,8 +2408,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # extraction of some data. So we return the initial_pr with formats
         # stripped out even if not requested by the user
         # See: https://github.com/yt-dlp/yt-dlp/issues/501
-
-        # TODO: think there is adaptive formats
         if initial_pr and 'web' not in clients:
             initial_pr['streamingData'] = None
             yield initial_pr
