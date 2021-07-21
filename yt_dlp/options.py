@@ -19,6 +19,7 @@ from .utils import (
     preferredencoding,
     write_string,
 )
+from .cookies import SUPPORTED_BROWSERS
 from .version import __version__
 
 from .downloader.external import list_external_downloaders
@@ -148,7 +149,10 @@ def parseOpts(overrideArguments=None):
     # No need to wrap help messages if we're on a wide console
     columns = compat_get_terminal_size().columns
     max_width = columns if columns else 80
-    max_help_position = 80
+    # 47% is chosen because that is how README.md is currently formatted
+    # and moving help text even further to the right is undesirable.
+    # This can be reduced in the future to get a prettier output
+    max_help_position = int(0.47 * max_width)
 
     fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
     fmt.format_option_strings = _format_option_string
@@ -1087,7 +1091,21 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--no-cookies',
         action='store_const', const=None, dest='cookiefile', metavar='FILE',
-        help='Do not read/dump cookies (default)')
+        help='Do not read/dump cookies from/to file (default)')
+    filesystem.add_option(
+        '--cookies-from-browser',
+        dest='cookiesfrombrowser', metavar='BROWSER[:PROFILE]',
+        help=(
+            'Load cookies from a user profile of the given web browser. '
+            'Currently supported browsers are: {}. '
+            'You can specify the user profile name or directory using '
+            '"BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH". '
+            'If no profile is given, the most recently accessed one is used'.format(
+                '|'.join(sorted(SUPPORTED_BROWSERS)))))
+    filesystem.add_option(
+        '--no-cookies-from-browser',
+        action='store_const', const=None, dest='cookiesfrombrowser',
+        help='Do not load cookies from browser (default)')
     filesystem.add_option(
         '--cache-dir', dest='cachedir', default=None, metavar='DIR',
         help='Location in the filesystem where youtube-dl can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/youtube-dl or ~/.cache/youtube-dl')
