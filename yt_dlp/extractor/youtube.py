@@ -526,7 +526,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             self.write_debug('Copying __Secure-3PAPISID cookie to SAPISID cookie', only_once=True)
             self._set_cookie(
                 '.youtube.com', 'SAPISID', sapisid_cookie.value, secure=True, expire_time=time_now + 3600)
-        self.write_debug(f'Extracted SAPISID cookie', only_once=True)
+        self.write_debug('Extracted SAPISID cookie', only_once=True)
         # SAPISIDHASH algorithm from https://stackoverflow.com/a/32065323
         sapisidhash = hashlib.sha1(
             f'{time_now} {sapisid_cookie.value} {origin}'.encode('utf-8')).hexdigest()
