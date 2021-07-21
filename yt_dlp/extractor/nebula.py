@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import json
 import time
 
+from urllib.error import HTTPError
 from .common import InfoExtractor
 from ..compat import compat_str, compat_urllib_parse_unquote, compat_urllib_parse_quote
 from ..utils import (
@@ -161,7 +162,16 @@ class NebulaIE(InfoExtractor):
         }, note=note)
 
     def _fetch_zype_access_token(self, video_id):
-        user_object = self._call_nebula_api('/auth/user/', video_id, self._nebula_token, note='Retrieving Zype access token')
+        try:
+            user_object = self._call_nebula_api('/auth/user/', video_id, self._nebula_token, note='Retrieving Zype access token')
+        except ExtractorError as exc:
+            # if 401, attempt credential auth and retry
+            if exc.cause and isinstance(exc.cause, HTTPError) and exc.cause.code == 401:
+                self._nebula_token = self._retrieve_nebula_auth()
+                user_object = self._call_nebula_api('/auth/user/', video_id, self._nebula_token, note='Retrieving Zype access token')
+            else:
+                raise
+
         access_token = try_get(user_object, lambda x: x['zype_auth_info']['access_token'], compat_str)
         if not access_token:
             if try_get(user_object, lambda x: x['is_subscribed'], bool):
