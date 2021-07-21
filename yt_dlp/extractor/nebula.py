@@ -108,18 +108,13 @@ class NebulaIE(InfoExtractor):
 
         # save nebula token as cookie
         self._set_cookie(
-            'nebula.app',
-            'nebula-auth',
+            'nebula.app', 'nebula-auth',
             compat_urllib_parse_quote(
-                json.dumps(
-                    {
-                        "apiToken": response["key"],
-                        "isLoggingIn": False,
-                        "isLoggingOut": False,
-                    },
-                    separators=(",", ":")
-                ),
-            ),
+                json.dumps({
+                    "apiToken": response["key"],
+                    "isLoggingIn": False,
+                    "isLoggingOut": False,
+                }, separators=(",", ":"))),
             expire_time=int(time.time()) + 86400 * 365,
         )
 
@@ -230,13 +225,12 @@ class NebulaIE(InfoExtractor):
             'title': video_meta.get('title'),
             'description': video_meta.get('description'),
             'timestamp': parse_iso8601(video_meta.get('published_at')),
-            'thumbnails': [
-                {
-                    'id': tn.get('name'),  # this appears to be null
-                    'url': tn['url'],
-                    'width': tn.get('width'),
-                    'height': tn.get('height'),
-                } for tn in video_meta.get('thumbnails', [])],
+            'thumbnails': [{
+                'id': tn.get('name'),  # this appears to be null
+                'url': tn['url'],
+                'width': tn.get('width'),
+                'height': tn.get('height'),
+            } for tn in video_meta.get('thumbnails', [])],
             'duration': video_meta.get('duration'),
             'channel': channel_title,
             'uploader': channel_title,  # we chose uploader = channel name
