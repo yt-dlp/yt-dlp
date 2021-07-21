@@ -6,6 +6,7 @@ import sqlite3
 import struct
 import subprocess
 import sys
+import tempfile
 import warnings
 from datetime import datetime, timedelta
 from hashlib import pbkdf2_hmac
@@ -14,7 +15,6 @@ from yt_dlp.aes import aes_cbc_decrypt
 from yt_dlp.compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
-    compat_TemporaryDirectory,
 )
 from yt_dlp.utils import (
     bytes_to_intlist,
@@ -104,7 +104,7 @@ def _extract_firefox_cookies(profile, logger):
         raise FileNotFoundError('could not find firefox cookies database in {}'.format(search_root))
     logger.debug('extracting from: "{}"'.format(cookie_database_path))
 
-    with compat_TemporaryDirectory(prefix='youtube_dl') as tmpdir:
+    with tempfile.TemporaryDirectory(prefix='youtube_dl') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
@@ -217,7 +217,7 @@ def _extract_chrome_cookies(browser_name, profile, logger):
 
     decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], logger)
 
-    with compat_TemporaryDirectory(prefix='youtube_dl') as tmpdir:
+    with tempfile.TemporaryDirectory(prefix='youtube_dl') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
