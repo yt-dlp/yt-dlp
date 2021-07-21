@@ -2462,7 +2462,7 @@ class GenericIE(InfoExtractor):
 
         # Is it an M3U playlist?
         if first_bytes.startswith(b'#EXTM3U'):
-            info_dict['formats'] = self._extract_m3u8_formats(url, video_id, 'mp4')
+            info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
             self._sort_formats(info_dict['formats'])
             return info_dict
 
@@ -3410,6 +3410,7 @@ class GenericIE(InfoExtractor):
             if not isinstance(sources, list):
                 sources = [sources]
             formats = []
+            subtitles = {}
             for source in sources:
                 src = source.get('src')
                 if not src or not isinstance(src, compat_str):
@@ -3422,12 +3423,16 @@ class GenericIE(InfoExtractor):
                 if src_type == 'video/youtube':
                     return self.url_result(src, YoutubeIE.ie_key())
                 if src_type == 'application/dash+xml' or ext == 'mpd':
-                    formats.extend(self._extract_mpd_formats(
-                        src, video_id, mpd_id='dash', fatal=False))
+                    fmts, subs = self._extract_mpd_formats_and_subtitles(
+                        src, video_id, mpd_id='dash', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
                 elif src_type == 'application/x-mpegurl' or ext == 'm3u8':
-                    formats.extend(self._extract_m3u8_formats(
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
                         src, video_id, 'mp4', entry_protocol='m3u8_native',
-                        m3u8_id='hls', fatal=False))
+                        m3u8_id='hls', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
                 else:
                     formats.append({
                         'url': src,
@@ -3437,9 +3442,10 @@ class GenericIE(InfoExtractor):
                             'Referer': full_response.geturl(),
                         },
                     })
-            if formats:
+            if formats or subtitles:
                 self._sort_formats(formats)
                 info_dict['formats'] = formats
+                info_dict['subtitles'] = subtitles
                 return info_dict
 
         # Looking for http://schema.org/VideoObject
@@ -3574,13 +3580,13 @@ class GenericIE(InfoExtractor):
 
             ext = determine_ext(video_url)
             if ext == 'smil':
-                entry_info_dict['formats'] = self._extract_smil_formats(video_url, video_id)
+                entry_info_dict = {**self._extract_smil_info(video_url, video_id), **entry_info_dict}
             elif ext == 'xspf':
                 return self.playlist_result(self._extract_xspf_playlist(video_url, video_id), video_id)
             elif ext == 'm3u8':
-                entry_info_dict['formats'] = self._extract_m3u8_formats(video_url, video_id, ext='mp4')
+                entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4')
             elif ext == 'mpd':
-                entry_info_dict['formats'] = self._extract_mpd_formats(video_url, video_id)
+                entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_mpd_formats_and_subtitles(video_url, video_id)
             elif ext == 'f4m':
                 entry_info_dict['formats'] = self._extract_f4m_formats(video_url, video_id)
             elif re.search(r'(?i)\.(?:ism|smil)/manifest', video_url) and video_url != url:

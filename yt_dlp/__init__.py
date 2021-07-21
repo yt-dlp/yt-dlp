@@ -415,6 +415,13 @@ def _real_main(argv=None):
             # Run this before the actual video download
             'when': 'before_dl'
         })
+    # Must be after all other before_dl
+    if opts.exec_before_dl_cmd:
+        postprocessors.append({
+            'key': 'ExecAfterDownload',
+            'exec_cmd': opts.exec_before_dl_cmd,
+            'when': 'before_dl'
+        })
     if opts.extractaudio:
         postprocessors.append({
             'key': 'FFmpegExtractAudio',

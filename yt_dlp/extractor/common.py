@@ -229,6 +229,7 @@ class InfoExtractor(object):
                         * "resolution" (optional, string "{width}x{height}",
                                         deprecated)
                         * "filesize" (optional, int)
+                        * "_test_url" (optional, bool) - If true, test the URL
     thumbnail:      Full URL to a video thumbnail image.
     description:    Full video description.
     uploader:       Full name of the video uploader.
@@ -2206,7 +2207,7 @@ class InfoExtractor(object):
                 out.append('{%s}%s' % (namespace, c))
         return '/'.join(out)
 
-    def _extract_smil_formats(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
+    def _extract_smil_formats_and_subtitles(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
         smil = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
 
         if smil is False:
@@ -2215,8 +2216,21 @@ class InfoExtractor(object):
 
         namespace = self._parse_smil_namespace(smil)
 
-        return self._parse_smil_formats(
+        fmts = self._parse_smil_formats(
             smil, smil_url, video_id, namespace=namespace, f4m_params=f4m_params)
+        subs = self._parse_smil_subtitles(
+            smil, namespace=namespace)
+
+        return fmts, subs
+
+    def _extract_smil_formats(self, *args, **kwargs):
+        fmts, subs = self._extract_smil_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self.report_warning(bug_reports_message(
+                "Ignoring subtitle tracks found in the SMIL manifest; "
+                "if any subtitle tracks are missing,"
+            ))
+        return fmts
 
     def _extract_smil_info(self, smil_url, video_id, fatal=True, f4m_params=None):
         smil = self._download_smil(smil_url, video_id, fatal=fatal)

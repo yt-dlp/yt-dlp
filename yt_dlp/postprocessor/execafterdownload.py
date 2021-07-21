@@ -28,7 +28,8 @@ class ExecAfterDownloadPP(PostProcessor):
         # If no replacements are found, replace {} for backard compatibility
         if '{}' not in cmd:
             cmd += ' {}'
-        return cmd.replace('{}', compat_shlex_quote(info['filepath']))
+        return cmd.replace('{}', compat_shlex_quote(
+            info.get('filepath') or info['_filename']))
 
     def run(self, info):
         cmd = self.parse_cmd(self.exec_cmd, info)

@@ -638,7 +638,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-prefer-free-formats         Don't give any special preference to free
                                      containers (default)
     --check-formats                  Check that the formats selected are
-                                     actually downloadable (Experimental)
+                                     actually downloadable
+    --no-check-formats               Do not check that the formats selected are
+                                     actually downloadable
     -F, --list-formats               List all available formats of requested
                                      videos
     --merge-output-format FORMAT     If a merge is required (e.g.
@@ -773,6 +775,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      downloaded file is also available. If no
                                      fields are passed, "%(filepath)s" is
                                      appended to the end of the command
+    --exec-before-download CMD       Execute a command before the actual
+                                     download. The syntax is the same as --exec
     --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
@@ -1100,7 +1104,7 @@ If you want to download multiple videos and they don't have the same formats ava
 
 If you want to download several formats of the same video use a comma as a separator, e.g. `-f 22,17,18` will download all these three formats, of course if they are available. Or a more sophisticated example combined with the precedence feature: `-f 136/137/mp4/bestvideo,140/m4a/bestaudio`.
 
-You can merge the video and audio of multiple formats into a single file using `-f <format1>+<format2>+...` (requires ffmpeg installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg. If `--no-video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, if `--no-audio-multistreams` is used, all formats with an audio stream except the first one are ignored. For example, `-f bestvideo+best+bestaudio` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download and merge both formats while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
+You can merge the video and audio of multiple formats into a single file using `-f <format1>+<format2>+...` (requires ffmpeg installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg. Unless `--video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, unless `--audio-multistreams` is used, all formats with an audio stream except the first one are ignored. For example, `-f bestvideo+best+bestaudio --video-multistreams --audio-multistreams` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download and merge both formats while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
 
 ## Filtering Formats
 
@@ -1333,12 +1337,12 @@ Some extractors accept additional arguments which can be passed using `--extract
 The following extractors use this feature:
 * **youtube**
     * `skip`: `hls` or `dash` (or both) to skip download of the respective manifests
-    * `player_client`: `web` (default) or `android` (force use the android client fallbacks for video extraction)
-    * `player_skip`: `configs` - skip requests if applicable for client configs and use defaults
+    * `player_client`: Clients to extract video data from - one or more of `web`, `android`, `ios`, `web_music`, `android_music`, `ios_music`. By default, `android,web` is used. If the URL is from `music.youtube.com`, `android,web,android_music,web_music` is used
+    * `player_skip`: `configs` - skip any requests for client configs and use defaults
     * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side).
     * `max_comments`: maximum amount of comments to download (default all).
     * `max_comment_depth`: maximum depth for nested comments. YouTube supports depths 1 or 2 (default). 
-    
+
 * **funimation**
     * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
     * `version`: The video version to extract - `uncut` or `simulcast`
