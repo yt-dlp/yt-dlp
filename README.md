@@ -187,6 +187,7 @@ While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licenced under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
 * [**pycryptodome**](https://github.com/Legrandin/pycryptodome) - For decrypting various data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licenced under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
+* [**keyring**](https://github.com/jaraco/keyring) - For decrypting chromium cookies on some UNIX systems. Licenced under [MIT](https://github.com/jaraco/keyring/blob/main/LICENSE)
 * [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen is not present. Licenced under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](http://rtmpdump.mplayerhq.hu)
 * [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
@@ -522,7 +523,19 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      option)
     --cookies FILE                   File to read cookies from and dump cookie
                                      jar in
-    --no-cookies                     Do not read/dump cookies (default)
+    --no-cookies                     Do not read/dump cookies from/to file
+                                     (default)
+    --cookies-from-browser BROWSER[:PROFILE]
+                                     Load cookies from a user profile of the
+                                     given web browser. Currently supported
+                                     browsers are: brave|chrome|chromium|edge|fi
+                                     refox|opera|safari|vivaldi. You can specify
+                                     the user profile name or directory using
+                                     "BROWSER:PROFILE_NAME" or
+                                     "BROWSER:PROFILE_PATH". If no profile is
+                                     given, the most recently accessed one is
+                                     used
+    --no-cookies-from-browser        Do not load cookies from browser (default)
     --cache-dir DIR                  Location in the filesystem where youtube-dl
                                      can store some downloaded information (such
                                      as client ids and signatures) permanently.

@@ -149,10 +149,10 @@ def parseOpts(overrideArguments=None):
     # No need to wrap help messages if we're on a wide console
     columns = compat_get_terminal_size().columns
     max_width = columns if columns else 80
-    # 46% is chosen because that is how README.md is currently formatted
+    # 47% is chosen because that is how README.md is currently formatted
     # and moving help text even further to the right is undesirable.
     # This can be reduced in the future to get a prettier output
-    max_help_position = int(0.46 * max_width)
+    max_help_position = int(0.47 * max_width)
 
     fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
     fmt.format_option_strings = _format_option_string

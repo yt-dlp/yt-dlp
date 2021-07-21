@@ -325,7 +325,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
                 self._logger.warning('cannot decrypt cookie as the `keyring` module is not installed. '
                                      'Please install by running `python3 -m pip install keyring`. '
                                      'Note that depending on your platform, additional packages may be required '
-                                     'to access the keyring, see <https://pypi.org/project/keyring/>', only_once=True)
+                                     'to access the keyring, see  https://pypi.org/project/keyring', only_once=True)
                 return None
             return _decrypt_aes_cbc(ciphertext, self._v11_key, self._logger)
 
