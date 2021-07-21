@@ -2375,6 +2375,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return orderedSet(requested_clients)
 
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, player_url, identity_token):
+        initial_pr = None
         if webpage:
             initial_pr = self._extract_yt_initial_variable(
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
