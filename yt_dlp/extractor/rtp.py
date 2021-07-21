@@ -2,10 +2,11 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    js_to_json,
-)
+from ..utils import js_to_json
+import re
+import json
+import urllib.parse
+import base64
 
 
 class RTPIE(InfoExtractor):
@@ -25,6 +26,22 @@ class RTPIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _RX_OBFUSCATION = re.compile(r'''(?xs)
+        atob\s*\(\s*decodeURIComponent\s*\(\s*
+            (\[[0-9A-Za-z%,'"]*\])
+        \s*\.\s*join\(\s*(?:""|'')\s*\)\s*\)\s*\)
+    ''')
+
+    def __unobfuscate(self, data, *, video_id):
+        if data.startswith('{'):
+            data = self._RX_OBFUSCATION.sub(
+                lambda m: json.dumps(
+                    base64.b64decode(urllib.parse.unquote(
+                        ''.join(self._parse_json(m.group(1), video_id))
+                    )).decode('iso-8859-1')),
+                data)
+        return js_to_json(data)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -32,30 +49,46 @@ class RTPIE(InfoExtractor):
         title = self._html_search_meta(
             'twitter:title', webpage, display_name='title', fatal=True)
 
-        config = self._parse_json(self._search_regex(
-            r'(?s)RTPPlayer\(({.+?})\);', webpage,
-            'player config'), video_id, js_to_json)
-        file_url = config['file']
-        ext = determine_ext(file_url)
-        if ext == 'm3u8':
-            file_key = config.get('fileKey')
-            formats = self._extract_m3u8_formats(
-                file_url, video_id, 'mp4', 'm3u8_native',
-                m3u8_id='hls', fatal=file_key)
-            if file_key:
-                formats.append({
-                    'url': 'https://cdn-ondemand.rtp.pt' + file_key,
-                    'quality': 1,
-                })
-            self._sort_formats(formats)
+        f, config = self._search_regex(
+            r'''(?sx)
+                var\s+f\s*=\s*(?P<f>".*?"|{[^;]+?});\s*
+                var\s+player1\s+=\s+new\s+RTPPlayer\s*\((?P<config>{(?:(?!\*/).)+?})\);(?!\s*\*/)
+            ''', webpage,
+            'player config', group=('f', 'config'))
+
+        f = self._parse_json(
+            f, video_id,
+            lambda data: self.__unobfuscate(data, video_id=video_id))
+        config = self._parse_json(
+            config, video_id,
+            lambda data: self.__unobfuscate(data, video_id=video_id))
+
+        formats = []
+        if isinstance(f, dict):
+            f_hls = f.get('hls')
+            if f_hls is not None:
+                formats.extend(self._extract_m3u8_formats(
+                    f_hls, video_id, 'mp4', 'm3u8_native', m3u8_id='hls'))
+
+            f_dash = f.get('dash')
+            if f_dash is not None:
+                formats.extend(self._extract_mpd_formats(f_dash, video_id, mpd_id='dash'))
         else:
-            formats = [{
-                'url': file_url,
-                'ext': ext,
-            }]
-        if config.get('mediaType') == 'audio':
-            for f in formats:
-                f['vcodec'] = 'none'
+            formats.append({
+                'format_id': 'f',
+                'url': f,
+                'vcodec': 'none' if config.get('mediaType') == 'audio' else None,
+            })
+
+        subtitles = {}
+
+        vtt = config.get('vtt')
+        if vtt is not None:
+            for lcode, lname, url in vtt:
+                subtitles.setdefault(lcode, []).append({
+                    'name': lname,
+                    'url': url,
+                })
 
         return {
             'id': video_id,
@@ -63,4 +96,5 @@ class RTPIE(InfoExtractor):
             'formats': formats,
             'description': self._html_search_meta(['description', 'twitter:description'], webpage),
             'thumbnail': config.get('poster') or self._og_search_thumbnail(webpage),
+            'subtitles': subtitles,
         }

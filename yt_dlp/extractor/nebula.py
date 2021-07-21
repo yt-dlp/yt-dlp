@@ -2,9 +2,11 @@
 from __future__ import unicode_literals
 
 import json
+import time
 
+from urllib.error import HTTPError
 from .common import InfoExtractor
-from ..compat import compat_str
+from ..compat import compat_str, compat_urllib_parse_unquote, compat_urllib_parse_quote
 from ..utils import (
     ExtractorError,
     parse_iso8601,
@@ -78,7 +80,9 @@ class NebulaIE(InfoExtractor):
     ]
     _NETRC_MACHINE = 'watchnebula'
 
-    def _retrieve_nebula_auth(self, video_id):
+    _nebula_token = None
+
+    def _retrieve_nebula_auth(self):
         """
         Log in to Nebula, and returns a Nebula API token
         """
@@ -91,7 +95,7 @@ class NebulaIE(InfoExtractor):
         data = json.dumps({'email': username, 'password': password}).encode('utf8')
         response = self._download_json(
             'https://api.watchnebula.com/api/v1/auth/login/',
-            data=data, fatal=False, video_id=video_id,
+            data=data, fatal=False, video_id=None,
             headers={
                 'content-type': 'application/json',
                 # Submitting the 'sessionid' cookie always causes a 403 on auth endpoint
@@ -101,6 +105,19 @@ class NebulaIE(InfoExtractor):
             errnote='Authentication failed or rejected')
         if not response or not response.get('key'):
             self.raise_login_required()
+
+        # save nebula token as cookie
+        self._set_cookie(
+            'nebula.app', 'nebula-auth',
+            compat_urllib_parse_quote(
+                json.dumps({
+                    "apiToken": response["key"],
+                    "isLoggingIn": False,
+                    "isLoggingOut": False,
+                }, separators=(",", ":"))),
+            expire_time=int(time.time()) + 86400 * 365,
+        )
+
         return response['key']
 
     def _retrieve_zype_api_key(self, page_url, display_id):
@@ -139,8 +156,17 @@ class NebulaIE(InfoExtractor):
             'Authorization': 'Token {access_token}'.format(access_token=access_token)
         }, note=note)
 
-    def _fetch_zype_access_token(self, video_id, nebula_token):
-        user_object = self._call_nebula_api('/auth/user/', video_id, nebula_token, note='Retrieving Zype access token')
+    def _fetch_zype_access_token(self, video_id):
+        try:
+            user_object = self._call_nebula_api('/auth/user/', video_id, self._nebula_token, note='Retrieving Zype access token')
+        except ExtractorError as exc:
+            # if 401, attempt credential auth and retry
+            if exc.cause and isinstance(exc.cause, HTTPError) and exc.cause.code == 401:
+                self._nebula_token = self._retrieve_nebula_auth()
+                user_object = self._call_nebula_api('/auth/user/', video_id, self._nebula_token, note='Retrieving Zype access token')
+            else:
+                raise
+
         access_token = try_get(user_object, lambda x: x['zype_auth_info']['access_token'], compat_str)
         if not access_token:
             if try_get(user_object, lambda x: x['is_subscribed'], bool):
@@ -162,9 +188,21 @@ class NebulaIE(InfoExtractor):
             if category.get('value'):
                 return category['value'][0]
 
+    def _real_initialize(self):
+        # check cookie jar for valid token
+        nebula_cookies = self._get_cookies('https://nebula.app')
+        nebula_cookie = nebula_cookies.get('nebula-auth')
+        if nebula_cookie:
+            self.to_screen('Authenticating to Nebula with token from cookie jar')
+            nebula_cookie_value = compat_urllib_parse_unquote(nebula_cookie.value)
+            self._nebula_token = self._parse_json(nebula_cookie_value, None).get('apiToken')
+
+        # try to authenticate using credentials if no valid token has been found
+        if not self._nebula_token:
+            self._nebula_token = self._retrieve_nebula_auth()
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        nebula_token = self._retrieve_nebula_auth(display_id)
         api_key = self._retrieve_zype_api_key(url, display_id)
 
         response = self._call_zype_api('/videos', {'friendly_title': display_id},
@@ -174,7 +212,7 @@ class NebulaIE(InfoExtractor):
         video_meta = response['response'][0]
 
         video_id = video_meta['_id']
-        zype_access_token = self._fetch_zype_access_token(display_id, nebula_token=nebula_token)
+        zype_access_token = self._fetch_zype_access_token(display_id)
 
         channel_title = self._extract_channel_title(video_meta)
 
@@ -187,13 +225,12 @@ class NebulaIE(InfoExtractor):
             'title': video_meta.get('title'),
             'description': video_meta.get('description'),
             'timestamp': parse_iso8601(video_meta.get('published_at')),
-            'thumbnails': [
-                {
-                    'id': tn.get('name'),  # this appears to be null
-                    'url': tn['url'],
-                    'width': tn.get('width'),
-                    'height': tn.get('height'),
-                } for tn in video_meta.get('thumbnails', [])],
+            'thumbnails': [{
+                'id': tn.get('name'),  # this appears to be null
+                'url': tn['url'],
+                'width': tn.get('width'),
+                'height': tn.get('height'),
+            } for tn in video_meta.get('thumbnails', [])],
             'duration': video_meta.get('duration'),
             'channel': channel_title,
             'uploader': channel_title,  # we chose uploader = channel name

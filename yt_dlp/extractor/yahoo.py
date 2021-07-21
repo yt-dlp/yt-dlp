@@ -362,7 +362,7 @@ class YahooSearchIE(SearchInfoExtractor):
 
 class YahooGyaOPlayerIE(InfoExtractor):
     IE_NAME = 'yahoo:gyao:player'
-    _VALID_URL = r'https?://(?:gyao\.yahoo\.co\.jp/(?:player|episode/[^/]+)|streaming\.yahoo\.co\.jp/c/y)/(?P<id>\d+/v\d+/v\d+|[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
+    _VALID_URL = r'https?://(?:gyao\.yahoo\.co\.jp/(?:player|episode(?:/[^/]+)?)|streaming\.yahoo\.co\.jp/c/y)/(?P<id>\d+/v\d+/v\d+|[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
     _TESTS = [{
         'url': 'https://gyao.yahoo.co.jp/player/00998/v00818/v0000000000000008564/',
         'info_dict': {
@@ -383,6 +383,9 @@ class YahooGyaOPlayerIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://gyao.yahoo.co.jp/episode/%E3%81%8D%E3%81%AE%E3%81%86%E4%BD%95%E9%A3%9F%E3%81%B9%E3%81%9F%EF%BC%9F%20%E7%AC%AC2%E8%A9%B1%202019%2F4%2F12%E6%94%BE%E9%80%81%E5%88%86/5cb02352-b725-409e-9f8d-88f947a9f682',
+        'only_matching': True,
+    }, {
+        'url': 'https://gyao.yahoo.co.jp/episode/5fa1226c-ef8d-4e93-af7a-fd92f4e30597',
         'only_matching': True,
     }]
     _GEO_BYPASS = False

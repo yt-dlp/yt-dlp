@@ -528,8 +528,12 @@ def parseOpts(overrideArguments=None):
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
-        action='store_true', dest='check_formats', default=False,
-        help="Check that the formats selected are actually downloadable (Experimental)")
+        action='store_true', dest='check_formats', default=None,
+        help='Check that the formats selected are actually downloadable')
+    video_format.add_option(
+        '--no-check-formats',
+        action='store_false', dest='check_formats',
+        help='Do not check that the formats selected are actually downloadable')
     video_format.add_option(
         '-F', '--list-formats',
         action='store_true', dest='listformats',
@@ -1283,6 +1287,10 @@ def parseOpts(overrideArguments=None):
             'Similar syntax to the output template can be used to pass any field as arguments to the command. '
             'An additional field "filepath" that contains the final path of the downloaded file is also available. '
             'If no fields are passed, "%(filepath)s" is appended to the end of the command'))
+    postproc.add_option(
+        '--exec-before-download',
+        metavar='CMD', dest='exec_before_dl_cmd',
+        help='Execute a command before the actual download. The syntax is the same as --exec')
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
