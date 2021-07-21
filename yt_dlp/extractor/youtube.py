@@ -1929,10 +1929,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return sts
 
     def _mark_watched(self, video_id, player_responses):
-        playback_url = url_or_none((traverse_obj(
-            player_responses, ('playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
-            expected_type=str) or [None])[0])
+        playback_url = traverse_obj(
+            player_responses, (..., 'playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
+            expected_type=url_or_none, get_all=False)
         if not playback_url:
+            self.report_warning('Unable to mark watched')
             return
         parsed_playback_url = compat_urlparse.urlparse(playback_url)
         qs = compat_urlparse.parse_qs(parsed_playback_url.query)
@@ -2606,8 +2607,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._get_requested_clients(url, smuggled_data),
             video_id, webpage, master_ytcfg, player_url, identity_token))
 
-        get_first = lambda obj, keys, **kwargs: (
-            traverse_obj(obj, (..., *variadic(keys)), **kwargs) or [None])[0]
+        get_first = lambda obj, keys, **kwargs: traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict, default=[])

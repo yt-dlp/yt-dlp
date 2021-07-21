@@ -6225,7 +6225,7 @@ def load_plugins(name, suffix, namespace):
 
 
 def traverse_obj(
-        obj, *path_list, default=None, expected_type=None,
+        obj, *path_list, default=None, expected_type=None, get_all=True,
         casesense=True, is_user_input=False, traverse_string=False):
     ''' Traverse nested list/dict/tuple
     @param path_list        A list of paths which are checked one by one.
@@ -6234,7 +6234,8 @@ def traverse_obj(
                             all the keys given in the tuple are traversed, and
                             "..." traverses all the keys in the object
     @param default          Default value to return
-    @param expected_type    Only accept final value of this type
+    @param expected_type    Only accept final value of this type (Can also be any callable)
+    @param get_all          Return all the values obtained from a path or only the first one
     @param casesense        Whether to consider dictionary keys as case sensitive
     @param is_user_input    Whether the keys are generated from user input. If True,
                             strings are converted to int/slice if necessary
@@ -6281,6 +6282,13 @@ def traverse_obj(
                     return None
         return obj
 
+    if isinstance(expected_type, type):
+        type_test = lambda val: val if isinstance(val, expected_type) else None
+    elif expected_type is not None:
+        type_test = expected_type
+    else:
+        type_test = lambda val: val
+
     for path in path_list:
         depth = 0
         val = _traverse_obj(obj, path)
@@ -6288,12 +6296,13 @@ def traverse_obj(
             if depth:
                 for _ in range(depth - 1):
                     val = itertools.chain.from_iterable(v for v in val if v is not None)
-                val = ([v for v in val if v is not None] if expected_type is None
-                       else [v for v in val if isinstance(v, expected_type)])
+                val = [v for v in map(type_test, val) if v is not None]
                 if val:
+                    return val if get_all else val[0]
+            else:
+                val = type_test(val)
+                if val is not None:
                     return val
-            elif expected_type is None or isinstance(val, expected_type):
-                return val
     return default
 
 
