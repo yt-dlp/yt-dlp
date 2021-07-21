@@ -39,6 +39,7 @@ from ..utils import (
     int_or_none,
     intlist_to_bytes,
     mimetype2ext,
+    network_exceptions,
     orderedSet,
     parse_codecs,
     parse_count,
@@ -760,12 +761,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     api_hostname=api_hostname, default_client=default_client,
                     note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (500, 503, 404):
+                if isinstance(e.cause, network_exceptions):
                     # Downloading page may result in intermittent 5xx HTTP error
                     # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
-                    last_error = 'HTTP Error %s' % e.cause.code
-                    if count < retries:
-                        continue
+                    # We also want to catch all other network exceptions since errors in later pages can be troublesome
+                    # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
+                    if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (403, 429):
+                        last_error = error_to_compat_str(e.cause or e)
+                        if count < retries:
+                            continue
                 if fatal:
                     raise
                 else:
