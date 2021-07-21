@@ -2371,7 +2371,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=False,
             default_client=self._YT_CLIENTS[client],
-            note=f'Downloading %s player API JSON' % client.replace('_', ' ').strip()
+            note='Downloading %s player API JSON' % client.replace('_', ' ').strip()
         ) or None
 
     def _extract_age_gated_player_response(self, client, video_id, ytcfg, identity_token, player_url, initial_pr):
