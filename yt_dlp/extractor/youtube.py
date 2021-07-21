@@ -2410,7 +2410,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             initial_pr['streamingData'] = None
             yield initial_pr
 
-    def _extract_formats(self, streaming_data, video_id, player_url):
+    def _extract_formats(self, streaming_data, video_id, player_url, is_live):
         itags, stream_ids = [], []
         itag_qualities = {}
         q = qualities([
@@ -2501,7 +2501,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield dct
 
         skip_manifests = self._configuration_arg('skip')
-        get_dash = 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True)
+        get_dash = not is_live and 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True)
         get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
 
         for sd in streaming_data:
@@ -2625,8 +2625,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
+        category = get_first(microformats, 'category') or search_meta('genre')
+        channel_id = get_first(video_details, 'channelId') \
+            or get_first(microformats, 'externalChannelId') \
+            or search_meta('channelId')
+        duration = int_or_none(
+            get_first(video_details, 'lengthSeconds')
+            or get_first(microformats, 'lengthSeconds')) \
+            or parse_duration(search_meta('duration'))
+        is_live = get_first(video_details, 'isLive')
+        is_upcoming = get_first(video_details, 'isUpcoming')
+        owner_profile_url = get_first(microformats, 'ownerProfileUrl')
+
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
-        formats = list(self._extract_formats(streaming_data, video_id, player_url))
+        formats = list(self._extract_formats(streaming_data, video_id, player_url, is_live))
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
@@ -2674,18 +2686,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             if f.get('vcodec') != 'none':
                                 f['stretched_ratio'] = ratio
                         break
-
-        category = get_first(microformats, 'category') or search_meta('genre')
-        channel_id = get_first(video_details, 'channelId') \
-            or get_first(microformats, 'externalChannelId') \
-            or search_meta('channelId')
-        duration = int_or_none(
-            get_first(video_details, 'lengthSeconds')
-            or get_first(microformats, 'lengthSeconds')) \
-            or parse_duration(search_meta('duration'))
-        is_live = get_first(video_details, 'isLive')
-        is_upcoming = get_first(video_details, 'isUpcoming')
-        owner_profile_url = get_first(microformats, 'ownerProfileUrl')
 
         thumbnails = []
         thumbnail_dicts = traverse_obj(
