@@ -542,8 +542,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', webpage, 'ytcfg',
                 default='{}'), video_id, fatal=False) or {}
 
-    def generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None,
-                              visitor_data=None, api_hostname=None, default_client='WEB', session_index=None):
+    def generate_api_headers(
+            self, ytcfg=None, identity_token=None, account_syncid=None,
+            visitor_data=None, api_hostname=None, default_client='WEB', session_index=None):
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(default_client))
         headers = {
             'X-YouTube-Client-Name': compat_str(
