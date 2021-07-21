@@ -392,6 +392,49 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 }
             },
             'INNERTUBE_CONTEXT_CLIENT_NAME': 21
+        },
+        'IOS': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'IOS',
+            'INNERTUBE_CLIENT_VERSION': '16.20',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'IOS',
+                    'clientVersion': '16.20',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 5
+
+        },
+        'IOS_MUSIC': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'IOS_MUSIC',
+            'INNERTUBE_CLIENT_VERSION': '4.32',
+            'INNERTUBE_API_KEY': 'AIzaSyDK3iBpDP9nHVTk2qL73FLJICfOC3c51Og',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'IOS_MUSIC',
+                    'clientVersion': '4.32',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 26
+        },
+        'IOS_MESSAGES_EXTENSION': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'IOS_MESSAGES_EXTENSION',
+            'INNERTUBE_CLIENT_VERSION': '16.20',
+            'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'IOS_MESSAGES_EXTENSION',
+                    'clientVersion': '16.20',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 66
         }
     }
 
@@ -412,6 +455,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'android_music': 'ANDROID_MUSIC',
         '_android_embedded': 'ANDROID_EMBEDDED_PLAYER',
         '_android_agegate': 'ANDROID',
+        'ios': 'IOS',
+        'ios_music': 'IOS_MUSIC',
+        '_ios_embedded': 'IOS_MESSAGES_EXTENSION',
+        '_ios_agegate': 'IOS'
     }
 
     def _get_default_ytcfg(self, client='WEB'):
@@ -2292,6 +2339,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'TVHTML5': {
                 'c': 'TVHTML5',
                 'cver': '6.20180913',
+            },
+            'IOS': {
+                'c': 'IOS',
+                'cver': '16.20'
             }
         }
         query = {
