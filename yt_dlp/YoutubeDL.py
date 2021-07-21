@@ -450,7 +450,7 @@ class YoutubeDL(object):
     params = None
     _ies = []
     _pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
-    _reported_warnings = set()
+    _printed_messages = set()
     _first_webpage_request = True
     _download_retcode = None
     _num_downloads = None
@@ -465,7 +465,7 @@ class YoutubeDL(object):
         self._ies = []
         self._ies_instances = {}
         self._pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
-        self._reported_warnings = set()
+        self._printed_messages = set()
         self._first_webpage_request = True
         self._post_hooks = []
         self._progress_hooks = []
@@ -660,8 +660,12 @@ class YoutubeDL(object):
                       for _ in range(line_count))
         return res[:-len('\n')]
 
-    def _write_string(self, s, out=None):
-        write_string(s, out=out, encoding=self.params.get('encoding'))
+    def _write_string(self, message, out=None, only_once=False):
+        if only_once:
+            if message in self._printed_messages:
+                return
+            self._printed_messages.add(message)
+        write_string(message, out=out, encoding=self.params.get('encoding'))
 
     def to_stdout(self, message, skip_eol=False, quiet=False):
         """Print message to stdout"""
@@ -672,13 +676,13 @@ class YoutubeDL(object):
                 '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
                 self._err_file if quiet else self._screen_file)
 
-    def to_stderr(self, message):
+    def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
         assert isinstance(message, compat_str)
         if self.params.get('logger'):
             self.params['logger'].error(message)
         else:
-            self._write_string('%s\n' % self._bidi_workaround(message), self._err_file)
+            self._write_string('%s\n' % self._bidi_workaround(message), self._err_file, only_once=only_once)
 
     def to_console_title(self, message):
         if not self.params.get('consoletitle', False):
@@ -760,10 +764,6 @@ class YoutubeDL(object):
         Print the message to stderr, it will be prefixed with 'WARNING:'
         If stderr is a tty file the 'WARNING:' will be colored
         '''
-        if only_once:
-            if message in self._reported_warnings:
-                return
-            self._reported_warnings.add(message)
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
         else:
@@ -774,7 +774,7 @@ class YoutubeDL(object):
             else:
                 _msg_header = 'WARNING:'
             warning_message = '%s %s' % (_msg_header, message)
-            self.to_stderr(warning_message)
+            self.to_stderr(warning_message, only_once)
 
     def report_error(self, message, tb=None):
         '''
@@ -788,7 +788,7 @@ class YoutubeDL(object):
         error_message = '%s %s' % (_msg_header, message)
         self.trouble(error_message, tb)
 
-    def write_debug(self, message):
+    def write_debug(self, message, only_once=False):
         '''Log debug message or Print message to stderr'''
         if not self.params.get('verbose', False):
             return
@@ -796,7 +796,7 @@ class YoutubeDL(object):
         if self.params.get('logger'):
             self.params['logger'].debug(message)
         else:
-            self._write_string('%s\n' % message)
+            self.to_stderr(message, only_once)
 
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
