@@ -2302,10 +2302,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         query.update(GVI_CLIENTS.get(client))
         return query
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, ytpcfg, identity_token, player_url, initial_pr):
+    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
 
-        session_index = self._extract_session_index(ytpcfg, master_ytcfg)
-        syncid = self._extract_account_syncid(ytpcfg, master_ytcfg, initial_pr)
+        session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
+        syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
         sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
         headers = self._generate_api_headers(
             master_ytcfg, identity_token, syncid, client=self._YT_CLIENTS[client], session_index=session_index)
@@ -2314,7 +2314,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
-            ytcfg=ytpcfg, headers=headers, fatal=False,
+            ytcfg=player_ytcfg, headers=headers, fatal=False,
             default_client=self._YT_CLIENTS[client],
             note=f'Downloading {client} player API JSON'
         ) or None
@@ -2380,7 +2380,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 video_id, 'initial player response')
 
         for client in clients:
-            ytpcfg = master_ytcfg if client == 'web' else {}
+            player_ytcfg = master_ytcfg if client == 'web' else {}
             if client == 'web' and initial_pr:
                 pr = initial_pr
             else:
@@ -2388,14 +2388,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     ytm_webpage = self._download_webpage(
                         'https://music.youtube.com',
                         video_id, fatal=False, note='Downloading remix client config')
-                    ytpcfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
+                    player_ytcfg = self._extract_ytcfg(video_id, ytm_webpage) or {}
                 pr = self._extract_player_response(
-                    client, video_id, ytpcfg or master_ytcfg, ytpcfg, identity_token, player_url, initial_pr)
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr)
             if pr:
                 yield pr
             if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
                 pr = self._extract_age_gated_player_response(
-                    client, video_id, ytpcfg or master_ytcfg, identity_token, player_url, initial_pr)
+                    client, video_id, player_ytcfg or master_ytcfg, identity_token, player_url, initial_pr)
                 if pr:
                     yield pr
         # Android player_response does not have microFormats which are needed for
