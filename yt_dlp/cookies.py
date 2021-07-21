@@ -179,7 +179,7 @@ def _get_chromium_based_browser_settings(browser_name):
         'brave': 'Brave',
         'chrome': 'Chrome',
         'chromium': 'Chromium',
-        'edge': 'Mirosoft Edge' if sys.platform == 'darwin' else 'Chromium',
+        'edge': 'Microsoft Edge' if sys.platform == 'darwin' else 'Chromium',
         'opera': 'Opera' if sys.platform == 'darwin' else 'Chromium',
         'vivaldi': 'Vivaldi' if sys.platform == 'darwin' else 'Chrome',
     }[browser_name]
