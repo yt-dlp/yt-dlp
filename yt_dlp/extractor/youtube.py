@@ -544,16 +544,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _generate_api_headers(self, ytcfg=None, identity_token=None, account_syncid=None,
                               visitor_data=None, api_hostname=None, default_client='WEB', session_index=None):
-        origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(client))
+        origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(default_client))
         headers = {
             'X-YouTube-Client-Name': compat_str(
                 self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=default_client)),
-            'X-YouTube-Client-Version': self._extract_client_version(ytcfg, client),
+            'X-YouTube-Client-Version': self._extract_client_version(ytcfg, default_client),
             'Origin': origin
         }
         if not visitor_data and ytcfg:
             visitor_data = try_get(
-                self._extract_context(ytcfg, client), lambda x: x['client']['visitorData'], compat_str)
+                self._extract_context(ytcfg, default_client), lambda x: x['client']['visitorData'], compat_str)
         if identity_token:
             headers['X-Youtube-Identity-Token'] = identity_token
         if account_syncid:
