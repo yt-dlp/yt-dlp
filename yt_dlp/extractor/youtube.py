@@ -2360,11 +2360,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                              if client[:0] != '_' and client in self._YT_CLIENTS]
         if not requested_clients:
             requested_clients = ['android', 'web']
-        else:
-            # The first requested client must be from the main clients
-            requested_clients = (
-                [next(filter(lambda x: '_music' not in x, requested_clients), 'android')]
-                + requested_clients)
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             if 'android' in requested_clients:
