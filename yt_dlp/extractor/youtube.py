@@ -2769,6 +2769,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # See: https://github.com/ytdl-org/youtube-dl/issues/29049, https://github.com/yt-dlp/yt-dlp/issues/340
         # List of possible thumbnails - Ref: <https://stackoverflow.com/a/20542029>
         hq_thumbnail_names = ['maxresdefault', 'hq720', 'sddefault', 'sd1', 'sd2', 'sd3']
+        # TODO: Test them also? - For some videos, even these don't exist
         guaranteed_thumbnail_names = [
             'hqdefault', 'hq1', 'hq2', 'hq3', '0',
             'mqdefault', 'mq1', 'mq2', 'mq3',

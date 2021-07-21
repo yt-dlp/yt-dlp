@@ -255,7 +255,7 @@ class YoutubeDL(object):
     writedesktoplink:  Write a Linux internet shortcut file (.desktop)
     writesubtitles:    Write the video subtitles to a file
     writeautomaticsub: Write the automatically generated subtitles to a file
-    allsubtitles:      Deprecated - Use subtitlelangs = ['all']
+    allsubtitles:      Deprecated - Use subtitleslangs = ['all']
                        Downloads all the subtitles of the video
                        (requires writesubtitles or writeautomaticsub)
     listsubtitles:     Lists all available subtitles for the video
