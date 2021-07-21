@@ -518,13 +518,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         yt_cookies = self._get_cookies('https://www.youtube.com')
         sapisid_cookie = dict_get(
             yt_cookies, ('__Secure-3PAPISID', 'SAPISID'))
-        if sapisid_cookie is None:
+        if sapisid_cookie is None or not sapisid_cookie.value:
             return
         time_now = round(time.time())
         # SAPISID cookie is required if not already present
         if not yt_cookies.get('SAPISID'):
+            self.write_debug('Copying __Secure-3PAPISID cookie to SAPISID cookie', only_once=True)
             self._set_cookie(
                 '.youtube.com', 'SAPISID', sapisid_cookie.value, secure=True, expire_time=time_now + 3600)
+        self.write_debug(f'Extracted SAPISID cookie', only_once=True)
         # SAPISIDHASH algorithm from https://stackoverflow.com/a/32065323
         sapisidhash = hashlib.sha1(
             f'{time_now} {sapisid_cookie.value} {origin}'.encode('utf-8')).hexdigest()
