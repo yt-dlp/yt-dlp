@@ -1143,7 +1143,7 @@ class YoutubeDL(object):
         else:
             self.report_error('no suitable InfoExtractor for URL %s' % url)
 
-    def __handle_extraction_exceptions(func):
+    def __handle_extraction_exceptions(func, handle_all_errors=True):
         def wrapper(self, *args, **kwargs):
             try:
                 return func(self, *args, **kwargs)
@@ -1163,7 +1163,7 @@ class YoutubeDL(object):
             except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
                 raise
             except Exception as e:
-                if self.params.get('ignoreerrors', False):
+                if handle_all_errors and self.params.get('ignoreerrors', False):
                     self.report_error(error_to_compat_str(e), tb=encode_compat_str(traceback.format_exc()))
                 else:
                     raise
@@ -1369,7 +1369,8 @@ class YoutubeDL(object):
 
         def get_entry(i):
             return YoutubeDL.__handle_extraction_exceptions(
-                lambda self, i: ie_entries[i - 1]
+                lambda self, i: ie_entries[i - 1],
+                False
             )(self, i)
 
         entries = []
