@@ -553,6 +553,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             video_id)
 
     def _extract_identity_token(self, webpage, item_id):
+        if not webpage:
+            return None
         ytcfg = self.extract_ytcfg(item_id, webpage)
         if ytcfg:
             token = try_get(ytcfg, lambda x: x['ID_TOKEN'], compat_str)
@@ -1757,10 +1759,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_player_url(self, ytcfg=None, webpage=None):
         player_url = try_get(ytcfg, (lambda x: x['PLAYER_JS_URL']), str)
-        if not player_url:
+        if not player_url and webpage:
             player_url = self._search_regex(
                 r'"(?:PLAYER_JS_URL|jsUrl)"\s*:\s*"([^"]+)"',
                 webpage, 'player URL', fatal=False)
+        if not player_url:
+            return None
         if player_url.startswith('//'):
             player_url = 'https:' + player_url
         elif not re.match(r'https?://', player_url):
@@ -2618,8 +2622,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return self.url_result(
                 trailer_video_id, self.ie_key(), trailer_video_id)
 
-        search_meta = (lambda x: self._html_search_meta(x, webpage, default=None)
-                       if webpage else lambda x: None)
+        search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
+                       if webpage else (lambda x: None))
 
         video_details = traverse_obj(
             player_responses, (..., 'videoDetails'), expected_type=dict, default=[])
