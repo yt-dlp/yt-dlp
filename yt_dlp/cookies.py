@@ -7,7 +7,7 @@ import struct
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import pbkdf2_hmac
 
 from yt_dlp.aes import aes_cbc_decrypt
@@ -475,7 +475,7 @@ class DataParser:
 
 
 def _mac_absolute_time_to_posix(timestamp):
-    return (datetime(2001, 1, 1, 0, 0) + timedelta(seconds=timestamp)).timestamp()
+    return int((datetime(2001, 1, 1, 0, 0, tzinfo=timezone.utc) + timedelta(seconds=timestamp)).timestamp())
 
 
 def _parse_safari_cookies_header(data, logger):
