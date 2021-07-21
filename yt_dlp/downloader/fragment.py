@@ -83,9 +83,9 @@ class FragmentFD(FileDownloader):
         headers = info_dict.get('http_headers')
         return sanitized_Request(url, None, headers) if headers else url
 
-    def _prepare_and_start_frag_download(self, ctx):
+    def _prepare_and_start_frag_download(self, ctx, info_dict):
         self._prepare_frag_download(ctx)
-        self._start_frag_download(ctx)
+        self._start_frag_download(ctx, info_dict)
 
     def __do_ytdl_file(self, ctx):
         return not ctx['live'] and not ctx['tmpfilename'] == '-' and not self.params.get('_no_ytdl_file')
@@ -219,7 +219,7 @@ class FragmentFD(FileDownloader):
             'complete_frags_downloaded_bytes': resume_len,
         })
 
-    def _start_frag_download(self, ctx):
+    def _start_frag_download(self, ctx, info_dict):
         resume_len = ctx['complete_frags_downloaded_bytes']
         total_frags = ctx['total_frags']
         # This dict stores the download progress, it's updated by the progress
@@ -248,6 +248,7 @@ class FragmentFD(FileDownloader):
             time_now = time.time()
             state['elapsed'] = time_now - start
             frag_total_bytes = s.get('total_bytes') or 0
+            s['fragment_info_dict'] = s.pop('info_dict', {})
             if not ctx['live']:
                 estimated_size = (
                     (ctx['complete_frags_downloaded_bytes'] + frag_total_bytes)
@@ -270,13 +271,13 @@ class FragmentFD(FileDownloader):
                 state['speed'] = s.get('speed') or ctx.get('speed')
                 ctx['speed'] = state['speed']
                 ctx['prev_frag_downloaded_bytes'] = frag_downloaded_bytes
-            self._hook_progress(state)
+            self._hook_progress(state, info_dict)
 
         ctx['dl'].add_progress_hook(frag_progress_hook)
 
         return start
 
-    def _finish_frag_download(self, ctx):
+    def _finish_frag_download(self, ctx, info_dict):
         ctx['dest_stream'].close()
         if self.__do_ytdl_file(ctx):
             ytdl_filename = encodeFilename(self.ytdl_filename(ctx['filename']))
@@ -303,7 +304,7 @@ class FragmentFD(FileDownloader):
             'filename': ctx['filename'],
             'status': 'finished',
             'elapsed': elapsed,
-        })
+        }, info_dict)
 
     def _prepare_external_frag_download(self, ctx):
         if 'live' not in ctx:
@@ -421,5 +422,5 @@ class FragmentFD(FileDownloader):
                 if not result:
                     return False
 
-        self._finish_frag_download(ctx)
+        self._finish_frag_download(ctx, info_dict)
         return True

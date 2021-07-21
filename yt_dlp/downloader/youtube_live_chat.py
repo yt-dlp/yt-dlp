@@ -140,7 +140,7 @@ class YoutubeLiveChatFD(FragmentFD):
                 self.report_error('giving up after %s fragment retries' % fragment_retries)
                 return False, None, None, None
 
-        self._prepare_and_start_frag_download(ctx)
+        self._prepare_and_start_frag_download(ctx, info_dict)
 
         success, raw_fragment = dl_fragment(info_dict['url'])
         if not success:
@@ -196,7 +196,7 @@ class YoutubeLiveChatFD(FragmentFD):
             if test:
                 break
 
-        self._finish_frag_download(ctx)
+        self._finish_frag_download(ctx, info_dict)
         return True
 
     @staticmethod

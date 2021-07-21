@@ -67,7 +67,7 @@ class ExternalFD(FileDownloader):
                     'downloaded_bytes': fsize,
                     'total_bytes': fsize,
                 })
-            self._hook_progress(status)
+            self._hook_progress(status, info_dict)
             return True
         else:
             self.to_stderr('\n')

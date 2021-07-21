@@ -39,7 +39,7 @@ class RtspFD(FileDownloader):
                 'total_bytes': fsize,
                 'filename': filename,
                 'status': 'finished',
-            })
+            }, info_dict)
             return True
         else:
             self.to_stderr('\n')
