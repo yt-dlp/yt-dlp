@@ -42,7 +42,7 @@ class TestCookies(unittest.TestCase):
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v10\xccW%\xcd\xe6\xe6\x9fM" \xa7\xb0\xca\xe4\x07\xd6'
             value = 'USD'
-            decryptor = LinuxChromeCookieDecryptor('Chrome')
+            decryptor = LinuxChromeCookieDecryptor('Chrome', YDLLogger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_linux_v11(self):
@@ -50,7 +50,7 @@ class TestCookies(unittest.TestCase):
                                    'KEYRING_AVAILABLE': True}):
             encrypted_value = b'v11#\x81\x10>`w\x8f)\xc0\xb2\xc1\r\xf4\x1al\xdd\x93\xfd\xf8\xf8N\xf2\xa9\x83\xf1\xe9o\x0elVQd'
             value = 'tz=Europe.London'
-            decryptor = LinuxChromeCookieDecryptor('Chrome')
+            decryptor = LinuxChromeCookieDecryptor('Chrome', YDLLogger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     @unittest.skipIf(not CRYPTO_AVAILABLE, 'cryptography library not available')
@@ -67,7 +67,7 @@ class TestCookies(unittest.TestCase):
         with MonkeyPatch(cookies, {'_get_mac_keyring_password': lambda *args, **kwargs: b'6eIDUdtKAacvlHwBVwvg/Q=='}):
             encrypted_value = b'v10\xb3\xbe\xad\xa1[\x9fC\xa1\x98\xe0\x9a\x01\xd9\xcf\xbfc'
             value = '2021-06-01-22'
-            decryptor = MacChromeCookieDecryptor('')
+            decryptor = MacChromeCookieDecryptor('', YDLLogger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_safari_cookie_parsing(self):
