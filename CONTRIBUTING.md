@@ -95,13 +95,7 @@ To run the test, simply invoke your favorite test runner, or execute a test file
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
 
-If you want to create a build of yt-dlp yourself, you'll need
-
-* python
-* make (only GNU make is supported)
-* pandoc
-* zip
-* nosetests
+If you want to create a build of yt-dlp yourself, you can follow the Instructions [here](https://github.com/yt-dlp/yt-dlp/blob/master/README.md#compile).
 
 ### Adding support for a new site
 
