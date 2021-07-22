@@ -116,7 +116,7 @@ class VivoIE(SharedBaseIE):
 
     def _extract_filesize(self, webpage):
         return parse_filesize(self._search_regex(
-            r'data-type=["\']video["\'][^>]*>Watch.*?<strong>\s*\((.+?)\)',
+            r'<strong>\((\d+\.\d+ [KGM]B)\)</strong>',
             webpage, 'filesize', fatal=False))
 
     def _extract_video_url(self, webpage, video_id, url):
