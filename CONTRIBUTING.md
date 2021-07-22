@@ -47,6 +47,8 @@ Before reporting any issue, type `yt-dlp -U`. This should report that you're up-
 
 Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/yt-dlp/yt-dlp/search?type=Issues) of this repository. If there is an issue, feel free to write something along the lines of "This affects me as well, with version 2021.01.01. Here is some more information on the issue: ...". While some issues may be old, a new post into them often spurs rapid activity.
 
+Additionally, it is also helpful to search the [youtube-dl issue tracker](https://github.com/ytdl-org/youtube-dl/issues) for any similar issues, and to see if the issue has already been documented. If the issue has already been reprted or a similar issue found, a link to that issue (on the youtube-dl issue tracker), should be included in your issue report here.
+
 ###  Why are existing options not enough?
 
 Before requesting a new feature, please have a quick peek at [the list of supported options](https://github.com/yt-dlp/yt-dlp/blob/master/README.md#options). Many feature requests are for features that actually exist already! Please, absolutely do show off your work in the issue report and detail how the existing similar options do *not* solve your problem.
