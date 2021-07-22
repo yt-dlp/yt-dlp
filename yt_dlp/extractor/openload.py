@@ -102,7 +102,34 @@ class PhantomJSwrapper(object):
         page.open("");
     '''
 
-    _TMP_FILE_NAMES = ['script', 'html', 'cookies']
+    _TEMPLATE_EVAL = r'''
+        phantom.onError = function(msg, trace) {{
+          var msgStack = ['PHANTOM ERROR: ' + msg];
+          if(trace && trace.length) {{
+            msgStack.push('TRACE:');
+            trace.forEach(function(t) {{
+              msgStack.push(' -> ' + (t.file || t.sourceURL) + ': ' + t.line
+                + (t.function ? ' (in function ' + t.function +')' : ''));
+            }});
+          }}
+          console.error(msgStack.join('\n'));
+          phantom.exit(1);
+        }};
+        var page = require('webpage').create();
+        var fs = require('fs');
+        page.settings.resourceTimeout = {timeout};
+        var write = {{ mode: 'w', charset: 'utf-8' }};
+        // page.onLoadFinished = function(status) {{
+        // }};
+        page.open("");
+        var ret = page.evaluate(function() {{
+          {js}
+        }});
+        fs.write("{result}", typeof ret === 'string' ? ret : JSON.stringify(ret), write);
+        phantom.exit();
+    '''
+
+    _TMP_FILE_NAMES = ['script', 'html', 'result', 'cookies']
 
     @staticmethod
     def _version():
@@ -160,6 +187,53 @@ class PhantomJSwrapper(object):
             if 'expiry' in cookie:
                 cookie['expire_time'] = cookie['expiry']
             self.extractor._set_cookie(**compat_kwargs(cookie))
+
+    def eval(self, js, video_id=None, parse_json=False, note='Executing JS'):
+        """
+        Evaluates JavaScript directly using phantomJS
+
+        Params:
+            js: javascript code to be evaluated
+            video_id: video id
+            parse_json: Parse result as JSON (you need this when your code return an array/object)
+            note: optional, displayed when executing JS
+
+        Returns the return value of the javascript
+
+        You can use this to workarround obfuscation methods
+        Take a look at the vpload extractor for more info
+        """
+
+        replaces = self.options
+        replaces['js'] = js
+
+        for x in self._TMP_FILE_NAMES:
+            replaces[x] = self._TMP_FILES[x].name.replace('\\', '\\\\').replace('"', '\\"')
+
+        with open(self._TMP_FILES['script'].name, 'wb') as f:
+            f.write(self._TEMPLATE_EVAL.format(**replaces).encode('utf-8'))
+
+        if video_id is None:
+            self.extractor.to_screen('%s' % (note,))
+        else:
+            self.extractor.to_screen('%s: %s' % (video_id, note))
+
+        p = subprocess.Popen([
+            self.exe, '--ssl-protocol=any',
+            self._TMP_FILES['script'].name
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        if p.returncode != 0:
+            raise ExtractorError(
+                ('%s failed\n:' % note) + encodeArgument(err))
+
+        with open(self._TMP_FILES['result'].name, 'rb') as f:
+            result = f.read().decode('utf-8')
+
+        if parse_json:
+            return json.loads(result)
+
+        return result
 
     def get(self, url, html=None, video_id=None, note=None, note2='Executing JS on webpage', headers={}, jscode='saveAndExit();'):
         """
