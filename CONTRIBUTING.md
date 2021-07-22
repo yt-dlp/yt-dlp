@@ -15,7 +15,7 @@ $ yt-dlp -v <your command line>
 ```
 **Do not post screenshots of verbose logs; only plain text is acceptable.**
 
-The output (including the first lines) contains important debugging information. Issues without the full output are often not reproducible and therefore do not get solved in short order, if ever.
+The output (including the first lines) contains important debugging information. Issues without the full output are often not reproducible and therefore will be closed as `incomplete`
 
 The templates provided for the Issues, should be completed and not removed, this helps aide the resolution of the issue.
 
@@ -437,4 +437,3 @@ description = video.get('summary')
 duration = float_or_none(video.get('durationMs'), scale=1000)
 view_count = int_or_none(video.get('views'))
 ```
-
