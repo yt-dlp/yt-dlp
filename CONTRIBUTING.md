@@ -119,6 +119,7 @@ After you have ensured this site is distributing its content legally, you can fo
     # coding: utf-8
     from .common import InfoExtractor
 
+
     class YourExtractorIE(InfoExtractor):
         _VALID_URL = r'https?://(?:www\.)?yourextractor\.com/watch/(?P<id>[0-9]+)'
         _TEST = {
