@@ -2,7 +2,7 @@
 
 ## Opening an Issue
 
-**Please include the full output of yt-dlp when run with `-v`**, i.e. **add** `-v` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
+**Please include the full output of yt-dlp when run with `-Uv`**, i.e. **add** `-Uv` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
 ```
 $ yt-dlp -v <your command line>
 [debug] Command-line config: ['-v', 'demo.com']
@@ -17,7 +17,7 @@ $ yt-dlp -v <your command line>
 
 The output (including the first lines) contains important debugging information. Issues without the full output are often not reproducible and therefore will be closed as `incomplete`
 
-The templates provided for the Issues, should be completed and not removed, this helps aide the resolution of the issue.
+The templates provided for the Issues, should be completed and **not removed**, this helps aide the resolution of the issue.
 
 Please re-read your issue once again to avoid a couple of common mistakes (you can and should use this as a checklist):
 
@@ -35,13 +35,13 @@ If your report is shorter than two lines, it is almost certainly missing some of
 
 For bug reports, this means that your report should contain the *complete* output of yt-dlp when called with the `-v` flag. The error message you get for (most) bugs even says so, but you would not believe how many of our bug reports do not contain this information.
 
-If the error is `ERROR: Unable to extract ...` and you cannot reproduce it from multiple countries, add `--dump-pages` (warning: this will yield a rather large output, redirect it to the file `log.txt` by adding `>log.txt 2>&1` to your command-line) or upload the `.dump` files you get when you add `--write-pages` [somewhere](https://gist.github.com/).
+If the error is `ERROR: Unable to extract ...` and you cannot reproduce it from multiple countries, add `--write-pages` and upload the `.dump` files you get [somewhere](https://gist.github.com).
 
 **Site support requests must contain an example URL**. An example URL is a URL you might want to download, like `https://www.youtube.com/watch?v=BaW_jenozKc`. There should be an obvious video present. Except under very special circumstances, the main page of a video service (e.g. `https://www.youtube.com/`) is *not* an example URL.
 
 ###  Are you using the latest version?
 
-Before reporting any issue, type `yt-dlp -U`. This should report that you're up-to-date. About 20% of the reports we receive are already fixed, but people are using outdated versions. This goes for feature requests as well.
+Before reporting any issue, type `yt-dlp -U`. This should report that you're up-to-date. This goes for feature requests as well.
 
 ###  Is the issue already documented?
 
@@ -73,7 +73,7 @@ Only post features that you (or an incapacitated friend you can personally talk 
 
 ###  Is your question about yt-dlp?
 
-It may sound strange, but some bug reports we receive are completely unrelated to yt-dlp and relate to a different, or even the reporter's own, application. Please make sure that you are actually using yt-dlp. If you are using a UI for yt-dlp, report the bug to the maintainer of the actual application providing the UI. On the other hand, if your UI for yt-dlp fails in some way you believe is related to yt-dlp, by all means, go ahead and report the bug.
+Some bug reports are completely unrelated to yt-dlp and relate to a different, or even the reporter's own, application. Please make sure that you are actually using yt-dlp. If you are using a UI for yt-dlp, report the bug to the maintainer of the actual application providing the UI. On the other hand, if your UI for yt-dlp fails in some way you believe is related to yt-dlp, by all means, go ahead and report the bug.
 
 If the issue is with `youtube-dl` (the upstream fork of yt-dlp) and not with yt-dlp, the issue should be raised in the youtube-dl project.
 
