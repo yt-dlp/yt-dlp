@@ -15,6 +15,7 @@ from yt_dlp.compat import (
     compat_cookiejar_Cookie,
 )
 from yt_dlp.utils import (
+    bug_reports_message,
     bytes_to_intlist,
     expand_path,
     intlist_to_bytes,
@@ -40,8 +41,17 @@ except ImportError:
 try:
     import keyring
     KEYRING_AVAILABLE = True
+    KEYRING_UNAVAILABLE_REASON = f'due to unknown reasons{bug_reports_message()}'
 except ImportError:
     KEYRING_AVAILABLE = False
+    KEYRING_UNAVAILABLE_REASON = (
+        'as the `keyring` module is not installed. '
+        'Please install by running `python3 -m pip install keyring`. '
+        'Depending on your platform, additional packages may be required '
+        'to access the keyring; see  https://pypi.org/project/keyring')
+except Exception as _err:
+    KEYRING_AVAILABLE = False
+    KEYRING_UNAVAILABLE_REASON = 'as the `keyring` module could not be initialized: %s' % _err
 
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
@@ -340,10 +350,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
 
         elif version == b'v11':
             if self._v11_key is None:
-                self._logger.warning('cannot decrypt cookie as the `keyring` module is not installed. '
-                                     'Please install by running `python3 -m pip install keyring`. '
-                                     'Note that depending on your platform, additional packages may be required '
-                                     'to access the keyring, see  https://pypi.org/project/keyring', only_once=True)
+                self._logger.warning(f'cannot decrypt cookie {KEYRING_UNAVAILABLE_REASON}', only_once=True)
                 return None
             return _decrypt_aes_cbc(ciphertext, self._v11_key, self._logger)
 
