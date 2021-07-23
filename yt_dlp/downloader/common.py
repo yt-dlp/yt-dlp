@@ -395,8 +395,12 @@ class FileDownloader(object):
         info_dict = dict(info_dict)
         for key in ('__original_infodict', '__postprocessors'):
             info_dict.pop(key, None)
+        # youtube-dl passes the same status object to all the hooks.
+        # Some third party scripts seems to be relying on this.
+        # So keep this behavior if possible
+        status['info_dict'] = copy.deepcopy(info_dict)
         for ph in self._progress_hooks:
-            ph({**status, 'info_dict': copy.deepcopy(info_dict)})
+            ph(status)
 
     def add_progress_hook(self, ph):
         # See YoutubeDl.py (search for progress_hooks) for a description of
