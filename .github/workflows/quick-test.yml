@@ -12,11 +12,9 @@ jobs:
       with:
         python-version: 3.9
     - name: Install test requirements
-      run: pip install nose pycryptodome
+      run: pip install pytest pycryptodome
     - name: Run tests
-      env:
-        YTDL_TEST_SET: core
-      run: ./devscripts/run_tests.sh
+      run: ./devscripts/run_tests.sh core
   flake8:
     name: Linter
     if: "!contains(github.event.head_commit.message, 'ci skip all')"

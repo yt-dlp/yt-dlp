@@ -12,7 +12,7 @@ import io
 import re
 import string
 
-from test.helper import FakeYDL
+from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.compat import compat_str, compat_urlretrieve
 
@@ -65,6 +65,7 @@ _TESTS = [
 ]
 
 
+@is_download_test
 class TestPlayerInfo(unittest.TestCase):
     def test_youtube_extract_player_info(self):
         PLAYER_URLS = (
@@ -87,6 +88,7 @@ class TestPlayerInfo(unittest.TestCase):
             self.assertEqual(player_id, expected_player_id)
 
 
+@is_download_test
 class TestSignature(unittest.TestCase):
     def setUp(self):
         TEST_DIR = os.path.dirname(os.path.abspath(__file__))

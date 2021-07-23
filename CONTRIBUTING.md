@@ -81,16 +81,17 @@ To run the test, simply invoke your favorite test runner, or execute a test file
     python -m unittest discover
     python test/test_download.py
     nosetests
+    pytest
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
 
 If you want to create a build of youtube-dl yourself, you'll need
 
-* python
+* python3
 * make (only GNU make is supported)
 * pandoc
 * zip
-* nosetests
+* pytest
 
 ### Adding support for a new site
 
