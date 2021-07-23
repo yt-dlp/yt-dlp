@@ -2845,7 +2845,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'release_timestamp': live_starttime,
         }
 
-        pctr = get_first(player_responses, ('captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
+        pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
+        # Converted into dicts to remove duplicates
+        captions = {
+            sub.get('baseUrl'): sub
+            for sub in traverse_obj(pctr, (..., 'captionTracks', ...), default=[])}
+        translation_languages = {
+            lang.get('languageCode'): lang.get('languageName')
+            for lang in traverse_obj(pctr, (..., 'translationLanguages', ...), default=[])}
         subtitles = {}
         if pctr:
             def process_language(container, base_url, lang_code, sub_name, query):
@@ -2860,8 +2867,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'name': sub_name,
                     })
 
-            for caption_track in (pctr.get('captionTracks') or []):
-                base_url = caption_track.get('baseUrl')
+            for base_url, caption_track in captions.items():
                 if not base_url:
                     continue
                 if caption_track.get('kind') != 'asr':
@@ -2872,18 +2878,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         subtitles, base_url, lang_code,
-                        try_get(caption_track, lambda x: x['name']['simpleText']),
+                        traverse_obj(caption_track, ('name', 'simpleText')),
                         {})
                     continue
                 automatic_captions = {}
-                for translation_language in (pctr.get('translationLanguages') or []):
-                    translation_language_code = translation_language.get('languageCode')
-                    if not translation_language_code:
+                for trans_code, trans_name in translation_languages.items():
+                    if not trans_code:
                         continue
                     process_language(
-                        automatic_captions, base_url, translation_language_code,
-                        self._get_text(translation_language.get('languageName'), max_runs=1),
-                        {'tlang': translation_language_code})
+                        automatic_captions, base_url, trans_code,
+                        self._get_text(trans_name, max_runs=1),
+                        {'tlang': trans_code})
                 info['automatic_captions'] = automatic_captions
         info['subtitles'] = subtitles
 
