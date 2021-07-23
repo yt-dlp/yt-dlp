@@ -2444,12 +2444,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
-        age_gated = False
         for client in clients:
             player_ytcfg = master_ytcfg if client == 'web' else {}
-            if age_gated:
-                pr = None
-            elif client == 'web' and initial_pr:
+            if client == 'web' and initial_pr:
                 pr = initial_pr
             else:
                 if client == 'web_music' and 'configs' not in self._configuration_arg('player_skip'):
@@ -2461,8 +2458,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr)
             if pr:
                 yield pr
-            if age_gated or traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
-                age_gated = True
+            if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
                 pr = self._extract_age_gated_player_response(
                     client, video_id, player_ytcfg or master_ytcfg, identity_token, player_url, initial_pr)
                 if pr:
