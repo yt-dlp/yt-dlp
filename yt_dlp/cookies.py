@@ -2,7 +2,6 @@ import ctypes
 import json
 import os
 import shutil
-import sqlite3
 import struct
 import subprocess
 import sys
@@ -22,6 +21,15 @@ from yt_dlp.utils import (
     process_communicate_or_kill,
     YoutubeDLCookieJar,
 )
+
+try:
+    import sqlite3
+    SQLITE_AVAILABLE = True
+except ImportError:
+    # although sqlite3 is part of the standard library, it is possible to compile python without
+    # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
+    SQLITE_AVAILABLE = False
+
 
 try:
     from Crypto.Cipher import AES
@@ -90,6 +98,10 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger())
 
 def _extract_firefox_cookies(profile, logger):
     logger.info('Extracting cookies from firefox')
+    if not SQLITE_AVAILABLE:
+        logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
+                       'Please use a python interpreter compiled with sqlite3 support')
+        return YoutubeDLCookieJar()
 
     if profile is None:
         search_root = _firefox_browser_dir()
@@ -195,6 +207,12 @@ def _get_chromium_based_browser_settings(browser_name):
 
 def _extract_chrome_cookies(browser_name, profile, logger):
     logger.info('Extracting cookies from {}'.format(browser_name))
+
+    if not SQLITE_AVAILABLE:
+        logger.warning(('Cannot extract cookies from {} without sqlite3 support. '
+                        'Please use a python interpreter compiled with sqlite3 support').format(browser_name))
+        return YoutubeDLCookieJar()
+
     config = _get_chromium_based_browser_settings(browser_name)
 
     if profile is None:
