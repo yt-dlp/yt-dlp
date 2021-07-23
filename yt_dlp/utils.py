@@ -6313,4 +6313,4 @@ def traverse_dict(dictn, keys, casesense=True):
 
 
 def variadic(x, allowed_types=(str, bytes)):
-    return x if isinstance(x, collections.Iterable) and not isinstance(x, allowed_types) else (x,)
+    return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
