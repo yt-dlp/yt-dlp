@@ -27,7 +27,7 @@ try:
     SQLITE_AVAILABLE = True
 except ImportError:
     # although sqlite3 is part of the standard library, it is possible to compile python without
-    # sqlite support, in which case importing fails
+    # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
     SQLITE_AVAILABLE = False
 
 
