@@ -60,7 +60,7 @@ class FacebookIE(InfoExtractor):
     IE_NAME = 'facebook'
 
     _VIDEO_PAGE_TEMPLATE = 'https://www.facebook.com/video/video.php?v=%s'
-    _VIDEO_PAGE_TAHOE_TEMPLATE = 'https://www.facebook.com/video/tahoe/async/%s/?chain=true&isvideo=true&payloadtype=primary'
+    _VIDEO_PAGE_TAHOE_TEMPLATE = 'https://www.facebook.com/video/tahoe/async/{}/?originalmediaid={}&playerorigin=permalink&playersuborigin=tahoe&ispermalink=true&numcopyrightmatchedvideoplayedconsecutively=0&payloadtype=primary'
 
     _TESTS = [{
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
@@ -521,8 +521,8 @@ class FacebookIE(InfoExtractor):
                     expected=True)
             elif any(p in webpage for p in (
                     '>You must log in to continue',
-                    'id="login_form"',
-                    'id="loginbutton"')):
+                    '</div><div class=""><form id="login_form" action=',
+            )):
                 self.raise_login_required()
 
         if not video_data and '/watchparty/' in url:
@@ -564,23 +564,21 @@ class FacebookIE(InfoExtractor):
         if not video_data:
             # Video info not in first request, do a secondary request using
             # tahoe player specific URL
+            lsd = self._search_regex(
+                r'<input type="hidden" name="lsd" value="([^"]*)"',
+                webpage, 'lsd')
             tahoe_data = self._download_webpage(
-                self._VIDEO_PAGE_TAHOE_TEMPLATE % video_id, video_id,
+                self._VIDEO_PAGE_TAHOE_TEMPLATE.format(video_id, video_id), video_id,
                 data=urlencode_postdata({
+                    '__user': 0,
                     '__a': 1,
-                    '__pc': self._search_regex(
-                        r'pkg_cohort["\']\s*:\s*["\'](.+?)["\']', webpage,
-                        'pkg cohort', default='PHASED:DEFAULT'),
-                    '__rev': self._search_regex(
-                        r'client_revision["\']\s*:\s*(\d+),', webpage,
-                        'client revision', default='3944515'),
-                    'fb_dtsg': self._search_regex(
-                        r'"DTSGInitialData"\s*,\s*\[\]\s*,\s*{\s*"token"\s*:\s*"([^"]+)"',
-                        webpage, 'dtsg token', default=''),
+                    'lsd': lsd
                 }),
                 headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-FB-LSD': lsd
                 })
+
             tahoe_js_data = self._parse_json(
                 self._search_regex(
                     r'for\s+\(\s*;\s*;\s*\)\s*;(.+)', tahoe_data,
