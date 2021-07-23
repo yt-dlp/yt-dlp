@@ -259,6 +259,7 @@
  - **dlive:vod**
  - **DoodStream**
  - **Dotsub**
+ - **Douyin**
  - **DouyuShow**
  - **DouyuTV**: 斗鱼
  - **DPlay**
@@ -769,6 +770,7 @@
  - **PopcornTV**
  - **PornCom**
  - **PornerBros**
+ - **PornFlip**
  - **PornHd**
  - **PornHub**: PornHub and Thumbzilla
  - **PornHubPagedVideoList**

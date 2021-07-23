@@ -27,7 +27,7 @@ class MetadataFromFieldPP(PostProcessor):
 
     @staticmethod
     def field_to_template(tmpl):
-        if re.match(r'\w+$', tmpl):
+        if re.match(r'[a-zA-Z_]+$', tmpl):
             return '%%(%s)s' % tmpl
         return tmpl
 
@@ -63,7 +63,7 @@ class MetadataFromFieldPP(PostProcessor):
                 continue
             for attribute, value in match.groupdict().items():
                 info[attribute] = value
-                self.to_screen('parsed %s from "%s": %s' % (attribute, dictn['in'], value if value is not None else 'NA'))
+                self.to_screen('parsed %s from "%s": %s' % (attribute, dictn['tmpl'], value if value is not None else 'NA'))
         return [], info
 
 

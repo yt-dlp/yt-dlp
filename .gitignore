@@ -33,6 +33,7 @@ cookies.txt
 *.info.json
 *.live_chat.json
 *.jpg
+*.jpeg
 *.png
 *.webp
 *.annotations.xml

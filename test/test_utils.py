@@ -1054,6 +1054,9 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('{ "040": "040" }')
         self.assertEqual(json.loads(on), {'040': '040'})
 
+        on = js_to_json('[1,//{},\n2]')
+        self.assertEqual(json.loads(on), [1, 2])
+
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
