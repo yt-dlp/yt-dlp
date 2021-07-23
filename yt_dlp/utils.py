@@ -3964,7 +3964,7 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
         return unrecognized
 
 
-class LazyList(collections.Sequence):
+class LazyList(collections.abc.Sequence):
     ''' Lazy immutable list from an iterable
     Note that slices of a LazyList are lists and not LazyList'''
 
@@ -6313,4 +6313,4 @@ def traverse_dict(dictn, keys, casesense=True):
 
 
 def variadic(x, allowed_types=(str, bytes)):
-    return x if isinstance(x, collections.Iterable) and not isinstance(x, allowed_types) else (x,)
+    return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
