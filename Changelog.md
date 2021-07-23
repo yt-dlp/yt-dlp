@@ -18,6 +18,69 @@
 
 -->
 
+### 2021.07.21
+
+* **Add option `--cookies-from-browser`** to load cookies from a browser by [mbway](https://github.com/mbway)
+    * Usage: `--cookies-from-browser BROWSER[:PROFILE_NAME_OR_PATH]`
+    * Also added `--no-cookies-from-browser`
+    * To decrypt chromium cookies, `keyring` is needed for UNIX and `pycryptodome` for Windows
+* Add option `--exec-before-download`
+* Add field `live_status`
+* [FFmpegMetadata] Add language of each stream and some refactoring
+* [douyin] Add extractor by [pukkandan](https://github.com/pukkandan), [pyx](https://github.com/pyx)
+* [pornflip] Add extractor by [mzbaulhaque](https://github.com/mzbaulhaque)
+* **[youtube] Extract data from multiple clients** by [pukkandan](https://github.com/pukkandan), [colethedj](https://github.com/colethedj)
+    * `player_client` now accepts multiple clients
+    * Default `player_client` = `android,web`
+        * This uses twice as many requests, but avoids throttling for most videos while also not losing any formats
+    * Music clients can be specifically requested and is enabled by default if `music.youtube.com`
+    * Added `player_client=ios` (Known issue: formats from ios are not sorted correctly)
+    * Add age-gate bypass for android and ios clients
+* [youtube] Extract more thumbnails
+    * The thumbnail URLs are hard-coded and their actual existence is tested lazily
+    * Added option `--no-check-formats` to not test them
+* [youtube] Misc fixes
+    * Improve extraction of livestream metadata by [pukkandan](https://github.com/pukkandan), [krichbanana](https://github.com/krichbanana)
+    * Hide live dash formats since they can't be downloaded anyway
+    * Fix authentication when using multiple accounts by [colethedj](https://github.com/colethedj)
+    * Fix controversial videos when requested via API by [colethedj](https://github.com/colethedj)
+    * Fix session index extraction and headers for non-web player clients by [colethedj](https://github.com/colethedj)
+    * Make `--extractor-retries` work for more errors
+    * Fix sorting of 3gp format
+    * Sanity check `chapters` (and refactor related code)
+    * Make `parse_time_text` and `_extract_chapters` non-fatal
+    * Misc cleanup and bug fixes by [colethedj](https://github.com/colethedj)
+* [youtube:tab] Fix channels tab
+* [youtube:tab] Extract playlist availability by [colethedj](https://github.com/colethedj)
+* **[youtube:comments] Move comment extraction to new API** by [colethedj](https://github.com/colethedj)
+* [youtube:comments] Fix `is_favorited`, improve `like_count` parsing by [colethedj](https://github.com/colethedj)
+* [BravoTV] Improve metadata extraction by [kevinoconnor7](https://github.com/kevinoconnor7)
+* [crunchyroll:playlist] Force http
+* [yahoo:gyao:player] Relax `_VALID_URL` by [nao20010128nao](https://github.com/nao20010128nao)
+* [nebula] Authentication via tokens from cookie jar by [hheimbuerger](https://github.com/hheimbuerger), [TpmKranz](https://github.com/TpmKranz)
+* [RTP] Fix extraction and add subtitles by [fstirlitz](https://github.com/fstirlitz)
+* [viki] Rewrite extractors and add extractor-arg `video_types` to `vikichannel` by [zackmark29](https://github.com/zackmark29), [pukkandan](https://github.com/pukkandan)
+* [vlive] Extract thumbnail directly in addition to the one from Naver
+* [generic] Extract previously missed subtitles by [fstirlitz](https://github.com/fstirlitz)
+* [generic] Extract everything in the SMIL manifest and detect discarded subtitles by [fstirlitz](https://github.com/fstirlitz)
+* [embedthumbnail] Fix `_get_thumbnail_resolution`
+* [metadatafromfield] Do not detect numbers as field names
+* Fix selectors `all`, `mergeall` and add tests
+* Errors in playlist extraction should obey `--ignore-errors`
+* Fix bug where `original_url` was not propagated when `_type`=`url`
+* Revert "Merge webm formats into mkv if thumbnails are to be embedded (#173)"
+    * This was wrongly checking for `write_thumbnail`
+* Improve `extractor_args` parsing
+* Rename `NOTE` in `-F` to `MORE INFO` since it's often confused to be the same as `format_note`
+* Add `only_once` param for `write_debug` and `report_warning`
+* [extractor] Allow extracting multiple groups in `_search_regex` by [fstirlitz](https://github.com/fstirlitz)
+* [utils] Improve `traverse_obj`
+* [utils] Add `variadic`
+* [utils] Improve `js_to_json` comment regex by [fstirlitz](https://github.com/fstirlitz)
+* [webtt] Fix timestamps
+* [compat] Remove unnecessary code
+* [doc] fix default of multistreams
+
 
 ### 2021.07.07
 

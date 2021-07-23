@@ -19,7 +19,6 @@ from ..compat import (
     compat_etree_Element,
     compat_etree_fromstring,
     compat_getpass,
-    compat_integer_types,
     compat_http_client,
     compat_os_name,
     compat_str,
@@ -79,6 +78,7 @@ from ..utils import (
     urljoin,
     url_basename,
     url_or_none,
+    variadic,
     xpath_element,
     xpath_text,
     xpath_with_ns,
@@ -229,6 +229,7 @@ class InfoExtractor(object):
                         * "resolution" (optional, string "{width}x{height}",
                                         deprecated)
                         * "filesize" (optional, int)
+                        * "_test_url" (optional, bool) - If true, test the URL
     thumbnail:      Full URL to a video thumbnail image.
     description:    Full video description.
     uploader:       Full name of the video uploader.
@@ -296,6 +297,8 @@ class InfoExtractor(object):
                     live stream that goes on instead of a fixed-length video.
     was_live:       True, False, or None (=unknown). Whether this video was
                     originally a live stream.
+    live_status:    'is_live', 'upcoming', 'was_live', 'not_live' or None (=unknown)
+                    If absent, automatically set from is_live, was_live
     start_time:     Time in seconds where the reproduction should start, as
                     specified in the URL.
     end_time:       Time in seconds where the reproduction should end, as
@@ -628,14 +631,10 @@ class InfoExtractor(object):
         assert isinstance(err, compat_urllib_error.HTTPError)
         if expected_status is None:
             return False
-        if isinstance(expected_status, compat_integer_types):
-            return err.code == expected_status
-        elif isinstance(expected_status, (list, tuple)):
-            return err.code in expected_status
         elif callable(expected_status):
             return expected_status(err.code) is True
         else:
-            assert False
+            return err.code in variadic(expected_status)
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
         """
@@ -1115,6 +1114,8 @@ class InfoExtractor(object):
             if group is None:
                 # return the first matching group
                 return next(g for g in mobj.groups() if g is not None)
+            elif isinstance(group, (list, tuple)):
+                return tuple(mobj.group(g) for g in group)
             else:
                 return mobj.group(group)
         elif default is not NO_DEFAULT:
@@ -1207,8 +1208,7 @@ class InfoExtractor(object):
                     [^>]+?content=(["\'])(?P<content>.*?)\2''' % re.escape(prop)
 
     def _og_search_property(self, prop, html, name=None, **kargs):
-        if not isinstance(prop, (list, tuple)):
-            prop = [prop]
+        prop = variadic(prop)
         if name is None:
             name = 'OpenGraph %s' % prop[0]
         og_regexes = []
@@ -1238,8 +1238,7 @@ class InfoExtractor(object):
         return self._og_search_property('url', html, **kargs)
 
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
-        if not isinstance(name, (list, tuple)):
-            name = [name]
+        name = variadic(name)
         if display_name is None:
             display_name = name[0]
         return self._html_search_regex(
@@ -2210,7 +2209,7 @@ class InfoExtractor(object):
                 out.append('{%s}%s' % (namespace, c))
         return '/'.join(out)
 
-    def _extract_smil_formats(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
+    def _extract_smil_formats_and_subtitles(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
         smil = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
 
         if smil is False:
@@ -2219,8 +2218,21 @@ class InfoExtractor(object):
 
         namespace = self._parse_smil_namespace(smil)
 
-        return self._parse_smil_formats(
+        fmts = self._parse_smil_formats(
             smil, smil_url, video_id, namespace=namespace, f4m_params=f4m_params)
+        subs = self._parse_smil_subtitles(
+            smil, namespace=namespace)
+
+        return fmts, subs
+
+    def _extract_smil_formats(self, *args, **kwargs):
+        fmts, subs = self._extract_smil_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self.report_warning(bug_reports_message(
+                "Ignoring subtitle tracks found in the SMIL manifest; "
+                "if any subtitle tracks are missing,"
+            ))
+        return fmts
 
     def _extract_smil_info(self, smil_url, video_id, fatal=True, f4m_params=None):
         smil = self._download_smil(smil_url, video_id, fatal=fatal)

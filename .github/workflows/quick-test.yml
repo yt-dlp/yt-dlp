@@ -11,8 +11,8 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.9
-    - name: Install nose
-      run: pip install nose
+    - name: Install test requirements
+      run: pip install nose pycryptodome
     - name: Run tests
       env:
         YTDL_TEST_SET: core

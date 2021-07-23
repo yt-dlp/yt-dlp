@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import io
+import itertools
 import os
 import subprocess
 import time
@@ -24,6 +25,7 @@ from ..utils import (
     process_communicate_or_kill,
     replace_extension,
     traverse_obj,
+    variadic,
 )
 
 
@@ -233,16 +235,16 @@ class FFmpegPostProcessor(PostProcessor):
             None)
         return num, len(streams)
 
-    def run_ffmpeg_multiple_files(self, input_paths, out_path, opts):
+    def run_ffmpeg_multiple_files(self, input_paths, out_path, opts, **kwargs):
         return self.real_run_ffmpeg(
             [(path, []) for path in input_paths],
-            [(out_path, opts)])
+            [(out_path, opts)], **kwargs)
 
-    def real_run_ffmpeg(self, input_path_opts, output_path_opts):
+    def real_run_ffmpeg(self, input_path_opts, output_path_opts, *, expected_retcodes=(0,)):
         self.check_version()
 
         oldest_mtime = min(
-            os.stat(encodeFilename(path)).st_mtime for path, _ in input_path_opts)
+            os.stat(encodeFilename(path)).st_mtime for path, _ in input_path_opts if path)
 
         cmd = [encodeFilename(self.executable, True), encodeArgument('-y')]
         # avconv does not have repeat option
@@ -261,23 +263,25 @@ class FFmpegPostProcessor(PostProcessor):
                 + [encodeFilename(self._ffmpeg_filename_argument(file), True)])
 
         for arg_type, path_opts in (('i', input_path_opts), ('o', output_path_opts)):
-            cmd += [arg for i, o in enumerate(path_opts)
-                    for arg in make_args(o[0], o[1], arg_type, i + 1)]
+            cmd += itertools.chain.from_iterable(
+                make_args(path, list(opts), arg_type, i + 1)
+                for i, (path, opts) in enumerate(path_opts) if path)
 
         self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdout, stderr = process_communicate_or_kill(p)
-        if p.returncode != 0:
+        if p.returncode not in variadic(expected_retcodes):
             stderr = stderr.decode('utf-8', 'replace').strip()
             if self.get_param('verbose', False):
                 self.report_error(stderr)
             raise FFmpegPostProcessorError(stderr.split('\n')[-1])
         for out_path, _ in output_path_opts:
-            self.try_utime(out_path, oldest_mtime, oldest_mtime)
+            if out_path:
+                self.try_utime(out_path, oldest_mtime, oldest_mtime)
         return stderr.decode('utf-8', 'replace')
 
-    def run_ffmpeg(self, path, out_path, opts):
-        return self.run_ffmpeg_multiple_files([path], out_path, opts)
+    def run_ffmpeg(self, path, out_path, opts, **kwargs):
+        return self.run_ffmpeg_multiple_files([path], out_path, opts, **kwargs)
 
     def _ffmpeg_filename_argument(self, fn):
         # Always use 'file:' because the filename may contain ':' (ffmpeg
@@ -526,6 +530,15 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
+
+    @staticmethod
+    def _options(target_ext):
+        yield from ('-map', '0', '-dn')
+        if target_ext == 'm4a':
+            yield from ('-vn', '-acodec', 'copy')
+        else:
+            yield from ('-c', 'copy')
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         metadata = {}
@@ -533,15 +546,9 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         def add(meta_list, info_list=None):
             if not meta_list:
                 return
-            if not info_list:
-                info_list = meta_list
-            if not isinstance(meta_list, (list, tuple)):
-                meta_list = (meta_list,)
-            if not isinstance(info_list, (list, tuple)):
-                info_list = (info_list,)
-            for info_f in info_list:
+            for info_f in variadic(info_list or meta_list):
                 if isinstance(info.get(info_f), (compat_str, compat_numeric_types)):
-                    for meta_f in meta_list:
+                    for meta_f in variadic(meta_list):
                         metadata[meta_f] = info[info_f]
                     break
 
@@ -570,22 +577,17 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         for key in filter(lambda k: k.startswith(prefix), info.keys()):
             add(key[len(prefix):], key)
 
-        if not metadata:
-            self.to_screen('There isn\'t any metadata to add')
-            return [], info
+        filename, metadata_filename = info['filepath'], None
+        options = [('-metadata', f'{name}={value}') for name, value in metadata.items()]
 
-        filename = info['filepath']
-        temp_filename = prepend_extension(filename, 'temp')
-        in_filenames = [filename]
-        options = ['-map', '0', '-dn']
-
-        if info['ext'] == 'm4a':
-            options.extend(['-vn', '-acodec', 'copy'])
-        else:
-            options.extend(['-c', 'copy'])
-
-        for name, value in metadata.items():
-            options.extend(['-metadata', '%s=%s' % (name, value)])
+        stream_idx = 0
+        for fmt in info.get('requested_formats') or []:
+            stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
+            if fmt.get('language'):
+                lang = ISO639Utils.short2long(fmt['language']) or fmt['language']
+                options.extend(('-metadata:s:%d' % (stream_idx + i), 'language=%s' % lang)
+                               for i in range(stream_count))
+            stream_idx += stream_count
 
         chapters = info.get('chapters', [])
         if chapters:
@@ -603,24 +605,29 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                     if chapter_title:
                         metadata_file_content += 'title=%s\n' % ffmpeg_escape(chapter_title)
                 f.write(metadata_file_content)
-                in_filenames.append(metadata_filename)
-                options.extend(['-map_metadata', '1'])
+                options.append(('-map_metadata', '1'))
 
         if ('no-attach-info-json' not in self.get_param('compat_opts', [])
                 and '__infojson_filename' in info and info['ext'] in ('mkv', 'mka')):
-            old_stream, new_stream = self.get_stream_number(
-                filename, ('tags', 'mimetype'), 'application/json')
+            old_stream, new_stream = self.get_stream_number(filename, ('tags', 'mimetype'), 'application/json')
             if old_stream is not None:
-                options.extend(['-map', '-0:%d' % old_stream])
+                options.append(('-map', '-0:%d' % old_stream))
                 new_stream -= 1
 
-            options.extend([
+            options.append((
                 '-attach', info['__infojson_filename'],
                 '-metadata:s:%d' % new_stream, 'mimetype=application/json'
-            ])
+            ))
 
-        self.to_screen('Adding metadata to \'%s\'' % filename)
-        self.run_ffmpeg_multiple_files(in_filenames, temp_filename, options)
+        if not options:
+            self.to_screen('There isn\'t any metadata to add')
+            return [], info
+
+        temp_filename = prepend_extension(filename, 'temp')
+        self.to_screen('Adding metadata to "%s"' % filename)
+        self.run_ffmpeg_multiple_files(
+            (filename, metadata_filename), temp_filename,
+            itertools.chain(self._options(info['ext']), *options))
         if chapters:
             os.remove(metadata_filename)
         os.remove(encodeFilename(filename))

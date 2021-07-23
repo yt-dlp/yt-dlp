@@ -120,12 +120,11 @@ def _format_ts(ts):
     Convert an MPEG PES timestamp into a WebVTT timestamp.
     This will lose sub-millisecond precision.
     """
-
-    ts = int((ts + 45) // 90)
-    ms , ts = divmod(ts, 1000)  # noqa: W504,E221,E222,E203
-    s  , ts = divmod(ts, 60)    # noqa: W504,E221,E222,E203
-    min, h  = divmod(ts, 60)    # noqa: W504,E221,E222
-    return '%02u:%02u:%02u.%03u' % (h, min, s, ms)
+    msec = int((ts + 45) // 90)
+    secs, msec = divmod(msec, 1000)
+    mins, secs = divmod(secs, 60)
+    hrs, mins = divmod(mins, 60)
+    return '%02u:%02u:%02u.%03u' % (hrs, mins, secs, msec)
 
 
 class Block(object):

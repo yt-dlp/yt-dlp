@@ -177,7 +177,7 @@ class HttpFD(FileDownloader):
                                 'status': 'finished',
                                 'downloaded_bytes': ctx.resume_len,
                                 'total_bytes': ctx.resume_len,
-                            })
+                            }, info_dict)
                             raise SucceedDownload()
                         else:
                             # The length does not match, we start the download over
@@ -310,7 +310,7 @@ class HttpFD(FileDownloader):
                     'eta': eta,
                     'speed': speed,
                     'elapsed': now - ctx.start_time,
-                })
+                }, info_dict)
 
                 if data_len is not None and byte_counter == data_len:
                     break
@@ -357,7 +357,7 @@ class HttpFD(FileDownloader):
                 'filename': ctx.filename,
                 'status': 'finished',
                 'elapsed': time.time() - ctx.start_time,
-            })
+            }, info_dict)
 
             return True
 

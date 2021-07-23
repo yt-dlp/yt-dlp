@@ -20,6 +20,7 @@ from .compat import (
     compat_getpass,
     workaround_optparse_bug9161,
 )
+from .cookies import SUPPORTED_BROWSERS
 from .utils import (
     DateRange,
     decodeOption,
@@ -242,6 +243,12 @@ def _real_main(argv=None):
         if opts.convertthumbnails not in FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS:
             parser.error('invalid thumbnail format specified')
 
+    if opts.cookiesfrombrowser is not None:
+        opts.cookiesfrombrowser = [
+            part.strip() or None for part in opts.cookiesfrombrowser.split(':', 1)]
+        if opts.cookiesfrombrowser[0] not in SUPPORTED_BROWSERS:
+            parser.error('unsupported browser specified for cookies')
+
     if opts.date is not None:
         date = DateRange.day(opts.date)
     else:
@@ -413,6 +420,13 @@ def _real_main(argv=None):
             'key': 'FFmpegThumbnailsConvertor',
             'format': opts.convertthumbnails,
             # Run this before the actual video download
+            'when': 'before_dl'
+        })
+    # Must be after all other before_dl
+    if opts.exec_before_dl_cmd:
+        postprocessors.append({
+            'key': 'ExecAfterDownload',
+            'exec_cmd': opts.exec_before_dl_cmd,
             'when': 'before_dl'
         })
     if opts.extractaudio:
@@ -621,6 +635,7 @@ def _real_main(argv=None):
         'break_on_reject': opts.break_on_reject,
         'skip_playlist_after_errors': opts.skip_playlist_after_errors,
         'cookiefile': opts.cookiefile,
+        'cookiesfrombrowser': opts.cookiesfrombrowser,
         'nocheckcertificate': opts.no_check_certificate,
         'prefer_insecure': opts.prefer_insecure,
         'proxy': opts.proxy,
