@@ -1,4 +1,5 @@
 {
+    "check_formats": false,
     "consoletitle": false,
     "continuedl": true,
     "forcedescription": false,
