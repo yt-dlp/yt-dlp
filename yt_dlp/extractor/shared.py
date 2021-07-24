@@ -90,16 +90,16 @@ class VivoIE(SharedBaseIE):
     _FILE_NOT_FOUND = '>The file you have requested does not exists or has been removed'
 
     _TESTS = [{
-        'url': 'http://vivo.sx/d7ddda0e78',
-        'md5': '15b3af41be0b4fe01f4df075c2678b2c',
+        'url': 'https://vivo.sx/cf2137f496',
+        'md5': '2d480987d6005975b7669d215672dc76',
         'info_dict': {
-            'id': 'd7ddda0e78',
+            'id': 'cf2137f496',
             'ext': 'mp4',
-            'title': 'Chicken',
-            'filesize': 515659,
+            'title': 'Big Buck Bunny',
+            'filesize': 111370000,
         },
     }, {
-        'url': 'http://vivo.st/d7ddda0e78',
+        'url': 'http://vivo.st/cf2137f496',
         'only_matching': True,
     }]
 
