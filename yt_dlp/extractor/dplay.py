@@ -367,3 +367,41 @@ class HGTVDeIE(DPlayIE):
         display_id = self._match_id(url)
         return self._get_disco_api_info(
             url, display_id, 'eu1-prod.disco-api.com', 'hgtv', 'de')
+    
+class ScienceChannelIE(DPlayIE):
+    _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.sciencechannel.com/video/strangest-things-science-atve-us/nazi-mystery-machine',
+        'info_dict': {
+            'id': '2842849',
+            'display_id': 'strangest-things-science-atve-us/nazi-mystery-machine',
+            'ext': 'mp4',
+            'title': 'Nazi Mystery Machine',
+            'description': 'Experts investigate the secrets of a revolutionary encryption machine.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers['x-disco-client'] = 'WEB:UNKNOWN:sci:15.0.0'
+
+    def _download_video_playback_info(self, disco_base, video_id, headers):
+        return self._download_json(
+            disco_base + 'playback/v3/videoPlaybackInfo',
+            video_id, headers=headers, data=json.dumps({
+                'deviceInfo': {
+                    'adBlocker': False,
+                },
+                'videoId': video_id,
+                'wisteriaProperties': {
+                    'platform': 'desktop',
+                    'product': 'sci',
+                },
+            }).encode('utf-8'))['data']['attributes']['streaming']
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        return self._get_disco_api_info(
+            url, display_id, 'us1-prod-direct.sciencechannel.com', 'go', 'us')
