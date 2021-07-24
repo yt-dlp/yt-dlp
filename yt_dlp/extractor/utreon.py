@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
+    dict_get,
     int_or_none,
     str_or_none,
     try_get,
@@ -66,6 +67,8 @@ class UtreonIE(InfoExtractor):
         'video_480p_url': 480,
         'video_720p_url': 720,
         'video_1080p_url': 1080,
+        'video_1440p_url': 1440,
+        'video_2160p_url': 2160,
     }
 
     def _real_extract(self, url):
@@ -75,15 +78,12 @@ class UtreonIE(InfoExtractor):
             video_id)
         videos_json = json_data['videos']
         formats = [{
-            'url': videos_json[format_key],
+            'url': format_url,
             'format_id': '%dp' % self._formats[format_key],
             'height': self._formats[format_key],
-        } for format_key in list(videos_json.keys())]
+        } for format_key, format_url in videos_json.items() if url_or_none(format_url)]
         self._sort_formats(formats)
-        thumbnail = url_or_none(json_data.get('cover_image_url'))\
-            if url_or_none(json_data.get('cover_image_url'))\
-            else url_or_none(json_data.get('preview_image_url'))
-
+        thumbnail = url_or_none(dict_get(json_data, ('cover_image_url', 'preview_image_url')))
         return {
             'id': video_id,
             'title': json_data['title'],
