@@ -2395,7 +2395,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_age_gated_player_response(self, client, video_id, ytcfg, identity_token, player_url, initial_pr):
         # get_video_info endpoint seems to be completely dead
-        gvi_client = None # self._YT_CLIENTS.get(f'_{client}_agegate')
+        gvi_client = None  # self._YT_CLIENTS.get(f'_{client}_agegate')
         if gvi_client:
             pr = self._parse_json(traverse_obj(
                 compat_parse_qs(self._download_webpage(
