@@ -60,17 +60,6 @@ class UtreonIE(InfoExtractor):
         }},
     ]
 
-    _formats = {
-        'video_144p_url': 144,
-        'video_240p_url': 240,
-        'video_360p_url': 360,
-        'video_480p_url': 480,
-        'video_720p_url': 720,
-        'video_1080p_url': 1080,
-        'video_1440p_url': 1440,
-        'video_2160p_url': 2160,
-    }
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         json_data = self._download_json(
@@ -79,8 +68,8 @@ class UtreonIE(InfoExtractor):
         videos_json = json_data['videos']
         formats = [{
             'url': format_url,
-            'format_id': '%dp' % self._formats[format_key],
-            'height': self._formats[format_key],
+            'format_id': format_key.split('_')[1],
+            'height': int(format_key.split('_')[1][:-1]),
         } for format_key, format_url in videos_json.items() if url_or_none(format_url)]
         self._sort_formats(formats)
         thumbnail = url_or_none(dict_get(json_data, ('cover_image_url', 'preview_image_url')))
