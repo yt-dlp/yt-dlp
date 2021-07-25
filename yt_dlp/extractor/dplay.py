@@ -367,7 +367,7 @@ class HGTVDeIE(DPlayIE):
         display_id = self._match_id(url)
         return self._get_disco_api_info(
             url, display_id, 'eu1-prod.disco-api.com', 'hgtv', 'de')
-    
+
 class ScienceChannelIE(DPlayIE):
     _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayIE._PATH_REGEX
     _TESTS = [{
