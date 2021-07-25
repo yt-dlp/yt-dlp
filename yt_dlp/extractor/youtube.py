@@ -465,10 +465,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     # clients starting with _ cannot be explicity requested by the user
     _YT_CLIENTS = {
-        'web': 'WEB',
-        'web_music': 'WEB_REMIX',
-        '_web_embedded': 'WEB_EMBEDDED_PLAYER',
-        '_web_agegate': 'TVHTML5',
         'android': 'ANDROID',
         'android_music': 'ANDROID_MUSIC',
         '_android_embedded': 'ANDROID_EMBEDDED_PLAYER',
@@ -477,7 +473,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'ios_music': 'IOS_MUSIC',
         '_ios_embedded': 'IOS_MESSAGES_EXTENSION',
         '_ios_agegate': 'IOS',
-        'mweb': 'MWEB'
+        'web': 'WEB',
+        'web_music': 'WEB_REMIX',
+        '_web_embedded': 'WEB_EMBEDDED_PLAYER',
+        '_web_agegate': 'TVHTML5',
+        'mweb': 'MWEB',
     }
 
     def _get_default_ytcfg(self, client='WEB'):
@@ -2445,8 +2445,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             identity_token, player_url, initial_pr)
 
     def _get_requested_clients(self, url, smuggled_data):
-        requested_clients = [client for client in self._configuration_arg('player_client')
-                             if client[:0] != '_' and client in self._YT_CLIENTS]
+        requested_clients = []
+        allowed_clients = [client for client in self._YT_CLIENTS.keys() if client[:1] != '_']
+        for client in self._configuration_arg('player_client'):
+            if client in allowed_clients:
+                requested_clients.append(client)
+            elif client == 'all':
+                requested_clients.extend(allowed_clients)
+            else:
+                self.report_warning(f'Skipping unsupported client {client}')
         if not requested_clients:
             requested_clients = ['android', 'web']
 

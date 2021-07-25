@@ -75,7 +75,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
     * All Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) supports downloading multiple pages of content
     * Search (`ytsearch:`, `ytsearchdate:`), search URLs and in-channel search works
     * Mixes supports downloading multiple pages of content
-    * Partial workarounds for age-gate and throttling issues
+    * Partial workaround for throttling issue
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
     * `255kbps` audio is extracted from youtube music if premium cookies are given
     * Youtube music Albums, channels etc can be downloaded
@@ -1354,7 +1354,7 @@ Some extractors accept additional arguments which can be passed using `--extract
 The following extractors use this feature:
 * **youtube**
     * `skip`: `hls` or `dash` (or both) to skip download of the respective manifests
-    * `player_client`: Clients to extract video data from - one or more of `web`, `android`, `ios`, `web_music`, `android_music`, `ios_music`. By default, `android,web` is used. If the URL is from `music.youtube.com`, `android,web,android_music,web_music` is used
+    * `player_client`: Clients to extract video data from - one or more of `web`, `android`, `ios`, `web_music`, `android_music`, `ios_music` or `all`. By default, `android,web` is used. If the URL is from `music.youtube.com`, `android,web,android_music,web_music` is used
     * `player_skip`: `configs` - skip any requests for client configs and use defaults
     * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side).
     * `max_comments`: maximum amount of comments to download (default all).

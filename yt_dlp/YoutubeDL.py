@@ -3069,7 +3069,7 @@ class YoutubeDL(object):
                         format_field(f, 'language', '[%s]'),
                         format_field(f, 'format_note'),
                         format_field(f, 'container', ignore=(None, f.get('ext'))),
-                        format_field(f, 'asr', '%5dHz')))),
+                    ))),
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
             header_line = ['ID', 'EXT', 'RESOLUTION', 'FPS', '|', ' FILESIZE', '  TBR', 'PROTO',
                            '|', 'VCODEC', '  VBR', 'ACODEC', ' ABR', ' ASR', 'MORE INFO']

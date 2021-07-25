@@ -37,7 +37,7 @@ class BiliBiliIE(InfoExtractor):
                                 video/[aA][vV]|
                                 anime/(?P<anime_id>\d+)/play\#
                             )(?P<id>\d+)|
-                            video/[bB][vV](?P<id_bv>[^/?#&]+)
+                            (s/)?video/[bB][vV](?P<id_bv>[^/?#&]+)
                         )
                         (?:/?\?p=(?P<page>\d+))?
                     '''

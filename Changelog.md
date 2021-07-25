@@ -18,6 +18,20 @@
 
 -->
 
+
+### 2021.07.24
+
+* [youtube:tab] Extract video duration early
+* [downloader] Pass `info_dict` to `progress_hook`s
+* [youtube] Fix age-gated videos for API clients when cookies are supplied by [colethedj](https://github.com/colethedj)
+* [youtube] Disable `get_video_info` age-gate workaround - This endpoint seems to be completely dead
+* [youtube] Try all clients even if age-gated
+* [youtube] Fix subtitles only being extracted from the first client
+* [youtube] Simplify `_get_text`
+* [cookies] bugfix for microsoft edge on macOS
+* [cookies] Handle `sqlite` `ImportError` gracefully by [mbway](https://github.com/mbway)
+* [cookies] Handle errors when importing `keyring`
+
 ### 2021.07.21
 
 * **Add option `--cookies-from-browser`** to load cookies from a browser by [mbway](https://github.com/mbway)
@@ -53,6 +67,7 @@
 * [youtube:tab] Fix channels tab
 * [youtube:tab] Extract playlist availability by [colethedj](https://github.com/colethedj)
 * **[youtube:comments] Move comment extraction to new API** by [colethedj](https://github.com/colethedj)
+    * Adds extractor-args `comment_sort` (`top`/`new`), `max_comments`, `max_comment_depth`
 * [youtube:comments] Fix `is_favorited`, improve `like_count` parsing by [colethedj](https://github.com/colethedj)
 * [BravoTV] Improve metadata extraction by [kevinoconnor7](https://github.com/kevinoconnor7)
 * [crunchyroll:playlist] Force http
