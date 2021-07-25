@@ -477,7 +477,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'web_music': 'WEB_REMIX',
         '_web_embedded': 'WEB_EMBEDDED_PLAYER',
         '_web_agegate': 'TVHTML5',
-        'mweb': 'MWEB',
+        'mobile_web': 'MWEB',
     }
 
     def _get_default_ytcfg(self, client='WEB'):
