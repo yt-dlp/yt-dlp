@@ -439,7 +439,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 }
             },
             'INNERTUBE_CONTEXT_CLIENT_NAME': 66
-        }
+        },
+        'MWEB': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'MWEB',
+            'INNERTUBE_CLIENT_VERSION': '2.20210721.07.00',
+            'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'MWEB',
+                    'clientVersion': '2.20210721.07.00',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 2
+        },
     }
 
     _YT_DEFAULT_INNERTUBE_HOSTS = {
@@ -463,6 +477,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'web_music': 'WEB_REMIX',
         '_web_embedded': 'WEB_EMBEDDED_PLAYER',
         '_web_agegate': 'TVHTML5',
+        'mobile_web': 'MWEB',
     }
 
     def _get_default_ytcfg(self, client='WEB'):
