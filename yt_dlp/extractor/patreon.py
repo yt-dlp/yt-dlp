@@ -195,13 +195,21 @@ class PatreonUserIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
-        'only_matching': True
+        'info_dict': {
+            'title': 'dissonancepod',
+        },
+        'playlist_mincount': 68,
+        'expected_warnings': 'Post not viewable by current user! Skipping!',
     }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True
-    }]
+    }, ]
 
-    def get_entries(self, campaign_id, user_id):
+    @classmethod
+    def suitable(cls, url):
+        return False if PatreonIE.suitable(url) else super(PatreonUserIE, cls).suitable(url)
+
+    def _entries(self, campaign_id, user_id):
         cursor = None
         params = {
             'fields[campaign]': 'show_audio_post_download_links,name,url',
@@ -216,24 +224,16 @@ class PatreonUserIE(InfoExtractor):
         for page in itertools.count(1):
 
             params.update({'page[cursor]': cursor} if cursor else {})
-            posts_json = self._download_json('https://www.patreon.com/api/posts', user_id, note='Downloading posts page [%d]' % page, query=params)
+            posts_json = self._download_json('https://www.patreon.com/api/posts', user_id, note='Downloading posts page %d' % page, query=params)
 
             cursor = try_get(posts_json, lambda x: x['meta']['pagination']['cursors']['next'])
-            data = try_get(posts_json, lambda x: x['data'])
 
-            if data is not None:
-                for post in data:
+            for post in posts_json.get('data') or []:
+                if not try_get(post, lambda x: x['attributes']['current_user_can_view']):
+                    self.report_warning('Post not viewable by current user! Skipping!')
+                    continue
 
-                    # self.to_screen(post)
-                    if not post['attributes']['current_user_can_view']:
-                        self.report_warning('Post not viewable by current user! Skipping!')
-                        continue
-
-                    yield {
-                        '_type': 'url',
-                        'url': url_or_none(try_get(post, lambda x: x['attributes']['patreon_url'])),
-                        'ie_key': 'Patreon',
-                    }
+                yield self.url_result(url_or_none(try_get(post, lambda x: x['attributes']['patreon_url'])), 'Patreon')
 
             if cursor is None:
                 break
@@ -244,8 +244,4 @@ class PatreonUserIE(InfoExtractor):
         webpage = self._download_webpage(url, user_id)
         campaign_id = self._search_regex(r'https://www.patreon.com/api/campaigns/(\d+)/?', webpage, 'Campaign ID')
 
-        return {
-            '_type': 'playlist',
-            'entries': self.get_entries(campaign_id, user_id),
-            'title': user_id,
-        }
+        return self.playlist_result(self._entries(campaign_id, user_id), playlist_title=user_id)
