@@ -963,7 +963,10 @@ from .palcomp3 import (
 from .pandoratv import PandoraTVIE
 from .parliamentliveuk import ParliamentLiveUKIE
 from .parlview import ParlviewIE
-from .patreon import PatreonIE
+from .patreon import (
+    PatreonIE,
+    PatreonUserIE
+)
 from .pbs import PBSIE
 from .pearvideo import PearVideoIE
 from .peertube import PeerTubeIE
