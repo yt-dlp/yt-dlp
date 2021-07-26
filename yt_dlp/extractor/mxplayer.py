@@ -118,7 +118,7 @@ class MxplayerIE(InfoExtractor):
             elif stream_type == 'hls':
                 formats.extend(self._extract_m3u8_formats(
                     format_url, video_id, fatal=False,
-                    m3u8_id='hls-%s' % quality, quality=get_quality(quality)))
+                    m3u8_id='hls-%s' % quality, quality=get_quality(quality), ext='mp4'))
 
         self._sort_formats(formats)
         return {
