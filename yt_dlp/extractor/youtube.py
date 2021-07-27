@@ -2463,7 +2463,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return pr
             self.report_warning('Falling back to embedded-only age-gate workaround')
 
-        if not self._YT_CLIENTS.get(f'_{client}_agegate'):
+        if not self._YT_CLIENTS.get(f'_{client}_embedded'):
             return
         embed_webpage = None
         if client == 'web' and 'configs' not in self._configuration_arg('player_skip'):
