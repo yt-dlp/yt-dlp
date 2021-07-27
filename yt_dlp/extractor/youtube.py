@@ -1105,7 +1105,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _AGE_GATE_REASONS = (
         'Sign in to confirm your age',
         'This video may be inappropriate for some users.',
-        'Sorry, this content is age-restricted.')
+        'Sorry, this content is age-restricted.',
+        'This video is age-restricted and only available on YouTube.')
 
     _GEO_BYPASS = False
 
@@ -2480,10 +2481,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         embedded_pr = self._parse_json(
             traverse_obj(ytcfg_age, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
             video_id=video_id)
+        embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
         embedded_ps_proceed = traverse_obj(embedded_pr,
                                            ('playabilityStatus', 'errorScreen', 'playerErrorMessageRenderer', 'proceedButton', 'buttonRenderer', 'text', 'simpleText'),
                                            expected_type=str) or ''
-        if embedded_ps_proceed == 'Watch on YouTube':
+        if embedded_ps_proceed == 'Watch on YouTube' and not (embedded_ps_reason in self._AGE_GATE_REASONS):
             return
         return self._extract_player_response(
             f'_{client}_agegate', video_id,
