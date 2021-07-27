@@ -2454,15 +2454,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_age_gated_player_response(self, client, video_id, ytcfg, identity_token, player_url, initial_pr):
         # get_video_info endpoint seems to be completely dead
-        gvi_client = None  # self._YT_CLIENTS.get(f'_{client}_agegate')
-        if gvi_client:
-            pr = self._parse_json(traverse_obj(
-                compat_parse_qs(self._download_webpage(
-                    self.http_scheme() + '//www.youtube.com/get_video_info', video_id,
-                    'Refetching age-gated %s info webpage' % gvi_client.lower(),
-                    'unable to download video info webpage', fatal=False,
-                    query=self._get_video_info_params(video_id, client=gvi_client))),
-                ('player_response', 0), expected_type=str) or '{}', video_id)
+        agegate_client = self._YT_CLIENTS.get(f'_{client}_agegate')
+        if agegate_client:
+            pr = self._extract_player_response(
+                f'_{client}_agegate', video_id, ytcfg,
+                {}, identity_token, player_url, initial_pr)
             if pr:
                 return pr
             self.report_warning('Falling back to embedded-only age-gate workaround')
@@ -2484,7 +2480,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if embedded_ps_reason in self._AGE_GATE_REASONS:
             return
         return self._extract_player_response(
-            f'_{client}_agegate', video_id,
+            f'_{client}_embedded', video_id,
             ytcfg_age or ytcfg, ytcfg_age if client == 'web' else {},
             identity_token, player_url, initial_pr)
 
