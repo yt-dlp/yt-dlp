@@ -2410,30 +2410,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'racyCheckOk': True
         }
 
-    @staticmethod
-    def _get_video_info_params(video_id, client='TVHTML5'):
-        GVI_CLIENTS = {
-            'ANDROID': {
-                'c': 'ANDROID',
-                'cver': '16.20',
-            },
-            'TVHTML5': {
-                'c': 'TVHTML5',
-                'cver': '6.20180913',
-            },
-            'IOS': {
-                'c': 'IOS',
-                'cver': '16.20'
-            }
-        }
-        query = {
-            'video_id': video_id,
-            'eurl': 'https://youtube.googleapis.com/v/' + video_id,
-            'html5': '1'
-        }
-        query.update(GVI_CLIENTS.get(client))
-        return query
-
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
@@ -2451,51 +2427,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             default_client=self._YT_CLIENTS[client],
             note='Downloading %s player API JSON' % client.replace('_', ' ').strip()
         ) or None
-
-    def _extract_age_gated_player_response(self, client, video_id, ytcfg, identity_token, player_url, initial_pr):
-        # get_video_info endpoint seems to be completely dead
-        """
-        gvi_client = None  # self._YT_CLIENTS.get(f'_{client}_agegate')
-        if gvi_client:
-            pr = self._parse_json(traverse_obj(
-                compat_parse_qs(self._download_webpage(
-                    self.http_scheme() + '//www.youtube.com/get_video_info', video_id,
-                    'Refetching age-gated %s info webpage' % gvi_client.lower(),
-                    'unable to download video info webpage', fatal=False,
-                    query=self._get_video_info_params(video_id, client=gvi_client))),
-                ('player_response', 0), expected_type=str) or '{}', video_id)
-            if pr:
-                return pr
-        """
-        agegate_client = self._YT_CLIENTS.get(f'_{client}_agegate')
-        if agegate_client:
-            pr = self._extract_player_response(
-                f'_{client}_agegate', video_id, ytcfg,
-                {}, identity_token, player_url, initial_pr)
-            if pr:
-                return pr
-            self.report_warning('Falling back to embedded-only age-gate workaround')
-
-        if not self._YT_CLIENTS.get(f'_{client}_embedded'):
-            return
-        embed_webpage = None
-        if client == 'web' and 'configs' not in self._configuration_arg('player_skip'):
-            embed_webpage = self._download_webpage(
-                'https://www.youtube.com/embed/%s?html5=1' % video_id,
-                video_id=video_id, note=f'Downloading age-gated {client} embed config')
-
-        ytcfg_age = self.extract_ytcfg(video_id, embed_webpage) or {}
-        # If we extracted the embed webpage, it'll tell us if we can view the video
-        embedded_pr = self._parse_json(
-            traverse_obj(ytcfg_age, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
-            video_id=video_id)
-        embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
-        if embedded_ps_reason in self._AGE_GATE_REASONS:
-            return
-        return self._extract_player_response(
-            f'_{client}_embedded', video_id,
-            ytcfg_age or ytcfg, ytcfg_age if client == 'web' else {},
-            identity_token, player_url, initial_pr)
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
@@ -2824,8 +2755,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for f in formats:
             if '&c=WEB&' in f['url'] and '&ratebypass=yes&' not in f['url']:  # throttled
                 f['source_preference'] = -10
-                note = f.get('format_note')
-                f['format_note'] = f'{note} (throttled)' if note else '(throttled)'
+                f['format_note'] = format_field(f, 'format_note', '%s ') + '(throttled)'
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
