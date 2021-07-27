@@ -2447,6 +2447,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return orderedSet(requested_clients)
 
+    def _extract_player_ytcfg(self, client, video_id):
+        url = {
+            'web_music': 'https://music.youtube.com',
+            'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1'
+        }.get(client)
+        if not url:
+            return {}
+        webpage = self._download_webpage(url, video_id, fatal=False, note=f'Downloading {client} config')
+        return self.extract_ytcfg(video_id, webpage) or {}
+
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, player_url, identity_token):
         initial_pr = None
         if webpage:
@@ -2464,16 +2474,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             if 'configs' not in self._configuration_arg('player_skip'):
-                if client == 'web_music':
-                    ytm_webpage = self._download_webpage(
-                        'https://music.youtube.com',
-                        video_id, fatal=False, note='Downloading remix client config')
-                    player_ytcfg = self.extract_ytcfg(video_id, ytm_webpage) or {}
-                elif client == 'web_embedded':
-                    embed_webpage = self._download_webpage(
-                        'https://www.youtube.com/embed/%s?html5=1' % video_id,
-                        video_id=video_id, note=f'Downloading age-gated {client} embed config')
-                    player_ytcfg = self.extract_ytcfg(video_id, embed_webpage) or {}
+                player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
+                if client == 'web_embedded':
                     # If we extracted the embed webpage, it'll tell us if we can view the video
                     embedded_pr = self._parse_json(
                         traverse_obj(player_ytcfg, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
