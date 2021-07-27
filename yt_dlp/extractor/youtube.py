@@ -2485,7 +2485,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         embedded_ps_proceed = traverse_obj(embedded_pr,
                                            ('playabilityStatus', 'errorScreen', 'playerErrorMessageRenderer', 'proceedButton', 'buttonRenderer', 'text', 'simpleText'),
                                            expected_type=str) or ''
-        if embedded_ps_proceed == 'Watch on YouTube' and not (embedded_ps_reason in self._AGE_GATE_REASONS):
+        if embedded_ps_proceed == 'Watch on YouTube' and not (embedded_ps_reason.strip() in self._AGE_GATE_REASONS):
             return
         return self._extract_player_response(
             f'_{client}_agegate', video_id,
