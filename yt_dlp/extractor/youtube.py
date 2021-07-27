@@ -511,16 +511,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_CLIENTS = {
         'android': 'ANDROID',
         'android_music': 'ANDROID_MUSIC',
-        '_android_embedded': 'ANDROID_EMBEDDED_PLAYER',
-        '_android_agegate': 'ANDROID_AGEGATE',
+        'android_embedded': 'ANDROID_EMBEDDED_PLAYER',
+        'android_agegate': 'ANDROID_AGEGATE',
         'ios': 'IOS',
         'ios_music': 'IOS_MUSIC',
-        '_ios_embedded': 'IOS_MESSAGES_EXTENSION',
-        '_ios_agegate': 'IOS_AGEGATE',
+        'ios_embedded': 'IOS_MESSAGES_EXTENSION',
+        'ios_agegate': 'IOS_AGEGATE',
         'web': 'WEB',
         'web_music': 'WEB_REMIX',
-        '_web_embedded': 'WEB_EMBEDDED_PLAYER',
-        '_web_agegate': 'WEB_AGEGATE',
+        'web_embedded': 'WEB_EMBEDDED_PLAYER',
+        'web_agegate': 'WEB_AGEGATE',
         'mobile_web': 'MWEB',
     }
 
@@ -2523,25 +2523,45 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
-        for client in clients:
+        original_clients = clients
+        clients = clients[::-1]
+        while clients:
+            client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
             if client == 'web' and initial_pr:
-                pr = initial_pr
-            else:
-                if client == 'web_music' and 'configs' not in self._configuration_arg('player_skip'):
+                yield initial_pr
+                continue
+
+            if 'configs' not in self._configuration_arg('player_skip'):
+                if client == 'web_music':
                     ytm_webpage = self._download_webpage(
                         'https://music.youtube.com',
                         video_id, fatal=False, note='Downloading remix client config')
                     player_ytcfg = self.extract_ytcfg(video_id, ytm_webpage) or {}
-                pr = self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr)
+                elif client == 'web_embedded':
+                    embed_webpage = self._download_webpage(
+                        'https://www.youtube.com/embed/%s?html5=1' % video_id,
+                        video_id=video_id, note=f'Downloading age-gated {client} embed config')
+                    player_ytcfg = self.extract_ytcfg(video_id, embed_webpage) or {}
+                    # If we extracted the embed webpage, it'll tell us if we can view the video
+                    embedded_pr = self._parse_json(
+                        traverse_obj(player_ytcfg, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
+                        video_id=video_id)
+                    embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
+                    if embedded_ps_reason in self._AGE_GATE_REASONS:
+                        self.report_warning(f'Youtube said: {embedded_ps_reason}')
+                        continue
+
+            pr = self._extract_player_response(
+                client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr)
             if pr:
                 yield pr
+
             if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
-                pr = self._extract_age_gated_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, identity_token, player_url, initial_pr)
-                if pr:
-                    yield pr
+                client = f'{client}_agegate'
+                if client in self._YT_CLIENTS and client not in original_clients:
+                    clients.append(client)
+
         # Android player_response does not have microFormats which are needed for
         # extraction of some data. So we return the initial_pr with formats
         # stripped out even if not requested by the user
