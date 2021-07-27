@@ -67,6 +67,137 @@ def parse_qs(url):
     return compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
 
 
+# any clients starting with _ cannot be explicity requested by the user
+INNERTUBE_CLIENTS = {
+    'web': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'WEB',
+                'clientVersion': '2.20210622.10.00',
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 1
+    },
+    'web_embedded': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'WEB_EMBEDDED_PLAYER',
+                'clientVersion': '1.20210620.0.1',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 56
+    },
+    'web_music': {
+        'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
+        'INNERTUBE_HOST': 'music.youtube.com',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'WEB_REMIX',
+                'clientVersion': '1.20210621.00.00',
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
+    },
+    'android': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID',
+                'clientVersion': '16.20',
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
+    },
+    'android_embedded': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_EMBEDDED_PLAYER',
+                'clientVersion': '16.20',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 55
+    },
+    'android_music': {
+        'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
+        'INNERTUBE_HOST': 'music.youtube.com',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_MUSIC',
+                'clientVersion': '4.32',
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
+    },
+    'ios': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'IOS',
+                'clientVersion': '16.20',
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 5
+    },
+    'ios_embedded': {
+        'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'IOS_MESSAGES_EXTENSION',
+                'clientVersion': '16.20',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 66
+    },
+    'ios_music': {
+        'INNERTUBE_API_KEY': 'AIzaSyDK3iBpDP9nHVTk2qL73FLJICfOC3c51Og',
+        'INNERTUBE_HOST': 'music.youtube.com',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'IOS_MUSIC',
+                'clientVersion': '4.32',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 26
+    },
+    'mweb': {
+        'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'MWEB',
+                'clientVersion': '2.20210721.07.00',
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 2
+    },
+}
+
+
+def build_innertube_clients():
+    base_clients = ('android', 'web', 'ios', 'mweb')
+    priority = qualities(base_clients[::-1])
+
+    for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
+        ytcfg.setdefault('INNERTUBE_API_KEY', 'AIzaSyDCU8hByM4DrUqRUYnGn3llEO78bcxq8')
+        ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
+        ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
+        ytcfg['priority'] = 10 * priority(client.split('_', 1)[0])
+
+        if client in base_clients:
+            INNERTUBE_CLIENTS[f'{client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
+            agegate_ytcfg['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
+            agegate_ytcfg['priority'] -= 1
+        elif client.endswith('_embedded'):
+            ytcfg['priority'] -= 2
+        else:
+            ytcfg['priority'] -= 3
+
+
+build_innertube_clients()
+
+
 class YoutubeBaseInfoExtractor(InfoExtractor):
     """Provide base functions for Youtube extractors"""
 
@@ -316,209 +447,18 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
-    _YT_DEFAULT_YTCFGS = {
-        'WEB': {
-            # TODO: Global key?
-            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'WEB',
-                    'clientVersion': '2.20210622.10.00',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 1
-        },
-        'WEB_AGEGATE': {
-            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'WEB',
-                    'clientVersion': '2.20210622.10.00',
-                    'clientScreen': 'EMBED',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 1
-        },
-        'WEB_REMIX': {
-            'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'WEB_REMIX',
-                    'clientVersion': '1.20210621.00.00',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 67
-        },
-        'WEB_EMBEDDED_PLAYER': {
-            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'WEB_EMBEDDED_PLAYER',
-                    'clientVersion': '1.20210620.0.1',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 56
-        },
-        'ANDROID': {
-            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'ANDROID',
-                    'clientVersion': '16.20',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 3
-        },
-        'ANDROID_AGEGATE': {
-            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'ANDROID',
-                    'clientVersion': '16.20',
-                    'clientScreen': 'EMBED',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 3
-        },
-        'ANDROID_EMBEDDED_PLAYER': {
-            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                    'clientVersion': '16.20',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 55
-        },
-        'ANDROID_MUSIC': {
-            'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'ANDROID_MUSIC',
-                    'clientVersion': '4.32',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 21
-        },
-        'IOS': {
-            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'IOS',
-                    'clientVersion': '16.20',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 5
-        },
-        'IOS_AGEGATE': {
-            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'IOS',
-                    'clientVersion': '16.20',
-                    'clientScreen': 'EMBED',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 5
-        },
-        'IOS_MUSIC': {
-            'INNERTUBE_API_KEY': 'AIzaSyDK3iBpDP9nHVTk2qL73FLJICfOC3c51Og',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'IOS_MUSIC',
-                    'clientVersion': '4.32',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 26
-        },
-        'IOS_MESSAGES_EXTENSION': {
-            'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'IOS_MESSAGES_EXTENSION',
-                    'clientVersion': '16.20',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 66
-        },
-        'MWEB': {
-            'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'MWEB',
-                    'clientVersion': '2.20210721.07.00',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 2
-        },
-        'MWEB_AGEGATE': {
-            'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
-            'INNERTUBE_CONTEXT': {
-                'client': {
-                    'clientName': 'MWEB',
-                    'clientVersion': '2.20210721.07.00',
-                    'clientScreen': 'EMBED',
-                    'hl': 'en',
-                }
-            },
-            'INNERTUBE_CONTEXT_CLIENT_NAME': 2
-        },
-    }
+    def _get_default_ytcfg(self, client='web'):
+        return copy.deepcopy(INNERTUBE_CLIENTS[client])
 
-    # TODO: Move into _YT_DEFAULT_YTCFGS
-    _YT_DEFAULT_INNERTUBE_HOSTS = {
-        'DIRECT': 'youtubei.googleapis.com',
-        'WEB': 'www.youtube.com',
-        'WEB_REMIX': 'music.youtube.com',
-        'ANDROID_MUSIC': 'music.youtube.com'
-    }
+    def _get_innertube_host(self, client='web'):
+        return INNERTUBE_CLIENTS[client]['INNERTUBE_HOST']
 
-    # any clients starting with _ cannot be explicity requested by the user
-    _YT_CLIENTS = {
-        'android': 'ANDROID',
-        'android_music': 'ANDROID_MUSIC',
-        'android_embedded': 'ANDROID_EMBEDDED_PLAYER',
-        'android_agegate': 'ANDROID_AGEGATE',
-        'ios': 'IOS',
-        'ios_music': 'IOS_MUSIC',
-        'ios_embedded': 'IOS_MESSAGES_EXTENSION',
-        'ios_agegate': 'IOS_AGEGATE',
-        'web': 'WEB',
-        'web_music': 'WEB_REMIX',
-        'web_embedded': 'WEB_EMBEDDED_PLAYER',
-        'web_agegate': 'WEB_AGEGATE',
-        'mweb': 'MWEB',
-        'mweb_agegate': 'MWEB_AGEGATE',
-    }
-
-    def _get_default_ytcfg(self, client='WEB'):
-        if client in self._YT_DEFAULT_YTCFGS:
-            return copy.deepcopy(self._YT_DEFAULT_YTCFGS[client])
-        self.write_debug(f'INNERTUBE default client {client} does not exist - falling back to WEB client.')
-        return copy.deepcopy(self._YT_DEFAULT_YTCFGS['WEB'])
-
-    def _get_innertube_host(self, client='WEB'):
-        return dict_get(self._YT_DEFAULT_INNERTUBE_HOSTS, (client, 'WEB'))
-
-    def _ytcfg_get_safe(self, ytcfg, getter, expected_type=None, default_client='WEB'):
+    def _ytcfg_get_safe(self, ytcfg, getter, expected_type=None, default_client='web'):
         # try_get but with fallback to default ytcfg client values when present
         _func = lambda y: try_get(y, getter, expected_type)
         return _func(ytcfg) or _func(self._get_default_ytcfg(default_client))
 
-    def _extract_client_name(self, ytcfg, default_client='WEB'):
+    def _extract_client_name(self, ytcfg, default_client='web'):
         return (
             try_get(ytcfg, lambda x: x['INNERTUBE_CLIENT_NAME'], compat_str)
             or self._ytcfg_get_safe(
@@ -531,16 +471,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             if session_index is not None:
                 return session_index
 
-    def _extract_client_version(self, ytcfg, default_client='WEB'):
+    def _extract_client_version(self, ytcfg, default_client='web'):
         return (
             try_get(ytcfg, lambda x: x['INNERTUBE_CLIENT_VERSION'], compat_str)
             or self._ytcfg_get_safe(
                 ytcfg, lambda x: x['INNERTUBE_CONTEXT']['client']['clientVersion'], compat_str, default_client))
 
-    def _extract_api_key(self, ytcfg=None, default_client='WEB'):
+    def _extract_api_key(self, ytcfg=None, default_client='web'):
         return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_API_KEY'], compat_str, default_client)
 
-    def _extract_context(self, ytcfg=None, default_client='WEB'):
+    def _extract_context(self, ytcfg=None, default_client='web'):
         _get_context = lambda y: try_get(y, lambda x: x['INNERTUBE_CONTEXT'], dict)
         context = _get_context(ytcfg)
         if context:
@@ -582,7 +522,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page',
-                  context=None, api_key=None, api_hostname=None, default_client='WEB'):
+                  context=None, api_key=None, api_hostname=None, default_client='web'):
 
         data = {'context': context} if context else {'context': self._extract_context(default_client=default_client)}
         data.update(query)
@@ -644,7 +584,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def generate_api_headers(
             self, ytcfg=None, identity_token=None, account_syncid=None,
-            visitor_data=None, api_hostname=None, default_client='WEB', session_index=None):
+            visitor_data=None, api_hostname=None, default_client='web', session_index=None):
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(default_client))
         headers = {
             'X-YouTube-Client-Name': compat_str(
@@ -789,7 +729,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
-                          default_client='WEB'):
+                          default_client='web'):
         response = None
         last_error = None
         count = -1
@@ -2403,20 +2343,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
         headers = self.generate_api_headers(
             player_ytcfg, identity_token, syncid,
-            default_client=self._YT_CLIENTS[client], session_index=session_index)
+            default_client=client, session_index=session_index)
 
         yt_query = {'videoId': video_id}
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=False,
-            default_client=self._YT_CLIENTS[client],
+            default_client=client,
             note='Downloading %s player API JSON' % client.replace('_', ' ').strip()
         ) or None
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        allowed_clients = [client for client in self._YT_CLIENTS.keys() if client[:1] != '_']
+        allowed_clients = sorted(
+            [client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'],
+            key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
             if client in allowed_clients:
                 requested_clients.append(client)
@@ -2455,6 +2397,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         while clients:
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
+            r'''  # This doesnt have thirdParty set - Remove?
             if 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
                 if client == 'web_embedded':
@@ -2466,6 +2409,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if embedded_ps_reason in self._AGE_GATE_REASONS:
                         self.report_warning(f'Youtube said: {embedded_ps_reason}')
                         continue
+            '''
 
             pr = (
                 initial_pr if client == 'web' and initial_pr
@@ -2476,7 +2420,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
                 client = f'{client}_agegate'
-                if client in self._YT_CLIENTS and client not in original_clients:
+                if client in INNERTUBE_CLIENTS and client not in original_clients:
                     clients.append(client)
 
         # Android player_response does not have microFormats which are needed for
