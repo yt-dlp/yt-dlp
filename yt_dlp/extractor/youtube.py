@@ -2480,9 +2480,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         embedded_pr = self._parse_json(
             traverse_obj(ytcfg_age, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
             video_id=video_id)
-        embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
-        if embedded_ps_reason in self._AGE_GATE_REASONS:
-            return
         embedded_ps_proceed = traverse_obj(embedded_pr,
                                            ('playabilityStatus', 'errorScreen', 'playerErrorMessageRenderer', 'proceedButton', 'buttonRenderer', 'text', 'simpleText'),
                                            expected_type=str) or ''
