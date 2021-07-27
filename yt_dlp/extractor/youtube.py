@@ -327,6 +327,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             },
             'INNERTUBE_CONTEXT_CLIENT_NAME': 1
         },
+        'WEB_AGEGATE': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'WEB',
+            'INNERTUBE_CLIENT_VERSION': '2.20210622.10.00',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'WEB',
+                    'clientVersion': '2.20210622.10.00',
+                    'clientScreen': 'EMBED',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 1
+        },
         'WEB_REMIX': {
             'INNERTUBE_API_VERSION': 'v1',
             'INNERTUBE_CLIENT_NAME': 'WEB_REMIX',
@@ -364,6 +379,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 'client': {
                     'clientName': 'ANDROID',
                     'clientVersion': '16.20',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 3
+        },
+        'ANDROID_AGEGATE': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'ANDROID',
+            'INNERTUBE_CLIENT_VERSION': '16.20',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'ANDROID',
+                    'clientVersion': '16.20',
+                    'clientScreen': 'EMBED',
                     'hl': 'en',
                 }
             },
@@ -410,7 +440,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 }
             },
             'INNERTUBE_CONTEXT_CLIENT_NAME': 5
-
+        },
+        'IOS_AGEGATE': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'IOS',
+            'INNERTUBE_CLIENT_VERSION': '16.20',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'IOS',
+                    'clientVersion': '16.20',
+                    'clientScreen': 'EMBED',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 5
         },
         'IOS_MUSIC': {
             'INNERTUBE_API_VERSION': 'v1',
@@ -454,6 +498,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             },
             'INNERTUBE_CONTEXT_CLIENT_NAME': 2
         },
+        'MWEB_AGEGATE': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'MWEB',
+            'INNERTUBE_CLIENT_VERSION': '2.20210721.07.00',
+            'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'MWEB',
+                    'clientVersion': '2.20210721.07.00',
+                    'clientScreen': 'EMBED',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 2
+        },
     }
 
     _YT_DEFAULT_INNERTUBE_HOSTS = {
@@ -467,17 +526,18 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_CLIENTS = {
         'android': 'ANDROID',
         'android_music': 'ANDROID_MUSIC',
-        '_android_embedded': 'ANDROID_EMBEDDED_PLAYER',
-        '_android_agegate': 'ANDROID',
+        'android_embedded': 'ANDROID_EMBEDDED_PLAYER',
+        'android_agegate': 'ANDROID_AGEGATE',
         'ios': 'IOS',
         'ios_music': 'IOS_MUSIC',
-        '_ios_embedded': 'IOS_MESSAGES_EXTENSION',
-        '_ios_agegate': 'IOS',
+        'ios_embedded': 'IOS_MESSAGES_EXTENSION',
+        'ios_agegate': 'IOS_AGEGATE',
         'web': 'WEB',
         'web_music': 'WEB_REMIX',
-        '_web_embedded': 'WEB_EMBEDDED_PLAYER',
-        '_web_agegate': 'TVHTML5',
-        'mobile_web': 'MWEB',
+        'web_embedded': 'WEB_EMBEDDED_PLAYER',
+        'web_agegate': 'WEB_AGEGATE',
+        'mweb': 'MWEB',
+        'mweb_agegate': 'MWEB_AGEGATE',
     }
 
     def _get_default_ytcfg(self, client='WEB'):
@@ -2366,30 +2426,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'racyCheckOk': True
         }
 
-    @staticmethod
-    def _get_video_info_params(video_id, client='TVHTML5'):
-        GVI_CLIENTS = {
-            'ANDROID': {
-                'c': 'ANDROID',
-                'cver': '16.20',
-            },
-            'TVHTML5': {
-                'c': 'TVHTML5',
-                'cver': '6.20180913',
-            },
-            'IOS': {
-                'c': 'IOS',
-                'cver': '16.20'
-            }
-        }
-        query = {
-            'video_id': video_id,
-            'eurl': 'https://youtube.googleapis.com/v/' + video_id,
-            'html5': '1'
-        }
-        query.update(GVI_CLIENTS.get(client))
-        return query
-
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
@@ -2407,42 +2443,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             default_client=self._YT_CLIENTS[client],
             note='Downloading %s player API JSON' % client.replace('_', ' ').strip()
         ) or None
-
-    def _extract_age_gated_player_response(self, client, video_id, ytcfg, identity_token, player_url, initial_pr):
-        # get_video_info endpoint seems to be completely dead
-        gvi_client = None  # self._YT_CLIENTS.get(f'_{client}_agegate')
-        if gvi_client:
-            pr = self._parse_json(traverse_obj(
-                compat_parse_qs(self._download_webpage(
-                    self.http_scheme() + '//www.youtube.com/get_video_info', video_id,
-                    'Refetching age-gated %s info webpage' % gvi_client.lower(),
-                    'unable to download video info webpage', fatal=False,
-                    query=self._get_video_info_params(video_id, client=gvi_client))),
-                ('player_response', 0), expected_type=str) or '{}', video_id)
-            if pr:
-                return pr
-            self.report_warning('Falling back to embedded-only age-gate workaround')
-
-        if not self._YT_CLIENTS.get(f'_{client}_embedded'):
-            return
-        embed_webpage = None
-        if client == 'web' and 'configs' not in self._configuration_arg('player_skip'):
-            embed_webpage = self._download_webpage(
-                'https://www.youtube.com/embed/%s?html5=1' % video_id,
-                video_id=video_id, note=f'Downloading age-gated {client} embed config')
-
-        ytcfg_age = self.extract_ytcfg(video_id, embed_webpage) or {}
-        # If we extracted the embed webpage, it'll tell us if we can view the video
-        embedded_pr = self._parse_json(
-            traverse_obj(ytcfg_age, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
-            video_id=video_id)
-        embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
-        if embedded_ps_reason in self._AGE_GATE_REASONS:
-            return
-        return self._extract_player_response(
-            f'_{client}_embedded', video_id,
-            ytcfg_age or ytcfg, ytcfg_age if client == 'web' else {},
-            identity_token, player_url, initial_pr)
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
@@ -2463,6 +2463,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return orderedSet(requested_clients)
 
+    def _extract_player_ytcfg(self, client, video_id):
+        url = {
+            'web_music': 'https://music.youtube.com',
+            'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1'
+        }.get(client)
+        if not url:
+            return {}
+        webpage = self._download_webpage(url, video_id, fatal=False, note=f'Downloading {client} config')
+        return self.extract_ytcfg(video_id, webpage) or {}
+
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, player_url, identity_token):
         initial_pr = None
         if webpage:
@@ -2470,30 +2480,40 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
-        for client in clients:
+        original_clients = clients
+        clients = clients[::-1]
+        while clients:
+            client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
-            if client == 'web' and initial_pr:
-                pr = initial_pr
-            else:
-                if client == 'web_music' and 'configs' not in self._configuration_arg('player_skip'):
-                    ytm_webpage = self._download_webpage(
-                        'https://music.youtube.com',
-                        video_id, fatal=False, note='Downloading remix client config')
-                    player_ytcfg = self.extract_ytcfg(video_id, ytm_webpage) or {}
-                pr = self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr)
+            if 'configs' not in self._configuration_arg('player_skip'):
+                player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
+                if client == 'web_embedded':
+                    # If we extracted the embed webpage, it'll tell us if we can view the video
+                    embedded_pr = self._parse_json(
+                        traverse_obj(player_ytcfg, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
+                        video_id=video_id)
+                    embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
+                    if embedded_ps_reason in self._AGE_GATE_REASONS:
+                        self.report_warning(f'Youtube said: {embedded_ps_reason}')
+                        continue
+
+            pr = (
+                initial_pr if client == 'web' and initial_pr
+                else self._extract_player_response(
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr))
             if pr:
                 yield pr
+
             if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
-                pr = self._extract_age_gated_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, identity_token, player_url, initial_pr)
-                if pr:
-                    yield pr
+                client = f'{client}_agegate'
+                if client in self._YT_CLIENTS and client not in original_clients:
+                    clients.append(client)
+
         # Android player_response does not have microFormats which are needed for
         # extraction of some data. So we return the initial_pr with formats
         # stripped out even if not requested by the user
         # See: https://github.com/yt-dlp/yt-dlp/issues/501
-        if initial_pr and 'web' not in clients:
+        if initial_pr and 'web' not in original_clients:
             initial_pr['streamingData'] = None
             yield initial_pr
 
