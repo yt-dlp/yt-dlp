@@ -176,6 +176,9 @@ INNERTUBE_CLIENTS = {
 
 
 def build_innertube_clients():
+    third_party = {
+        'embedUrl': 'https://google.com',  # Can be any valid URL
+    }
     base_clients = ('android', 'web', 'ios', 'mweb')
     priority = qualities(base_clients[::-1])
 
@@ -188,8 +191,10 @@ def build_innertube_clients():
         if client in base_clients:
             INNERTUBE_CLIENTS[f'{client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
             agegate_ytcfg['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
+            agegate_ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = third_party
             agegate_ytcfg['priority'] -= 1
         elif client.endswith('_embedded'):
+            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = third_party
             ytcfg['priority'] -= 2
         else:
             ytcfg['priority'] -= 3
