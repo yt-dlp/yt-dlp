@@ -176,6 +176,9 @@ INNERTUBE_CLIENTS = {
 
 
 def build_innertube_clients():
+    third_party = {
+        'embedUrl': 'https://google.com',  # Can be any valid URL
+    }
     base_clients = ('android', 'web', 'ios', 'mweb')
     priority = qualities(base_clients[::-1])
 
@@ -188,8 +191,10 @@ def build_innertube_clients():
         if client in base_clients:
             INNERTUBE_CLIENTS[f'{client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
             agegate_ytcfg['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
+            agegate_ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = third_party
             agegate_ytcfg['priority'] -= 1
         elif client.endswith('_embedded'):
+            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = third_party
             ytcfg['priority'] -= 2
         else:
             ytcfg['priority'] -= 3
@@ -1139,8 +1144,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'format': '141/bestaudio[ext=m4a]',
             },
         },
-        # Normal age-gate video (embed allowed)
+        # Age-gate videos. See https://github.com/yt-dlp/yt-dlp/pull/575#issuecomment-888837000
         {
+            'note': 'Embed allowed age-gate video',
             'url': 'https://youtube.com/watch?v=HtVdAasjOgU',
             'info_dict': {
                 'id': 'HtVdAasjOgU',
@@ -1154,6 +1160,51 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'upload_date': '20140605',
                 'age_limit': 18,
             },
+        },
+        {
+            'note': 'Age-gate video with embed allowed in public site',
+            'url': 'https://youtube.com/watch?v=HsUATh_Nc2U',
+            'info_dict': {
+                'id': 'HsUATh_Nc2U',
+                'ext': 'mp4',
+                'title': 'Godzilla 2 (Official Video)',
+                'description': 'md5:bf77e03fcae5529475e500129b05668a',
+                'upload_date': '20200408',
+                'uploader_id': 'FlyingKitty900',
+                'uploader': 'FlyingKitty',
+                'age_limit': 18,
+            },
+        },
+        {
+            'note': 'Age-gate video embedable only with clientScreen=EMBED',
+            'url': 'https://youtube.com/watch?v=Tq92D6wQ1mg',
+            'info_dict': {
+                'id': 'Tq92D6wQ1mg',
+                'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
+                'ext': 'mp4','upload_date': '20191227',
+                'uploader_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'uploader': 'Projekt Melody',
+                'description': 'md5:17eccca93a786d51bc67646756894066',
+                'age_limit': 18,
+            },
+        },
+        {
+            'note': 'Non-Agegated non-embeddable video',
+            'url': 'https://youtube.com/watch?v=MeJVWBSsPAY',
+            'info_dict': {
+                'id': 'MeJVWBSsPAY',
+                'ext': 'mp4',
+                'title': 'OOMPH! - Such Mich Find Mich (Lyrics)',
+                'uploader': 'Herr Lurik',
+                'uploader_id': 'st3in234',
+                'description': 'Fan Video. Music & Lyrics by OOMPH!.',
+                'upload_date': '20130730',
+            },
+        },
+        {
+            'note': 'Non-bypassable age-gated video',
+            'url': 'https://youtube.com/watch?v=Cr381pDsSsA',
+            'only_matching': True,
         },
         # video_info is None (https://github.com/ytdl-org/youtube-dl/issues/4421)
         # YouTube Red ad is not captured for creator
@@ -1323,6 +1374,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
+            'skip': 'Not multifeed anymore',
         },
         {
             # Multifeed video with comma in title (see https://github.com/ytdl-org/youtube-dl/issues/8536)
