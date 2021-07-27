@@ -327,6 +327,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             },
             'INNERTUBE_CONTEXT_CLIENT_NAME': 1
         },
+        'WEB_AGEGATE': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'WEB',
+            'INNERTUBE_CLIENT_VERSION': '2.20210622.10.00',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'WEB',
+                    'clientVersion': '2.20210622.10.00',
+                    'clientScreen': 'EMBED',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 1
+        },
         'WEB_REMIX': {
             'INNERTUBE_API_VERSION': 'v1',
             'INNERTUBE_CLIENT_NAME': 'WEB_REMIX',
@@ -364,6 +379,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 'client': {
                     'clientName': 'ANDROID',
                     'clientVersion': '16.20',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 3
+        },
+        'ANDROID_AGEGATE': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'ANDROID',
+            'INNERTUBE_CLIENT_VERSION': '16.20',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'ANDROID',
+                    'clientVersion': '16.20',
+                    'clientScreen': 'EMBED',
                     'hl': 'en',
                 }
             },
@@ -410,7 +440,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 }
             },
             'INNERTUBE_CONTEXT_CLIENT_NAME': 5
-
+        },
+        'IOS_AGEGATE': {
+            'INNERTUBE_API_VERSION': 'v1',
+            'INNERTUBE_CLIENT_NAME': 'IOS',
+            'INNERTUBE_CLIENT_VERSION': '16.20',
+            'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+            'INNERTUBE_CONTEXT': {
+                'client': {
+                    'clientName': 'IOS',
+                    'clientVersion': '16.20',
+                    'clientScreen': 'EMBED',
+                    'hl': 'en',
+                }
+            },
+            'INNERTUBE_CONTEXT_CLIENT_NAME': 5
         },
         'IOS_MUSIC': {
             'INNERTUBE_API_VERSION': 'v1',
@@ -468,15 +512,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'android': 'ANDROID',
         'android_music': 'ANDROID_MUSIC',
         '_android_embedded': 'ANDROID_EMBEDDED_PLAYER',
-        '_android_agegate': 'ANDROID',
+        '_android_agegate': 'ANDROID_AGEGATE',
         'ios': 'IOS',
         'ios_music': 'IOS_MUSIC',
         '_ios_embedded': 'IOS_MESSAGES_EXTENSION',
-        '_ios_agegate': 'IOS',
+        '_ios_agegate': 'IOS_AGEGATE',
         'web': 'WEB',
         'web_music': 'WEB_REMIX',
         '_web_embedded': 'WEB_EMBEDDED_PLAYER',
-        '_web_agegate': 'TVHTML5',
+        '_web_agegate': 'WEB_AGEGATE',
         'mobile_web': 'MWEB',
     }
 
@@ -2423,7 +2467,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return pr
             self.report_warning('Falling back to embedded-only age-gate workaround')
 
-        if not self._YT_CLIENTS.get(f'_{client}_embedded'):
+        if not self._YT_CLIENTS.get(f'_{client}_agegate'):
             return
         embed_webpage = None
         if client == 'web' and 'configs' not in self._configuration_arg('player_skip'):
@@ -2439,8 +2483,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
         if embedded_ps_reason in self._AGE_GATE_REASONS:
             return
+        embedded_ps_proceed = traverse_obj(embedded_pr,
+            ('playabilityStatus', 'errorScreen', 'playerErrorMessageRenderer', 'proceedButton', 'buttonRenderer', 'text', 'simpleText'), expected_type=str) or ''
+        if embedded_ps_proceed == 'Watch on YouTube':
+            return
         return self._extract_player_response(
-            f'_{client}_embedded', video_id,
+            f'_{client}_agegate', video_id,
             ytcfg_age or ytcfg, ytcfg_age if client == 'web' else {},
             identity_token, player_url, initial_pr)
 
