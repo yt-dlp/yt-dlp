@@ -2470,8 +2470,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
             if client == 'web' and initial_pr:
-                yield initial_pr
-                continue
+                pr = initial_pr
 
             if 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
