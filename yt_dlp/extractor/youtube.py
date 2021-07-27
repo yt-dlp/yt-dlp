@@ -69,23 +69,27 @@ def parse_qs(url):
 
 class YoutubeBaseInfoExtractor(InfoExtractor):
     """Provide base functions for Youtube extractors"""
-    _LOGIN_URL = 'https://accounts.google.com/ServiceLogin'
-    _TWOFACTOR_URL = 'https://accounts.google.com/signin/challenge'
-
-    _LOOKUP_URL = 'https://accounts.google.com/_/signin/sl/lookup'
-    _CHALLENGE_URL = 'https://accounts.google.com/_/signin/sl/challenge'
-    _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
 
     _RESERVED_NAMES = (
         r'channel|c|user|browse|playlist|watch|w|v|embed|e|watch_popup|shorts|'
         r'movies|results|shared|hashtag|trending|feed|feeds|oembed|get_video_info|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 
+    _PLAYLIST_ID_RE = r'(?:(?:PL|LL|EC|UU|FL|RD|UL|TL|PU|OLAK5uy_)[0-9A-Za-z-_]{10,}|RDMM|WL|LL|LM)'
+
     _NETRC_MACHINE = 'youtube'
+
     # If True it will raise an error if no login info is provided
     _LOGIN_REQUIRED = False
 
-    _PLAYLIST_ID_RE = r'(?:(?:PL|LL|EC|UU|FL|RD|UL|TL|PU|OLAK5uy_)[0-9A-Za-z-_]{10,}|RDMM|WL|LL|LM)'
+    r'''  # Unused since login is broken
+    _LOGIN_URL = 'https://accounts.google.com/ServiceLogin'
+    _TWOFACTOR_URL = 'https://accounts.google.com/signin/challenge'
+
+    _LOOKUP_URL = 'https://accounts.google.com/_/signin/sl/lookup'
+    _CHALLENGE_URL = 'https://accounts.google.com/_/signin/sl/challenge'
+    _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
+    '''
 
     def _login(self):
         """
@@ -314,9 +318,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _YT_DEFAULT_YTCFGS = {
         'WEB': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'WEB',
-            'INNERTUBE_CLIENT_VERSION': '2.20210622.10.00',
+            # TODO: Global key?
             'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -328,9 +330,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 1
         },
         'WEB_AGEGATE': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'WEB',
-            'INNERTUBE_CLIENT_VERSION': '2.20210622.10.00',
             'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -343,9 +342,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 1
         },
         'WEB_REMIX': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'WEB_REMIX',
-            'INNERTUBE_CLIENT_VERSION': '1.20210621.00.00',
             'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -357,9 +353,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 67
         },
         'WEB_EMBEDDED_PLAYER': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'WEB_EMBEDDED_PLAYER',
-            'INNERTUBE_CLIENT_VERSION': '1.20210620.0.1',
             'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -371,9 +364,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 56
         },
         'ANDROID': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'ANDROID',
-            'INNERTUBE_CLIENT_VERSION': '16.20',
             'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -385,9 +375,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 3
         },
         'ANDROID_AGEGATE': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'ANDROID',
-            'INNERTUBE_CLIENT_VERSION': '16.20',
             'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -400,9 +387,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 3
         },
         'ANDROID_EMBEDDED_PLAYER': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'ANDROID_EMBEDDED_PLAYER',
-            'INNERTUBE_CLIENT_VERSION': '16.20',
             'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -414,9 +398,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 55
         },
         'ANDROID_MUSIC': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'ANDROID_MUSIC',
-            'INNERTUBE_CLIENT_VERSION': '4.32',
             'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -428,9 +409,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 21
         },
         'IOS': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'IOS',
-            'INNERTUBE_CLIENT_VERSION': '16.20',
             'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -442,9 +420,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 5
         },
         'IOS_AGEGATE': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'IOS',
-            'INNERTUBE_CLIENT_VERSION': '16.20',
             'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -457,9 +432,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 5
         },
         'IOS_MUSIC': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'IOS_MUSIC',
-            'INNERTUBE_CLIENT_VERSION': '4.32',
             'INNERTUBE_API_KEY': 'AIzaSyDK3iBpDP9nHVTk2qL73FLJICfOC3c51Og',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -471,9 +443,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 26
         },
         'IOS_MESSAGES_EXTENSION': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'IOS_MESSAGES_EXTENSION',
-            'INNERTUBE_CLIENT_VERSION': '16.20',
             'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -485,9 +454,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 66
         },
         'MWEB': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'MWEB',
-            'INNERTUBE_CLIENT_VERSION': '2.20210721.07.00',
             'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -499,9 +465,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'INNERTUBE_CONTEXT_CLIENT_NAME': 2
         },
         'MWEB_AGEGATE': {
-            'INNERTUBE_API_VERSION': 'v1',
-            'INNERTUBE_CLIENT_NAME': 'MWEB',
-            'INNERTUBE_CLIENT_VERSION': '2.20210721.07.00',
             'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
             'INNERTUBE_CONTEXT': {
                 'client': {
@@ -515,6 +478,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         },
     }
 
+    # TODO: Move into _YT_DEFAULT_YTCFGS
     _YT_DEFAULT_INNERTUBE_HOSTS = {
         'DIRECT': 'youtubei.googleapis.com',
         'WEB': 'www.youtube.com',
@@ -522,7 +486,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'ANDROID_MUSIC': 'music.youtube.com'
     }
 
-    # clients starting with _ cannot be explicity requested by the user
+    # any clients starting with _ cannot be explicity requested by the user
     _YT_CLIENTS = {
         'android': 'ANDROID',
         'android_music': 'ANDROID_MUSIC',
@@ -555,7 +519,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return _func(ytcfg) or _func(self._get_default_ytcfg(default_client))
 
     def _extract_client_name(self, ytcfg, default_client='WEB'):
-        return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CLIENT_NAME'], compat_str, default_client)
+        return (
+            try_get(ytcfg, lambda x: x['INNERTUBE_CLIENT_NAME'], compat_str)
+            or self._ytcfg_get_safe(
+                ytcfg, lambda x: x['INNERTUBE_CONTEXT']['client']['clientName'], compat_str, default_client))
 
     @staticmethod
     def _extract_session_index(*data):
@@ -565,7 +532,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 return session_index
 
     def _extract_client_version(self, ytcfg, default_client='WEB'):
-        return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CLIENT_VERSION'], compat_str, default_client)
+        return (
+            try_get(ytcfg, lambda x: x['INNERTUBE_CLIENT_VERSION'], compat_str)
+            or self._ytcfg_get_safe(
+                ytcfg, lambda x: x['INNERTUBE_CONTEXT']['client']['clientVersion'], compat_str, default_client))
 
     def _extract_api_key(self, ytcfg=None, default_client='WEB'):
         return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_API_KEY'], compat_str, default_client)
@@ -2771,8 +2741,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for f in formats:
             if '&c=WEB&' in f['url'] and '&ratebypass=yes&' not in f['url']:  # throttled
                 f['source_preference'] = -10
-                note = f.get('format_note')
-                f['format_note'] = f'{note} (throttled)' if note else '(throttled)'
+                f['format_note'] = format_field(f, 'format_note', '%s ') + '(throttled)'
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
