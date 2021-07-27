@@ -2741,7 +2741,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for f in formats:
             if '&c=WEB&' in f['url'] and '&ratebypass=yes&' not in f['url']:  # throttled
                 f['source_preference'] = -10
-                f['format_note'] = format_field(f, 'format_note', '%s ') + '(throttled)'
+                # TODO: this method is not reliable
+                f['format_note'] = format_field(f, 'format_note', '%s ') + '(maybe throttled)'
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
