@@ -2469,9 +2469,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         while clients:
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
-            if client == 'web' and initial_pr:
-                pr = initial_pr
-
             if 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
                 if client == 'web_embedded':
@@ -2484,8 +2481,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         self.report_warning(f'Youtube said: {embedded_ps_reason}')
                         continue
 
-            pr = self._extract_player_response(
-                client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr)
+            pr = (
+                initial_pr if client == 'web' and initial_pr
+                else self._extract_player_response(
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr))
             if pr:
                 yield pr
 
@@ -2498,7 +2497,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # extraction of some data. So we return the initial_pr with formats
         # stripped out even if not requested by the user
         # See: https://github.com/yt-dlp/yt-dlp/issues/501
-        if initial_pr and 'web' not in clients:
+        if initial_pr and 'web' not in original_clients:
             initial_pr['streamingData'] = None
             yield initial_pr
 
