@@ -1105,8 +1105,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _AGE_GATE_REASONS = (
         'Sign in to confirm your age',
         'This video may be inappropriate for some users.',
-        'Sorry, this content is age-restricted.',
-        'This video is age-restricted and only available on YouTube.')
+        'Sorry, this content is age-restricted.')
 
     _GEO_BYPASS = False
 
