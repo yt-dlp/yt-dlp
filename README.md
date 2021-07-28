@@ -1,5 +1,5 @@
 <div align="center">
-
+<img src=".github/banner.png">
 # YT-DLP
 A command-line program to download videos from YouTube and many other [video platforms](supportedsites.md)
 
