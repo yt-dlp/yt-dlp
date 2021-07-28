@@ -1,6 +1,6 @@
 <div align="center">
 
-# [![YT-DLP](.github/banner.png)](#yt-dlp)
+# [![YT-DLP](.github/banner.png)](#readme)
 A command-line program to download videos from YouTube and many other [video platforms](supportedsites.md)
 
 <!-- GHA doesn't have for-the-badge style
