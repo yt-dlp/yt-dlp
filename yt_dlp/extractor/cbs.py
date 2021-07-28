@@ -137,7 +137,7 @@ class CBSIE(CBSBaseIE):
             elif asset_type in asset_types or 'HLS_FPS' in asset_type or 'DASH_CENC' in asset_type or 'OnceURL' in asset_type:
                 continue
             asset_types.append(asset_type)
-            if asset_type.startswith('HLS') or asset_type in ('OnceURL', 'StreamPack'):
+            if asset_type.startswith('HLS') or 'StreamPack' in asset_type:
                 query['formats'] = 'MPEG4,M3U'
             elif asset_type in ('RTMP', 'WIFI', '3G'):
                 query['formats'] = 'MPEG4,FLV'
