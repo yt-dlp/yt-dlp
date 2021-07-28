@@ -94,7 +94,7 @@ class CBSIE(CBSBaseIE):
                 # https://www.cbs.com/shows/the-late-show-with-stephen-colbert/video/60icOhMb9NcjbcWnF_gub9XXHdeBcNk2/the-late-show-6-23-21-christine-baranski-joy-oladokun- (Expired)
                 useXMLmetadata = False
                 asset_type = 'fallback'
-                formatList = ['M3U+none,MPEG4,M3U+appleHlsEncryption', 'MPEG4,M3U']
+                formatList = ['M3U+none,MPEG4,M3U+appleHlsEncryption,MP3', '']  # blank query to check if expired
                 currentIndex = 0
                 query['formats'] = formatList[currentIndex]
                 del query['assetTypes']
