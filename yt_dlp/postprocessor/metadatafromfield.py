@@ -55,7 +55,7 @@ class MetadataFromFieldPP(PostProcessor):
     def run(self, info):
         for dictn in self._data:
             tmpl, tmpl_dict = self._downloader.prepare_outtmpl(dictn['tmpl'], info)
-            data_to_parse = tmpl % tmpl_dict
+            data_to_parse = self._downloader.escape_outtmpl(tmpl) % tmpl_dict
             self.write_debug('Searching for r"%s" in %s' % (dictn['regex'], dictn['tmpl']))
             match = re.search(dictn['regex'], data_to_parse)
             if match is None:
