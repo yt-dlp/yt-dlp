@@ -78,16 +78,29 @@ class CBSIE(CBSBaseIE):
         asset_types = []
         subtitles = {}
         formats = []
+        useXMLmetadata = True
         last_e = None
         for item in items_data.findall('.//item'):
             asset_type = xpath_text(item, 'assetType')
-            if not asset_type or asset_type in asset_types or 'HLS_FPS' in asset_type or 'DASH_CENC' in asset_type:
-                continue
-            asset_types.append(asset_type)
             query = {
                 'mbr': 'true',
                 'assetTypes': asset_type,
             }
+            if not asset_type:
+                # fallback for content_ids that videoPlayerService doesn't return anything for
+                # Examples:
+                # https://www.paramountplus.com/shows/catdog/video/Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k/catdog-climb-every-catdog-the-canine-mutiny/
+                # https://www.paramountplus.com/shows/tooning-out-the-news/video/6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd/7-23-21-week-in-review-rep-jahana-hayes-howard-fineman-sen-michael-bennet-sheera-frenkel-cecilia-kang-/
+                # https://www.cbs.com/shows/the-late-show-with-stephen-colbert/video/60icOhMb9NcjbcWnF_gub9XXHdeBcNk2/the-late-show-6-23-21-christine-baranski-joy-oladokun- (Expired)
+                useXMLmetadata = False
+                asset_type = 'fallback'
+                formatList = ['M3U+none,MPEG4,M3U+appleHlsEncryption', 'MPEG4,M3U']
+                currentIndex = 0
+                query['formats'] = formatList[currentIndex]
+                del query['assetTypes']
+            if asset_type in asset_types or 'HLS_FPS' in asset_type or 'DASH_CENC' in asset_type or '':
+                continue
+            asset_types.append(asset_type)
             if asset_type.startswith('HLS') or asset_type in ('OnceURL', 'StreamPack'):
                 query['formats'] = 'MPEG4,M3U'
             elif asset_type in ('RTMP', 'WIFI', '3G'):
@@ -97,6 +110,11 @@ class CBSIE(CBSBaseIE):
                     update_url_query(tp_release_url, query), content_id,
                     'Downloading %s SMIL data' % asset_type)
             except ExtractorError as e:
+                if not useXMLmetadata and currentIndex + 1 is not len(formatList):
+                    query['formats'] = formatList[currentIndex + 1]
+                    tp_formats, tp_subtitles = self._extract_theplatform_smil(
+                        update_url_query(tp_release_url, query), content_id,
+                        'Downloading %s SMIL data, trying again with another format' % asset_type)
                 last_e = e
                 continue
             formats.extend(tp_formats)
@@ -107,16 +125,19 @@ class CBSIE(CBSBaseIE):
 
         info = self._extract_theplatform_metadata(tp_path, content_id)
         info.update({
-            'id': content_id,
-            'title': title,
-            'series': xpath_text(video_data, 'seriesTitle'),
-            'season_number': int_or_none(xpath_text(video_data, 'seasonNumber')),
-            'episode_number': int_or_none(xpath_text(video_data, 'episodeNumber')),
-            'duration': int_or_none(xpath_text(video_data, 'videoLength'), 1000),
-            'thumbnail': xpath_text(video_data, 'previewImageURL'),
             'formats': formats,
             'subtitles': subtitles,
+            'id': content_id
         })
+        if useXMLmetadata:
+            info.update({
+                'title': title,
+                'series': xpath_text(video_data, 'seriesTitle'),
+                'season_number': int_or_none(xpath_text(video_data, 'seasonNumber')),
+                'episode_number': int_or_none(xpath_text(video_data, 'episodeNumber')),
+                'duration': int_or_none(xpath_text(video_data, 'videoLength'), 1000),
+                'thumbnail': xpath_text(video_data, 'previewImageURL')
+            })
         return info
 
     def _real_extract(self, url):
