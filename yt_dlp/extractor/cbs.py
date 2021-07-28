@@ -53,6 +53,47 @@ class CBSIE(CBSBaseIE):
         },
         '_skip': 'Blocked outside the US',
     }, {
+        'url': 'https://www.paramountplus.com/shows/catdog/video/Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k/catdog-climb-every-catdog-the-canine-mutiny/',
+        'info_dict': {
+            'id': 'Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k',
+            'ext': 'mp4',
+            'title': 'CatDog - Climb Every CatDog/The Canine Mutiny',
+            'description': 'Cat sets out to beat his childhood rival, Mindy Wonderful, and be the first person to climb to the top of Mt. Nearburg.   While searching in the garbage for Cat\'s favorite spork, CatDog, Mervis, and Mr. Sunshine become stranded.',
+            'duration': 1418,
+            'timestamp': 920264400,
+            'upload_date': '19990301',
+            'uploader': 'CBSI-NEW',
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+        '_skip': 'Blocked outside the US',
+    }, {
+        'url': 'https://www.paramountplus.com/shows/tooning-out-the-news/video/6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd/7-23-21-week-in-review-rep-jahana-hayes-howard-fineman-sen-michael-bennet-sheera-frenkel-cecilia-kang-/',
+        'info_dict': {
+            'id': '6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd',
+            'ext': 'mp4',
+            'title': '7/23/21 WEEK IN REVIEW (Rep. Jahana Hayes/Howard Fineman/Sen. Michael Bennet/Sheera Frenkel & Cecilia Kang)',
+            'description': 'This week\'s top stories on Stephen Colbert Presents Tooning Out The News includes the bombshell investigation into Andrew Giuliani\'s small business "Giuliani Golf," Chuck Schumer\'s early infrastructure vote, Jeff Bezos\' Blue Origin space flight, Olympics COVID worries, and more. (TV-14 L)',
+            'duration': 2506,
+            'timestamp': 1627063200,
+            'upload_date': '20210723',
+            'uploader': 'CBSI-NEW',
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+        '_skip': 'Blocked outside the US',
+    }, {
+        'url': 'https://www.cbs.com/shows/the-late-show-with-stephen-colbert/video/60icOhMb9NcjbcWnF_gub9XXHdeBcNk2/the-late-show-6-23-21-christine-baranski-joy-oladokun-',
+        'info_dict': {
+            'id': '60icOhMb9NcjbcWnF_gub9XXHdeBcNk2',
+            'ext': 'mp4'
+        },
+        'expected_warnings': ['None of the available releases match the specified', 'This content expired on'],
+    }, {
         'url': 'http://colbertlateshow.com/video/8GmB0oY0McANFvp2aEffk9jZZZ2YyXxy/the-colbeard/',
         'only_matching': True,
     }, {
@@ -88,17 +129,12 @@ class CBSIE(CBSBaseIE):
             }
             if not asset_type:
                 # fallback for content_ids that videoPlayerService doesn't return anything for
-                # Examples:
-                # https://www.paramountplus.com/shows/catdog/video/Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k/catdog-climb-every-catdog-the-canine-mutiny/
-                # https://www.paramountplus.com/shows/tooning-out-the-news/video/6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd/7-23-21-week-in-review-rep-jahana-hayes-howard-fineman-sen-michael-bennet-sheera-frenkel-cecilia-kang-/
-                # https://www.cbs.com/shows/the-late-show-with-stephen-colbert/video/60icOhMb9NcjbcWnF_gub9XXHdeBcNk2/the-late-show-6-23-21-christine-baranski-joy-oladokun- (Expired)
                 useXMLmetadata = False
                 asset_type = 'fallback'
                 formatList = ['M3U+none,MPEG4,M3U+appleHlsEncryption,MP3', '']  # blank query to check if expired
-                currentIndex = 0
-                query['formats'] = formatList[currentIndex]
+                query['formats'] = formatList[0]
                 del query['assetTypes']
-            if asset_type in asset_types or 'HLS_FPS' in asset_type or 'DASH_CENC' in asset_type or '':
+            elif asset_type in asset_types or 'HLS_FPS' in asset_type or 'DASH_CENC' in asset_type or 'OnceURL' in asset_type:
                 continue
             asset_types.append(asset_type)
             if asset_type.startswith('HLS') or asset_type in ('OnceURL', 'StreamPack'):
@@ -110,8 +146,8 @@ class CBSIE(CBSBaseIE):
                     update_url_query(tp_release_url, query), content_id,
                     'Downloading %s SMIL data' % asset_type)
             except ExtractorError as e:
-                if not useXMLmetadata and currentIndex + 1 is not len(formatList):
-                    query['formats'] = formatList[currentIndex + 1]
+                if not useXMLmetadata:
+                    query['formats'] = formatList[1]
                     tp_formats, tp_subtitles = self._extract_theplatform_smil(
                         update_url_query(tp_release_url, query), content_id,
                         'Downloading %s SMIL data, trying again with another format' % asset_type)
