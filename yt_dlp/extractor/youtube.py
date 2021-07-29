@@ -2417,19 +2417,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         while clients:
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
-            r'''  # This doesnt have thirdParty set - Remove?
             if 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
-                if client == 'web_embedded':
-                    # If we extracted the embed webpage, it'll tell us if we can view the video
-                    embedded_pr = self._parse_json(
-                        traverse_obj(player_ytcfg, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
-                        video_id=video_id)
-                    embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
-                    if embedded_ps_reason in self._AGE_GATE_REASONS:
-                        self.report_warning(f'Youtube said: {embedded_ps_reason}')
-                        continue
-            '''
 
             pr = (
                 initial_pr if client == 'web' and initial_pr
