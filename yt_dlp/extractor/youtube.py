@@ -1121,7 +1121,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _AGE_GATE_REASONS = (
         'Sign in to confirm your age',
         'This video may be inappropriate for some users.',
-        'Sorry, this content is age-restricted.')
+        'Sorry, this content is age-restricted.',
+        'Please confirm your age.')
+
+    _AGE_GATE_STATUS_REASONS = (
+        'AGE_VERIFICATION_REQUIRED',
+        'AGE_CHECK_REQUIRED'
+    )
 
     _GEO_BYPASS = False
 
@@ -2430,6 +2436,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'racyCheckOk': True
         }
 
+    def _is_agegated(self, player_response):
+        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
+        for reason in reasons:
+            if reason in self._AGE_GATE_REASONS + self._AGE_GATE_STATUS_REASONS:
+                return True
+        if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')) is not None:
+            return True
+        return False
+
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
@@ -2491,15 +2506,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_ytcfg = master_ytcfg if client == 'web' else {}
             if 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
-                if client == 'web_embedded':
-                    # If we extracted the embed webpage, it'll tell us if we can view the video
-                    embedded_pr = self._parse_json(
-                        traverse_obj(player_ytcfg, ('PLAYER_VARS', 'embedded_player_response'), expected_type=str) or '{}',
-                        video_id=video_id)
-                    embedded_ps_reason = traverse_obj(embedded_pr, ('playabilityStatus', 'reason'), expected_type=str) or ''
-                    if embedded_ps_reason in self._AGE_GATE_REASONS:
-                        self.report_warning(f'Youtube said: {embedded_ps_reason}')
-                        continue
 
             pr = (
                 initial_pr if client == 'web' and initial_pr
@@ -2508,7 +2514,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pr:
                 yield pr
 
-            if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
+            if self._is_agegated(pr):
                 client = f'{client}_agegate'
                 if client in self._YT_CLIENTS and client not in original_clients:
                     clients.append(client)
