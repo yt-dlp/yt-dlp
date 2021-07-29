@@ -1581,7 +1581,7 @@ class AdobePassIE(InfoExtractor):
                     hidden_data['history'] = 1
 
                     provider_login_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending first bookend.',
+                        urlh.geturl(), video_id, 'Sending first bookend',
                         query=hidden_data)
 
                     provider_association_redirect, urlh = post_form(
@@ -1600,7 +1600,7 @@ class AdobePassIE(InfoExtractor):
                     hidden_data['history'] = 3
 
                     mvpd_confirm_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending final bookend.',
+                        urlh.geturl(), video_id, 'Sending final bookend',
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')

@@ -382,6 +382,9 @@ class FFmpegFD(ExternalFD):
         if not self.params.get('verbose'):
             args += ['-hide_banner']
 
+        args += info_dict.get('_ffmpeg_args', [])
+
+        # This option exists only for compatibility. Extractors should use `_ffmpeg_args` instead
         seekable = info_dict.get('_seekable')
         if seekable is not None:
             # setting -seekable prevents ffmpeg from guessing if the server

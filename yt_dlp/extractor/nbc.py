@@ -508,43 +508,79 @@ class NBCOlympicsIE(InfoExtractor):
 class NBCOlympicsStreamIE(AdobePassIE):
     IE_NAME = 'nbcolympics:stream'
     _VALID_URL = r'https?://stream\.nbcolympics\.com/(?P<id>[0-9a-z-]+)'
-    _TEST = {
-        'url': 'http://stream.nbcolympics.com/2018-winter-olympics-nbcsn-evening-feb-8',
-        'info_dict': {
-            'id': '203493',
-            'ext': 'mp4',
-            'title': 're:Curling, Alpine, Luge [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+    _TESTS = [
+        {
+            'note': 'Tokenized m3u8 source URL',
+            'url': 'https://stream.nbcolympics.com/womens-soccer-group-round-11',
+            'info_dict': {
+                'id': '2019740',
+                'ext': 'mp4',
+                'title': r"re:Women's Group Stage - Netherlands vs\. Brazil [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$",
+            },
+            'params': {
+                'skip_download': 'm3u8',
+            },
+        }, {
+            'note': 'Plain m3u8 source URL',
+            'url': 'https://stream.nbcolympics.com/gymnastics-event-finals-mens-floor-pommel-horse-womens-vault-bars',
+            'info_dict': {
+                'id': '2021729',
+                'ext': 'mp4',
+                'title': r're:Event Finals: M Floor, W Vault, M Pommel, W Uneven Bars [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            },
+            'params': {
+                'skip_download': 'm3u8',
+            },
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-    }
-    _DATA_URL_TEMPLATE = 'http://stream.nbcolympics.com/data/%s_%s.json'
+    ]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         pid = self._search_regex(r'pid\s*=\s*(\d+);', webpage, 'pid')
-        resource = self._search_regex(
-            r"resource\s*=\s*'(.+)';", webpage,
-            'resource').replace("' + pid + '", pid)
+
         event_config = self._download_json(
-            self._DATA_URL_TEMPLATE % ('event_config', pid),
-            pid)['eventConfig']
-        title = self._live_title(event_config['eventTitle'])
+            f'http://stream.nbcolympics.com/data/event_config_{pid}.json',
+            pid, 'Downloading event config')['eventConfig']
+
+        title = event_config['eventTitle']
+        is_live = {'live': True, 'replay': False}.get(event_config.get('eventStatus'))
+        if is_live:
+            title = self._live_title(title)
+
         source_url = self._download_json(
-            self._DATA_URL_TEMPLATE % ('live_sources', pid),
-            pid)['videoSources'][0]['sourceUrl']
-        media_token = self._extract_mvpd_auth(
-            url, pid, event_config.get('requestorId', 'NBCOlympics'), resource)
-        formats = self._extract_m3u8_formats(self._download_webpage(
-            'http://sp.auth.adobe.com/tvs/v1/sign', pid, query={
-                'cdn': 'akamai',
-                'mediaToken': base64.b64encode(media_token.encode()),
-                'resource': base64.b64encode(resource.encode()),
-                'url': source_url,
-            }), pid, 'mp4')
+            f'https://api-leap.nbcsports.com/feeds/assets/{pid}?application=NBCOlympics&platform=desktop&format=nbc-player&env=staging',
+            pid, 'Downloading leap config'
+        )['videoSources'][0]['cdnSources']['primary'][0]['sourceUrl']
+
+        if event_config.get('cdnToken'):
+            ap_resource = self._get_mvpd_resource(
+                event_config.get('resourceId', 'NBCOlympics'),
+                re.sub(r'[^\w\d ]+', '', event_config['eventTitle']), pid,
+                event_config.get('ratingId', 'NO VALUE'))
+            media_token = self._extract_mvpd_auth(url, pid, event_config.get('requestorId', 'NBCOlympics'), ap_resource)
+
+            source_url = self._download_json(
+                'https://tokens.playmakerservices.com/', pid, 'Retrieving tokenized URL',
+                data=json.dumps({
+                    'application': 'NBCSports',
+                    'authentication-type': 'adobe-pass',
+                    'cdn': 'akamai',
+                    'pid': pid,
+                    'platform': 'desktop',
+                    'requestorId': 'NBCOlympics',
+                    'resourceId': base64.b64encode(ap_resource.encode()).decode(),
+                    'token': base64.b64encode(media_token.encode()).decode(),
+                    'url': source_url,
+                    'version': 'v1',
+                }).encode(),
+            )['akamai'][0]['tokenizedUrl']
+
+        formats = self._extract_m3u8_formats(source_url, pid, 'mp4', live=is_live)
+        for f in formats:
+            # -http_seekable requires ffmpeg 4.3+ but it doesnt seem possible to
+            # download with ffmpeg without this option
+            f['_ffmpeg_args'] = ['-seekable', '0', '-http_seekable', '0', '-icy', '0']
         self._sort_formats(formats)
 
         return {
@@ -552,5 +588,5 @@ class NBCOlympicsStreamIE(AdobePassIE):
             'display_id': display_id,
             'title': title,
             'formats': formats,
-            'is_live': True,
+            'is_live': is_live,
         }
