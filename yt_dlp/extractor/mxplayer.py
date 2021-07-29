@@ -110,10 +110,15 @@ class MxplayerIE(InfoExtractor):
                 for frmt in dash_formats:
                     frmt['quality'] = get_quality(quality)
                 formats.extend(dash_formats)
+                dash_formats_h265 = self._extract_mpd_formats(
+                    format_url.replace('h264_high', 'h265_main'), video_id, mpd_id='dash-%s' % quality, headers={'Referer': url}, fatal=False)
+                for frmt in dash_formats_h265:
+                    frmt['quality'] = get_quality(quality)
+                formats.extend(dash_formats_h265)
             elif stream_type == 'hls':
                 formats.extend(self._extract_m3u8_formats(
                     format_url, video_id, fatal=False,
-                    m3u8_id='hls-%s' % quality, quality=get_quality(quality)))
+                    m3u8_id='hls-%s' % quality, quality=get_quality(quality), ext='mp4'))
 
         self._sort_formats(formats)
         return {
