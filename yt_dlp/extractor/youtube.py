@@ -2350,7 +2350,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_agegated(self, player_response):
         reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
         for reason in reasons:
-            if reason in self._AGE_GATE_REASONS+self._AGE_GATE_STATUS_REASONS:
+            if reason in self._AGE_GATE_REASONS + self._AGE_GATE_STATUS_REASONS:
                 return True
         if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')) is not None:
             return True
