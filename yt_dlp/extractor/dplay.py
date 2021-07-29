@@ -296,6 +296,35 @@ class DPlayIE(InfoExtractor):
             url, display_id, host, 'dplay' + country, country)
 
 
+class HGTVDeIE(DPlayIE):
+    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://de.hgtv.com/sendungen/tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette/',
+        'info_dict': {
+            'id': '151205',
+            'display_id': 'tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette',
+            'ext': 'mp4',
+            'title': 'Wer braucht schon eine Toilette',
+            'description': 'md5:05b40a27e7aed2c9172de34d459134e2',
+            'duration': 1177.024,
+            'timestamp': 1595705400,
+            'upload_date': '20200725',
+            'creator': 'HGTV',
+            'series': 'Tiny House - klein, aber oho',
+            'season_number': 3,
+            'episode_number': 3,
+        },
+        'params': {
+            'format': 'bestvideo',
+        },
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        return self._get_disco_api_info(
+            url, display_id, 'eu1-prod.disco-api.com', 'hgtv', 'de')
+
+
 class DiscoveryPlusIE(DPlayIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/video' + DPlayIE._PATH_REGEX
     _TESTS = [{
@@ -341,35 +370,6 @@ class DiscoveryPlusIE(DPlayIE):
         display_id = self._match_id(url)
         return self._get_disco_api_info(
             url, display_id, self._API_URL, 'go', 'us')
-
-
-class HGTVDeIE(DPlayIE):
-    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayIE._PATH_REGEX
-    _TESTS = [{
-        'url': 'https://de.hgtv.com/sendungen/tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette/',
-        'info_dict': {
-            'id': '151205',
-            'display_id': 'tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette',
-            'ext': 'mp4',
-            'title': 'Wer braucht schon eine Toilette',
-            'description': 'md5:05b40a27e7aed2c9172de34d459134e2',
-            'duration': 1177.024,
-            'timestamp': 1595705400,
-            'upload_date': '20200725',
-            'creator': 'HGTV',
-            'series': 'Tiny House - klein, aber oho',
-            'season_number': 3,
-            'episode_number': 3,
-        },
-        'params': {
-            'format': 'bestvideo',
-        },
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        return self._get_disco_api_info(
-            url, display_id, 'eu1-prod.disco-api.com', 'hgtv', 'de')
 
 
 class ScienceChannelIE(DiscoveryPlusIE):
