@@ -35,6 +35,7 @@ from .compat import (
     compat_kwargs,
     compat_numeric_types,
     compat_os_name,
+    compat_shlex_quote,
     compat_str,
     compat_tokenize_tokenize,
     compat_urllib_error,
@@ -108,6 +109,7 @@ from .utils import (
     try_get,
     UnavailableVideoError,
     url_basename,
+    variadic,
     version_tuple,
     write_json_file,
     write_string,
@@ -871,9 +873,12 @@ class YoutubeDL(object):
     @classmethod
     def validate_outtmpl(cls, outtmpl):
         ''' @return None or Exception object '''
-        outtmpl = cls.escape_outtmpl(cls._outtmpl_expandpath(outtmpl))
+        outtmpl = re.sub(
+            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljq]'),
+            lambda mobj: f'{mobj.group(0)[:-1]}s',
+            cls._outtmpl_expandpath(outtmpl))
         try:
-            outtmpl % collections.defaultdict(int)
+            cls.escape_outtmpl(outtmpl) % collections.defaultdict(int)
             return None
         except ValueError as err:
             return err
@@ -900,7 +905,7 @@ class YoutubeDL(object):
         }
 
         TMPL_DICT = {}
-        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}]'))
+        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljq]'))
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
@@ -977,8 +982,15 @@ class YoutubeDL(object):
 
             value = default if value is None else value
 
-            if fmt == 'c':
-                value = compat_str(value)
+            str_fmt = f'{fmt[:-1]}s'
+            if fmt[-1] == 'l':
+                value, fmt = ', '.join(variadic(value)), str_fmt
+            elif fmt[-1] == 'j':
+                value, fmt = json.dumps(value), str_fmt
+            elif fmt[-1] == 'q':
+                value, fmt = compat_shlex_quote(str(value)), str_fmt
+            elif fmt[-1] == 'c':
+                value = str(value)
                 if value is None:
                     value, fmt = default, 's'
                 else:
@@ -992,7 +1004,7 @@ class YoutubeDL(object):
                 if fmt[-1] == 'r':
                     # If value is an object, sanitize might convert it to a string
                     # So we convert it to repr first
-                    value, fmt = repr(value), '%ss' % fmt[:-1]
+                    value, fmt = repr(value), str_fmt
                 if fmt[-1] in 'csr':
                     value = sanitize(mobj['fields'].split('.')[-1], value)
 

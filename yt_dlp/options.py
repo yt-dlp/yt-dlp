@@ -1286,11 +1286,11 @@ def parseOpts(overrideArguments=None):
             'Execute a command on the file after downloading and post-processing. '
             'Similar syntax to the output template can be used to pass any field as arguments to the command. '
             'An additional field "filepath" that contains the final path of the downloaded file is also available. '
-            'If no fields are passed, "%(filepath)s" is appended to the end of the command'))
+            'If no fields are passed, %(filepath)q is appended to the end of the command'))
     postproc.add_option(
         '--exec-before-download',
         metavar='CMD', dest='exec_before_dl_cmd',
-        help='Execute a command before the actual download. The syntax is the same as --exec')
+        help='Execute a command before the actual download. The syntax is the same as --exec but "filepath" is not available')
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,

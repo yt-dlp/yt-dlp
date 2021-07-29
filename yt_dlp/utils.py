@@ -4451,7 +4451,9 @@ STR_FORMAT_RE_TMPL = r'''(?x)
     )
 '''
 
+
 STR_FORMAT_TYPES = 'diouxXeEfFgGcrs'
+
 
 def limit_length(s, length):
     """ Add ellipses to overly long strings """

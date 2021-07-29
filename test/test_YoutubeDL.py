@@ -10,6 +10,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import copy
+import json
 
 from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
@@ -647,6 +648,7 @@ class TestYoutubeDL(unittest.TestCase):
         'title1': '$PATH',
         'title2': '%PATH%',
         'title3': 'foo/bar\\test',
+        'title4': 'foo "bar" test',
         'timestamp': 1618488000,
         'duration': 100000,
         'playlist_index': 1,
@@ -669,10 +671,12 @@ class TestYoutubeDL(unittest.TestCase):
             if callable(expected):
                 self.assertTrue(expected(out))
                 self.assertTrue(expected(fname))
-            elif isinstance(expected, compat_str):
-                self.assertEqual((out, fname), (expected, expected))
+            elif isinstance(expected, str):
+                self.assertEqual(out, expected)
+                self.assertEqual(fname, expected)
             else:
-                self.assertEqual((out, fname), expected)
+                self.assertEqual(out, expected[0])
+                self.assertEqual(fname, expected[1])
 
         # Auto-generated fields
         test('%(id)s.%(ext)s', '1234.mp4')
@@ -741,14 +745,26 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(width|0)04d', '0000')
         test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
 
-        # Internal formatting
         FORMATS = self.outtmpl_info['formats']
+        sanitize = lambda x: x.replace(':', ' -').replace('"', "'")
+
+        # Custom type casting
+        test('%(formats.:.id)l', 'id1, id2, id3')
+        test('%(ext)l', 'mp4')
+        test('%(formats.:.id) 15l', '  id1, id2, id3')
+        test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
+        if compat_os_name == 'nt':
+            test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
+        else:
+            test('%(title4)q', ('\'foo "bar" test\'', "'foo 'bar' test'"))
+
+        # Internal formatting
         test('%(timestamp-1000>%H-%M-%S)s', '11-43-20')
         test('%(title|%)s %(title|%%)s', '% %%')
         test('%(id+1-height+3)05d', '00158')
         test('%(width+100)05d', 'NA')
-        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], '% 15s' % str(FORMATS[0]).replace(':', ' -')))
-        test('%(formats.0)r', (repr(FORMATS[0]), repr(FORMATS[0]).replace(':', ' -')))
+        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], '% 15s' % sanitize(str(FORMATS[0]))))
+        test('%(formats.0)r', (repr(FORMATS[0]), sanitize(repr(FORMATS[0]))))
         test('%(height.0)03d', '001')
         test('%(-height.0)04d', '-001')
         test('%(formats.-1.id)s', FORMATS[-1]['id'])
