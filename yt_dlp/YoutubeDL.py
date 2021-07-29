@@ -35,6 +35,7 @@ from .compat import (
     compat_kwargs,
     compat_numeric_types,
     compat_os_name,
+    compat_shlex_quote,
     compat_str,
     compat_tokenize_tokenize,
     compat_urllib_error,
@@ -65,7 +66,8 @@ from .utils import (
     float_or_none,
     format_bytes,
     format_field,
-    STR_FORMAT_RE,
+    STR_FORMAT_RE_TMPL,
+    STR_FORMAT_TYPES,
     formatSeconds,
     GeoRestrictedError,
     HEADRequest,
@@ -107,6 +109,7 @@ from .utils import (
     try_get,
     UnavailableVideoError,
     url_basename,
+    variadic,
     version_tuple,
     write_json_file,
     write_string,
@@ -845,20 +848,43 @@ class YoutubeDL(object):
         return sanitize_path(path, force=self.params.get('windowsfilenames'))
 
     @staticmethod
-    def validate_outtmpl(tmpl):
+    def _outtmpl_expandpath(outtmpl):
+        # expand_path translates '%%' into '%' and '$$' into '$'
+        # correspondingly that is not what we want since we need to keep
+        # '%%' intact for template dict substitution step. Working around
+        # with boundary-alike separator hack.
+        sep = ''.join([random.choice(ascii_letters) for _ in range(32)])
+        outtmpl = outtmpl.replace('%%', '%{0}%'.format(sep)).replace('$$', '${0}$'.format(sep))
+
+        # outtmpl should be expand_path'ed before template dict substitution
+        # because meta fields may contain env variables we don't want to
+        # be expanded. For example, for outtmpl "%(title)s.%(ext)s" and
+        # title "Hello $PATH", we don't want `$PATH` to be expanded.
+        return expand_path(outtmpl).replace(sep, '')
+
+    @staticmethod
+    def escape_outtmpl(outtmpl):
+        ''' Escape any remaining strings like %s, %abc% etc. '''
+        return re.sub(
+            STR_FORMAT_RE_TMPL.format('', '(?![%(\0])'),
+            lambda mobj: ('' if mobj.group('has_key') else '%') + mobj.group(0),
+            outtmpl)
+
+    @classmethod
+    def validate_outtmpl(cls, outtmpl):
         ''' @return None or Exception object '''
+        outtmpl = re.sub(
+            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljq]'),
+            lambda mobj: f'{mobj.group(0)[:-1]}s',
+            cls._outtmpl_expandpath(outtmpl))
         try:
-            re.sub(
-                STR_FORMAT_RE.format(''),
-                lambda mobj: ('%' if not mobj.group('has_key') else '') + mobj.group(0),
-                tmpl
-            ) % collections.defaultdict(int)
+            cls.escape_outtmpl(outtmpl) % collections.defaultdict(int)
             return None
         except ValueError as err:
             return err
 
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
-        """ Make the template and info_dict suitable for substitution (outtmpl % info_dict)"""
+        """ Make the template and info_dict suitable for substitution : ydl.outtmpl_escape(outtmpl) % info_dict """
         info_dict = dict(info_dict)
         na = self.params.get('outtmpl_na_placeholder', 'NA')
 
@@ -879,7 +905,7 @@ class YoutubeDL(object):
         }
 
         TMPL_DICT = {}
-        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE.format('[^)]*'))
+        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljq]'))
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
@@ -938,10 +964,11 @@ class YoutubeDL(object):
 
         def create_key(outer_mobj):
             if not outer_mobj.group('has_key'):
-                return '%{}'.format(outer_mobj.group(0))
+                return f'%{outer_mobj.group(0)}'
 
+            prefix = outer_mobj.group('prefix')
             key = outer_mobj.group('key')
-            fmt = outer_mobj.group('format')
+            original_fmt = fmt = outer_mobj.group('format')
             mobj = re.match(INTERNAL_FORMAT_RE, key)
             if mobj is None:
                 value, default, mobj = None, na, {'fields': ''}
@@ -955,8 +982,15 @@ class YoutubeDL(object):
 
             value = default if value is None else value
 
-            if fmt == 'c':
-                value = compat_str(value)
+            str_fmt = f'{fmt[:-1]}s'
+            if fmt[-1] == 'l':
+                value, fmt = ', '.join(variadic(value)), str_fmt
+            elif fmt[-1] == 'j':
+                value, fmt = json.dumps(value), str_fmt
+            elif fmt[-1] == 'q':
+                value, fmt = compat_shlex_quote(str(value)), str_fmt
+            elif fmt[-1] == 'c':
+                value = str(value)
                 if value is None:
                     value, fmt = default, 's'
                 else:
@@ -965,16 +999,18 @@ class YoutubeDL(object):
                 value = float_or_none(value)
                 if value is None:
                     value, fmt = default, 's'
+
             if sanitize:
                 if fmt[-1] == 'r':
                     # If value is an object, sanitize might convert it to a string
                     # So we convert it to repr first
-                    value, fmt = repr(value), '%ss' % fmt[:-1]
+                    value, fmt = repr(value), str_fmt
                 if fmt[-1] in 'csr':
                     value = sanitize(mobj['fields'].split('.')[-1], value)
-            key += '\0%s' % fmt
+
+            key = '%s\0%s' % (key.replace('%', '%\0'), original_fmt)
             TMPL_DICT[key] = value
-            return '%({key}){fmt}'.format(key=key, fmt=fmt)
+            return f'{prefix}%({key}){fmt}'
 
         return EXTERNAL_FORMAT_RE.sub(create_key, outtmpl), TMPL_DICT
 
@@ -986,19 +1022,8 @@ class YoutubeDL(object):
                 is_id=(k == 'id' or k.endswith('_id')))
             outtmpl = self.outtmpl_dict.get(tmpl_type, self.outtmpl_dict['default'])
             outtmpl, template_dict = self.prepare_outtmpl(outtmpl, info_dict, sanitize)
-
-            # expand_path translates '%%' into '%' and '$$' into '$'
-            # correspondingly that is not what we want since we need to keep
-            # '%%' intact for template dict substitution step. Working around
-            # with boundary-alike separator hack.
-            sep = ''.join([random.choice(ascii_letters) for _ in range(32)])
-            outtmpl = outtmpl.replace('%%', '%{0}%'.format(sep)).replace('$$', '${0}$'.format(sep))
-
-            # outtmpl should be expand_path'ed before template dict substitution
-            # because meta fields may contain env variables we don't want to
-            # be expanded. For example, for outtmpl "%(title)s.%(ext)s" and
-            # title "Hello $PATH", we don't want `$PATH` to be expanded.
-            filename = expand_path(outtmpl).replace(sep, '') % template_dict
+            outtmpl = self.escape_outtmpl(self._outtmpl_expandpath(outtmpl))
+            filename = outtmpl % template_dict
 
             force_ext = OUTTMPL_TYPES.get(tmpl_type)
             if force_ext is not None:
@@ -2344,7 +2369,7 @@ class YoutubeDL(object):
             if re.match(r'\w+$', tmpl):
                 tmpl = '%({})s'.format(tmpl)
             tmpl, info_copy = self.prepare_outtmpl(tmpl, info_dict)
-            self.to_stdout(tmpl % info_copy)
+            self.to_stdout(self.escape_outtmpl(tmpl) % info_copy)
 
         print_mandatory('title')
         print_mandatory('id')
