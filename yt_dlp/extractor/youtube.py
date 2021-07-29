@@ -1036,7 +1036,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _AGE_GATE_REASONS = (
         'Sign in to confirm your age',
         'This video may be inappropriate for some users.',
-        'Sorry, this content is age-restricted.')
+        'Sorry, this content is age-restricted.',
+        'Please confirm your age.')
+
+    _AGE_GATE_STATUS_REASONS = (
+        'AGE_VERIFICATION_REQUIRED',
+        'AGE_CHECK_REQUIRED'
+    )
 
     _GEO_BYPASS = False
 
@@ -2341,6 +2347,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'racyCheckOk': True
         }
 
+    def _is_agegated(self, player_response):
+        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
+        for reason in reasons:
+            if reason in self._AGE_GATE_REASONS+self._AGE_GATE_STATUS_REASONS:
+                return True
+        if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')) is not None:
+            return True
+        return False
+
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
@@ -2423,7 +2438,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pr:
                 yield pr
 
-            if traverse_obj(pr, ('playabilityStatus', 'reason')) in self._AGE_GATE_REASONS:
+            if self._is_agegated(pr):
                 client = f'{client}_agegate'
                 if client in INNERTUBE_CLIENTS and client not in original_clients:
                     clients.append(client)
