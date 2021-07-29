@@ -464,7 +464,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return _func(ytcfg) or _func(self._get_default_ytcfg(default_client))
 
     def _extract_client_name(self, ytcfg, default_client='web'):
-       return self._ytcfg_get_safe(
+        return self._ytcfg_get_safe(
             ytcfg, (lambda x: x['INNERTUBE_CLIENT_NAME'],
                     lambda x: x['INNERTUBE_CONTEXT']['client']['clientName']), compat_str, default_client)
 
@@ -476,7 +476,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 return session_index
 
     def _extract_client_version(self, ytcfg, default_client='web'):
-       return self._ytcfg_get_safe(
+        return self._ytcfg_get_safe(
             ytcfg, (lambda x: x['INNERTUBE_CLIENT_VERSION'],
                     lambda x: x['INNERTUBE_CONTEXT']['client']['clientVersion']), compat_str, default_client)
 
