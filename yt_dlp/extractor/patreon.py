@@ -229,10 +229,6 @@ class PatreonUserIE(InfoExtractor):
             cursor = try_get(posts_json, lambda x: x['meta']['pagination']['cursors']['next'])
 
             for post in posts_json.get('data') or []:
-                if not try_get(post, lambda x: x['attributes']['current_user_can_view']):
-                    self.report_warning('Post not viewable by current user! Skipping!')
-                    continue
-
                 yield self.url_result(url_or_none(try_get(post, lambda x: x['attributes']['patreon_url'])), 'Patreon')
 
             if cursor is None:
