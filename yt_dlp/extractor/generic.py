@@ -2434,7 +2434,7 @@ class GenericIE(InfoExtractor):
         newmagic = urlparts[5][:32]
 
         for o in range(len(newmagic) - 1, -1, -1):
-            new = ""
+            new = ''
             l = (o + sum([int(n) for n in license[o:]])) % 32
 
             for i in range(0, len(newmagic)):
@@ -2447,16 +2447,16 @@ class GenericIE(InfoExtractor):
             newmagic = new
 
         urlparts[5] = newmagic + urlparts[5][32:]
-        return "/".join(urlparts) + '?' + url_query
+        return '/'.join(urlparts) + '?' + url_query
 
     def _kvs_getlicensetoken(self, license):
-        modlicense = license.replace("$", "").replace("0", "1")
+        modlicense = license.replace('$', '').replace('0', '1')
         center = int(len(modlicense) / 2)
         fronthalf = int(modlicense[:center + 1])
         backhalf = int(modlicense[center:])
 
         modlicense = str(4 * abs(fronthalf - backhalf))
-        retval = ""
+        retval = ''
         for o in range(0, center + 1):
             for i in range(1, 5):
                 retval += str((int(license[o + i]) + int(modlicense[o])) % 10)
@@ -3598,7 +3598,7 @@ class GenericIE(InfoExtractor):
                 .*?
                 ['"]?file['"]?\s*:\s*["\'](.*?)["\']''', webpage))
         if not found:
-            # Look for generic KVS player (must be before 'Broaden ...' sections)
+            # Look for generic KVS player
             found = re.search(r'<script [^>]*?src="https://.+?/kt_player\.js\?v=(?P<ver>(?P<maj_ver>\d+)(\.\d+)+)".*?>', webpage)
             if found:
                 if found.group('maj_ver') not in ['4', '5']:
