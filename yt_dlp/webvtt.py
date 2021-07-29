@@ -267,6 +267,7 @@ class CueBlock(Block):
     _REGEX_ARROW = re.compile(r'[ \t]+-->[ \t]+')
     _REGEX_SETTINGS = re.compile(r'[ \t]+((?:(?!-->)[^\r\n])+)')
     _REGEX_PAYLOAD = re.compile(r'[^\r\n]+(?:\r\n|[\r\n])?')
+    _REGEX_NEWLINE_AND_TS = re.compile(r'\n[0-9]{2,}:[0-9]{2}:[0-9]{2}\.[0-9]{3}')
 
     @classmethod
     def parse(cls, parser):
@@ -297,6 +298,21 @@ class CueBlock(Block):
         while True:
             m = parser.consume(cls._REGEX_PAYLOAD)
             if not m:
+                # no new payload found.
+                # - we reached the end of the data => stop
+                # - we reached the end of the payload (newline followed by next timestamp) => stop
+                # - we reached a empty new line (more payload could be coming) => look for more payload data
+
+                if parser.match(_REGEX_EOF):
+                    break
+
+                if parser.match(cls._REGEX_NEWLINE_AND_TS):
+                    break
+
+                if parser.match(_REGEX_NL):
+                    parser.consume(_REGEX_NL)
+                    continue
+
                 break
             text.write(m.group(0))
 
