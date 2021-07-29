@@ -63,8 +63,7 @@ class DiscoveryPlusIndiaShowIE(InfoExtractor):
         'info_dict': {
             'id': 'how-do-they-do-it',
         },
-    }
-    ]
+    }]
 
     def _entries(self, show_name):
         headers = {

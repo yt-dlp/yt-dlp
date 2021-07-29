@@ -330,6 +330,7 @@ from .dplay import (
     DPlayIE,
     DiscoveryPlusIE,
     HGTVDeIE,
+    ScienceChannelIE
 )
 from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
