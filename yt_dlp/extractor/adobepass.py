@@ -1571,7 +1571,7 @@ class AdobePassIE(InfoExtractor):
                             'Content-Type': 'application/x-www-form-urlencoded'
                         })
                 elif mso_id == 'slingtv':
-                    # SlingTV  has a meta-refresh based authentication, but also
+                    # SlingTV has a meta-refresh based authentication, but also
                     # looks at the tab history to count the number of times the
                     # browser has been on a page
 
@@ -1585,7 +1585,7 @@ class AdobePassIE(InfoExtractor):
                         query=hidden_data)
 
                     provider_association_redirect, urlh = post_form(
-                        provider_login_page_res,  'Logging in', {
+                        provider_login_page_res, 'Logging in', {
                             mso_info['username_field']: username,
                             mso_info['password_field']: password
                         })
