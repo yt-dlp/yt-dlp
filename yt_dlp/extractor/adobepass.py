@@ -1585,10 +1585,10 @@ class AdobePassIE(InfoExtractor):
                         query=hidden_data)
 
                     provider_association_redirect, urlh = post_form(
-                        provider_login_page_res,
-                        'Logging in', {
-                        mso_info['username_field']: username,
-                        mso_info['password_field': password})
+                        provider_login_page_res,  'Logging in', {
+                            mso_info['username_field']: username,
+                            mso_info['password_field']: password
+                        })
 
                     provider_refresh_redirect_url = extract_redirect_url(
                         provider_association_redirect, url=urlh.geturl())
