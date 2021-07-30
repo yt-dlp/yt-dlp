@@ -19,12 +19,142 @@
 -->
 
 
+### 2021.07.24
+
+* [youtube:tab] Extract video duration early
+* [downloader] Pass `info_dict` to `progress_hook`s
+* [youtube] Fix age-gated videos for API clients when cookies are supplied by [colethedj](https://github.com/colethedj)
+* [youtube] Disable `get_video_info` age-gate workaround - This endpoint seems to be completely dead
+* [youtube] Try all clients even if age-gated
+* [youtube] Fix subtitles only being extracted from the first client
+* [youtube] Simplify `_get_text`
+* [cookies] bugfix for microsoft edge on macOS
+* [cookies] Handle `sqlite` `ImportError` gracefully by [mbway](https://github.com/mbway)
+* [cookies] Handle errors when importing `keyring`
+
+### 2021.07.21
+
+* **Add option `--cookies-from-browser`** to load cookies from a browser by [mbway](https://github.com/mbway)
+    * Usage: `--cookies-from-browser BROWSER[:PROFILE_NAME_OR_PATH]`
+    * Also added `--no-cookies-from-browser`
+    * To decrypt chromium cookies, `keyring` is needed for UNIX and `pycryptodome` for Windows
+* Add option `--exec-before-download`
+* Add field `live_status`
+* [FFmpegMetadata] Add language of each stream and some refactoring
+* [douyin] Add extractor by [pukkandan](https://github.com/pukkandan), [pyx](https://github.com/pyx)
+* [pornflip] Add extractor by [mzbaulhaque](https://github.com/mzbaulhaque)
+* **[youtube] Extract data from multiple clients** by [pukkandan](https://github.com/pukkandan), [colethedj](https://github.com/colethedj)
+    * `player_client` now accepts multiple clients
+    * Default `player_client` = `android,web`
+        * This uses twice as many requests, but avoids throttling for most videos while also not losing any formats
+    * Music clients can be specifically requested and is enabled by default if `music.youtube.com`
+    * Added `player_client=ios` (Known issue: formats from ios are not sorted correctly)
+    * Add age-gate bypass for android and ios clients
+* [youtube] Extract more thumbnails
+    * The thumbnail URLs are hard-coded and their actual existence is tested lazily
+    * Added option `--no-check-formats` to not test them
+* [youtube] Misc fixes
+    * Improve extraction of livestream metadata by [pukkandan](https://github.com/pukkandan), [krichbanana](https://github.com/krichbanana)
+    * Hide live dash formats since they can't be downloaded anyway
+    * Fix authentication when using multiple accounts by [colethedj](https://github.com/colethedj)
+    * Fix controversial videos when requested via API by [colethedj](https://github.com/colethedj)
+    * Fix session index extraction and headers for non-web player clients by [colethedj](https://github.com/colethedj)
+    * Make `--extractor-retries` work for more errors
+    * Fix sorting of 3gp format
+    * Sanity check `chapters` (and refactor related code)
+    * Make `parse_time_text` and `_extract_chapters` non-fatal
+    * Misc cleanup and bug fixes by [colethedj](https://github.com/colethedj)
+* [youtube:tab] Fix channels tab
+* [youtube:tab] Extract playlist availability by [colethedj](https://github.com/colethedj)
+* **[youtube:comments] Move comment extraction to new API** by [colethedj](https://github.com/colethedj)
+    * Adds extractor-args `comment_sort` (`top`/`new`), `max_comments`, `max_comment_depth`
+* [youtube:comments] Fix `is_favorited`, improve `like_count` parsing by [colethedj](https://github.com/colethedj)
+* [BravoTV] Improve metadata extraction by [kevinoconnor7](https://github.com/kevinoconnor7)
+* [crunchyroll:playlist] Force http
+* [yahoo:gyao:player] Relax `_VALID_URL` by [nao20010128nao](https://github.com/nao20010128nao)
+* [nebula] Authentication via tokens from cookie jar by [hheimbuerger](https://github.com/hheimbuerger), [TpmKranz](https://github.com/TpmKranz)
+* [RTP] Fix extraction and add subtitles by [fstirlitz](https://github.com/fstirlitz)
+* [viki] Rewrite extractors and add extractor-arg `video_types` to `vikichannel` by [zackmark29](https://github.com/zackmark29), [pukkandan](https://github.com/pukkandan)
+* [vlive] Extract thumbnail directly in addition to the one from Naver
+* [generic] Extract previously missed subtitles by [fstirlitz](https://github.com/fstirlitz)
+* [generic] Extract everything in the SMIL manifest and detect discarded subtitles by [fstirlitz](https://github.com/fstirlitz)
+* [embedthumbnail] Fix `_get_thumbnail_resolution`
+* [metadatafromfield] Do not detect numbers as field names
+* Fix selectors `all`, `mergeall` and add tests
+* Errors in playlist extraction should obey `--ignore-errors`
+* Fix bug where `original_url` was not propagated when `_type`=`url`
+* Revert "Merge webm formats into mkv if thumbnails are to be embedded (#173)"
+    * This was wrongly checking for `write_thumbnail`
+* Improve `extractor_args` parsing
+* Rename `NOTE` in `-F` to `MORE INFO` since it's often confused to be the same as `format_note`
+* Add `only_once` param for `write_debug` and `report_warning`
+* [extractor] Allow extracting multiple groups in `_search_regex` by [fstirlitz](https://github.com/fstirlitz)
+* [utils] Improve `traverse_obj`
+* [utils] Add `variadic`
+* [utils] Improve `js_to_json` comment regex by [fstirlitz](https://github.com/fstirlitz)
+* [webtt] Fix timestamps
+* [compat] Remove unnecessary code
+* [doc] fix default of multistreams
+
+
+### 2021.07.07
+
+* Merge youtube-dl: Upto [commit/a803582](https://github.com/ytdl-org/youtube-dl/commit/a8035827177d6b59aca03bd717acb6a9bdd75ada)
+* Add `--extractor-args` to pass some extractor-specific arguments. See [readme](https://github.com/yt-dlp/yt-dlp#extractor-arguments)
+    * Add extractor option `skip` for `youtube`. Eg: `--extractor-args youtube:skip=hls,dash`
+    * Deprecates `--youtube-skip-dash-manifest`, `--youtube-skip-hls-manifest`, `--youtube-include-dash-manifest`, `--youtube-include-hls-manifest`
+* Allow `--list...` options to work with `--print`, `--quiet` and other `--list...` options
+* [youtube] Use `player` API for additional video extraction requests by [colethedj](https://github.com/colethedj)
+    * **Fixes youtube premium music** (format 141) extraction
+    * Adds extractor option `player_client` = `web`/`android`
+        * **`--extractor-args youtube:player_client=android` works around the throttling** for the time-being
+    * Adds extractor option `player_skip=config`
+    * Adds age-gate fallback using embedded client
+* [youtube] Choose correct Live chat API for upcoming streams by [krichbanana](https://github.com/krichbanana)
+* [youtube] Fix subtitle names for age-gated videos
+* [youtube:comments] Fix error handling and add `itct` to params by [colethedj](https://github.com/colethedj)
+* [youtube_live_chat] Fix download with cookies by [siikamiika](https://github.com/siikamiika)
+* [youtube_live_chat] use `clickTrackingParams` by [siikamiika](https://github.com/siikamiika)
+* [Funimation] Rewrite extractor
+    * Add `FunimationShowIE` by [Mevious](https://github.com/Mevious)
+    * **Treat the different versions of an episode as different formats of a single video**
+        * This changes the video `id` and will break break existing archives
+        * Compat option `seperate-video-versions` to fall back to old behavior including using the old video ids
+    * Support direct `/player/` URL
+    * Extractor options `language` and `version` to pre-select them during extraction
+        * These options may be removed in the future if we can extract all formats without additional network requests
+        * Do not rely on these for format selection and use `-f` filters instead
+* [AdobePass] Add Spectrum MSO by [kevinoconnor7](https://github.com/kevinoconnor7), [ohmybahgosh](https://github.com/ohmybahgosh)
+* [facebook] Extract description and fix title
+* [fancode] Fix extraction, support live and allow login with refresh token by [zenerdi0de](https://github.com/zenerdi0de)
+* [plutotv] Improve `_VALID_URL`
+* [RCTIPlus] Add extractor by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [Soundcloud] Allow login using oauth token by [blackjack4494](https://github.com/blackjack4494)
+* [TBS] Support livestreams by [llacb47](https://github.com/llacb47)
+* [videa] Fix extraction by [nyuszika7h](https://github.com/nyuszika7h)
+* [yahoo] Fix extraction by [llacb47](https://github.com/llacb47), [pukkandan](https://github.com/pukkandan)
+* Process videos when using `--ignore-no-formats-error` by [krichbanana](https://github.com/krichbanana)
+* Fix `--throttled-rate` when using `--load-info-json`
+* Fix `--flat-playlist` when entry has no `ie_key`
+* Fix `check_formats` catching `ExtractorError` instead of `DownloadError`
+* Fix deprecated option `--list-formats-old`
+* [downloader/ffmpeg] Fix `--ppa` when using simultaneous download
+* [extractor] Prevent unnecessary download of hls manifests and refactor `hls_split_discontinuity`
+* [fragment] Handle status of download and errors in threads correctly; and minor refactoring
+* [thumbnailsconvertor] Treat `jpeg` as `jpg`
+* [utils] Fix issues with `LazyList` reversal
+* [extractor] Allow extractors to set their own login hint
+* [cleanup] Simplify format selector code with `LazyList` and `yield from`
+* [cleanup] Clean `extractor.common._merge_subtitles` signature
+* [cleanup] Fix some typos
+
+
 ### 2021.06.23
 
 * Merge youtube-dl: Upto [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)
 * **Add option `--throttled-rate`** below which video data is re-extracted
 * [fragment] **Merge during download for `-N`**, and refactor `hls`/`dash`
-* [websockets] Add `WebSocketFragmentFD`by [nao20010128nao](https://github.com/nao20010128nao), [pukkandan](https://github.com/pukkandan)
+* [websockets] Add `WebSocketFragmentFD` by [nao20010128nao](https://github.com/nao20010128nao), [pukkandan](https://github.com/pukkandan)
 * Allow `images` formats in addition to video/audio
 * [downloader/mhtml] Add new downloader for slideshows/storyboards by [fstirlitz](https://github.com/fstirlitz)
 * [youtube] Temporary **fix for age-gate**

@@ -321,6 +321,7 @@ from .discoveryplusindia import (
     DiscoveryPlusIndiaShowIE,
 )
 from .dotsub import DotsubIE
+from .douyin import DouyinIE
 from .douyutv import (
     DouyuShowIE,
     DouyuTVIE,
@@ -329,6 +330,7 @@ from .dplay import (
     DPlayIE,
     DiscoveryPlusIE,
     HGTVDeIE,
+    ScienceChannelIE
 )
 from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
@@ -398,7 +400,11 @@ from .facebook import (
     FacebookIE,
     FacebookPluginsVideoIE,
 )
-from .fancode import FancodeVodIE
+from .fancode import (
+    FancodeVodIE,
+    FancodeLiveIE
+)
+
 from .faz import FazIE
 from .fc2 import (
     FC2IE,
@@ -457,7 +463,8 @@ from .frontendmasters import (
 from .fujitv import FujiTVFODPlus7IE
 from .funimation import (
     FunimationIE,
-    FunimationShowIE
+    FunimationPageIE,
+    FunimationShowIE,
 )
 from .funk import FunkIE
 from .fusion import FusionIE
@@ -1010,6 +1017,7 @@ from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
 from .porn91 import Porn91IE
 from .porncom import PornComIE
+from .pornflip import PornFlipIE
 from .pornhd import PornHdIE
 from .pornhub import (
     PornHubIE,
@@ -1331,7 +1339,6 @@ from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE
 from .thisoldhouse import ThisOldHouseIE
-from .thisvid import ThisVidIE
 from .threeqsdn import ThreeQSDNIE
 from .tiktok import TikTokIE
 from .tinypic import TinyPicIE
@@ -1485,6 +1492,7 @@ from .ustudio import (
     UstudioIE,
     UstudioEmbedIE,
 )
+from .utreon import UtreonIE
 from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veehd import VeeHDIE

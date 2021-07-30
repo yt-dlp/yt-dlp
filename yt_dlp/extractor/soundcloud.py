@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import itertools
 import re
 import json
-import random
+# import random
 
 from .common import (
     InfoExtractor,
@@ -164,23 +164,11 @@ class SoundcloudIE(InfoExtractor):
         },
         # downloadable song
         {
-            'url': 'https://soundcloud.com/oddsamples/bus-brakes',
-            'md5': '7624f2351f8a3b2e7cd51522496e7631',
+            'url': 'https://soundcloud.com/the80m/the-following',
+            'md5': '9ffcddb08c87d74fb5808a3c183a1d04',
             'info_dict': {
-                'id': '128590877',
-                'ext': 'mp3',
-                'title': 'Bus Brakes',
-                'description': 'md5:0053ca6396e8d2fd7b7e1595ef12ab66',
-                'uploader': 'oddsamples',
-                'uploader_id': '73680509',
-                'timestamp': 1389232924,
-                'upload_date': '20140109',
-                'duration': 17.346,
-                'license': 'cc-by-sa',
-                'view_count': int,
-                'like_count': int,
-                'comment_count': int,
-                'repost_count': int,
+                'id': '343609555',
+                'ext': 'wav',
             },
         },
         # private link, downloadable format
@@ -317,12 +305,13 @@ class SoundcloudIE(InfoExtractor):
                 raise
 
     def _real_initialize(self):
-        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or "T5R4kgWS2PRf6lzLyIravUMnKlbIxQag"  # 'EXLwg5lHTO2dslU5EePe3xkw0m1h86Cd' # 'YUKXoArFcqrlQn9tfNHvvyfnDISj04zk'
+        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'fXuVKzsVXlc6tzniWWS31etd7VHWFUuN'  # persistent `client_id`
         self._login()
 
-    _USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"
+    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
     _API_AUTH_QUERY_TEMPLATE = '?client_id=%s'
     _API_AUTH_URL_PW = 'https://api-auth.soundcloud.com/web-auth/sign-in/password%s'
+    _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
     _access_token = None
     _HEADERS = {}
     _NETRC_MACHINE = 'soundcloud'
@@ -332,6 +321,23 @@ class SoundcloudIE(InfoExtractor):
         if username is None:
             return
 
+        if username == 'oauth' and password is not None:
+            self._access_token = password
+            query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
+            payload = {'session': {'access_token': self._access_token}}
+            token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
+            response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
+            if response is not False:
+                self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
+                self.report_login()
+            else:
+                self.report_warning('Provided authorization token seems to be invalid. Continue as guest')
+        elif username is not None:
+            self.report_warning(
+                'Login using username and password is not currently supported. '
+                'Use "--user oauth --password <oauth_token>" to login using an oauth token')
+
+        r'''
         def genDevId():
             def genNumBlock():
                 return ''.join([str(random.randrange(10)) for i in range(6)])
@@ -358,6 +364,7 @@ class SoundcloudIE(InfoExtractor):
             self.report_warning('Unable to get access token, login may has failed')
         else:
             self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
+        '''
 
     # signature generation
     def sign(self, user, pw, clid):
@@ -370,9 +377,9 @@ class SoundcloudIE(InfoExtractor):
         b = 37
         k = 37
         c = 5
-        n = "0763ed7314c69015fd4a0dc16bbf4b90"  # _KEY
-        y = "8"  # _REV
-        r = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36"  # _USER_AGENT
+        n = '0763ed7314c69015fd4a0dc16bbf4b90'  # _KEY
+        y = '8'  # _REV
+        r = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'  # _USER_AGENT
         e = user  # _USERNAME
         t = clid  # _CLIENT_ID
 

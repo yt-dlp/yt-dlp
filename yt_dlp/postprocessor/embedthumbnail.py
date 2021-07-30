@@ -51,7 +51,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         try:
             size_regex = r',\s*(?P<w>\d+)x(?P<h>\d+)\s*[,\[]'
-            size_result = self.run_ffmpeg(filename, filename, ['-hide_banner'])
+            size_result = self.run_ffmpeg(filename, None, ['-hide_banner'], expected_retcodes=(1,))
             mobj = re.search(size_regex, size_result)
             if mobj is None:
                 return guess()

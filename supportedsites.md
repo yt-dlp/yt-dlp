@@ -259,6 +259,7 @@
  - **dlive:vod**
  - **DoodStream**
  - **Dotsub**
+ - **Douyin**
  - **DouyuShow**
  - **DouyuTV**: 斗鱼
  - **DPlay**
@@ -306,6 +307,7 @@
  - **EyedoTV**
  - **facebook**
  - **FacebookPluginsVideo**
+ - **fancode:live**
  - **fancode:vod**
  - **faz.net**
  - **fc2**
@@ -343,6 +345,8 @@
  - **FrontendMastersLesson**
  - **FujiTVFODPlus7**
  - **Funimation**
+ - **funimation:page**
+ - **funimation:show**
  - **Funk**
  - **Fusion**
  - **Fux**
@@ -766,6 +770,7 @@
  - **PopcornTV**
  - **PornCom**
  - **PornerBros**
+ - **PornFlip**
  - **PornHd**
  - **PornHub**: PornHub and Thumbzilla
  - **PornHubPagedVideoList**
@@ -808,6 +813,8 @@
  - **RCS**
  - **RCSEmbeds**
  - **RCSVarious**
+ - **RCTIPlus**
+ - **RCTIPlusSeries**
  - **RDS**: RDS.ca
  - **RedBull**
  - **RedBullEmbed**

@@ -3,7 +3,7 @@
 $ youtube-dl -v <your command line>
 [debug] System config: []
 [debug] User config: []
-[debug] Command-line args: [u'-v', u'https://www.youtube.com/watch?v=BaW_jenozKcj']
+[debug] Command-line args: [u'-v', u'https://www.youtube.com/watch?v=BaW_jenozKc']
 [debug] Encodings: locale cp1251, fs mbcs, out cp866, pref cp1251
 [debug] youtube-dl version 2015.12.06
 [debug] Git HEAD: 135392e
@@ -81,16 +81,17 @@ To run the test, simply invoke your favorite test runner, or execute a test file
     python -m unittest discover
     python test/test_download.py
     nosetests
+    pytest
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
 
 If you want to create a build of youtube-dl yourself, you'll need
 
-* python
+* python3
 * make (only GNU make is supported)
 * pandoc
 * zip
-* nosetests
+* pytest
 
 ### Adding support for a new site
 

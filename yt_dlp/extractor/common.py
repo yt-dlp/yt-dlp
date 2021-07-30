@@ -19,7 +19,6 @@ from ..compat import (
     compat_etree_Element,
     compat_etree_fromstring,
     compat_getpass,
-    compat_integer_types,
     compat_http_client,
     compat_os_name,
     compat_str,
@@ -79,6 +78,7 @@ from ..utils import (
     urljoin,
     url_basename,
     url_or_none,
+    variadic,
     xpath_element,
     xpath_text,
     xpath_with_ns,
@@ -229,6 +229,7 @@ class InfoExtractor(object):
                         * "resolution" (optional, string "{width}x{height}",
                                         deprecated)
                         * "filesize" (optional, int)
+                        * "_test_url" (optional, bool) - If true, test the URL
     thumbnail:      Full URL to a video thumbnail image.
     description:    Full video description.
     uploader:       Full name of the video uploader.
@@ -296,6 +297,8 @@ class InfoExtractor(object):
                     live stream that goes on instead of a fixed-length video.
     was_live:       True, False, or None (=unknown). Whether this video was
                     originally a live stream.
+    live_status:    'is_live', 'upcoming', 'was_live', 'not_live' or None (=unknown)
+                    If absent, automatically set from is_live, was_live
     start_time:     Time in seconds where the reproduction should start, as
                     specified in the URL.
     end_time:       Time in seconds where the reproduction should end, as
@@ -628,14 +631,10 @@ class InfoExtractor(object):
         assert isinstance(err, compat_urllib_error.HTTPError)
         if expected_status is None:
             return False
-        if isinstance(expected_status, compat_integer_types):
-            return err.code == expected_status
-        elif isinstance(expected_status, (list, tuple)):
-            return err.code in expected_status
         elif callable(expected_status):
             return expected_status(err.code) is True
         else:
-            assert False
+            return err.code in variadic(expected_status)
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
         """
@@ -1038,7 +1037,9 @@ class InfoExtractor(object):
             metadata_available=False, method='any'):
         if metadata_available and self.get_param('ignore_no_formats_error'):
             self.report_warning(msg)
-        raise ExtractorError('%s. %s' % (msg, self._LOGIN_HINTS[method]), expected=True)
+        if method is not None:
+            msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
+        raise ExtractorError(msg, expected=True)
 
     def raise_geo_restricted(
             self, msg='This video is not available from your location due to geo restriction',
@@ -1113,6 +1114,8 @@ class InfoExtractor(object):
             if group is None:
                 # return the first matching group
                 return next(g for g in mobj.groups() if g is not None)
+            elif isinstance(group, (list, tuple)):
+                return tuple(mobj.group(g) for g in group)
             else:
                 return mobj.group(group)
         elif default is not NO_DEFAULT:
@@ -1205,8 +1208,7 @@ class InfoExtractor(object):
                     [^>]+?content=(["\'])(?P<content>.*?)\2''' % re.escape(prop)
 
     def _og_search_property(self, prop, html, name=None, **kargs):
-        if not isinstance(prop, (list, tuple)):
-            prop = [prop]
+        prop = variadic(prop)
         if name is None:
             name = 'OpenGraph %s' % prop[0]
         og_regexes = []
@@ -1236,8 +1238,7 @@ class InfoExtractor(object):
         return self._og_search_property('url', html, **kargs)
 
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
-        if not isinstance(name, (list, tuple)):
-            name = [name]
+        name = variadic(name)
         if display_name is None:
             display_name = name[0]
         return self._html_search_regex(
@@ -1979,24 +1980,33 @@ class InfoExtractor(object):
             preference=None, quality=None, m3u8_id=None, live=False, note=None,
             errnote=None, fatal=True, data=None, headers={}, query={},
             video_id=None):
+        formats, subtitles = [], {}
 
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
-            return [], {}
+            return formats, subtitles
 
         if (not self.get_param('allow_unplayable_formats')
                 and re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)):  # Apple FairPlay
-            return [], {}
+            return formats, subtitles
 
-        formats = []
+        def format_url(url):
+            return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)
 
-        subtitles = {}
+        if self.get_param('hls_split_discontinuity', False):
+            def _extract_m3u8_playlist_indices(manifest_url=None, m3u8_doc=None):
+                if not m3u8_doc:
+                    if not manifest_url:
+                        return []
+                    m3u8_doc = self._download_webpage(
+                        manifest_url, video_id, fatal=fatal, data=data, headers=headers,
+                        note=False, errnote='Failed to download m3u8 playlist information')
+                    if m3u8_doc is False:
+                        return []
+                return range(1 + sum(line.startswith('#EXT-X-DISCONTINUITY') for line in m3u8_doc.splitlines()))
 
-        format_url = lambda u: (
-            u
-            if re.match(r'^https?://', u)
-            else compat_urlparse.urljoin(m3u8_url, u))
-
-        split_discontinuity = self.get_param('hls_split_discontinuity', False)
+        else:
+            def _extract_m3u8_playlist_indices(*args, **kwargs):
+                return [None]
 
         # References:
         # 1. https://tools.ietf.org/html/draft-pantos-http-live-streaming-21
@@ -2014,68 +2024,16 @@ class InfoExtractor(object):
         # media playlist and MUST NOT appear in master playlist thus we can
         # clearly detect media playlist with this criterion.
 
-        def _extract_m3u8_playlist_formats(format_url=None, m3u8_doc=None, video_id=None,
-                                           fatal=True, data=None, headers={}):
-            if not m3u8_doc:
-                if not format_url:
-                    return []
-                res = self._download_webpage_handle(
-                    format_url, video_id,
-                    note=False,
-                    errnote='Failed to download m3u8 playlist information',
-                    fatal=fatal, data=data, headers=headers)
-
-                if res is False:
-                    return []
-
-                m3u8_doc, urlh = res
-                format_url = urlh.geturl()
-
-            playlist_formats = []
-            i = (
-                0
-                if split_discontinuity
-                else None)
-            format_info = {
-                'index': i,
-                'key_data': None,
-                'files': [],
-            }
-            for line in m3u8_doc.splitlines():
-                if not line.startswith('#'):
-                    format_info['files'].append(line)
-                elif split_discontinuity and line.startswith('#EXT-X-DISCONTINUITY'):
-                    i += 1
-                    playlist_formats.append(format_info)
-                    format_info = {
-                        'index': i,
-                        'url': format_url,
-                        'files': [],
-                    }
-            playlist_formats.append(format_info)
-            return playlist_formats
-
         if '#EXT-X-TARGETDURATION' in m3u8_doc:  # media playlist, return as is
-
-            playlist_formats = _extract_m3u8_playlist_formats(m3u8_doc=m3u8_doc)
-
-            for format in playlist_formats:
-                format_id = []
-                if m3u8_id:
-                    format_id.append(m3u8_id)
-                format_index = format.get('index')
-                if format_index:
-                    format_id.append(str(format_index))
-                f = {
-                    'format_id': '-'.join(format_id),
-                    'format_index': format_index,
-                    'url': m3u8_url,
-                    'ext': ext,
-                    'protocol': entry_protocol,
-                    'preference': preference,
-                    'quality': quality,
-                }
-                formats.append(f)
+            formats = [{
+                'format_id': '-'.join(map(str, filter(None, [m3u8_id, idx]))),
+                'format_index': idx,
+                'url': m3u8_url,
+                'ext': ext,
+                'protocol': entry_protocol,
+                'preference': preference,
+                'quality': quality,
+            } for idx in _extract_m3u8_playlist_indices(m3u8_doc=m3u8_doc)]
 
             return formats, subtitles
 
@@ -2115,32 +2073,19 @@ class InfoExtractor(object):
             media_url = media.get('URI')
             if media_url:
                 manifest_url = format_url(media_url)
-                format_id = []
-                playlist_formats = _extract_m3u8_playlist_formats(manifest_url, video_id=video_id,
-                                                                  fatal=fatal, data=data, headers=headers)
-
-                for format in playlist_formats:
-                    format_index = format.get('index')
-                    for v in (m3u8_id, group_id, name):
-                        if v:
-                            format_id.append(v)
-                    if format_index:
-                        format_id.append(str(format_index))
-                    f = {
-                        'format_id': '-'.join(format_id),
-                        'format_note': name,
-                        'format_index': format_index,
-                        'url': manifest_url,
-                        'manifest_url': m3u8_url,
-                        'language': media.get('LANGUAGE'),
-                        'ext': ext,
-                        'protocol': entry_protocol,
-                        'preference': preference,
-                        'quality': quality,
-                    }
-                    if media_type == 'AUDIO':
-                        f['vcodec'] = 'none'
-                    formats.append(f)
+                formats.extend({
+                    'format_id': '-'.join(map(str, filter(None, (m3u8_id, group_id, name, idx)))),
+                    'format_note': name,
+                    'format_index': idx,
+                    'url': manifest_url,
+                    'manifest_url': m3u8_url,
+                    'language': media.get('LANGUAGE'),
+                    'ext': ext,
+                    'protocol': entry_protocol,
+                    'preference': preference,
+                    'quality': quality,
+                    'vcodec': 'none' if media_type == 'AUDIO' else None,
+                } for idx in _extract_m3u8_playlist_indices(manifest_url))
 
         def build_stream_name():
             # Despite specification does not mention NAME attribute for
@@ -2179,25 +2124,17 @@ class InfoExtractor(object):
                     or last_stream_inf.get('BANDWIDTH'), scale=1000)
                 manifest_url = format_url(line.strip())
 
-                playlist_formats = _extract_m3u8_playlist_formats(manifest_url, video_id=video_id,
-                                                                  fatal=fatal, data=data, headers=headers)
-
-                for frmt in playlist_formats:
-                    format_id = []
-                    if m3u8_id:
-                        format_id.append(m3u8_id)
-                    format_index = frmt.get('index')
-                    stream_name = build_stream_name()
+                for idx in _extract_m3u8_playlist_indices(manifest_url):
+                    format_id = [m3u8_id, None, idx]
                     # Bandwidth of live streams may differ over time thus making
                     # format_id unpredictable. So it's better to keep provided
                     # format_id intact.
                     if not live:
-                        format_id.append(stream_name if stream_name else '%d' % (tbr if tbr else len(formats)))
-                    if format_index:
-                        format_id.append(str(format_index))
+                        stream_name = build_stream_name()
+                        format_id[1] = stream_name if stream_name else '%d' % (tbr if tbr else len(formats))
                     f = {
-                        'format_id': '-'.join(format_id),
-                        'format_index': format_index,
+                        'format_id': '-'.join(map(str, filter(None, format_id))),
+                        'format_index': idx,
                         'url': manifest_url,
                         'manifest_url': m3u8_url,
                         'tbr': tbr,
@@ -2272,7 +2209,7 @@ class InfoExtractor(object):
                 out.append('{%s}%s' % (namespace, c))
         return '/'.join(out)
 
-    def _extract_smil_formats(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
+    def _extract_smil_formats_and_subtitles(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
         smil = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
 
         if smil is False:
@@ -2281,8 +2218,21 @@ class InfoExtractor(object):
 
         namespace = self._parse_smil_namespace(smil)
 
-        return self._parse_smil_formats(
+        fmts = self._parse_smil_formats(
             smil, smil_url, video_id, namespace=namespace, f4m_params=f4m_params)
+        subs = self._parse_smil_subtitles(
+            smil, namespace=namespace)
+
+        return fmts, subs
+
+    def _extract_smil_formats(self, *args, **kwargs):
+        fmts, subs = self._extract_smil_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self.report_warning(bug_reports_message(
+                "Ignoring subtitle tracks found in the SMIL manifest; "
+                "if any subtitle tracks are missing,"
+            ))
+        return fmts
 
     def _extract_smil_info(self, smil_url, video_id, fatal=True, f4m_params=None):
         smil = self._download_smil(smil_url, video_id, fatal=fatal)
@@ -3506,16 +3456,8 @@ class InfoExtractor(object):
         return ret
 
     @classmethod
-    def _merge_subtitles(cls, *dicts, **kwargs):
+    def _merge_subtitles(cls, *dicts, target=None):
         """ Merge subtitle dictionaries, language by language. """
-
-        target = (lambda target=None: target)(**kwargs)
-        # The above lambda extracts the keyword argument 'target' from kwargs
-        # while ensuring there are no stray ones. When Python 2 support
-        # is dropped, remove it and change the function signature to:
-        #
-        #     def _merge_subtitles(cls, *dicts, target=None):
-
         if target is None:
             target = {}
         for d in dicts:
@@ -3568,9 +3510,18 @@ class InfoExtractor(object):
             else 'public' if all_known
             else None)
 
-    def _configuration_arg(self, key):
-        return traverse_obj(
+    def _configuration_arg(self, key, default=NO_DEFAULT, casesense=False):
+        '''
+        @returns            A list of values for the extractor argument given by "key"
+                            or "default" if no such key is present
+        @param default      The default value to return when the key is not present (default: [])
+        @param casesense    When false, the values are converted to lower case
+        '''
+        val = traverse_obj(
             self._downloader.params, ('extractor_args', self.ie_key().lower(), key))
+        if val is None:
+            return [] if default is NO_DEFAULT else default
+        return list(val) if casesense else [x.lower() for x in val]
 
 
 class SearchInfoExtractor(InfoExtractor):

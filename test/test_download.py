@@ -10,12 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import (
     assertGreaterEqual,
+    expect_info_dict,
     expect_warnings,
     get_params,
     gettestcases,
-    expect_info_dict,
-    try_rm,
+    is_download_test,
     report_warning,
+    try_rm,
 )
 
 
@@ -64,6 +65,7 @@ def _file_md5(fn):
 defs = gettestcases()
 
 
+@is_download_test
 class TestDownload(unittest.TestCase):
     # Parallel testing in nosetests. See
     # http://nose.readthedocs.org/en/latest/doc_tests/test_multiprocess/multiprocess.html

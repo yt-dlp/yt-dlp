@@ -7,7 +7,7 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import get_params, try_rm
+from test.helper import get_params, try_rm, is_download_test
 import yt_dlp.YoutubeDL
 from yt_dlp.utils import DownloadError
 
@@ -22,6 +22,7 @@ TEST_ID = 'gr51aVj-mLg'
 EXPECTED_NAME = 'gr51aVj-mLg'
 
 
+@is_download_test
 class TestPostHooks(unittest.TestCase):
     def setUp(self):
         self.stored_name_1 = None

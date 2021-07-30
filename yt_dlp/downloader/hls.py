@@ -133,7 +133,7 @@ class HlsFD(FragmentFD):
         if real_downloader:
             self._prepare_external_frag_download(ctx)
         else:
-            self._prepare_and_start_frag_download(ctx)
+            self._prepare_and_start_frag_download(ctx, info_dict)
 
         extra_state = ctx.setdefault('extra_state', {})
 

@@ -23,12 +23,13 @@ class ExecAfterDownloadPP(PostProcessor):
     def parse_cmd(self, cmd, info):
         tmpl, tmpl_dict = self._downloader.prepare_outtmpl(cmd, info)
         if tmpl_dict:  # if there are no replacements, tmpl_dict = {}
-            return tmpl % tmpl_dict
+            return self._downloader.escape_outtmpl(tmpl) % tmpl_dict
 
         # If no replacements are found, replace {} for backard compatibility
         if '{}' not in cmd:
             cmd += ' {}'
-        return cmd.replace('{}', compat_shlex_quote(info['filepath']))
+        return cmd.replace('{}', compat_shlex_quote(
+            info.get('filepath') or info['_filename']))
 
     def run(self, info):
         cmd = self.parse_cmd(self.exec_cmd, info)

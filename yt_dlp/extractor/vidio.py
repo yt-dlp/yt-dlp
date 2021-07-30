@@ -5,6 +5,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     ExtractorError,
     get_element_by_class,
     int_or_none,
@@ -47,10 +48,19 @@ class VidioBaseIE(InfoExtractor):
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(login_form), expected_status=[302, 401])
 
         if login_post_urlh.status == 401:
-            reason = get_element_by_class('onboarding-form__general-error', login_post)
-            if reason:
+            if get_element_by_class('onboarding-content-register-popup__title', login_post):
                 raise ExtractorError(
-                    'Unable to log in: %s' % reason, expected=True)
+                    'Unable to log in: The provided email has not registered yet.', expected=True)
+
+            reason = get_element_by_class('onboarding-form__general-error', login_post) or get_element_by_class('onboarding-modal__title', login_post)
+            if 'Akun terhubung ke' in reason:
+                raise ExtractorError(
+                    'Unable to log in: Your account is linked to a social media account. '
+                    'Use --cookies to provide account credentials instead', expected=True)
+            elif reason:
+                subreason = get_element_by_class('onboarding-modal__description-text', login_post) or ''
+                raise ExtractorError(
+                    'Unable to log in: %s. %s' % (reason, clean_html(subreason)), expected=True)
             raise ExtractorError('Unable to log in')
 
     def _real_initialize(self):

@@ -35,13 +35,13 @@ class InfoExtractorTestRequestHandler(compat_http_server.BaseHTTPRequestHandler)
             assert False
 
 
-class TestIE(InfoExtractor):
+class DummyIE(InfoExtractor):
     pass
 
 
 class TestInfoExtractor(unittest.TestCase):
     def setUp(self):
-        self.ie = TestIE(FakeYDL())
+        self.ie = DummyIE(FakeYDL())
 
     def test_ie_key(self):
         self.assertEqual(get_info_extractor(YoutubeIE.ie_key()), YoutubeIE)

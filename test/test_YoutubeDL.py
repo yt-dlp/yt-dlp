@@ -10,10 +10,11 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import copy
+import json
 
 from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_str, compat_urllib_error
+from yt_dlp.compat import compat_os_name, compat_setenv, compat_str, compat_urllib_error
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
@@ -34,6 +35,9 @@ class YDL(FakeYDL):
 
     def to_screen(self, msg):
         self.msgs.append(msg)
+
+    def dl(self, *args, **kwargs):
+        assert False, 'Downloader must not be invoked for test_YoutubeDL'
 
 
 def _make_result(formats, **kwargs):
@@ -117,35 +121,24 @@ class TestFormatSelection(unittest.TestCase):
         ]
         info_dict = _make_result(formats)
 
-        ydl = YDL({'format': '20/47'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '47')
+        def test(inp, *expected, multi=False):
+            ydl = YDL({
+                'format': inp,
+                'allow_multiple_video_streams': multi,
+                'allow_multiple_audio_streams': multi,
+            })
+            ydl.process_ie_result(info_dict.copy())
+            downloaded = map(lambda x: x['format_id'], ydl.downloaded_info_dicts)
+            self.assertEqual(list(downloaded), list(expected))
 
-        ydl = YDL({'format': '20/71/worst'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '35')
-
-        ydl = YDL()
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '2')
-
-        ydl = YDL({'format': 'webm/mp4'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '47')
-
-        ydl = YDL({'format': '3gp/40/mp4'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '35')
-
-        ydl = YDL({'format': 'example-with-dashes'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], 'example-with-dashes')
+        test('20/47', '47')
+        test('20/71/worst', '35')
+        test(None, '2')
+        test('webm/mp4', '47')
+        test('3gp/40/mp4', '35')
+        test('example-with-dashes', 'example-with-dashes')
+        test('all', '35', 'example-with-dashes', '45', '47', '2')  # Order doesn't actually matter for this
+        test('mergeall', '2+47+45+example-with-dashes+35', multi=True)
 
     def test_format_selection_audio(self):
         formats = [
@@ -655,6 +648,7 @@ class TestYoutubeDL(unittest.TestCase):
         'title1': '$PATH',
         'title2': '%PATH%',
         'title3': 'foo/bar\\test',
+        'title4': 'foo "bar" test',
         'timestamp': 1618488000,
         'duration': 100000,
         'playlist_index': 1,
@@ -671,16 +665,18 @@ class TestYoutubeDL(unittest.TestCase):
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
             outtmpl, tmpl_dict = ydl.prepare_outtmpl(tmpl, info or self.outtmpl_info)
-            out = outtmpl % tmpl_dict
+            out = ydl.escape_outtmpl(outtmpl) % tmpl_dict
             fname = ydl.prepare_filename(info or self.outtmpl_info)
 
             if callable(expected):
                 self.assertTrue(expected(out))
                 self.assertTrue(expected(fname))
-            elif isinstance(expected, compat_str):
-                self.assertEqual((out, fname), (expected, expected))
+            elif isinstance(expected, str):
+                self.assertEqual(out, expected)
+                self.assertEqual(fname, expected)
             else:
-                self.assertEqual((out, fname), expected)
+                self.assertEqual(out, expected[0])
+                self.assertEqual(fname, expected[1])
 
         # Auto-generated fields
         test('%(id)s.%(ext)s', '1234.mp4')
@@ -693,9 +689,15 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(autonumber)s', '001', autonumber_size=3)
 
         # Escaping %
+        test('%', '%')
         test('%%', '%')
         test('%%%%', '%%')
+        test('%s', '%s')
+        test('%%%s', '%%s')
+        test('%d', '%d')
+        test('%abc%', '%abc%')
         test('%%(width)06d.%(ext)s', '%(width)06d.mp4')
+        test('%%%(height)s', '%1080')
         test('%(width)06d.%(ext)s', 'NA.mp4')
         test('%(width)06d.%%(ext)s', 'NA.%(ext)s')
         test('%%(width)06d.%(ext)s', '%(width)06d.mp4')
@@ -710,12 +712,9 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s', ('ab:cd', 'ab -cd'), info={'id': 'ab:cd'})
 
         # Invalid templates
-        self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%'), ValueError))
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
         test('%(invalid@tmpl|def)s', 'none', outtmpl_na_placeholder='none')
         test('%()s', 'NA')
-        test('%s', '%s')
-        test('%d', '%d')
 
         # NA placeholder
         NA_TEST_OUTTMPL = '%(uploader_date)s-%(width)d-%(x|def)s-%(id)s.%(ext)s'
@@ -746,13 +745,26 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(width|0)04d', '0000')
         test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
 
-        # Internal formatting
         FORMATS = self.outtmpl_info['formats']
+        sanitize = lambda x: x.replace(':', ' -').replace('"', "'")
+
+        # Custom type casting
+        test('%(formats.:.id)l', 'id1, id2, id3')
+        test('%(ext)l', 'mp4')
+        test('%(formats.:.id) 15l', '  id1, id2, id3')
+        test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
+        if compat_os_name == 'nt':
+            test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
+        else:
+            test('%(title4)q', ('\'foo "bar" test\'', "'foo 'bar' test'"))
+
+        # Internal formatting
         test('%(timestamp-1000>%H-%M-%S)s', '11-43-20')
+        test('%(title|%)s %(title|%%)s', '% %%')
         test('%(id+1-height+3)05d', '00158')
         test('%(width+100)05d', 'NA')
-        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], '% 15s' % str(FORMATS[0]).replace(':', ' -')))
-        test('%(formats.0)r', (repr(FORMATS[0]), repr(FORMATS[0]).replace(':', ' -')))
+        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], '% 15s' % sanitize(str(FORMATS[0]))))
+        test('%(formats.0)r', (repr(FORMATS[0]), sanitize(repr(FORMATS[0]))))
         test('%(height.0)03d', '001')
         test('%(-height.0)04d', '-001')
         test('%(formats.-1.id)s', FORMATS[-1]['id'])
@@ -766,6 +778,11 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(foo|)s-%(bar|)s.%(ext)s', '-.mp4')
         # test('%(foo|)s.%(ext)s', ('.mp4', '_.mp4'))  # fixme
         # test('%(foo|)s', ('', '_'))  # fixme
+
+        # Environment variable expansion for prepare_filename
+        compat_setenv('__yt_dlp_var', 'expanded')
+        envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
+        test(envvar, (envvar, 'expanded'))
 
         # Path expansion and escaping
         test('Hello %(title1)s', 'Hello $PATH')

@@ -8,7 +8,7 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import get_params, try_rm
+from test.helper import get_params, try_rm, is_download_test
 
 
 import io
@@ -38,6 +38,7 @@ ANNOTATIONS_FILE = TEST_ID + '.annotations.xml'
 EXPECTED_ANNOTATIONS = ['Speech bubble', 'Note', 'Title', 'Spotlight', 'Label']
 
 
+@is_download_test
 class TestAnnotations(unittest.TestCase):
     def setUp(self):
         # Clear old files

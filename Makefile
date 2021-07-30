@@ -13,7 +13,7 @@ pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites com
 .PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
 clean-test:
-	rm -rf *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.frag *.frag.urls *.frag.aria2
+	rm -rf *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.frag *.frag.urls *.frag.aria2 test/testdata/player-*.js
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
 clean-cache:
@@ -49,23 +49,11 @@ codetest:
 	flake8 .
 
 test:
-	#nosetests --with-coverage --cover-package=yt_dlp --cover-html --verbose --processes 4 test
-	nosetests --verbose test
+	$(PYTHON) -m pytest
 	$(MAKE) codetest
 
-# Keep this list in sync with devscripts/run_tests.sh
 offlinetest: codetest
-	$(PYTHON) -m nose --verbose test \
-		--exclude test_age_restriction.py \
-		--exclude test_download.py \
-		--exclude test_iqiyi_sdk_interpreter.py \
-		--exclude test_overwrites.py \
-		--exclude test_socks.py \
-		--exclude test_subtitles.py \
-		--exclude test_write_annotations.py \
-		--exclude test_youtube_lists.py \
-		--exclude test_youtube_signature.py \
-		--exclude test_post_hooks.py
+	$(PYTHON) -m pytest -k "not download"
 
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip

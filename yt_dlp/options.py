@@ -19,6 +19,7 @@ from .utils import (
     preferredencoding,
     write_string,
 )
+from .cookies import SUPPORTED_BROWSERS
 from .version import __version__
 
 from .downloader.external import list_external_downloaders
@@ -137,14 +138,21 @@ def parseOpts(overrideArguments=None):
         else:
             raise optparse.OptionValueError(
                 'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
-        val = process(val) if callable(process) else val
+        try:
+            val = process(val) if process else val
+        except Exception as err:
+            raise optparse.OptionValueError(
+                'wrong %s formatting; %s' % (opt_str, err))
         for key in keys:
             out_dict[key] = val
 
     # No need to wrap help messages if we're on a wide console
     columns = compat_get_terminal_size().columns
     max_width = columns if columns else 80
-    max_help_position = 80
+    # 47% is chosen because that is how README.md is currently formatted
+    # and moving help text even further to the right is undesirable.
+    # This can be reduced in the future to get a prettier output
+    max_help_position = int(0.47 * max_width)
 
     fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
     fmt.format_option_strings = _format_option_string
@@ -520,8 +528,12 @@ def parseOpts(overrideArguments=None):
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
-        action='store_true', dest='check_formats', default=False,
-        help="Check that the formats selected are actually downloadable (Experimental)")
+        action='store_true', dest='check_formats', default=None,
+        help='Check that the formats selected are actually downloadable')
+    video_format.add_option(
+        '--no-check-formats',
+        action='store_false', dest='check_formats',
+        help='Do not check that the formats selected are actually downloadable')
     video_format.add_option(
         '-F', '--list-formats',
         action='store_true', dest='listformats',
@@ -1079,7 +1091,21 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--no-cookies',
         action='store_const', const=None, dest='cookiefile', metavar='FILE',
-        help='Do not read/dump cookies (default)')
+        help='Do not read/dump cookies from/to file (default)')
+    filesystem.add_option(
+        '--cookies-from-browser',
+        dest='cookiesfrombrowser', metavar='BROWSER[:PROFILE]',
+        help=(
+            'Load cookies from a user profile of the given web browser. '
+            'Currently supported browsers are: {}. '
+            'You can specify the user profile name or directory using '
+            '"BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH". '
+            'If no profile is given, the most recently accessed one is used'.format(
+                '|'.join(sorted(SUPPORTED_BROWSERS)))))
+    filesystem.add_option(
+        '--no-cookies-from-browser',
+        action='store_const', const=None, dest='cookiesfrombrowser',
+        help='Do not load cookies from browser (default)')
     filesystem.add_option(
         '--cache-dir', dest='cachedir', default=None, metavar='DIR',
         help='Location in the filesystem where youtube-dl can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/youtube-dl or ~/.cache/youtube-dl')
@@ -1260,7 +1286,11 @@ def parseOpts(overrideArguments=None):
             'Execute a command on the file after downloading and post-processing. '
             'Similar syntax to the output template can be used to pass any field as arguments to the command. '
             'An additional field "filepath" that contains the final path of the downloaded file is also available. '
-            'If no fields are passed, "%(filepath)s" is appended to the end of the command'))
+            'If no fields are passed, %(filepath)q is appended to the end of the command'))
+    postproc.add_option(
+        '--exec-before-download',
+        metavar='CMD', dest='exec_before_dl_cmd',
+        help='Execute a command before the actual download. The syntax is the same as --exec but "filepath" is not available')
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
@@ -1344,6 +1374,7 @@ def parseOpts(overrideArguments=None):
         '--no-hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_false',
         help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
+    _extractor_arg_parser = lambda key, vals='': (key.strip().lower(), [val.strip() for val in vals.split(',')])
     extractor.add_option(
         '--extractor-args',
         metavar='KEY:ARGS', dest='extractor_args', default={}, type='str',
@@ -1351,11 +1382,11 @@ def parseOpts(overrideArguments=None):
         callback_kwargs={
             'multiple_keys': False,
             'process': lambda val: dict(
-                (lambda x: (x[0], x[1].split(',')))(arg.split('=', 1) + ['', '']) for arg in val.split(';'))
+                _extractor_arg_parser(*arg.split('=', 1)) for arg in val.split(';'))
         },
         help=(
             'Pass these arguments to the extractor. See "EXTRACTOR ARGUMENTS" for details. '
-            'You can use this option multiple times to give different arguments to different extractors'))
+            'You can use this option multiple times to give arguments for different extractors'))
     extractor.add_option(
         '--youtube-include-dash-manifest', '--no-youtube-skip-dash-manifest',
         action='store_true', dest='youtube_include_dash_manifest', default=True,

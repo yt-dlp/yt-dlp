@@ -44,7 +44,7 @@ Provide the complete verbose output of yt-dlp that clearly demonstrates the prob
 Add the `-v` flag to your command line you run yt-dlp with (`yt-dlp -v <your command line>`), copy the WHOLE output and insert it below. It should look similar to this:
  [debug] System config: []
  [debug] User config: []
- [debug] Command-line args: [u'-v', u'http://www.youtube.com/watch?v=BaW_jenozKcj']
+ [debug] Command-line args: [u'-v', u'http://www.youtube.com/watch?v=BaW_jenozKc']
  [debug] Encodings: locale cp1251, fs mbcs, out cp866, pref cp1251
  [debug] yt-dlp version %(version)s
  [debug] Python version 2.7.11 - Windows-2003Server-5.2.3790-SP2
