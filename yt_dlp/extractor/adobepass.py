@@ -1571,20 +1571,9 @@ class AdobePassIE(InfoExtractor):
                             'Content-Type': 'application/x-www-form-urlencoded'
                         })
                 elif mso_id == 'slingtv':
-                    # sling authentication requires several steps
-                    #
-                    # firstbookend - The first redirect is to a bookend page, which
-                    # is just an HTTP get that runs some JS to look at
-                    # window history (?) and count how many times
-                    # the browser has been on a page. To stop back buttons?
-                    # After resubmitting, we are redirected to the login form
-                    #
-                    # after the login form, there is a meta-refresh (bypassing some JS)
-                    # that redirects to another bookend page that once again
-                    # looks at the browser window history... It seems to increment
-                    # by two during the process, so do that here.
-                    #
-                    # after the last bookend, a manual form to finish the login
+                    # SlingTV  has a meta-refresh based authentication, but also
+                    # looks at the tab history to count the number of times the
+                    # browser has been on a page
 
                     first_bookend_page, urlh = provider_redirect_page_res
 
