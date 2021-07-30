@@ -1530,6 +1530,7 @@ from .vidio import (
     VidioLiveIE
 )
 from .vidlii import VidLiiIE
+from .vidlox import VIDLOXIE
 from .vidme import (
     VidmeIE,
     VidmeUserIE,
