@@ -131,6 +131,8 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
     },
+    # ios has HLS live streams
+    # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680
     'ios': {
         'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
         'INNERTUBE_CONTEXT': {
@@ -162,6 +164,8 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26
     },
+    # mweb has 'ultralow' formats
+    # See: https://github.com/yt-dlp/yt-dlp/pull/557
     'mweb': {
         'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
         'INNERTUBE_CONTEXT': {
