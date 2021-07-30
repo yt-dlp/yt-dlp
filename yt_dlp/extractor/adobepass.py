@@ -1330,6 +1330,11 @@ MSO_INFO = {
     'cou060': {
         'name': 'Zito Media'
     },
+    'slingtv': {
+        'name': 'Sling TV',
+        'username_field': 'username',
+        'password_field': 'password',
+    },
 }
 
 
@@ -1565,6 +1570,60 @@ class AdobePassIE(InfoExtractor):
                         }), headers={
                             'Content-Type': 'application/x-www-form-urlencoded'
                         })
+                elif mso_id == 'slingtv':
+                    # sling authentication requires several steps
+                    #
+                    # firstbookend - The first redirect is to a bookend page, which
+                    # is just an HTTP get that runs some JS to look at
+                    # window history (?) and count how many times
+                    # the browser has been on a page. To stop back buttons?
+                    # After resubmitting, we are redirected to the login form
+                    #
+                    # after the login form, there is a meta-refresh (bypassing some JS)
+                    # that redirects to another bookend page that once again
+                    # looks at the browser window history... It seems to increment
+                    # by two during the process, so do that here.
+                    #
+                    # after the last bookend, a manual form to finish the login
+
+                    first_bookend_page, urlh = provider_redirect_page_res
+
+                    # extract the form data from the first bookend and re-send via GET
+                    hidden_data = self._hidden_inputs(first_bookend_page)
+                    hidden_data['history'] = 1
+
+                    provider_login_page_res = self._download_webpage_handle(
+                        urlh.geturl(), video_id, 'Sending first bookend.', query=hidden_data)
+
+                    # log in after being redirected
+                    provider_redirect_post_login_res = post_form(provider_login_page_res, 'Logging in', {
+                        mso_info.get('username_field', 'username'): username,
+                        mso_info.get('password_field', 'password'): password,
+                    })
+
+                    provider_association_redirect, urlh = provider_redirect_post_login_res
+
+                    # extract the redirect URL (executes with JS in the browser)
+                    provider_refresh_redirect_url = extract_redirect_url(
+                        provider_association_redirect, url=urlh.geturl())
+
+                    # the redirected URL sends us to the final bookend page
+                    last_bookend_page_res = self._download_webpage_handle(
+                        provider_refresh_redirect_url, video_id,
+                        'Downloading Auth Association Redirect Page (meta refresh)')
+
+                    last_bookend_page, urlh = last_bookend_page_res
+
+                    # extract the form data from the final page
+                    hidden_data = self._hidden_inputs(last_bookend_page)
+                    hidden_data['history'] = 3
+
+                    # re-send via GET
+                    mvpd_confirm_page_res = self._download_webpage_handle(
+                        urlh.geturl(), video_id, 'Sending final bookend.', query=hidden_data)
+
+                    # press the "button" to confirm login
+                    post_form(mvpd_confirm_page_res, 'Confirming Login')
                 else:
                     # Some providers (e.g. DIRECTV NOW) have another meta refresh
                     # based redirect that should be followed.
