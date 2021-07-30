@@ -1577,34 +1577,32 @@ class AdobePassIE(InfoExtractor):
 
                     first_bookend_page, urlh = provider_redirect_page_res
 
-                    # extract the form data from the first bookend and re-send via GET
                     hidden_data = self._hidden_inputs(first_bookend_page)
                     hidden_data['history'] = 1
 
                     provider_login_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending first bookend.', query=hidden_data)
+                        urlh.geturl(), video_id, 'Sending first bookend.',
+                        query=hidden_data)
 
-                    provider_association_redirect, urlh = post_form(provider_login_page_res, 'Logging in', {
+                    provider_association_redirect, urlh = post_form(
+                        provider_login_page_res,
+                        'Logging in', {
                         mso_info['username_field']: username,
-                        mso_info['password_field': password,
-                    })
+                        mso_info['password_field': password})
 
-                    # extract the redirect URL (executes with JS in the browser)
                     provider_refresh_redirect_url = extract_redirect_url(
                         provider_association_redirect, url=urlh.geturl())
 
                     last_bookend_page, urlh = self._download_webpage_handle(
                         provider_refresh_redirect_url, video_id,
                         'Downloading Auth Association Redirect Page')
-                    # extract the form data from the final page
                     hidden_data = self._hidden_inputs(last_bookend_page)
                     hidden_data['history'] = 3
 
-                    # re-send via GET
                     mvpd_confirm_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending final bookend.', query=hidden_data)
+                        urlh.geturl(), video_id, 'Sending final bookend.',
+                        query=hidden_data)
 
-                    # press the "button" to confirm login
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
                 else:
                     # Some providers (e.g. DIRECTV NOW) have another meta refresh
