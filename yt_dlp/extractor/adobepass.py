@@ -1595,13 +1595,10 @@ class AdobePassIE(InfoExtractor):
                     provider_login_page_res = self._download_webpage_handle(
                         urlh.geturl(), video_id, 'Sending first bookend.', query=hidden_data)
 
-                    # log in after being redirected
-                    provider_redirect_post_login_res = post_form(provider_login_page_res, 'Logging in', {
-                        mso_info.get('username_field', 'username'): username,
-                        mso_info.get('password_field', 'password'): password,
+                    provider_association_redirect, urlh = post_form(provider_login_page_res, 'Logging in', {
+                        mso_info['username_field']: username,
+                        mso_info['password_field': password,
                     })
-
-                    provider_association_redirect, urlh = provider_redirect_post_login_res
 
                     # extract the redirect URL (executes with JS in the browser)
                     provider_refresh_redirect_url = extract_redirect_url(
