@@ -789,10 +789,11 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      command. An additional field "filepath"
                                      that contains the final path of the
                                      downloaded file is also available. If no
-                                     fields are passed, "%(filepath)s" is
-                                     appended to the end of the command
+                                     fields are passed, %(filepath)q is appended
+                                     to the end of the command
     --exec-before-download CMD       Execute a command before the actual
                                      download. The syntax is the same as --exec
+                                     but "filepath" is not available
     --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
@@ -917,10 +918,11 @@ The simplest usage of `-o` is not to set any template arguments when downloading
 It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
-1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. Eg: `%(tags.0)s`, `%(subtitles.en.-1.ext)`, `%(id.3:7:-1)s`. Note that the fields that become available using this method are not listed below. Use `-j` to see such fields
+1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. Eg: `%(tags.0)s`, `%(subtitles.en.-1.ext)`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
 1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. Eg: `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
 1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
 1. **Default**: A default value can be specified for when the field is empty using a `|` seperator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `j`, `l`, `q` can be used for converting to **j**son, a comma seperated **l**ist and a string **q**uoted for the terminal respectively
 
 To summarize, the general syntax for a field is:
 ```
