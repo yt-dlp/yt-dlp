@@ -1593,13 +1593,9 @@ class AdobePassIE(InfoExtractor):
                     provider_refresh_redirect_url = extract_redirect_url(
                         provider_association_redirect, url=urlh.geturl())
 
-                    # the redirected URL sends us to the final bookend page
-                    last_bookend_page_res = self._download_webpage_handle(
+                    last_bookend_page, urlh = self._download_webpage_handle(
                         provider_refresh_redirect_url, video_id,
-                        'Downloading Auth Association Redirect Page (meta refresh)')
-
-                    last_bookend_page, urlh = last_bookend_page_res
-
+                        'Downloading Auth Association Redirect Page')
                     # extract the form data from the final page
                     hidden_data = self._hidden_inputs(last_bookend_page)
                     hidden_data['history'] = 3
