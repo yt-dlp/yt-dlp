@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import itertools
+import json
 import re
 import time
 
@@ -115,14 +116,15 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         video_url = video_json['url']
         if 'akamaized' in video_url:
             # For some videos hosted on Akamai's CDN (possibly AES-encrypted ones?), a session needs to at least be made via Conviva's API
-            conviva_json_query = {
+            conviva_json_data = {
                 **self._CONVIVA_JSON_TEMPLATE,
                 'url': video_url,
                 'sst': int(time.time())
             }
             conviva_json_res = self._download_json(
-                'https://ff84ae928c3b33064b76dec08f12500465e59a6f.cws.conviva.com/0/wsg', video_id,
-                'Creating Conviva session', fatal=False, query=conviva_json_query)
+                'https://ff84ae928c3b33064b76dec08f12500465e59a6f.cws.conviva.com/0/wsg', display_id,
+                'Creating Conviva session', 'Failed to create Conviva session',
+                fatal=False, data=json.dumps(conviva_json_data).encode('utf-8'))
             if conviva_json_res and conviva_json_res.get('err') != 'ok':
                 self.report_warning('Conviva said: %s' % str(conviva_json_res.get('err')))
 
