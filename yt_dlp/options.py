@@ -924,14 +924,16 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-P', '--paths',
-        metavar='TYPES:PATH', dest='paths', default={}, type='str',
+        metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys())},
-        help=(
+        callback_kwargs={
+            'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys()),
+            'default_key': 'home'
+        }, help=(
             'The paths where the files should be downloaded. '
             'Specify the type of file and the path separated by a colon ":". '
             'All the same types as --output are supported. '
-            'Additionally, you can also provide "home" and "temp" paths. '
+            'Additionally, you can also provide "home" (default) and "temp" paths. '
             'All intermediary files are first downloaded to the temp path and '
             'then the final files are moved over to the home path after download is finished. '
             'This option is ignored if --output is an absolute path'))
