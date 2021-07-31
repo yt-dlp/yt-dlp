@@ -73,7 +73,7 @@ excluded_modules = ['test', 'ytdlp_plugins', 'youtube-dl', 'youtube-dlc']
 PyInstaller.__main__.run([
     '--name=yt-dlp%s' % _x86,
     '--onefile',
-    '--icon=devscripts/cloud.ico',
+    '--icon=devscripts/logo.ico',
     *[f'--exclude-module={module}' for module in excluded_modules],
     *[f'--hidden-import={module}' for module in dependancies],
     '--upx-exclude=vcruntime140.dll',

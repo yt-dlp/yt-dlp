@@ -1,17 +1,15 @@
 <div align="center">
 
-# YT-DLP
-A command-line program to download videos from YouTube and many other [video platforms](supportedsites.md)
+[![YT-DLP](https://github.com/yt-dlp/yt-dlp/tree/master/.github/banner.svg)](#readme)
 
-<!-- GHA doesn't have for-the-badge style
-[![CI Status](https://github.com/yt-dlp/yt-dlp/workflows/Core%20Tests/badge.svg?branch=master)](https://github.com/yt-dlp/yt-dlp/actions)
--->
-[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Release&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases/latest)
-[![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue.svg?style=for-the-badge)](LICENSE)
+[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=blue&label=%20&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases/latest)
+[![CI Status](https://img.shields.io/github/workflow/status/yt-dlp/yt-dlp/Core%20Tests/master?label=&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/actions)
+[![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=for-the-badge)](LICENSE)
+[![Supported Sites](https://img.shields.io/badge/-Supported_Sites-brightgreen.svg?style=for-the-badge)](supportedsites.md)
+[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&label=%20​&logo=discord&style=for-the-badge)](https://discord.gg/H5MNcFW63r)
 [![Doc Status](https://readthedocs.org/projects/yt-dlp/badge/?version=latest&style=for-the-badge)](https://yt-dlp.readthedocs.io)
-[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&label=discord&logo=discord&style=for-the-badge)](https://discord.gg/H5MNcFW63r)
 [![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits)
-[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits)
+[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?label=%20&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits)
 [![Downloads](https://img.shields.io/github/downloads/yt-dlp/yt-dlp/total?style=for-the-badge&color=blue)](https://github.com/yt-dlp/yt-dlp/releases/latest)
 [![PyPi Downloads](https://img.shields.io/pypi/dm/yt-dlp?label=PyPi&style=for-the-badge)](https://pypi.org/project/yt-dlp)
 
