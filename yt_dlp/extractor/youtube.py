@@ -100,6 +100,17 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
     },
+    'web_studio': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_HOST': 'studio.youtube.com',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 62,
+                'clientVersion': '1.20210621.00.00',
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
+    },
     'android': {
         'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
         'INNERTUBE_CONTEXT': {
@@ -2441,8 +2452,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.extend(allowed_clients)
             else:
                 self.report_warning(f'Skipping unsupported client {client}')
+
         if not requested_clients:
             requested_clients = ['android', 'web']
+
+            # Try web studio client if session cookies provided (bypass for "AGE_VERIFICATION_REQUIRED")
+            if self._get_cookies('https://www.youtube.com').get("__Secure-3PAPISID") is not None:
+                requested_clients.append("web_studio")
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             requested_clients.extend(
