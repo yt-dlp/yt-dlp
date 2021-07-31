@@ -1756,6 +1756,7 @@ class YoutubeDL(object):
                         if not allow_multiple_streams[aud_vid] and fmt_info.get(aud_vid[0] + 'codec') != 'none':
                             if get_no_more[aud_vid]:
                                 formats_info.pop(i)
+                                break
                             get_no_more[aud_vid] = True
 
             if len(formats_info) == 1:

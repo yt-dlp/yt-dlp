@@ -1497,7 +1497,7 @@ class InfoExtractor(object):
                      'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
                      'order_free': ('opus', 'ogg', 'webm', 'm4a', 'mp3', 'aac', '', 'none')},
             'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
-            'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple', 'default': 1,
+            'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple',
                            'field': ('vcodec', 'acodec'),
                            'function': lambda it: int(any(v != 'none' for v in it))},
             'ie_pref': {'priority': True, 'type': 'extractor'},
@@ -1521,7 +1521,8 @@ class InfoExtractor(object):
             'br': {'type': 'combined', 'field': ('tbr', 'vbr', 'abr'), 'same_limit': True},
             'size': {'type': 'combined', 'same_limit': True, 'field': ('filesize', 'fs_approx')},
             'ext': {'type': 'combined', 'field': ('vext', 'aext')},
-            'res': {'type': 'multiple', 'field': ('height', 'width'), 'function': min},
+            'res': {'type': 'multiple', 'field': ('height', 'width'),
+            'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
 
             # Most of these exist only for compatibility reasons
             'dimension': {'type': 'alias', 'field': 'res'},
@@ -1565,7 +1566,7 @@ class InfoExtractor(object):
                 elif key == 'convert':
                     default = 'order' if type == 'ordered' else 'float_string' if field else 'ignore'
                 else:
-                    default = {'type': 'field', 'visible': True, 'order': [], 'not_in_list': (None,), 'function': max}.get(key, None)
+                    default = {'type': 'field', 'visible': True, 'order': [], 'not_in_list': (None,)}.get(key, None)
                 propObj[key] = default
             return propObj[key]
 
@@ -1705,11 +1706,7 @@ class InfoExtractor(object):
                 type = 'field'  # Only 'field' is allowed in multiple for now
                 actual_fields = self._get_field_setting(field, 'field')
 
-                def wrapped_function(values):
-                    values = tuple(filter(lambda x: x is not None, values))
-                    return self._get_field_setting(field, 'function')(values) if values else None
-
-                value = wrapped_function((get_value(f) for f in actual_fields))
+                value = self._get_field_setting(field, 'function')(get_value(f) for f in actual_fields)
             else:
                 value = get_value(field)
             return self._calculate_field_preference_from_value(format, field, type, value)
