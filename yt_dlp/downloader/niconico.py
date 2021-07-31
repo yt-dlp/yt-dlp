@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import threading
 
 from .common import FileDownloader
-from ..downloader import _get_real_downloader
+from ..downloader import get_suitable_downloader
 from ..extractor.niconico import NiconicoIE
 from ..compat import compat_urllib_request
 
@@ -20,7 +20,7 @@ class NiconicoDmcFD(FileDownloader):
         ie = NiconicoIE(self.ydl)
         info_dict, heartbeat_info_dict = ie._get_heartbeat_info(info_dict)
 
-        fd = _get_real_downloader(info_dict, params=self.params)(self.ydl, self.params)
+        fd = get_suitable_downloader(info_dict, params=self.params)(self.ydl, self.params)
 
         success = download_complete = False
         timer = [None]

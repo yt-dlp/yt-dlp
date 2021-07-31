@@ -3,17 +3,19 @@ from __future__ import unicode_literals
 from ..compat import compat_str
 from ..utils import (
     determine_protocol,
+    NO_DEFAULT
 )
 
 
-def _get_real_downloader(info_dict, protocol=None, *args, **kwargs):
+def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=None):
+    info_dict['protocol'] = determine_protocol(info_dict)
     info_copy = info_dict.copy()
     if protocol:
         info_copy['protocol'] = protocol
-    return get_suitable_downloader(info_copy, *args, **kwargs)
+    return _get_suitable_downloader(info_copy, params, default)
 
 
-# Some of these require _get_real_downloader
+# Some of these require get_suitable_downloader
 from .common import FileDownloader
 from .dash import DashSegmentsFD
 from .f4m import F4mFD
@@ -69,14 +71,15 @@ def shorten_protocol_name(proto, simplify=False):
     return short_protocol_names.get(proto, proto)
 
 
-def get_suitable_downloader(info_dict, params={}, default=HttpFD):
+def _get_suitable_downloader(info_dict, params, default):
     """Get the downloader class that can handle the info dict."""
-    protocol = determine_protocol(info_dict)
-    info_dict['protocol'] = protocol
+    if default is NO_DEFAULT:
+        default = HttpFD
 
     # if (info_dict.get('start_time') or info_dict.get('end_time')) and not info_dict.get('requested_formats') and FFmpegFD.can_download(info_dict):
     #     return FFmpegFD
 
+    protocol = info_dict['protocol']
     downloaders = params.get('external_downloader')
     external_downloader = (
         downloaders if isinstance(downloaders, compat_str) or downloaders is None
@@ -94,7 +97,7 @@ def get_suitable_downloader(info_dict, params={}, default=HttpFD):
             return FFmpegFD
         elif external_downloader == 'native':
             return HlsFD
-        elif _get_real_downloader(info_dict, 'm3u8_frag_urls', params, None):
+        elif get_suitable_downloader(info_dict, params, None, protocol='m3u8_frag_urls'):
             return HlsFD
         elif params.get('hls_prefer_native') is True:
             return HlsFD

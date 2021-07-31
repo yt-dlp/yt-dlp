@@ -706,9 +706,8 @@ def parseOpts(overrideArguments=None):
         callback_kwargs={
             'allowed_keys': 'http|ftp|m3u8|dash|rtsp|rtmp|mms',
             'default_key': 'default',
-            'process': lambda x: x.strip()
-        },
-        help=(
+            'process': str.strip
+        }, help=(
             'Name or path of the external downloader to use (optionally) prefixed by '
             'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
             'Currently supports native, %s (Recommended: aria2c). '
@@ -724,8 +723,7 @@ def parseOpts(overrideArguments=None):
             'allowed_keys': '|'.join(list_external_downloaders()),
             'default_key': 'default',
             'process': compat_shlex_split
-        },
-        help=(
+        }, help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '
             'You can use this option multiple times to give different arguments to different downloaders '
@@ -944,8 +942,7 @@ def parseOpts(overrideArguments=None):
         callback_kwargs={
             'allowed_keys': '|'.join(OUTTMPL_TYPES.keys()),
             'default_key': 'default'
-        },
-        help='Output filename template; see "OUTPUT TEMPLATE" for details')
+        }, help='Output filename template; see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
         '--output-na-placeholder',
         dest='outtmpl_na_placeholder', metavar='TEXT', default='NA',
@@ -1191,8 +1188,7 @@ def parseOpts(overrideArguments=None):
             'allowed_keys': r'\w+(?:\+\w+)?', 'default_key': 'default-compat',
             'process': compat_shlex_split,
             'multiple_keys': False
-        },
-        help=(
+        }, help=(
             'Give these arguments to the postprocessors. '
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
             'to give the argument to the specified postprocessor/executable. Supported PP are: '
@@ -1385,8 +1381,7 @@ def parseOpts(overrideArguments=None):
             'multiple_keys': False,
             'process': lambda val: dict(
                 _extractor_arg_parser(*arg.split('=', 1)) for arg in val.split(';'))
-        },
-        help=(
+        }, help=(
             'Pass these arguments to the extractor. See "EXTRACTOR ARGUMENTS" for details. '
             'You can use this option multiple times to give arguments for different extractors'))
     extractor.add_option(

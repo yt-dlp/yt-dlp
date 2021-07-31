@@ -1298,7 +1298,7 @@ class InfoExtractor(object):
         # JSON-LD may be malformed and thus `fatal` should be respected.
         # At the same time `default` may be passed that assumes `fatal=False`
         # for _search_regex. Let's simulate the same behavior here as well.
-        fatal = kwargs.get('fatal', True) if default == NO_DEFAULT else False
+        fatal = kwargs.get('fatal', True) if default is NO_DEFAULT else False
         json_ld = []
         for mobj in json_ld_list:
             json_ld_item = self._parse_json(
@@ -1522,7 +1522,7 @@ class InfoExtractor(object):
             'size': {'type': 'combined', 'same_limit': True, 'field': ('filesize', 'fs_approx')},
             'ext': {'type': 'combined', 'field': ('vext', 'aext')},
             'res': {'type': 'multiple', 'field': ('height', 'width'),
-            'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
+                    'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
 
             # Most of these exist only for compatibility reasons
             'dimension': {'type': 'alias', 'field': 'res'},

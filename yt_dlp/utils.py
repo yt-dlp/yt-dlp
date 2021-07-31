@@ -4544,7 +4544,7 @@ def parse_codecs(codecs_str):
     if not codecs_str:
         return {}
     split_codecs = list(filter(None, map(
-        lambda str: str.strip(), codecs_str.strip().strip(',').split(','))))
+        str.strip, codecs_str.strip().strip(',').split(','))))
     vcodec, acodec = None, None
     for full_codec in split_codecs:
         codec = full_codec.split('.')[0]
@@ -6246,7 +6246,7 @@ def traverse_obj(
     # TODO: Write tests
     '''
     if not casesense:
-        _lower = lambda k: k.lower() if isinstance(k, str) else k
+        _lower = lambda k: (k.lower() if isinstance(k, str) else k)
         path_list = (map(_lower, variadic(path)) for path in path_list)
 
     def _traverse_obj(obj, path, _current_depth=0):

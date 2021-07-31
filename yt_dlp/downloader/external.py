@@ -345,11 +345,21 @@ class FFmpegFD(ExternalFD):
     @classmethod
     def available(cls, path=None):
         # TODO: Fix path for ffmpeg
+        # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
 
     def on_process_started(self, proc, stdin):
         """ Override this in subclasses  """
         pass
+
+    @classmethod
+    def can_merge_formats(cls, info_dict, params={}):
+        return (
+            info_dict.get('requested_formats')
+            and info_dict.get('protocol')
+            and not params.get('allow_unplayable_formats')
+            and 'no-direct-merge' not in params.get('compat_opts', [])
+            and cls.can_download(info_dict))
 
     def _call_downloader(self, tmpfilename, info_dict):
         urls = [f['url'] for f in info_dict.get('requested_formats', [])] or [info_dict['url']]
