@@ -100,16 +100,15 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
     },
-    'web_studio': {
+    'web_creator': {
         'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-        'INNERTUBE_HOST': 'studio.youtube.com',
         'INNERTUBE_CONTEXT': {
             'client': {
-                'clientName': 62,
+                'clientName': 'WEB_CREATOR',
                 'clientVersion': '1.20210621.00.00',
             }
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 1,
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
     },
     'android': {
         'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
@@ -2456,10 +2455,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not requested_clients:
             requested_clients = ['android', 'web']
 
-            # Try web studio client if session cookies provided (bypass for "AGE_VERIFICATION_REQUIRED")
-            if self._get_cookies('https://www.youtube.com').get("__Secure-3PAPISID") is not None:
-                requested_clients.append("web_studio")
-
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             requested_clients.extend(
                 f'{client}_music' for client in requested_clients if not client.endswith('_music'))
@@ -2485,6 +2480,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         original_clients = clients
         clients = clients[::-1]
+        creator_client_appended = False
+
         while clients:
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
@@ -2502,6 +2499,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 client = f'{client}_agegate'
                 if client in INNERTUBE_CLIENTS and client not in original_clients:
                     clients.append(client)
+
+                # Try web creator (studio) client if session cookies provided (bypass for "AGE_VERIFICATION_REQUIRED")
+                if self._generate_sapisidhash_header() is not None and not creator_client_appended:
+                    clients.append("web_creator")
+                    creator_client_appended = True
 
         # Android player_response does not have microFormats which are needed for
         # extraction of some data. So we return the initial_pr with formats
