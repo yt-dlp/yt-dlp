@@ -7,11 +7,12 @@ from ..utils import (
 )
 
 
-def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=None):
+def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=None, to_stdout=False):
     info_dict['protocol'] = determine_protocol(info_dict)
     info_copy = info_dict.copy()
     if protocol:
         info_copy['protocol'] = protocol
+    info_copy['to_stdout'] = to_stdout
     return _get_suitable_downloader(info_copy, params, default)
 
 
@@ -84,10 +85,11 @@ def _get_suitable_downloader(info_dict, params, default):
     external_downloader = (
         downloaders if isinstance(downloaders, compat_str) or downloaders is None
         else downloaders.get(shorten_protocol_name(protocol, True), downloaders.get('default')))
-    if external_downloader and external_downloader.lower() == 'native':
-        external_downloader = 'native'
 
-    if external_downloader not in (None, 'native'):
+    if external_downloader is None:
+        if info_dict['to_stdout'] and FFmpegFD.can_merge_formats(info_dict, params):
+            return FFmpegFD
+    elif external_downloader.lower() != 'native':
         ed = get_external_downloader(external_downloader)
         if ed.can_download(info_dict, external_downloader):
             return ed
@@ -95,9 +97,10 @@ def _get_suitable_downloader(info_dict, params, default):
     if protocol in ('m3u8', 'm3u8_native'):
         if info_dict.get('is_live'):
             return FFmpegFD
-        elif external_downloader == 'native':
+        elif (external_downloader or '').lower() == 'native':
             return HlsFD
-        elif get_suitable_downloader(info_dict, params, None, protocol='m3u8_frag_urls'):
+        elif get_suitable_downloader(
+                info_dict, params, None, protocol='m3u8_frag_urls', to_stdout=info_dict['to_stdout']):
             return HlsFD
         elif params.get('hls_prefer_native') is True:
             return HlsFD

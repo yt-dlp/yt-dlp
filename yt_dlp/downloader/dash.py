@@ -22,7 +22,8 @@ class DashSegmentsFD(FragmentFD):
         fragments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']
 
-        real_downloader = get_suitable_downloader(info_dict, self.params, None, protocol='dash_frag_urls')
+        real_downloader = get_suitable_downloader(
+            info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename== '-'))
 
         ctx = {
             'filename': filename,

@@ -86,7 +86,8 @@ class HlsFD(FragmentFD):
         if is_webvtt:
             real_downloader = None  # Packing the fragments is not currently supported for external downloader
         else:
-            real_downloader = get_suitable_downloader(info_dict, self.params, None, protocol='m3u8_frag_urls')
+            real_downloader = get_suitable_downloader(
+                info_dict, self.params, None, protocol='m3u8_frag_urls', to_stdout=(filename== '-'))
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:

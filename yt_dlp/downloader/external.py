@@ -36,6 +36,7 @@ from ..utils import (
 
 class ExternalFD(FileDownloader):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
+    can_download_to_stdout = False
 
     def real_download(self, filename, info_dict):
         self.report_destination(filename)
@@ -93,7 +94,9 @@ class ExternalFD(FileDownloader):
 
     @classmethod
     def supports(cls, info_dict):
-        return info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS
+        return (
+            (cls.can_download_to_stdout or not info_dict.get('to_stdout'))
+            and info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS)
 
     @classmethod
     def can_download(cls, info_dict, path=None):
@@ -341,6 +344,7 @@ class HttpieFD(ExternalFD):
 
 class FFmpegFD(ExternalFD):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms')
+    can_download_to_stdout = True
 
     @classmethod
     def available(cls, path=None):

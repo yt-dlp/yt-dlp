@@ -2405,7 +2405,7 @@ class YoutubeDL(object):
             }
         else:
             params = self.params
-        fd = get_suitable_downloader(info, params)(self, params)
+        fd = get_suitable_downloader(info, params, to_stdout=(name == '-'))(self, params)
         if not test:
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
@@ -2677,6 +2677,8 @@ class YoutubeDL(object):
                             'Requested formats are incompatible for merge and will be merged into mkv.')
 
                     def correct_ext(filename):
+                        if filename == '-':
+                            return filename
                         filename_real_ext = os.path.splitext(filename)[1][1:]
                         filename_wo_ext = (
                             os.path.splitext(filename)[0]
@@ -2696,7 +2698,8 @@ class YoutubeDL(object):
                     directly_mergable = FFmpegFD.can_merge_formats(info_dict)
                     if dl_filename is not None:
                         pass
-                    elif (directly_mergable and get_suitable_downloader(info_dict, self.params) == FFmpegFD):
+                    elif (directly_mergable and get_suitable_downloader(
+                            info_dict, self.params, to_stdout=(temp_filename== '-')) == FFmpegFD):
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
@@ -2713,14 +2716,23 @@ class YoutubeDL(object):
                                 'You have requested merging of multiple formats but ffmpeg is not installed. '
                                 'The formats won\'t be merged.')
 
+                        if temp_filename == '-':
+                            reason = ('using a downloader other than ffmpeg' if directly_mergable
+                                      else 'but the formats are incompatible for simultaneous download' if merger.available
+                                      else 'but ffmpeg is not installed')
+                            self.report_warning(
+                                f'You have requested downloading multiple formats to stdout {reason}. '
+                                'The formats will be streamed one after the other')
+                            fname = temp_filename
                         for f in requested_formats:
                             new_info = dict(info_dict)
                             del new_info['requested_formats']
                             new_info.update(f)
-                            fname = prepend_extension(temp_filename, 'f%s' % f['format_id'], new_info['ext'])
-                            if not self._ensure_dir_exists(fname):
-                                return
-                            downloaded.append(fname)
+                            if temp_filename != '-':
+                                fname = prepend_extension(temp_filename, 'f%s' % f['format_id'], new_info['ext'])
+                                if not self._ensure_dir_exists(fname):
+                                    return
+                                downloaded.append(fname)
                             partial_success, real_download = self.dl(fname, new_info)
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
                             success = success and partial_success
