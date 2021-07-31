@@ -276,27 +276,21 @@ class VrtNUIE(GigyaBaseIE):
         if username is None:
             return
 
-        # 1. Get Login Data
-        try:
-            auth_info = self._download_json(
-                'https://accounts.vrt.be/accounts.login', None,
-                note='Login data', errnote='Could not get Login data',
-                headers={}, data=urlencode_postdata({
-                    'loginID': username,
-                    'password': password,
-                    'sessionExpiration': '-2',
-                    'APIKey': self._APIKEY,
-                    'targetEnv': 'jssdk',
-                }))
-        except ExtractorError as e:
-            self.report_warning("Cookie request HTTP code: %s" % e.cause.code)
-            raise e
+        auth_info = self._download_json(
+            'https://accounts.vrt.be/accounts.login', None,
+            note='Login data', errnote='Could not get Login data',
+            headers={}, data=urlencode_postdata({
+                'loginID': username,
+                'password': password,
+                'sessionExpiration': '-2',
+                'APIKey': self._APIKEY,
+                'targetEnv': 'jssdk',
+            }))
 
         # Sometimes authentication fails for no good reason, retry
         login_attempt = 1
         while login_attempt <= 3:
             try:
-                # get XSRF Token
                 self._request_webpage('https://token.vrt.be/vrtnuinitlogin',
                                       None, note='Requesting XSRF Token', errnote='Could not get XSRF Token',
                                       query={'provider': 'site', 'destination': 'https://www.vrt.be/vrtnu/'})
@@ -312,12 +306,10 @@ class VrtNUIE(GigyaBaseIE):
                         post_data['_csrf'] = cookie.value
                         break
 
-                # do login
                 self._request_webpage(
                     'https://login.vrt.be/perform_login',
                     None, note='Requesting a token', errnote='Could not get a token',
-                    headers={}, data=urlencode_postdata(post_data)
-                )
+                    headers={}, data=urlencode_postdata(post_data))
 
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
