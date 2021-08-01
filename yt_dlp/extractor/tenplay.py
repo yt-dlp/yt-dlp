@@ -41,6 +41,7 @@ class TenPlayIE(InfoExtractor):
         'PG': 15,
         'M': 15,
         'MA': 15,
+        'MA15+': 15,
         'R': 18,
         'X': 18
     }
