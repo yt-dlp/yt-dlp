@@ -3993,28 +3993,27 @@ class LazyList(collections.abc.Sequence):
 
     @staticmethod
     def __reverse_index(x):
-        return -(x + 1)
+        return None if x is None else -(x + 1)
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
-            step = idx.step or 1
-            start = idx.start if idx.start is not None else 0 if step > 0 else -1
-            stop = idx.stop if idx.stop is not None else -1 if step > 0 else 0
             if self.__reversed:
-                (start, stop), step = map(self.__reverse_index, (start, stop)), -step
-                idx = slice(start, stop, step)
+                idx = slice(self.__reverse_index(idx.start), self.__reverse_index(idx.stop), -(idx.step or 1))
+            start, stop, step = idx.start, idx.stop, idx.step or 1
         elif isinstance(idx, int):
             if self.__reversed:
                 idx = self.__reverse_index(idx)
-            start = stop = idx
+            start, stop, step = idx, idx, 0
         else:
             raise TypeError('indices must be integers or slices')
-        if start < 0 or stop < 0:
+        if ((start or 0) < 0 or (stop or 0) < 0
+                or (start is None and step < 0)
+                or (stop is None and step > 0)):
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
             return self.__exhaust()[idx]
 
-        n = max(start, stop) - len(self.__cache) + 1
+        n = max(start or 0, stop or 0) - len(self.__cache) + 1
         if n > 0:
             self.__cache.extend(itertools.islice(self.__iterable, n))
         return self.__cache[idx]
