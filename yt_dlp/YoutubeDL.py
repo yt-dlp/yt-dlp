@@ -2699,7 +2699,7 @@ class YoutubeDL(object):
                     if dl_filename is not None:
                         pass
                     elif (directly_mergable and get_suitable_downloader(
-                            info_dict, self.params, to_stdout=(temp_filename== '-')) == FFmpegFD):
+                            info_dict, self.params, to_stdout=(temp_filename == '-')) == FFmpegFD):
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
