@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
@@ -128,7 +126,7 @@ class CBSIE(CBSBaseIE):
 
 
 class ParamountPlusSeriesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?paramountplus\.com/shows/(?P<show_name>[a-zA-Z0-9-_]+)(?:/)?$'
+    _VALID_URL = r'https?://(?:www\.)?paramountplus\.com/shows/(?P<id>[a-zA-Z0-9-_]+)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://www.paramountplus.com/shows/drake-josh',
         'playlist_mincount': 50,
@@ -159,5 +157,5 @@ class ParamountPlusSeriesIE(InfoExtractor):
                     ie=CBSIE.ie_key(), video_id=episode['content_id'])
 
     def _real_extract(self, url):
-        show_name = re.match(self._VALID_URL, url).group('show_name')
+        show_name = self._match_id(url)
         return self.playlist_result(self._entries(show_name), playlist_id=show_name)
