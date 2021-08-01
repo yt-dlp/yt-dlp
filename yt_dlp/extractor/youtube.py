@@ -2469,7 +2469,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requested_clients.extend(allowed_clients)
             else:
                 self.report_warning(f'Skipping unsupported client {client}')
-
         if not requested_clients:
             requested_clients = ['android', 'web']
 
@@ -2498,7 +2497,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         original_clients = clients
         clients = clients[::-1]
-
         while clients:
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
