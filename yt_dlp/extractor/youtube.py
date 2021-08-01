@@ -2498,7 +2498,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         original_clients = clients
         clients = clients[::-1]
-        creator_client_appended = False
 
         while clients:
             client = clients.pop()
@@ -2521,7 +2520,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     client = '%s_creator' % client.remove_end('_agegate')
                 else:
                     client = f'{client}_agegate'
-                if bypass_client in INNERTUBE_CLIENTS and bypass_client not in original_clients:
+                if client in INNERTUBE_CLIENTS and client not in original_clients:
                     clients.append(client)
 
         # Android player_response does not have microFormats which are needed for
