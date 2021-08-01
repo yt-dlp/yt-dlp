@@ -2432,6 +2432,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         )
         return any(expected in reason for expected in AGE_GATE_REASONS for reason in reasons)
 
+    def _is_unplayable(self, player_response):
+        return traverse_obj(player_response, ('playabilityStatus', 'status')) == "UNPLAYABLE"
+
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
@@ -2503,16 +2506,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pr:
                 yield pr
 
-            if self._is_agegated(pr):
-                if client.endswith('_agegate'):
-                    # _creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-                    if not self._generate_sapisidhash_header():
-                        continue
-                    client = '%s_creator' % client.remove_end('_agegate')
-                else:
-                    client = f'{client}_agegate'
-                if client in INNERTUBE_CLIENTS and client not in original_clients:
-                    clients.append(client)
+            def append_client(client_name):
+                if client_name in INNERTUBE_CLIENTS and client_name not in original_clients:
+                    clients.append(client_name)
+
+            # _creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
+            if client.endswith("_agegate") and self._is_unplayable(pr) and self._generate_sapisidhash_header() is not None:
+                append_client(client.replace("_agegate", "_creator"))
+            elif self._is_agegated(pr):
+                append_client(f'{client}_agegate')
 
         # Android player_response does not have microFormats which are needed for
         # extraction of some data. So we return the initial_pr with formats
