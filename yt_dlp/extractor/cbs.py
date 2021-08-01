@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from .common import InfoExtractor
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
     ExtractorError,
@@ -122,3 +123,39 @@ class CBSIE(CBSBaseIE):
     def _real_extract(self, url):
         content_id = self._match_id(url)
         return self._extract_video_info(content_id)
+
+
+class ParamountPlusSeriesIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?paramountplus\.com/shows/(?P<id>[a-zA-Z0-9-_]+)/?(?:[#?]|$)'
+    _TESTS = [{
+        'url': 'https://www.paramountplus.com/shows/drake-josh',
+        'playlist_mincount': 50,
+        'info_dict': {
+            'id': 'drake-josh',
+        }
+    }, {
+        'url': 'https://www.paramountplus.com/shows/hawaii_five_0/',
+        'playlist_mincount': 240,
+        'info_dict': {
+            'id': 'hawaii_five_0',
+        }
+    }, {
+        'url': 'https://www.paramountplus.com/shows/spongebob-squarepants/',
+        'playlist_mincount': 248,
+        'info_dict': {
+            'id': 'spongebob-squarepants',
+        }
+    }]
+    _API_URL = 'https://www.paramountplus.com/shows/{}/xhr/episodes/page/0/size/100000/xs/0/season/0/'
+
+    def _entries(self, show_name):
+        show_json = self._download_json(self._API_URL.format(show_name), video_id=show_name)
+        if show_json.get('success'):
+            for episode in show_json['result']['data']:
+                yield self.url_result(
+                    'https://www.paramountplus.com%s' % episode['url'],
+                    ie=CBSIE.ie_key(), video_id=episode['content_id'])
+
+    def _real_extract(self, url):
+        show_name = self._match_id(url)
+        return self.playlist_result(self._entries(show_name), playlist_id=show_name)
