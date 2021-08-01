@@ -59,15 +59,14 @@ class CBSIE(CBSBaseIE):
             'id': 'Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k',
             'ext': 'mp4',
             'title': 'CatDog - Climb Every CatDog/The Canine Mutiny',
-            'description': 'Cat sets out to beat his childhood rival, Mindy Wonderful, and be the first person to climb to the top of Mt. Nearburg.   While searching in the garbage for Cat\'s favorite spork, CatDog, Mervis, and Mr. Sunshine become stranded.',
+            'description': 'md5:7ac835000645a69933df226940e3c859',
             'duration': 1418,
             'timestamp': 920264400,
             'upload_date': '19990301',
             'uploader': 'CBSI-NEW',
         },
         'params': {
-            # m3u8 download
-            'skip_download': True,
+            'skip_download': 'm3u8',
         },
         '_skip': 'Blocked outside the US',
     }, {
@@ -76,24 +75,32 @@ class CBSIE(CBSBaseIE):
             'id': '6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd',
             'ext': 'mp4',
             'title': '7/23/21 WEEK IN REVIEW (Rep. Jahana Hayes/Howard Fineman/Sen. Michael Bennet/Sheera Frenkel & Cecilia Kang)',
-            'description': 'This week\'s top stories on Stephen Colbert Presents Tooning Out The News includes the bombshell investigation into Andrew Giuliani\'s small business "Giuliani Golf," Chuck Schumer\'s early infrastructure vote, Jeff Bezos\' Blue Origin space flight, Olympics COVID worries, and more. (TV-14 L)',
+            'description': 'md5:f4adcea3e8b106192022e121f1565bae',
             'duration': 2506,
             'timestamp': 1627063200,
             'upload_date': '20210723',
             'uploader': 'CBSI-NEW',
         },
         'params': {
-            # m3u8 download
-            'skip_download': True,
+            'skip_download': 'm3u8',
         },
         '_skip': 'Blocked outside the US',
     }, {
         'url': 'https://www.cbs.com/shows/the-late-show-with-stephen-colbert/video/60icOhMb9NcjbcWnF_gub9XXHdeBcNk2/the-late-show-6-23-21-christine-baranski-joy-oladokun-',
         'info_dict': {
             'id': '60icOhMb9NcjbcWnF_gub9XXHdeBcNk2',
-            'ext': 'mp4'
+            'title': 'The Late Show - 6/23/21 (Christine Baranski, Joy Oladokun)',
+            'timestamp': 1624507140,
+            'description': 'md5:e01af24e95c74d55e8775aef86117b95',
+            'uploader': 'CBSI-NEW',
+            'upload_date': '20210624',
         },
-        'expected_warnings': ['None of the available releases match the specified', 'This content expired on'],
+        'params': {
+            'ignore_no_formats_error': True,
+            'skip_download': True,
+        },
+        'expected_warnings': [
+            'This content expired on', 'No video formats found', 'Requested format is not available'],
     }, {
         'url': 'http://colbertlateshow.com/video/8GmB0oY0McANFvp2aEffk9jZZZ2YyXxy/the-colbeard/',
         'only_matching': True,
