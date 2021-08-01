@@ -197,7 +197,7 @@ def build_innertube_clients():
     priority = qualities(base_clients[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
-        ytcfg.setdefault('INNERTUBE_API_KEY', 'AIzaSyDCU8hByM4DrUqRUYnGn3llEO78bcxq8')
+        ytcfg.setdefault('INNERTUBE_API_KEY', 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8')
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
         ytcfg['priority'] = 10 * priority(client.split('_', 1)[0])
