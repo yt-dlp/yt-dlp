@@ -141,6 +141,15 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
     },
+    'android_creator': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_CREATOR',
+                'clientVersion': '21.24.100',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 14
+    },
     # ios has HLS live streams
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680
     'ios': {
@@ -173,6 +182,15 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26
+    },
+    'ios_creator': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'IOS_CREATOR',
+                'clientVersion': '21.24.100',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 15
     },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
