@@ -2475,7 +2475,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             requested_clients.extend(
-                f'{client}_music' for client in requested_clients if not client.endswith('_music'))
+                f'{client}_music' for client in requested_clients if f'{client}_music' in INNERTUBE_CLIENTS)
 
         return orderedSet(requested_clients)
 
