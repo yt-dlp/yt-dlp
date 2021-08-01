@@ -256,13 +256,13 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     def _extract_original_format_2(self, video_id):
         jwt_response = self._download_json('https://vimeo.com/_rv/viewer', video_id)
         if jwt_response.get('jwt'):
-            headers = {'Authorization': f"jwt {jwt_response['jwt']}"}
+            headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
             original_response = self._download_json('https://api.vimeo.com/videos/' + video_id, video_id, headers=headers)
             for download_data in original_response.get('download'):
                 if download_data['quality'] == 'source':
                     return {
                         'url': download_data['link'],
-                        'ext': download_data['link'][-3:] or 'mp4',
+                        'ext': download_data['link'].split('.')[-1] or 'mp4',
                         'format_id': download_data['quality'],
                         'width': int_or_none(download_data.get('width')),
                         'height': int_or_none(download_data.get('height')),
