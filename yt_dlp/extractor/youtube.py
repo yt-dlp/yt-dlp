@@ -2493,6 +2493,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         original_clients = clients
         clients = clients[::-1]
+
+        def append_client(client_name):
+            if client_name in INNERTUBE_CLIENTS and client_name not in original_clients:
+                clients.append(client_name)
+
         while clients:
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
@@ -2505,10 +2510,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr))
             if pr:
                 yield pr
-
-            def append_client(client_name):
-                if client_name in INNERTUBE_CLIENTS and client_name not in original_clients:
-                    clients.append(client_name)
 
             # _creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
             if client.endswith("_agegate") and self._is_unplayable(pr) and self._generate_sapisidhash_header() is not None:
