@@ -100,6 +100,16 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
     },
+    'web_creator': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'WEB_CREATOR',
+                'clientVersion': '1.20210621.00.00',
+            }
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
+    },
     'android': {
         'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
         'INNERTUBE_CONTEXT': {
@@ -130,6 +140,15 @@ INNERTUBE_CLIENTS = {
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
+    },
+    'android_creator': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'ANDROID_CREATOR',
+                'clientVersion': '21.24.100',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 14
     },
     # ios has HLS live streams
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680
@@ -163,6 +182,15 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26
+    },
+    'ios_creator': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'IOS_CREATOR',
+                'clientVersion': '21.24.100',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 15
     },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
@@ -1035,17 +1063,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '397': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
-
-    _AGE_GATE_REASONS = (
-        'Sign in to confirm your age',
-        'This video may be inappropriate for some users.',
-        'Sorry, this content is age-restricted.',
-        'Please confirm your age.')
-
-    _AGE_GATE_STATUS_REASONS = (
-        'AGE_VERIFICATION_REQUIRED',
-        'AGE_CHECK_REQUIRED'
-    )
 
     _GEO_BYPASS = False
 
@@ -2402,14 +2419,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'racyCheckOk': True
         }
 
-    def _is_agegated(self, player_response):
-        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
-        for reason in reasons:
-            if reason in self._AGE_GATE_REASONS + self._AGE_GATE_STATUS_REASONS:
-                return True
-        if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')) is not None:
+    @staticmethod
+    def _is_agegated(player_response):
+        if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')):
             return True
-        return False
+
+        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
+        AGE_GATE_REASONS = (
+            'confirm your age', 'age-restricted', 'inappropriate',  # reason
+            'age_verification_required', 'age_check_required',  # status
+        )
+        return any(expected in reason for expected in AGE_GATE_REASONS for reason in reasons)
+
+    @staticmethod
+    def _is_unplayable(player_response):
+        return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
 
@@ -2446,7 +2470,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             requested_clients.extend(
-                f'{client}_music' for client in requested_clients if not client.endswith('_music'))
+                f'{client}_music' for client in requested_clients if f'{client}_music' in INNERTUBE_CLIENTS)
 
         return orderedSet(requested_clients)
 
@@ -2469,6 +2493,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         original_clients = clients
         clients = clients[::-1]
+
+        def append_client(client_name):
+            if client_name in INNERTUBE_CLIENTS and client_name not in original_clients:
+                clients.append(client_name)
+
         while clients:
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
@@ -2482,10 +2511,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pr:
                 yield pr
 
-            if self._is_agegated(pr):
-                client = f'{client}_agegate'
-                if client in INNERTUBE_CLIENTS and client not in original_clients:
-                    clients.append(client)
+            # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
+            if client.endswith('_agegate') and self._is_unplayable(pr) and self._generate_sapisidhash_header():
+                append_client(client.replace('_agegate', '_creator'))
+            elif self._is_agegated(pr):
+                append_client(f'{client}_agegate')
 
         # Android player_response does not have microFormats which are needed for
         # extraction of some data. So we return the initial_pr with formats
