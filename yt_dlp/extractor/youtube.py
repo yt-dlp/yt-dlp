@@ -2419,7 +2419,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'racyCheckOk': True
         }
 
-    def _is_agegated(self, player_response):
+    @staticmethod
+    def _is_agegated(player_response):
         if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')):
             return True
 
@@ -2432,8 +2433,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         )
         return any(expected in reason for expected in AGE_GATE_REASONS for reason in reasons)
 
-    def _is_unplayable(self, player_response):
-        return traverse_obj(player_response, ('playabilityStatus', 'status')) == "UNPLAYABLE"
+    @staticmethod
+    def _is_unplayable(player_response):
+        return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
 
@@ -2512,8 +2514,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 yield pr
 
             # _creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if client.endswith("_agegate") and self._is_unplayable(pr) and self._generate_sapisidhash_header() is not None:
-                append_client(client.replace("_agegate", "_creator"))
+            if client.endswith('_agegate') and self._is_unplayable(pr) and self._generate_sapisidhash_header() is not None:
+                append_client(client.replace('_agegate', '_creator'))
             elif self._is_agegated(pr):
                 append_client(f'{client}_agegate')
 
