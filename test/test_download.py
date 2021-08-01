@@ -108,8 +108,13 @@ def generator(test_case, tname):
 
         for tc in test_cases:
             info_dict = tc.get('info_dict', {})
-            if not (info_dict.get('id') and info_dict.get('ext')):
-                raise Exception('Test definition incorrect. The output file cannot be known. Are both \'id\' and \'ext\' keys present?')
+            params = tc.get('params', {})
+            if not info_dict.get('id'):
+                raise Exception('Test definition incorrect. \'id\' key is not present')
+            elif not info_dict.get('ext'):
+                if params.get('skip_download') and params.get('ignore_no_formats_error'):
+                    continue
+                raise Exception('Test definition incorrect. The output file cannot be known. \'ext\' key is not present')
 
         if 'skip' in test_case:
             print_skipping(test_case['skip'])
