@@ -1064,17 +1064,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
 
-    _AGE_GATE_REASONS = (
-        'Sign in to confirm your age',
-        'This video may be inappropriate for some users.',
-        'Sorry, this content is age-restricted.',
-        'Please confirm your age.')
-
-    _AGE_GATE_STATUS_REASONS = (
-        'AGE_VERIFICATION_REQUIRED',
-        'AGE_CHECK_REQUIRED'
-    )
-
     _GEO_BYPASS = False
 
     IE_NAME = 'youtube'
@@ -2431,13 +2420,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
     def _is_agegated(self, player_response):
-        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
-        for reason in reasons:
-            if reason in self._AGE_GATE_REASONS + self._AGE_GATE_STATUS_REASONS:
-                return True
-        if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')) is not None:
+        if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')):
             return True
-        return False
+
+        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
+        AGE_GATE_REASONS = (
+            'confirm your age', 'age-restricted', 'inappropriate',  # reason
+            'age_verification_required', 'age_check_required',  # status
+            # If the agegate client gives this message, we should fallback to creator
+            'playback on other websites has been disabled',
+        )
+        return any(expected in reason for expected in AGE_GATE_REASONS for reason in reasons)
 
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
 
