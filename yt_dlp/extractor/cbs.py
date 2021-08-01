@@ -131,10 +131,11 @@ class CBSIE(CBSBaseIE):
                 # fallback for content_ids that videoPlayerService doesn't return anything for
                 useXMLmetadata = False
                 asset_type = 'fallback'
-                formatList = ['M3U+none,MPEG4,M3U+appleHlsEncryption,MP3', '']  # blank query to check if expired
-                query['formats'] = formatList[0]
+                query['formats'] = 'M3U+none,MPEG4,M3U+appleHlsEncryption,MP3'
                 del query['assetTypes']
-            elif asset_type in asset_types or 'HLS_FPS' in asset_type or 'DASH_CENC' in asset_type or 'OnceURL' in asset_type:
+            elif asset_type in asset_types:
+                continue
+            elif any(excluded in asset_type for excluded in ('HLS_FPS', 'DASH_CENC', 'OnceURL')):
                 continue
             asset_types.append(asset_type)
             if asset_type.startswith('HLS') or 'StreamPack' in asset_type:
@@ -147,12 +148,11 @@ class CBSIE(CBSBaseIE):
                     'Downloading %s SMIL data' % asset_type)
             except ExtractorError as e:
                 if not useXMLmetadata:
-                    query['formats'] = formatList[1]
+                    query['formats'] = ''
                     tp_formats, tp_subtitles = self._extract_theplatform_smil(
                         update_url_query(tp_release_url, query), content_id,
                         'Downloading %s SMIL data, trying again with another format' % asset_type)
                 last_e = e
-                continue
             formats.extend(tp_formats)
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if last_e and not formats:
