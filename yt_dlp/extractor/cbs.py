@@ -165,7 +165,7 @@ class CBSIE(CBSBaseIE):
                         'Downloading %s SMIL data, trying again with another format' % asset_type)
                 except ExtractorError as e:
                     last_e = e
-                    tp_formats, tp_subtitles = [], {}
+                    continue
             formats.extend(tp_formats)
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if last_e and not formats:
