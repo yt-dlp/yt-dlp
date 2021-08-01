@@ -2428,8 +2428,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         AGE_GATE_REASONS = (
             'confirm your age', 'age-restricted', 'inappropriate',  # reason
             'age_verification_required', 'age_check_required',  # status
-            # If the agegate client gives this message, we should fallback to creator
-            'playback on other websites has been disabled',
         )
         return any(expected in reason for expected in AGE_GATE_REASONS for reason in reasons)
 
@@ -2513,8 +2511,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if pr:
                 yield pr
 
-            # _creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if client.endswith('_agegate') and self._is_unplayable(pr) and self._generate_sapisidhash_header() is not None:
+            # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
+            if client.endswith('_agegate') and self._is_unplayable(pr) and self._generate_sapisidhash_header():
                 append_client(client.replace('_agegate', '_creator'))
             elif self._is_agegated(pr):
                 append_client(f'{client}_agegate')
