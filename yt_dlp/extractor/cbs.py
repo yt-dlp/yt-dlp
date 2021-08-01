@@ -147,16 +147,21 @@ class CBSIE(CBSBaseIE):
                     update_url_query(tp_release_url, query), content_id,
                     'Downloading %s SMIL data' % asset_type)
             except ExtractorError as e:
-                if not useXMLmetadata:
-                    query['formats'] = ''
+                last_e = e
+                if useXMLmetadata:
+                    continue
+                query['formats'] = ''  # blank query to check if expired
+                try:
                     tp_formats, tp_subtitles = self._extract_theplatform_smil(
                         update_url_query(tp_release_url, query), content_id,
                         'Downloading %s SMIL data, trying again with another format' % asset_type)
-                last_e = e
+                except ExtractorError as e:
+                    last_e = e
+                    tp_formats, tp_subtitles = [], {}
             formats.extend(tp_formats)
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if last_e and not formats:
-            raise last_e
+            self.raise_no_formats(last_e, True, content_id)
         self._sort_formats(formats)
 
         info = self._extract_theplatform_metadata(tp_path, content_id)

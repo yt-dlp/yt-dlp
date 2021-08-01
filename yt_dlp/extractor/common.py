@@ -1052,6 +1052,8 @@ class InfoExtractor(object):
     def raise_no_formats(self, msg, expected=False, video_id=None):
         if expected and self.get_param('ignore_no_formats_error'):
             self.report_warning(msg, video_id)
+        elif isinstance(msg, ExtractorError):
+            raise msg
         else:
             raise ExtractorError(msg, expected=expected, video_id=video_id)
 
