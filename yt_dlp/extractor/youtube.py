@@ -2514,14 +2514,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 yield pr
 
             if self._is_agegated(pr):
-                client = f'{client}_agegate'
-                if client in INNERTUBE_CLIENTS and client not in original_clients:
+                if client.endswith('_agegate'):
+                    # _creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
+                    if not self._generate_sapisidhash_header():
+                        continue
+                    client = '%s_creator' % client.remove_end('_agegate')
+                else:
+                    client = f'{client}_agegate'
+                if bypass_client in INNERTUBE_CLIENTS and bypass_client not in original_clients:
                     clients.append(client)
-
-                # Try web creator (studio) client if session cookies provided (bypass for "AGE_VERIFICATION_REQUIRED")
-                if self._generate_sapisidhash_header() is not None and not creator_client_appended:
-                    clients.append("web_creator")
-                    creator_client_appended = True
 
         # Android player_response does not have microFormats which are needed for
         # extraction of some data. So we return the initial_pr with formats
