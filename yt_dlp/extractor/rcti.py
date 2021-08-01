@@ -2,9 +2,9 @@
 from __future__ import unicode_literals
 
 import itertools
+import json
 import re
-
-from .openload import PhantomJSwrapper
+import time
 
 from .common import InfoExtractor
 from ..utils import (
@@ -88,6 +88,16 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             'format': 'bestvideo',
         },
     }]
+    _CONVIVA_JSON_TEMPLATE = {
+        't': 'CwsSessionHb',
+        'cid': 'ff84ae928c3b33064b76dec08f12500465e59a6f',
+        'clid': '0',
+        'sid': 0,
+        'seq': 0,
+        'caps': 0,
+        'sf': 7,
+        'sdk': True,
+    }
 
     def _search_auth_key(self, webpage):
         try:
@@ -105,15 +115,18 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             'https://api.rctiplus.com/api/v1/%s/%s/url?appierid=.1' % (video_type, video_id), display_id, 'Downloading video URL JSON')[0]
         video_url = video_json['url']
         if 'akamaized' in video_url:
-            # Akamai's CDN requires a session to at least be made via Conviva's API
-            # TODO: Reverse-engineer Conviva's heartbeat code to avoid phantomJS
-            phantom = None
-            try:
-                phantom = PhantomJSwrapper(self)
-                phantom.get(url, webpage, display_id, note2='Initiating video session')
-            except ExtractorError:
-                self.report_warning('PhantomJS is highly recommended for this video, as it might load incredibly slowly otherwise.'
-                                    'You can also try opening the page in this device\'s browser first')
+            # For some videos hosted on Akamai's CDN (possibly AES-encrypted ones?), a session needs to at least be made via Conviva's API
+            conviva_json_data = {
+                **self._CONVIVA_JSON_TEMPLATE,
+                'url': video_url,
+                'sst': int(time.time())
+            }
+            conviva_json_res = self._download_json(
+                'https://ff84ae928c3b33064b76dec08f12500465e59a6f.cws.conviva.com/0/wsg', display_id,
+                'Creating Conviva session', 'Failed to create Conviva session',
+                fatal=False, data=json.dumps(conviva_json_data).encode('utf-8'))
+            if conviva_json_res and conviva_json_res.get('err') != 'ok':
+                self.report_warning('Conviva said: %s' % str(conviva_json_res.get('err')))
 
         video_meta, meta_paths = self._call_api(
             'https://api.rctiplus.com/api/v1/%s/%s' % (video_type, video_id), display_id, 'Downloading video metadata')

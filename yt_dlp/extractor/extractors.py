@@ -202,7 +202,10 @@ from .cbc import (
     CBCWatchIE,
     CBCOlympicsIE,
 )
-from .cbs import CBSIE
+from .cbs import (
+    CBSIE,
+    ParamountPlusSeriesIE,
+)
 from .cbslocal import (
     CBSLocalIE,
     CBSLocalArticleIE,
@@ -330,6 +333,7 @@ from .dplay import (
     DPlayIE,
     DiscoveryPlusIE,
     HGTVDeIE,
+    ScienceChannelIE
 )
 from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
@@ -1338,7 +1342,6 @@ from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE
 from .thisoldhouse import ThisOldHouseIE
-from .thisvid import ThisVidIE
 from .threeqsdn import ThreeQSDNIE
 from .tiktok import TikTokIE
 from .tinypic import TinyPicIE

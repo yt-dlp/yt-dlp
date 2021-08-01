@@ -1330,6 +1330,11 @@ MSO_INFO = {
     'cou060': {
         'name': 'Zito Media'
     },
+    'slingtv': {
+        'name': 'Sling TV',
+        'username_field': 'username',
+        'password_field': 'password',
+    },
 }
 
 
@@ -1565,6 +1570,40 @@ class AdobePassIE(InfoExtractor):
                         }), headers={
                             'Content-Type': 'application/x-www-form-urlencoded'
                         })
+                elif mso_id == 'slingtv':
+                    # SlingTV has a meta-refresh based authentication, but also
+                    # looks at the tab history to count the number of times the
+                    # browser has been on a page
+
+                    first_bookend_page, urlh = provider_redirect_page_res
+
+                    hidden_data = self._hidden_inputs(first_bookend_page)
+                    hidden_data['history'] = 1
+
+                    provider_login_page_res = self._download_webpage_handle(
+                        urlh.geturl(), video_id, 'Sending first bookend.',
+                        query=hidden_data)
+
+                    provider_association_redirect, urlh = post_form(
+                        provider_login_page_res, 'Logging in', {
+                            mso_info['username_field']: username,
+                            mso_info['password_field']: password
+                        })
+
+                    provider_refresh_redirect_url = extract_redirect_url(
+                        provider_association_redirect, url=urlh.geturl())
+
+                    last_bookend_page, urlh = self._download_webpage_handle(
+                        provider_refresh_redirect_url, video_id,
+                        'Downloading Auth Association Redirect Page')
+                    hidden_data = self._hidden_inputs(last_bookend_page)
+                    hidden_data['history'] = 3
+
+                    mvpd_confirm_page_res = self._download_webpage_handle(
+                        urlh.geturl(), video_id, 'Sending final bookend.',
+                        query=hidden_data)
+
+                    post_form(mvpd_confirm_page_res, 'Confirming Login')
                 else:
                     # Some providers (e.g. DIRECTV NOW) have another meta refresh
                     # based redirect that should be followed.

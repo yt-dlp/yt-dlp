@@ -3993,28 +3993,27 @@ class LazyList(collections.abc.Sequence):
 
     @staticmethod
     def __reverse_index(x):
-        return -(x + 1)
+        return None if x is None else -(x + 1)
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
-            step = idx.step or 1
-            start = idx.start if idx.start is not None else 0 if step > 0 else -1
-            stop = idx.stop if idx.stop is not None else -1 if step > 0 else 0
             if self.__reversed:
-                (start, stop), step = map(self.__reverse_index, (start, stop)), -step
-                idx = slice(start, stop, step)
+                idx = slice(self.__reverse_index(idx.start), self.__reverse_index(idx.stop), -(idx.step or 1))
+            start, stop, step = idx.start, idx.stop, idx.step or 1
         elif isinstance(idx, int):
             if self.__reversed:
                 idx = self.__reverse_index(idx)
-            start = stop = idx
+            start, stop, step = idx, idx, 0
         else:
             raise TypeError('indices must be integers or slices')
-        if start < 0 or stop < 0:
+        if ((start or 0) < 0 or (stop or 0) < 0
+                or (start is None and step < 0)
+                or (stop is None and step > 0)):
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
             return self.__exhaust()[idx]
 
-        n = max(start, stop) - len(self.__cache) + 1
+        n = max(start or 0, stop or 0) - len(self.__cache) + 1
         if n > 0:
             self.__cache.extend(itertools.islice(self.__iterable, n))
         return self.__cache[idx]
@@ -4438,8 +4437,8 @@ OUTTMPL_TYPES = {
 # As of [1] format syntax is:
 #  %[mapping_key][conversion_flags][minimum_width][.precision][length_modifier]type
 # 1. https://docs.python.org/2/library/stdtypes.html#string-formatting
-STR_FORMAT_RE = r'''(?x)
-    (?<!%)
+STR_FORMAT_RE_TMPL = r'''(?x)
+    (?<!%)(?P<prefix>(?:%%)*)
     %
     (?P<has_key>\((?P<key>{0})\))?  # mapping key
     (?P<format>
@@ -4447,9 +4446,12 @@ STR_FORMAT_RE = r'''(?x)
         (?:\d+)?  # minimum field width (optional)
         (?:\.\d+)?  # precision (optional)
         [hlL]?  # length modifier (optional)
-        [diouxXeEfFgGcrs]  # conversion type
+        {1}  # conversion type
     )
 '''
+
+
+STR_FORMAT_TYPES = 'diouxXeEfFgGcrs'
 
 
 def limit_length(s, length):
@@ -4542,7 +4544,7 @@ def parse_codecs(codecs_str):
     if not codecs_str:
         return {}
     split_codecs = list(filter(None, map(
-        lambda str: str.strip(), codecs_str.strip().strip(',').split(','))))
+        str.strip, codecs_str.strip().strip(',').split(','))))
     vcodec, acodec = None, None
     for full_codec in split_codecs:
         codec = full_codec.split('.')[0]
@@ -6244,7 +6246,7 @@ def traverse_obj(
     # TODO: Write tests
     '''
     if not casesense:
-        _lower = lambda k: k.lower() if isinstance(k, str) else k
+        _lower = lambda k: (k.lower() if isinstance(k, str) else k)
         path_list = (map(_lower, variadic(path)) for path in path_list)
 
     def _traverse_obj(obj, path, _current_depth=0):

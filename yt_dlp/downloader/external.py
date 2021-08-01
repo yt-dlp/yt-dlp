@@ -36,6 +36,7 @@ from ..utils import (
 
 class ExternalFD(FileDownloader):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
+    can_download_to_stdout = False
 
     def real_download(self, filename, info_dict):
         self.report_destination(filename)
@@ -93,7 +94,9 @@ class ExternalFD(FileDownloader):
 
     @classmethod
     def supports(cls, info_dict):
-        return info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS
+        return (
+            (cls.can_download_to_stdout or not info_dict.get('to_stdout'))
+            and info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS)
 
     @classmethod
     def can_download(cls, info_dict, path=None):
@@ -341,15 +344,26 @@ class HttpieFD(ExternalFD):
 
 class FFmpegFD(ExternalFD):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms')
+    can_download_to_stdout = True
 
     @classmethod
     def available(cls, path=None):
         # TODO: Fix path for ffmpeg
+        # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
 
     def on_process_started(self, proc, stdin):
         """ Override this in subclasses  """
         pass
+
+    @classmethod
+    def can_merge_formats(cls, info_dict, params={}):
+        return (
+            info_dict.get('requested_formats')
+            and info_dict.get('protocol')
+            and not params.get('allow_unplayable_formats')
+            and 'no-direct-merge' not in params.get('compat_opts', [])
+            and cls.can_download(info_dict))
 
     def _call_downloader(self, tmpfilename, info_dict):
         urls = [f['url'] for f in info_dict.get('requested_formats', [])] or [info_dict['url']]

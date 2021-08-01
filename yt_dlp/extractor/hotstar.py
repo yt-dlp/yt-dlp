@@ -7,7 +7,6 @@ import re
 import time
 import uuid
 import json
-import random
 
 from .common import InfoExtractor
 from ..compat import (
@@ -27,34 +26,24 @@ from ..utils import (
 class HotStarBaseIE(InfoExtractor):
     _AKAMAI_ENCRYPTION_KEY = b'\x05\xfc\x1a\x01\xca\xc9\x4b\xc4\x12\xfc\x53\x12\x07\x75\xf9\xee'
 
-    def _call_api_impl(self, path, video_id, query, st=None):
+    def _call_api_impl(self, path, video_id, query, st=None, cookies=None):
         st = int_or_none(st) or int(time.time())
         exp = st + 6000
         auth = 'st=%d~exp=%d~acl=/*' % (st, exp)
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
 
-        def _generate_device_id():
-            """
-            Reversed from javascript library.
-            JS function is generateUUID
-            """
-            t = int(round(time.time() * 1000))
-            e = "xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx"  # 4 seems to be interchangeable
-
-            def _replacer():
-                n = int((t + 16 * random.random())) % 16 | 0
-                return hex(n if "x" == e else 3 & n | 8)[2:]
-            return "".join([_.replace('x', _replacer()) for _ in e])
-
-        token = self._download_json(
-            'https://api.hotstar.com/um/v3/users',
-            video_id, note='Downloading token',
-            data=json.dumps({"device_ids": [{"id": compat_str(uuid.uuid4()), "type": "device_id"}]}).encode('utf-8'),
-            headers={
-                'hotstarauth': auth,
-                'x-hs-platform': 'PCTV',  # or 'web'
-                'Content-Type': 'application/json',
-            })['user_identity']
+        if cookies.get('userUP'):
+            token = cookies.get('userUP').value
+        else:
+            token = self._download_json(
+                'https://api.hotstar.com/um/v3/users',
+                video_id, note='Downloading token',
+                data=json.dumps({"device_ids": [{"id": compat_str(uuid.uuid4()), "type": "device_id"}]}).encode('utf-8'),
+                headers={
+                    'hotstarauth': auth,
+                    'x-hs-platform': 'PCTV',  # or 'web'
+                    'Content-Type': 'application/json',
+                })['user_identity']
 
         response = self._download_json(
             'https://api.hotstar.com/' + path, video_id, headers={
@@ -75,11 +64,11 @@ class HotStarBaseIE(InfoExtractor):
             'tas': 10000,
         })
 
-    def _call_api_v2(self, path, video_id, st=None):
+    def _call_api_v2(self, path, video_id, st=None, cookies=None):
         return self._call_api_impl(
-            '%s/content/%s' % (path, video_id), video_id, st=st, query={
+            '%s/content/%s' % (path, video_id), video_id, st=st, cookies=cookies, query={
                 'desired-config': 'audio_channel:stereo|dynamic_range:sdr|encryption:plain|ladder:tv|package:dash|resolution:hd|subs-tag:HotstarVIP|video_codec:vp9',
-                'device-id': compat_str(uuid.uuid4()),
+                'device-id': cookies.get('device_id').value if cookies.get('device_id') else compat_str(uuid.uuid4()),
                 'os-name': 'Windows',
                 'os-version': '10',
             })
@@ -130,7 +119,7 @@ class HotStarIE(HotStarBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
+        cookies = self._get_cookies(url)
         webpage, urlh = self._download_webpage_handle(url, video_id)
         st = urlh.headers.get('x-origin-date')
         app_state = self._parse_json(self._search_regex(
@@ -156,7 +145,7 @@ class HotStarIE(HotStarBaseIE):
         formats = []
         geo_restricted = False
         # change to v2 in the future
-        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st)['playBackSets']
+        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st, cookies=cookies)['playBackSets']
         for playback_set in playback_sets:
             if not isinstance(playback_set, dict):
                 continue

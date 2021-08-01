@@ -280,7 +280,7 @@ def _real_main(argv=None):
         'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
         'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
         'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
-        'embed-thumbnail-atomicparsley', 'seperate-video-versions',
+        'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson',
     ]
     compat_opts = parse_compat_opts()
 
@@ -291,7 +291,7 @@ def _real_main(argv=None):
         compat_opts.update(['*%s' % name])
         return True
 
-    def set_default_compat(compat_name, opt_name, default=True, remove_compat=False):
+    def set_default_compat(compat_name, opt_name, default=True, remove_compat=True):
         attr = getattr(opts, opt_name)
         if compat_name in compat_opts:
             if attr is None:
@@ -307,6 +307,7 @@ def _real_main(argv=None):
 
     set_default_compat('abort-on-error', 'ignoreerrors')
     set_default_compat('no-playlist-metafiles', 'allow_playlist_files')
+    set_default_compat('no-clean-infojson', 'clean_infojson')
     if 'format-sort' in compat_opts:
         opts.format_sort.extend(InfoExtractor.FormatSort.ytdl_default)
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)

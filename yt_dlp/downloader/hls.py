@@ -4,7 +4,7 @@ import re
 import io
 import binascii
 
-from ..downloader import _get_real_downloader
+from ..downloader import get_suitable_downloader
 from .fragment import FragmentFD, can_decrypt_frag
 from .external import FFmpegFD
 
@@ -80,16 +80,14 @@ class HlsFD(FragmentFD):
             fd = FFmpegFD(self.ydl, self.params)
             self.report_warning(
                 '%s detected unsupported features; extraction will be delegated to %s' % (self.FD_NAME, fd.get_basename()))
-            # TODO: Make progress updates work without hooking twice
-            # for ph in self._progress_hooks:
-            #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
 
         is_webvtt = info_dict['ext'] == 'vtt'
         if is_webvtt:
             real_downloader = None  # Packing the fragments is not currently supported for external downloader
         else:
-            real_downloader = _get_real_downloader(info_dict, 'm3u8_frag_urls', self.params, None)
+            real_downloader = get_suitable_downloader(
+                info_dict, self.params, None, protocol='m3u8_frag_urls', to_stdout=(filename == '-'))
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:

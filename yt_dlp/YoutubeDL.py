@@ -35,6 +35,7 @@ from .compat import (
     compat_kwargs,
     compat_numeric_types,
     compat_os_name,
+    compat_shlex_quote,
     compat_str,
     compat_tokenize_tokenize,
     compat_urllib_error,
@@ -65,7 +66,8 @@ from .utils import (
     float_or_none,
     format_bytes,
     format_field,
-    STR_FORMAT_RE,
+    STR_FORMAT_RE_TMPL,
+    STR_FORMAT_TYPES,
     formatSeconds,
     GeoRestrictedError,
     HEADRequest,
@@ -107,6 +109,7 @@ from .utils import (
     try_get,
     UnavailableVideoError,
     url_basename,
+    variadic,
     version_tuple,
     write_json_file,
     write_string,
@@ -123,6 +126,7 @@ from .extractor import (
 )
 from .extractor.openload import PhantomJSwrapper
 from .downloader import (
+    FFmpegFD,
     get_suitable_downloader,
     shorten_protocol_name
 )
@@ -400,7 +404,8 @@ class YoutubeDL(object):
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
                        filename, abort-on-error, multistreams, no-live-chat,
-                       no-playlist-metafiles. Refer __init__.py for their implementation
+                       no-clean-infojson, no-playlist-metafiles.
+                       Refer __init__.py for their implementation
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
@@ -845,20 +850,43 @@ class YoutubeDL(object):
         return sanitize_path(path, force=self.params.get('windowsfilenames'))
 
     @staticmethod
-    def validate_outtmpl(tmpl):
+    def _outtmpl_expandpath(outtmpl):
+        # expand_path translates '%%' into '%' and '$$' into '$'
+        # correspondingly that is not what we want since we need to keep
+        # '%%' intact for template dict substitution step. Working around
+        # with boundary-alike separator hack.
+        sep = ''.join([random.choice(ascii_letters) for _ in range(32)])
+        outtmpl = outtmpl.replace('%%', '%{0}%'.format(sep)).replace('$$', '${0}$'.format(sep))
+
+        # outtmpl should be expand_path'ed before template dict substitution
+        # because meta fields may contain env variables we don't want to
+        # be expanded. For example, for outtmpl "%(title)s.%(ext)s" and
+        # title "Hello $PATH", we don't want `$PATH` to be expanded.
+        return expand_path(outtmpl).replace(sep, '')
+
+    @staticmethod
+    def escape_outtmpl(outtmpl):
+        ''' Escape any remaining strings like %s, %abc% etc. '''
+        return re.sub(
+            STR_FORMAT_RE_TMPL.format('', '(?![%(\0])'),
+            lambda mobj: ('' if mobj.group('has_key') else '%') + mobj.group(0),
+            outtmpl)
+
+    @classmethod
+    def validate_outtmpl(cls, outtmpl):
         ''' @return None or Exception object '''
+        outtmpl = re.sub(
+            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljq]'),
+            lambda mobj: f'{mobj.group(0)[:-1]}s',
+            cls._outtmpl_expandpath(outtmpl))
         try:
-            re.sub(
-                STR_FORMAT_RE.format(''),
-                lambda mobj: ('%' if not mobj.group('has_key') else '') + mobj.group(0),
-                tmpl
-            ) % collections.defaultdict(int)
+            cls.escape_outtmpl(outtmpl) % collections.defaultdict(int)
             return None
         except ValueError as err:
             return err
 
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
-        """ Make the template and info_dict suitable for substitution (outtmpl % info_dict)"""
+        """ Make the template and info_dict suitable for substitution : ydl.outtmpl_escape(outtmpl) % info_dict """
         info_dict = dict(info_dict)
         na = self.params.get('outtmpl_na_placeholder', 'NA')
 
@@ -879,7 +907,7 @@ class YoutubeDL(object):
         }
 
         TMPL_DICT = {}
-        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE.format('[^)]*'))
+        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljq]'))
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
@@ -938,10 +966,11 @@ class YoutubeDL(object):
 
         def create_key(outer_mobj):
             if not outer_mobj.group('has_key'):
-                return '%{}'.format(outer_mobj.group(0))
+                return f'%{outer_mobj.group(0)}'
 
+            prefix = outer_mobj.group('prefix')
             key = outer_mobj.group('key')
-            fmt = outer_mobj.group('format')
+            original_fmt = fmt = outer_mobj.group('format')
             mobj = re.match(INTERNAL_FORMAT_RE, key)
             if mobj is None:
                 value, default, mobj = None, na, {'fields': ''}
@@ -955,8 +984,15 @@ class YoutubeDL(object):
 
             value = default if value is None else value
 
-            if fmt == 'c':
-                value = compat_str(value)
+            str_fmt = f'{fmt[:-1]}s'
+            if fmt[-1] == 'l':
+                value, fmt = ', '.join(variadic(value)), str_fmt
+            elif fmt[-1] == 'j':
+                value, fmt = json.dumps(value), str_fmt
+            elif fmt[-1] == 'q':
+                value, fmt = compat_shlex_quote(str(value)), str_fmt
+            elif fmt[-1] == 'c':
+                value = str(value)
                 if value is None:
                     value, fmt = default, 's'
                 else:
@@ -965,16 +1001,18 @@ class YoutubeDL(object):
                 value = float_or_none(value)
                 if value is None:
                     value, fmt = default, 's'
+
             if sanitize:
                 if fmt[-1] == 'r':
                     # If value is an object, sanitize might convert it to a string
                     # So we convert it to repr first
-                    value, fmt = repr(value), '%ss' % fmt[:-1]
+                    value, fmt = repr(value), str_fmt
                 if fmt[-1] in 'csr':
                     value = sanitize(mobj['fields'].split('.')[-1], value)
-            key += '\0%s' % fmt
+
+            key = '%s\0%s' % (key.replace('%', '%\0'), original_fmt)
             TMPL_DICT[key] = value
-            return '%({key}){fmt}'.format(key=key, fmt=fmt)
+            return f'{prefix}%({key}){fmt}'
 
         return EXTERNAL_FORMAT_RE.sub(create_key, outtmpl), TMPL_DICT
 
@@ -986,19 +1024,8 @@ class YoutubeDL(object):
                 is_id=(k == 'id' or k.endswith('_id')))
             outtmpl = self.outtmpl_dict.get(tmpl_type, self.outtmpl_dict['default'])
             outtmpl, template_dict = self.prepare_outtmpl(outtmpl, info_dict, sanitize)
-
-            # expand_path translates '%%' into '%' and '$$' into '$'
-            # correspondingly that is not what we want since we need to keep
-            # '%%' intact for template dict substitution step. Working around
-            # with boundary-alike separator hack.
-            sep = ''.join([random.choice(ascii_letters) for _ in range(32)])
-            outtmpl = outtmpl.replace('%%', '%{0}%'.format(sep)).replace('$$', '${0}$'.format(sep))
-
-            # outtmpl should be expand_path'ed before template dict substitution
-            # because meta fields may contain env variables we don't want to
-            # be expanded. For example, for outtmpl "%(title)s.%(ext)s" and
-            # title "Hello $PATH", we don't want `$PATH` to be expanded.
-            filename = expand_path(outtmpl).replace(sep, '') % template_dict
+            outtmpl = self.escape_outtmpl(self._outtmpl_expandpath(outtmpl))
+            filename = outtmpl % template_dict
 
             force_ext = OUTTMPL_TYPES.get(tmpl_type)
             if force_ext is not None:
@@ -1730,6 +1757,7 @@ class YoutubeDL(object):
                         if not allow_multiple_streams[aud_vid] and fmt_info.get(aud_vid[0] + 'codec') != 'none':
                             if get_no_more[aud_vid]:
                                 formats_info.pop(i)
+                                break
                             get_no_more[aud_vid] = True
 
             if len(formats_info) == 1:
@@ -2344,7 +2372,7 @@ class YoutubeDL(object):
             if re.match(r'\w+$', tmpl):
                 tmpl = '%({})s'.format(tmpl)
             tmpl, info_copy = self.prepare_outtmpl(tmpl, info_dict)
-            self.to_stdout(tmpl % info_copy)
+            self.to_stdout(self.escape_outtmpl(tmpl) % info_copy)
 
         print_mandatory('title')
         print_mandatory('id')
@@ -2377,7 +2405,7 @@ class YoutubeDL(object):
             }
         else:
             params = self.params
-        fd = get_suitable_downloader(info, params)(self, params)
+        fd = get_suitable_downloader(info, params, to_stdout=(name == '-'))(self, params)
         if not test:
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
@@ -2649,6 +2677,8 @@ class YoutubeDL(object):
                             'Requested formats are incompatible for merge and will be merged into mkv.')
 
                     def correct_ext(filename):
+                        if filename == '-':
+                            return filename
                         filename_real_ext = os.path.splitext(filename)[1][1:]
                         filename_wo_ext = (
                             os.path.splitext(filename)[0]
@@ -2663,20 +2693,16 @@ class YoutubeDL(object):
                     info_dict['__real_download'] = False
 
                     _protocols = set(determine_protocol(f) for f in requested_formats)
-                    if len(_protocols) == 1:
+                    if len(_protocols) == 1:  # All requested formats have same protocol
                         info_dict['protocol'] = _protocols.pop()
-                    directly_mergable = (
-                        'no-direct-merge' not in self.params.get('compat_opts', [])
-                        and info_dict.get('protocol') is not None  # All requested formats have same protocol
-                        and not self.params.get('allow_unplayable_formats')
-                        and get_suitable_downloader(info_dict, self.params).__name__ == 'FFmpegFD')
-                    if directly_mergable:
-                        info_dict['url'] = requested_formats[0]['url']
-                        # Treat it as a single download
-                        dl_filename = existing_file(full_filename, temp_filename)
-                        if dl_filename is None:
-                            success, real_download = self.dl(temp_filename, info_dict)
-                            info_dict['__real_download'] = real_download
+                    directly_mergable = FFmpegFD.can_merge_formats(info_dict)
+                    if dl_filename is not None:
+                        pass
+                    elif (directly_mergable and get_suitable_downloader(
+                            info_dict, self.params, to_stdout=(temp_filename == '-')) == FFmpegFD):
+                        info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
+                        success, real_download = self.dl(temp_filename, info_dict)
+                        info_dict['__real_download'] = real_download
                     else:
                         downloaded = []
                         merger = FFmpegMergerPP(self)
@@ -2690,28 +2716,34 @@ class YoutubeDL(object):
                                 'You have requested merging of multiple formats but ffmpeg is not installed. '
                                 'The formats won\'t be merged.')
 
-                        if dl_filename is None:
-                            for f in requested_formats:
-                                new_info = dict(info_dict)
-                                del new_info['requested_formats']
-                                new_info.update(f)
-                                fname = prepend_extension(
-                                    self.prepare_filename(new_info, 'temp'),
-                                    'f%s' % f['format_id'], new_info['ext'])
+                        if temp_filename == '-':
+                            reason = ('using a downloader other than ffmpeg' if directly_mergable
+                                      else 'but the formats are incompatible for simultaneous download' if merger.available
+                                      else 'but ffmpeg is not installed')
+                            self.report_warning(
+                                f'You have requested downloading multiple formats to stdout {reason}. '
+                                'The formats will be streamed one after the other')
+                            fname = temp_filename
+                        for f in requested_formats:
+                            new_info = dict(info_dict)
+                            del new_info['requested_formats']
+                            new_info.update(f)
+                            if temp_filename != '-':
+                                fname = prepend_extension(temp_filename, 'f%s' % f['format_id'], new_info['ext'])
                                 if not self._ensure_dir_exists(fname):
                                     return
                                 downloaded.append(fname)
-                                partial_success, real_download = self.dl(fname, new_info)
-                                info_dict['__real_download'] = info_dict['__real_download'] or real_download
-                                success = success and partial_success
-                            if merger.available and not self.params.get('allow_unplayable_formats'):
-                                info_dict['__postprocessors'].append(merger)
-                                info_dict['__files_to_merge'] = downloaded
-                                # Even if there were no downloads, it is being merged only now
-                                info_dict['__real_download'] = True
-                            else:
-                                for file in downloaded:
-                                    files_to_move[file] = None
+                            partial_success, real_download = self.dl(fname, new_info)
+                            info_dict['__real_download'] = info_dict['__real_download'] or real_download
+                            success = success and partial_success
+                        if merger.available and not self.params.get('allow_unplayable_formats'):
+                            info_dict['__postprocessors'].append(merger)
+                            info_dict['__files_to_merge'] = downloaded
+                            # Even if there were no downloads, it is being merged only now
+                            info_dict['__real_download'] = True
+                        else:
+                            for file in downloaded:
+                                files_to_move[file] = None
                 else:
                     # Just a single file
                     dl_filename = existing_file(full_filename, temp_filename)
