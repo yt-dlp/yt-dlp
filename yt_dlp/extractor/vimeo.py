@@ -253,7 +253,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                             'quality': 1,
                         }
 
-        jwt_response = self._download_json('https://vimeo.com/_rv/viewer', video_id)
+        jwt_response = self._download_json(
+            'https://vimeo.com/_rv/viewer', video_id, note='Downloading jwt token', fatal=False) or {}
         if jwt_response.get('jwt'):
             headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
             original_response = self._download_json(
