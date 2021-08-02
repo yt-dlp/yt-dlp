@@ -1328,8 +1328,30 @@ The metadata obtained the the extractors can be modified by using `--parse-metad
 Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--add-metadata`.
 
 This option also has a few special uses:
-* You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. You can use this to set a different "description" and "synopsis", for example
 * You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. Eg: `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
+* You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. For example, you can use this to set a different "description" and "synopsis"
+
+For reference, these are the fields yt-dlp adds by default to the file metadata:
+
+Metadata fields|From
+:---|:---
+`title`|`track` or `title`
+`date`|`upload_date`
+`description`,  `synopsis`|`description`
+`purl`, `comment`|`webpage_url`
+`track`|`track_number`
+`artist`|`artist`, `creator`, `uploader` or `uploader_id`
+`genre`|`genre`
+`album`|`album`
+`album_artist`|`album_artist`
+`disc`|`disc_number`
+`show`|`series`
+`season_number`|`season_number`
+`episode_id`|`episode` or `episode_id`
+`episode_sort`|`episode_number`
+`language` of each stream|From the format's `language`
+**Note**: The file format may not support some of these fields
+
 
 ## Modifying metadata examples
 
