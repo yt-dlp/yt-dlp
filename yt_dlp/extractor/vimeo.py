@@ -449,6 +449,22 @@ class VimeoIE(VimeoBaseInfoExtractor):
             },
         },
         {
+            'note': 'Contains original format not accessible in webpage',
+            'url': 'https://vimeo.com/393756517',
+            'md5': 'c464af248b592190a5ffbb5d33f382b0',
+            'info_dict': {
+                'id': '393756517',
+                'ext': 'mov',
+                'timestamp': 1582642091,
+                'uploader_id': 'frameworkla',
+                'title': 'Straight To Hell - Sabrina: Netflix',
+                'uploader': 'Framework Studio',
+                'description': 'md5:f2edc61af3ea7a5592681ddbb683db73',
+                'upload_date': '20200225',
+            },
+            'expected_warnings': ['Unable to download JSON metadata'],
+        },
+        {
             # only available via https://vimeo.com/channels/tributes/6213729 and
             # not via https://vimeo.com/6213729
             'url': 'https://vimeo.com/channels/tributes/6213729',
