@@ -71,9 +71,10 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
 * **Youtube improvements**:
-    * All Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) supports downloading multiple pages of content
+    * All Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) and private playlists supports downloading multiple pages of content
     * Search (`ytsearch:`, `ytsearchdate:`), search URLs and in-channel search works
     * Mixes supports downloading multiple pages of content
+    * Most (but not all) age-gated content can be downloaded without cookies
     * Partial workaround for throttling issue
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
     * `255kbps` audio is extracted from youtube music if premium cookies are given
@@ -87,9 +88,9 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip
+* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon
 
-* **Fixed extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki
+* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -448,17 +449,17 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      stdin), one URL per line. Lines starting
                                      with '#', ';' or ']' are considered as
                                      comments and ignored
-    -P, --paths TYPES:PATH           The paths where the files should be
+    -P, --paths [TYPES:]PATH         The paths where the files should be
                                      downloaded. Specify the type of file and
                                      the path separated by a colon ":". All the
                                      same types as --output are supported.
                                      Additionally, you can also provide "home"
-                                     and "temp" paths. All intermediary files
-                                     are first downloaded to the temp path and
-                                     then the final files are moved over to the
-                                     home path after download is finished. This
-                                     option is ignored if --output is an
-                                     absolute path
+                                     (default) and "temp" paths. All
+                                     intermediary files are first downloaded to
+                                     the temp path and then the final files are
+                                     moved over to the home path after download
+                                     is finished. This option is ignored if
+                                     --output is an absolute path
     -o, --output [TYPES:]TEMPLATE    Output filename template; see "OUTPUT
                                      TEMPLATE" for details
     --output-na-placeholder TEXT     Placeholder value for unavailable meta
@@ -1382,8 +1383,8 @@ Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently
 
 These are all the deprecated options and the current alternative to achieve the same effect
 
-#### Not recommended
-While these options still work, their use is not recommended since there are other alternatives to achieve the same
+#### Redundant options
+While these options are redundant, they are still expected to be used due to their ease of use
 
     --get-description                --print description
     --get-duration                   --print duration_string
@@ -1393,6 +1394,11 @@ While these options still work, their use is not recommended since there are oth
     --get-thumbnail                  --print thumbnail
     -e, --get-title                  --print title
     -g, --get-url                    --print urls
+
+
+#### Not recommended
+While these options still work, their use is not recommended since there are other alternatives to achieve the same
+
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
     --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
@@ -1407,8 +1413,13 @@ While these options still work, their use is not recommended since there are oth
     --youtube-skip-hls-manifest      --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
     --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
     --youtube-include-hls-manifest   Default (Alias: --no-youtube-skip-hls-manifest)
-    --test                           Used by developers for testing extractors. Not intended for the end user
-    --youtube-print-sig-code         Used for testing youtube signatures
+
+
+#### Developer options
+These options are not intended to be used by the end-user
+
+    --test                           For testing extractors
+    --youtube-print-sig-code         For testing youtube signatures
 
 
 #### Old aliases

@@ -19,6 +19,49 @@
 -->
 
 
+### 2021.08.02
+
+* Add logo, banner and donate links
+* Expand and escape environment variables correctly in output template
+* Add format types `j` (json), `l` (comma delimited list), `q` (quoted for terminal) in output template
+* [downloader] Allow streaming some unmerged formats to stdout using ffmpeg
+* [youtube] **Age-gate bypass**
+    * Add `agegate` clients by [pukkandan](https://github.com/pukkandan), [MinePlayersPE](https://github.com/MinePlayersPE)
+    * Add `thirdParty` to agegate clients to bypass more videos
+    * Simplify client definitions, expose `embedded` clients
+    * Improve age-gate detection by [coletdjnz](https://github.com/coletdjnz)
+    * Fix default global API key by [coletdjnz](https://github.com/coletdjnz)
+    * Add `creator` clients for age-gate bypass using unverified accounts by [zerodytrash](https://github.com/zerodytrash), [coletdjnz](https://github.com/coletdjnz), [pukkandan](https://github.com/pukkandan)
+* [adobepass] Add MSO Sling TV by [wesnm](https://github.com/wesnm)
+* [CBS] Add ParamountPlusSeriesIE by [Ashish0804](https://github.com/Ashish0804)
+* [dplay] Add `ScienceChannelIE` by [Sipherdrakon](https://github.com/Sipherdrakon)
+* [UtreonIE] Add extractor by [Ashish0804](https://github.com/Ashish0804)
+* [youtube] Add `mweb` client by [coletdjnz](https://github.com/coletdjnz)
+* [youtube] Add `player_client=all`
+* [youtube] Force `hl=en` for comments by [coletdjnz](https://github.com/coletdjnz)
+* [youtube] Fix format sorting when using alternate clients
+* [youtube] Misc cleanup by [pukkandan](https://github.com/pukkandan), [coletdjnz](https://github.com/coletdjnz)
+* [youtube] Extract SAPISID only once
+* [CBS] Add fallback by [llacb47](https://github.com/llacb47), [pukkandan](https://github.com/pukkandan)
+* [Hotstar] Support cookies by [Ashish0804](https://github.com/Ashish0804)
+* [HotStarSeriesIE] Fix regex by [Ashish0804](https://github.com/Ashish0804)
+* [bilibili] Improve `_VALID_URL`
+* [mediaset] Fix extraction by [nixxo](https://github.com/nixxo)
+* [Mxplayer] Add h265 formats by [Ashish0804](https://github.com/Ashish0804)
+* [RCTIPlus] Remove PhantomJS dependency by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [tenplay] Add MA15+ age limit by [pento](https://github.com/pento)
+* [vidio] Fix login error detection by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [vimeo] Better extraction of original file by [Ashish0804](https://github.com/Ashish0804)
+* [generic] Support KVS player (replaces ThisVidIE) by [rigstot](https://github.com/rigstot)
+* Add compat-option `no-clean-infojson`
+* Remove `asr` appearing twice in `-F`
+* Set `home:` as the default key for `-P`
+* [utils] Fix slicing of reversed `LazyList`
+* [FormatSort] Fix bug for audio with unknown codec
+* [test:download] Support testing with `ignore_no_formats_error`
+* [cleanup] Refactor some code
+
+
 ### 2021.07.24
 
 * [youtube:tab] Extract video duration early
@@ -94,7 +137,7 @@
 * [utils] Improve `js_to_json` comment regex by [fstirlitz](https://github.com/fstirlitz)
 * [webtt] Fix timestamps
 * [compat] Remove unnecessary code
-* [doc] fix default of multistreams
+* [docs] fix default of multistreams
 
 
 ### 2021.07.07
@@ -384,8 +427,8 @@
 * Improve the yt-dlp.sh script by [fstirlitz](https://github.com/fstirlitz)
 * [lazy_extractor] Do not load plugins
 * [ci] Disable fail-fast
-* [documentation] Clarify which deprecated options still work
-* [documentation] Fix typos
+* [docs] Clarify which deprecated options still work
+* [docs] Fix typos
 
 
 ### 2021.04.11
@@ -412,7 +455,7 @@
 * Fix some `m3u8` not obeying `--allow-unplayable-formats`
 * Fix default of `dynamic_mpd`
 * Deprecate `--all-formats`, `--include-ads`, `--hls-prefer-native`, `--hls-prefer-ffmpeg`
-* [documentation] Improvements
+* [docs] Improvements
 
 ### 2021.04.03
 * Merge youtube-dl: Upto [commit/654b4f4](https://github.com/ytdl-org/youtube-dl/commit/654b4f4ff2718f38b3182c1188c5d569c14cc70a)
@@ -426,7 +469,7 @@
 * [youtube] Show premium state in `availability` by [coletdjnz](https://github.com/coletdjnz)
 * [viewsource] Add extractor to handle `view-source:`
 * [sponskrub] Run before embedding thumbnail
-* [documentation] Improve `--parse-metadata` documentation
+* [docs] Improve `--parse-metadata` documentation
 
 
 ### 2021.03.24.1
@@ -458,8 +501,8 @@
 * Use headers and cookies when downloading subtitles by [damianoamatruda](https://github.com/damianoamatruda)
 * Parse resolution in info dictionary by [damianoamatruda](https://github.com/damianoamatruda)
 * More consistent warning messages by [damianoamatruda](https://github.com/damianoamatruda) and [pukkandan](https://github.com/pukkandan)
-* [documentation] Add deprecated options and aliases in readme
-* [documentation] Fix some minor mistakes
+* [docs] Add deprecated options and aliases in readme
+* [docs] Fix some minor mistakes
 
 * [niconico] Partial fix adapted from [animelover1984/youtube-dl@b5eff52](https://github.com/animelover1984/youtube-dl/commit/b5eff52dd9ed5565672ea1694b38c9296db3fade) (login and smile formats still don't work)
 * [niconico] Add user extractor by [animelover1984](https://github.com/animelover1984)
@@ -505,7 +548,7 @@
 * [downloader] Fix bug for `ffmpeg`/`httpie`
 * [update] Fix updater removing the executable bit on some UNIX distros
 * [update] Fix current build hash for UNIX
-* [documentation] Include wget/curl/aria2c install instructions for Unix by [Ashish0804](https://github.com/Ashish0804)
+* [docs] Include wget/curl/aria2c install instructions for Unix by [Ashish0804](https://github.com/Ashish0804)
 * Fix some videos downloading with `m3u8` extension
 * Remove "fixup is ignored" warning when fixup wasn't passed by user
 
@@ -562,7 +605,7 @@
 * [ffmpeg] Allow passing custom arguments before -i using `--ppa "ffmpeg_i1:ARGS"` syntax
 * Fix `--windows-filenames` removing `/` from UNIX paths
 * [hls] Show warning if pycryptodome is not found
-* [documentation] Improvements
+* [docs] Improvements
     * Fix documentation of `Extractor Options`
     * Document `all` in format selection
     * Document `playable_in_embed` in output templates
@@ -590,7 +633,7 @@
     * Exclude `vcruntime140.dll` from UPX by [jbruchon](https://github.com/jbruchon)
     * Set version number based on UTC time, not local time
     * Publish on PyPi only if token is set
-* [documentation] Better document `--prefer-free-formats` and add `--no-prefer-free-format`
+* [docs] Better document `--prefer-free-formats` and add `--no-prefer-free-format`
 
 
 ### 2021.02.15
@@ -633,7 +676,7 @@
 * [movefiles] Fix compatibility with python2
 * [remuxvideo] Fix validation of conditional remux
 * [sponskrub] Don't raise error when the video does not exist
-* [documentation] Crypto is an optional dependency
+* [docs] Crypto is an optional dependency
 
 
 ### 2021.02.04
@@ -694,10 +737,10 @@
 * Merge youtube-dl: Upto [2021.01.24](https://github.com/ytdl-org/youtube-dl/releases/tag/2021.01.16)
 * Plugin support ([documentation](https://github.com/yt-dlp/yt-dlp#plugins))
 * **Multiple paths**: New option `-P`/`--paths` to give different paths for different types of files
-    * The syntax is `-P "type:path" -P "type:path"` ([documentation](https://github.com/yt-dlp/yt-dlp#:~:text=-P,%20--paths%20TYPE:PATH))
+    * The syntax is `-P "type:path" -P "type:path"`
     * Valid types are: home, temp, description, annotation, subtitle, infojson, thumbnail
-    * Additionally, configuration file is taken from home directory or current directory ([documentation](https://github.com/yt-dlp/yt-dlp#:~:text=Home%20Configuration))
-* Allow passing different arguments to different external downloaders ([documentation](https://github.com/yt-dlp/yt-dlp#:~:text=--downloader-args%20NAME:ARGS))
+    * Additionally, configuration file is taken from home directory or current directory
+* Allow passing different arguments to different external downloaders
 * [mildom] Add extractor by [nao20010128nao](https://github.com/nao20010128nao)
 * Warn when using old style `--external-downloader-args` and `--post-processor-args`
 * Fix `--no-overwrite` when using `--write-link`
@@ -732,9 +775,9 @@
 * [roosterteeth.com] Fix for bonus episodes by [Zocker1999NET](https://github.com/Zocker1999NET)
 * [tiktok] Fix for when share_info is empty
 * [EmbedThumbnail] Fix bug due to incorrect function name
-* [documentation] Changed sponskrub links to point to [yt-dlp/SponSkrub](https://github.com/yt-dlp/SponSkrub) since I am now providing both linux and windows releases
-* [documentation] Change all links to correctly point to new fork URL
-* [documentation] Fixes typos
+* [docs] Changed sponskrub links to point to [yt-dlp/SponSkrub](https://github.com/yt-dlp/SponSkrub) since I am now providing both linux and windows releases
+* [docs] Change all links to correctly point to new fork URL
+* [docs] Fixes typos
 
 
 ### 2021.01.12

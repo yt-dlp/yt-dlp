@@ -728,6 +728,7 @@
  - **PalcoMP3:video**
  - **pandora.tv**: 판도라TV
  - **ParamountNetwork**
+ - **ParamountPlusSeries**
  - **parliamentlive.tv**: UK parliament videos
  - **Parlview**
  - **Patreon**
@@ -873,6 +874,7 @@
  - **savefrom.net**
  - **SBS**: sbs.com.au
  - **schooltv**
+ - **ScienceChannel**
  - **screen.yahoo:search**: Yahoo screen search
  - **Screencast**
  - **ScreencastOMatic**
@@ -1011,7 +1013,6 @@
  - **ThisAmericanLife**
  - **ThisAV**
  - **ThisOldHouse**
- - **ThisVid**
  - **TikTok**
  - **tinypic**: tinypic.com videos
  - **TMZ**
@@ -1108,6 +1109,7 @@
  - **ustream:channel**
  - **ustudio**
  - **ustudio:embed**
+ - **Utreon**
  - **Varzesh3**
  - **Vbox7**
  - **VeeHD**
