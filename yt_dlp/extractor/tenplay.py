@@ -41,6 +41,7 @@ class TenPlayIE(InfoExtractor):
         'PG': 15,
         'M': 15,
         'MA': 15,
+        'MA15+': 15,
         'R': 18,
         'X': 18
     }
@@ -79,7 +80,7 @@ class TenPlayIE(InfoExtractor):
             'id': data.get('altId') or content_id,
             'title': data.get('title'),
             'description': data.get('description'),
-            'age_limit': self._AUS_AGES[data.get('classification')],
+            'age_limit': self._AUS_AGES.get(data.get('classification')),
             'series': data.get('showName'),
             'season': data.get('showContentSeason'),
             'timestamp': data.get('published'),
