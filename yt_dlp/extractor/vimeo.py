@@ -253,23 +253,25 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                             'quality': 1,
                         }
 
-    def _extract_original_format_2(self, video_id):
         jwt_response = self._download_json('https://vimeo.com/_rv/viewer', video_id)
         if jwt_response.get('jwt'):
             headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
-            original_response = self._download_json('https://api.vimeo.com/videos/' + video_id, video_id, headers=headers, fatal=False)
-            if original_response:
-                for download_data in original_response.get('download'):
-                    if download_data['quality'] == 'source':
-                        return {
-                            'url': download_data['link'],
-                            'ext': download_data['link'].split('.')[-1] or 'mp4',
-                            'format_id': download_data['quality'],
-                            'width': int_or_none(download_data.get('width')),
-                            'height': int_or_none(download_data.get('height')),
-                            'fps': int_or_none(download_data.get('fps')),
-                            'quality': 1,
-                        }
+            original_response = self._download_json(
+                'https://api.vimeo.com/videos/' + video_id, video_id,
+                headers=headers, fatal=False) or {}
+            for download_data in original_response.get('download') or {}:
+                download_url = download_data.get('link')
+                if not download_url or download_data.get('quality') != 'source':
+                    continue
+                return {
+                    'url': download_url,
+                    'ext': download_data['link'].split('.')[-1] or 'mp4',
+                    'format_id': download_data.get('public_name', 'Original'),
+                    'width': int_or_none(download_data.get('width')),
+                    'height': int_or_none(download_data.get('height')),
+                    'fps': int_or_none(download_data.get('fps')),
+                    'quality': 1,
+                }
 
 
 class VimeoIE(VimeoBaseInfoExtractor):
@@ -844,8 +846,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
         source_format = self._extract_original_format(
             'https://vimeo.com/' + video_id, video_id, video.get('unlisted_hash'))
-        if not source_format:
-            source_format = self._extract_original_format_2(video_id)
         if source_format:
             formats.append(source_format)
 
