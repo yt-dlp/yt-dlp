@@ -255,26 +255,27 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         jwt_response = self._download_json(
             'https://vimeo.com/_rv/viewer', video_id, note='Downloading jwt token', fatal=False) or {}
-        if jwt_response.get('jwt'):
-            headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
-            original_response = self._download_json(
-                'https://api.vimeo.com/videos/' + video_id, video_id,
-                headers=headers, fatal=False) or {}
-            for download_data in original_response.get('download') or {}:
-                download_url = download_data.get('link')
-                if not download_url or download_data.get('quality') != 'source':
-                    continue
-                query = compat_urlparse.parse_qs(compat_urlparse.urlparse(download_url).query)
-                return {
-                    'url': download_url,
-                    'ext': determine_ext(query.get('filename', [''])[0].lower()),
-                    'format_id': download_data.get('public_name', 'Original'),
-                    'width': int_or_none(download_data.get('width')),
-                    'height': int_or_none(download_data.get('height')),
-                    'fps': int_or_none(download_data.get('fps')),
-                    'filesize': int_or_none(download_data.get('size')),
-                    'quality': 1,
-                }
+        if not jwt_response.get('jwt'):
+            return
+        headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
+        original_response = self._download_json(
+            f'https://api.vimeo.com/videos/{video_id}', video_id,
+            headers=headers, fatal=False) or {}
+        for download_data in original_response.get('download') or {}:
+            download_url = download_data.get('link')
+            if not download_url or download_data.get('quality') != 'source':
+                continue
+            query = compat_urlparse.parse_qs(compat_urlparse.urlparse(download_url).query)
+            return {
+                'url': download_url,
+                'ext': determine_ext(query.get('filename', [''])[0].lower()),
+                'format_id': download_data.get('public_name', 'Original'),
+                'width': int_or_none(download_data.get('width')),
+                'height': int_or_none(download_data.get('height')),
+                'fps': int_or_none(download_data.get('fps')),
+                'filesize': int_or_none(download_data.get('size')),
+                'quality': 1,
+            }
 
 
 class VimeoIE(VimeoBaseInfoExtractor):
