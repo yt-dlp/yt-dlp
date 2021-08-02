@@ -536,24 +536,31 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             context['client']['visitorData'] = visitor_data
         return context
 
+    _SAPISID = None
+
     def _generate_sapisidhash_header(self, origin='https://www.youtube.com'):
-        # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
-        # See: https://github.com/yt-dlp/yt-dlp/issues/393
-        yt_cookies = self._get_cookies('https://www.youtube.com')
-        sapisid_cookie = dict_get(
-            yt_cookies, ('__Secure-3PAPISID', 'SAPISID'))
-        if sapisid_cookie is None or not sapisid_cookie.value:
-            return
         time_now = round(time.time())
-        # SAPISID cookie is required if not already present
-        if not yt_cookies.get('SAPISID'):
-            self.write_debug('Copying __Secure-3PAPISID cookie to SAPISID cookie', only_once=True)
-            self._set_cookie(
-                '.youtube.com', 'SAPISID', sapisid_cookie.value, secure=True, expire_time=time_now + 3600)
-        self.write_debug('Extracted SAPISID cookie', only_once=True)
+        if self._SAPISID is None:
+            yt_cookies = self._get_cookies('https://www.youtube.com')
+            # Sometimes SAPISID cookie isn't present but __Secure-3PAPISID is.
+            # See: https://github.com/yt-dlp/yt-dlp/issues/393
+            sapisid_cookie = dict_get(
+                yt_cookies, ('__Secure-3PAPISID', 'SAPISID'))
+            if sapisid_cookie and sapisid_cookie.value:
+                self._SAPISID = sapisid_cookie.value
+                self.write_debug('Extracted SAPISID cookie')
+                # SAPISID cookie is required if not already present
+                if not yt_cookies.get('SAPISID'):
+                    self.write_debug('Copying __Secure-3PAPISID cookie to SAPISID cookie')
+                    self._set_cookie(
+                        '.youtube.com', 'SAPISID', self._SAPISID, secure=True, expire_time=time_now + 3600)
+            else:
+                self._SAPISID = False
+        if not self._SAPISID:
+            return None
         # SAPISIDHASH algorithm from https://stackoverflow.com/a/32065323
         sapisidhash = hashlib.sha1(
-            f'{time_now} {sapisid_cookie.value} {origin}'.encode('utf-8')).hexdigest()
+            f'{time_now} {self._SAPISID} {origin}'.encode('utf-8')).hexdigest()
         return f'SAPISIDHASH {time_now}_{sapisidhash}'
 
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
