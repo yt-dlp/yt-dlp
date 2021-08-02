@@ -470,6 +470,7 @@ class FFmpegFD(ExternalFD):
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
 
+        ext = info_dict['ext']
         if protocol in ('m3u8', 'm3u8_native'):
             use_mpegts = (tmpfilename == '-') or self.params.get('hls_use_mpegts')
             if use_mpegts is None:
@@ -482,8 +483,10 @@ class FFmpegFD(ExternalFD):
                     args += ['-bsf:a', 'aac_adtstoasc']
         elif protocol == 'rtmp':
             args += ['-f', 'flv']
+        elif ext == 'mp4' and tmpfilename == '-':
+            args += ['-f', 'mpegts']
         else:
-            args += ['-f', EXT_TO_OUT_FORMATS.get(info_dict['ext'], info_dict['ext'])]
+            args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
 
         args = [encodeArgument(opt) for opt in args]
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
