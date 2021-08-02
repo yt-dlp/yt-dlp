@@ -263,13 +263,15 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 download_url = download_data.get('link')
                 if not download_url or download_data.get('quality') != 'source':
                     continue
+                query = compat_urlparse.parse_qs(compat_urlparse.urlparse(download_url).query)
                 return {
                     'url': download_url,
-                    'ext': download_data['link'].split('.')[-1] or 'mp4',
+                    'ext': determine_ext(query.get('filename', [''])[0].lower()),
                     'format_id': download_data.get('public_name', 'Original'),
                     'width': int_or_none(download_data.get('width')),
                     'height': int_or_none(download_data.get('height')),
                     'fps': int_or_none(download_data.get('fps')),
+                    'filesize': int_or_none(download_data.get('size')),
                     'quality': 1,
                 }
 
