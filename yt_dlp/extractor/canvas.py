@@ -300,7 +300,7 @@ class VrtNUIE(GigyaBaseIE):
                     'UIDSignature': auth_info['UIDSignature'],
                     'signatureTimestamp': auth_info['signatureTimestamp'],
                     'client_id': 'vrtnu-site',
-                    '_csrf': self._get_cookies('https://token.vrt.be').get('OIDCXSRF').value,
+                    '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
                 }
 
                 self._request_webpage(
