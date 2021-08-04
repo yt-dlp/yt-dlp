@@ -4664,23 +4664,28 @@ def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
 
 def _match_one(filter_part, dct):
     # TODO: Generalize code with YoutubeDL._build_format_filter
-    COMPARISON_OPERATORS = {
-        '<': operator.lt,
-        '<=': operator.le,
-        '>': operator.gt,
-        '>=': operator.ge,
-        '=': operator.eq,
+    STRING_OPERATORS = {
         '*=': operator.contains,
         '^=': lambda attr, value: attr.startswith(value),
         '$=': lambda attr, value: attr.endswith(value),
+        '~=': lambda attr, value: re.search(value, attr),
     }
+    COMPARISON_OPERATORS = {
+        **STRING_OPERATORS,
+        '<=': operator.le,  # "<=" must be defined above "<"
+        '<': operator.lt,
+        '>=': operator.ge,
+        '>': operator.gt,
+        '=': operator.eq,
+    }
+
     operator_rex = re.compile(r'''(?x)\s*
         (?P<key>[a-z_]+)
         \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
         (?:
             (?P<intval>[0-9.]+(?:[kKmMgGtTpPeEzZyY]i?[Bb]?)?)|
-            (?P<quote>["\'])(?P<quotedstrval>(?:\\.|(?!(?P=quote)|\\).)+?)(?P=quote)|
-            (?P<strval>(?![0-9.])[a-z0-9A-Z]*)
+            (?P<quote>["\'])(?P<quotedstrval>.+?)(?P=quote)|
+            (?P<strval>.+?)
         )
         \s*$
         ''' % '|'.join(map(re.escape, COMPARISON_OPERATORS.keys())))
@@ -4705,9 +4710,8 @@ def _match_one(filter_part, dct):
             if quote is not None:
                 comparison_value = comparison_value.replace(r'\%s' % quote, quote)
         else:
-            if m.group('op') in ('*=', '^=', '$='):
-                raise ValueError(
-                    'Operator %s only supports string values!' % m.group('op'))
+            if m.group('op') in STRING_OPERATORS:
+                raise ValueError('Operator %s only supports string values!' % m.group('op'))
             try:
                 comparison_value = int(m.group('intval'))
             except ValueError:
@@ -4743,7 +4747,8 @@ def match_str(filter_str, dct):
     """ Filter a dictionary with a simple string syntax. Returns True (=passes filter) or false """
 
     return all(
-        _match_one(filter_part, dct) for filter_part in filter_str.split('&'))
+        _match_one(filter_part.replace(r'\&', '&'), dct)
+        for filter_part in re.split(r'(?<!\\)&', filter_str))
 
 
 def match_filter_func(filter_str):

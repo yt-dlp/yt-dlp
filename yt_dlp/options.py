@@ -378,13 +378,14 @@ def parseOpts(overrideArguments=None):
             'Generic video filter. Any field (see "OUTPUT TEMPLATE") can be compared with a '
             'number or a string using the operators defined in "Filtering formats". '
             'You can also simply specify a field to match if the field is present '
-            'and "!field" to check if the field is not present. '
-            'Multiple filters can be checked using "&". '
-            'For example, to only match videos that are not live, '
-            'has a like count more than 100, a dislike count less than 50 '
-            '(or the dislike field is not available), and also has a description '
-            'that contains "python", use --match-filter "!is_live & '
-            'like_count>100 & dislike_count<?50 & description*=\'python\'"'))
+            'and "!field" to check if the field is not present. In addition, '
+            'Python style regular expression matching can be done using "~=", '
+            'and multiple filters can be checked with "&". '
+            'Use a "\\" to escape "&" or quotes if needed. Eg: --match-filter '
+            r'"!is_live & like_count>?100 & description~=\'(?i)\bcats \& dogs\b\'" '
+            'matches only videos that are not live, has a like count more than 100 '
+            '(or the like field is not available), and also has a description '
+            'that contains the phrase "cats & dogs" (ignoring case)'))
     selection.add_option(
         '--no-match-filter',
         metavar='FILTER', dest='match_filter', action='store_const', const=None,
