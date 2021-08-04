@@ -111,19 +111,14 @@ class FFmpegPostProcessor(PostProcessor):
                     return
                 elif not os.path.isdir(location):
                     basename = os.path.splitext(os.path.basename(location))[0]
-                    if basename not in programs:
-                        self.report_warning(
-                            'Cannot identify executable %s, its basename should be one of %s. '
-                            'Continuing without ffmpeg.' %
-                            (location, ', '.join(programs)))
-                        self._versions = {}
-                        return None
-                    location = os.path.dirname(os.path.abspath(location))
+                    basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
+                    dirname = os.path.dirname(os.path.abspath(location))
                     if basename in ('ffmpeg', 'ffprobe'):
                         prefer_ffmpeg = True
 
                 self._paths = dict(
-                    (p, os.path.join(location, p)) for p in programs)
+                    (p, os.path.join(dirname, p)) for p in programs)
+                self._paths[basename] = location
                 self._versions = dict(
                     (p, get_ffmpeg_version(self._paths[p])) for p in programs)
         if self._versions is None:
