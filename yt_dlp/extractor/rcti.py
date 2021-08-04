@@ -152,7 +152,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         video_type, video_id, display_id = match['type'], match['id'], match['display_id']
 
         url_api_version = 'v2' if video_type == 'missed-event' else 'v1'
-        appier_id = '23984824_' + str(random.randint(0,10000000000))  # Based on the webpage's uuidRandom generator
+        appier_id = '23984824_' + str(random.randint(0, 10000000000))  # Based on the webpage's uuidRandom generator
         video_json = self._call_api(
             'https://api.rctiplus.com/api/%s/%s/%s/url?appierid=%s' % (url_api_version, video_type, video_id, appier_id), display_id, 'Downloading video URL JSON')[0]
         video_url = video_json['url']
@@ -353,7 +353,7 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
         event_re = re.search(
             r'url ?: ?"https://api\.rctiplus\.com/api/v./(?P<type>[^/]+)/(?P<id>\d+)/url', webpage)
         if not event_re:
-            raise ExtractorError('Unable to extract video link')
+            raise RegexNotFoundError('Unable to extract video link')
         video_type, video_id = event_re.groups()
         return {
             '_type': 'url',
