@@ -32,7 +32,7 @@ class RCTIPlusBaseIE(InfoExtractor):
 
 
 class RCTIPlusIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/(programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https://www\.rctiplus\.com/(?:programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/1259/kiko-untuk-lola/episode/22124/untuk-lola',
         'md5': '56ed45affad45fa18d5592a1bc199997',
@@ -196,7 +196,8 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                 self.raise_geo_restricted(countries=['ID'], metadata_available=True)
-            raise e
+            else:
+                raise e
         for f in formats:
             if 'akamaized' in f['url'] or 'cloudfront' in f['url']:
                 f.setdefault('http_headers', {})['Referer'] = 'https://www.rctiplus.com/'  # Referer header is required for akamai/cloudfront CDNs
