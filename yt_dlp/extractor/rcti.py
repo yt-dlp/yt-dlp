@@ -351,5 +351,5 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
         tv_id = match.get('tvname') or match.get('eventname')
         webpage = self._download_webpage(url, tv_id)
         video_type, video_id = self._search_regex(
-            r'url ?: ?"https://api\.rctiplus\.com/api/v./(?P<type>[^/]+)/(?P<id>\d+)/url', webpage, 'video link', group=('type', 'id'))
+            r'url\s*:\s*["\']https://api\.rctiplus\.com/api/v./(?P<type>[^/]+)/(?P<id>\d+)/url', webpage, 'video link', group=('type', 'id'))
         return self.url_result('https://www.rctiplus.com/%s/%s/%s' % (video_type, video_id, tv_id), 'RCTIPlus')
