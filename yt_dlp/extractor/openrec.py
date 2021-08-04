@@ -11,11 +11,7 @@ from ..utils import (
 from ..compat import compat_str
 
 
-class OpenRecBaseIE(InfoExtractor):
-    pass
-
-
-class OpenRecIE(OpenRecBaseIE):
+class OpenRecIE(InfoExtractor):
     IE_NAME = 'openrec'
     _VALID_URL = r'https?://(?:www\.)?openrec\.tv/live/(?P<id>[^/]+)'
     _TESTS = [{
@@ -74,7 +70,7 @@ class OpenRecIE(OpenRecBaseIE):
         }
 
 
-class OpenRecCaptureIE(OpenRecBaseIE):
+class OpenRecCaptureIE(InfoExtractor):
     IE_NAME = 'openrec:capture'
     _VALID_URL = r'https?://(?:www\.)?openrec\.tv/capture/(?P<id>[^/]+)'
     _TESTS = [{
