@@ -3,13 +3,15 @@ from __future__ import unicode_literals
 
 import itertools
 import json
+import random
 import re
 import time
 
 from .common import InfoExtractor
+from ..compat import compat_HTTPError
 from ..utils import (
+    dict_get,
     ExtractorError,
-    RegexNotFoundError,
     strip_or_none,
     try_get
 )
@@ -30,7 +32,7 @@ class RCTIPlusBaseIE(InfoExtractor):
 
 
 class RCTIPlusIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/programs/\d+?/.*?/(?P<type>episode|clip|extra)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https://www\.rctiplus\.com/(?:programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/1259/kiko-untuk-lola/episode/22124/untuk-lola',
         'md5': '56ed45affad45fa18d5592a1bc199997',
@@ -87,6 +89,52 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         'params': {
             'format': 'bestvideo',
         },
+    }, {  # Missed event/replay
+        'url': 'https://www.rctiplus.com/missed-event/2507/mou-signing-ceremony-27-juli-2021-1400-wib',
+        'md5': '649c5f27250faed1452ca8b91e06922d',
+        'info_dict': {
+            'id': 'v_pe2507',
+            'title': 'MOU Signing Ceremony | 27 Juli 2021 | 14.00 WIB',
+            'display_id': 'mou-signing-ceremony-27-juli-2021-1400-wib',
+            'ext': 'mp4',
+            'timestamp': 1627142400,
+            'upload_date': '20210724',
+            'was_live': True,
+            'release_timestamp': 1627369200,
+        },
+        'params': {
+            'fixup': 'never',
+        },
+    }, {  # Live event; Cloudfront CDN
+        'url': 'https://www.rctiplus.com/live-event/2530/dai-muda-charging-imun-dengan-iman-4-agustus-2021-1600-wib',
+        'info_dict': {
+            'id': 'v_le2530',
+            'title': 'Dai Muda : Charging Imun dengan Iman | 4 Agustus 2021 | 16.00 WIB',
+            'display_id': 'dai-muda-charging-imun-dengan-iman-4-agustus-2021-1600-wib',
+            'ext': 'mp4',
+            'timestamp': 1627898400,
+            'upload_date': '20210802',
+            'release_timestamp': 1628067600,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': 'This live event has ended.',
+    }, {  # TV; live_at is null
+        'url': 'https://www.rctiplus.com/live-event/1/rcti',
+        'info_dict': {
+            'id': 'v_lt1',
+            'title': 'RCTI',
+            'display_id': 'rcti',
+            'ext': 'mp4',
+            'timestamp': 1546344000,
+            'upload_date': '20190101',
+            'is_live': True,
+        },
+        'params': {
+            'skip_download': True,
+            'format': 'bestvideo',
+        },
     }]
     _CONVIVA_JSON_TEMPLATE = {
         't': 'CwsSessionHb',
@@ -99,21 +147,22 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         'sdk': True,
     }
 
-    def _search_auth_key(self, webpage):
-        try:
-            self._AUTH_KEY = self._search_regex(
-                r'\'Authorization\':"(?P<auth>[^"]+)"', webpage, 'auth-key')
-        except RegexNotFoundError:
-            pass
-
     def _real_extract(self, url):
-        video_type, video_id, display_id = re.match(self._VALID_URL, url).groups()
-        webpage = self._download_webpage(url, display_id)
-        self._search_auth_key(webpage)
+        match = re.match(self._VALID_URL, url).groupdict()
+        video_type, video_id, display_id = match['type'], match['id'], match['display_id']
 
+        url_api_version = 'v2' if video_type == 'missed-event' else 'v1'
+        appier_id = '23984824_' + str(random.randint(0, 10000000000))  # Based on the webpage's uuidRandom generator
         video_json = self._call_api(
-            'https://api.rctiplus.com/api/v1/%s/%s/url?appierid=.1' % (video_type, video_id), display_id, 'Downloading video URL JSON')[0]
+            f'https://api.rctiplus.com/api/{url_api_version}/{video_type}/{video_id}/url?appierid={appier_id}', display_id, 'Downloading video URL JSON')[0]
         video_url = video_json['url']
+
+        is_upcoming = try_get(video_json, lambda x: x['current_date'] < x['live_at'])
+        if is_upcoming is None:
+            is_upcoming = try_get(video_json, lambda x: x['current_date'] < x['start_date'])
+        if is_upcoming:
+            self.raise_no_formats(
+                'This event will start at %s.' % video_json['live_label'] if video_json.get('live_label') else 'This event has not started yet.', expected=True)
         if 'akamaized' in video_url:
             # For some videos hosted on Akamai's CDN (possibly AES-encrypted ones?), a session needs to at least be made via Conviva's API
             conviva_json_data = {
@@ -142,22 +191,27 @@ class RCTIPlusIE(RCTIPlusBaseIE):
                 'id': 'landscape_image',
                 'url': '%s%d%s' % (image_path, 2000, video_meta['landscape_image'])
             })
-
-        formats = self._extract_m3u8_formats(video_url, display_id, 'mp4', headers={'Referer': 'https://www.rctiplus.com/'})
+        try:
+            formats = self._extract_m3u8_formats(video_url, display_id, 'mp4', headers={'Referer': 'https://www.rctiplus.com/'})
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                self.raise_geo_restricted(countries=['ID'], metadata_available=True)
+            else:
+                raise e
         for f in formats:
-            if 'akamaized' in f['url']:
-                f.setdefault('http_headers', {})['Referer'] = 'https://www.rctiplus.com/'  # Referer header is required for akamai CDNs
+            if 'akamaized' in f['url'] or 'cloudfront' in f['url']:
+                f.setdefault('http_headers', {})['Referer'] = 'https://www.rctiplus.com/'  # Referer header is required for akamai/cloudfront CDNs
 
         self._sort_formats(formats)
 
         return {
             'id': video_meta.get('product_id') or video_json.get('product_id'),
-            'title': video_meta.get('title') or video_json.get('content_name'),
+            'title': dict_get(video_meta, ('title', 'name')) or dict_get(video_json, ('content_name', 'assets_name')),
             'display_id': display_id,
             'description': video_meta.get('summary'),
-            'timestamp': video_meta.get('release_date'),
+            'timestamp': video_meta.get('release_date') or video_json.get('start_date'),
             'duration': video_meta.get('duration'),
-            'categories': [video_meta.get('genre')],
+            'categories': [video_meta['genre']] if video_meta.get('genre') else None,
             'average_rating': video_meta.get('star_rating'),
             'series': video_meta.get('program_title') or video_json.get('program_title'),
             'season_number': video_meta.get('season'),
@@ -165,12 +219,16 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             'channel': video_json.get('tv_name'),
             'channel_id': video_json.get('tv_id'),
             'formats': formats,
-            'thumbnails': thumbnails
+            'thumbnails': thumbnails,
+            'is_live': video_type == 'live-event' and not is_upcoming,
+            'was_live': video_type == 'missed-event',
+            'live_status': 'is_upcoming' if is_upcoming else None,
+            'release_timestamp': video_json.get('live_at'),
         }
 
 
 class RCTIPlusSeriesIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)(?:\W)*$'
+    _VALID_URL = r'https://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/540/upin-ipin',
         'playlist_mincount': 417,
@@ -180,7 +238,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'description': 'md5:22cc912381f389664416844e1ec4f86b',
         },
     }, {
-        'url': 'https://www.rctiplus.com/programs/540/upin-ipin/#',
+        'url': 'https://www.rctiplus.com/programs/540/upin-ipin/episodes?utm_source=Rplusdweb&utm_medium=share_copy&utm_campaign=programsupin-ipin',
         'only_matching': True,
     }]
     _AGE_RATINGS = {  # Based off https://id.wikipedia.org/wiki/Sistem_rating_konten_televisi with additional ratings
@@ -192,6 +250,10 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
         'R-R/1': 17,  # Labelled as 17+ despite being R
         'D': 18,
     }
+
+    @classmethod
+    def suitable(cls, url):
+        return False if RCTIPlusIE.suitable(url) else super(RCTIPlusSeriesIE, cls).suitable(url)
 
     def _entries(self, url, display_id=None, note='Downloading entries JSON', metadata={}):
         total_pages = 0
@@ -253,3 +315,41 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                                      display_id, 'Downloading extra entries', metadata))
 
         return self.playlist_result(itertools.chain(*entries), series_id, series_meta.get('title'), series_meta.get('summary'), **metadata)
+
+
+class RCTIPlusTVIE(RCTIPlusBaseIE):
+    _VALID_URL = r'https://www\.rctiplus\.com/((tv/(?P<tvname>\w+))|(?P<eventname>live-event|missed-event))'
+    _TESTS = [{
+        'url': 'https://www.rctiplus.com/tv/rcti',
+        'info_dict': {
+            'id': 'v_lt1',
+            'title': 'RCTI',
+            'ext': 'mp4',
+            'timestamp': 1546344000,
+            'upload_date': '20190101',
+        },
+        'params': {
+            'skip_download': True,
+            'format': 'bestvideo',
+        }
+    }, {
+        # Returned video will always change
+        'url': 'https://www.rctiplus.com/live-event',
+        'only_matching': True,
+    }, {
+        # Returned video will also always change
+        'url': 'https://www.rctiplus.com/missed-event',
+        'only_matching': True,
+    }]
+
+    @classmethod
+    def suitable(cls, url):
+        return False if RCTIPlusIE.suitable(url) else super(RCTIPlusTVIE, cls).suitable(url)
+
+    def _real_extract(self, url):
+        match = re.match(self._VALID_URL, url).groupdict()
+        tv_id = match.get('tvname') or match.get('eventname')
+        webpage = self._download_webpage(url, tv_id)
+        video_type, video_id = self._search_regex(
+            r'url\s*:\s*["\']https://api\.rctiplus\.com/api/v./(?P<type>[^/]+)/(?P<id>\d+)/url', webpage, 'video link', group=('type', 'id'))
+        return self.url_result(f'https://www.rctiplus.com/{video_type}/{video_id}/{tv_id}', 'RCTIPlus')
