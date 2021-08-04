@@ -11,7 +11,6 @@ from ..utils import (
     parse_filesize,
     parse_count,
     unified_timestamp,
-    unified_strdate,
 )
 
 
@@ -128,12 +127,10 @@ class NewgroundsIE(InfoExtractor):
                  r'(?:Author|Writer)\s*<a[^>]+>([^<]+)'), webpage, 'uploader',
                 fatal=False)
 
-        timestamp = self._html_search_regex(
+        timestamp = unified_timestamp(self._html_search_regex(
             (r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+</dd>\s*<dd>[^<]+)',
              r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+)'), webpage, 'timestamp',
-            default=None)
-        upload_date = unified_strdate(timestamp)
-        timestamp = unified_timestamp(timestamp)
+            default=None))
         duration = parse_duration(self._search_regex(
             r'(?s)<dd>\s*Song\s*</dd>\s*<dd>.+?</dd>\s*<dd>([^<]+)', webpage,
             'duration', default=None))
@@ -159,7 +156,6 @@ class NewgroundsIE(InfoExtractor):
             'timestamp': timestamp,
             'duration': duration,
             'formats': formats,
-            'upload_date': upload_date,
             'thumbnail': self._og_search_thumbnail(webpage),
             'description': self._og_search_description(webpage),
             'view_count': view_count,
