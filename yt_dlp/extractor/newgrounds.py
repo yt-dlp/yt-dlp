@@ -26,7 +26,7 @@ class NewgroundsIE(InfoExtractor):
             'timestamp': 1378878540,
             'upload_date': '20130911',
             'duration': 143,
-            'description': 'Sonic blahblahblah I\'m late again SEPTEMBER 11TH: Busmode-The story of ants on a log. ',
+            'description': 'md5:6d885138814015dfd656c2ddb00dacfc',
         },
     }, {
         'url': 'https://www.newgrounds.com/portal/view/1',
