@@ -196,7 +196,8 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                 self.raise_geo_restricted(countries=['ID'], metadata_available=True)
-            raise e
+            else:
+                raise e
         for f in formats:
             if 'akamaized' in f['url'] or 'cloudfront' in f['url']:
                 f.setdefault('http_headers', {})['Referer'] = 'https://www.rctiplus.com/'  # Referer header is required for akamai/cloudfront CDNs
