@@ -122,9 +122,6 @@ class NewgroundsIE(InfoExtractor):
                         'url': source.get('src')
                     })
 
-        self._check_formats(formats, media_id)
-        self._sort_formats(formats)
-
         if not uploader:
             uploader = self._html_search_regex(
                 (r'(?s)<h4[^>]*>(.+?)</h4>.*?<em>\s*(?:Author|Artist)\s*</em>',
@@ -152,6 +149,10 @@ class NewgroundsIE(InfoExtractor):
 
         if '<dd>Song' in webpage:
             formats[0]['vcodec'] = 'none'
+        
+        self._check_formats(formats, media_id)
+        self._sort_formats(formats)
+        
         return {
             'id': media_id,
             'title': title,
