@@ -936,6 +936,10 @@ from .ooyala import (
     OoyalaIE,
     OoyalaExternalIE,
 )
+from .openrec import (
+    OpenRecIE,
+    OpenRecCaptureIE,
+)
 from .ora import OraTVIE
 from .orf import (
     ORFTVthekIE,
