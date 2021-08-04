@@ -355,8 +355,4 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
         if not event_re:
             raise RegexNotFoundError('Unable to extract video link')
         video_type, video_id = event_re.groups()
-        return {
-            '_type': 'url',
-            'url': 'https://www.rctiplus.com/%s/%s/%s' % (video_type, video_id, tv_id),
-            'ie_key': 'RCTIPlus',
-        }
+        return self.url_result('https://www.rctiplus.com/%s/%s/%s' % (video_type, video_id, tv_id), 'RCTIPlus')
