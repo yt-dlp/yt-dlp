@@ -106,9 +106,7 @@ class NewgroundsIE(InfoExtractor):
                 'Accept': 'application/json',
                 'Referer': url,
                 'X-Requested-With': 'XMLHttpRequest'
-            }, fatal=False)
-            if not json_video:
-                raise ExtractorError('Could not fetch media data')
+            })
 
             uploader = json_video.get('author')
             media_formats = json_video.get('sources', [])
