@@ -864,6 +864,7 @@ class TwitchClipsIE(TwitchBaseIE):
         'md5': '761769e1eafce0ffebfb4089cb3847cd',
         'info_dict': {
             'id': '42850523',
+            'display_id': 'FaintLightGullWholeWheat',
             'ext': 'mp4',
             'title': 'EA Play 2016 Live from the Novo Theatre',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -976,6 +977,7 @@ class TwitchClipsIE(TwitchBaseIE):
 
         return {
             'id': clip.get('id') or video_id,
+            'display_id': video_id,
             'title': clip.get('title') or video_id,
             'formats': formats,
             'duration': int_or_none(clip.get('durationSeconds')),
