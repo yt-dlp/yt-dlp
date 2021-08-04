@@ -10,8 +10,8 @@ import time
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
+    dict_get,
     ExtractorError,
-    RegexNotFoundError,
     strip_or_none,
     try_get
 )
@@ -206,8 +206,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
 
         return {
             'id': video_meta.get('product_id') or video_json.get('product_id'),
-            'title': (video_meta.get('title') or video_meta.get('name')
-                      or video_json.get('content_name') or video_json.get('assets_name')),
+            'title': dict_get(video_meta, ('title', 'name')) or dict_get(video_json, ('content_name', 'assets_name')),
             'display_id': display_id,
             'description': video_meta.get('summary'),
             'timestamp': video_meta.get('release_date') or video_json.get('start_date'),
@@ -351,9 +350,6 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
         match = re.match(self._VALID_URL, url).groupdict()
         tv_id = match.get('tvname') or match.get('eventname')
         webpage = self._download_webpage(url, tv_id)
-        event_re = re.search(
-            r'url ?: ?"https://api\.rctiplus\.com/api/v./(?P<type>[^/]+)/(?P<id>\d+)/url', webpage)
-        if not event_re:
-            raise RegexNotFoundError('Unable to extract video link')
-        video_type, video_id = event_re.groups()
+        video_type, video_id = self._search_regex(
+            r'url ?: ?"https://api\.rctiplus\.com/api/v./(?P<type>[^/]+)/(?P<id>\d+)/url', webpage, 'video link', group=('type', 'id'))
         return self.url_result('https://www.rctiplus.com/%s/%s/%s' % (video_type, video_id, tv_id), 'RCTIPlus')
