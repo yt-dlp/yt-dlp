@@ -12,6 +12,7 @@ from ..utils import (
     int_or_none,
     parse_age_limit,
     parse_duration,
+    RegexNotFoundError,
     smuggle_url,
     try_get,
     unified_timestamp,
@@ -460,7 +461,7 @@ class NBCNewsIE(ThePlatformIE):
 
 class NBCOlympicsIE(InfoExtractor):
     IE_NAME = 'nbcolympics'
-    _VALID_URL = r'https?://www\.nbcolympics\.com/video/(?P<id>[a-z-]+)'
+    _VALID_URL = r'https?://www\.nbcolympics\.com/videos?/(?P<id>[0-9a-z-]+)'
 
     _TEST = {
         # Geo-restricted to US
@@ -483,13 +484,18 @@ class NBCOlympicsIE(InfoExtractor):
 
         webpage = self._download_webpage(url, display_id)
 
-        drupal_settings = self._parse_json(self._search_regex(
-            r'jQuery\.extend\(Drupal\.settings\s*,\s*({.+?})\);',
-            webpage, 'drupal settings'), display_id)
+        try:
+            drupal_settings = self._parse_json(self._search_regex(
+                r'jQuery\.extend\(Drupal\.settings\s*,\s*({.+?})\);',
+                webpage, 'drupal settings'), display_id)
 
-        iframe_url = drupal_settings['vod']['iframe_url']
-        theplatform_url = iframe_url.replace(
-            'vplayer.nbcolympics.com', 'player.theplatform.com')
+            iframe_url = drupal_settings['vod']['iframe_url']
+            theplatform_url = iframe_url.replace(
+                'vplayer.nbcolympics.com', 'player.theplatform.com')
+        except RegexNotFoundError:
+            theplatform_url = self._search_regex(
+                r"([\"'])embedUrl\1: *([\"'])(?P<embedUrl>.+)\2",
+                webpage, 'embedding URL', group="embedUrl")
 
         return {
             '_type': 'url_transparent',
