@@ -32,7 +32,7 @@ class RCTIPlusBaseIE(InfoExtractor):
 
 
 class RCTIPlusIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/(programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https://www\.rctiplus\.com/(?:programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/1259/kiko-untuk-lola/episode/22124/untuk-lola',
         'md5': '56ed45affad45fa18d5592a1bc199997',
