@@ -91,6 +91,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         },
     }, {  # Missed event/replay
         'url': 'https://www.rctiplus.com/missed-event/2507/mou-signing-ceremony-27-juli-2021-1400-wib',
+        'md5': '649c5f27250faed1452ca8b91e06922d',
         'info_dict': {
             'id': 'v_pe2507',
             'title': 'MOU Signing Ceremony | 27 Juli 2021 | 14.00 WIB',
@@ -102,9 +103,9 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             'release_timestamp': 1627369200,
         },
         'params': {
-            'skip_download': True,
+            'fixup': 'never',
         },
-    }, {  # Live event
+    }, {  # Live event; Cloudfront CDN
         'url': 'https://www.rctiplus.com/live-event/2530/dai-muda-charging-imun-dengan-iman-4-agustus-2021-1600-wib',
         'info_dict': {
             'id': 'v_le2530',
@@ -117,6 +118,22 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         },
         'params': {
             'skip_download': True,
+        },
+        'skip': 'This live event has ended.',
+    }, {  # TV; live_at is null
+        'url': 'https://www.rctiplus.com/live-event/1/rcti',
+        'info_dict': {
+            'id': 'v_lt1',
+            'title': 'RCTI',
+            'display_id': 'rcti',
+            'ext': 'mp4',
+            'timestamp': 1546344000,
+            'upload_date': '20190101',
+            'is_live': True,
+        },
+        'params': {
+            'skip_download': True,
+            'format': 'bestvideo',
         },
     }]
     _CONVIVA_JSON_TEMPLATE = {
@@ -141,6 +158,8 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         video_url = video_json['url']
 
         is_upcoming = try_get(video_json, lambda x: x['current_date'] < x['live_at'])
+        if is_upcoming is None:
+            is_upcoming = try_get(video_json, lambda x: x['current_date'] < x['start_date'])
         if is_upcoming:
             self.raise_no_formats(
                 'This event will start at %s.' % video_json['live_label'] if video_json.get('live_label') else 'This event has not started yet.', expected=True)
@@ -179,8 +198,8 @@ class RCTIPlusIE(RCTIPlusBaseIE):
                 self.raise_geo_restricted(countries=['ID'], metadata_available=True)
             raise e
         for f in formats:
-            if 'akamaized' in f['url']:
-                f.setdefault('http_headers', {})['Referer'] = 'https://www.rctiplus.com/'  # Referer header is required for akamai CDNs
+            if 'akamaized' in f['url'] or 'cloudfront' in f['url']:
+                f.setdefault('http_headers', {})['Referer'] = 'https://www.rctiplus.com/'  # Referer header is required for akamai/cloudfront CDNs
 
         self._sort_formats(formats)
 
@@ -296,3 +315,48 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                                      display_id, 'Downloading extra entries', metadata))
 
         return self.playlist_result(itertools.chain(*entries), series_id, series_meta.get('title'), series_meta.get('summary'), **metadata)
+
+
+class RCTIPlusTVIE(RCTIPlusBaseIE):
+    _VALID_URL = r'https://www\.rctiplus\.com/((tv/(?P<tvname>\w+))|(?P<eventname>live-event|missed-event))'
+    _TESTS = [{
+        'url': 'https://www.rctiplus.com/tv/rcti',
+        'info_dict': {
+            'id': 'v_lt1',
+            'title': 'RCTI',
+            'ext': 'mp4',
+            'timestamp': 1546344000,
+            'upload_date': '20190101',
+        },
+        'params': {
+            'skip_download': True,
+            'format': 'bestvideo',
+        }
+    }, {
+        # Returned video will always change
+        'url': 'https://www.rctiplus.com/live-event',
+        'only_matching': True,
+    }, {
+        # Returned video will also always change
+        'url': 'https://www.rctiplus.com/missed-event',
+        'only_matching': True,
+    }]
+
+    @classmethod
+    def suitable(cls, url):
+        return False if RCTIPlusIE.suitable(url) else super(RCTIPlusTVIE, cls).suitable(url)
+
+    def _real_extract(self, url):
+        match = re.match(self._VALID_URL, url).groupdict()
+        tv_id = match.get('tvname') or match.get('eventname')
+        webpage = self._download_webpage(url, tv_id)
+        event_re = re.search(
+            r'url ?: ?"https://api\.rctiplus\.com/api/v./(?P<type>[^/]+)/(?P<id>\d+)/url', webpage)
+        if not event_re:
+            raise ExtractorError('Unable to extract video link')
+        video_type, video_id = event_re.groups()
+        return {
+            '_type': 'url',
+            'url': 'https://www.rctiplus.com/%s/%s/%s' % (video_type, video_id, tv_id),
+            'ie_key': 'RCTIPlus',
+        }
