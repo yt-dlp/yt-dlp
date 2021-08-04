@@ -4,7 +4,6 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     extract_attributes,
     int_or_none,
     parse_duration,
