@@ -182,8 +182,7 @@ class NewgroundsPlaylistIE(InfoExtractor):
             'title': 'Dogs',
         },
         'playlist_mincount': 26,
-    }
-    ,{
+    }, {
         'url': 'http://www.newgrounds.com/audio/search/title/cats',
         'only_matching': True,
     }]
