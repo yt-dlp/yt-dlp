@@ -317,7 +317,7 @@ def _real_main(argv=None):
     outtmpl_default = opts.outtmpl.get('default')
     if 'filename' in compat_opts:
         if outtmpl_default is None:
-            outtmpl_default = '%(title)s.%(id)s.%(ext)s'
+            outtmpl_default = '%(title)s-%(id)s.%(ext)s'
             opts.outtmpl.update({'default': outtmpl_default})
         else:
             _unused_compat_opt('filename')
