@@ -154,7 +154,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         url_api_version = 'v2' if video_type == 'missed-event' else 'v1'
         appier_id = '23984824_' + str(random.randint(0, 10000000000))  # Based on the webpage's uuidRandom generator
         video_json = self._call_api(
-            'https://api.rctiplus.com/api/%s/%s/%s/url?appierid=%s' % (url_api_version, video_type, video_id, appier_id), display_id, 'Downloading video URL JSON')[0]
+            f'https://api.rctiplus.com/api/{url_api_version}/{video_type}/{video_id}/url?appierid={appier_id}', display_id, 'Downloading video URL JSON')[0]
         video_url = video_json['url']
 
         is_upcoming = try_get(video_json, lambda x: x['current_date'] < x['live_at'])
@@ -352,4 +352,4 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
         webpage = self._download_webpage(url, tv_id)
         video_type, video_id = self._search_regex(
             r'url\s*:\s*["\']https://api\.rctiplus\.com/api/v./(?P<type>[^/]+)/(?P<id>\d+)/url', webpage, 'video link', group=('type', 'id'))
-        return self.url_result('https://www.rctiplus.com/%s/%s/%s' % (video_type, video_id, tv_id), 'RCTIPlus')
+        return self.url_result(f'https://www.rctiplus.com/{video_type}/{video_id}/{tv_id}', 'RCTIPlus')
