@@ -497,6 +497,12 @@ class YoutubeDL(object):
             self.report_warning(
                 'Python version %d.%d is not supported! Please update to Python 3.6 or above' % sys.version_info[:2])
 
+        if self.params.get('allow_unplayable_formats'):
+            self.report_warning(
+                'You have asked for unplayable formats to be listed/downloaded. '
+                'This is a developer option intended for debugging. '
+                'If you experience any issues while using this option, DO NOT open a bug report')
+
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
                 self.report_warning('%s is deprecated. Use %s instead' % (option, suggestion))
@@ -831,6 +837,14 @@ class YoutubeDL(object):
             self.to_screen('Deleting existing file %s' % file_name)
         except UnicodeEncodeError:
             self.to_screen('Deleting existing file')
+
+    def raise_no_formats(self, has_drm=False, forced=False):
+        msg = 'This video is DRM protected' if has_drm else 'No video formats found!'
+        expected = self.params.get('ignore_no_formats_error')
+        if forced or not expected:
+            raise ExtractorError(msg, expected=has_drm or expected)
+        else:
+            self.report_warning(msg)
 
     def parse_outtmpl(self):
         outtmpl_dict = self.params.get('outtmpl', {})
@@ -2156,11 +2170,12 @@ class YoutubeDL(object):
         else:
             formats = info_dict['formats']
 
+        if not self.params.get('allow_unplayable_formats'):
+            formats = [f for f in formats if not f.get('has_drm')]
+        info_dict['__has_drm'] = len(info_dict.get('formats') or ['']) > len(formats)
+
         if not formats:
-            if not self.params.get('ignore_no_formats_error'):
-                raise ExtractorError('No video formats found!')
-            else:
-                self.report_warning('No video formats found!')
+            self.raise_no_formats(info_dict.get('__has_drm'))
 
         def is_wellformed(f):
             url = f.get('url')
@@ -2224,7 +2239,7 @@ class YoutubeDL(object):
 
         # TODO Central sorting goes here
 
-        if formats and formats[0] is not info_dict:
+        if not formats or formats[0] is not info_dict:
             # only set the 'formats' fields if the original info_dict list them
             # otherwise we end up with a circular reference, the first (and unique)
             # element in the 'formats' field in info_dict is info_dict itself,
@@ -2237,8 +2252,9 @@ class YoutubeDL(object):
             self.list_thumbnails(info_dict)
         if self.params.get('listformats'):
             if not info_dict.get('formats') and not info_dict.get('url'):
-                raise ExtractorError('No video formats found', expected=True)
-            self.list_formats(info_dict)
+                self.to_screen('%s has no formats' % info_dict['id'])
+            else:
+                self.list_formats(info_dict)
         if self.params.get('listsubtitles'):
             if 'automatic_captions' in info_dict:
                 self.list_subtitles(
@@ -2415,6 +2431,8 @@ class YoutubeDL(object):
             self.to_stdout(json.dumps(self.sanitize_info(info_dict)))
 
     def dl(self, name, info, subtitle=False, test=False):
+        if not info.get('url'):
+            self.raise_no_formats(info.get('__has_drm'), forced=True)
 
         if test:
             verbose = self.params.get('verbose')

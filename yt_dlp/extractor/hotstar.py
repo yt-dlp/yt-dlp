@@ -182,7 +182,8 @@ class HotStarIE(HotStarBaseIE):
         title = video_data['title']
 
         if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
-            raise ExtractorError('This video is DRM protected.', expected=True)
+            self.report_drm(video_id)
+
         headers = {'Referer': 'https://www.hotstar.com/in'}
         formats = []
         subs = {}

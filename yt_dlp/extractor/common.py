@@ -1023,6 +1023,9 @@ class InfoExtractor(object):
             return self._downloader.params.get(name, default, *args, **kwargs)
         return default
 
+    def report_drm(self, video_id, partial=False):
+        self.raise_no_formats('This video is DRM protected', expected=True, video_id=video_id)
+
     def report_extraction(self, id_or_name):
         """Report information extraction."""
         self.to_screen('%s: Extracting information' % id_or_name)
@@ -1751,9 +1754,7 @@ class InfoExtractor(object):
 
     def _sort_formats(self, formats, field_preference=[]):
         if not formats:
-            if self.get_param('ignore_no_formats_error'):
-                return
-            raise ExtractorError('No video formats found')
+            return
         format_sort = self.FormatSort()  # params and to_screen are taken from the downloader
         format_sort.evaluate_params(self._downloader.params, field_preference)
         if self.get_param('verbose', False):
@@ -1991,9 +1992,7 @@ class InfoExtractor(object):
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
             return formats, subtitles
 
-        if (not self.get_param('allow_unplayable_formats')
-                and re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)):  # Apple FairPlay
-            return formats, subtitles
+        has_drm = re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)
 
         def format_url(url):
             return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)
@@ -2039,6 +2038,7 @@ class InfoExtractor(object):
                 'protocol': entry_protocol,
                 'preference': preference,
                 'quality': quality,
+                'has_drm': has_drm,
             } for idx in _extract_m3u8_playlist_indices(m3u8_doc=m3u8_doc)]
 
             return formats, subtitles
@@ -2572,8 +2572,6 @@ class InfoExtractor(object):
                         extract_Initialization(segment_template)
             return ms_info
 
-        skip_unplayable = not self.get_param('allow_unplayable_formats')
-
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
         formats = []
         subtitles = {}
@@ -2584,12 +2582,8 @@ class InfoExtractor(object):
                 'timescale': 1,
             })
             for adaptation_set in period.findall(_add_ns('AdaptationSet')):
-                if skip_unplayable and is_drm_protected(adaptation_set):
-                    continue
                 adaption_set_ms_info = extract_multisegment_info(adaptation_set, period_ms_info)
                 for representation in adaptation_set.findall(_add_ns('Representation')):
-                    if skip_unplayable and is_drm_protected(representation):
-                        continue
                     representation_attrib = adaptation_set.attrib.copy()
                     representation_attrib.update(representation.attrib)
                     # According to [1, 5.3.7.2, Table 9, page 41], @mimeType is mandatory
@@ -2661,6 +2655,8 @@ class InfoExtractor(object):
                             'acodec': 'none',
                             'vcodec': 'none',
                         }
+                    if is_drm_protected(adaptation_set) or is_drm_protected(representation):
+                        f['has_drm'] = True
                     representation_ms_info = extract_multisegment_info(representation, adaption_set_ms_info)
 
                     def prepare_template(template_name, identifiers):
@@ -2847,9 +2843,6 @@ class InfoExtractor(object):
         """
         if ism_doc.get('IsLive') == 'TRUE':
             return [], {}
-        if (not self.get_param('allow_unplayable_formats')
-                and ism_doc.find('Protection') is not None):
-            return [], {}
 
         duration = int(ism_doc.attrib['Duration'])
         timescale = int_or_none(ism_doc.get('TimeScale')) or 10000000
@@ -2940,6 +2933,7 @@ class InfoExtractor(object):
                         'acodec': 'none' if stream_type == 'video' else fourcc,
                         'protocol': 'ism',
                         'fragments': fragments,
+                        'has_drm': ism_doc.find('Protection') is not None,
                         '_download_params': {
                             'stream_type': stream_type,
                             'duration': duration,

@@ -668,11 +668,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
                                      webm, flv. Ignored if no merge is required
-    --allow-unplayable-formats       Allow unplayable formats to be listed and
-                                     downloaded. All video post-processing will
-                                     also be turned off
-    --no-allow-unplayable-formats    Do not allow unplayable formats to be
-                                     listed or downloaded (default)
 
 ## Subtitle Options:
     --write-subs                     Write subtitle file
@@ -1470,6 +1465,8 @@ These options are not intended to be used by the end-user
 
     --test                           Download only part of video for testing extractors
     --youtube-print-sig-code         For testing youtube signatures
+    --allow-unplayable-formats       List unplayable formats also
+    --no-allow-unplayable-formats    Default
 
 
 #### Old aliases
