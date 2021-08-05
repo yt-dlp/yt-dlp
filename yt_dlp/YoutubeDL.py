@@ -404,7 +404,7 @@ class YoutubeDL(object):
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
                        filename, abort-on-error, multistreams, no-live-chat,
-                       no-clean-infojson, no-playlist-metafiles.
+                       no-clean-infojson, no-playlist-metafiles, no-keep-subs.
                        Refer __init__.py for their implementation
 
     The following parameters are not used by YoutubeDL itself, they are used by

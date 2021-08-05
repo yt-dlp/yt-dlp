@@ -280,7 +280,7 @@ def _real_main(argv=None):
         'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
         'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
         'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
-        'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson',
+        'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
     ]
     compat_opts = parse_compat_opts()
 
@@ -458,13 +458,13 @@ def _real_main(argv=None):
     if opts.addmetadata:
         postprocessors.append({'key': 'FFmpegMetadata'})
     if opts.embedsubtitles:
-        already_have_subtitle = opts.writesubtitles
+        already_have_subtitle = opts.writesubtitles and 'no-keep-subs' not in compat_opts
         postprocessors.append({
             'key': 'FFmpegEmbedSubtitle',
             # already_have_subtitle = True prevents the file from being deleted after embedding
             'already_have_subtitle': already_have_subtitle
         })
-        if not already_have_subtitle:
+        if not opts.writeautomaticsub and 'no-keep-subs' not in compat_opts:
             opts.writesubtitles = True
     # --all-sub automatically sets --write-sub if --write-auto-sub is not given
     # this was the old behaviour if only --all-sub was given.
