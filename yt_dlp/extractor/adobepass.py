@@ -76,6 +76,11 @@ MSO_INFO = {
         'username_field': 'IDToken1',
         'password_field': 'IDToken2',
     },
+    'Cablevision': {
+        'name': 'Optimum/Cablevision',
+        'username_field': 'j_username',
+        'password_field': 'j_password',
+    },
     'thr030': {
         'name': '3 Rivers Communications'
     },
@@ -1616,10 +1621,13 @@ class AdobePassIE(InfoExtractor):
                             'Downloading Provider Redirect Page (meta refresh)')
                     provider_login_page_res = post_form(
                         provider_redirect_page_res, self._DOWNLOADING_LOGIN_PAGE)
-                    mvpd_confirm_page_res = post_form(provider_login_page_res, 'Logging in', {
+                    form_data = {
                         mso_info.get('username_field', 'username'): username,
-                        mso_info.get('password_field', 'password'): password,
-                    })
+                        mso_info.get('password_field', 'password'): password
+                    }
+                    if mso_id == 'Cablevision':
+                        form_data['_eventId_proceed'] = ''
+                    mvpd_confirm_page_res = post_form(provider_login_page_res, 'Logging in', form_data)
                     if mso_id != 'Rogers':
                         post_form(mvpd_confirm_page_res, 'Confirming Login')
 
