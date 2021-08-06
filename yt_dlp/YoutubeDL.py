@@ -917,7 +917,7 @@ class YoutubeDL(object):
         }
         # Field is of the form key1.key2...
         # where keys (except first) can be string, int or slice
-        FIELD_RE = r'\w+(?:\.(?:\w+|{num}|{num}?(?::{num}?){{1,2}}))*'.format(num=r'(?:-?\d+)')
+        FIELD_RE = r'\w*(?:\.(?:\w+|{num}|{num}?(?::{num}?){{1,2}}))*'.format(num=r'(?:-?\d+)')
         MATH_FIELD_RE = r'''{field}|{num}'''.format(field=FIELD_RE, num=r'-?\d+(?:.\d+)?')
         MATH_OPERATORS_RE = r'(?:%s)' % '|'.join(map(re.escape, MATH_FUNCTIONS.keys()))
         INTERNAL_FORMAT_RE = re.compile(r'''(?x)
@@ -928,12 +928,15 @@ class YoutubeDL(object):
             (?:\|(?P<default>.*?))?
             $'''.format(field=FIELD_RE, math_op=MATH_OPERATORS_RE, math_field=MATH_FIELD_RE))
 
-        get_key = lambda k: traverse_obj(
-            info_dict, k.split('.'), is_user_input=True, traverse_string=True)
+        def _traverse_infodict(k):
+            k = k.split('.')
+            if k[0] == '':
+                k.pop(0)
+            return traverse_obj(info_dict, k, is_user_input=True, traverse_string=True)
 
         def get_value(mdict):
             # Object traversal
-            value = get_key(mdict['fields'])
+            value = _traverse_infodict(mdict['fields'])
             # Negative
             if mdict['negate']:
                 value = float_or_none(value)
@@ -955,7 +958,7 @@ class YoutubeDL(object):
                     item, multiplier = (item[1:], -1) if item[0] == '-' else (item, 1)
                     offset = float_or_none(item)
                     if offset is None:
-                        offset = float_or_none(get_key(item))
+                        offset = float_or_none(_traverse_infodict(item))
                     try:
                         value = operator(value, multiplier * offset)
                     except (TypeError, ZeroDivisionError):
@@ -2378,6 +2381,8 @@ class YoutubeDL(object):
         elif 'url' in info_dict:
             info_dict['urls'] = info_dict['url'] + info_dict.get('play_path', '')
 
+        if self.params.get('forceprint') or self.params.get('forcejson'):
+            self.post_extract(info_dict)
         for tmpl in self.params.get('forceprint', []):
             if re.match(r'\w+$', tmpl):
                 tmpl = '%({})s'.format(tmpl)
@@ -2394,8 +2399,7 @@ class YoutubeDL(object):
             self.to_stdout(formatSeconds(info_dict['duration']))
         print_mandatory('format')
 
-        if self.params.get('forcejson', False):
-            self.post_extract(info_dict)
+        if self.params.get('forcejson'):
             self.to_stdout(json.dumps(self.sanitize_info(info_dict)))
 
     def dl(self, name, info, subtitle=False, test=False):

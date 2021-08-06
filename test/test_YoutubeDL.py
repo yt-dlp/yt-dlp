@@ -668,15 +668,13 @@ class TestYoutubeDL(unittest.TestCase):
             out = ydl.escape_outtmpl(outtmpl) % tmpl_dict
             fname = ydl.prepare_filename(info or self.outtmpl_info)
 
-            if callable(expected):
-                self.assertTrue(expected(out))
-                self.assertTrue(expected(fname))
-            elif isinstance(expected, str):
-                self.assertEqual(out, expected)
-                self.assertEqual(fname, expected)
-            else:
-                self.assertEqual(out, expected[0])
-                self.assertEqual(fname, expected[1])
+            if not isinstance(expected, (list, tuple)):
+                expected = (expected, expected)
+            for (name, got), expect in zip((('outtmpl', out), ('filename', fname)), expected):
+                if callable(expect):
+                    self.assertTrue(expect(got), f'Wrong {name} from {tmpl}')
+                else:
+                    self.assertEqual(got, expect, f'Wrong {name} from {tmpl}')
 
         # Side-effects
         original_infodict = dict(self.outtmpl_info)
@@ -721,7 +719,16 @@ class TestYoutubeDL(unittest.TestCase):
         # Invalid templates
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
         test('%(invalid@tmpl|def)s', 'none', outtmpl_na_placeholder='none')
-        test('%()s', 'NA')
+        test('%(..)s', 'NA')
+
+        # Entire info_dict
+        def expect_same_infodict(out):
+            got_dict = json.loads(out)
+            for info_field, expected in self.outtmpl_info.items():
+                self.assertEqual(got_dict.get(info_field), expected, info_field)
+            return True
+
+        test('%()j', (expect_same_infodict, str))
 
         # NA placeholder
         NA_TEST_OUTTMPL = '%(uploader_date)s-%(width)d-%(x|def)s-%(id)s.%(ext)s'
