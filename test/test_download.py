@@ -73,6 +73,8 @@ class TestDownload(unittest.TestCase):
 
     maxDiff = None
 
+    COMPLETED_TESTS = {}
+
     def __str__(self):
         """Identify each test with the `add_ie` attribute, if available."""
 
@@ -94,6 +96,9 @@ class TestDownload(unittest.TestCase):
 def generator(test_case, tname):
 
     def test_template(self):
+        if self.COMPLETED_TESTS.get(tname):
+            return
+        self.COMPLETED_TESTS[tname] = True
         ie = yt_dlp.extractor.get_info_extractor(test_case['name'])()
         other_ies = [get_info_extractor(ie_key)() for ie_key in test_case.get('add_ie', [])]
         is_playlist = any(k.startswith('playlist') for k in test_case)
@@ -255,16 +260,33 @@ def generator(test_case, tname):
 
 
 # And add them to TestDownload
-for n, test_case in enumerate(defs):
-    tname = 'test_' + str(test_case['name'])
-    i = 1
-    while hasattr(TestDownload, tname):
-        tname = 'test_%s_%d' % (test_case['name'], i)
-        i += 1
+tests_counter = {}
+for test_case in defs:
+    name = test_case['name']
+    i = tests_counter.get(name, 0)
+    tests_counter[name] = i + 1
+    tname = f'test_{name}_{i}' if i else f'test_{name}'
     test_method = generator(test_case, tname)
     test_method.__name__ = str(tname)
     ie_list = test_case.get('add_ie')
     test_method.add_ie = ie_list and ','.join(ie_list)
+    setattr(TestDownload, test_method.__name__, test_method)
+    del test_method
+
+
+def batch_generator(name, num_tests):
+
+    def test_template(self):
+        for i in range(num_tests):
+            getattr(self, f'test_{name}_{i}' if i else f'test_{name}')()
+
+    return test_template
+
+
+for name, num_tests in tests_counter.items():
+    test_method = batch_generator(name, num_tests)
+    test_method.__name__ = f'test_{name}_all'
+    test_method.add_ie = ''
     setattr(TestDownload, test_method.__name__, test_method)
     del test_method
 
