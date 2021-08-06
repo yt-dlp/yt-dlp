@@ -570,7 +570,7 @@ class PeerTubeIE(InfoExtractor):
         self._sort_formats(formats)
 
         description = video.get('description')
-        if description is not None and len(description) >= 250:
+        if description and len(description) >= 250:
             # description is shortened
             full_description = self._call_api(
                 host, video_id, 'description', note='Downloading description JSON',
