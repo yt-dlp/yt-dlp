@@ -1277,17 +1277,31 @@ def parseOpts(overrideArguments=None):
         dest='ffmpeg_location',
         help='Location of the ffmpeg binary; either the path to the binary or its containing directory')
     postproc.add_option(
-        '--exec',
-        metavar='CMD', dest='exec_cmd',
+        '--exec', metavar='CMD',
+        action='callback', dest='exec_cmd', default=[], type='str',
+        callback=_list_from_options_callback, callback_kwargs={'delim': None},
         help=(
             'Execute a command on the file after downloading and post-processing. '
             'Similar syntax to the output template can be used to pass any field as arguments to the command. '
             'An additional field "filepath" that contains the final path of the downloaded file is also available. '
-            'If no fields are passed, %(filepath)q is appended to the end of the command'))
+            'If no fields are passed, %(filepath)q is appended to the end of the command. '
+            'This option can be used multiple times'))
     postproc.add_option(
-        '--exec-before-download',
-        metavar='CMD', dest='exec_before_dl_cmd',
-        help='Execute a command before the actual download. The syntax is the same as --exec but "filepath" is not available')
+        '--no-exec',
+        action='store_const', dest='exec_cmd', const=[],
+        help='Remove any previously defined --exec')
+    postproc.add_option(
+        '--exec-before-download', metavar='CMD',
+        action='callback', dest='exec_before_dl_cmd', default=[], type='str',
+        callback=_list_from_options_callback, callback_kwargs={'delim': None},
+        help=(
+            'Execute a command before the actual download. '
+            'The syntax is the same as --exec but "filepath" is not available. '
+            'This option can be used multiple times'))
+    postproc.add_option(
+        '--no-exec-before-download',
+        action='store_const', dest='exec_before_dl_cmd', const=[],
+        help='Remove any previously defined --exec-before-download')
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,

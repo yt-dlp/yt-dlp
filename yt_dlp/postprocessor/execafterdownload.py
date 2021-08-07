@@ -7,6 +7,7 @@ from ..compat import compat_shlex_quote
 from ..utils import (
     encodeArgument,
     PostProcessingError,
+    variadic,
 )
 
 
@@ -14,7 +15,7 @@ class ExecAfterDownloadPP(PostProcessor):
 
     def __init__(self, downloader, exec_cmd):
         super(ExecAfterDownloadPP, self).__init__(downloader)
-        self.exec_cmd = exec_cmd
+        self.exec_cmd = variadic(exec_cmd)
 
     @classmethod
     def pp_key(cls):
@@ -32,9 +33,10 @@ class ExecAfterDownloadPP(PostProcessor):
             info.get('filepath') or info['_filename']))
 
     def run(self, info):
-        cmd = self.parse_cmd(self.exec_cmd, info)
-        self.to_screen('Executing command: %s' % cmd)
-        retCode = subprocess.call(encodeArgument(cmd), shell=True)
-        if retCode != 0:
-            raise PostProcessingError('Command returned error code %d' % retCode)
+        for tmpl in self.exec_cmd:
+            cmd = self.parse_cmd(tmpl, info)
+            self.to_screen('Executing command: %s' % cmd)
+            retCode = subprocess.call(encodeArgument(cmd), shell=True)
+            if retCode != 0:
+                raise PostProcessingError('Command returned error code %d' % retCode)
         return [], info
