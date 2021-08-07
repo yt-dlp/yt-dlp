@@ -2455,7 +2455,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
-            ytcfg=player_ytcfg, headers=headers, fatal=False,
+            ytcfg=player_ytcfg, headers=headers, fatal=True,
             default_client=client,
             note='Downloading %s player API JSON' % client.replace('_', ' ').strip()
         ) or None
@@ -2505,17 +2505,35 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if client_name in INNERTUBE_CLIENTS and client_name not in original_clients:
                 clients.append(client_name)
 
+        # Android player_response does not have microFormats which are needed for
+        # extraction of some data. So we return the initial_pr with formats
+        # stripped out even if not requested by the user
+        # See: https://github.com/yt-dlp/yt-dlp/issues/501
+        yielded_pr = False
+        if initial_pr:
+            pr = dict(initial_pr)
+            pr['streamingData'] = None
+            yielded_pr = True
+            yield pr
+
+        last_error = None
         while clients:
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
             if 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
 
-            pr = (
-                initial_pr if client == 'web' and initial_pr
-                else self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr))
+            try:
+                pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr)
+            except ExtractorError as e:
+                if last_error:
+                    self.report_warning(last_error)
+                last_error = e
+                continue
+
             if pr:
+                yielded_pr = True
                 yield pr
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
@@ -2524,13 +2542,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif self._is_agegated(pr):
                 append_client(f'{client}_agegate')
 
-        # Android player_response does not have microFormats which are needed for
-        # extraction of some data. So we return the initial_pr with formats
-        # stripped out even if not requested by the user
-        # See: https://github.com/yt-dlp/yt-dlp/issues/501
-        if initial_pr and 'web' not in original_clients:
-            initial_pr['streamingData'] = None
-            yield initial_pr
+        if last_error:
+            if not yielded_pr:
+                raise last_error
+            self.report_warning(last_error)
 
     def _extract_formats(self, streaming_data, video_id, player_url, is_live):
         itags, stream_ids = [], []
