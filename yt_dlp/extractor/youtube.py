@@ -2628,7 +2628,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield dct
 
         skip_manifests = self._configuration_arg('skip')
-        get_dash = not is_live and 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True)
+        get_dash = (
+            (not is_live or self._configuration_arg('include_live_dash'))
+            and 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True))
         get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
 
         def guess_quality(f):
@@ -3458,7 +3460,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'FMtPN8yp5LU',  # This will keep changing
+            'id': '3yImotZU3tw',  # This will keep changing
             'ext': 'mp4',
             'title': compat_str,
             'uploader': 'Sky News',
