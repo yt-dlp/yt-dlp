@@ -383,7 +383,10 @@ from .elpais import ElPaisIE
 from .embedly import EmbedlyIE
 from .engadget import EngadgetIE
 from .eporner import EpornerIE
-from .eroprofile import EroProfileIE
+from .eroprofile import (
+    EroProfileIE,
+    EroProfileAlbumIE,
+)
 from .escapist import EscapistIE
 from .espn import (
     ESPNIE,

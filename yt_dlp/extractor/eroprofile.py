@@ -90,3 +90,48 @@ class EroProfileIE(InfoExtractor):
             'title': title,
             'age_limit': 18,
         })
+
+
+class EroProfileAlbumIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?eroprofile\.com/m/videos/album/(?P<id>[^/]+)'
+    _NETRC_MACHINE = 'eroprofile'
+    IE_NAME = 'EroProfile:album'
+
+    _TESTS = [{
+        'url': 'https://www.eroprofile.com/m/videos/album/BBW-2-893',
+        'info_dict': {
+            'id': 'BBW-2-893',
+            'title': 'BBW 2'
+        },
+        'playlist_mincount': 499,
+    },
+    ]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+
+        playlist_pages = []
+        playlist_pages.append(self._download_webpage(url, playlist_id,
+                                                     note='Downloading playlist page 1'))
+
+        playlist_title = self._search_regex(
+            r'<title>Album: (.*) - EroProfile</title>', playlist_pages[0], 'playlist_title')
+
+        max_page = max(map(int, re.findall(
+            r'href=".*?/m/videos/album/{}\?pnum=(\d+)"'.format(playlist_id), playlist_pages[0])))
+
+        for n in range(2, max_page + 1):
+            page_url = url + "?pnum={}".format(n)
+            playlist_pages.append(self._download_webpage(
+                page_url,
+                playlist_id,
+                note='Downloading playlist page {} of {}'.format(n, max_page)))
+
+        video_links = []
+        for webpage in playlist_pages:
+            video_links += ["https://www.eroprofile.com" + uri
+                            for uri in re.findall(r'href=".*?(/m/videos/view/[^"]+)"', webpage)]
+
+        return self.playlist_result(map(self.url_result, video_links),
+                                    playlist_id,
+                                    playlist_title)
