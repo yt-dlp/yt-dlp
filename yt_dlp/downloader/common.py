@@ -47,8 +47,11 @@ class FileDownloader(object):
     min_filesize:       Skip files smaller than this size
     max_filesize:       Skip files larger than this size
     xattr_set_filesize: Set ytdl.filesize user xattribute with expected size.
-    external_downloader_args:  A list of additional command-line arguments for the
-                        external downloader.
+    external_downloader_args:  A dictionary of downloader keys (in lower case)
+                        and a list of additional command-line arguments for the
+                        executable. Use 'default' as the name for arguments to be
+                        passed to all downloaders. For compatibility with youtube-dl,
+                        a single list of args can also be used
     hls_use_mpegts:     Use the mpegts container for HLS videos.
     http_chunk_size:    Size of a chunk for chunk-based HTTP downloading. May be
                         useful for bypassing bandwidth throttling imposed by

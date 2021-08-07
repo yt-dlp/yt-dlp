@@ -220,7 +220,7 @@ class YoutubeDL(object):
                        'temp' and the keys of OUTTMPL_TYPES (in utils.py)
     outtmpl:           Dictionary of templates for output names. Allowed keys
                        are 'default' and the keys of OUTTMPL_TYPES (in utils.py).
-                       A string a also accepted for backward compatibility
+                       For compatibility with youtube-dl, a single string can also be used
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
@@ -234,6 +234,8 @@ class YoutubeDL(object):
     overwrites:        Overwrite all video and metadata files if True,
                        overwrite only non-video files if None
                        and don't overwrite any file if False
+                       For compatibility with youtube-dl,
+                       "nooverwrites" may also be used instead
     playliststart:     Playlist item to start at.
     playlistend:       Playlist item to end at.
     playlist_items:    Specific indices of playlist to download.
@@ -246,7 +248,7 @@ class YoutubeDL(object):
     writedescription:  Write the video description to a .description file
     writeinfojson:     Write the video description to a .info.json file
     clean_infojson:    Remove private fields from the infojson
-    writecomments:     Extract video comments. This will not be written to disk
+    getcomments:       Extract video comments. This will not be written to disk
                        unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
     writethumbnail:    Write the thumbnail image to a file
@@ -420,10 +422,12 @@ class YoutubeDL(object):
     ffmpeg_location:   Location of the ffmpeg/avconv binary; either the path
                        to the binary or its containing directory.
     postprocessor_args: A dictionary of postprocessor/executable keys (in lower case)
-                        and a list of additional command-line arguments for the
-                        postprocessor/executable. The dict can also have "PP+EXE" keys
-                        which are used when the given exe is used by the given PP.
-                        Use 'default' as the name for arguments to passed to all PP
+                       and a list of additional command-line arguments for the
+                       postprocessor/executable. The dict can also have "PP+EXE" keys
+                       which are used when the given exe is used by the given PP.
+                       Use 'default' as the name for arguments to passed to all PP
+                       For compatibility with youtube-dl, a single list of args
+                       can also be used
 
     The following options are used by the extractors:
     extractor_retries: Number of times to retry for known errors

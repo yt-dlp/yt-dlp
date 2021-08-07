@@ -190,7 +190,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--dump-user-agent',
         action='store_true', dest='dump_user_agent', default=False,
-        help='Display the current browser identification and exit')
+        help='Display the current user-agent and exit')
     general.add_option(
         '--list-extractors',
         action='store_true', dest='list_extractors', default=False,
@@ -223,12 +223,6 @@ def parseOpts(overrideArguments=None):
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
         help='Do not extract the videos of a playlist, only list them')
-    general.add_option(
-        '--flat-videos',
-        action='store_true', dest='extract_flat',
-        # help='Do not resolve the video urls')
-        # doesn't work
-        help=optparse.SUPPRESS_HELP)
     general.add_option(
         '--no-flat-playlist',
         action='store_false', dest='extract_flat',
@@ -781,7 +775,7 @@ def parseOpts(overrideArguments=None):
     verbosity.add_option(
         '-q', '--quiet',
         action='store_true', dest='quiet', default=False,
-        help='Activate quiet mode')
+        help='Activate quiet mode. If used with --verbose, print the log to stderr')
     verbosity.add_option(
         '--no-warnings',
         dest='no_warnings', action='store_true', default=False,
@@ -799,7 +793,7 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='ignore_no_formats_error', default=False,
         help=(
             'Ignore "No video formats" error. Usefull for extracting metadata '
-            'even if the video is not actually available for download (experimental)'))
+            'even if the videos are not actually available for download (experimental)'))
     verbosity.add_option(
         '--no-ignore-no-formats-error',
         action='store_false', dest='ignore_no_formats_error',
@@ -1282,7 +1276,7 @@ def parseOpts(overrideArguments=None):
         callback=_list_from_options_callback, callback_kwargs={'delim': None},
         help=(
             'Execute a command on the file after downloading and post-processing. '
-            'Similar syntax to the output template can be used to pass any field as arguments to the command. '
+            'Same syntax as the output template can be used to pass any field as arguments to the command. '
             'An additional field "filepath" that contains the final path of the downloaded file is also available. '
             'If no fields are passed, %(filepath)q is appended to the end of the command. '
             'This option can be used multiple times'))

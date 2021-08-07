@@ -317,7 +317,7 @@
     * Add `html5=1` param to `get_video_info` page requests by [coletdjnz](https://github.com/coletdjnz)
     * Better message when login required
 * **Add option `--print`**: to print any field/template
-    * Deprecates: `--get-description`, `--get-duration`, `--get-filename`, `--get-format`, `--get-id`, `--get-thumbnail`, `--get-title`, `--get-url`
+    * Makes redundant: `--get-description`, `--get-duration`, `--get-filename`, `--get-format`, `--get-id`, `--get-thumbnail`, `--get-title`, `--get-url`
 * Field `additional_urls` to download additional videos from metadata using [`--parse-metadata`](https://github.com/yt-dlp/yt-dlp#modifying-metadata)
 * Merge youtube-dl: Upto [commit/dfbbe29](https://github.com/ytdl-org/youtube-dl/commit/dfbbe2902fc67f0f93ee47a8077c148055c67a9b)
 * Write thumbnail of playlist and add `pl_thumbnail` outtmpl key

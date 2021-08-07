@@ -240,10 +240,10 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (default) (Alias: --no-abort-on-error)
     --abort-on-error                 Abort downloading of further videos if an
                                      error occurs (Alias: --no-ignore-errors)
-    --dump-user-agent                Display the current browser identification
-    --list-extractors                List all supported extractors
+    --dump-user-agent                Display the current user-agent and exit
+    --list-extractors                List all supported extractors and exit
     --extractor-descriptions         Output descriptions of all supported
-                                     extractors
+                                     extractors and exit
     --force-generic-extractor        Force extraction to use the generic
                                      extractor
     --default-search PREFIX          Use this prefix for unqualified URLs. For
@@ -551,8 +551,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-write-thumbnail             Do not write thumbnail image to disk
                                      (default)
     --write-all-thumbnails           Write all thumbnail image formats to disk
-    --list-thumbnails                Simulate and list all available thumbnail
-                                     formats
+    --list-thumbnails                List available thumbnails of each video.
+                                     Simulate unless --no-simulate is used
 
 ## Internet Shortcut Options:
     --write-link                     Write an internet shortcut file, depending
@@ -564,30 +564,34 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --write-desktop-link             Write a .desktop Linux internet shortcut
 
 ## Verbosity and Simulation Options:
-    -q, --quiet                      Activate quiet mode
+    -q, --quiet                      Activate quiet mode. If used with
+                                     --verbose, print the log to stderr
     --no-warnings                    Ignore warnings
     -s, --simulate                   Do not download the video and do not write
                                      anything to disk
+    --no-simulate                    Download the video even if printing/listing
+                                     options are used
     --ignore-no-formats-error        Ignore "No video formats" error. Usefull
-                                     for extracting metadata even if the video
-                                     is not actually available for download
+                                     for extracting metadata even if the videos
+                                     are not actually available for download
                                      (experimental)
     --no-ignore-no-formats-error     Throw error when no downloadable video
                                      formats are found (default)
     --skip-download                  Do not download the video but write all
                                      related files (Alias: --no-download)
-    -O, --print TEMPLATE             Simulate, quiet but print the given fields.
-                                     Either a field name or similar formatting
-                                     as the output template can be used
-    -j, --dump-json                  Simulate, quiet but print JSON information.
-                                     See "OUTPUT TEMPLATE" for a description of
-                                     available keys
-    -J, --dump-single-json           Simulate, quiet but print JSON information
-                                     for each command-line argument. If the URL
-                                     refers to a playlist, dump the whole
-                                     playlist information in a single line
-    --print-json                     Be quiet and print the video information as
-                                     JSON (video is still being downloaded)
+    -O, --print TEMPLATE             Quiet, but print the given fields for each
+                                     video. Simulate unless --no-simulate is
+                                     used. Either a field name or same syntax as
+                                     the output template can be used
+    -j, --dump-json                  Quiet, but print JSON information for each
+                                     video. Simulate unless --no-simulate is
+                                     used. See "OUTPUT TEMPLATE" for a
+                                     description of available keys
+    -J, --dump-single-json           Quiet, but print JSON information for each
+                                     url or infojson passed. Simulate unless
+                                     --no-simulate is used. If the URL refers to
+                                     a playlist, the whole playlist information
+                                     is dumped in a single line
     --force-write-archive            Force download archive entries to be
                                      written as far as no errors occur, even if
                                      -s or another simulation option is used
@@ -658,8 +662,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      actually downloadable
     --no-check-formats               Do not check that the formats selected are
                                      actually downloadable
-    -F, --list-formats               List all available formats of requested
-                                     videos
+    -F, --list-formats               List available formats of each video.
+                                     Simulate unless --no-simulate is used
     --merge-output-format FORMAT     If a merge is required (e.g.
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
@@ -677,7 +681,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (Alias: --write-automatic-subs)
     --no-write-auto-subs             Do not write auto-generated subtitles
                                      (default) (Alias: --no-write-automatic-subs)
-    --list-subs                      List all available subtitles for the video
+    --list-subs                      List available subtitles of each video.
+                                     Simulate unless --no-simulate is used
     --sub-format FORMAT              Subtitle format, accepts formats
                                      preference, for example: "srt" or
                                      "ass/srt/best"
@@ -712,7 +717,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --audio-format FORMAT            Specify audio format to convert the audio
                                      to when -x is used. Currently supported
                                      formats are: best (default) or one of
-                                     aac|flac|mp3|m4a|opus|vorbis|wav
+                                     best|aac|flac|mp3|m4a|opus|vorbis|wav
     --audio-quality QUALITY          Specify ffmpeg audio quality, insert a
                                      value between 0 (better) and 9 (worse) for
                                      VBR or a specific bitrate like 128K
@@ -784,17 +789,22 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      path to the binary or its containing
                                      directory
     --exec CMD                       Execute a command on the file after
-                                     downloading and post-processing. Similar
-                                     syntax to the output template can be used
+                                     downloading and post-processing. Same
+                                     syntax as the output template can be used
                                      to pass any field as arguments to the
                                      command. An additional field "filepath"
                                      that contains the final path of the
                                      downloaded file is also available. If no
                                      fields are passed, %(filepath)q is appended
-                                     to the end of the command
+                                     to the end of the command. This option can
+                                     be used multiple times
+    --no-exec                        Remove any previously defined --exec
     --exec-before-download CMD       Execute a command before the actual
                                      download. The syntax is the same as --exec
-                                     but "filepath" is not available
+                                     but "filepath" is not available. This
+                                     option can be used multiple times
+    --no-exec-before-download        Remove any previously defined
+                                     --exec-before-download
     --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
@@ -1374,7 +1384,7 @@ $ yt-dlp --parse-metadata 'description:(?s)(?P<meta_comment>.+)' --add-metadata
 
 # EXTRACTOR ARGUMENTS
 
-Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) seperated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:skip=dash,hls;player_client=android" --extractor-args "funimation:version=uncut"`
+Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) seperated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player_client=android_agegate,web;include_live_dash" --extractor-args "funimation:version=uncut"`
 
 The following extractors use this feature:
 * **youtube**
@@ -1383,8 +1393,8 @@ The following extractors use this feature:
     * `player_skip`: `configs` - skip any requests for client configs and use defaults
     * `include_live_dash`: Include live dash formats (These formats don't download properly)
     * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side).
-    * `max_comments`: maximum amount of comments to download (default all).
-    * `max_comment_depth`: maximum depth for nested comments. YouTube supports depths 1 or 2 (default). 
+    * `max_comments`: Maximum amount of comments to download (default all).
+    * `max_comment_depth`: Maximum depth for nested comments. YouTube supports depths 1 or 2 (default). 
 
 * **funimation**
     * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
@@ -1443,7 +1453,7 @@ While these options still work, their use is not recommended since there are oth
 #### Developer options
 These options are not intended to be used by the end-user
 
-    --test                           For testing extractors
+    --test                           Download only part of video for testing extractors
     --youtube-print-sig-code         For testing youtube signatures
 
 
