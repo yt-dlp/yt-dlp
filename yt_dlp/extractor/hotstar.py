@@ -99,7 +99,6 @@ class HotStarIE(HotStarBaseIE):
                         (?P<id>\d{10})
                    '''
     _TESTS = [{
-        # contentData
         'url': 'https://www.hotstar.com/can-you-not-spread-rumours/1000076273',
         'info_dict': {
             'id': '1000076273',
@@ -111,19 +110,9 @@ class HotStarIE(HotStarBaseIE):
             'duration': 381,
         },
     }, {
-        # contentData
         'url': 'hotstar:1000076273',
-        'info_dict': {
-            'id': '1000076273',
-            'ext': 'mp4',
-            'title': 'Can You Not Spread Rumours?',
-            'description': 'md5:c957d8868e9bc793ccb813691cc4c434',
-            'timestamp': 1447248600,
-            'upload_date': '20151111',
-            'duration': 381,
-        },
+        'only_matching': True,
     }, {
-        # contentData
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
         'info_dict': {
             'id': '1000057157',
@@ -135,23 +124,12 @@ class HotStarIE(HotStarBaseIE):
             'duration': 9182,
         },
     }, {
-        # contentData
         'url': 'hotstar:movies:1000057157',
-        'info_dict': {
-            'id': '1000057157',
-            'ext': 'mp4',
-            'title': 'Radha Gopalam',
-            'description': 'md5:be3bc342cc120bbc95b3b0960e2b0d22',
-            'timestamp': 1140805800,
-            'upload_date': '20060224',
-            'duration': 9182,
-        },
+        'only_matching': True,
     }, {
-        # contentData
         'url': 'https://www.hotstar.com/in/sports/cricket/follow-the-blues-2021/recap-eng-fight-back-on-day-2/1260066104',
         'only_matching': True,
     }, {
-        # contentData
         'url': 'https://www.hotstar.com/in/sports/football/most-costly-pl-transfers-ft-grealish/1260065956',
         'only_matching': True,
     }, {
@@ -163,7 +141,6 @@ class HotStarIE(HotStarBaseIE):
         'url': 'hotstar:sports:1260066104',
         'only_matching': True,
     }, {
-        # contentData
         'url': 'https://www.hotstar.com/tv/ek-bhram-sarvagun-sampanna/s-2116/janhvi-targets-suman/1000234847',
         'info_dict': {
             'id': '1000234847',
@@ -183,42 +160,25 @@ class HotStarIE(HotStarBaseIE):
             'episode_number': 8,
         },
     }, {
-        # contentData
         'url': 'hotstar:episode:1000234847',
-        'info_dict': {
-            'id': '1000234847',
-            'ext': 'mp4',
-            'title': 'Janhvi Targets Suman',
-            'description': 'md5:78a85509348910bd1ca31be898c5796b',
-            'timestamp': 1556670600,
-            'upload_date': '20190501',
-            'duration': 1219,
-            'channel': 'StarPlus',
-            'channel_id': 3,
-            'series': 'Ek Bhram - Sarvagun Sampanna',
-            'season': 'Chapter 1',
-            'season_number': 1,
-            'season_id': 6771,
-            'episode': 'Janhvi Targets Suman',
-            'episode_number': 8,
-        },
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
+    _TYPE = {
+        'movies': 'movie',
+        'sports': 'match',
+        'episode': 'episode',
+        'tv': 'episode',
+        None: 'content',
+    }
 
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
         video_id = mobj.group('id')
         video_type = mobj.group('type')
         cookies = self._get_cookies(url)
-        if video_type == 'movies':
-            video_data = self._call_api('o/v1/movie/detail', video_id)['body']['results']['item']
-        elif video_type == 'sports':
-            video_data = self._call_api('o/v1/match/detail', video_id)['body']['results']['item']
-        elif video_type == 'episode' or video_type == 'tv':
-            video_data = self._call_api('o/v1/episode/detail', video_id)['body']['results']['item']
-        else:
-            video_data = self._call_api('o/v1/content/detail', video_id)['body']['results']['item']
-
+        video_type = self._TYPE.get(video_type, video_type)
+        video_data = self._call_api(f'o/v1/{video_type}/detail', video_id)['body']['results']['item']
         title = video_data['title']
 
         if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
@@ -227,8 +187,10 @@ class HotStarIE(HotStarBaseIE):
         formats = []
         subs = {}
         geo_restricted = False
+        _, urlh = self._download_webpage_handle('https://www.hotstar.com/in', video_id)
+        st = urlh.headers.get('x-origin-date')
         # change to v2 in the future
-        playback_sets = self._call_api_v2('play/v1/playback', video_id, cookies=cookies)['playBackSets']
+        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st, cookies=cookies)['playBackSets']
         for playback_set in playback_sets:
             if not isinstance(playback_set, dict):
                 continue
