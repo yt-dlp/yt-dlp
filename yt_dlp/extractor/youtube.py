@@ -793,17 +793,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
+                    if isinstance(e.cause, compat_HTTPError):
+                        yt_error = try_get(
+                            self._parse_json(e.cause.read(), item_id, fatal=False),
+                            lambda x: x['error']['message'], compat_str)
+                        e.cause.seek(0)
+                        if yt_error:
+                            self._report_alerts([('ERROR', yt_error)], fatal=False)
                     # Downloading page may result in intermittent 5xx HTTP error
                     # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
                     # We also want to catch all other network exceptions since errors in later pages can be troublesome
                     # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
-                    if isinstance(e.cause, compat_HTTPError):
-                        yt_error = try_get(
-                            self._parse_json(e.cause.file.read(), item_id, fatal=False),
-                            lambda x: x['error']['message'], compat_str)
-                        if yt_error:
-                            self._report_alerts([('ERROR', yt_error)], fatal=False)
-
                     if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (403, 429):
                         last_error = error_to_compat_str(e.cause or e)
                         if count < retries:
