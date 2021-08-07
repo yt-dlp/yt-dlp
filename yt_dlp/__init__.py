@@ -550,7 +550,7 @@ def _real_main(argv=None):
         'forcejson': opts.dumpjson or opts.print_json,
         'dump_single_json': opts.dump_single_json,
         'force_write_download_archive': opts.force_write_download_archive,
-        'simulate': opts.simulate or any_getting,
+        'simulate': (any_getting or None) if opts.simulate is None else opts.simulate,
         'skip_download': opts.skip_download,
         'format': opts.format,
         'allow_unplayable_formats': opts.allow_unplayable_formats,

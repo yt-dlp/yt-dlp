@@ -1424,6 +1424,7 @@ While these options still work, their use is not recommended since there are oth
 
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
+    --print-json                     -j --no-simulate
     --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
     --autonumber-start NUMBER        Use internal field formatting like %(autonumber+NUMBER)s
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"

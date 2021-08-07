@@ -190,15 +190,15 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--dump-user-agent',
         action='store_true', dest='dump_user_agent', default=False,
-        help='Display the current browser identification')
+        help='Display the current browser identification and exit')
     general.add_option(
         '--list-extractors',
         action='store_true', dest='list_extractors', default=False,
-        help='List all supported extractors')
+        help='List all supported extractors and exit')
     general.add_option(
         '--extractor-descriptions',
         action='store_true', dest='list_extractor_descriptions', default=False,
-        help='Output descriptions of all supported extractors')
+        help='Output descriptions of all supported extractors and exit')
     general.add_option(
         '--force-generic-extractor',
         action='store_true', dest='force_generic_extractor', default=False,
@@ -532,7 +532,7 @@ def parseOpts(overrideArguments=None):
     video_format.add_option(
         '-F', '--list-formats',
         action='store_true', dest='listformats',
-        help='List all available formats of requested videos')
+        help='List available formats of each video. Simulate unless --no-simulate is used')
     video_format.add_option(
         '--list-formats-as-table',
         action='store_true', dest='listformats_table', default=True,
@@ -583,7 +583,7 @@ def parseOpts(overrideArguments=None):
     subtitles.add_option(
         '--list-subs',
         action='store_true', dest='listsubtitles', default=False,
-        help='List all available subtitles for the video')
+        help='List available subtitles of each video. Simulate unless --no-simulate is used')
     subtitles.add_option(
         '--sub-format',
         action='store', dest='subtitlesformat', metavar='FORMAT', default='best',
@@ -788,8 +788,12 @@ def parseOpts(overrideArguments=None):
         help='Ignore warnings')
     verbosity.add_option(
         '-s', '--simulate',
-        action='store_true', dest='simulate', default=False,
+        action='store_true', dest='simulate', default=None,
         help='Do not download the video and do not write anything to disk')
+    verbosity.add_option(
+        '--no-simulate',
+        action='store_false', dest='simulate',
+        help='Download the video even if printing/listing options are used')
     verbosity.add_option(
         '--ignore-no-formats-error',
         action='store_true', dest='ignore_no_formats_error', default=False,
@@ -809,8 +813,8 @@ def parseOpts(overrideArguments=None):
         action='callback', dest='forceprint', type='str', default=[],
         callback=_list_from_options_callback, callback_kwargs={'delim': None},
         help=(
-            'Simulate, quiet but print the given fields. Either a field name '
-            'or similar formatting as the output template can be used'))
+            'Quiet, but print the given fields for each video. Simulate unless --no-simulate is used. '
+            'Either a field name or same syntax as the output template can be used'))
     verbosity.add_option(
         '-g', '--get-url',
         action='store_true', dest='geturl', default=False,
@@ -846,17 +850,17 @@ def parseOpts(overrideArguments=None):
     verbosity.add_option(
         '-j', '--dump-json',
         action='store_true', dest='dumpjson', default=False,
-        help='Simulate, quiet but print JSON information. See "OUTPUT TEMPLATE" for a description of available keys')
+        help='Quiet, but print JSON information for each video. Simulate unless --no-simulate is used. See "OUTPUT TEMPLATE" for a description of available keys')
     verbosity.add_option(
         '-J', '--dump-single-json',
         action='store_true', dest='dump_single_json', default=False,
         help=(
-            'Simulate, quiet but print JSON information for each command-line argument. '
-            'If the URL refers to a playlist, dump the whole playlist information in a single line'))
+            'Quiet, but print JSON information for each url or infojson passed. Simulate unless --no-simulate is used. '
+            'If the URL refers to a playlist, the whole playlist information is dumped in a single line'))
     verbosity.add_option(
         '--print-json',
         action='store_true', dest='print_json', default=False,
-        help='Be quiet and print the video information as JSON (video is still being downloaded)')
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--force-write-archive', '--force-write-download-archive', '--force-download-archive',
         action='store_true', dest='force_write_download_archive', default=False,
@@ -1127,7 +1131,7 @@ def parseOpts(overrideArguments=None):
     thumbnail.add_option(
         '--list-thumbnails',
         action='store_true', dest='list_thumbnails', default=False,
-        help='Simulate and list all available thumbnail formats')
+        help='List available thumbnails of each video. Simulate unless --no-simulate is used')
 
     link = optparse.OptionGroup(parser, 'Internet Shortcut Options')
     link.add_option(

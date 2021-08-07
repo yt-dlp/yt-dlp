@@ -198,7 +198,8 @@ class YoutubeDL(object):
                        (or video) as a single JSON line.
     force_write_download_archive: Force writing download archive regardless
                        of 'skip_download' or 'simulate'.
-    simulate:          Do not download the video files.
+    simulate:          Do not download the video files. If unset (or None),
+                       simulate only if listsubtitles, listformats or list_thumbnails is used
     format:            Video format code. see "FORMAT SELECTION" for more details.
     allow_unplayable_formats:   Allow unplayable formats to be extracted and downloaded.
     ignore_no_formats_error: Ignore "No video formats" error. Usefull for
@@ -706,7 +707,7 @@ class YoutubeDL(object):
     def save_console_title(self):
         if not self.params.get('consoletitle', False):
             return
-        if self.params.get('simulate', False):
+        if self.params.get('simulate'):
             return
         if compat_os_name != 'nt' and 'TERM' in os.environ:
             # Save the title on stack
@@ -715,7 +716,7 @@ class YoutubeDL(object):
     def restore_console_title(self):
         if not self.params.get('consoletitle', False):
             return
-        if self.params.get('simulate', False):
+        if self.params.get('simulate'):
             return
         if compat_os_name != 'nt' and 'TERM' in os.environ:
             # Restore the title from stack
@@ -1616,7 +1617,7 @@ class YoutubeDL(object):
             return merger.available and merger.can_merge()
 
         prefer_best = (
-            not self.params.get('simulate', False)
+            not self.params.get('simulate')
             and download
             and (
                 not can_merge()
@@ -2218,20 +2219,22 @@ class YoutubeDL(object):
 
         info_dict, _ = self.pre_process(info_dict)
 
-        list_only = self.params.get('list_thumbnails') or self.params.get('listformats') or self.params.get('listsubtitles')
+        if self.params.get('list_thumbnails'):
+            self.list_thumbnails(info_dict)
+        if self.params.get('listformats'):
+            if not info_dict.get('formats'):
+                raise ExtractorError('No video formats found', expected=True)
+            self.list_formats(info_dict)
+        if self.params.get('listsubtitles'):
+            if 'automatic_captions' in info_dict:
+                self.list_subtitles(
+                    info_dict['id'], automatic_captions, 'automatic captions')
+            self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
+        list_only = self.params.get('simulate') is None and (
+            self.params.get('list_thumbnails') or self.params.get('listformats') or self.params.get('listsubtitles'))
         if list_only:
+            # Without this printing, -F --print-json will not work
             self.__forced_printings(info_dict, self.prepare_filename(info_dict), incomplete=True)
-            if self.params.get('list_thumbnails'):
-                self.list_thumbnails(info_dict)
-            if self.params.get('listformats'):
-                if not info_dict.get('formats'):
-                    raise ExtractorError('No video formats found', expected=True)
-                self.list_formats(info_dict)
-            if self.params.get('listsubtitles'):
-                if 'automatic_captions' in info_dict:
-                    self.list_subtitles(
-                        info_dict['id'], automatic_captions, 'automatic captions')
-                self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
             return
 
         format_selector = self.format_selector
@@ -2455,7 +2458,7 @@ class YoutubeDL(object):
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
 
-        if self.params.get('simulate', False):
+        if self.params.get('simulate'):
             if self.params.get('force_write_download_archive', False):
                 self.record_download_archive(info_dict)
 
