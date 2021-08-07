@@ -11,5 +11,4 @@ else
     exit 1
 fi
 
-echo python3 -m pytest -k $test_set
 python3 -m pytest -k "$test_set"

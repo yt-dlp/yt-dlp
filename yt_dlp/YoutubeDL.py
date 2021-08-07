@@ -515,8 +515,15 @@ class YoutubeDL(object):
                 self.report_warning('--merge-output-format will be ignored since --remux-video or --recode-video is given')
             self.params['merge_output_format'] = self.params['final_ext']
 
-        if 'overwrites' in self.params and self.params['overwrites'] is None:
-            del self.params['overwrites']
+        if self.params.get('overwrites') is None:
+            self.params.pop('overwrites', None)
+        elif self.params.get('nooverwrites') is not None:
+            # nooverwrites was unnecessarily changed to overwrites
+            # in 0c3d0f51778b153f65c21906031c2e091fcfb641
+            # This ensures compatibility with both keys
+            self.params['overwrites'] = not self.params['nooverwrites']
+        else:
+            self.params['nooverwrites'] = not self.params['overwrites']
 
         if params.get('bidi_workaround', False):
             try:
@@ -889,7 +896,6 @@ class YoutubeDL(object):
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
         """ Make the template and info_dict suitable for substitution : ydl.outtmpl_escape(outtmpl) % info_dict """
         info_dict.setdefault('epoch', int(time.time()))  # keep epoch consistent once set
-        na = self.params.get('outtmpl_na_placeholder', 'NA')
 
         info_dict = dict(info_dict)  # Do not sanitize so as not to consume LazyList
         for key in ('__original_infodict', '__postprocessors'):
@@ -970,6 +976,8 @@ class YoutubeDL(object):
 
             return value
 
+        na = self.params.get('outtmpl_na_placeholder', 'NA')
+
         def _dumpjson_default(obj):
             if isinstance(obj, (set, LazyList)):
                 return list(obj)
@@ -978,10 +986,7 @@ class YoutubeDL(object):
         def create_key(outer_mobj):
             if not outer_mobj.group('has_key'):
                 return f'%{outer_mobj.group(0)}'
-
-            prefix = outer_mobj.group('prefix')
             key = outer_mobj.group('key')
-            original_fmt = fmt = outer_mobj.group('format')
             mobj = re.match(INTERNAL_FORMAT_RE, key)
             if mobj is None:
                 value, default, mobj = None, na, {'fields': ''}
@@ -990,6 +995,7 @@ class YoutubeDL(object):
                 default = mobj['default'] if mobj['default'] is not None else na
                 value = get_value(mobj)
 
+            fmt = outer_mobj.group('format')
             if fmt == 's' and value is not None and key in field_size_compat_map.keys():
                 fmt = '0{:d}d'.format(field_size_compat_map[key])
 
@@ -1021,9 +1027,9 @@ class YoutubeDL(object):
                 if fmt[-1] in 'csr':
                     value = sanitize(mobj['fields'].split('.')[-1], value)
 
-            key = '%s\0%s' % (key.replace('%', '%\0'), original_fmt)
+            key = '%s\0%s' % (key.replace('%', '%\0'), outer_mobj.group('format'))
             TMPL_DICT[key] = value
-            return f'{prefix}%({key}){fmt}'
+            return '{prefix}%({key}){fmt}'.format(key=key, fmt=fmt, prefix=outer_mobj.group('prefix'))
 
         return EXTERNAL_FORMAT_RE.sub(create_key, outtmpl), TMPL_DICT
 
@@ -1069,7 +1075,6 @@ class YoutubeDL(object):
                 self.report_warning('--paths is ignored when an outputting to stdout', only_once=True)
             elif os.path.isabs(filename):
                 self.report_warning('--paths is ignored since an absolute path is given in output template', only_once=True)
-            self.__prepare_filename_warned = True
         if filename == '-' or not filename:
             return filename
 
@@ -1348,15 +1353,12 @@ class YoutubeDL(object):
                 'It needs to be updated.' % ie_result.get('extractor'))
 
             def _fixup(r):
-                self.add_extra_info(
-                    r,
-                    {
-                        'extractor': ie_result['extractor'],
-                        'webpage_url': ie_result['webpage_url'],
-                        'webpage_url_basename': url_basename(ie_result['webpage_url']),
-                        'extractor_key': ie_result['extractor_key'],
-                    }
-                )
+                self.add_extra_info(r, {
+                    'extractor': ie_result['extractor'],
+                    'webpage_url': ie_result['webpage_url'],
+                    'webpage_url_basename': url_basename(ie_result['webpage_url']),
+                    'extractor_key': ie_result['extractor_key'],
+                })
                 return r
             ie_result['entries'] = [
                 self.process_ie_result(_fixup(r), download, extra_info)
@@ -2193,7 +2195,7 @@ class YoutubeDL(object):
                 format['format'] = '{id} - {res}{note}'.format(
                     id=format['format_id'],
                     res=self.format_resolution(format),
-                    note=' ({0})'.format(format['format_note']) if format.get('format_note') is not None else '',
+                    note=format_field(format, 'format_note', ' (%s)'),
                 )
             # Automatically determine file extension if missing
             if format.get('ext') is None:
@@ -2395,7 +2397,7 @@ class YoutubeDL(object):
         print_optional('thumbnail')
         print_optional('description')
         print_optional('filename')
-        if self.params.get('forceduration', False) and info_dict.get('duration') is not None:
+        if self.params.get('forceduration') and info_dict.get('duration') is not None:
             self.to_stdout(formatSeconds(info_dict['duration']))
         print_mandatory('format')
 
@@ -2434,8 +2436,6 @@ class YoutubeDL(object):
         """Process a single resolved IE result."""
 
         assert info_dict.get('_type', 'video') == 'video'
-
-        info_dict.setdefault('__postprocessors', [])
 
         max_downloads = self.params.get('max_downloads')
         if max_downloads is not None:
@@ -2637,6 +2637,7 @@ class YoutubeDL(object):
             info_dict = self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict)
         else:
             # Download
+            info_dict.setdefault('__postprocessors', [])
             try:
 
                 def existing_file(*filepaths):

@@ -35,7 +35,6 @@ from ..downloader.f4m import (
     remove_encrypted_media,
 )
 from ..utils import (
-    NO_DEFAULT,
     age_restricted,
     base_url,
     bug_reports_message,
@@ -45,10 +44,11 @@ from ..utils import (
     determine_protocol,
     dict_get,
     error_to_compat_str,
-    ExtractorError,
     extract_attributes,
+    ExtractorError,
     fix_xml_ampersands,
     float_or_none,
+    format_field,
     GeoRestrictedError,
     GeoUtils,
     int_or_none,
@@ -56,6 +56,7 @@ from ..utils import (
     JSON_LD_RE,
     mimetype2ext,
     network_exceptions,
+    NO_DEFAULT,
     orderedSet,
     parse_bitrate,
     parse_codecs,
@@ -64,8 +65,8 @@ from ..utils import (
     parse_m3u8_attributes,
     parse_resolution,
     RegexNotFoundError,
-    sanitized_Request,
     sanitize_filename,
+    sanitized_Request,
     str_or_none,
     str_to_int,
     strip_or_none,
@@ -75,9 +76,9 @@ from ..utils import (
     unified_timestamp,
     update_Request,
     update_url_query,
-    urljoin,
     url_basename,
     url_or_none,
+    urljoin,
     variadic,
     xpath_element,
     xpath_text,
@@ -1002,7 +1003,7 @@ class InfoExtractor(object):
         return res if res is False else res[0]
 
     def report_warning(self, msg, video_id=None, *args, only_once=False, **kwargs):
-        idstr = '' if video_id is None else '%s: ' % video_id
+        idstr = format_field(video_id, template='%s: ')
         msg = f'[{self.IE_NAME}] {idstr}{msg}'
         if only_once:
             if f'WARNING: {msg}' in self._printed_messages:
