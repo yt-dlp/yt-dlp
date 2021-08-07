@@ -6263,6 +6263,8 @@ def traverse_obj(
 
     def _traverse_obj(obj, path, _current_depth=0):
         nonlocal depth
+        if obj is None:
+            return None
         path = tuple(variadic(path))
         for i, key in enumerate(path):
             if isinstance(key, (list, tuple)):
@@ -6275,7 +6277,7 @@ def traverse_obj(
                 _current_depth += 1
                 depth = max(depth, _current_depth)
                 return [_traverse_obj(inner_obj, path[i + 1:], _current_depth) for inner_obj in obj]
-            elif isinstance(obj, dict):
+            elif isinstance(obj, dict) and not (is_user_input and key == ':'):
                 obj = (obj.get(key) if casesense or (key in obj)
                        else next((v for k, v in obj.items() if _lower(k) == key), None))
             else:
@@ -6283,7 +6285,7 @@ def traverse_obj(
                     key = (int_or_none(key) if ':' not in key
                            else slice(*map(int_or_none, key.split(':'))))
                     if key == slice(None):
-                        return _traverse_obj(obj, (..., *path[i + 1:]))
+                        return _traverse_obj(obj, (..., *path[i + 1:]), _current_depth)
                 if not isinstance(key, (int, slice)):
                     return None
                 if not isinstance(obj, (list, tuple, LazyList)):
