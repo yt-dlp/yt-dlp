@@ -18,7 +18,7 @@ from yt_dlp.compat import compat_os_name, compat_setenv, compat_str, compat_urll
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
-from yt_dlp.utils import ExtractorError, int_or_none, match_filter_func
+from yt_dlp.utils import ExtractorError, int_or_none, match_filter_func, LazyList
 
 TEST_URL = 'http://localhost/sample.mp4'
 
@@ -678,10 +678,17 @@ class TestYoutubeDL(unittest.TestCase):
                 self.assertEqual(out, expected[0])
                 self.assertEqual(fname, expected[1])
 
+        # Side-effects
+        original_infodict = dict(self.outtmpl_info)
+        test('foo.bar', 'foo.bar')
+        original_infodict['epoch'] = self.outtmpl_info.get('epoch')
+        self.assertTrue(isinstance(original_infodict['epoch'], int))
+        test('%(epoch)d', int_or_none)
+        self.assertEqual(original_infodict, self.outtmpl_info)
+
         # Auto-generated fields
         test('%(id)s.%(ext)s', '1234.mp4')
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
-        test('%(epoch)d', int_or_none)
         test('%(resolution)s', '1080p')
         test('%(playlist_index)s', '001')
         test('%(autonumber)s', '00001')
@@ -773,6 +780,12 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.:2:-1)r', repr(FORMATS[:2:-1]))
         test('%(formats.0.id.-1+id)f', '1235.000000')
         test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
+
+        # Laziness
+        def gen():
+            yield from range(5)
+            raise self.assertTrue(False, 'LazyList should not be evaluated till here')
+        test('%(key.4)s', '4', info={'key': LazyList(gen())})
 
         # Empty filename
         test('%(foo|)s-%(bar|)s.%(ext)s', '-.mp4')

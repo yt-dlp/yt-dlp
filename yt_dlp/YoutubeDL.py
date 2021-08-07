@@ -887,14 +887,16 @@ class YoutubeDL(object):
 
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
         """ Make the template and info_dict suitable for substitution : ydl.outtmpl_escape(outtmpl) % info_dict """
-        info_dict = dict(info_dict)
+        info_dict.setdefault('epoch', int(time.time()))  # keep epoch consistent once set
         na = self.params.get('outtmpl_na_placeholder', 'NA')
 
+        info_dict = dict(info_dict)  # Do not sanitize so as not to consume LazyList
+        for key in ('__original_infodict', '__postprocessors'):
+            info_dict.pop(key, None)
         info_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
             formatSeconds(info_dict['duration'], '-' if sanitize else ':')
             if info_dict.get('duration', None) is not None
             else None)
-        info_dict['epoch'] = int(time.time())
         info_dict['autonumber'] = self.params.get('autonumber_start', 1) - 1 + self._num_downloads
         if info_dict.get('resolution') is None:
             info_dict['resolution'] = self.format_resolution(info_dict, default=None)
@@ -964,6 +966,11 @@ class YoutubeDL(object):
 
             return value
 
+        def _dumpjson_default(obj):
+            if isinstance(obj, (set, LazyList)):
+                return list(obj)
+            raise TypeError(f'Object of type {type(obj).__name__} is not JSON serializable')
+
         def create_key(outer_mobj):
             if not outer_mobj.group('has_key'):
                 return f'%{outer_mobj.group(0)}'
@@ -988,7 +995,7 @@ class YoutubeDL(object):
             if fmt[-1] == 'l':
                 value, fmt = ', '.join(variadic(value)), str_fmt
             elif fmt[-1] == 'j':
-                value, fmt = json.dumps(value), str_fmt
+                value, fmt = json.dumps(value, default=_dumpjson_default), str_fmt
             elif fmt[-1] == 'q':
                 value, fmt = compat_shlex_quote(str(value)), str_fmt
             elif fmt[-1] == 'c':
@@ -2386,7 +2393,7 @@ class YoutubeDL(object):
 
         if self.params.get('forcejson', False):
             self.post_extract(info_dict)
-            self.to_stdout(json.dumps(self.sanitize_info(info_dict), default=repr))
+            self.to_stdout(json.dumps(self.sanitize_info(info_dict)))
 
     def dl(self, name, info, subtitle=False, test=False):
 
@@ -2861,7 +2868,7 @@ class YoutubeDL(object):
             else:
                 if self.params.get('dump_single_json', False):
                     self.post_extract(res)
-                    self.to_stdout(json.dumps(self.filter_requested_info(res), default=repr))
+                    self.to_stdout(json.dumps(self.sanitize_info(res)))
 
         return self._download_retcode
 
@@ -2885,15 +2892,18 @@ class YoutubeDL(object):
     @staticmethod
     def sanitize_info(info_dict, remove_private_keys=False):
         ''' Sanitize the infodict for converting to json '''
-        remove_keys = ['__original_infodict']  # Always remove this since this may contain a copy of the entire dict
+        info_dict.setdefault('epoch', int(time.time()))
+        remove_keys = {'__original_infodict'}  # Always remove this since this may contain a copy of the entire dict
         keep_keys = ['_type'],  # Always keep this to facilitate load-info-json
         if remove_private_keys:
-            remove_keys += ('requested_formats', 'requested_subtitles', 'requested_entries', 'filepath', 'entries', 'original_url')
+            remove_keys |= {
+                'requested_formats', 'requested_subtitles', 'requested_entries',
+                'filepath', 'entries', 'original_url', 'playlist_autonumber',
+            }
             empty_values = (None, {}, [], set(), tuple())
             reject = lambda k, v: k not in keep_keys and (
                 k.startswith('_') or k in remove_keys or v in empty_values)
         else:
-            info_dict['epoch'] = int(time.time())
             reject = lambda k, v: k in remove_keys
         filter_fn = lambda obj: (
             list(map(filter_fn, obj)) if isinstance(obj, (LazyList, list, tuple, set))
