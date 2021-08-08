@@ -50,13 +50,7 @@ class BlackboardCollaborateIE(InfoExtractor):
         title = info.get('name')
         upload_date = info.get('created')
         streams = info.get('streams')
-        formats = []
-
-        for k in streams:
-            formats.append({
-                'format_id': k,
-                'url': streams[k],
-            })
+        formats = [{'format_id': k, 'url': url} for k, url in streams.items()]
 
         return {
             'duration': duration,
