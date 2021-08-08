@@ -109,7 +109,9 @@ class FFmpegPostProcessor(PostProcessor):
                         'Continuing without ffmpeg.' % (location))
                     self._versions = {}
                     return
-                elif not os.path.isdir(location):
+                elif os.path.isdir(location):
+                    dirname, basename = location, None
+                else:
                     basename = os.path.splitext(os.path.basename(location))[0]
                     basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
                     dirname = os.path.dirname(os.path.abspath(location))
@@ -118,7 +120,8 @@ class FFmpegPostProcessor(PostProcessor):
 
                 self._paths = dict(
                     (p, os.path.join(dirname, p)) for p in programs)
-                self._paths[basename] = location
+                if basename:
+                    self._paths[basename] = location
                 self._versions = dict(
                     (p, get_ffmpeg_version(self._paths[p])) for p in programs)
         if self._versions is None:
