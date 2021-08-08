@@ -105,7 +105,7 @@ class ParamountPlusIE(CBSBaseIE):
             'title': item.get('title'),
             'series': item.get('seriesTitle'),
             'season_number': int_or_none(item.get('seasonNum')),
-            'episode_number': int_or_none(item.get('seasonNum')),
+            'episode_number': int_or_none(item.get('episodeNum')),
             'duration': int_or_none(item.get('duration'), 1000),
             'thumbnail': item.get('thumbnail')
         })
