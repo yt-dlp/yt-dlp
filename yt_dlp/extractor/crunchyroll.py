@@ -606,7 +606,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not episode_number:
             episode_number = int_or_none(media_metadata.get('episode_number'))
         if not thumbnail:
-            thumbnail = media_metadata.get('thumbnail', {}).get('url')
+            thumbnail = media.get('thumbnail', {}).get('url')
 
         season_number = int_or_none(self._search_regex(
             r'(?s)<h\d[^>]+id=["\']showmedia_about_episode_num[^>]+>.+?</h\d>\s*<h4>\s*Season (\d+)',
