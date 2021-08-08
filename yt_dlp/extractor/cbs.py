@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-from .common import InfoExtractor
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
     ExtractorError,
@@ -32,7 +31,7 @@ class CBSIE(CBSBaseIE):
         (?:
             cbs:|
             https?://(?:www\.)?(?:
-                (?:cbs|paramountplus)\.com/(?:shows/[^/]+/video|movies/[^/]+)/|
+                cbs\.com/(?:shows/[^/]+/video|movies/[^/]+)/|
                 colbertlateshow\.com/(?:video|podcasts)/)
         )(?P<id>[\w-]+)'''
 
@@ -51,38 +50,6 @@ class CBSIE(CBSBaseIE):
         'params': {
             # m3u8 download
             'skip_download': True,
-        },
-        '_skip': 'Blocked outside the US',
-    }, {
-        'url': 'https://www.paramountplus.com/shows/catdog/video/Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k/catdog-climb-every-catdog-the-canine-mutiny/',
-        'info_dict': {
-            'id': 'Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k',
-            'ext': 'mp4',
-            'title': 'CatDog - Climb Every CatDog/The Canine Mutiny',
-            'description': 'md5:7ac835000645a69933df226940e3c859',
-            'duration': 1418,
-            'timestamp': 920264400,
-            'upload_date': '19990301',
-            'uploader': 'CBSI-NEW',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-        },
-        '_skip': 'Blocked outside the US',
-    }, {
-        'url': 'https://www.paramountplus.com/shows/tooning-out-the-news/video/6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd/7-23-21-week-in-review-rep-jahana-hayes-howard-fineman-sen-michael-bennet-sheera-frenkel-cecilia-kang-/',
-        'info_dict': {
-            'id': '6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd',
-            'ext': 'mp4',
-            'title': '7/23/21 WEEK IN REVIEW (Rep. Jahana Hayes/Howard Fineman/Sen. Michael Bennet/Sheera Frenkel & Cecilia Kang)',
-            'description': 'md5:f4adcea3e8b106192022e121f1565bae',
-            'duration': 2506,
-            'timestamp': 1627063200,
-            'upload_date': '20210723',
-            'uploader': 'CBSI-NEW',
-        },
-        'params': {
-            'skip_download': 'm3u8',
         },
         '_skip': 'Blocked outside the US',
     }, {
@@ -106,12 +73,6 @@ class CBSIE(CBSBaseIE):
         'only_matching': True,
     }, {
         'url': 'http://www.colbertlateshow.com/podcasts/dYSwjqPs_X1tvbV_P2FcPWRa_qT6akTC/in-the-bad-room-with-stephen/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.paramountplus.com/shows/all-rise/video/QmR1WhNkh1a_IrdHZrbcRklm176X_rVc/all-rise-space/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.paramountplus.com/movies/million-dollar-american-princesses-meghan-and-harry/C0LpgNwXYeB8txxycdWdR9TjxpJOsdCq',
         'only_matching': True,
     }]
 
@@ -192,39 +153,3 @@ class CBSIE(CBSBaseIE):
     def _real_extract(self, url):
         content_id = self._match_id(url)
         return self._extract_video_info(content_id)
-
-
-class ParamountPlusSeriesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?paramountplus\.com/shows/(?P<id>[a-zA-Z0-9-_]+)/?(?:[#?]|$)'
-    _TESTS = [{
-        'url': 'https://www.paramountplus.com/shows/drake-josh',
-        'playlist_mincount': 50,
-        'info_dict': {
-            'id': 'drake-josh',
-        }
-    }, {
-        'url': 'https://www.paramountplus.com/shows/hawaii_five_0/',
-        'playlist_mincount': 240,
-        'info_dict': {
-            'id': 'hawaii_five_0',
-        }
-    }, {
-        'url': 'https://www.paramountplus.com/shows/spongebob-squarepants/',
-        'playlist_mincount': 248,
-        'info_dict': {
-            'id': 'spongebob-squarepants',
-        }
-    }]
-    _API_URL = 'https://www.paramountplus.com/shows/{}/xhr/episodes/page/0/size/100000/xs/0/season/0/'
-
-    def _entries(self, show_name):
-        show_json = self._download_json(self._API_URL.format(show_name), video_id=show_name)
-        if show_json.get('success'):
-            for episode in show_json['result']['data']:
-                yield self.url_result(
-                    'https://www.paramountplus.com%s' % episode['url'],
-                    ie=CBSIE.ie_key(), video_id=episode['content_id'])
-
-    def _real_extract(self, url):
-        show_name = self._match_id(url)
-        return self.playlist_result(self._entries(show_name), playlist_id=show_name)
