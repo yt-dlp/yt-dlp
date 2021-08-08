@@ -195,18 +195,19 @@ class InstagramIE(InfoExtractor):
                                 lambda x: x['%ss' % kind]['count'])))
                     if count is not None:
                         return count
+
             like_count = get_count('preview_like', 'like')
             comment_count = get_count(
                 ('preview_comment', 'to_comment', 'to_parent_comment'), 'comment')
 
             comments = [{
-                'author': comment.get('user', {}).get('username'),
-                'author_id': comment.get('user', {}).get('id'),
-                'id': comment.get('id'),
-                'text': comment.get('text'),
-                'timestamp': int_or_none(comment.get('created_at')),
+                'author': comment.get('node', {}).get('owner', {}).get('username'),
+                'author_id': comment.get('node', {}).get('owner', {}).get('id'),
+                'id': comment.get('node', {}).get('id'),
+                'text': comment.get('node', {}).get('text'),
+                'timestamp': int_or_none(comment.get('node', {}).get('created_at')),
             } for comment in media.get(
-                'comments', {}).get('nodes', []) if comment.get('text')]
+                'edge_media_to_parent_comment', {}).get('edges', []) if comment.get('node', {}).get('text')]
             if not video_url:
                 edges = try_get(
                     media, lambda x: x['edge_sidecar_to_children']['edges'],
