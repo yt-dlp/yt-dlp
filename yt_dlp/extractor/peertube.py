@@ -427,7 +427,7 @@ class PeerTubeIE(InfoExtractor):
                     ''' % (_INSTANCES_RE, _UUID_RE)
     _TESTS = [{
         'url': 'https://framatube.org/videos/watch/9c9de5e8-0a1e-484a-b099-e80766180a6d',
-        'md5': '9bed8c0137913e17b86334e5885aacff',
+        'md5': '8563064d245a4be5705bddb22bb00a28',
         'info_dict': {
             'id': '9c9de5e8-0a1e-484a-b099-e80766180a6d',
             'ext': 'mp4',
@@ -570,7 +570,7 @@ class PeerTubeIE(InfoExtractor):
         self._sort_formats(formats)
 
         description = video.get('description')
-        if len(description) >= 250:
+        if description and len(description) >= 250:
             # description is shortened
             full_description = self._call_api(
                 host, video_id, 'description', note='Downloading description JSON',
