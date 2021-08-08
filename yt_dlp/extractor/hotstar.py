@@ -188,6 +188,7 @@ class HotStarIE(HotStarBaseIE):
         subs = {}
         geo_restricted = False
         _, urlh = self._download_webpage_handle('https://www.hotstar.com/in', video_id)
+        # Required to fix https://github.com/yt-dlp/yt-dlp/issues/396
         st = urlh.headers.get('x-origin-date')
         # change to v2 in the future
         playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st, cookies=cookies)['playBackSets']
