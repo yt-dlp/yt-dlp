@@ -3192,11 +3192,6 @@ class YoutubeDL(object):
         if not self.params.get('verbose'):
             return
 
-        if type('') is not compat_str:
-            # Python 2.6 on SLES11 SP1 (https://github.com/ytdl-org/youtube-dl/issues/3326)
-            self.report_warning(
-                'Your Python is broken! Update to a newer and supported version')
-
         stdout_encoding = getattr(
             sys.stdout, 'encoding', 'missing (%s)' % type(sys.stdout).__name__)
         encoding_str = (
@@ -3252,13 +3247,23 @@ class YoutubeDL(object):
         exe_versions['rtmpdump'] = rtmpdump_version()
         exe_versions['phantomjs'] = PhantomJSwrapper._version()
         exe_str = ', '.join(
-            '%s %s' % (exe, v)
-            for exe, v in sorted(exe_versions.items())
-            if v
-        )
-        if not exe_str:
-            exe_str = 'none'
+            f'{exe} {v}' for exe, v in sorted(exe_versions.items()) if v
+        ) or 'none'
         self._write_string('[debug] exe versions: %s\n' % exe_str)
+
+        from .downloader.fragment import can_decrypt_frag
+        from .downloader.websocket import has_websockets
+        from .postprocessor.embedthumbnail import has_mutagen
+        from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
+
+        lib_str = ', '.join(filter(None, (
+            can_decrypt_frag and 'pycryptodome',
+            has_websockets and 'websockets',
+            has_mutagen and 'mutagen',
+            SQLITE_AVAILABLE and 'sqlite',
+            KEYRING_AVAILABLE and 'keyring',
+        ))) or 'none'
+        self._write_string('[debug] Optional libraries: %s\n' % lib_str)
 
         proxy_map = {}
         for handler in self._opener.handlers:
