@@ -8,7 +8,14 @@ from ..utils import parse_iso8601
 
 
 class BlackboardCollaborateIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<zone>[a-z-]+)\.bbcollab\.com/(?:[a-z-]+/)+(?P<id>[^/]+)'
+    _VALID_URL = r'''(?x)
+                        https?://
+                        (?P<region>[a-z-]+)\.bbcollab\.com/
+                        (?:
+                            collab/ui/session/playback/load|
+                            recording
+                        )/
+                        (?P<id>[^/]+)'''
     _TESTS = [
         {
             'url': 'https://us-lti.bbcollab.com/collab/ui/session/playback/load/0a633b6a88824deb8c918f470b22b256',
@@ -42,10 +49,10 @@ class BlackboardCollaborateIE(InfoExtractor):
 
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
-        zone = mobj.group('zone')
+        region = mobj.group('region')
         video_id = mobj.group('id')
         info = self._download_json(
-            'https://{}.bbcollab.com/collab/api/csa/recordings/{}/data'.format(zone, video_id), video_id)
+            'https://{}.bbcollab.com/collab/api/csa/recordings/{}/data'.format(region, video_id), video_id)
         duration = info.get('duration')
         title = info.get('name')
         upload_date = info.get('created')
