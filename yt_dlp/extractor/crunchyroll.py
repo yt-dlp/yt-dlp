@@ -458,9 +458,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         video_description = (self._parse_json(self._html_search_regex(
             r'<script[^>]*>\s*.+?\[media_id=%s\].+?({.+?"description"\s*:.+?})\);' % video_id,
             webpage, 'description', default='{}'), video_id) or media_metadata).get('description')
-        thumbnail = (self._parse_json(self._html_search_regex(
+
+        thumbnails = []
+        thumbnail_url = (self._parse_json(self._html_search_regex(
             r'<script type="application\/ld\+json">\n\s*(.+?)<\/script>',
-            webpage, 'thumbnail', default='{}'), video_id)).get('image')
+            webpage, 'thumbnail_url', default='{}'), video_id)).get('image')
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': 1920,
+                'height': 1080
+            })
+
         if video_description:
             video_description = lowercase_escape(video_description.replace(r'\r\n', '\n'))
         video_uploader = self._html_search_regex(
@@ -607,8 +616,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             episode = media_metadata.get('title')
         if not episode_number:
             episode_number = int_or_none(media_metadata.get('episode_number'))
-        if not thumbnail:
-            thumbnail = media.get('thumbnail', {}).get('url')
+        thumbnail_url = media.get('thumbnail', {}).get('url')
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': 640,
+                'height': 360
+            })
 
         season_number = int_or_none(self._search_regex(
             r'(?s)<h\d[^>]+id=["\']showmedia_about_episode_num[^>]+>.+?</h\d>\s*<h4>\s*Season (\d+)',
@@ -621,7 +635,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             'title': video_title,
             'description': video_description,
             'duration': duration,
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
             'uploader': video_uploader,
             'series': series,
             'season': season,
