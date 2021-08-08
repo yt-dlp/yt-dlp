@@ -20,8 +20,8 @@ class AENetworksBaseIE(ThePlatformIE):
             (?:history(?:vault)?|aetv|mylifetime|lifetimemovieclub)\.com|
             fyi\.tv
         )/'''
-    _THEPLATFORM_KEY = 'crazyjava'
-    _THEPLATFORM_SECRET = 's3cr3t'
+    _THEPLATFORM_KEY = '43jXaGRQud'
+    _THEPLATFORM_SECRET = 'S10BPXHMlb'
     _DOMAIN_MAP = {
         'history.com': ('HISTORY', 'history'),
         'aetv.com': ('AETV', 'aetv'),
