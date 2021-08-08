@@ -458,6 +458,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         video_description = (self._parse_json(self._html_search_regex(
             r'<script[^>]*>\s*.+?\[media_id=%s\].+?({.+?"description"\s*:.+?})\);' % video_id,
             webpage, 'description', default='{}'), video_id) or media_metadata).get('description')
+        thumbnail = (self._parse_json(self._html_search_regex(
+            r'<script type="application\/ld\+json">\n\s*(.+?)<\/script>',
+            webpage, 'thumbnail', default='{}'), video_id)).get('image')
         if video_description:
             video_description = lowercase_escape(video_description.replace(r'\r\n', '\n'))
         video_uploader = self._html_search_regex(
@@ -592,14 +595,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             r'(?s)<h\d[^>]+\bid=["\']showmedia_about_episode_num[^>]+>(.+?)</h\d',
             webpage, 'series', fatal=False)
 
-        season = episode = episode_number = duration = thumbnail = None
+        season = episode = episode_number = duration = None
 
         if isinstance(metadata, compat_etree_Element):
             season = xpath_text(metadata, 'series_title')
             episode = xpath_text(metadata, 'episode_title')
             episode_number = int_or_none(xpath_text(metadata, 'episode_number'))
             duration = float_or_none(media_metadata.get('duration'), 1000)
-            thumbnail = xpath_text(metadata, 'episode_image_url')
 
         if not episode:
             episode = media_metadata.get('title')
