@@ -202,10 +202,7 @@ from .cbc import (
     CBCWatchIE,
     CBCOlympicsIE,
 )
-from .cbs import (
-    CBSIE,
-    ParamountPlusSeriesIE,
-)
+from .cbs import CBSIE
 from .cbslocal import (
     CBSLocalIE,
     CBSLocalArticleIE,
@@ -969,6 +966,10 @@ from .palcomp3 import (
     PalcoMP3VideoIE,
 )
 from .pandoratv import PandoraTVIE
+from .paramountplus import (
+    ParamountPlusIE,
+    ParamountPlusSeriesIE,
+)
 from .parliamentliveuk import ParliamentLiveUKIE
 from .parlview import ParlviewIE
 from .patreon import PatreonIE
