@@ -108,10 +108,8 @@ class MirrativUserIE(MirrativBaseIE):
             note='Downloading user info', fatal=False)
         self.assert_error(user_info)
 
-        if user_info:
-            uploader, description = user_info.get('name'), user_info.get('description')
-        else:
-            uploader, description = [None] * 2
+        uploader = user_info.get('name')
+        description = user_info.get('description')
 
         entries = []
         page = 1
