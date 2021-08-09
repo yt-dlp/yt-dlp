@@ -332,7 +332,8 @@ def _real_main(argv=None):
 
     for k, tmpl in opts.outtmpl.items():
         validate_outtmpl(tmpl, '%s output template' % k)
-    for tmpl in opts.forceprint:
+    opts.forceprint = opts.forceprint or []
+    for tmpl in opts.forceprint or []:
         validate_outtmpl(tmpl, 'print template')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
@@ -445,7 +446,7 @@ def _real_main(argv=None):
     # Must be after all other before_dl
     if opts.exec_before_dl_cmd:
         postprocessors.append({
-            'key': 'ExecAfterDownload',
+            'key': 'Exec',
             'exec_cmd': opts.exec_before_dl_cmd,
             'when': 'before_dl'
         })
@@ -516,10 +517,10 @@ def _real_main(argv=None):
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})
-    # ExecAfterDownload must be the last PP
+    # Exec must be the last PP
     if opts.exec_cmd:
         postprocessors.append({
-            'key': 'ExecAfterDownload',
+            'key': 'Exec',
             'exec_cmd': opts.exec_cmd,
             # Run this only after the files have been moved to their final locations
             'when': 'after_move'

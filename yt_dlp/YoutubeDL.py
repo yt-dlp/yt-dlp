@@ -2339,7 +2339,8 @@ class YoutubeDL(object):
             requested_langs = ['en']
         else:
             requested_langs = [list(all_sub_langs)[0]]
-        self.write_debug('Downloading subtitles: %s' % ', '.join(requested_langs))
+        if requested_langs:
+            self.write_debug('Downloading subtitles: %s' % ', '.join(requested_langs))
 
         formats_query = self.params.get('subtitlesformat', 'best')
         formats_preference = formats_query.split('/') if formats_query else []
@@ -3256,13 +3257,13 @@ class YoutubeDL(object):
         from .postprocessor.embedthumbnail import has_mutagen
         from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
 
-        lib_str = ', '.join(filter(None, (
+        lib_str = ', '.join(sorted(filter(None, (
             can_decrypt_frag and 'pycryptodome',
             has_websockets and 'websockets',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',
             KEYRING_AVAILABLE and 'keyring',
-        ))) or 'none'
+        )))) or 'none'
         self._write_string('[debug] Optional libraries: %s\n' % lib_str)
 
         proxy_map = {}

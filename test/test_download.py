@@ -147,7 +147,7 @@ def generator(test_case, tname):
         expect_warnings(ydl, test_case.get('expected_warnings', []))
 
         def get_tc_filename(tc):
-            return ydl.prepare_filename(tc.get('info_dict', {}))
+            return ydl.prepare_filename(dict(tc.get('info_dict', {})))
 
         res_dict = None
 

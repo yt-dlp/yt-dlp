@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_shlex_quote
 from yt_dlp.postprocessor import (
-    ExecAfterDownloadPP,
+    ExecPP,
     FFmpegThumbnailsConvertorPP,
     MetadataFromFieldPP,
     MetadataParserPP,
@@ -59,12 +59,12 @@ class TestConvertThumbnail(unittest.TestCase):
             os.remove(file.format(out))
 
 
-class TestExecAfterDownload(unittest.TestCase):
+class TestExec(unittest.TestCase):
     def test_parse_cmd(self):
-        pp = ExecAfterDownloadPP(YoutubeDL(), '')
+        pp = ExecPP(YoutubeDL(), '')
         info = {'filepath': 'file name'}
-        quoted_filepath = compat_shlex_quote(info['filepath'])
+        cmd = 'echo %s' % compat_shlex_quote(info['filepath'])
 
-        self.assertEqual(pp.parse_cmd('echo', info), 'echo %s' % quoted_filepath)
-        self.assertEqual(pp.parse_cmd('echo.{}', info), 'echo.%s' % quoted_filepath)
-        self.assertEqual(pp.parse_cmd('echo "%(filepath)s"', info), 'echo "%s"' % info['filepath'])
+        self.assertEqual(pp.parse_cmd('echo', info), cmd)
+        self.assertEqual(pp.parse_cmd('echo {}', info), cmd)
+        self.assertEqual(pp.parse_cmd('echo %(filepath)q', info), cmd)

@@ -11,15 +11,11 @@ from ..utils import (
 )
 
 
-class ExecAfterDownloadPP(PostProcessor):
+class ExecPP(PostProcessor):
 
     def __init__(self, downloader, exec_cmd):
-        super(ExecAfterDownloadPP, self).__init__(downloader)
+        PostProcessor.__init__(self, downloader)
         self.exec_cmd = variadic(exec_cmd)
-
-    @classmethod
-    def pp_key(cls):
-        return 'Exec'
 
     def parse_cmd(self, cmd, info):
         tmpl, tmpl_dict = self._downloader.prepare_outtmpl(cmd, info)
@@ -40,3 +36,7 @@ class ExecAfterDownloadPP(PostProcessor):
             if retCode != 0:
                 raise PostProcessingError('Command returned error code %d' % retCode)
         return [], info
+
+
+class ExecAfterDownloadPP(ExecPP):  # for backward compatibility
+    pass

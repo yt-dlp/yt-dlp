@@ -19,7 +19,7 @@ from .ffmpeg import (
     FFmpegVideoRemuxerPP,
 )
 from .xattrpp import XAttrMetadataPP
-from .execafterdownload import ExecAfterDownloadPP
+from .exec import ExecPP, ExecAfterDownloadPP
 from .metadataparser import (
     MetadataFromFieldPP,
     MetadataFromTitlePP,
@@ -36,6 +36,7 @@ def get_postprocessor(key):
 __all__ = [
     'FFmpegPostProcessor',
     'EmbedThumbnailPP',
+    'ExecPP',
     'ExecAfterDownloadPP',
     'FFmpegEmbedSubtitlePP',
     'FFmpegExtractAudioPP',
