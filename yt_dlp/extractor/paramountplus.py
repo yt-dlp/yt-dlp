@@ -63,10 +63,10 @@ class ParamountPlusIE(CBSBaseIE):
             content_id, query={'locale': 'en-us', 'at': 'ABCqWNNSwhIqINWIIAG+DFzcFUvF8/vcN6cNyXFFfNzWAIvXuoVgX+fK4naOC7V8MLI='})
 
         asset_types = {
-            item.get(asset_type): (False, {
+            item.get('assetType'): {
                 'format': 'SMIL',
                 'formats': 'MPEG4,M3U',
-            }) for item in items_data['itemList']
+            } for item in items_data['itemList']
         }
         item = items_data['itemList'][-1]
         return self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info={
@@ -74,7 +74,7 @@ class ParamountPlusIE(CBSBaseIE):
             'series': item.get('seriesTitle'),
             'season_number': int_or_none(item.get('seasonNum')),
             'episode_number': int_or_none(item.get('episodeNum')),
-            'duration': int_or_none(item.get('duration'), 1000),
+            'duration': int_or_none(item.get('duration')),
             'thumbnail': url_or_none(item.get('thumbnail')),
         })
 
