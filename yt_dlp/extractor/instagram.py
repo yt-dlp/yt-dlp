@@ -200,14 +200,18 @@ class InstagramIE(InfoExtractor):
             comment_count = get_count(
                 ('preview_comment', 'to_comment', 'to_parent_comment'), 'comment')
 
-            comments = [{
-                'author': comment.get('node', {}).get('owner', {}).get('username'),
-                'author_id': comment.get('node', {}).get('owner', {}).get('id'),
-                'id': comment.get('node', {}).get('id'),
-                'text': comment.get('node', {}).get('text'),
-                'timestamp': int_or_none(comment.get('node', {}).get('created_at')),
-            } for comment in media.get(
-                'edge_media_to_parent_comment', {}).get('edges', []) if comment.get('node', {}).get('text')]
+            comments = []
+            for comment in media.get('edge_media_to_parent_comment', {}).get('edges', []):
+                comment_dict = comment.get('node', {})
+                comment_text = comment_dict.get('text')
+                if comment_text:
+                    comments.append({
+                        'author': comment_dict.get('owner', {}).get('username'),
+                        'author_id': comment_dict.get('owner', {}).get('id'),
+                        'id': comment_dict.get('id'),
+                        'text': comment_dict.get('text'),
+                        'timestamp': int_or_none(comment_dict.get('created_at')),
+                    })
             if not video_url:
                 edges = try_get(
                     media, lambda x: x['edge_sidecar_to_children']['edges'],
