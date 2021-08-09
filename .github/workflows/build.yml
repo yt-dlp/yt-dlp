@@ -103,7 +103,8 @@ jobs:
     - name: Upgrade pip and enable wheel support
       run: python -m pip install --upgrade pip setuptools wheel
     - name: Install Requirements
-      run: pip install pyinstaller mutagen pycryptodome websockets
+      # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
+      run: pip install "https://yt-dlp.github.io/pyinstaller-builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodome websockets
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
@@ -147,7 +148,7 @@ jobs:
     - name: Upgrade pip and enable wheel support
       run: python -m pip install --upgrade pip setuptools wheel
     - name: Install Requirements
-      run: pip install pyinstaller mutagen pycryptodome websockets
+      run: pip install "https://yt-dlp.github.io/pyinstaller-builds/i686/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodome websockets
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
