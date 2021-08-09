@@ -209,7 +209,7 @@ class InstagramIE(InfoExtractor):
                         'author': comment_dict.get('owner', {}).get('username'),
                         'author_id': comment_dict.get('owner', {}).get('id'),
                         'id': comment_dict.get('id'),
-                        'text': comment_dict.get('text'),
+                        'text': comment_text,
                         'timestamp': int_or_none(comment_dict.get('created_at')),
                     })
             if not video_url:
