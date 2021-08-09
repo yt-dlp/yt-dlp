@@ -3,9 +3,7 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from .cbs import CBSBaseIE
 from ..utils import (
-    ExtractorError,
     int_or_none,
-    update_url_query,
     url_or_none,
 )
 
