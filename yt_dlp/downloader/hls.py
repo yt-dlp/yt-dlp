@@ -334,7 +334,8 @@ class HlsFD(FragmentFD):
                     webvtt.CueBlock.from_json(cue).write_into(output)
 
                 return output.getvalue().encode('utf-8')
+
+            self.download_and_append_fragments(
+                ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
         else:
-            pack_fragment = None
-            fin_fragments = None
-        return self.download_and_append_fragments(ctx, fragments, info_dict, pack_fragment, fin_func=fin_fragments)
+            return self.download_and_append_fragments(ctx, fragments, info_dict)
