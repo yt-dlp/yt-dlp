@@ -151,6 +151,7 @@ from .bitwave import (
     BitwaveStreamIE,
 )
 from .biqle import BIQLEIE
+from .blackboardcollaborate import BlackboardCollaborateIE
 from .bleacherreport import (
     BleacherReportIE,
     BleacherReportCMSIE,
