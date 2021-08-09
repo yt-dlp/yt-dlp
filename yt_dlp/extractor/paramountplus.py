@@ -50,6 +50,38 @@ class ParamountPlusIE(CBSBaseIE):
             'skip_download': 'm3u8',
         },
     }, {
+        'url': 'https://www.paramountplus.com/movies/daddys-home/vM2vm0kE6vsS2U41VhMRKTOVHyQAr6pC',
+        'info_dict': {
+            'id': 'vM2vm0kE6vsS2U41VhMRKTOVHyQAr6pC',
+            'ext': 'mp4',
+            'title': 'Daddy\'s Home',
+            'upload_date': '20151225',
+            'description': 'md5:a0beaf24e8d3b0e81b2ee41d47c06f33',
+            'uploader': 'CBSI-NEW',
+            'timestamp': 1451030400,
+        },
+        'params': {
+            'skip_download': 'm3u8',
+            'format': 'bestvideo',
+        },
+        'expected_warnings': ['Ignoring subtitle tracks'],  # TODO: Investigate this
+    }, {
+        'url': 'https://www.paramountplus.com/movies/sonic-the-hedgehog/5EKDXPOzdVf9voUqW6oRuocyAEeJGbEc',
+        'info_dict': {
+            'id': '5EKDXPOzdVf9voUqW6oRuocyAEeJGbEc',
+            'ext': 'mp4',
+            'uploader': 'CBSI-NEW',
+            'description': 'md5:bc7b6fea84ba631ef77a9bda9f2ff911',
+            'timestamp': 1577865600,
+            'title': 'Sonic the Hedgehog',
+            'upload_date': '20200101',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+            'format': 'bestvideo',
+        },
+        'expected_warnings': ['Ignoring subtitle tracks'],
+    }, {
         'url': 'https://www.paramountplus.com/shows/all-rise/video/QmR1WhNkh1a_IrdHZrbcRklm176X_rVc/all-rise-space/',
         'only_matching': True,
     }, {
