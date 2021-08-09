@@ -129,7 +129,7 @@ class MirrativUserIE(MirrativBaseIE):
                     continue
                 live_id = live.get('live_id')
                 url = 'https://www.mirrativ.com/live/%s' % live_id
-                entries.append(self.url_result(url, 'Mirrativ', live_id, live.get('title')))
+                entries.append(self.url_result(url, video_id=live_id, video_title=live.get('title')))
             page = api_response.get('next_page')
 
         return self.playlist_result(entries, user_id, uploader, description)
