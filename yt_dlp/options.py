@@ -23,7 +23,7 @@ from .cookies import SUPPORTED_BROWSERS
 from .version import __version__
 
 from .downloader.external import list_external_downloaders
-from .postprocessor.ffmpeg import (
+from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
@@ -803,9 +803,8 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='skip_download', default=False,
         help='Do not download the video but write all related files (Alias: --no-download)')
     verbosity.add_option(
-        '-O', '--print', metavar='TEMPLATE',
-        action='callback', dest='forceprint', type='str', default=[],
-        callback=_list_from_options_callback, callback_kwargs={'delim': None},
+        '-O', '--print',
+        metavar='TEMPLATE', action='append', dest='forceprint',
         help=(
             'Quiet, but print the given fields for each video. Simulate unless --no-simulate is used. '
             'Either a field name or same syntax as the output template can be used'))
@@ -1241,10 +1240,14 @@ def parseOpts(overrideArguments=None):
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--parse-metadata',
-        metavar='FROM:TO', dest='metafromfield', action='append',
+        metavar='FROM:TO', dest='parse_metadata', action='append',
         help=(
             'Parse additional metadata like title/artist from other fields; '
             'see "MODIFYING METADATA" for details'))
+    postproc.add_option(
+        '--replace-in-metadata',
+        dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
+        help='Replace text in a metadata field using the given regex. This option can be used multiple times')
     postproc.add_option(
         '--xattrs',
         action='store_true', dest='xattrs', default=False,
@@ -1272,8 +1275,7 @@ def parseOpts(overrideArguments=None):
         help='Location of the ffmpeg binary; either the path to the binary or its containing directory')
     postproc.add_option(
         '--exec', metavar='CMD',
-        action='callback', dest='exec_cmd', default=[], type='str',
-        callback=_list_from_options_callback, callback_kwargs={'delim': None},
+        action='append', dest='exec_cmd',
         help=(
             'Execute a command on the file after downloading and post-processing. '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
@@ -1286,8 +1288,7 @@ def parseOpts(overrideArguments=None):
         help='Remove any previously defined --exec')
     postproc.add_option(
         '--exec-before-download', metavar='CMD',
-        action='callback', dest='exec_before_dl_cmd', default=[], type='str',
-        callback=_list_from_options_callback, callback_kwargs={'delim': None},
+        action='append', dest='exec_before_dl_cmd',
         help=(
             'Execute a command before the actual download. '
             'The syntax is the same as --exec but "filepath" is not available. '

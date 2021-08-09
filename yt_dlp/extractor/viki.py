@@ -73,7 +73,7 @@ class VikiBaseIE(InfoExtractor):
             data=json.dumps(data).encode('utf-8') if data else None,
             headers=({'x-viki-app-ver': self._APP_VERSION} if data
                      else self._stream_headers(timestamp, sig) if query is None
-                     else None)) or {}
+                     else None), expected_status=400) or {}
 
         self._raise_error(resp.get('error'), fatal)
         return resp

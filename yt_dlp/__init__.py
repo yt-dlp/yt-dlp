@@ -7,6 +7,7 @@ __license__ = 'Public Domain'
 
 import codecs
 import io
+import itertools
 import os
 import random
 import re
@@ -18,6 +19,7 @@ from .options import (
 )
 from .compat import (
     compat_getpass,
+    compat_shlex_quote,
     workaround_optparse_bug9161,
 )
 from .cookies import SUPPORTED_BROWSERS
@@ -46,14 +48,15 @@ from .downloader import (
 from .extractor import gen_extractors, list_extractors
 from .extractor.common import InfoExtractor
 from .extractor.adobepass import MSO_INFO
-from .postprocessor.ffmpeg import (
+from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoConvertorPP,
     FFmpegVideoRemuxerPP,
+    MetadataFromFieldPP,
+    MetadataParserPP,
 )
-from .postprocessor.metadatafromfield import MetadataFromFieldPP
 from .YoutubeDL import YoutubeDL
 
 
@@ -329,7 +332,8 @@ def _real_main(argv=None):
 
     for k, tmpl in opts.outtmpl.items():
         validate_outtmpl(tmpl, '%s output template' % k)
-    for tmpl in opts.forceprint:
+    opts.forceprint = opts.forceprint or []
+    for tmpl in opts.forceprint or []:
         validate_outtmpl(tmpl, 'print template')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
@@ -344,13 +348,29 @@ def _real_main(argv=None):
         if re.match(InfoExtractor.FormatSort.regex, f) is None:
             parser.error('invalid format sort string "%s" specified' % f)
 
-    if opts.metafromfield is None:
-        opts.metafromfield = []
+    def metadataparser_actions(f):
+        if isinstance(f, str):
+            cmd = '--parse-metadata %s' % compat_shlex_quote(f)
+            try:
+                actions = [MetadataFromFieldPP.to_action(f)]
+            except Exception as err:
+                parser.error(f'{cmd} is invalid; {err}')
+        else:
+            cmd = '--replace-in-metadata %s' % ' '.join(map(compat_shlex_quote, f))
+            actions = ((MetadataParserPP.Actions.REPLACE, x, *f[1:]) for x in f[0].split(','))
+
+        for action in actions:
+            try:
+                MetadataParserPP.validate_action(*action)
+            except Exception as err:
+                parser.error(f'{cmd} is invalid; {err}')
+            yield action
+
+    if opts.parse_metadata is None:
+        opts.parse_metadata = []
     if opts.metafromtitle is not None:
-        opts.metafromfield.append('title:%s' % opts.metafromtitle)
-    for f in opts.metafromfield:
-        if re.match(MetadataFromFieldPP.regex, f) is None:
-            parser.error('invalid format string "%s" specified for --parse-metadata' % f)
+        opts.parse_metadata.append('title:%s' % opts.metafromtitle)
+    opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, opts.parse_metadata)))
 
     any_getting = opts.forceprint or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration or opts.dumpjson or opts.dump_single_json
     any_printing = opts.print_json
@@ -402,10 +422,10 @@ def _real_main(argv=None):
 
     # PostProcessors
     postprocessors = []
-    if opts.metafromfield:
+    if opts.parse_metadata:
         postprocessors.append({
-            'key': 'MetadataFromField',
-            'formats': opts.metafromfield,
+            'key': 'MetadataParser',
+            'actions': opts.parse_metadata,
             # Run this immediately after extraction is complete
             'when': 'pre_process'
         })
@@ -426,7 +446,7 @@ def _real_main(argv=None):
     # Must be after all other before_dl
     if opts.exec_before_dl_cmd:
         postprocessors.append({
-            'key': 'ExecAfterDownload',
+            'key': 'Exec',
             'exec_cmd': opts.exec_before_dl_cmd,
             'when': 'before_dl'
         })
@@ -497,10 +517,10 @@ def _real_main(argv=None):
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})
-    # ExecAfterDownload must be the last PP
+    # Exec must be the last PP
     if opts.exec_cmd:
         postprocessors.append({
-            'key': 'ExecAfterDownload',
+            'key': 'Exec',
             'exec_cmd': opts.exec_cmd,
             # Run this only after the files have been moved to their final locations
             'when': 'after_move'

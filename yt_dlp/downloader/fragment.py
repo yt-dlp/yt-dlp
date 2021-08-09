@@ -105,17 +105,19 @@ class FragmentFD(FileDownloader):
 
     def _write_ytdl_file(self, ctx):
         frag_index_stream, _ = sanitize_open(self.ytdl_filename(ctx['filename']), 'w')
-        downloader = {
-            'current_fragment': {
-                'index': ctx['fragment_index'],
-            },
-        }
-        if 'extra_state' in ctx:
-            downloader['extra_state'] = ctx['extra_state']
-        if ctx.get('fragment_count') is not None:
-            downloader['fragment_count'] = ctx['fragment_count']
-        frag_index_stream.write(json.dumps({'downloader': downloader}))
-        frag_index_stream.close()
+        try:
+            downloader = {
+                'current_fragment': {
+                    'index': ctx['fragment_index'],
+                },
+            }
+            if 'extra_state' in ctx:
+                downloader['extra_state'] = ctx['extra_state']
+            if ctx.get('fragment_count') is not None:
+                downloader['fragment_count'] = ctx['fragment_count']
+            frag_index_stream.write(json.dumps({'downloader': downloader}))
+        finally:
+            frag_index_stream.close()
 
     def _download_fragment(self, ctx, frag_url, info_dict, headers=None, request_data=None):
         fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], ctx['fragment_index'])
