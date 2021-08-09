@@ -54,9 +54,9 @@ class BlackboardCollaborateIE(InfoExtractor):
         info = self._download_json(
             'https://{}.bbcollab.com/collab/api/csa/recordings/{}/data'.format(region, video_id), video_id)
         duration = info.get('duration')
-        title = info.get('name')
+        title = info['name']
         upload_date = info.get('created')
-        streams = info.get('streams')
+        streams = info['streams']
         formats = [{'format_id': k, 'url': url} for k, url in streams.items()]
 
         return {
