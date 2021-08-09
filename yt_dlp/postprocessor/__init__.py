@@ -20,8 +20,11 @@ from .ffmpeg import (
 )
 from .xattrpp import XAttrMetadataPP
 from .execafterdownload import ExecAfterDownloadPP
-from .metadatafromfield import MetadataFromFieldPP
-from .metadatafromfield import MetadataFromTitlePP
+from .metadataparser import (
+    MetadataFromFieldPP,
+    MetadataFromTitlePP,
+    MetadataParserPP,
+)
 from .movefilesafterdownload import MoveFilesAfterDownloadPP
 from .sponskrub import SponSkrubPP
 
@@ -48,6 +51,7 @@ __all__ = [
     'FFmpegThumbnailsConvertorPP',
     'FFmpegVideoConvertorPP',
     'FFmpegVideoRemuxerPP',
+    'MetadataParserPP',
     'MetadataFromFieldPP',
     'MetadataFromTitlePP',
     'MoveFilesAfterDownloadPP',

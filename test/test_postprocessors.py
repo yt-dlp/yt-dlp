@@ -14,29 +14,28 @@ from yt_dlp.postprocessor import (
     ExecAfterDownloadPP,
     FFmpegThumbnailsConvertorPP,
     MetadataFromFieldPP,
-    MetadataFromTitlePP,
+    MetadataParserPP,
 )
 
 
 class TestMetadataFromField(unittest.TestCase):
+
     def test_format_to_regex(self):
-        pp = MetadataFromFieldPP(None, ['title:%(title)s - %(artist)s'])
-        self.assertEqual(pp._data[0]['regex'], r'(?P<title>.+)\ \-\ (?P<artist>.+)')
+        self.assertEqual(
+            MetadataParserPP.format_to_regex('%(title)s - %(artist)s'),
+            r'(?P<title>.+)\ \-\ (?P<artist>.+)')
+        self.assertEqual(MetadataParserPP.format_to_regex(r'(?P<x>.+)'), r'(?P<x>.+)')
 
-    def test_field_to_outtmpl(self):
-        pp = MetadataFromFieldPP(None, ['title:%(title)s : %(artist)s'])
-        self.assertEqual(pp._data[0]['tmpl'], '%(title)s')
+    def test_field_to_template(self):
+        self.assertEqual(MetadataParserPP.field_to_template('title'), '%(title)s')
+        self.assertEqual(MetadataParserPP.field_to_template('1'), '1')
+        self.assertEqual(MetadataParserPP.field_to_template('foo bar'), 'foo bar')
+        self.assertEqual(MetadataParserPP.field_to_template(' literal'), ' literal')
 
-    def test_in_out_seperation(self):
-        pp = MetadataFromFieldPP(None, ['%(title)s \\: %(artist)s:%(title)s : %(artist)s'])
-        self.assertEqual(pp._data[0]['in'], '%(title)s : %(artist)s')
-        self.assertEqual(pp._data[0]['out'], '%(title)s : %(artist)s')
-
-
-class TestMetadataFromTitle(unittest.TestCase):
-    def test_format_to_regex(self):
-        pp = MetadataFromTitlePP(None, '%(title)s - %(artist)s')
-        self.assertEqual(pp._titleregex, r'(?P<title>.+)\ \-\ (?P<artist>.+)')
+    def test_metadatafromfield(self):
+        self.assertEqual(
+            MetadataFromFieldPP.to_action('%(title)s \\: %(artist)s:%(title)s : %(artist)s'),
+            (MetadataParserPP.Actions.INTERPRET, '%(title)s : %(artist)s', '%(title)s : %(artist)s'))
 
 
 class TestConvertThumbnail(unittest.TestCase):

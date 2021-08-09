@@ -777,6 +777,10 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --parse-metadata FROM:TO         Parse additional metadata like title/artist
                                      from other fields; see "MODIFYING METADATA"
                                      for details
+    --replace-in-metadata FIELDS REGEX REPLACE
+                                     Replace text in a metadata field using the
+                                     given regex. This option can be used
+                                     multiple times
     --xattrs                         Write metadata to the video file's xattrs
                                      (using dublin core and xdg standards)
     --fixup POLICY                   Automatically correct known faults of the
@@ -1333,7 +1337,11 @@ $ yt-dlp -S '+res:480,codec,br'
 
 # MODIFYING METADATA
 
-The metadata obtained the the extractors can be modified by using `--parse-metadata FROM:TO`. The general syntax is to give the name of a field or a template (with similar syntax to [output template](#output-template)) to extract data from, and the format to interpret it as, separated by a colon `:`. Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
+The metadata obtained the the extractors can be modified by using `--parse-metadata` and `--replace-in-metadata`
+
+`--replace-in-metadata FIELDS REGEX REPLACE` is used to replace text in any metatdata field using [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax). [Backreferences](https://docs.python.org/3/library/re.html?highlight=backreferences#re.sub) can be used in the replace string for advanced use.
+
+The general syntax of `--parse-metadata FROM:TO` is to give the name of a field or a template (with same syntax as [output template](#output-template)) to extract data from, and the format to interpret it as, separated by a colon `:`. Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
 
 Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--add-metadata`.
 
@@ -1379,6 +1387,9 @@ $ yt-dlp --parse-metadata '%(series)s S%(season_number)02dE%(episode_number)02d:
 
 # Set "comment" field in video metadata using description instead of webpage_url
 $ yt-dlp --parse-metadata 'description:(?s)(?P<meta_comment>.+)' --add-metadata
+
+# Replace all spaces and "_" in title and uploader with a `-`
+$ yt-dlp --replace-in-metadata 'title,uploader' '[ _]' '-'
 
 ```
 

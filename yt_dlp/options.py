@@ -1241,10 +1241,14 @@ def parseOpts(overrideArguments=None):
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--parse-metadata',
-        metavar='FROM:TO', dest='metafromfield', action='append',
+        metavar='FROM:TO', dest='parse_metadata', action='append',
         help=(
             'Parse additional metadata like title/artist from other fields; '
             'see "MODIFYING METADATA" for details'))
+    postproc.add_option(
+        '--replace-in-metadata',
+        dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
+        help='Replace text in a metadata field using the given regex. This option can be used multiple times')
     postproc.add_option(
         '--xattrs',
         action='store_true', dest='xattrs', default=False,
