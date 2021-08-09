@@ -6,6 +6,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     update_url_query,
+    url_or_none,
 )
 
 
@@ -17,6 +18,7 @@ class ParamountPlusIE(CBSBaseIE):
                 paramountplus\.com/(?:shows/[^/]+/video|movies/[^/]+)/
         )(?P<id>[\w-]+))'''
 
+    # All tests are blocked outside US
     _TESTS = [{
         'url': 'https://www.paramountplus.com/shows/catdog/video/Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k/catdog-climb-every-catdog-the-canine-mutiny/',
         'info_dict': {
@@ -32,7 +34,6 @@ class ParamountPlusIE(CBSBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Blocked outside the US',
     }, {
         'url': 'https://www.paramountplus.com/shows/tooning-out-the-news/video/6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd/7-23-21-week-in-review-rep-jahana-hayes-howard-fineman-sen-michael-bennet-sheera-frenkel-cecilia-kang-/',
         'info_dict': {
@@ -48,7 +49,6 @@ class ParamountPlusIE(CBSBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
-        '_skip': 'Blocked outside the US',
     }, {
         'url': 'https://www.paramountplus.com/shows/all-rise/video/QmR1WhNkh1a_IrdHZrbcRklm176X_rVc/all-rise-space/',
         'only_matching': True,
@@ -57,63 +57,26 @@ class ParamountPlusIE(CBSBaseIE):
         'only_matching': True,
     }]
 
-    def _extract_video_info(self, content_id, site='cbs', mpx_acc=2198311517):
+    def _extract_video_info(self, content_id, mpx_acc=2198311517):
         items_data = self._download_json(
             'https://www.paramountplus.com/apps-api/v2.0/androidtv/video/cid/%s.json' % content_id,
             content_id, query={'locale': 'en-us', 'at': 'ABCqWNNSwhIqINWIIAG+DFzcFUvF8/vcN6cNyXFFfNzWAIvXuoVgX+fK4naOC7V8MLI='})
-        tp_path = 'dJ5BDC/media/guid/%d/%s' % (mpx_acc, content_id)
-        tp_release_url = 'https://link.theplatform.com/s/' + tp_path
 
-        asset_types = []
-        subtitles = {}
-        formats = []
-        last_e = None
-        for item in items_data['itemList']:
-            asset_type = item['assetType']
-            query = {
+        asset_types = {
+            item.get(asset_type): (False, {
                 'format': 'SMIL',
-            }
-            if asset_type in asset_types:
-                continue
-            asset_types.append(asset_type)
-            query['formats'] = 'MPEG4,M3U'
-            try:
-                tp_formats, tp_subtitles = self._extract_theplatform_smil(
-                    update_url_query(tp_release_url, query), content_id,
-                    'Downloading %s SMIL data' % asset_type)
-            except ExtractorError as e:
-                last_e = e
-                query['formats'] = ''  # blank query to check if expired
-                try:
-                    tp_formats, tp_subtitles = self._extract_theplatform_smil(
-                        update_url_query(tp_release_url, query), content_id,
-                        'Downloading %s SMIL data, trying again with another format' % asset_type)
-                except ExtractorError as e:
-                    last_e = e
-                    continue
-            formats.extend(tp_formats)
-            subtitles = self._merge_subtitles(subtitles, tp_subtitles)
-        if last_e and not formats:
-            self.raise_no_formats(last_e, True, content_id)
-        self._sort_formats(formats)
-
-        info = self._extract_theplatform_metadata(tp_path, content_id)
-        info.update({
-            'formats': formats,
-            'subtitles': subtitles,
-            'id': content_id,
+                'formats': 'MPEG4,M3U',
+            }) for item in items_data['itemList']
+        }
+        item = items_data['itemList'][-1]
+        return self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info={
             'title': item.get('title'),
             'series': item.get('seriesTitle'),
             'season_number': int_or_none(item.get('seasonNum')),
             'episode_number': int_or_none(item.get('episodeNum')),
             'duration': int_or_none(item.get('duration'), 1000),
-            'thumbnail': item.get('thumbnail')
+            'thumbnail': url_or_none(item.get('thumbnail')),
         })
-        return info
-
-    def _real_extract(self, url):
-        content_id = self._match_id(url)
-        return self._extract_video_info(content_id)
 
 
 class ParamountPlusSeriesIE(InfoExtractor):
