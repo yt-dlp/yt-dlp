@@ -29,6 +29,7 @@ from ..utils import (
     merge_dicts,
     remove_end,
     sanitized_Request,
+    try_get,
     urlencode_postdata,
     xpath_text,
 )
@@ -458,6 +459,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         video_description = (self._parse_json(self._html_search_regex(
             r'<script[^>]*>\s*.+?\[media_id=%s\].+?({.+?"description"\s*:.+?})\);' % video_id,
             webpage, 'description', default='{}'), video_id) or media_metadata).get('description')
+
+        thumbnails = []
+        thumbnail_url = (self._parse_json(self._html_search_regex(
+            r'<script type="application\/ld\+json">\n\s*(.+?)<\/script>',
+            webpage, 'thumbnail_url', default='{}'), video_id)).get('image')
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': 1920,
+                'height': 1080
+            })
+
         if video_description:
             video_description = lowercase_escape(video_description.replace(r'\r\n', '\n'))
         video_uploader = self._html_search_regex(
@@ -592,21 +605,25 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             r'(?s)<h\d[^>]+\bid=["\']showmedia_about_episode_num[^>]+>(.+?)</h\d',
             webpage, 'series', fatal=False)
 
-        season = episode = episode_number = duration = thumbnail = None
+        season = episode = episode_number = duration = None
 
         if isinstance(metadata, compat_etree_Element):
             season = xpath_text(metadata, 'series_title')
             episode = xpath_text(metadata, 'episode_title')
             episode_number = int_or_none(xpath_text(metadata, 'episode_number'))
             duration = float_or_none(media_metadata.get('duration'), 1000)
-            thumbnail = xpath_text(metadata, 'episode_image_url')
 
         if not episode:
             episode = media_metadata.get('title')
         if not episode_number:
             episode_number = int_or_none(media_metadata.get('episode_number'))
-        if not thumbnail:
-            thumbnail = media_metadata.get('thumbnail', {}).get('url')
+        thumbnail_url = try_get(media, lambda x: x['thumbnail']['url'])
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': 640,
+                'height': 360
+            })
 
         season_number = int_or_none(self._search_regex(
             r'(?s)<h\d[^>]+id=["\']showmedia_about_episode_num[^>]+>.+?</h\d>\s*<h4>\s*Season (\d+)',
@@ -619,7 +636,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             'title': video_title,
             'description': video_description,
             'duration': duration,
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
             'uploader': video_uploader,
             'series': series,
             'season': season,
