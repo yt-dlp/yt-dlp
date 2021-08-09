@@ -29,6 +29,7 @@ from ..utils import (
     merge_dicts,
     remove_end,
     sanitized_Request,
+    try_get,
     urlencode_postdata,
     xpath_text,
 )
@@ -616,7 +617,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             episode = media_metadata.get('title')
         if not episode_number:
             episode_number = int_or_none(media_metadata.get('episode_number'))
-        thumbnail_url = media.get('thumbnail', {}).get('url')
+        thumbnail_url = try_get(media, lambda x: x['thumbnail']['url'])
         if thumbnail_url:
             thumbnails.append({
                 'url': thumbnail_url,
