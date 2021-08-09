@@ -331,6 +331,26 @@ class CueBlock(Block):
             'settings': self.settings,
         }
 
+    def __eq__(self, other):
+        return self.as_json == other.as_json
+
+    @classmethod
+    def from_json(cls, json):
+        return cls(
+            id=json['id'],
+            start=json['start'],
+            end=json['end'],
+            text=json['text'],
+            settings=json['settings']
+        )
+
+    def hinges(self, other):
+        if self.text != other.text:
+            return False
+        if self.settings != other.settings:
+            return False
+        return self.start <= self.end == other.start <= other.end
+
 
 def parse_fragment(frag_content):
     """

@@ -329,7 +329,7 @@ class FragmentFD(FileDownloader):
             'fragment_index': 0,
         })
 
-    def download_and_append_fragments(self, ctx, fragments, info_dict, pack_func=None):
+    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None):
         fragment_retries = self.params.get('fragment_retries', 0)
         is_fatal = (lambda idx: idx == 0) if self.params.get('skip_unavailable_fragments', True) else (lambda _: True)
         if not pack_func:
@@ -424,5 +424,8 @@ class FragmentFD(FileDownloader):
                 if not result:
                     return False
 
+        if finish_func is not None:
+            ctx['dest_stream'].write(finish_func())
+            ctx['dest_stream'].flush()
         self._finish_frag_download(ctx, info_dict)
         return True

@@ -260,29 +260,35 @@ class HlsFD(FragmentFD):
                         block.end += adjust
 
                         dedup_window = extra_state.setdefault('webvtt_dedup_window', [])
-                        cue = block.as_json
 
-                        # skip the cue if an identical one appears
-                        # in the window of potential duplicates
-                        # and prune the window of unviable candidates
+                        ready = []
+
                         i = 0
-                        skip = True
+                        is_new = True
                         while i < len(dedup_window):
-                            window_cue = dedup_window[i]
-                            if window_cue == cue:
-                                break
-                            if window_cue['end'] >= cue['start']:
-                                i += 1
+                            wcue = dedup_window[i]
+                            wblock = webvtt.CueBlock.from_json(wcue)
+                            i += 1
+                            if wblock.hinges(block):
+                                wcue['end'] = block.end
+                                is_new = False
                                 continue
+                            if wblock == block:
+                                is_new = False
+                                continue
+                            if wblock.end > block.start:
+                                continue
+                            ready.append(wblock)
+                            i -= 1
                             del dedup_window[i]
-                        else:
-                            skip = False
 
-                        if skip:
-                            continue
+                        if is_new:
+                            dedup_window.append(block.as_json)
+                        for block in ready:
+                            block.write_into(output)
 
-                        # add the cue to the window
-                        dedup_window.append(cue)
+                        # we only emit cues once they fall out of the duplicate window
+                        continue
                     elif isinstance(block, webvtt.Magic):
                         # take care of MPEG PES timestamp overflow
                         if block.mpegts is None:
@@ -317,6 +323,19 @@ class HlsFD(FragmentFD):
                     block.write_into(output)
 
                 return output.getvalue().encode('utf-8')
+
+            def fin_fragments():
+                dedup_window = extra_state.get('webvtt_dedup_window')
+                if not dedup_window:
+                    return b''
+
+                output = io.StringIO()
+                for cue in dedup_window:
+                    webvtt.CueBlock.from_json(cue).write_into(output)
+
+                return output.getvalue().encode('utf-8')
+
+            self.download_and_append_fragments(
+                ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
         else:
-            pack_fragment = None
-        return self.download_and_append_fragments(ctx, fragments, info_dict, pack_fragment)
+            return self.download_and_append_fragments(ctx, fragments, info_dict)
