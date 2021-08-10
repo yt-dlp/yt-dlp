@@ -102,35 +102,36 @@ class EroProfileAlbumIE(InfoExtractor):
             'id': 'BBW-2-893',
             'title': 'BBW 2'
         },
-        'playlist_mincount': 499,
+        'playlist_mincount': 486,
     },
     ]
+
+    def _entries(self, url, playlist_title, current_page):
+        playlist_id = self._match_id(url)
+
+        playlist_num_pages = 1 + max(map(int, re.findall(
+            r'href=".*?/m/videos/album/{}\?pnum=(\d+)"'.format(playlist_id), current_page)))
+
+        for n in range(2, playlist_num_pages):
+            # process the links on the current page (page n-1)
+            for uri in re.findall(r'href=".*?(/m/videos/view/[^"]+)"', current_page):
+                yield self.url_result("https://www.eroprofile.com" + uri)
+
+            # download the next page (page n), and prepare for the next iteration
+            current_page = self._download_webpage(url + "?pnum={}".format(n),
+                                                  playlist_id,
+                                                  note='Downloading playlist page {}'.format(n))
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        playlist_pages = []
-        playlist_pages.append(self._download_webpage(url, playlist_id,
-                                                     note='Downloading playlist page 1'))
+        first_page = self._download_webpage(url, playlist_id, note='Downloading playlist page 1')
 
         playlist_title = self._search_regex(
-            r'<title>Album: (.*) - EroProfile</title>', playlist_pages[0], 'playlist_title')
+            r'<title>Album: (.*) - EroProfile</title>', first_page, 'playlist_title')
 
-        max_page = max(map(int, re.findall(
-            r'href=".*?/m/videos/album/{}\?pnum=(\d+)"'.format(playlist_id), playlist_pages[0])))
+        entries = self._entries(url, playlist_title, first_page)
 
-        for n in range(2, max_page + 1):
-            page_url = url + "?pnum={}".format(n)
-            playlist_pages.append(self._download_webpage(
-                page_url,
-                playlist_id,
-                note='Downloading playlist page {} of {}'.format(n, max_page)))
-
-        video_links = []
-        for webpage in playlist_pages:
-            video_links += ["https://www.eroprofile.com" + uri
-                            for uri in re.findall(r'href=".*?(/m/videos/view/[^"]+)"', webpage)]
-
-        return self.playlist_result(map(self.url_result, video_links),
+        return self.playlist_result(entries,
                                     playlist_id,
                                     playlist_title)
