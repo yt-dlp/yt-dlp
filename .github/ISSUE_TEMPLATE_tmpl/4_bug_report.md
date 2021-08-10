@@ -29,9 +29,10 @@ Carefully read and work through this check list in order to prevent the most com
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
-- [ ] I'm reporting a broken site support issue
+- [ ] I'm reporting a bug unrelated to a specific site
 - [ ] I've verified that I'm running yt-dlp version **%(version)s**
 - [ ] I've checked that all provided URLs are alive and playable in a browser
+- [ ] The provided URLs do not contain any DRM to the best of my knowledge
 - [ ] I've checked that all URLs and arguments with special characters are properly quoted or escaped
 - [ ] I've searched the bugtracker for similar bug reports including closed ones
 - [ ] I've read bugs section in FAQ

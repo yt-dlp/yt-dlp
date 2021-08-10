@@ -21,7 +21,7 @@ assignees: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
-- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is 2021.08.02. If it's not, see https://github.com/yt-dlp/yt-dlp on how to update. Issues with outdated version will be REJECTED.
+- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is 2021.08.10. If it's not, see https://github.com/yt-dlp/yt-dlp on how to update. Issues with outdated version will be REJECTED.
 - Make sure that all provided video/audio/playlist URLs (if any) are alive and playable in a browser.
 - Make sure that all URLs and arguments with special characters are properly quoted or escaped as explained in https://github.com/yt-dlp/yt-dlp.
 - Search the bugtracker for similar issues: https://github.com/yt-dlp/yt-dlp. DO NOT post duplicates.
@@ -29,9 +29,10 @@ Carefully read and work through this check list in order to prevent the most com
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
-- [ ] I'm reporting a broken site support issue
-- [ ] I've verified that I'm running yt-dlp version **2021.08.02**
+- [ ] I'm reporting a bug unrelated to a specific site
+- [ ] I've verified that I'm running yt-dlp version **2021.08.10**
 - [ ] I've checked that all provided URLs are alive and playable in a browser
+- [ ] The provided URLs do not contain any DRM to the best of my knowledge
 - [ ] I've checked that all URLs and arguments with special characters are properly quoted or escaped
 - [ ] I've searched the bugtracker for similar bug reports including closed ones
 - [ ] I've read bugs section in FAQ
@@ -46,7 +47,7 @@ Add the `-v` flag to your command line you run yt-dlp with (`yt-dlp -v <your com
  [debug] User config: []
  [debug] Command-line args: [u'-v', u'http://www.youtube.com/watch?v=BaW_jenozKc']
  [debug] Encodings: locale cp1251, fs mbcs, out cp866, pref cp1251
- [debug] yt-dlp version 2021.08.02
+ [debug] yt-dlp version 2021.08.10
  [debug] Python version 2.7.11 - Windows-2003Server-5.2.3790-SP2
  [debug] exe versions: ffmpeg N-75573-g1d0487f, ffprobe N-75573-g1d0487f, rtmpdump 2.4
  [debug] Proxy map: {}

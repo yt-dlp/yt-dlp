@@ -21,7 +21,7 @@ assignees: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
-- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is 2021.08.02. If it's not, see https://github.com/yt-dlp/yt-dlp on how to update. Issues with outdated version will be REJECTED.
+- First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is 2021.08.10. If it's not, see https://github.com/yt-dlp/yt-dlp on how to update. Issues with outdated version will be REJECTED.
 - Make sure that all provided video/audio/playlist URLs (if any) are alive and playable in a browser.
 - Make sure that site you are requesting is not dedicated to copyright infringement, see https://github.com/yt-dlp/yt-dlp. yt-dlp does not support such sites. In order for site support request to be accepted all provided example URLs should not violate any copyrights.
 - Search the bugtracker for similar site support requests: https://github.com/yt-dlp/yt-dlp. DO NOT post duplicates.
@@ -29,9 +29,10 @@ Carefully read and work through this check list in order to prevent the most com
 -->
 
 - [ ] I'm reporting a new site support request
-- [ ] I've verified that I'm running yt-dlp version **2021.08.02**
+- [ ] I've verified that I'm running yt-dlp version **2021.08.10**
 - [ ] I've checked that all provided URLs are alive and playable in a browser
 - [ ] I've checked that none of provided URLs violate any copyrights
+- [ ] The provided URLs do not contain any DRM to the best of my knowledge
 - [ ] I've searched the bugtracker for similar site support requests including closed ones
 
 
