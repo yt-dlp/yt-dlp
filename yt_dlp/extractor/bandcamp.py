@@ -212,7 +212,7 @@ class BandcampIE(InfoExtractor):
 
 class BandcampAlbumIE(BandcampIE):
     IE_NAME = 'Bandcamp:album'
-    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?!/music)(?:/album/(?P<id>[^/?#&]+)|)?'
+    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?!/music)(?:/album/(?P<id>[^/?#&]+))?'
 
     _TESTS = [{
         'url': 'http://blazo.bandcamp.com/album/jazz-format-mixtape-vol-1',
