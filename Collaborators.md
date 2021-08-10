@@ -15,6 +15,8 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 ## [shirt](https://github.com/shirt-dev)
 
+[![ko-fi](https://img.shields.io/badge/_-Ko--fi-red.svg?logo=kofi&labelColor=555555&style=for-the-badge)](https://ko-fi.com/shirt)
+
 * Multithreading (`-N`) and aria2c support for fragment downloads
 * Support for media initialization and discontinuity in HLS
 * The self-updater (`-U`)

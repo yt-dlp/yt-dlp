@@ -95,6 +95,7 @@
  - **Bandcamp**
  - **Bandcamp:album**
  - **Bandcamp:weekly**
+ - **BandcampMusic**
  - **bangumi.bilibili.com**: BiliBili番剧
  - **bbc**: BBC
  - **bbc.co.uk**: BBC iPlayer
@@ -129,6 +130,7 @@
  - **BitChuteChannel**
  - **bitwave:replay**
  - **bitwave:stream**
+ - **BlackboardCollaborate**
  - **BleacherReport**
  - **BleacherReportCMS**
  - **Bloomberg**
@@ -295,6 +297,7 @@
  - **Engadget**
  - **Eporner**
  - **EroProfile**
+ - **EroProfile:album**
  - **Escapist**
  - **ESPN**
  - **ESPNArticle**
@@ -552,6 +555,8 @@
  - **MinistryGrid**
  - **Minoto**
  - **miomio.tv**
+ - **mirrativ**
+ - **mirrativ:user**
  - **MiTele**: mitele.es
  - **mixcloud**
  - **mixcloud:playlist**
@@ -703,6 +708,8 @@
  - **OnionStudios**
  - **Ooyala**
  - **OoyalaExternal**
+ - **openrec**
+ - **openrec:capture**
  - **OraTV**
  - **orf:burgenland**: Radio Burgenland
  - **orf:fm4**: radio FM4
@@ -728,6 +735,7 @@
  - **PalcoMP3:video**
  - **pandora.tv**: 판도라TV
  - **ParamountNetwork**
+ - **ParamountPlus**
  - **ParamountPlusSeries**
  - **parliamentlive.tv**: UK parliament videos
  - **Parlview**
@@ -816,6 +824,7 @@
  - **RCSVarious**
  - **RCTIPlus**
  - **RCTIPlusSeries**
+ - **RCTIPlusTV**
  - **RDS**: RDS.ca
  - **RedBull**
  - **RedBullEmbed**

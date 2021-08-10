@@ -19,6 +19,60 @@
 -->
 
 
+### 2021.08.10
+
+* Add option `--replace-in-metadata`
+* Add option `--no-simulate` to not simulate even when `--print` or `--list...` are used - Deprecates `--print-json`
+* Allow entire infodict to be printed using `%()s` - makes `--dump-json` redundant
+* Allow multiple `--exec` and `--exec-before-download`
+* Add regex to `--match-filter`
+* Add all format filtering operators also to `--match-filter` by [max-te](https://github.com/max-te)
+* Add compat-option `no-keep-subs`
+* [adobepass] Add MSO Cablevision by [Jessecar96](https://github.com/Jessecar96)
+* [BandCamp] Add BandcampMusicIE by [Ashish0804](https://github.com/Ashish0804)
+* [blackboardcollaborate] Add new extractor by [Ashish0804](https://github.com/Ashish0804)
+* [eroprofile] Add album downloader by [jhwgh1968](https://github.com/jhwgh1968)
+* [mirrativ] Add extractors by [nao20010128nao](https://github.com/nao20010128nao)
+* [openrec] Add extractors by [nao20010128nao](https://github.com/nao20010128nao)
+* [nbcolympics:stream] Fix extractor by [nchilada](https://github.com/nchilada), [pukkandan](https://github.com/pukkandan)
+* [nbcolympics] Update extractor for 2020 olympics by [wesnm](https://github.com/wesnm)
+* [paramountplus] Separate extractor and fix some titles by [shirt](https://github.com/shirt-dev), [pukkandan](https://github.com/pukkandan)
+* [RCTIPlus] Support events and TV by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [Newgrounds] Improve extractor and fix playlist by [u-spec-png](https://github.com/u-spec-png)
+* [aenetworks] Update `_THEPLATFORM_KEY` and `_THEPLATFORM_SECRET` by [wesnm](https://github.com/wesnm)
+* [crunchyroll] Fix thumbnail by [funniray](https://github.com/funniray)
+* [HotStar] Use API for metadata and extract subtitles by [Ashish0804](https://github.com/Ashish0804)
+* [instagram] Fix comments extraction by [u-spec-png](https://github.com/u-spec-png)
+* [peertube] Fix videos without description by [u-spec-png](https://github.com/u-spec-png)
+* [twitch:clips] Extract `display_id` by [dirkf](https://github.com/dirkf)
+* [viki] Print error message from API request
+* [Vine] Remove invalid formats by [u-spec-png](https://github.com/u-spec-png)
+* [VrtNU] Fix XSRF token by [pgaig](https://github.com/pgaig)
+* [vrv] Fix thumbnail extraction by [funniray](https://github.com/funniray)
+* [youtube] Add extractor-arg `include-live-dash` to show live dash formats
+* [youtube] Improve signature function detection by [PSlava](https://github.com/PSlava)
+* [youtube] Raise appropriate error when API pages can't be downloaded
+* Ensure `_write_ytdl_file` closes file handle on error
+* Fix `--compat-options filename` by [stdedos](https://github.com/stdedos)
+* Fix issues with infodict sanitization
+* Fix resuming when using `--no-part`
+* Fix wrong extension for intermediate files
+* Handle `BrokenPipeError` by [kikuyan](https://github.com/kikuyan)
+* Show libraries present in verbose head
+* [extractor] Detect `sttp` as subtitles in MPD by [fstirlitz](https://github.com/fstirlitz)
+* [extractor] Reset non-repeating warnings per video
+* [ffmpeg] Fix streaming `mp4` to `stdout`
+* [ffpmeg] Allow `--ffmpeg-location` to be a file with different name
+* [utils] Fix `InAdvancePagedList.__getitem__`
+* [utils] Fix `traverse_obj` depth when `is_user_input`
+* [webvtt] Merge daisy-chained duplicate cues by [fstirlitz](https://github.com/fstirlitz)
+* [build] Use custom build of `pyinstaller` by [shirt](https://github.com/shirt-dev)
+* [tests:download] Add batch testing for extractors (`test_YourExtractor_all`)
+* [docs] Document which fields `--add-metadata` adds to the file
+* [docs] Fix some mistakes and improve doc
+* [cleanup] Misc code cleanup
+
+
 ### 2021.08.02
 
 * Add logo, banner and donate links
