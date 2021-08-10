@@ -30,7 +30,7 @@
 * Add compat-option `no-keep-subs`
 * [adobepass] Add MSO Cablevision by [Jessecar96](https://github.com/Jessecar96)
 * [BandCamp] Add BandcampMusicIE by [Ashish0804](https://github.com/Ashish0804)
-* [blackboardcollaborate] Add new extractor by [Ashish0804](https://github.com/Ashish0804)
+* [blackboardcollaborate] Add new extractor by [mzbaulhaque](https://github.com/mzbaulhaque)
 * [eroprofile] Add album downloader by [jhwgh1968](https://github.com/jhwgh1968)
 * [mirrativ] Add extractors by [nao20010128nao](https://github.com/nao20010128nao)
 * [openrec] Add extractors by [nao20010128nao](https://github.com/nao20010128nao)
