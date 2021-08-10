@@ -5,6 +5,7 @@ from ..utils import (
     ExtractorError,
     dict_get,
     traverse_obj,
+    try_get,
 )
 
 
@@ -57,10 +58,7 @@ class MirrativIE(MirrativBaseIE):
         description = live_response.get('description')
         thumbnail = live_response.get('image_url')
 
-        if live_response.get('started_at') and live_response.get('ended_at'):
-            duration = live_response.get('ended_at') - live_response.get('started_at')
-        else:
-            duration = None
+        duration = try_get(live_response, lambda x: x['ended_at'] - x['started_at'])
         view_count = live_response.get('total_viewer_num')
         release_timestamp = live_response.get('started_at')
         timestamp = live_response.get('created_at')
