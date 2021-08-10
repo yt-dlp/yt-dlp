@@ -45,13 +45,14 @@ class MirrativIE(MirrativBaseIE):
         rtmp_url = live_response.get('streaming_url_edge')
         if rtmp_url:
             keys_to_copy = ('width', 'height', 'vcodec', 'acodec', 'tbr')
-            formats.append({
+            fmt = {
                 'format_id': 'rtmp',
                 'url': rtmp_url,
                 'protocol': 'rtmp',
                 'ext': 'mp4',
-                **{k: traverse_obj(formats, (0, k)) for k in keys_to_copy},
-            })
+            }
+            fmt.update({k: traverse_obj(formats, (0, k)) for k in keys_to_copy})
+            formats.append(fmt)
         self._sort_formats(formats)
 
         title = self._og_search_title(webpage, default=None) or self._search_regex(
