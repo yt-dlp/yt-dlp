@@ -201,13 +201,13 @@ class InstagramIE(InfoExtractor):
                 ('preview_comment', 'to_comment', 'to_parent_comment'), 'comment')
 
             comments = []
-            for comment in media.get('edge_media_to_parent_comment', {}).get('edges', []):
+            for comment in try_get(media, lambda x: x['edge_media_to_parent_comment']['edges']):
                 comment_dict = comment.get('node', {})
                 comment_text = comment_dict.get('text')
                 if comment_text:
                     comments.append({
-                        'author': comment_dict.get('owner', {}).get('username'),
-                        'author_id': comment_dict.get('owner', {}).get('id'),
+                        'author': try_get(comment_dict, lambda x: x['owner']['username']),
+                        'author_id': try_get(comment_dict, lambda x: x['owner']['id']),
                         'id': comment_dict.get('id'),
                         'text': comment_text,
                         'timestamp': int_or_none(comment_dict.get('created_at')),
