@@ -1596,6 +1596,10 @@ from .vodlocker import VodlockerIE
 from .vodpl import VODPlIE
 from .vodplatform import VODPlatformIE
 from .voicerepublic import VoiceRepublicIE
+from .voicy import (
+    VoicyIE,
+    VoicyChannelIE,
+)
 from .voot import (
     VootIE,
     VootSeriesIE,
