@@ -94,7 +94,6 @@ class EroProfileIE(InfoExtractor):
 
 class EroProfileAlbumIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?eroprofile\.com/m/videos/album/(?P<id>[^/]+)'
-    _NETRC_MACHINE = 'eroprofile'
     IE_NAME = 'EroProfile:album'
 
     _TESTS = [{
