@@ -38,7 +38,7 @@ class MirrativIE(MirrativBaseIE):
 
         formats = self._extract_m3u8_formats(
             hls_url, video_id,
-            ext='mp4', entry_protocol='m3u8',
+            ext='mp4', entry_protocol='m3u8_native',
             m3u8_id='hls', live=is_live)
         rtmp_url = live_response.get('streaming_url_edge')
         if rtmp_url:
