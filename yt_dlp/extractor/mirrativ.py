@@ -109,7 +109,6 @@ class MirrativUserIE(MirrativBaseIE):
             if not lives:
                 break
             for live in lives:
-                # !(live.is_archive || live.is_live) === !live.is_archive && !live.is_live
                 if not live.get('is_archive') and not live.get('is_live'):
                     # neither archive nor live is available, so skip it
                     # or the service will ban your IP address for a while
