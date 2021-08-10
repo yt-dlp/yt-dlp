@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    InAdvancePagedList,
     traverse_obj,
 )
 
@@ -99,19 +100,9 @@ class MirrativUserIE(MirrativBaseIE):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        user_id = self._match_id(url)
-        user_info = self._download_json(
-            self.USER_INFO_API_URL % user_id, user_id,
-            note='Downloading user info', fatal=False)
-        self.assert_error(user_info)
-
-        uploader = user_info.get('name')
-        description = user_info.get('description')
-
-        entries = []
-        page = 1
+    def _entries(self, user_id):
         while page is not None:
+            print(page)
             api_response = self._download_json(
                 self.LIVE_HISTORY_API_URL % (user_id, page), user_id,
                 note='Downloading page %d' % page)
@@ -127,7 +118,18 @@ class MirrativUserIE(MirrativBaseIE):
                     continue
                 live_id = live.get('live_id')
                 url = 'https://www.mirrativ.com/live/%s' % live_id
-                entries.append(self.url_result(url, video_id=live_id, video_title=live.get('title')))
+                yield self.url_result(url, video_id=live_id, video_title=live.get('title'))
             page = api_response.get('next_page')
 
+    def _real_extract(self, url):
+        user_id = self._match_id(url)
+        user_info = self._download_json(
+            self.USER_INFO_API_URL % user_id, user_id,
+            note='Downloading user info', fatal=False)
+        self.assert_error(user_info)
+
+        uploader = user_info.get('name')
+        description = user_info.get('description')
+
+        entries = self._entries(user_id)
         return self.playlist_result(entries, user_id, uploader, description)
