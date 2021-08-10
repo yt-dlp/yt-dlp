@@ -50,7 +50,8 @@ class MirrativIE(MirrativBaseIE):
                 'url': rtmp_url,
                 'protocol': 'rtmp',
                 'ext': 'mp4',
-            } | {k: traverse_obj(formats, (0, k)) for k in keys_to_copy})
+                **{k: traverse_obj(formats, (0, k)) for k in keys_to_copy},
+            })
         self._sort_formats(formats)
 
         title = self._og_search_title(webpage, default=None) or self._search_regex(
@@ -109,7 +110,6 @@ class MirrativUserIE(MirrativBaseIE):
             if not lives:
                 break
             for live in lives:
-                # !(live.is_archive || live.is_live) === !live.is_archive && !live.is_live
                 if not live.get('is_archive') and not live.get('is_live'):
                     # neither archive nor live is available, so skip it
                     # or the service will ban your IP address for a while
