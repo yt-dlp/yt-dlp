@@ -106,32 +106,24 @@ class EroProfileAlbumIE(InfoExtractor):
     },
     ]
 
-    def _entries(self, url, playlist_title, current_page):
-        playlist_id = self._match_id(url)
+    def _extract_from_page(self, page):
+        for url in re.findall(r'href=".*?(/m/videos/view/[^"]+)"', page):
+            yield self.url_result(f'https://www.eroprofile.com{url}', EroProfileIE.ie_key())
 
-        playlist_num_pages = 1 + max(map(int, re.findall(
-            r'href=".*?/m/videos/album/{}\?pnum=(\d+)"'.format(playlist_id), current_page)))
+    def _entries(self, playlist_id, first_page):
+        yield from self._extract_from_page(first_page)
 
-        for n in range(2, playlist_num_pages):
-            # process the links on the current page (page n-1)
-            for uri in re.findall(r'href=".*?(/m/videos/view/[^"]+)"', current_page):
-                yield self.url_result("https://www.eroprofile.com" + uri)
+        page_urls = re.findall(rf'href=".*?(/m/videos/album/{playlist_id}\?pnum=(\d+))"', first_page)
 
-            # download the next page (page n), and prepare for the next iteration
-            current_page = self._download_webpage(url + "?pnum={}".format(n),
-                                                  playlist_id,
-                                                  note='Downloading playlist page {}'.format(n))
+        for url, n in page_urls[1:]:
+            yield from self._extract_from_page(self._download_webpage(
+                f'https://www.eroprofile.com{url}',
+                playlist_id, note=f'Downloading playlist page {int(n) - 1}'))
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-
-        first_page = self._download_webpage(url, playlist_id, note='Downloading playlist page 1')
-
+        first_page = self._download_webpage(url, playlist_id, note='Downloading playlist')
         playlist_title = self._search_regex(
             r'<title>Album: (.*) - EroProfile</title>', first_page, 'playlist_title')
 
-        entries = self._entries(url, playlist_title, first_page)
-
-        return self.playlist_result(entries,
-                                    playlist_id,
-                                    playlist_title)
+        return self.playlist_result(self._entries(playlist_id, first_page), playlist_id, playlist_title)
