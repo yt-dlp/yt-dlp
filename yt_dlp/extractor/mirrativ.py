@@ -103,7 +103,6 @@ class MirrativUserIE(MirrativBaseIE):
     def _entries(self, user_id):
         page = 1
         while page is not None:
-            print(page)
             api_response = self._download_json(
                 self.LIVE_HISTORY_API_URL % (user_id, page), user_id,
                 note='Downloading page %d' % page)
