@@ -30,7 +30,7 @@ class MirrativIE(MirrativBaseIE):
         live_response = self._download_json(self.LIVE_API_URL % video_id, video_id)
         self.assert_error(live_response)
 
-        hls_url = live_response.get('archive_url_hls') or live_response.get('streaming_url_hls')
+        hls_url = traverse_obj(live_response, 'archive_url_hls', 'streaming_url_hls')
         is_live = bool(live_response.get('is_live'))
         was_live = bool(live_response.get('is_archive'))
         if not hls_url:
