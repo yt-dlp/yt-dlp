@@ -64,10 +64,10 @@ class MetadataParserPP(PostProcessor):
         def f(info):
             outtmpl, tmpl_dict = self._downloader.prepare_outtmpl(template, info)
             data_to_parse = self._downloader.escape_outtmpl(outtmpl) % tmpl_dict
-            self.write_debug(f'Searching for r{out_re.pattern!r} in {template!r}')
+            self.write_debug(f'Searching for {out_re.pattern!r} in {template!r}')
             match = out_re.search(data_to_parse)
             if match is None:
-                self.report_warning('Could not interpret {inp!r} as {out!r}')
+                self.report_warning(f'Could not interpret {inp!r} as {out!r}')
                 return
             for attribute, value in match.groupdict().items():
                 info[attribute] = value
@@ -86,12 +86,12 @@ class MetadataParserPP(PostProcessor):
             elif not isinstance(val, str):
                 self.report_warning(f'Cannot replace in field {field} since it is a {type(val).__name__}')
                 return
-            self.write_debug(f'Replacing all r{search!r} in {field} with {replace!r}')
+            self.write_debug(f'Replacing all {search!r} in {field} with {replace!r}')
             info[field], n = search_re.subn(replace, val)
             if n:
                 self.to_screen(f'Changed {field} to: {info[field]}')
             else:
-                self.to_screen(f'Did not find r{search!r} in {field}')
+                self.to_screen(f'Did not find {search!r} in {field}')
 
         search_re = re.compile(search)
         return f

@@ -2599,8 +2599,8 @@ class InfoExtractor(object):
                     codecs = representation_attrib.get('codecs', '')
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
-                            content_type = 'image/jpeg'
-                        if codecs.split('.')[0] == 'stpp':
+                            content_type = mime_type
+                        elif codecs.split('.')[0] == 'stpp':
                             content_type = 'text'
                         else:
                             self.report_warning('Unknown MIME type %s in DASH manifest' % mime_type)

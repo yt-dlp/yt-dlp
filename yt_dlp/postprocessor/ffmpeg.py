@@ -592,7 +592,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             metadata_filename = replace_extension(filename, 'meta')
             with io.open(metadata_filename, 'wt', encoding='utf-8') as f:
                 def ffmpeg_escape(text):
-                    return re.sub(r'(=|;|#|\\|\n)', r'\\\1', text)
+                    return re.sub(r'([\\=;#\n])', r'\\\1', text)
 
                 metadata_file_content = ';FFMETADATA1\n'
                 for chapter in chapters:
