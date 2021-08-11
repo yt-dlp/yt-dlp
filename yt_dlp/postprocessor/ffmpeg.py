@@ -13,17 +13,19 @@ from .common import AudioConversionError, PostProcessor
 
 from ..compat import compat_str, compat_numeric_types
 from ..utils import (
+    dfxp2srt,
     encodeArgument,
     encodeFilename,
+    float_or_none,
     get_exe_version,
+    Intervals,
     is_outdated_version,
+    ISO639Utils,
     PostProcessingError,
     prepend_extension,
-    shell_quote,
-    dfxp2srt,
-    ISO639Utils,
     process_communicate_or_kill,
     replace_extension,
+    shell_quote,
     traverse_obj,
     variadic,
 )
@@ -281,7 +283,8 @@ class FFmpegPostProcessor(PostProcessor):
     def run_ffmpeg(self, path, out_path, opts, **kwargs):
         return self.run_ffmpeg_multiple_files([path], out_path, opts, **kwargs)
 
-    def _ffmpeg_filename_argument(self, fn):
+    @staticmethod
+    def _ffmpeg_filename_argument(fn):
         # Always use 'file:' because the filename may contain ':' (ffmpeg
         # interprets that as a protocol) or can start with '-' (-- is broken in
         # ffmpeg, see https://ffmpeg.org/trac/ffmpeg/ticket/2127 for details)
@@ -289,6 +292,56 @@ class FFmpegPostProcessor(PostProcessor):
         if fn.startswith(('http://', 'https://')):
             return fn
         return 'file:' + fn if fn != '-' else fn
+
+    def reencode_with_keyframes_at(self, filename, *timestamps):
+        keyframe_file = prepend_extension(filename, 'keyframes.temp')
+        self.to_screen(f'Re-encoding "{filename}" with appropriate keyframes')
+        self.run_ffmpeg(filename, keyframe_file, ['-force_key_frames', ','.join(
+            f'{t:.6f}' for t in set(timestamps))])
+        return keyframe_file
+
+    def concat_files(self, in_files, out_file, concat_opts=None):
+        """
+        Use concat demuxer to concatenate multiple files having identical streams.
+
+        Only inpoint, outpoint, and duration concat options are supported.
+        See https://ffmpeg.org/ffmpeg-formats.html#concat-1 for details
+        """
+        concat_file = f'{out_file}.concat'
+        self.write_debug(f'Writing concat spec to {concat_file}')
+        with open(concat_file, 'wt', encoding='utf-8') as f:
+            f.writelines(self._concat_spec(in_files, concat_opts))
+
+        out_flags = ['-c', 'copy']
+        if out_file.rpartition('.')[-1] in ('mp4', 'mov'):
+            # For some reason, '-c copy' is not enough to copy subtitles
+            out_flags.extend(['-c:s', 'mov_text', '-movflags', '+faststart'])
+
+        try:
+            self.real_run_ffmpeg(
+                [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
+                [(out_file, out_flags)])
+        finally:
+            os.remove(concat_file)
+
+    @classmethod
+    def _concat_spec(cls, in_files, concat_opts=None):
+        if concat_opts is None:
+            concat_opts = [{}] * len(in_files)
+        yield 'ffconcat version 1.0\n'
+        for file, opts in zip(in_files, concat_opts):
+            yield f'file {cls._quote_for_concat(cls._ffmpeg_filename_argument(file))}\n'
+            yield from (f'{key} {val}\n' for key, val in opts.items())
+
+    @staticmethod
+    def _quote_for_concat(filename):
+        # See https://ffmpeg.org/ffmpeg-utils.html#toc-Quoting-and-escaping
+        # A sequence of '' produces '\'''\'';
+        # final replace removes the empty '' between \' \'
+        filename = filename.replace("'", r"'\''").replace("'''", "'")
+        # Handle potential ' at string boundaries
+        filename = filename[1:] if filename[0] == "'" else "'" + filename
+        return filename[:-1] if filename[-1] == "'" else filename + "'"
 
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
@@ -809,6 +862,10 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
 
 class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
+    def __init__(self, downloader=None, force_keyframes=False):
+        FFmpegPostProcessor.__init__(self, downloader)
+        self._force_keyframes = force_keyframes
+
     def _prepare_filename(self, number, chapter, info):
         info = info.copy()
         info.update({
@@ -835,13 +892,18 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
     def run(self, info):
         chapters = info.get('chapters') or []
         if not chapters:
-            self.report_warning('Chapter information is unavailable')
+            self.to_screen('Chapter information is unavailable')
             return [], info
 
+        in_file = info['filepath']
+        if self._force_keyframes:
+            in_file = self.reencode_with_keyframes_at(in_file, *(chapter['start_time'] for chapter in chapters))
         self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
-            self.real_run_ffmpeg([(info['filepath'], opts)], [(destination, ['-c', 'copy'])])
+            self.real_run_ffmpeg([(in_file, opts)], [(destination, ['-c', 'copy'])])
+        if in_file != info['filepath']:
+            os.remove(encodeFilename(in_file))
         return [], info
 
 
@@ -914,3 +976,113 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         if not has_thumbnail:
             self.to_screen('There aren\'t any thumbnails to convert')
         return files_to_delete, info
+
+
+class FFmpegRemoveChaptersPP(FFmpegPostProcessor):
+    SUPPORTED_SUBS = ('srt', 'ass', 'vtt')
+
+    def __init__(self, downloader, regex, force, force_keyframes=False):
+        FFmpegPostProcessor.__init__(self, downloader)
+        self._regex = re.compile(regex) if isinstance(regex, str) else regex
+        self._force_cut = force
+        self._force_keyframes = force_keyframes
+
+    def run(self, info):
+        ranges_to_cut = Intervals(self._remove_chapters_from_infodict(info.get('chapters') or []))
+        if not ranges_to_cut:
+            if not info.get('chapters'):
+                self.to_screen('Chapter information is unavailable')
+            else:
+                self.to_screen('There are no chapters matching the regex')
+            return [], info
+
+        if not info.get('__real_download'):
+            if self._force_cut:
+                self.report_warning('Removing chapters multiple times may cut out unintended parts of the video')
+            else:
+                self.report_warning(
+                    f'Skipping {self.pp_key()} since the video was already downloaded. '
+                    'Use --force-remove-chapters to remove the chapters anyway')
+                return [], info
+
+        concat_opts = self._make_concat_opts(ranges_to_cut, self._get_video_duration(info))
+
+        def remove_chapters(file, is_sub):
+            return file, self.remove_chapters(file, ranges_to_cut, concat_opts, self._force_keyframes and not is_sub)
+
+        in_out_files = [remove_chapters(info['filepath'], False)]
+
+        sub_files = []
+        for _, sub in (info.get('requested_subtitles') or {}).items():
+            sub_file = sub.get('filepath')
+            # The file might have been removed by --embed-subs
+            if not sub_file or not os.file.exists(sub_file):
+                continue
+            ext = sub['ext']
+            if ext not in self.SUPPORTED_SUBS:
+                self.report_warning(f'Cannot remove chapters from external {ext} subtitles; "{sub_file}" is now out of sync')
+                continue
+            # TODO: create __real_download for subs
+            sub_files.append(sub_file)
+
+        in_out_files.extend(remove_chapters(in_file, True) for in_file in sub_files)
+
+        # Renaming should only happen after all files are processed
+        files_to_remove = []
+        for in_file, out_file in in_out_files:
+            uncut_file = prepend_extension(in_file, 'uncut')
+            if os.path.exists(uncut_file):
+                os.remove(uncut_file)
+            os.rename(encodeFilename(in_file), encodeFilename(uncut_file))
+            os.rename(encodeFilename(out_file), encodeFilename(in_file))
+            files_to_remove.append(uncut_file)
+
+        return files_to_remove, info
+
+    def _remove_chapters_from_infodict(self, chapters):
+        idx, removed_time = 0, 0
+        for c in chapters.copy():
+            if c.get('title') and self._regex.match(c.get('title')):
+                removed_time += c['end_time'] - c['start_time']
+                chapters.pop(idx)
+                yield c['start_time'], c['end_time']
+            else:
+                c['start_time'] -= removed_time
+                c['end_time'] -= removed_time
+                idx += 1
+
+    def _get_video_duration(self, infodict):
+        try:
+            duration = float_or_none(traverse_obj(
+                self.get_metadata_object(infodict['filepath']), ('format', 'duration')))
+            if duration is None:
+                raise PostProcessingError('ffprobe returned empty duration')
+            return duration
+        except PostProcessingError as err:
+            self.report_warning(f'unable to find the video duration; {err}')
+            return infodict.get('duration')
+
+    def remove_chapters(self, filename, ranges_to_cut, concat_opts, force_keyframes=False):
+        in_file = filename
+        out_file = prepend_extension(in_file, 'temp')
+        if force_keyframes:
+            in_file = self.reencode_with_keyframes_at(in_file, *(t for r in ranges_to_cut for t in r))
+        self.to_screen(f'Removing chapters from {filename}')
+        self.concat_files([in_file] * len(concat_opts), out_file, concat_opts)
+        if in_file != filename:
+            os.remove(encodeFilename(in_file))
+        return out_file
+
+    @staticmethod
+    def _make_concat_opts(ranges_to_cut, duration=None):
+        opts = [{}]
+        for start, end in ranges_to_cut:
+            # Do not create 0 duration chunk at the beginning.
+            if start == 0:
+                opts[-1]['inpoint'] = f'{end:.6f}'
+                continue
+            opts[-1]['outpoint'] = f'{start:.6f}'
+            # Do not create 0 duration chunk at the end.
+            if end != duration:
+                opts.append({'inpoint': f'{end:.6f}'})
+        return opts

@@ -467,16 +467,7 @@ def _real_main(argv=None):
             'key': 'FFmpegVideoConvertor',
             'preferedformat': opts.recodevideo,
         })
-    # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
-    # FFmpegExtractAudioPP as containers before conversion may not support
-    # metadata (3gp, webm, etc.)
-    # And this post-processor should be placed before other metadata
-    # manipulating post-processors (FFmpegEmbedSubtitle) to prevent loss of
-    # extra metadata. By default ffmpeg preserves metadata applicable for both
-    # source and target containers. From this point the container won't change,
-    # so metadata can be added here.
-    if opts.addmetadata:
-        postprocessors.append({'key': 'FFmpegMetadata'})
+    # Subtitles must already be in the container during FFmpegRemoveChapters
     if opts.embedsubtitles:
         already_have_subtitle = opts.writesubtitles and 'no-keep-subs' not in compat_opts
         postprocessors.append({
@@ -490,6 +481,28 @@ def _real_main(argv=None):
     # this was the old behaviour if only --all-sub was given.
     if opts.allsubtitles and not opts.writeautomaticsub:
         opts.writesubtitles = True
+    # FFmpegRemoveChapters must run before FFmpegMetadataPP
+    if opts.remove_chapters:
+        try:
+            remove_chapters_pattern = re.compile(opts.remove_chapters)
+        except re.error as err:
+            parser.error(f'invalid --remove-chapters regex {opts.remove_chapters!r}: {err}')
+        postprocessors.append({
+            'key': 'FFmpegRemoveChapters',
+            'regex': remove_chapters_pattern,
+            'force_keyframes': opts.force_keyframes_at_cuts,
+            'force': opts.force_remove_chapters,
+        })
+    # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
+    # FFmpegExtractAudioPP as containers before conversion may not support
+    # metadata (3gp, webm, etc.)
+    # And this post-processor should be placed before other metadata  <=================== WHAT TO DO ABOUT THIS
+    # manipulating post-processors (FFmpegEmbedSubtitle) to prevent loss of
+    # extra metadata. By default ffmpeg preserves metadata applicable for both
+    # source and target containers. From this point the container won't change,
+    # so metadata can be added here.
+    if opts.addmetadata:
+        postprocessors.append({'key': 'FFmpegMetadata'})
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
     # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
@@ -513,7 +526,10 @@ def _real_main(argv=None):
         if not already_have_thumbnail:
             opts.writethumbnail = True
     if opts.split_chapters:
-        postprocessors.append({'key': 'FFmpegSplitChapters'})
+        postprocessors.append({
+            'key': 'FFmpegSplitChapters',
+            'force_keyframes': opts.force_keyframes_at_cuts,
+        })
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})

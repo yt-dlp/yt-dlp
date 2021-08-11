@@ -1320,6 +1320,26 @@ def parseOpts(overrideArguments=None):
         '--no-split-chapters', '--no-split-tracks',
         dest='split_chapters', action='store_false',
         help='Do not split video based on chapters (default)')
+    postproc.add_option(
+        '--remove-chapters', metavar='REGEX', default=None, dest='remove_chapters',
+        help='Remove chapters whose title matches a regular expression')
+    postproc.add_option(
+        '--force-remove-chapters', default=False, dest='force_remove_chapters', action='store_true',
+        help='Remove chapters even if the video was already downloaded')
+    postproc.add_option(
+        '--no-force-remove-chapters', dest='force_remove_chapters', action='store_false',
+        help='Do not remove chapters if the video was already downloaded (default)')
+    postproc.add_option(
+        '--force-keyframes-at-cuts',
+        action='store_true', dest='force_keyframes_at_cuts', default=False,
+        help=(
+            'Force keyframes around the chapters before removing/splitting them. '
+            'Requires re-encoding and thus very slow, but the resulting video '
+            'may have fewer artifacts around the cuts'))
+    postproc.add_option(
+        '--no-force-keyframes-at-cuts',
+        action='store_false', dest='force_keyframes_at_cuts',
+        help='Do not force keyframes around the chapters when cutting/splitting (default)')
 
     sponskrub = optparse.OptionGroup(parser, 'SponSkrub (SponsorBlock) Options', description=(
         'SponSkrub (https://github.com/yt-dlp/SponSkrub) is a utility to mark/remove sponsor segments '

@@ -110,6 +110,7 @@ from yt_dlp.utils import (
     parse_codecs,
     iri_to_uri,
     LazyList,
+    Intervals,
 )
 from yt_dlp.compat import (
     compat_chr,
@@ -1614,6 +1615,37 @@ Line 1
         test(ll, 10, 10, range(11))
         ll.reverse()
         test(ll, -15, 14, range(15))
+
+    def test_Intervals(self):
+        def test(input_ranges, expected):
+            self.assertEqual(
+                [tuple(r) for r in Intervals(input_ranges)],
+                list(expected))
+
+        test(((0, 10), (50, 60), (30, 40)),
+             ((0, 10), (30, 40), (50, 60)))
+
+        # Touching
+        test(((0, 10), (50, 60), (10, 40)),
+             ((0, 40), (50, 60)))
+        test(((0, 10), (50, 60), (30, 50)),
+             ((0, 10), (30, 60)))
+        test(((0, 10), (50, 60), (10, 50)),
+             ((0, 60),))
+
+        # Overlap
+        test(((0, 10), (50, 60), (5, 40)),
+             ((0, 40), (50, 60)))
+        test(((0, 10), (50, 60), (30, 55)),
+             ((0, 10), (30, 60)))
+        test(((0, 10), (50, 60), (5, 55)),
+             ((0, 60),))
+
+        # Inside
+        test(((0, 30), (50, 60), (10, 20)),
+             ((0, 30), (50, 60)))
+        test(((0, 10), (30, 40), (50, 60), (5, 55)),
+             ((0, 60),))
 
 
 if __name__ == '__main__':

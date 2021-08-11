@@ -15,6 +15,7 @@ from yt_dlp.postprocessor import (
     FFmpegThumbnailsConvertorPP,
     MetadataFromFieldPP,
     MetadataParserPP,
+    FFmpegRemoveChaptersPP,
 )
 
 
@@ -68,3 +69,34 @@ class TestExec(unittest.TestCase):
         self.assertEqual(pp.parse_cmd('echo', info), cmd)
         self.assertEqual(pp.parse_cmd('echo {}', info), cmd)
         self.assertEqual(pp.parse_cmd('echo %(filepath)q', info), cmd)
+
+
+class TestRemoveChaptersPP(unittest.TestCase):
+    def test_concat_spec(self):
+        def test(*ranges_to_cut, expected, duration=30):
+            opts = FFmpegRemoveChaptersPP._make_concat_opts(ranges_to_cut, duration)
+            self.assertEqual(
+                ''.join(FFmpegRemoveChaptersPP._concat_spec(['test'] * len(opts), opts)),
+                "\nfile 'file:test'\n".join(['ffconcat version 1.0'] + expected) + '\n')
+
+        test((1, 2), (10, 20), expected=[
+            'outpoint 1.000000',
+            'inpoint 2.000000\noutpoint 10.000000',
+            'inpoint 20.000000'])
+        test((0, 1), (10, 20), expected=[
+            'inpoint 1.000000\noutpoint 10.000000',
+            'inpoint 20.000000'])
+        test((1, 2), (10, 30), expected=[
+            'outpoint 1.000000',
+            'inpoint 2.000000\noutpoint 10.000000'])
+
+    def test_quote_for_concat(self):
+        self.assertEqual(
+            FFmpegRemoveChaptersPP._quote_for_concat("special ' ''characters'''galore"),
+            r"'special '\'' '\'\''characters'\'\'\''galore'")
+        self.assertEqual(
+            FFmpegRemoveChaptersPP._quote_for_concat("'''special ' characters ' galore"),
+            r"\'\'\''special '\'' characters '\'' galore'")
+        self.assertEqual(
+            FFmpegRemoveChaptersPP._quote_for_concat("special ' characters ' galore'''"),
+            r"'special '\'' characters '\'' galore'\'\'\'")

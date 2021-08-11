@@ -3266,6 +3266,35 @@ class DateRange(object):
         return '%s - %s' % (self.start.isoformat(), self.end.isoformat())
 
 
+class Intervals:
+    ''' Represents an ordered set of disjoint closed intervals'''
+
+    Interval = collections.namedtuple('Interval', ('start', 'end'))
+
+    def __init__(self, ranges):
+        self._ranges = list(self.reduce(*ranges))
+
+    @classmethod
+    def reduce(cls, *ranges):
+        pending = None
+        for start, end in sorted(ranges):
+            assert start <= end
+            if pending and start <= pending.end:
+                pending = cls.Interval(pending.start, max(end, pending.end))
+            else:
+                if pending:
+                    yield pending
+                pending = cls.Interval(start, end)
+        if pending:
+            yield pending
+
+    def __iter__(self):
+        yield from self._ranges
+
+    def __bool__(self):
+        return bool(self._ranges)
+
+
 def platform_name():
     """ Returns the platform name as a compat_str """
     res = platform.platform()
