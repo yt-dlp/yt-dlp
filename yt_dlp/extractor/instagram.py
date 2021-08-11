@@ -277,6 +277,9 @@ class InstagramIE(InfoExtractor):
             'like_count': like_count,
             'comment_count': comment_count,
             'comments': comments,
+            'http_headers': {
+                'Referer': 'https://www.instagram.com/',
+            }
         }
 
 
