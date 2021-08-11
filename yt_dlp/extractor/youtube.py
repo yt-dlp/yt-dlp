@@ -795,9 +795,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 if isinstance(e.cause, network_exceptions):
                     if isinstance(e.cause, compat_HTTPError):
                         yt_error = try_get(
-                            self._parse_json(e.cause.read(), item_id, fatal=False),
+                            self._parse_json(e.cause.read().decode(), item_id, fatal=False),
                             lambda x: x['error']['message'], compat_str)
-                        e.cause.seek(0)
                         if yt_error:
                             self._report_alerts([('ERROR', yt_error)], fatal=False)
                     # Downloading page may result in intermittent 5xx HTTP error
