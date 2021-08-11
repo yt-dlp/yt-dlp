@@ -8,6 +8,8 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import re
+
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_shlex_quote
 from yt_dlp.postprocessor import (
@@ -100,3 +102,40 @@ class TestRemoveChaptersPP(unittest.TestCase):
         self.assertEqual(
             FFmpegRemoveChaptersPP._quote_for_concat("special ' characters ' galore'''"),
             r"'special '\'' characters '\'' galore'\'\'\'")
+
+    def test_remove_chapters_from_infodict(self):
+        regex = re.compile(r'remove \d+')
+
+        def to_chapter(i, start, end, remove=False):
+            title = f'remove {i}' if remove else str(i)
+            return {'title': title, 'start_time': start, 'end_time': end}
+
+        def test(chapters, expected):
+            ''' chapters = [(start, end, remove), ...] '''
+            removed = [c[:2] for c in chapters if len(c) > 2 and c[2]]
+            chapters = [to_chapter(i, *c) for i, c in enumerate(chapters)]
+            self.assertEqual(
+                list(FFmpegRemoveChaptersPP._remove_chapters_from_infodict(chapters, regex)),
+                removed)
+            self.assertEqual(chapters, [to_chapter(i, *c) for i, c in enumerate(expected) if c])
+
+        test(((0, 10), (10, 20), (20, 30)),
+             ((0, 10), (10, 20), (20, 30)))
+        test(((0, 10), (10, 20, True), (20, 30)),
+             ((0, 10), None, (10, 20)))
+
+        # Out of order
+        test(((0, 10), (20, 30), (10, 20, True)),
+             ((0, 10), (10, 20), None))
+
+        # Overlap
+        test(((0, 10), (20, 30), (10, 25, True)),
+             ((0, 10), (10, 15), None))
+        test(((0, 10), (10, 20), (20, 30), (15, 25, True)),
+             ((0, 10), (10, 15), (15, 20)))
+
+        # Inside
+        test(((0, 10), (10, 20), (20, 30), (5, 35, True)),
+             ((0, 5), None, None))
+        test(((0, 10), (10, 20), (20, 30), (12, 17, True)),
+             ((0, 10), (10, 15), (15, 25)))

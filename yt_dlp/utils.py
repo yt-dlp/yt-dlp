@@ -3272,10 +3272,10 @@ class Intervals:
     Interval = collections.namedtuple('Interval', ('start', 'end'))
 
     def __init__(self, ranges):
-        self._ranges = list(self.reduce(*ranges))
+        self._ranges = list(self.reduce(ranges))
 
     @classmethod
-    def reduce(cls, *ranges):
+    def reduce(cls, ranges):
         pending = None
         for start, end in sorted(ranges):
             assert start <= end

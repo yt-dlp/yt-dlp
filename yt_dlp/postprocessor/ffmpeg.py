@@ -981,14 +981,14 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
 class FFmpegRemoveChaptersPP(FFmpegPostProcessor):
     SUPPORTED_SUBS = ('srt', 'ass', 'vtt')
 
-    def __init__(self, downloader, regex, force, force_keyframes=False):
+    def __init__(self, downloader, regex, force=False, force_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._regex = re.compile(regex) if isinstance(regex, str) else regex
         self._force_cut = force
         self._force_keyframes = force_keyframes
 
     def run(self, info):
-        ranges_to_cut = Intervals(self._remove_chapters_from_infodict(info.get('chapters') or []))
+        ranges_to_cut = Intervals(self._remove_chapters_from_infodict(info.get('chapters') or [], self._regex))
         if not ranges_to_cut:
             if not info.get('chapters'):
                 self.to_screen('Chapter information is unavailable')
@@ -1039,17 +1039,20 @@ class FFmpegRemoveChaptersPP(FFmpegPostProcessor):
 
         return files_to_remove, info
 
-    def _remove_chapters_from_infodict(self, chapters):
-        idx, removed_time = 0, 0
-        for c in chapters.copy():
-            if c.get('title') and self._regex.match(c.get('title')):
-                removed_time += c['end_time'] - c['start_time']
-                chapters.pop(idx)
-                yield c['start_time'], c['end_time']
-            else:
-                c['start_time'] -= removed_time
-                c['end_time'] -= removed_time
-                idx += 1
+    @staticmethod
+    def _remove_chapters_from_infodict(chapters, regex):
+        removed = [chapters.pop(i) for i, c in enumerate(chapters)
+                   if c.get('title') and regex.match(c['title'])]
+
+        def get_removed_time_before(time):
+            return sum(min(time, c['end_time']) - c['start_time'] for c in removed if c['start_time'] < time)
+
+        for c in chapters:
+            c['start_time'] -= get_removed_time_before(c['start_time'])
+            c['end_time'] -= get_removed_time_before(c['end_time'])
+
+        chapters[:] = [c for c in chapters if c['end_time'] != c['start_time']]
+        return [(c['start_time'], c['end_time']) for c in removed]
 
     def _get_video_duration(self, infodict):
         try:
