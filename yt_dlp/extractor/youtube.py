@@ -4274,7 +4274,18 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
 
-        webpage, data = self._extract_webpage(url, item_id)
+        #webpage, data = self._extract_webpage(url, item_id)
+        res = self._extract_response(
+            item_id=item_id,query = {'url': url},
+            ep='navigation/resolve_url', note='Fetching API parameters API JSON'
+        )
+
+        webpage = None
+        browse_params = try_get(res, lambda x: x['endpoint']['browseEndpoint'])
+
+        data = self._extract_response(
+                item_id=item_id,query = browse_params,
+        )
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
