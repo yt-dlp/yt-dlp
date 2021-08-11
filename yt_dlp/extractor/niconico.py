@@ -660,6 +660,98 @@ class NiconicoPlaylistIE(InfoExtractor):
             'entries': OnDemandPagedList(pagefunc, 25),
         }
 
+# USAGE: youtube-dl "nicosearch<NUMBER OF ENTRIES>:<SEARCH STRING>"
+class NicovideoSearchIE(SearchInfoExtractor):
+    IE_DESC = 'Nico video search'
+    _MAX_RESULTS = 1000000
+    _SEARCH_KEY = 'nicosearch'
+    _START_DATE = datetime.date(2007, 1, 1)
+    _MAX_NUMBER_OF_PAGES = 50
+    _RESULTS_PER_PAGE = 32
+
+    def _get_n_results(self, query, n):
+        """Get a specified number of results for a query"""
+        entries = []
+        currDate = datetime.datetime.now().date()
+
+        search_url = "http://www.nicovideo.jp/search/%s" % query
+        r = self._get_entries_for_span(search_url, query, self._START_DATE, currDate)
+
+        # did we gather more entries than were asked for? If so, only add as many as are needed to reach the desired number.
+        m = n - len(entries)
+        entries += r[0:min(m, len(r))]
+
+        return {
+            '_type': 'playlist',
+            'id': query,
+            'entries': entries
+        }
+
+    def _get_results_until(self, query, last_video):
+        entries = []
+        currDate = datetime.datetime.now().date()
+
+        search_url = "http://www.nicovideo.jp/search/%s" % query
+        r = self._get_entries_for_date(search_url, query, self._START_DATE, currDate)
+
+        final_index = self._MAX_RESULTS
+
+        for i in range(len(r)):
+            try:
+                if(r[i]['url'].split("/")[-1] == last_video):
+                    final_index = i
+                    break
+            except ValueError:
+                continue
+
+        # if we marked the final index, only add videos until we hit it
+        entries += r[0:min(final_index, len(r))]
+
+        return {
+            '_type': 'playlist',
+            'id': query,
+            'entries': entries
+        }
+
+    def _get_entries_for_span(self, url, query, startDate, endDate):
+        # This page 50 request will be duplicated in the else case; not ideal
+        page_50_results = self._get_entries_for_date(url, query, startDate, endDate=endDate, pageNumber=50)
+        entries = []
+        # If the page 50 results return 32 videos, we need to break down the query interval to ensure we've captured all videos
+        if (len(page_50_results) == self._RESULTS_PER_PAGE and startDate != endDate):
+            midpoint = startDate + (endDate - startDate)/2
+            right = self._get_entries_for_span(url, query, startDate, midpoint)
+            left = self._get_entries_for_span(url, query, midpoint, endDate)
+            entries = left + right
+        else:
+            entries = self._get_entries_for_date(url, query, startDate, endDate=endDate)
+
+        return entries
+
+
+    def _get_entries_for_date(self, url, query, startDate, endDate=None, pageNumber=1):
+        if endDate is None:
+            endDate = startDate
+
+        entries = []
+        while True:
+            link = url + "?page=" + str(pageNumber) + "&start=" + str(startDate) + "&end=" + str(endDate) + "&sort=f&order=d"
+            results = self._download_webpage(link, "None", query={"Search_key": query}, note='Extracting results from page %s for date %s to %s' % (pageNumber, startDate, endDate))
+            r = re.findall(r'(?<=data-video-id=)["\']?(?P<videoid>.*?)(?=["\'])', results)
+
+            for item in r:
+                e = self.url_result("http://www.nicovideo.jp/watch/" + item, 'Niconico', item)
+                entries.append(e)
+
+            # each page holds a maximum of 32 entries. If we've seen 32 entries on the current page,
+            # it's possible there may be another, so we can check. It's a little awkward, but it works.
+            if(len(r) < self._RESULTS_PER_PAGE or pageNumber == self._MAX_NUMBER_OF_PAGES):
+                break
+
+            pageNumber += 1
+
+        return entries
+
 
 class NiconicoUserIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)/?(?:$|[#?])'
