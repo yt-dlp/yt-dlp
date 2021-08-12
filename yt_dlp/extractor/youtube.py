@@ -4173,7 +4173,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             check_get_keys='contents', fatal=False, ytcfg=ytcfg,
             note='Downloading API JSON with unavailable videos')
 
-    def _extract_webpage(self, url, item_id):
+    def _extract_webpage(self, url, item_id, fatal=True):
         retries = self.get_param('extractor_retries', 3)
         count = -1
         last_error = 'Incomplete yt initial data recieved'
@@ -4184,12 +4184,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if count:
                 self.report_warning('%s. Retrying ...' % last_error)
             webpage = self._download_webpage(
-                url, item_id,
-                'Downloading webpage%s' % (' (retry #%d)' % count if count else ''))
+                url, item_id, fatal=fatal,
+                note='Downloading webpage%s' % (' (retry #%d)' % count if count else '',))
             data = self.extract_yt_initial_data(item_id, webpage)
             if data.get('contents') or data.get('currentVideoEndpoint'):
                 break
             # Extract alerts here only when there is error
+            # TODO: fatal?
             self._extract_and_report_alerts(data)
             if count >= retries:
                 raise ExtractorError(last_error)
@@ -4274,18 +4275,27 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
 
-        #webpage, data = self._extract_webpage(url, item_id)
-        res = self._extract_response(
-            item_id=item_id,query = {'url': url},
-            ep='navigation/resolve_url', note='Fetching API parameters API JSON'
-        )
+        webpage = data = None
+        if 'non-api' not in self._configuration_arg('skip'):
+            webpage, data = self._extract_webpage(url, item_id, fatal=False)
 
-        webpage = None
-        browse_params = try_get(res, lambda x: x['endpoint']['browseEndpoint'])
-
-        data = self._extract_response(
-                item_id=item_id,query = browse_params,
-        )
+        if not webpage or not data:
+            if self._generate_sapisidhash_header():
+                self.report_warning(
+                    'API only mode: Auth may not work correctly with multi-account cookies or multi channel accounts! You may get unwanted behavior.')
+            ep_res = self._extract_response(
+                item_id=item_id,query = {'url': url}, check_get_keys='endpoint',
+                ep='navigation/resolve_url', note='Downloading API parameters API JSON'
+            )
+            endpoints = {'browseEndpoint': 'browse', 'watchEndpoint': 'next'}
+            # TODO: other required account auth stuff
+            for ep_key, ep in endpoints.items():
+                params = try_get(ep_res, lambda x: x['endpoint'][ep_key], dict)
+                if params:
+                    data = self._extract_response(
+                        item_id, params, ep=ep, headers=headers)
+            if not data:
+                raise ExtractorError('Failed to extract endpoint data')  # TODO
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
