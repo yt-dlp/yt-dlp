@@ -5,13 +5,14 @@ import re
 import json
 import datetime
 
-from .common import InfoExtractor
+from .common import InfoExtractor, SearchInfoExtractor
 from ..postprocessor.ffmpeg import FFmpegPostProcessor
 from ..compat import (
     compat_str,
     compat_parse_qs,
     compat_urllib_parse_urlparse,
 )
+
 from ..utils import (
     ExtractorError,
     dict_get,
@@ -662,6 +663,7 @@ class NiconicoPlaylistIE(InfoExtractor):
 
 # USAGE: youtube-dl "nicosearch<NUMBER OF ENTRIES>:<SEARCH STRING>"
 class NicovideoSearchIE(SearchInfoExtractor):
+    IE_NAME = "nicovideo:search"
     IE_DESC = 'Nico video search'
     _MAX_RESULTS = 1000000
     _SEARCH_KEY = 'nicosearch'
@@ -752,6 +754,26 @@ class NicovideoSearchIE(SearchInfoExtractor):
 
         return entries
 
+
+class NicovideoURLSearchIE(NicovideoSearchIE):
+    # IE_DESC = 'nicovideo.jp search URLs'
+    # IE_NAME = NicovideoSearchIE.IE_NAME + '_url'
+    _VALID_URL = r'https?:\/\/(?:www\.)?nicovideo\.jp\/search\/(?:[^&]+)(\?termination_id=[a-zA-Z0-9]{1,3})?'
+    _TESTS = []
+
+    @classmethod
+    def _make_valid_url(cls):
+        return cls._VALID_URL
+
+    def _real_extract(self, url):
+        u = compat_urllib_parse_urlparse(url)
+        query = u.path.split("/")[2] # lol
+        qs = compat_parse_qs(u.query)
+        termination_id = qs.get('termination_id')
+        if termination_id:
+            return self._get_results_until(query, termination_id)
+        else:
+            return self._get_n_results(query, self._MAX_RESULTS)
 
 class NiconicoUserIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)/?(?:$|[#?])'
