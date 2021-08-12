@@ -4284,7 +4284,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 self.report_warning(
                     'API only mode: Auth may not work correctly with multi-account cookies or multi channel accounts! You may get unwanted behavior.')
             ep_res = self._extract_response(
-                item_id=item_id,query = {'url': url}, check_get_keys='endpoint',
+                item_id=item_id, query={'url': url}, check_get_keys='endpoint',
                 ep='navigation/resolve_url', note='Downloading API parameters API JSON'
             )
             endpoints = {'browseEndpoint': 'browse', 'watchEndpoint': 'next'}
@@ -4293,7 +4293,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 params = try_get(ep_res, lambda x: x['endpoint'][ep_key], dict)
                 if params:
                     data = self._extract_response(
-                        item_id, params, ep=ep, headers=headers)
+                        item_id, params, ep=ep)
+                    break
             if not data:
                 raise ExtractorError('Failed to extract endpoint data')  # TODO
 
