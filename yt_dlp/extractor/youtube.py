@@ -38,6 +38,7 @@ from ..utils import (
     format_field,
     int_or_none,
     intlist_to_bytes,
+    is_html,
     mimetype2ext,
     network_exceptions,
     orderedSet,
@@ -793,7 +794,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
-                    if isinstance(e.cause, compat_HTTPError):
+                    if isinstance(e.cause, compat_HTTPError) and not is_html(e.cause.read(512)):
+                        e.cause.seek(0)
                         yt_error = try_get(
                             self._parse_json(e.cause.read().decode(), item_id, fatal=False),
                             lambda x: x['error']['message'], compat_str)
