@@ -4342,7 +4342,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         item_id, params, ep=ep, headers=headers)
                     break
             if not data:
-                raise ExtractorError('Failed to extract endpoint data')  # TODO
+                raise ExtractorError('This playlist or channel does not exist.', expected=True)  # TODO
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
