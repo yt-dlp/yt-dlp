@@ -661,6 +661,7 @@ class NiconicoPlaylistIE(InfoExtractor):
             'entries': OnDemandPagedList(pagefunc, 25),
         }
 
+
 # USAGE: youtube-dl "nicosearch<NUMBER OF ENTRIES>:<SEARCH STRING>"
 class NicovideoSearchIE(SearchInfoExtractor):
     IE_NAME = "nicovideo:search"
@@ -721,7 +722,7 @@ class NicovideoSearchIE(SearchInfoExtractor):
         entries = []
         # If the page 50 results return 32 videos, we need to break down the query interval to ensure we've captured all videos
         if (len(page_50_results) == self._RESULTS_PER_PAGE and startDate != endDate):
-            midpoint = startDate + (endDate - startDate)/2
+            midpoint = startDate + (endDate - startDate) / 2
             right = self._get_entries_for_span(url, query, startDate, midpoint)
             left = self._get_entries_for_span(url, query, midpoint, endDate)
             entries = left + right
@@ -729,7 +730,6 @@ class NicovideoSearchIE(SearchInfoExtractor):
             entries = self._get_entries_for_date(url, query, startDate, endDate=endDate)
 
         return entries
-
 
     def _get_entries_for_date(self, url, query, startDate, endDate=None, pageNumber=1):
         if endDate is None:
@@ -778,13 +778,14 @@ class NicovideoURLSearchIE(NicovideoSearchIE):
 
     def _real_extract(self, url):
         u = compat_urllib_parse_urlparse(url)
-        query = u.path.split("/")[2] # lol
+        query = u.path.split("/")[2]  # lol
         qs = compat_parse_qs(u.query)
         termination_id = qs.get('termination_id')
         if termination_id:
             return self._get_results_until(query, termination_id)
         else:
             return self._get_n_results(query, self._MAX_RESULTS)
+
 
 class NiconicoUserIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)/?(?:$|[#?])'
