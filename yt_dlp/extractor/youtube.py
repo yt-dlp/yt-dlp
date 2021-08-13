@@ -4225,17 +4225,17 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 try_get(datasync_page, (lambda x: x[4:], lambda x: x)),
                 item_id, fatal=False)
             account_list = traverse_obj(
-                datasync_json, (
-                'data', 'actions', ..., 'getMultiPageMenuAction', 'menu', 'multiPageMenuRenderer', 'sections', ...,
-                'accountSectionListRenderer', 'contents', ..., 'accountItemSectionRenderer', 'contents', ...,
-                'accountItem'),
+                datasync_json,
+                ('data', 'actions', ..., 'getMultiPageMenuAction', 'menu', 'multiPageMenuRenderer', 'sections', ...,
+                    'accountSectionListRenderer', 'contents', ..., 'accountItemSectionRenderer', 'contents', ...,
+                    'accountItem'),
                 expected_type=dict, default=[])
 
             for account in account_list:
                 if not account.get('isSelected'):
                     continue
-                supported_tokens = traverse_obj(account, (
-                ..., ..., 'supportedTokens', ..., ('datasyncIdToken', 'accountSigninToken')), default=[])
+                supported_tokens = traverse_obj(
+                    account, (..., ..., 'supportedTokens', ..., ('datasyncIdToken', 'accountSigninToken')), default=[])
 
                 for token in supported_tokens:
                     if not isinstance(token, dict):
@@ -4352,6 +4352,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         pl_id = 'UU%s' % item_id[2:]
                         pl_url = 'https://www.youtube.com/playlist?list=%s%s' % (pl_id, mobj['post'])
                         try:
+                            # TODO: deal with this redirect
                             pl_webpage, pl_data = self._extract_webpage(pl_url, pl_id)
                             for alert_type, alert_message in self._extract_alerts(pl_data):
                                 if alert_type == 'error':
