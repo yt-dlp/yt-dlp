@@ -9,10 +9,10 @@ class FilmmoduIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www.)?filmmodu.org/(?P<id>[^/]+-(?:turkce-dublaj-izle|altyazili-izle))'
     _TESTS = [{
         'url': 'https://www.filmmodu.org/f9-altyazili-izle',
-        'md5': '26eb61d8bab018b9189ded692c352a53',
+        'md5': 'aeefd955c2a508a5bdaa3bcec8eeb0d4',
         'info_dict': {
             'id': '10804',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'title': 'F9',
             'description': 'md5:2713f584a4d65afa2611e2948d0b953c',
             'subtitles': {
@@ -24,10 +24,10 @@ class FilmmoduIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.filmmodu.org/the-godfather-turkce-dublaj-izle',
-        'md5': '04c16707a945130246876b9b58b3a365',
+        'md5': '109f2fcb9c941330eed133971c035c00',
         'info_dict': {
             'id': '3646',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'title': 'Baba',
             'description': 'md5:d43fd651937cd75cc650883ebd8d8461',
             'thumbnail': r're:https://s[0-9]+.filmmodu.org/uploads/movie/cover/3646/6xKCYgH16UuwEGAyroLU6p8HLIn.jpg',
@@ -48,8 +48,10 @@ class FilmmoduIE(InfoExtractor):
         })
         formats = [{
             'url': source['src'],
-            'format_id': source.get('label'),
-            'width': int_or_none(source.get('res')),
+            'ext': 'mp4',
+            'format_id': source['label'],
+            'height': int_or_none(source.get('res')),
+            'protocol': 'm3u8_native',
         } for source in data['sources']]
 
         self._sort_formats(formats)
