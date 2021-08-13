@@ -2663,7 +2663,6 @@ class YoutubeDL(object):
                             os.remove(encodeFilename(file))
                         return None
 
-                    self.report_file_already_downloaded(existing_files[0])
                     info_dict['ext'] = os.path.splitext(existing_files[0])[1][1:]
                     return existing_files[0]
 
@@ -2718,7 +2717,7 @@ class YoutubeDL(object):
                         info_dict['protocol'] = _protocols.pop()
                     directly_mergable = FFmpegFD.can_merge_formats(info_dict)
                     if dl_filename is not None:
-                        pass
+                        self.report_file_already_downloaded(dl_filename)
                     elif (directly_mergable and get_suitable_downloader(
                             info_dict, self.params, to_stdout=(temp_filename == '-')) == FFmpegFD):
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
@@ -2770,9 +2769,13 @@ class YoutubeDL(object):
                 else:
                     # Just a single file
                     dl_filename = existing_file(full_filename, temp_filename)
-                    if dl_filename is None:
+                    if dl_filename is None or dl_filename == temp_filename:
+                        # dl_filename == temp_filename could mean that the file was partially downloaded with --no-part.
+                        # So we should try to resume the download
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
+                    else:
+                        self.report_file_already_downloaded(dl_filename)
 
                 dl_filename = dl_filename or temp_filename
                 info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
