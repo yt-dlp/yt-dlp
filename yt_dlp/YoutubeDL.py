@@ -2231,7 +2231,7 @@ class YoutubeDL(object):
         if self.params.get('list_thumbnails'):
             self.list_thumbnails(info_dict)
         if self.params.get('listformats'):
-            if not info_dict.get('formats'):
+            if not info_dict.get('formats') and not info_dict.get('url'):
                 raise ExtractorError('No video formats found', expected=True)
             self.list_formats(info_dict)
         if self.params.get('listsubtitles'):
