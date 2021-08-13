@@ -4214,6 +4214,39 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
     _url_re = re.compile(r'(?P<pre>%s)(?(channel_type)(?P<tab>/\w+))?(?P<post>.*)$' % _VALID_URL)
 
+    def _download_auth_params(self, item_id):
+        datasync_id = None
+        session_index = None
+        datasync_page = self._download_webpage(
+            'https://www.youtube.com/getAccountSwitcherEndpoint', item_id,
+            fatal=False, note="Fetching account list webpage")
+        if datasync_page:
+            datasync_json = self._parse_json(
+                try_get(datasync_page, (lambda x: x[4:], lambda x: x)),
+                item_id, fatal=False)
+            account_list = traverse_obj(
+                datasync_json, (
+                'data', 'actions', ..., 'getMultiPageMenuAction', 'menu', 'multiPageMenuRenderer', 'sections', ...,
+                'accountSectionListRenderer', 'contents', ..., 'accountItemSectionRenderer', 'contents', ...,
+                'accountItem'),
+                expected_type=dict, default=[])
+
+            for account in account_list:
+                if not account.get('isSelected'):
+                    continue
+                supported_tokens = traverse_obj(account, (
+                ..., ..., 'supportedTokens', ..., ('datasyncIdToken', 'accountSigninToken')), default=[])
+
+                for token in supported_tokens:
+                    if not isinstance(token, dict):
+                        continue
+                    if not datasync_id:
+                        datasync_id = self._extract_account_syncid({'DATASYNC_ID': token.get('datasyncIdToken')}) or datasync_id
+                    if session_index is None:
+                        session_index = int_or_none(try_get(token.get('signinUrl'), lambda x: parse_qs(x)['authuser'][0], compat_str))
+
+        return datasync_id, session_index
+
     def __real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
@@ -4280,20 +4313,25 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             webpage, data = self._extract_webpage(url, item_id, fatal=False)
 
         if not webpage or not data:
+            datasync_id = session_index = None
             if self._generate_sapisidhash_header():
-                self.report_warning(
-                    'API only mode: Auth may not work correctly with multi-account cookies or multi channel accounts! You may get unwanted behavior.')
+                # TODO: find a better method (though you shouldn't really need to use api-only mode with auth)
+                datasync_id, session_index = self._download_auth_params(item_id)
+                if session_index is None:
+                    self.report_warning(
+                        'Failed to fetch some parameters needed for authentication. You may see adverse behaviour.')
+            # TODO: we need to pass datasync_id and session_index to the later page extractors
+            headers = self.generate_api_headers(account_syncid=datasync_id, session_index=session_index)
             ep_res = self._extract_response(
-                item_id=item_id, query={'url': url}, check_get_keys='endpoint',
+                item_id=item_id, query={'url': url}, check_get_keys='endpoint', headers=headers,
                 ep='navigation/resolve_url', note='Downloading API parameters API JSON'
             )
             endpoints = {'browseEndpoint': 'browse', 'watchEndpoint': 'next'}
-            # TODO: other required account auth stuff
             for ep_key, ep in endpoints.items():
                 params = try_get(ep_res, lambda x: x['endpoint'][ep_key], dict)
                 if params:
                     data = self._extract_response(
-                        item_id, params, ep=ep)
+                        item_id, params, ep=ep, headers=headers)
                     break
             if not data:
                 raise ExtractorError('Failed to extract endpoint data')  # TODO
