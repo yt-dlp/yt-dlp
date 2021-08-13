@@ -46,15 +46,11 @@ class FilmmoduIE(InfoExtractor):
             'movie_id': real_video_id,
             'type': video_type,
         })
-        formats = [
-            {
-                'url': source['src'],
-                'format_id': source['label'],
-                'resolution': '{}p'.format(source['res']),
-                'width': int_or_none(source['res']),
-            }
-            for source in data['sources']
-        ]
+        formats = [{
+            'url': source['src'],
+            'format_id': source.get('label'),
+            'width': int_or_none(source.get('res')),
+        } for source in data['sources']]
 
         self._sort_formats(formats)
 
@@ -67,6 +63,7 @@ class FilmmoduIE(InfoExtractor):
 
         return {
             'id': real_video_id,
+            'display_id': video_id,
             'title': title,
             'description': description,
             'formats': formats,
