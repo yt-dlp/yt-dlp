@@ -759,7 +759,18 @@ class NicovideoURLSearchIE(NicovideoSearchIE):
     # IE_DESC = 'nicovideo.jp search URLs'
     # IE_NAME = NicovideoSearchIE.IE_NAME + '_url'
     _VALID_URL = r'https?:\/\/(?:www\.)?nicovideo\.jp\/search\/(?:[^&]+)(\?termination_id=[a-zA-Z0-9]{1,3})?'
-    _TESTS = []
+    _TESTS = [{
+        'url': 'http://www.nicovideo.jp/search/sm9',
+        'info_dict': {
+            'id': 'sm9',
+        },
+        'playlist_mincount': 320,
+    }]
+
+    _API_HEADERS = {
+        'X-Frontend-ID': '6',
+        'X-Frontend-Version': '0'
+    }
 
     @classmethod
     def _make_valid_url(cls):
