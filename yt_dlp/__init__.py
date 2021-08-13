@@ -468,8 +468,8 @@ def _real_main(argv=None):
     if opts.remove_chapters is not None:
         try:
             remove_chapters_pattern = re.compile(opts.remove_chapters)
-        except re.error:
-            parser.error('invalid --remove-chapters regex: %s' % opts.remove_chapters)
+        except re.error as e:
+            parser.error(f'invalid --remove-chapters regex {opts.remove_chapters!r}: {e}')
 
     def categories_from_list(cats: List[str]) -> Set[str]:
         if cats == ['']:
@@ -490,7 +490,7 @@ def _real_main(argv=None):
         postprocessors.append({
             'key': 'ModifyChapters',
             'remove_chapters_pattern': remove_chapters_pattern,
-            'force_keyframes': opts.remove_chapters_force_keyframes,
+            'force_keyframes': opts.force_keyframes_at_splits_or_cuts,
             'use_sponsorblock': use_sponsorblock,
             'sponsorblock_query': sponsorblock_query,
             'sponsorblock_cut': sponsorblock_cut,
@@ -534,7 +534,8 @@ def _real_main(argv=None):
         if not already_have_thumbnail:
             opts.writethumbnail = True
     if opts.split_chapters:
-        postprocessors.append({'key': 'FFmpegSplitChapters'})
+        postprocessors.append({'key': 'FFmpegSplitChapters',
+                               'force_keyframes': opts.force_keyframes_at_splits_or_cuts})
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})

@@ -476,14 +476,14 @@ outpoint 10.000000
     def test_quote_for_concat_RunsOfQuotes(self):
         self.assertEqual(
             r"'special '\'' '\'\''characters'\'\'\''galore'",
-            self._pp._quote_for_concat("special ' ''characters'''galore"))
+            self._pp._quote_for_ffmpeg("special ' ''characters'''galore"))
 
     def test_quote_for_concat_QuotesAtStart(self):
         self.assertEqual(
             r"\'\'\''special '\'' characters '\'' galore'",
-            self._pp._quote_for_concat("'''special ' characters ' galore"))
+            self._pp._quote_for_ffmpeg("'''special ' characters ' galore"))
 
     def test_quote_for_concat_QuotesAtEnd(self):
         self.assertEqual(
             r"'special '\'' characters '\'' galore'\'\'\'",
-            self._pp._quote_for_concat("special ' characters ' galore'''"))
+            self._pp._quote_for_ffmpeg("special ' characters ' galore'''"))

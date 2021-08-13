@@ -7,7 +7,7 @@ import subprocess
 import time
 import re
 import json
-from typing import List, Mapping, Optional, Sequence, Union
+from typing import Iterable, List, Mapping, Optional, Sequence, Union
 
 from .common import AudioConversionError, PostProcessor
 
@@ -290,6 +290,23 @@ class FFmpegPostProcessor(PostProcessor):
             return fn
         return 'file:' + fn if fn != '-' else fn
 
+    @staticmethod
+    def _quote_for_ffmpeg(string: str) -> str:
+        # See https://ffmpeg.org/ffmpeg-utils.html#toc-Quoting-and-escaping.
+        # A sequence of '' produces '\'''\'';
+        # final replace removes the empty '' between \' \'.
+        string = string.replace("'", r"'\''").replace("'''", "'")
+        # Handle potential ' at string boundaries.
+        string = string[1:] if string[0] == "'" else "'" + string
+        return string[:-1] if string[-1] == "'" else string + "'"
+
+    def force_keyframes(self, in_file: str, timestamps: Iterable[float]) -> str:
+        keyframes_file = prepend_extension(in_file, 'keyframes')
+        self.to_screen(f'Adding keyframes to "{in_file}"')
+        self.run_ffmpeg(in_file, keyframes_file, [
+            '-force_key_frames', ','.join(f'{t:.6f}' for t in timestamps)])
+        return keyframes_file
+
     def concat_files(self, in_files: Sequence[str], out_file: str,
                      concat_opts: Optional[Sequence[Mapping[str, Union[str, float]]]] = None):
         """
@@ -320,24 +337,12 @@ class FFmpegPostProcessor(PostProcessor):
     ) -> List[str]:
         if concat_opts is None:
             concat_opts = [{}] * len(in_files)
-        concat_spec = ['ffconcat version 1.0\n']
+        yield 'ffconcat version 1.0\n'
         for f, o in zip(in_files, concat_opts):
-            concat_spec.append(
-                f'file {self._quote_for_concat(self._ffmpeg_filename_argument(f))}\n')
+            yield f'file {self._quote_for_ffmpeg(self._ffmpeg_filename_argument(f))}\n'
             for directive in 'inpoint', 'outpoint', 'duration':
                 if directive in o:
-                    concat_spec.append(f'{directive} {o[directive]}\n')
-        return concat_spec
-
-    @staticmethod
-    def _quote_for_concat(string: str) -> str:
-        # See https://ffmpeg.org/ffmpeg-utils.html#toc-Quoting-and-escaping.
-        # A sequence of '' produces '\'''\'';
-        # final replace removes the empty '' between \' \'.
-        string = string.replace("'", r"'\''").replace("'''", "'")
-        # Handle potential ' at string boundaries.
-        string = string[1:] if string[0] == "'" else "'" + string
-        return string[:-1] if string[-1] == "'" else string + "'"
+                    yield f'{directive} {o[directive]}\n'
 
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
@@ -664,7 +669,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 f.write(metadata_file_content)
                 options.append(('-map_metadata', '1'))
 
-        if ('no-attach-info-json' not in self.get_param('compat_opts', [])
+        if not self._only_chapters and (
+                'no-attach-info-json' not in self.get_param('compat_opts', [])
                 and '__infojson_filename' in info and info['ext'] in ('mkv', 'mka')):
             old_stream, new_stream = self.get_stream_number(filename, ('tags', 'mimetype'), 'application/json')
             if old_stream is not None:
@@ -868,6 +874,9 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
 
 
 class FFmpegSplitChaptersPP(FFmpegPostProcessor):
+    def __init__(self, downloader, force_keyframes=False):
+        FFmpegPostProcessor.__init__(self, downloader)
+        self._force_keyframes = force_keyframes
 
     def _prepare_filename(self, number, chapter, info):
         info = info.copy()
@@ -898,10 +907,15 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
             self.report_warning('Chapter information is unavailable')
             return [], info
 
+        in_file = info['filepath']
+        if self._force_keyframes:
+            in_file = self.force_keyframes(in_file, (c['start_time'] for c in chapters))
         self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
-            self.real_run_ffmpeg([(info['filepath'], opts)], [(destination, ['-c', 'copy'])])
+            self.real_run_ffmpeg([(in_file, opts)], [(destination, ['-c', 'copy'])])
+        if self._force_keyframes:
+            os.remove(in_file)
         return [], info
 
 

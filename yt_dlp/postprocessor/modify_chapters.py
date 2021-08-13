@@ -18,7 +18,8 @@ from ..utils import (
     float_or_none,
     PostProcessingError,
     prepend_extension,
-    sanitized_Request
+    sanitized_Request,
+    traverse_obj
 )
 
 
@@ -47,7 +48,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             self, downloader: 'YoutubeDL', remove_chapters_pattern: Optional[Pattern[str]] = None,
             force_keyframes=False, use_sponsorblock=False,
             sponsorblock_query: AbstractSet[str] = frozenset(SPONSORBLOCK_CATEGORIES),
-            sponsorblock_cut: AbstractSet[str] = frozenset(),
+            sponsorblock_cut: AbstractSet[str] = frozenset(SPONSORBLOCK_CATEGORIES),
             sponsorblock_force=False, sponsorblock_reveal_video_id=False,
             sponsorblock_api='https://sponsor.ajay.app'):
         FFmpegPostProcessor.__init__(self, downloader)
@@ -75,7 +76,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         if not chapters and not self._use_sponsorblock:
             return [], info
 
-        duration = self._get_video_duration(video_file)
+        duration = self._get_video_duration(info)
         sponsor_chapters = self._get_sponsor_chapters(info, duration)
         if not sponsor_chapters and not (chapters and self._remove_chapters_pattern):
             return [], info
@@ -116,12 +117,16 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         files_to_cut = [(move_to_uncut(video_file), video_file)]
         # get(..., {}) is broken: sometimes a literal None is stored under this key.
         for lang, sub in (info.get('requested_subtitles') or {}).items():
+            sub_file = sub.get('filepath')
+            # The file might have been removed by --embed-subs.
+            if not sub_file or not os.path.exists(sub_file):
+                continue
             ext: str = sub['ext']
             if ext not in SUPPORTED_SUBS:
                 self.report_warning('Cannot remove chapters from external subtitles '
                                     f'of type ".{ext}". They are now out of sync.')
                 continue
-            files_to_cut.append((move_to_uncut(sub['filepath']), sub['filepath']))
+            files_to_cut.append((move_to_uncut(sub_file), sub_file))
 
         if self._try_remove_chapters(files_to_cut, cuts, duration):
             info['chapters'] = new_chapters
@@ -132,11 +137,13 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             os.rename(uncut, original)
         return [], info
 
-    def _get_video_duration(self, video_file: str) -> float:
-        duration = float_or_none(self.get_metadata_object(video_file)['format']['duration'])
-        if duration is None:
-            raise PostProcessingError('Cannot determine the video duration')
-        return duration
+    def _get_video_duration(self, info: InfoDict) -> float:
+        duration = float_or_none(
+            traverse_obj(self.get_metadata_object(info['filepath']), ['format', 'duration']))
+        if duration is not None:
+            return duration
+        self.report_warning('ffprobe failed to determine video duration')
+        return info['duration']
 
     def _get_sponsor_chapters(self, info: InfoDict, duration: float) -> List[Chapter]:
         if not self._use_sponsorblock:
@@ -404,13 +411,11 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             force_keyframes = (self._force_keyframes
                                and out_file.rpartition('.')[-1] not in SUPPORTED_SUBS)
             if force_keyframes:
-                keyframes_file = prepend_extension(out_file, 'keyframes')
-                self.run_ffmpeg(in_file, keyframes_file, [
-                    '-force_key_frames', ','.join(f'{s[t]:.6f}' for s in chapters_to_remove
-                                                  for t in ['start_time', 'end_time'])])
-                in_file = keyframes_file
+                in_file = self.force_keyframes(
+                    in_file, (s[t] for s in chapters_to_remove for t in ['start_time', 'end_time']))
 
             try:
+                self.to_screen(f'Removing parts of {in_file}')
                 self.concat_files([in_file] * len(concat_opts), out_file, concat_opts)
             except FFmpegPostProcessorError:
                 msg = 'FFmpeg was unable to cut chapters from the video '
@@ -423,7 +428,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 return False
 
             if force_keyframes:
-                os.remove(keyframes_file)
+                os.remove(in_file)
         return True
 
     @staticmethod

@@ -1360,11 +1360,11 @@ def parseOpts(overrideArguments=None):
         '--remove-chapters', metavar='CHAPTER_REGEX', default=None, dest='remove_chapters',
         help='Remove chapters whose title matches a regular expression')
     postproc.add_option(
-        '--remove-chapters-force-keyframes', default=False,
-        action='store_true', dest='remove_chapters_force_keyframes',
-        help='Force keyframes around the chapters before removing them. '
+        '--force-keyframes-at-splits-or-cuts', default=False,
+        action='store_true', dest='force_keyframes_at_splits_or_cuts',
+        help='Force keyframes at splits/cuts before splitting/cutting. '
              'Requires re-encoding and thus very slow, but the resulting video '
-             'may have fewer artifacts around the cuts')
+             'may have fewer artifacts around splits/cuts')
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
         'Make chapter entries for or remove various segments (sponsor, introductions, etc.) '
