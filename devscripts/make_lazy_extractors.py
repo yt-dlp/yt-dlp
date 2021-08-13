@@ -16,12 +16,16 @@ if os.path.exists(lazy_extractors_filename):
     os.remove(lazy_extractors_filename)
 
 # Block plugins from loading
-os.rename('ytdlp_plugins', 'ytdlp_plugins_blocked')
+plugins_dirname = 'ytdlp_plugins'
+plugins_blocked_dirname = 'ytdlp_plugins_blocked'
+if os.path.exists(plugins_dirname):
+    os.rename(plugins_dirname, plugins_blocked_dirname)
 
 from yt_dlp.extractor import _ALL_CLASSES
 from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
 
-os.rename('ytdlp_plugins_blocked', 'ytdlp_plugins')
+if os.path.exists(plugins_blocked_dirname):
+    os.rename(plugins_blocked_dirname, plugins_dirname)
 
 with open('devscripts/lazy_load_template.py', 'rt') as f:
     module_template = f.read()
