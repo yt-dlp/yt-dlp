@@ -802,7 +802,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                 }
 
             info['__files_to_move'][new_file] = replace_extension(
-                info['__files_to_move'][old_file], new_ext)
+                info['__files_to_move'][sub['filepath']], new_ext)
 
         return sub_filenames, info
 
