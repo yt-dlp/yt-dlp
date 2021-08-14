@@ -17,18 +17,18 @@ import itertools
 class VoicyBaseIE(InfoExtractor):
     # every queries are assumed to be a playlist
     def _extract_from_playlist_data(self, value):
-        voice_id = compat_str(value['PlaylistId'])
-        upload_date = unified_strdate(value['Published'], False)
+        voice_id = compat_str(value.get('PlaylistId'))
+        upload_date = unified_strdate(value.get('Published'), False)
         items = [self._extract_single_article(voice_data) for voice_data in value['VoiceData']]
         return {
             '_type': 'playlist',
             'entries': items,
             'id': voice_id,
-            'title': compat_str(value['PlaylistName']),
-            'uploader': value['SpeakerName'],
-            'uploader_id': compat_str(value['SpeakerId']),
-            'channel': value['ChannelName'],
-            'channel_id': compat_str(value['ChannelId']),
+            'title': compat_str(value.get('PlaylistName')),
+            'uploader': value.get('SpeakerName'),
+            'uploader_id': compat_str(value.get('SpeakerId')),
+            'channel': value.get('ChannelName'),
+            'channel_id': compat_str(value.get('ChannelId')),
             'upload_date': upload_date,
         }
 
@@ -50,20 +50,20 @@ class VoicyBaseIE(InfoExtractor):
         }]
         self._sort_formats(formats)
         return {
-            'id': compat_str(entry['ArticleId']),
-            'title': entry['ArticleTitle'],
-            'description': entry['MediaName'],
+            'id': compat_str(entry.get('ArticleId')),
+            'title': entry.get('ArticleTitle'),
+            'description': entry.get('MediaName'),
             'formats': formats,
         }
 
     def _call_api(self, url, video_id, **kwargs):
         response = self._download_json(url, video_id, **kwargs)
-        if response['Status'] != 0:
+        if response.get('Status') != 0:
             message = traverse_obj(response, ('Value', 'Error', 'Message'), expected_type=compat_str)
             if not message:
-                message = 'There was a error in the response: %d' % response['Status']
+                message = 'There was a error in the response: %d' % response.get('Status')
             raise ExtractorError(message, expected=False)
-        return response['Value']
+        return response.get('Value')
 
 
 class VoicyIE(VoicyBaseIE):
@@ -116,7 +116,7 @@ class VoicyChannelIE(VoicyBaseIE):
         pager = ''
         for count in itertools.count(1):
             article_list = self._call_api(self.PROGRAM_LIST_API_URL % (channel_id, pager), channel_id, note='Paging #%d' % count)
-            playlist_data = article_list['PlaylistData']
+            playlist_data = article_list.get('PlaylistData')
             if not playlist_data:
                 break
             yield from playlist_data
