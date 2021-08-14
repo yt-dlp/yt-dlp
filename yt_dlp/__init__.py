@@ -381,6 +381,8 @@ def _real_main(argv=None):
     if opts.getcomments and not printing_json:
         opts.writeinfojson = True
 
+    opts.remove_chapters = opts.remove_chapters or []
+
     def report_conflict(arg1, arg2):
         warnings.append('%s is ignored since %s was given' % (arg2, arg1))
 
@@ -419,6 +421,9 @@ def _real_main(argv=None):
         if opts.sponskrub:
             report_conflict('--allow-unplayable-formats', '--sponskrub')
         opts.sponskrub = False
+        if opts.remove_chapters:
+            report_conflict('--allow-unplayable-formats', '--remove-chapters')
+            opts.remove_chapters = []
 
     # PostProcessors
     postprocessors = []
@@ -482,14 +487,16 @@ def _real_main(argv=None):
     if opts.allsubtitles and not opts.writeautomaticsub:
         opts.writesubtitles = True
     # FFmpegRemoveChapters must run before FFmpegMetadataPP
+    remove_chapters_patterns = []
     if opts.remove_chapters:
-        try:
-            remove_chapters_pattern = re.compile(opts.remove_chapters)
-        except re.error as err:
-            parser.error(f'invalid --remove-chapters regex {opts.remove_chapters!r}: {err}')
+        for regex in opts.remove_chapters:
+            try:
+                remove_chapters_patterns.append(re.compile(regex))
+            except re.error as err:
+                parser.error(f'invalid --remove-chapters regex {regex!r} - {err}')
         postprocessors.append({
             'key': 'FFmpegRemoveChapters',
-            'regex': remove_chapters_pattern,
+            'regexes': remove_chapters_patterns,
             'force_keyframes': opts.force_keyframes_at_cuts,
             'force': opts.force_remove_chapters,
         })

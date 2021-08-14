@@ -104,38 +104,88 @@ class TestRemoveChaptersPP(unittest.TestCase):
             r"'special '\'' characters '\'' galore'\'\'\'")
 
     def test_remove_chapters_from_infodict(self):
-        regex = re.compile(r'remove \d+')
 
-        def to_chapter(i, start, end, remove=False):
-            title = f'remove {i}' if remove else str(i)
-            return {'title': title, 'start_time': start, 'end_time': end}
+        timestamps = [
+            {('normal 0', 0, 1), ('normal 1', 1, 4), ('normal 2', 4, 6), ('normal 3', 7, 8)},
+            {('inside', 2, 3), ('c', 2, 5), ('overlap', 5, 7), ('overlap2', 5, 7)},
+        ]
 
-        def test(chapters, expected):
-            ''' chapters = [(start, end, remove), ...] '''
-            removed = [c[:2] for c in chapters if len(c) > 2 and c[2]]
-            chapters = [to_chapter(i, *c) for i, c in enumerate(chapters)]
-            self.assertEqual(
-                list(FFmpegRemoveChaptersPP._remove_chapters_from_infodict(chapters, regex)),
-                removed)
-            self.assertEqual(chapters, [to_chapter(i, *c) for i, c in enumerate(expected) if c])
+        def set_to_chapters(chapters):
+            return [{'title': title, 'start_time': start, 'end_time': end}
+                    for title, start, end in chapters]
 
-        test(((0, 10), (10, 20), (20, 30)),
-             ((0, 10), (10, 20), (20, 30)))
-        test(((0, 10), (10, 20, True), (20, 30)),
-             ((0, 10), None, (10, 20)))
+        def set_from_chapters(chapters):
+            return set((c['title'], c['start_time'], c['end_time']) for c in chapters)
 
-        # Out of order
-        test(((0, 10), (20, 30), (10, 20, True)),
-             ((0, 10), (10, 20), None))
+        def test(regex, expected, remaining_list):
+            regex = re.compile(regex)
+            chapters_list = list(map(set_to_chapters, timestamps))
 
-        # Overlap
-        test(((0, 10), (20, 30), (10, 25, True)),
-             ((0, 10), (10, 15), None))
-        test(((0, 10), (10, 20), (20, 30), (15, 25, True)),
-             ((0, 10), (10, 15), (15, 20)))
+            removed = FFmpegRemoveChaptersPP._remove_chapters_from_infodict(*chapters_list, regexes=[regex])
+            self.assertEqual(list(map(tuple, removed)), expected)
+            for chapters, remaining in zip(chapters_list, remaining_list):
+                self.assertEqual([set_from_chapters(chapters) for chapters in chapters_list], remaining_list)
 
-        # Inside
-        test(((0, 10), (10, 20), (20, 30), (5, 35, True)),
-             ((0, 5), None, None))
-        test(((0, 10), (10, 20), (20, 30), (12, 17, True)),
-             ((0, 10), (10, 15), (15, 25)))
+            # Test with all chapter lists combined
+            chapters = [c for chapters in timestamps for c in set_to_chapters(chapters)]
+            removed = FFmpegRemoveChaptersPP._remove_chapters_from_infodict(chapters, regexes=[regex])
+            self.assertEqual(list(map(tuple, removed)), expected)
+            self.assertEqual(set_from_chapters(chapters), set.union(*remaining_list))
+
+        # Remove nothing
+        test('none', [], [
+             {('normal 0', 0, 1), ('normal 1', 1, 4), ('normal 2', 4, 6), ('normal 3', 7, 8)},
+             {('inside', 2, 3), ('overlap', 5, 7), ('overlap2', 5, 7), ('c', 2, 5)}])
+
+        # Remove independent chapters
+        test('normal 0', [(0, 1)], [
+             {('normal 1', 0, 3), ('normal 2', 3, 5), ('normal 3', 6, 7)},
+             {('inside', 1, 2), ('overlap', 4, 6), ('overlap2', 4, 6), ('c', 1, 4)}])
+        test('normal 0|normal 3', [(0, 1), (7, 8)], [
+             {('normal 1', 0, 3), ('normal 2', 3, 5)},
+             {('inside', 1, 2), ('overlap', 4, 6), ('overlap2', 4, 6), ('c', 1, 4)}])
+
+        # Remove a chapter that is identical to another chapter
+        test('overlap2', [(5, 7)], [
+             {('normal 0', 0, 1), ('normal 1', 1, 4), ('normal 2', 4, 5), ('normal 3', 5, 6)},
+             {('inside', 2, 3), ('c', 2, 5)}])
+
+        # Remove a chapter that overlaps another chapter
+        test('overlap', [(5, 7)], [
+             {('normal 0', 0, 1), ('normal 1', 1, 4), ('normal 2', 4, 5), ('normal 3', 5, 6)},
+             {('inside', 2, 3), ('c', 2, 5)}])
+
+        # Remove a chapter from inside another chapter
+        test('inside', [(2, 3)], [
+             {('normal 0', 0, 1), ('normal 1', 1, 3), ('normal 2', 3, 5), ('normal 3', 6, 7)},
+             {('overlap', 4, 6), ('overlap2', 4, 6), ('c', 2, 4)}])
+
+        # Remove a chapter enclosing another chapter
+        test('normal 1', [(1, 4)], [
+             {('normal 0', 0, 1), ('normal 2', 1, 3), ('normal 3', 4, 5)},
+             {('overlap', 2, 4), ('overlap2', 2, 4), ('c', 1, 2)}])
+
+        # Remove 2 chapters that touch each other
+        test('normal 0|normal 1', [(0, 4)], [
+             {('normal 2', 0, 2), ('normal 3', 3, 4)},
+             {('overlap', 1, 3), ('overlap2', 1, 3), ('c', 0, 1)}])
+
+        # Remove 2 overlapping chapters
+        test('overlap|normal 2', [(4, 7)], [
+             {('normal 0', 0, 1), ('normal 1', 1, 4), ('normal 3', 4, 5)},
+             {('inside', 2, 3), ('c', 2, 4)}])
+
+        # Remove 2 chapters, one inside the other
+        test('normal 1|inside', [(1, 4)], [
+             {('normal 0', 0, 1), ('normal 2', 1, 3), ('normal 3', 4, 5)},
+             {('overlap', 2, 4), ('overlap2', 2, 4), ('c', 1, 2)}])
+
+        # Remove 2 chapters that together enclose another chapter
+        test('normal 1|normal 2', [(1, 6)], [
+             {('normal 0', 0, 1), ('normal 3', 2, 3)},
+             {('overlap', 1, 2), ('overlap2', 1, 2)}])
+
+        # Remove 2 chapters with same start
+        test('inside|c', [(2, 5)], [
+             {('normal 0', 0, 1), ('normal 1', 1, 2), ('normal 2', 2, 3), ('normal 3', 4, 5)},
+             {('overlap', 2, 4), ('overlap2', 2, 4)}])

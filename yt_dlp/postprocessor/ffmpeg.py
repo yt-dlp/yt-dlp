@@ -8,7 +8,6 @@ import time
 import re
 import json
 
-
 from .common import AudioConversionError, PostProcessor
 
 from ..compat import compat_str, compat_numeric_types
@@ -18,7 +17,6 @@ from ..utils import (
     encodeFilename,
     float_or_none,
     get_exe_version,
-    Intervals,
     is_outdated_version,
     ISO639Utils,
     PostProcessingError,
@@ -981,14 +979,14 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
 class FFmpegRemoveChaptersPP(FFmpegPostProcessor):
     SUPPORTED_SUBS = ('srt', 'ass', 'vtt')
 
-    def __init__(self, downloader, regex, force=False, force_keyframes=False):
+    def __init__(self, downloader, regexes, force=False, force_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
-        self._regex = re.compile(regex) if isinstance(regex, str) else regex
+        self._regexes = [re.compile(regex) if isinstance(regex, str) else regex for regex in regexes]
         self._force_cut = force
         self._force_keyframes = force_keyframes
 
     def run(self, info):
-        ranges_to_cut = Intervals(self._remove_chapters_from_infodict(info.get('chapters') or [], self._regex))
+        ranges_to_cut = self._remove_chapters_from_infodict(info.get('chapters') or [], regexes=self._regexes)
         if not ranges_to_cut:
             if not info.get('chapters'):
                 self.to_screen('Chapter information is unavailable')
@@ -1040,19 +1038,32 @@ class FFmpegRemoveChaptersPP(FFmpegPostProcessor):
         return files_to_remove, info
 
     @staticmethod
-    def _remove_chapters_from_infodict(chapters, regex):
-        removed = [chapters.pop(i) for i, c in enumerate(chapters)
-                   if c.get('title') and regex.match(c['title'])]
+    def _remove_chapters_from_infodict(*chapters_list, regexes):
+        combined_chapters = ((n, c) for n, chapters in enumerate(chapters_list) for c in chapters)
+
+        removed_sections, keep_chapters = [], [[] for _ in chapters_list]
+        for i, (n, c) in enumerate(sorted(combined_chapters, key=lambda x: x[1]['start_time'])):
+            assert c['end_time'] >= c['start_time']
+            if c.get('title') and any(regex.search(c['title']) for regex in regexes):
+                if removed_sections and removed_sections[-1][1] >= c['start_time']:
+                    removed_sections[-1][1] = max(c['end_time'], removed_sections[-1][1])
+                else:
+                    removed_sections.append([c['start_time'], c['end_time']])
+            else:
+                keep_chapters[n].append(c)
 
         def get_removed_time_before(time):
-            return sum(min(time, c['end_time']) - c['start_time'] for c in removed if c['start_time'] < time)
+            return sum(min(time, end) - start for start, end in removed_sections if start < time)
 
-        for c in chapters:
-            c['start_time'] -= get_removed_time_before(c['start_time'])
-            c['end_time'] -= get_removed_time_before(c['end_time'])
+        for chapters in keep_chapters:
+            for c in chapters:
+                c['start_time'] -= get_removed_time_before(c['start_time'])
+                c['end_time'] -= get_removed_time_before(c['end_time'])
 
-        chapters[:] = [c for c in chapters if c['end_time'] != c['start_time']]
-        return [(c['start_time'], c['end_time']) for c in removed]
+        for n, chapters in enumerate(chapters_list):
+            chapters[:] = [c for c in keep_chapters[n] if c['end_time'] != c['start_time']]
+
+        return removed_sections
 
     def _get_video_duration(self, infodict):
         try:

@@ -1321,8 +1321,12 @@ def parseOpts(overrideArguments=None):
         dest='split_chapters', action='store_false',
         help='Do not split video based on chapters (default)')
     postproc.add_option(
-        '--remove-chapters', metavar='REGEX', default=None, dest='remove_chapters',
-        help='Remove chapters whose title matches a regular expression')
+        '--remove-chapters',
+        metavar='REGEX', dest='remove_chapters', action='append',
+        help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
+    postproc.add_option(
+        '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
+        help='Do not remove any chapters from the file (default)')
     postproc.add_option(
         '--force-remove-chapters', default=False, dest='force_remove_chapters', action='store_true',
         help='Remove chapters even if the video was already downloaded')
