@@ -85,8 +85,10 @@ class VoicyIE(VoicyBaseIE):
 
     # every queries are assumed to be a playlist
     def _real_extract(self, url):
-        voice_id = self._match_id(url)
-        channel_id = self._VALID_URL_RE.match(url).group('channel_id')
+        mobj = self._VALID_URL_RE.match(url)
+        assert mobj
+        voice_id = mobj.group('id')
+        channel_id = mobj.group('channel_id')
         url, article_list = unsmuggle_url(url)
         if not article_list:
             article_list = self._call_api(self.ARTICLE_LIST_API_URL % (channel_id, voice_id), voice_id)
