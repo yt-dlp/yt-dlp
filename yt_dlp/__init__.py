@@ -257,35 +257,7 @@ def _real_main(argv=None):
     else:
         date = DateRange(opts.dateafter, opts.datebefore)
 
-    def parse_compat_opts():
-        parsed_compat_opts, compat_opts = set(), opts.compat_opts[::-1]
-        while compat_opts:
-            actual_opt = opt = compat_opts.pop().lower()
-            if opt == 'youtube-dl':
-                compat_opts.extend(['-multistreams', 'all'])
-            elif opt == 'youtube-dlc':
-                compat_opts.extend(['-no-youtube-channel-redirect', '-no-live-chat', 'all'])
-            elif opt == 'all':
-                parsed_compat_opts.update(all_compat_opts)
-            elif opt == '-all':
-                parsed_compat_opts = set()
-            else:
-                if opt[0] == '-':
-                    opt = opt[1:]
-                    parsed_compat_opts.discard(opt)
-                else:
-                    parsed_compat_opts.update([opt])
-                if opt not in all_compat_opts:
-                    parser.error('Invalid compatibility option %s' % actual_opt)
-        return parsed_compat_opts
-
-    all_compat_opts = [
-        'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
-        'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-        'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
-        'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
-    ]
-    compat_opts = parse_compat_opts()
+    compat_opts = opts.compat_opts
 
     def _unused_compat_opt(name):
         if name not in compat_opts:

@@ -273,7 +273,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-mark-watched                Do not mark videos watched (default)
     --no-colors                      Do not emit color codes in output
     --compat-options OPTS            Options that can help keep compatibility
-                                     with youtube-dl and youtube-dlc
+                                     with youtube-dl or youtube-dlc
                                      configurations by reverting some of the
                                      changes made in yt-dlp. See "Differences in
                                      default behavior" for details
