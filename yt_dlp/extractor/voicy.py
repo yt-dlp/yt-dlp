@@ -11,6 +11,7 @@ from ..utils import (
     unified_strdate,
 )
 
+import re
 import itertools
 
 
@@ -83,7 +84,7 @@ class VoicyIE(VoicyBaseIE):
 
     # every queries are assumed to be a playlist
     def _real_extract(self, url):
-        mobj = self._VALID_URL_RE.match(url)
+        mobj = re.match(self._VALID_URL, url)
         assert mobj
         voice_id = mobj.group('id')
         channel_id = mobj.group('channel_id')
