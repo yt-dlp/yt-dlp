@@ -53,8 +53,6 @@ class VoicyBaseIE(InfoExtractor):
             'id': compat_str(entry['ArticleId']),
             'title': entry['ArticleTitle'],
             'description': entry['MediaName'],
-            'voice_id': compat_str(entry['VoiceId']),
-            'chapter_id': compat_str(entry['ChapterId']),
             'formats': formats,
         }
 
