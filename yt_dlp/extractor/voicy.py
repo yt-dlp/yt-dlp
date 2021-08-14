@@ -111,18 +111,20 @@ class VoicyChannelIE(VoicyBaseIE):
     def suitable(cls, url):
         return not VoicyIE.suitable(url) and super(VoicyChannelIE, cls).suitable(url)
 
-    def _real_extract(self, url):
-        channel_id = self._match_id(url)
-        articles = []
+    def _entries(self, channel_id):
         pager = ''
         for count in itertools.count(1):
             article_list = self._call_api(self.PROGRAM_LIST_API_URL % (channel_id, pager), channel_id, note='Paging #%d' % count)
             playlist_data = article_list['PlaylistData']
             if not playlist_data:
                 break
-            articles.extend(playlist_data)
+            yield from playlist_data
             last = playlist_data[-1]
             pager = '&pid=%d&p_date=%s&play_count=%s' % (last['PlaylistId'], last['Published'], last['PlayCount'])
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+        articles = self._entries(channel_id)
 
         title = traverse_obj(articles, (0, 'ChannelName'), expected_type=compat_str)
         if not title:
