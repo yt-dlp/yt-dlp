@@ -27,6 +27,7 @@ from ..utils import (
     unified_timestamp,
     unsmuggle_url,
     urlencode_postdata,
+    match_filter_func
 )
 
 
@@ -543,8 +544,18 @@ class BilibiliCategoryIE(SearchInfoExtractor):
     IE_NAME = "Bilibili category extractor"
     _MAX_RESULTS = 1000000
     _VALID_URL = r'https?:\/\/www\.bilibili\.com\/v\/[a-zA-Z]+\/[a-zA-Z]+'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/v/kichiku/mad',
+        'info_dict': {
+            'id': 'kichiku: mad',
+        },
+        'playlist_maxcount': 45,
+        'params': {
+            "playlist_end": '45'
+        }
+    }]
 
-    def _get_n_results(self, category, subcategory, n):
+    def _get_n_results(self, category, subcategory, n, match=None):
         query = "%s: %s" % (category, subcategory)
         # map of categories : subcategories : RIDs
         rid_map = {
@@ -572,19 +583,27 @@ class BilibiliCategoryIE(SearchInfoExtractor):
 
         entries = []
 
-        # Go to the last page, add oldest items first
-        for page_number in range(num_pages, 0, -1):
+        # desc order
+        for page_number in range(1, num_pages + 1, 1):
             time.sleep(2)
             json_str = self._download_webpage(api_url + "&pn=%s" % page_number, "None", query={"Search_key": query},
-                                              note='Extracting results from page %s' % page_number)
+                                              note='Extracting results from page %s of %s' % (page_number, num_pages))
 
             parsed_json = json.loads(json_str)
             # Ascending by publish date
             video_list = sorted(parsed_json['data']['archives'], key=lambda video: video['pubdate'])
-            entries += map(lambda video: self.url_result("https://www.bilibili.com/video/%s" % video['bvid'],
-                                                         'BiliBili', video['bvid']), video_list)
+            video_list_processed = list(map(lambda video: self.url_result("https://www.bilibili.com/video/%s" % video['bvid'],
+                                                        'BiliBili', video['bvid']), video_list))
+            should_brk = False
+            if match:
+                for idx, ele in enumerate(video_list_processed):
+                    matches = match(ele)
+                    if matches is None:
+                        video_list = video_list_processed[:idx+1]
+                        break
 
-            if(len(entries) >= n or len(entries) >= BilibiliCategoryIE._MAX_RESULTS):
+            entries += video_list_processed
+            if(len(entries) >= n or len(entries) >= BilibiliCategoryIE._MAX_RESULTS) or should_brk:
                 break
 
         return {
@@ -601,8 +620,9 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         u = compat_urllib_parse_urlparse(url)
         category = u.path.split("/")[2]
         subcategory = u.path.split("/")[3]
+        count_items_to_fetch = int(self.get_param("playlist_end")) if self.get_param("playlist_end") else self._MAX_RESULTS
 
-        return self._get_n_results(category, subcategory, self._MAX_RESULTS)
+        return self._get_n_results(category, subcategory, count_items_to_fetch, self.get_param("match_filter"))
 
 
 class BiliBiliSearchIE(SearchInfoExtractor):
