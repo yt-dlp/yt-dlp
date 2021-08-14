@@ -295,7 +295,7 @@ class SoundcloudIE(InfoExtractor):
             try:
                 return super(SoundcloudIE, self)._download_json(*args, **compat_kwargs(kwargs))
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
                     self._store_client_id(None)
                     self._update_client_id()
                     continue
@@ -305,7 +305,7 @@ class SoundcloudIE(InfoExtractor):
                 raise
 
     def _real_initialize(self):
-        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'fXuVKzsVXlc6tzniWWS31etd7VHWFUuN'  # persistent `client_id`
+        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'fSSdm5yTnDka1g0Fz1CO5Yx6z0NbeHAj'
         self._login()
 
     _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
