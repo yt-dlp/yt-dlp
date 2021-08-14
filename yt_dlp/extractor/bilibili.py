@@ -5,12 +5,15 @@ import hashlib
 import itertools
 import json
 import re
+import math
+import time
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
     compat_str,
     compat_parse_qs,
     compat_urlparse,
+    compat_urllib_parse_urlparse
 )
 from ..utils import (
     ExtractorError,
@@ -534,6 +537,73 @@ class BilibiliChannelIE(InfoExtractor):
         list_id = self._match_id(url)
         return self.playlist_result(self._entries(list_id), list_id)
 
+
+# https://www.bilibili.com/v/kichiku/mad/#/
+class BilibiliCategoryIE(SearchInfoExtractor):
+    IE_NAME = "Bilibili category extractor"
+    _MAX_RESULTS = 1000000
+    _VALID_URL = r'https?:\/\/www\.bilibili\.com\/v\/[a-zA-Z]+\/[a-zA-Z]+'
+
+    def _get_n_results(self, category, subcategory, n):
+        query = "%s: %s" % (category, subcategory)
+        # map of categories : subcategories : RIDs
+        rid_map = {
+            "kichiku": {
+                "mad": 26,
+                "manual_vocaloid": 126,
+                "guide": 22,
+                "theatre": 216,
+                "course": 127
+            },
+        }
+
+        if category not in rid_map:
+            raise ExtractorError("The supplied category, %s, is not supported" % category)
+
+        if subcategory not in rid_map[category]:
+            raise ExtractorError("The supplied subcategory, %s, is not supported" % subcategory)
+
+        rid_value = rid_map[category][subcategory]
+
+
+        api_url = "https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp" % rid_value
+        json_str = self._download_webpage(api_url + "&pn=1", "None", query={"Search_key": query})
+        parsed_json = json.loads(json_str)
+        num_pages = math.ceil(parsed_json['data']['page']['count'] / parsed_json['data']['page']['size'])
+
+        entries = []
+
+        # Go to the last page, add oldest items first
+        for page_number in range(num_pages,  0, -1):
+            time.sleep(2)
+            json_str = self._download_webpage(api_url + "&pn=%s" % page_number, "None", query={"Search_key": query},
+                                              note='Extracting results from page %s' % page_number)
+
+            parsed_json = json.loads(json_str)
+            # Ascending by publish date
+            video_list = sorted(parsed_json['data']['archives'], key=lambda video: video['pubdate'])
+            entries += map(lambda video: self.url_result("https://www.bilibili.com/video/%s" % video['bvid'],
+                                                         'BiliBili', video['bvid']), video_list)
+
+            if(len(entries) >= n or len(entries) >= BilibiliCategoryIE._MAX_RESULTS):
+                break
+
+        return {
+            '_type': 'playlist',
+            'id': query,
+            'entries': entries[:n]
+        }
+
+    @classmethod
+    def _make_valid_url(cls):
+        return cls._VALID_URL
+
+    def _real_extract(self, url):
+        u = compat_urllib_parse_urlparse(url)
+        category = u.path.split("/")[2]
+        subcategory = u.path.split("/")[3]
+
+        return self._get_n_results(category, subcategory, self._MAX_RESULTS)
 
 class BiliBiliSearchIE(SearchInfoExtractor):
     IE_DESC = 'Bilibili video search, "bilisearch" keyword'
