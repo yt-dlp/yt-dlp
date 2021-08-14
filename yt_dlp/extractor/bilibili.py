@@ -565,7 +565,6 @@ class BilibiliCategoryIE(SearchInfoExtractor):
 
         rid_value = rid_map[category][subcategory]
 
-
         api_url = "https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp" % rid_value
         json_str = self._download_webpage(api_url + "&pn=1", "None", query={"Search_key": query})
         parsed_json = json.loads(json_str)
@@ -574,7 +573,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         entries = []
 
         # Go to the last page, add oldest items first
-        for page_number in range(num_pages,  0, -1):
+        for page_number in range(num_pages, 0, -1):
             time.sleep(2)
             json_str = self._download_webpage(api_url + "&pn=%s" % page_number, "None", query={"Search_key": query},
                                               note='Extracting results from page %s' % page_number)
@@ -604,6 +603,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         subcategory = u.path.split("/")[3]
 
         return self._get_n_results(category, subcategory, self._MAX_RESULTS)
+
 
 class BiliBiliSearchIE(SearchInfoExtractor):
     IE_DESC = 'Bilibili video search, "bilisearch" keyword'
