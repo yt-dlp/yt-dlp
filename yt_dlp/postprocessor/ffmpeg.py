@@ -908,8 +908,10 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
             return [], info
 
         in_file = info['filepath']
-        if self._force_keyframes:
-            in_file = self.force_keyframes(in_file, (c['start_time'] for c in chapters))
+        if self._force_keyframes and len(chapters) > 1:
+            timestamps = (c['start_time'] for c in chapters)
+            next(timestamps)  # Do not force keyframes at the beginning of the video.
+            in_file = self.force_keyframes(in_file, timestamps)
         self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
