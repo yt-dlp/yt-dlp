@@ -599,7 +599,8 @@ class BilibiliCategoryIE(SearchInfoExtractor):
                 for idx, ele in enumerate(video_list_processed):
                     matches = match(ele)
                     if matches is None:
-                        video_list = video_list_processed[:idx+1]
+                        video_list_processed = video_list_processed[:idx]
+                        should_brk = True
                         break
 
             entries += video_list_processed
