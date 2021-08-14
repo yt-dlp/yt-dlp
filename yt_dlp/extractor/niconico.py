@@ -662,15 +662,28 @@ class NiconicoPlaylistIE(InfoExtractor):
         }
 
 
-# USAGE: youtube-dl "nicosearch<NUMBER OF ENTRIES>:<SEARCH STRING>"
-class NicovideoSearchIE(SearchInfoExtractor):
+
+class NicovideoURLSearchIE(SearchInfoExtractor):
     IE_NAME = "nicovideo:search"
     IE_DESC = 'Nico video search'
     _MAX_RESULTS = 1000000
-    _SEARCH_KEY = 'nicosearch'
     _START_DATE = datetime.date(2007, 1, 1)
     _MAX_NUMBER_OF_PAGES = 50
     _RESULTS_PER_PAGE = 32
+    _VALID_URL = r'https?:\/\/(?:www\.)?nicovideo\.jp\/search\/(?:[^&]+)(\?termination_id=[a-zA-Z0-9]{1,3})?'
+    _TESTS = [{
+        'url': 'http://www.nicovideo.jp/search/sm9',
+        'info_dict': {
+            'id': 'sm9',
+        },
+        'playlist_mincount': 320,
+    }]
+
+    _API_HEADERS = {
+        'X-Frontend-ID': '6',
+        'X-Frontend-Version': '0'
+    }
+
 
     def _get_n_results(self, query, n):
         """Get a specified number of results for a query"""
@@ -754,23 +767,6 @@ class NicovideoSearchIE(SearchInfoExtractor):
 
         return entries
 
-
-class NicovideoURLSearchIE(NicovideoSearchIE):
-    # IE_DESC = 'nicovideo.jp search URLs'
-    # IE_NAME = NicovideoSearchIE.IE_NAME + '_url'
-    _VALID_URL = r'https?:\/\/(?:www\.)?nicovideo\.jp\/search\/(?:[^&]+)(\?termination_id=[a-zA-Z0-9]{1,3})?'
-    _TESTS = [{
-        'url': 'http://www.nicovideo.jp/search/sm9',
-        'info_dict': {
-            'id': 'sm9',
-        },
-        'playlist_mincount': 320,
-    }]
-
-    _API_HEADERS = {
-        'X-Frontend-ID': '6',
-        'X-Frontend-Version': '0'
-    }
 
     @classmethod
     def _make_valid_url(cls):
