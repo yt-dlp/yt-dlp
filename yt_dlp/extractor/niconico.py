@@ -662,7 +662,6 @@ class NiconicoPlaylistIE(InfoExtractor):
         }
 
 
-
 class NicovideoURLSearchIE(SearchInfoExtractor):
     IE_NAME = "nicovideo:search"
     IE_DESC = 'Nico video search'
@@ -683,7 +682,6 @@ class NicovideoURLSearchIE(SearchInfoExtractor):
         'X-Frontend-ID': '6',
         'X-Frontend-Version': '0'
     }
-
 
     def _get_n_results(self, query, n):
         """Get a specified number of results for a query"""
@@ -766,7 +764,6 @@ class NicovideoURLSearchIE(SearchInfoExtractor):
             pageNumber += 1
 
         return entries
-
 
     @classmethod
     def _make_valid_url(cls):
