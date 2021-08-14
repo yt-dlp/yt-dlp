@@ -38,6 +38,7 @@ class VoicyBaseIE(InfoExtractor):
             'url': entry['VoiceHlsFile'],
             'format_id': 'hls',
             'ext': 'm4a',
+            'acodec': 'aac',
             'vcodec': 'none',
             'protocol': 'm3u8_native',
         }, {
