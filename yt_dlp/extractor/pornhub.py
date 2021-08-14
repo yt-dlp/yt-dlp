@@ -3,11 +3,9 @@ from __future__ import unicode_literals
 
 import functools
 import itertools
-from json import dumps
+import math
 import operator
 import re
-
-from math import ceil
 
 from .common import InfoExtractor
 from ..compat import (
@@ -788,7 +786,7 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
         video_count = int_or_none(
             self._search_regex(r'var\s+itemsCount\s*=\s*([0-9]+)\s*\|\|', webpage, 'video_count'))
         token = self._search_regex(r'var\s+token\s*=\s*"([^"]+)"', webpage, 'token')
-        page_count = ceil((video_count - 36) / 40.) + 1
+        page_count = math.ceil((video_count - 36) / 40.) + 1
         page_entries = self._extract_entries(webpage, host)
 
         def download_page(page_num):
