@@ -168,6 +168,11 @@ class SoundcloudIE(InfoExtractor):
             'md5': '9ffcddb08c87d74fb5808a3c183a1d04',
             'info_dict': {
                 'id': '343609555',
+                'timestamp': 1506120436,
+                'uploader': '80M',
+                'uploader_id': '312384765',
+                'title': 'The Following',
+                'upload_date': '20170922',
                 'ext': 'wav',
             },
         },
@@ -224,8 +229,8 @@ class SoundcloudIE(InfoExtractor):
                 'id': '583011102',
                 'ext': 'mp3',
                 'title': 'Mezzo Valzer',
-                'description': 'md5:4138d582f81866a530317bae316e8b61',
-                'uploader': 'Micronie',
+                'description': 'md5:8de664f12895716c8ac6f1da6348eb8e',
+                'uploader': 'Giovanni Sarani',
                 'uploader_id': '3352531',
                 'timestamp': 1551394171,
                 'upload_date': '20190228',
@@ -270,8 +275,18 @@ class SoundcloudIE(InfoExtractor):
     def _store_client_id(self, client_id):
         self._downloader.cache.store('soundcloud', 'client_id', client_id)
 
+    def _store_app_version(self, app_version):
+        self._downloader.cache.store('soundcloud', 'app_version', app_version)
+
     def _update_client_id(self):
         webpage = self._download_webpage('https://soundcloud.com/', None)
+        app_version = self._search_regex(
+            r'window\.__sc_version="(\d+)"',
+            webpage, 'app version'
+        )
+        self._APP_VERSION = app_version
+        self._store_app_version(app_version)
+
         for src in reversed(re.findall(r'<script[^>]+src="([^"]+)"', webpage)):
             script = self._download_webpage(src, None, fatal=False)
             if script:
@@ -289,14 +304,19 @@ class SoundcloudIE(InfoExtractor):
         if non_fatal:
             del kwargs['fatal']
         query = kwargs.get('query', {}).copy()
+        headers = kwargs.get('headers', {}).copy()
         for _ in range(2):
             query['client_id'] = self._CLIENT_ID
+            if 'app_version' in query:  # not every request has app_version, query['app_version'] = true enables adding it
+                query['app_version'] = self._APP_VERSION
             kwargs['query'] = query
+            kwargs['headers'] = headers
             try:
                 return super(SoundcloudIE, self)._download_json(*args, **compat_kwargs(kwargs))
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
                     self._store_client_id(None)
+                    self._store_app_version(None)
                     self._update_client_id()
                     continue
                 elif non_fatal:
@@ -305,7 +325,9 @@ class SoundcloudIE(InfoExtractor):
                 raise
 
     def _real_initialize(self):
-        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'fXuVKzsVXlc6tzniWWS31etd7VHWFUuN'  # persistent `client_id`
+        # changes from time to time, try with the latest otherwise it'll fetch a new one and cache that
+        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'fSSdm5yTnDka1g0Fz1CO5Yx6z0NbeHAj'
+        self._APP_VERSION = self._downloader.cache.load('soundcloud', 'app_version') or '1628858614'
         self._login()
 
     _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
@@ -404,6 +426,27 @@ class SoundcloudIE(InfoExtractor):
     def _resolv_url(cls, url):
         return SoundcloudIE._API_V2_BASE + 'resolve?url=' + url
 
+    def _extract_hydrate(self, url):
+        webpage = self._download_webpage(url, None)
+        return self._extract_hydratable(webpage)
+
+    def _extract_hydratable(self, webpage):
+        metadata = self._search_regex(
+            r'>window\.__sc_hydration = (?P<hydration>\[.+\])',
+            webpage, 'soundcloud metadata', group='hydration'
+        )
+        return json.loads(metadata)
+
+    def _get_hydratable(self, data, id, fatal=True):
+        for h in data:
+            if h.get('hydratable') == id:
+                return h.get('data')
+
+        if fatal:
+            raise ExtractorError('Could not extract hydratable %s' % id)
+        else:
+            return None
+
     def _extract_info_dict(self, info, full_title=None, secret_token=None):
         track_id = compat_str(info['id'])
         title = info['title']
@@ -477,6 +520,7 @@ class SoundcloudIE(InfoExtractor):
             format_url = url_or_none(t.get('url'))
             if not format_url:
                 continue
+            query['track_authorization'] = info.get('track_authorization')
             stream = self._download_json(
                 format_url, track_id, query=query, fatal=False, headers=self._HEADERS)
             if not isinstance(stream, dict):
@@ -568,15 +612,15 @@ class SoundcloudIE(InfoExtractor):
             token = mobj.group('secret_token')
             if token:
                 query['secret_token'] = token
+            info = self._download_json(
+                info_json_url, full_title, 'Downloading info JSON', query=query, headers=self._HEADERS)
         else:
             full_title = resolve_title = '%s/%s' % mobj.group('uploader', 'title')
             token = mobj.group('token')
             if token:
                 resolve_title += '/%s' % token
-            info_json_url = self._resolv_url(self._BASE_URL + resolve_title)
-
-        info = self._download_json(
-            info_json_url, full_title, 'Downloading info JSON', query=query, headers=self._HEADERS)
+            hy = self._extract_hydrate(url)
+            info = self._get_hydratable(hy, 'sound')
 
         return self._extract_info_dict(info, full_title, token)
 
