@@ -254,8 +254,14 @@ class HlsFD(FragmentFD):
             def pack_fragment(frag_content, frag_index):
                 output = io.StringIO()
                 adjust = 0
+                overflow = False
+                mpegts_last = None
                 for block in webvtt.parse_fragment(frag_content):
                     if isinstance(block, webvtt.CueBlock):
+                        extra_state['webvtt_mpegts_last'] = mpegts_last
+                        if overflow:
+                            extra_state['webvtt_mpegts_adjust'] += 1
+                            overflow = False
                         block.start += adjust
                         block.end += adjust
 
@@ -296,9 +302,9 @@ class HlsFD(FragmentFD):
                         extra_state.setdefault('webvtt_mpegts_adjust', 0)
                         block.mpegts += extra_state['webvtt_mpegts_adjust'] << 33
                         if block.mpegts < extra_state.get('webvtt_mpegts_last', 0):
-                            extra_state['webvtt_mpegts_adjust'] += 1
+                            overflow = True
                             block.mpegts += 1 << 33
-                        extra_state['webvtt_mpegts_last'] = block.mpegts
+                        mpegts_last = block.mpegts
 
                         if frag_index == 1:
                             extra_state['webvtt_mpegts'] = block.mpegts or 0
