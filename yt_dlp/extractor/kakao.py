@@ -7,6 +7,7 @@ from ..compat import compat_str
 from ..utils import (
     int_or_none,
     strip_or_none,
+    traverse_obj,
     unified_timestamp,
 )
 
@@ -73,40 +74,35 @@ class KakaoIE(InfoExtractor):
 
         formats = []
         for fmt in clip.get('videoOutputList', []):
-            try:
-                profile_name = fmt['profile']
-                if profile_name == 'AUDIO':
-                    continue
-                query.update({
-                    'profile': profile_name,
-                    'fields': '-*,url',
-                })
+            profile_name = fmt.get('profile')
+            if not profile_name or profile_name == 'AUDIO':
+                continue
+            query.update({
+                'profile': profile_name,
+                'fields': '-*,url',
+            })
 
-                fmt_url_json = self._download_json(
-                    cdn_api_base, video_id,
-                    'Downloading video URL for profile %s' % profile_name,
-                    query=query, fatal=False)
+            fmt_url_json = self._download_json(
+                cdn_api_base, video_id,
+                'Downloading video URL for profile %s' % profile_name,
+                query=query, fatal=False)
+            fmt_url = traverse_obj(fmt_url_json, ('videoLocation', 'url'))
+            if not fmt_url:
+                continue
 
-                if fmt_url_json is None:
-                    continue
-
-                fmt_vidLocation = fmt_url_json['videoLocation']
-                fmt_url = fmt_vidLocation['url']
-                formats.append({
-                    'url': fmt_url,
-                    'format_id': profile_name,
-                    'width': int_or_none(fmt.get('width')),
-                    'height': int_or_none(fmt.get('height')),
-                    'format_note': fmt.get('label'),
-                    'filesize': int_or_none(fmt.get('filesize')),
-                    'tbr': int_or_none(fmt.get('kbps')),
-                })
-            except KeyError:
-                pass
+            formats.append({
+                'url': fmt_url,
+                'format_id': profile_name,
+                'width': int_or_none(fmt.get('width')),
+                'height': int_or_none(fmt.get('height')),
+                'format_note': fmt.get('label'),
+                'filesize': int_or_none(fmt.get('filesize')),
+                'tbr': int_or_none(fmt.get('kbps')),
+            })
         self._sort_formats(formats)
 
         thumbs = []
-        for thumb in clip.get('clipChapterThumbnailList', []):
+        for thumb in clip.get('clipChapterThumbnailList') or []:
             thumbs.append({
                 'url': thumb.get('thumbnailUrl'),
                 'id': compat_str(thumb.get('timeInSec')),
@@ -123,7 +119,7 @@ class KakaoIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'description': strip_or_none(clip.get('description')),
-            'uploader': clip_link.get('channel', {}).get('name'),
+            'uploader': traverse_obj(clip_link, ('channel', 'name')),
             'uploader_id': clip_link.get('channelId'),
             'thumbnails': thumbs,
             'timestamp': unified_timestamp(clip_link.get('createTime')),
