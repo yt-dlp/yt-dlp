@@ -1285,9 +1285,15 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertTrue(match_str(r'x="foo \& bar" & x^=foo', {'x': 'foo & bar'}))
 
         # Example from docs
-        self.assertTrue(
-            r'!is_live & like_count>?100 & description~=\'(?i)\bcats \& dogs\b\'',
-            {'description': 'Raining Cats & Dogs'})
+        self.assertTrue(match_str(
+            r"!is_live & like_count>?100 & description~='(?i)\bcats \& dogs\b'",
+            {'description': 'Raining Cats & Dogs'}))
+
+        # Incomplete
+        self.assertFalse(match_str('id!=foo', {'id': 'foo'}, True))
+        self.assertTrue(match_str('x', {'id': 'foo'}, True))
+        self.assertTrue(match_str('!x', {'id': 'foo'}, True))
+        self.assertFalse(match_str('x', {'id': 'foo'}, False))
 
     def test_parse_dfxp_time_expr(self):
         self.assertEqual(parse_dfxp_time_expr(None), None)
