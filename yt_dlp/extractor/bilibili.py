@@ -555,8 +555,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         }
     }]
 
-    def _get_n_results(self, category, subcategory, n, match=None):
-        query = "%s: %s" % (category, subcategory)
+    def _entries(self, category, subcategory, query):
         # map of categories : subcategories : RIDs
         rid_map = {
             "kichiku": {
@@ -582,7 +581,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         page_data = try_get(parsed_json, lambda x: x['data']['page'], dict)
         num_pages = math.ceil(page_data['count'] / page_data['size'])
 
-        entries = []
+        num_extracted = 0
 
         # desc order
         for page_number in range(1, num_pages + 1):
@@ -596,24 +595,12 @@ class BilibiliCategoryIE(SearchInfoExtractor):
             video_list = sorted(parsed_json['data']['archives'], key=lambda video: video['pubdate'])
             video_list_processed = list(map(lambda video: self.url_result("https://www.bilibili.com/video/%s" % video['bvid'],
                                                         'BiliBili', video['bvid']), video_list))
-            should_brk = False
-            if match:
-                for idx, ele in enumerate(video_list_processed):
-                    matches = match(ele)
-                    if matches is None:
-                        video_list_processed = video_list_processed[:idx]
-                        should_brk = True
-                        break
+            for video in video_list_processed:
+                num_extracted += 1
+                yield video
 
-            entries += video_list_processed
-            if(len(entries) >= n or len(entries) >= BilibiliCategoryIE._MAX_RESULTS) or should_brk:
-                break
-
-        return {
-            '_type': 'playlist',
-            'id': query,
-            'entries': entries[:n]
-        }
+                if num_extracted >= BilibiliCategoryIE._MAX_RESULTS:
+                    return
 
     @classmethod
     def _make_valid_url(cls):
@@ -623,9 +610,10 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         u = compat_urllib_parse_urlparse(url)
         category = u.path.split('/')[2]
         subcategory = u.path.split('/')[3]
-        count_items_to_fetch = int(self.get_param('playlist_end')) if self.get_param('playlist_end') else self._MAX_RESULTS
+        query = "%s: %s" % (category, subcategory)
 
-        return self._get_n_results(category, subcategory, count_items_to_fetch, self.get_param('match_filter'))
+        return self.playlist_result(self._entries(category, subcategory, query), query, query)
+
 
 
 class BiliBiliSearchIE(SearchInfoExtractor):
