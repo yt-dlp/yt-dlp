@@ -118,7 +118,7 @@ class EroProfileAlbumIE(InfoExtractor):
         max_page = max(int(n) for _, n in page_urls)
 
         for n in range(2, max_page + 1):
-            url = f"https://www.eroprofile.com/m/videos/album/{playlist_id}?pnum={n}"
+            url = f'https://www.eroprofile.com/m/videos/album/{playlist_id}?pnum={n}'
             yield from self._extract_from_page(
                 self._download_webpage(url, playlist_id,
                                        note=f'Downloading playlist page {int(n) - 1}'))
