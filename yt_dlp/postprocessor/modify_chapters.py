@@ -76,7 +76,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         if not chapters and not self._use_sponsorblock:
             return [], info
 
-        duration = self._get_video_duration(info)
+        duration = self._get_video_duration(video_file)
         sponsor_chapters = self._get_sponsor_chapters(info, duration)
         if not sponsor_chapters and not (chapters and self._remove_chapters_pattern):
             return [], info
@@ -137,13 +137,15 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             os.rename(uncut, original)
         return [], info
 
-    def _get_video_duration(self, info: InfoDict) -> float:
+    def _get_video_duration(self, video_file: str) -> float:
+        # In contrast to info['duration'], ffprobe reports real duration,
+        # thus providing protection against cutting the same pieces twice
+        # (see duration_match in _get_sponsor_chapters below).
         duration = float_or_none(
-            traverse_obj(self.get_metadata_object(info['filepath']), ['format', 'duration']))
-        if duration is not None:
-            return duration
-        self.report_warning('ffprobe failed to determine video duration')
-        return info['duration']
+            traverse_obj(self.get_metadata_object(video_file), ['format', 'duration']))
+        if duration is None:
+            raise PostProcessingError('Cannot determine the video duration')
+        return duration
 
     def _get_sponsor_chapters(self, info: InfoDict, duration: float) -> List[Chapter]:
         if not self._use_sponsorblock:

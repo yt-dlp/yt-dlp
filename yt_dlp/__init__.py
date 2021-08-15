@@ -394,6 +394,9 @@ def _real_main(argv=None):
         if opts.fixup and opts.fixup.lower() not in ('never', 'ignore'):
             report_conflict('--allow-unplayable-formats', '--fixup')
             opts.fixup = 'never'
+        if opts.remove_chapters:
+            report_conflict('--allow-unplayable-formats', '--remove-chapters')
+            opts.remove_chapters = None
         if opts.sponskrub:
             report_conflict('--allow-unplayable-formats', '--sponskrub')
             opts.sponskrub = False
