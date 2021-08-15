@@ -22,7 +22,7 @@ class VoicyBaseIE(InfoExtractor):
         upload_date = unified_strdate(value.get('Published'), False)
         items = [self._extract_single_article(voice_data) for voice_data in value['VoiceData']]
         return {
-            '_type': 'playlist',
+            '_type': 'multi_video',
             'entries': items,
             'id': voice_id,
             'title': compat_str(value.get('PlaylistName')),
