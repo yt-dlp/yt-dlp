@@ -662,7 +662,7 @@ class NiconicoPlaylistIE(InfoExtractor):
         }
 
 
-class NicovideoURLSearchIE(SearchInfoExtractor):
+class NicovideoSearchURLIE(SearchInfoExtractor):
     IE_NAME = "nicovideo:search"
     IE_DESC = 'Nico video search'
     _MAX_RESULTS = 1000000
@@ -674,6 +674,7 @@ class NicovideoURLSearchIE(SearchInfoExtractor):
         'url': 'http://www.nicovideo.jp/search/sm9',
         'info_dict': {
             'id': 'sm9',
+            'title': 'sm9'
         },
         'playlist_mincount': 320,
     }]
@@ -695,40 +696,10 @@ class NicovideoURLSearchIE(SearchInfoExtractor):
         m = n - len(entries)
         entries += r[0:min(m, len(r))]
 
-        return {
-            '_type': 'playlist',
-            'id': query,
-            'entries': entries
-        }
-
-    def _get_results_until(self, query, last_video):
-        entries = []
-        currDate = datetime.datetime.now().date()
-
-        search_url = "http://www.nicovideo.jp/search/%s" % query
-        r = self._get_entries_for_date(search_url, query, self._START_DATE, currDate)
-
-        final_index = self._MAX_RESULTS
-
-        for i in range(len(r)):
-            try:
-                if(r[i]['url'].split("/")[-1] == last_video):
-                    final_index = i
-                    break
-            except ValueError:
-                continue
-
-        # if we marked the final index, only add videos until we hit it
-        entries += r[0:min(final_index, len(r))]
-
-        return {
-            '_type': 'playlist',
-            'id': query,
-            'entries': entries
-        }
+        for entry in entries:
+            yield entry
 
     def _get_entries_for_span(self, url, query, startDate, endDate):
-        # This page 50 request will be duplicated in the else case; not ideal
         page_50_results = self._get_entries_for_date(url, query, startDate, endDate=endDate, pageNumber=50)
         entries = []
         # If the page 50 results return 32 videos, we need to break down the query interval to ensure we've captured all videos
@@ -771,13 +742,8 @@ class NicovideoURLSearchIE(SearchInfoExtractor):
 
     def _real_extract(self, url):
         u = compat_urllib_parse_urlparse(url)
-        query = u.path.split("/")[2]  # lol
-        qs = compat_parse_qs(u.query)
-        termination_id = qs.get('termination_id')
-        if termination_id:
-            return self._get_results_until(query, termination_id)
-        else:
-            return self._get_n_results(query, self._MAX_RESULTS)
+        query = u.path.split("/")[2]
+        return self.playlist_result(self._get_n_results(query, self._MAX_RESULTS), playlist_id=query, playlist_title=query)
 
 
 class NiconicoUserIE(InfoExtractor):
