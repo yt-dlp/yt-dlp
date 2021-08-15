@@ -16,7 +16,6 @@ import itertools
 
 
 class VoicyBaseIE(InfoExtractor):
-    # every queries are assumed to be a playlist
     def _extract_from_playlist_data(self, value):
         voice_id = compat_str(value.get('PlaylistId'))
         upload_date = unified_strdate(value.get('Published'), False)
@@ -82,7 +81,6 @@ class VoicyIE(VoicyBaseIE):
         'playlist_mincount': 9,
     }]
 
-    # every queries are assumed to be a playlist
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
         assert mobj
