@@ -125,7 +125,7 @@ class VoicyChannelIE(VoicyBaseIE):
         channel_id = self._match_id(url)
         articles = self._entries(channel_id)
 
-        first_article = next(articles, None)  # need the first item to get some info
+        first_article = next(articles, None)
         title = traverse_obj(first_article, ('ChannelName', ), expected_type=compat_str)
         if not title:
             speaker_name = traverse_obj(first_article, ('SpeakerName', ), expected_type=compat_str)
@@ -134,7 +134,7 @@ class VoicyChannelIE(VoicyBaseIE):
         if not title:
             title = 'Uploads from channel ID %s' % channel_id
 
-        articles = itertools.chain([first_article], articles) if first_article else articles  # push back first item
+        articles = itertools.chain([first_article], articles) if first_article else articles
 
         playlist = (
             self.url_result(smuggle_url('https://voicy.jp/channel/%s/%d' % (channel_id, value['PlaylistId']), value), VoicyIE.ie_key())
