@@ -579,17 +579,19 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         api_url = "https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp" % rid_value
         json_str = self._download_webpage(api_url + "&pn=1", "None", query={"Search_key": query})
         parsed_json = json.loads(json_str)
-        num_pages = math.ceil(parsed_json['data']['page']['count'] / parsed_json['data']['page']['size'])
+        page_data = try_get(parsed_json, lambda x: x['data']['page'], dict)
+        num_pages = math.ceil(page_data['count'] / page_data['size'])
 
         entries = []
 
         # desc order
-        for page_number in range(1, num_pages + 1, 1):
+        for page_number in range(1, num_pages + 1):
             time.sleep(2)
-            json_str = self._download_webpage(api_url + "&pn=%s" % page_number, "None", query={"Search_key": query},
-                                              note='Extracting results from page %s of %s' % (page_number, num_pages))
 
-            parsed_json = json.loads(json_str)
+            json_str =  self._download_json(
+                api_url + "&pn=%s" % page_number,'None',  query={"Search_key": query},
+                note='Extracting results from page %s of %s' % (page_number, num_pages))
+
             # Ascending by publish date
             video_list = sorted(parsed_json['data']['archives'], key=lambda video: video['pubdate'])
             video_list_processed = list(map(lambda video: self.url_result("https://www.bilibili.com/video/%s" % video['bvid'],
@@ -619,11 +621,11 @@ class BilibiliCategoryIE(SearchInfoExtractor):
 
     def _real_extract(self, url):
         u = compat_urllib_parse_urlparse(url)
-        category = u.path.split("/")[2]
-        subcategory = u.path.split("/")[3]
-        count_items_to_fetch = int(self.get_param("playlist_end")) if self.get_param("playlist_end") else self._MAX_RESULTS
+        category = u.path.split('/')[2]
+        subcategory = u.path.split('/')[3]
+        count_items_to_fetch = int(self.get_param('playlist_end')) if self.get_param('playlist_end') else self._MAX_RESULTS
 
-        return self._get_n_results(category, subcategory, count_items_to_fetch, self.get_param("match_filter"))
+        return self._get_n_results(category, subcategory, count_items_to_fetch, self.get_param('match_filter'))
 
 
 class BiliBiliSearchIE(SearchInfoExtractor):
