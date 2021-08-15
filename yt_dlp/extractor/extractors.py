@@ -1044,6 +1044,7 @@ from .pornhd import PornHdIE
 from .pornhub import (
     PornHubIE,
     PornHubUserIE,
+    PornHubPlaylistIE,
     PornHubPagedVideoListIE,
     PornHubUserVideosUploadIE,
 )
