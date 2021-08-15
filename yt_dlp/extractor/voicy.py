@@ -127,10 +127,9 @@ class VoicyChannelIE(VoicyBaseIE):
 
         first_article = next(articles, None)
         title = traverse_obj(first_article, ('ChannelName', ), expected_type=compat_str)
-        if not title:
-            speaker_name = traverse_obj(first_article, ('SpeakerName', ), expected_type=compat_str)
-            if speaker_name:
-                title = 'Uploads from %s' % speaker_name
+        speaker_name = traverse_obj(first_article, ('SpeakerName', ), expected_type=compat_str)
+        if not title and speaker_name:
+            title = 'Uploads from %s' % speaker_name
         if not title:
             title = 'Uploads from channel ID %s' % channel_id
 
@@ -144,6 +143,6 @@ class VoicyChannelIE(VoicyBaseIE):
             'entries': playlist,
             'id': channel_id,
             'title': title,
-            'channel': channel_id,
+            'channel': speaker_name,
             'channel_id': channel_id,
         }
