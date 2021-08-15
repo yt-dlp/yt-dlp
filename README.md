@@ -1439,6 +1439,10 @@ While these options are redundant, they are still expected to be used due to the
     -e, --get-title                  --print title
     -g, --get-url                    --print urls
     -j, --dump-json                  --print "%()j"
+    --match-title REGEX              --match-filter "title ~= (?i)REGEX"
+    --reject-title REGEX             --match-filter "title !~= (?i)REGEX"
+    --min-views COUNT                --match-filter "view_count >=? COUNT"
+    --max-views COUNT                --match-filter "view_count <=? COUNT"
 
 
 #### Not recommended

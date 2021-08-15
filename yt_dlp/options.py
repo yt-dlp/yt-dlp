@@ -356,11 +356,11 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--match-title',
         dest='matchtitle', metavar='REGEX',
-        help='Download only matching titles (regex or caseless sub-string)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--reject-title',
         dest='rejecttitle', metavar='REGEX',
-        help='Skip download for matching titles (regex or caseless sub-string)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--max-downloads',
         dest='max_downloads', metavar='NUMBER', type=int, default=None,
@@ -395,11 +395,11 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--min-views',
         metavar='COUNT', dest='min_views', default=None, type=int,
-        help='Do not download any videos with less than COUNT views')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--max-views',
         metavar='COUNT', dest='max_views', default=None, type=int,
-        help='Do not download any videos with more than COUNT views')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--match-filter',
         metavar='FILTER', dest='match_filter', default=None,
