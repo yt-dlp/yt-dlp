@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 from ..downloader import get_suitable_downloader
 from .fragment import FragmentFD

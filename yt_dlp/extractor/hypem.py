@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 from .common import InfoExtractor
 from ..utils import int_or_none

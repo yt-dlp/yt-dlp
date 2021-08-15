@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 from ..utils import str_to_int
 from .keezmovies import KeezMoviesIE

@@ -1,4 +1,5 @@
-from __future__ import division, unicode_literals
+#!/usr/bin/env python3
+from __future__ import division
 
 import copy
 import os

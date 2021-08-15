@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 from ..utils import load_plugins
 
@@ -42,7 +42,6 @@ def list_extractors(age_limit):
     Return a list of extractors that are suitable for the given age,
     sorted by extractor ID.
     """
-
     return sorted(
         filter(lambda ie: ie.is_suitable(age_limit), gen_extractors()),
         key=lambda ie: ie.IE_NAME.lower())

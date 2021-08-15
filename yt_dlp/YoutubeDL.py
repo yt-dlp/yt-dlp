@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
 # coding: utf-8
+#!/usr/bin/env python3
 
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 
 import collections
 import contextlib
@@ -842,8 +842,7 @@ class YoutubeDL(object):
         for key, val in outtmpl_dict.items():
             if isinstance(val, bytes):
                 self.report_warning(
-                    'Parameter outtmpl is bytes, but should be a unicode string. '
-                    'Put  from __future__ import unicode_literals  at the top of your code file or consider switching to Python 3.x.')
+                    'Parameter outtmpl is bytes, but should be a unicode string.')
         return outtmpl_dict
 
     def get_output_path(self, dir_type='', filename=None):
