@@ -114,11 +114,13 @@ class EroProfileAlbumIE(InfoExtractor):
         yield from self._extract_from_page(first_page)
 
         page_urls = re.findall(rf'href=".*?(/m/videos/album/{playlist_id}\?pnum=(\d+))"', first_page)
+        max_page = max(int(n) for _, n in page_urls)
 
-        for url, n in page_urls[1:]:
-            yield from self._extract_from_page(self._download_webpage(
-                f'https://www.eroprofile.com{url}',
-                playlist_id, note=f'Downloading playlist page {int(n) - 1}'))
+        for n in range(2, max_page + 1):
+            url = f'https://www.eroprofile.com/m/videos/album/{playlist_id}?pnum={n}'
+            yield from self._extract_from_page(
+                self._download_webpage(url, playlist_id,
+                                       note=f'Downloading playlist page {int(n) - 1}'))
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
