@@ -113,7 +113,6 @@ class EroProfileAlbumIE(InfoExtractor):
     def _entries(self, playlist_id, first_page):
         yield from self._extract_from_page(first_page)
 
-        # using the url of the last page, find the biggest page number
         page_urls = re.findall(rf'href=".*?(/m/videos/album/{playlist_id}\?pnum=(\d+))"', first_page)
         max_page = max(int(n) for _, n in page_urls)
 
