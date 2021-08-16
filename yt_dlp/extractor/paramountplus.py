@@ -90,7 +90,7 @@ class ParamountPlusIE(CBSBaseIE):
     def _extract_video_info(self, content_id, mpx_acc=2198311517):
         items_data = self._download_json(
             'https://www.paramountplus.com/apps-api/v2.0/androidtv/video/cid/%s.json' % content_id,
-            content_id, query={'locale': 'en-us', 'at': 'ABCqWNNSwhIqINWIIAG+DFzcFUvF8/vcN6cNyXFFfNzWAIvXuoVgX+fK4naOC7V8MLI='})
+            content_id, query={'locale': 'en-us', 'at': 'ABCqWNNSwhIqINWIIAG+DFzcFUvF8/vcN6cNyXFFfNzWAIvXuoVgX+fK4naOC7V8MLI='}, headers=self.geo_verification_headers())
 
         asset_types = {
             item.get('assetType'): {
