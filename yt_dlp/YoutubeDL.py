@@ -1,8 +1,6 @@
 # coding: utf-8
 #!/usr/bin/env python3
 
-from __future__ import absolute_import
-
 import collections
 import contextlib
 import copy
