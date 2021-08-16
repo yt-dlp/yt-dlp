@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import io
 import os.path
 import optparse
 import re
@@ -52,7 +53,7 @@ def _hide_login_info(opts):
 def parseOpts(overrideArguments=None):
     def _readOptions(filename_bytes, default=[]):
         try:
-            optionf = open(filename_bytes)
+            optionf = io.open(filename_bytes, 'r', encoding='utf8')
         except IOError:
             return default  # silently skip if file is not present
         try:
