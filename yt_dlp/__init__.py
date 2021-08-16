@@ -763,5 +763,4 @@ def main(argv=None):
         os.dup2(devnull, sys.stdout.fileno())
         sys.exit(r'\nERROR: {err}')
 
-
 __all__ = ['main', 'YoutubeDL', 'gen_extractors', 'list_extractors']
