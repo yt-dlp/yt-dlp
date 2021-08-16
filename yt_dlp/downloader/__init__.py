@@ -6,7 +6,6 @@ from ..utils import (
     NO_DEFAULT
 )
 
-
 def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=None, to_stdout=False):
     info_dict['protocol'] = determine_protocol(info_dict)
     info_copy = info_dict.copy()
