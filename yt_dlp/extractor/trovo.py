@@ -36,7 +36,7 @@ class TrovoIE(TrovoBaseIE):
                 'query': '''{
   getLiveInfo(params: {userName: "%s"}) {
     isLive
-    programInfo	{
+    programInfo {
       coverUrl
       id
       streamInfo {
