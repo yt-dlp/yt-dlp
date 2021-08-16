@@ -344,7 +344,7 @@ def _real_main(argv=None):
 
     any_getting = opts.forceprint or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration or opts.dumpjson or opts.dump_single_json
     any_printing = opts.print_json
-    download_archive_fn = expand_path(opts.download_archive) if opts.download_archive is not None else opts.download_archive
+    download_archive_fn = expand_path(opts.download_archive) if opts.download_archive and opts.download_archive != os.devnull else None
 
     # If JSON is not printed anywhere, but comments are requested, save it to file
     printing_json = opts.dumpjson or opts.print_json or opts.dump_single_json
