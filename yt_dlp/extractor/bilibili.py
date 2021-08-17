@@ -612,7 +612,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
 
     def _real_extract(self, url):
         u = compat_urllib_parse_urlparse(url)
-        category, subcategory = u.path.split('/')[2:3]
+        category, subcategory = u.path.split('/')[2:4]
         query = '%s: %s' % (category, subcategory)
 
         return self.playlist_result(self._entries(category, subcategory, query), query, query)
