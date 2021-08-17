@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import hashlib
 import itertools
 import json
+import functools
 import re
 import math
 import time
@@ -27,7 +28,7 @@ from ..utils import (
     unified_timestamp,
     unsmuggle_url,
     urlencode_postdata,
-    match_filter_func
+    OnDemandPagedList
 )
 
 
@@ -543,17 +544,33 @@ class BilibiliChannelIE(InfoExtractor):
 class BilibiliCategoryIE(SearchInfoExtractor):
     IE_NAME = "Bilibili category extractor"
     _MAX_RESULTS = 1000000
-    _VALID_URL = r'https?:\/\/www\.bilibili\.com\/v\/[a-zA-Z]+\/[a-zA-Z]+'
+    _VALID_URL = r'https?://www\.bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
     _TESTS = [{
         'url': 'https://www.bilibili.com/v/kichiku/mad',
         'info_dict': {
             'id': 'kichiku: mad',
+            'title': 'kichiku: mad'
         },
-        'playlist_maxcount': 45,
+        'playlist_mincount': 45,
         'params': {
-            "playlist_end": '45'
+            "playlistend": 45
         }
     }]
+
+    def _fetch_page(self, api_url, num_pages, query, pageNum):
+        time.sleep(2)
+
+        parsed_json =  self._download_json(
+            api_url + "&pn=%s" % pageNum,'None',  query={"Search_key": query},
+            note='Extracting results from page %s of %s' % (pageNum, num_pages))
+
+        # Ascending by publish date
+        video_list = sorted(parsed_json['data']['archives'], key=lambda video: video['pubdate'])
+        video_list_processed = list(map(lambda video: self.url_result("https://www.bilibili.com/video/%s" % video['bvid'],
+                                                                      'BiliBili', video['bvid']), video_list))
+
+        for video in video_list_processed:
+            yield video
 
     def _entries(self, category, subcategory, query):
         # map of categories : subcategories : RIDs
@@ -568,39 +585,26 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         }
 
         if category not in rid_map:
-            raise ExtractorError("The supplied category, %s, is not supported" % category)
+            raise ExtractorError("The supplied category, %s, is not supported. List of supported categories: %s" % (category, list(rid_map.keys())))
 
         if subcategory not in rid_map[category]:
-            raise ExtractorError("The supplied subcategory, %s, is not supported" % subcategory)
+            raise ExtractorError("The supplied subcategory, %s, is not supported for this category. List of supported subcategories: %s" % (subcategory, list(rid_map[category].keys())))
 
         rid_value = rid_map[category][subcategory]
 
         api_url = "https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp" % rid_value
-        json_str = self._download_webpage(api_url + "&pn=1", "None", query={"Search_key": query})
-        parsed_json = json.loads(json_str)
-        page_data = try_get(parsed_json, lambda x: x['data']['page'], dict)
+        page_json = self._download_json(api_url + "&pn=1", "None", query={"Search_key": query})
+        page_data = try_get(page_json, lambda x: x['data']['page'], dict)
+        count, size = int_or_none(page_data.get('count')), int_or_none(page_data.get('size'))
+        if not count or not size:
+            raise ExtractorError('failed to calculate pages: could not extract count or page size ')
+
         num_pages = math.ceil(page_data['count'] / page_data['size'])
 
-        num_extracted = 0
 
-        # desc order
-        for page_number in range(1, num_pages + 1):
-            time.sleep(2)
+        return OnDemandPagedList(functools.partial(
+            self._fetch_page, api_url, num_pages, query), size)
 
-            json_str =  self._download_json(
-                api_url + "&pn=%s" % page_number,'None',  query={"Search_key": query},
-                note='Extracting results from page %s of %s' % (page_number, num_pages))
-
-            # Ascending by publish date
-            video_list = sorted(parsed_json['data']['archives'], key=lambda video: video['pubdate'])
-            video_list_processed = list(map(lambda video: self.url_result("https://www.bilibili.com/video/%s" % video['bvid'],
-                                                        'BiliBili', video['bvid']), video_list))
-            for video in video_list_processed:
-                num_extracted += 1
-                yield video
-
-                if num_extracted >= BilibiliCategoryIE._MAX_RESULTS:
-                    return
 
     @classmethod
     def _make_valid_url(cls):
