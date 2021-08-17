@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# Execute with
-# $ python yt_dlp/__main__.py (2.6+)
-# $ python -m yt_dlp          (2.7+)
 
 import sys
 
