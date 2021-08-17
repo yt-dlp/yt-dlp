@@ -180,14 +180,11 @@ def parseOpts(overrideArguments=None):
     fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
     fmt.format_option_strings = _format_option_string
 
-    kw = {
-        'version': __version__,
-        'formatter': fmt,
-        'usage': '%prog [OPTIONS] URL [URL...]',
-        'conflict_handler': 'resolve',
-    }
-
-    parser = optparse.OptionParser(**compat_kwargs(kw))
+    parser = optparse.OptionParser(
+        usage='%prog [OPTIONS] URL [URL...]',
+        formatter=fmt,
+        version=__version__,
+        conflict_handler='resolve')
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -1299,9 +1296,9 @@ def parseOpts(overrideArguments=None):
         choices=('never', 'ignore', 'warn', 'detect_or_warn', 'force'),
         help=(
             'Automatically correct known faults of the file. '
-            'One of never (do nothing), warn (only emit a warning), '
+            'One of: never (do nothing), warn (only emit a warning), '
             'detect_or_warn (the default; fix file if we can, warn otherwise), '
-            'force (try fixing even if file already exists'))
+            'force (try fixing even if file already exists)'))
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',
