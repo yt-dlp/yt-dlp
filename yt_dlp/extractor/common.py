@@ -11,7 +11,6 @@ import random
 import re
 import sys
 import time
-import pprint
 import math
 import pprint
 
@@ -446,7 +445,7 @@ class InfoExtractor(object):
     def __init__(self, downloader=None):
         """Constructor. Receives an optional downloader."""
         type(self)._inst = self
-            
+
         self._ready = False
         self._x_forwarded_for_ip = None
         self._printed_messages = set()
@@ -470,14 +469,14 @@ class InfoExtractor(object):
         m = cls._VALID_URL_RE.match(url)
         assert m
         return compat_str(m.group('id'))
-        
+
     @classmethod
     def try_match_id(cls, url):
         if '_VALID_URL_RE' not in cls.__dict__:
             cls._VALID_URL_RE = re.compile(cls._VALID_URL)
         m = cls._VALID_URL_RE.match(url)
         return compat_str(m.group('id')) if m is not None else None
-        
+
     @classmethod
     def try_match_id(cls, url):
         if '_VALID_URL_RE' not in cls.__dict__:

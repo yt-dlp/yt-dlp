@@ -113,12 +113,10 @@ try:
 except AttributeError:
     compat_Pattern = type(re.compile(''))
 
-
 try:
     compat_Match = re.Match
 except AttributeError:
     compat_Match = type(re.compile('').match(''))
-
 
 try:
     compat_asyncio_run = asyncio.run  # >= 3.7

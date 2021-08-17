@@ -5,7 +5,6 @@ import os.path
 import optparse
 import re
 import sys
-import io  # GCS GCS
 
 from .compat import (
     compat_expanduser,
