@@ -102,8 +102,8 @@ query GetCommentReplies($id: String!) {
             comment_id = comment.get('_id')
             if comment.get('replyCount') > 0:
                 reply_json = self._call_api(
-                        video_id, comment_id, 'GetCommentReplies',
-                        f'Downloading replies for comment {comment_id}')
+                    video_id, comment_id, 'GetCommentReplies',
+                    f'Downloading replies for comment {comment_id}')
                 comments.extend(
                     self._parse_comment(reply, comment_id)
                     for reply in reply_json.get('getCommentReplies'))
