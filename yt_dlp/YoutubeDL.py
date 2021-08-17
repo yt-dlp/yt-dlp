@@ -304,6 +304,8 @@ class YoutubeDL(object):
                        file that is in the archive.
     break_on_reject:   Stop the download process when encountering a video that
                        has been filtered out.
+    continue_batch:    Apply the `max_downloads`, `break_on_existing` and
+                       `break_on_reject` conditions separately for each URL.
     cookiefile:        File name where cookies should be read from and dumped to
     cookiesfrombrowser: A tuple containing the name of the browser and the profile
                        name/path from where cookies are loaded.
@@ -1147,7 +1149,8 @@ class YoutubeDL(object):
             return None
 
         if self.in_download_archive(info_dict):
-            reason = '%s has already been recorded in the archive' % video_title
+            #reason = '%s has already been recorded in the archive' % video_title
+            reason = f"[92m{self.params['download_archive']}[0m"
             break_opt, break_err = 'break_on_existing', ExistingVideoReached
         else:
             reason = check_filter()
@@ -2441,7 +2444,6 @@ class YoutubeDL(object):
                 new_info['__original_infodict'] = info_dict
                 new_info.update(fmt)
                 self.process_info(new_info)
-
         # We update the info dict with the best quality format (backwards compatibility)
         if formats_to_download:
             info_dict.update(formats_to_download[-1])
@@ -3081,8 +3083,8 @@ class YoutubeDL(object):
                 else:
                     if self.params.get('dump_single_json', False):
                         self.post_extract(res)
-                        self.to_stdout(json.dumps(self.sanitize_info(res)))
                         #self.to_stdout(json.dumps(res, default=repr))
+                        self.to_stdout(json.dumps(self.sanitize_info(res)))
             except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
                 if not self.params.get('continue_batch', False):
                     raise
