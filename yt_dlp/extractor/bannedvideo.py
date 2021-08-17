@@ -28,116 +28,66 @@ class BannedVideoIE(InfoExtractor):
         }
     }]
 
-    _GRAPHQL_GETVIDEO_QUERY = '''
-query GetVideo($id: String!) {
+    _GRAPHQL_GETMETADATA_QUERY = '''
+query GetVideoAndComments($id: String!) {
     getVideo(id: $id) {
-        ...DisplayVideoFields
         streamUrl
         directUrl
         unlisted
         live
         tags {
-            _id
             name
-            __typename
         }
-        sale {
-            _id
-            text
-            __typename
-        }
-        __typename
-    }
-}
-fragment DisplayVideoFields on Video {
-    _id
-    title
-    summary
-    playCount
-    largeImage
-    embedUrl
-    published
-    videoDuration
-    channel {
-        _id
         title
-        avatar
-        __typename
-    }
-    createdAt
-    __typename
-}'''
-    _GRAPHQL_GETCOMMENTS_QUERY = '''
-query GetVideoComments($id: String!, $limit: Float, $offset: Float) {
-    getVideoComments(id: $id, limit: $limit, offset: $offset) {
-        ...VideoComment
-        replyCount
-        __typename
-    }
-}
-fragment VideoComment on Comment {
-    _id
-    content
-    liked
-    user {
-        _id
-        username
-        __typename
-    }
-    voteCount {
-        positive
-        __typename
-    }
-    linkedUser {
-        _id
-        username
-        __typename
-    }
-    createdAt
-    __typename
-}'''
-    _GRAPHQL_GETCOMMENTSREPLIES_QUERY = '''
-query GetCommentReplies($id: String!, $limit: Float, $offset: Float) {
-    getCommentReplies(id: $id, limit: $limit, offset: $offset) {
-        ...VideoComment
-        replyTo {
+        summary
+        playCount
+        largeImage
+        videoDuration
+        channel {
             _id
-            __typename
+            title
         }
-        __typename
+        createdAt
     }
-}
-fragment VideoComment on Comment {
-    _id
-    content
-    liked
-    user {
+    getVideoComments(id: $id, limit: 999999, offset: 0) {
         _id
-        username
-        __typename
+        content
+        user {
+            _id
+            username
+        }
+        voteCount {
+            positive
+        }
+        createdAt
+        replyCount
     }
-    voteCount {
-        positive
-        __typename
-    }
-    linkedUser {
+}'''
+
+    _GRAPHQL_GETCOMMENTSREPLIES_QUERY = '''
+query GetCommentReplies($id: String!) {
+    getCommentReplies(id: $id, limit: 999999, offset: 0) {
         _id
-        username
-        __typename
+        content
+        user {
+            _id
+            username
+        }
+        voteCount {
+            positive
+        }
+        createdAt
+        replyCount
     }
-    createdAt
-    __typename
 }'''
 
     _GRAPHQL_QUERIES = {
-        'GetVideo': _GRAPHQL_GETVIDEO_QUERY,
-        'GetVideoComments': _GRAPHQL_GETCOMMENTS_QUERY,
+        'GetVideoAndComments': _GRAPHQL_GETMETADATA_QUERY,
         'GetCommentReplies': _GRAPHQL_GETCOMMENTSREPLIES_QUERY,
     }
 
     def _call_api(self, video_id, id, operation, note):
-        field = operation[0].lower() + operation[1:]
-        return try_get(self._download_json(
+        return self._download_json(
             'https://api.infowarsmedia.com/graphql', video_id, note=note,
             headers={
                 'Content-Type': 'application/json; charset=utf-8'
@@ -145,44 +95,42 @@ fragment VideoComment on Comment {
                 'variables': {'id': id},
                 'operationName': operation,
                 'query': self._GRAPHQL_QUERIES[operation]
-            }).encode('utf8')), lambda x: x['data'][field])
+            }).encode('utf8')).get('data')
 
-    def _extract_comments(self, video_id):
-        video_comments = self._call_api(video_id, video_id, 'GetVideoComments', 'Downloading comments')
-        comments = []
-        for comment in video_comments:
+    def _extract_comments(self, video_id, comments, comment_data):
+        for comment in comment_data.copy():
             comment_id = comment.get('_id')
-            comments.append({
-                'id': comment_id,
-                'text': comment.get('content'),
-                'author': comment.get('user').get('username'),
-                'author_id': comment.get('user').get('_id'),
-                'timestamp': unified_timestamp(comment.get('createdAt')),
-                'parent': 'root'
-            })
             if comment.get('replyCount') > 0:
-                replies = self._call_api(
+                reply_json = self._call_api(
                         video_id, comment_id, 'GetCommentReplies',
                         f'Downloading replies for comment {comment_id}')
-                for reply in replies:
-                    comments.append({
-                        'id': reply.get('_id'),
-                        'text': reply.get('content'),
-                        'author': reply.get('user').get('username'),
-                        'author_id': reply.get('user').get('_id'),
-                        'timestamp': unified_timestamp(reply.get('createdAt')),
-                        'parent': comment.get('_id')
-                    })
+                comments.extend(
+                    self._parse_comment(reply, comment_id)
+                    for reply in reply_json.get('getCommentReplies'))
 
         return {
             'comments': comments,
             'comment_count': len(comments),
         }
 
+    @staticmethod
+    def _parse_comment(comment_data, parent):
+        return {
+            'id': comment_data.get('_id'),
+            'text': comment_data.get('content'),
+            'author': try_get(comment_data, lambda x: x['user']['username']),
+            'author_id': try_get(comment_data, lambda x: x['user']['_id']),
+            'timestamp': unified_timestamp(comment_data.get('createdAt')),
+            'parent': parent,
+            'like_count': try_get(comment_data, lambda x: x['voteCount']['positive']),
+        }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._call_api(video_id, video_id, 'GetVideo', 'Downloading video metadata')
+        video_json = self._call_api(video_id, video_id, 'GetVideoAndComments', 'Downloading video metadata')
+        video_info = video_json['getVideo']
         is_live = video_info.get('live')
+        comments = [self._parse_comment(comment, 'root') for comment in video_json.get('getVideoComments')]
 
         formats = [{
             'format_id': 'direct',
@@ -190,28 +138,28 @@ fragment VideoComment on Comment {
             'url': video_info.get('directUrl'),
             'ext': 'mp4',
         }] if url_or_none(video_info.get('directUrl')) else []
-
         if video_info.get('streamUrl'):
             formats.extend(self._extract_m3u8_formats(
                 video_info.get('streamUrl'), video_id, 'mp4',
                 entry_protocol='m3u8_native', m3u8_id='hls', live=True))
-
         self._sort_formats(formats)
 
         return {
             'id': video_id,
             'title': video_info.get('title')[:-1],
             'formats': formats,
+            'is_live': is_live,
             'description': video_info.get('summary'),
-            'channel': video_info.get('channel').get('title'),
-            'channel_id': video_info.get('channel').get('_id'),
+            'channel': try_get(video_info, lambda x: x['channel']['title']),
+            'channel_id': try_get(video_info, lambda x: x['channel']['_id']),
             'view_count': int_or_none(video_info.get('playCount')),
             'thumbnail': url_or_none(video_info.get('largeImage')),
-            'duration': float_or_none(video_info.get('videoDuration'), scale=1000),
+            'duration': float_or_none(video_info.get('videoDuration')),
             'timestamp': unified_timestamp(video_info.get('createdAt')),
             'tags': [tag.get('name') for tag in video_info.get('tags')],
-            'is_live': is_live,
             'availability': self._availability(is_unlisted=video_info.get('unlisted')),
-            '__post_extractor': ((lambda: self._extract_comments(video_id))
-                                 if self.get_param('getcomments') else None)
+            'comments': comments,
+            '__post_extractor': (
+                (lambda: self._extract_comments(video_id, comments, video_json.get('getVideoComments')))
+                if self.get_param('getcomments') else None)
         }
