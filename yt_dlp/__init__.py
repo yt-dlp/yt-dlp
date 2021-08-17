@@ -38,7 +38,6 @@ from .utils import (
     SameFileError,
     std_headers,
     write_string,
-    ensure_vtp,
 )
 from .update import run_update
 from .downloader import (
