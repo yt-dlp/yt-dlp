@@ -557,15 +557,17 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         }
     }]
 
-    def _fetch_page(self, api_url, num_pages, query, pageNum):
+    def _fetch_page(self, api_url, num_pages, query, page_num):
         time.sleep(2)
 
         parsed_json = self._download_json(
-            api_url + '&pn=%s' % pageNum, 'None', query={'Search_key': query},
-            note='Extracting results from page %s of %s' % (pageNum, num_pages))
+            api_url + '&pn=%s' % page_num, 'None', query={'Search_key': query},
+            note='Extracting results from page %s of %s' % (page_num, num_pages))
 
-        # Ascending by publish date
-        video_list = sorted(parsed_json['data']['archives'], key=lambda video: video['pubdate'])
+        video_list = try_get(page_json, lambda x: x['data']['archives'], dict)
+        if not video_list:
+            raise ExtractorError('failed to retrieve video list for page %d' % page_num)
+
         video_list_processed = list(map(lambda video: self.url_result('https://www.bilibili.com/video/%s' % video['bvid'],
                                                                       'BiliBili', video['bvid']), video_list))
 
@@ -610,8 +612,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
 
     def _real_extract(self, url):
         u = compat_urllib_parse_urlparse(url)
-        category = u.path.split('/')[2]
-        subcategory = u.path.split('/')[3]
+        category, subcategory = u.path.split('/')[2:3]
         query = '%s: %s' % (category, subcategory)
 
         return self.playlist_result(self._entries(category, subcategory, query), query, query)
