@@ -28,6 +28,7 @@ class DashSegmentsFD(FragmentFD):
         ctx = {
             'filename': filename,
             'total_frags': len(fragments),
+            'format_name': str(info_dict['format']),
         }
 
         if real_downloader:

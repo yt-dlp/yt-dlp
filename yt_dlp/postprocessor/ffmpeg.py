@@ -7,6 +7,7 @@ import subprocess
 import time
 import re
 import json
+import pprint
 
 
 from .common import AudioConversionError, PostProcessor
@@ -77,7 +78,7 @@ class FFmpegPostProcessor(PostProcessor):
         return FFmpegPostProcessor(downloader)._versions
 
     def _determine_executables(self):
-        programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
+        programs = ['ffmpeg', 'ffprobe']    # 'avprobe', 'avconv',  GCS GCS
         prefer_ffmpeg = True
 
         def get_ffmpeg_version(path):
@@ -556,20 +557,40 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         # 2. https://wiki.multimedia.cx/index.php/FFmpeg_Metadata
         # 3. https://kodi.wiki/view/Video_file_tagging
 
-        add('title', ('track', 'title'))
+        add('title')
         add('date', 'upload_date')
-        add(('description', 'synopsis'), 'description')
-        add(('purl', 'comment'), 'webpage_url')
-        add('track', 'track_number')
-        add('artist', ('artist', 'creator', 'uploader', 'uploader_id'))
-        add('genre')
-        add('album')
-        add('album_artist')
-        add('disc', 'disc_number')
-        add('show', 'series')
-        add('season_number')
-        add('episode_id', ('episode', 'episode_id'))
-        add('episode_sort', 'episode_number')
+        add('description')
+        add('comment', 'webpage_url')
+        #add(('purl', 'comment'), 'webpage_url')
+        #add('track', 'track_number')
+        add('artist', 'uploader')      # ('artist', 'creator', 'uploader', 'uploader_id'))
+        #add('genre')
+        #add('album')
+        add('album_artist', 'uploader_id')  # GCS
+        #add('disc', 'disc_number')
+        #add('show', 'series')
+        #add('season_number')
+        #add('episode_id', ('episode', 'episode_id'))
+        #add('episode_sort', 'episode_number')
+
+        for f in (#'description',
+                  #'webpage_url',
+                   'track_number',
+                   'artist',
+                   'creator',
+                  #'uploader',
+                  #'uploader_id',
+                   'genre',
+                   'album',
+                   'album_artist',
+                   'disc_number',
+                   'series',
+                   'season_number',
+                   'episode',
+                   'episode_id',
+                   'episode_number'):
+            if f in info:
+                print(f"metadata '{f}': {info[f]}")
 
         prefix = 'meta_'
         for key in filter(lambda k: k.startswith(prefix), info.keys()):

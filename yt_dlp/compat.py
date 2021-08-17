@@ -24,14 +24,8 @@ import sys
 import tokenize
 import urllib
 import xml.etree.ElementTree as etree
+
 from subprocess import DEVNULL
-
-
-# HTMLParseError has been deprecated in Python 3.3 and removed in
-# Python 3.5. Introducing dummy exception for Python >3.5 for compatible
-# and uniform cross-version exception handling
-class compat_HTMLParseError(Exception):
-    pass
 
 
 def compat_ctypes_WINFUNCTYPE(*args, **kwargs):
@@ -190,7 +184,6 @@ compat_xml_parse_error = etree.ParseError
 # Set public objects
 
 __all__ = [
-    'compat_HTMLParseError',
     'compat_HTMLParser',
     'compat_HTTPError',
     'compat_Match',

@@ -13,6 +13,8 @@ import random
 import re
 import time
 import traceback
+import string
+import pprint
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -841,16 +843,31 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return re.match(r'https?://music\.youtube\.com/', url) is not None
 
     def _extract_video(self, renderer):
-        video_id = renderer.get('videoId')
+        video_id = renderer['videoId']
         title = self._get_text(renderer, 'title')
         description = self._get_text(renderer, 'descriptionSnippet')
-        duration = parse_duration(self._get_text(
-            renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
+
+        #duration_text = try_get(
+        #    renderer,
+        #    (lambda x: x['lengthText']['simpleText'],
+        #     lambda x: x['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['simpleText']),
+        #    compat_str)
+        duration_text = self._get_text(
+            renderer,
+            'lengthText',
+            ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text'))
+        #print(duration_text or '{video_id}: did not extract duration\n')
+        duration = parse_duration(duration_text)
+
         view_count_text = self._get_text(renderer, 'viewCountText') or ''
         view_count = str_to_int(self._search_regex(
             r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
             'view count', default=None))
 
+        #uploader = try_get(
+        #    renderer,
+        #    (lambda x: x['ownerText']['runs'][0]['text'],
+        #     lambda x: x['shortBylineText']['runs'][0]['text']), compat_str)
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
 
         return {
@@ -861,6 +878,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'title': title,
             'description': description,
             'duration': duration,
+            'duration_text': duration_text,
             'view_count': view_count,
             'uploader': uploader,
         }
@@ -1075,6 +1093,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '395': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
         '396': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
         '397': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
+        #'398': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},                         # GCS GCS
+        #'397': {'ext': 'mp4', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'h264'},     # GCS GCS
+        #'398': {'ext': 'mp4', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'h264'},     # GCS GCS
+        #'397': {'ext': 'mp4', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'av01.0.05M.08'},     # GCS GCS
+        #'398': {'ext': 'mp4', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'av01.0.05M.08'},     # GCS GCS
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
 
@@ -4191,7 +4214,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if count:
                 self.report_warning('%s. Retrying ...' % last_error)
             webpage = self._download_webpage(
-                url, item_id,
+                url,
+                item_id,
                 'Downloading webpage%s' % (' (retry #%d)' % count if count else ''))
             data = self.extract_yt_initial_data(item_id, webpage)
             if data.get('contents') or data.get('currentVideoEndpoint'):
@@ -4255,7 +4279,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             # Home URLs should redirect to /videos/
             self.report_warning(
                 'A channel/user page was given. All the channel\'s videos will be downloaded. '
-                'To download only the videos in the home page, add a "/featured" to the URL')
+                'To download only the videos in the home page, add "/featured" to the URL')
             tab = '/videos'
 
         url = ''.join((pre, tab, post))
@@ -4333,6 +4357,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 self.report_warning('Unable to recognize playlist. Downloading just video %s' % video_id)
             return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
 
+        # Capture and output alerts
+        #alert = self._extract_alert(data)
+        #if alert:
+        #    self._downloader.to_screen('[1m' + url + '[0m ', True)           # GCS GCS
+        #    raise ExtractorError(alert, expected=True)
+        ## Failed to recognize
         raise ExtractorError('Unable to recognize tab page')
 
 
