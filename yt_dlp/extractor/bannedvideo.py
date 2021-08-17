@@ -182,17 +182,19 @@ fragment VideoComment on Comment {
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_info = self._call_api(video_id, video_id, 'GetVideo', 'Downloading video metadata')
-
         is_live = video_info.get('live')
-        if is_live:
-            formats = self._extract_m3u8_formats(
+
+        formats = [{
+            'format_id': 'direct',
+            'quality': 1,
+            'url': video_info.get('directUrl'),
+            'ext': 'mp4',
+        }] if url_or_none(video_info.get('directUrl')) else []
+
+        if video_info.get('streamUrl'):
+            formats.extend(self._extract_m3u8_formats(
                 video_info.get('streamUrl'), video_id, 'mp4',
-                entry_protocol='m3u8_native', m3u8_id='hls', live=True)
-        else:
-            formats = [{
-                'url': video_info.get('directUrl'),
-                'ext': 'mp4',
-            }]
+                entry_protocol='m3u8_native', m3u8_id='hls', live=True))
 
         self._sort_formats(formats)
 
@@ -209,6 +211,7 @@ fragment VideoComment on Comment {
             'timestamp': unified_timestamp(video_info.get('createdAt')),
             'tags': [tag.get('name') for tag in video_info.get('tags')],
             'is_live': is_live,
+            'availability': self._availability(is_unlisted=video_info.get('unlisted')),
             '__post_extractor': ((lambda: self._extract_comments(video_id))
                                  if self.get_param('getcomments') else None)
         }
