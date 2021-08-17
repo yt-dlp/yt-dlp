@@ -564,7 +564,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
             api_url + '&pn=%s' % page_num, 'None', query={'Search_key': query},
             note='Extracting results from page %s of %s' % (page_num, num_pages))
 
-        video_list = try_get(page_json, lambda x: x['data']['archives'], dict)
+        video_list = try_get(parsed_json, lambda x: x['data']['archives'], list)
         if not video_list:
             raise ExtractorError('failed to retrieve video list for page %d' % page_num)
 
