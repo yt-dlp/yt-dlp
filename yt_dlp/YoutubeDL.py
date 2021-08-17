@@ -75,7 +75,7 @@ from .utils import (
     HEADRequest,
     int_or_none,
     iri_to_uri,
-    is_ansi_vt,  # GCS GCS
+    is_ansi_vt,
     ISO3166Utils,
     LazyList,
     locked_file,
@@ -704,6 +704,10 @@ class YoutubeDL(object):
             self._printed_messages.add(message)
         write_string(message, out=out, encoding=self.params.get('encoding'))
 
+    def to_screen(self, message, skip_eol=False):
+        """Print message to stdout if not in quiet mode"""
+        self.to_stdout(message, skip_eol, quiet=self.params.get('quiet', False))
+
     def to_stdout(self, message, skip_eol=False, quiet=False):
         """Print message to stdout"""
         if self.params.get('logger'):
@@ -792,10 +796,6 @@ class YoutubeDL(object):
             raise DownloadError(message, exc_info)
         self._download_retcode = 1
 
-    def to_screen(self, message, skip_eol=False):
-        """Print message to stdout if not in quiet mode"""
-        self.to_stdout(message, skip_eol, quiet=self.params.get('quiet', False))
-
     def report_warning(self, message, only_once=False):
         '''
         Print the message to stderr, it will be prefixed with 'WARNING:'
@@ -859,7 +859,8 @@ class YoutubeDL(object):
         for key, val in outtmpl_dict.items():
             if isinstance(val, bytes):
                 self.report_warning(
-                    'Parameter outtmpl is bytes, but should be a unicode string.')
+                    'Parameter outtmpl is bytes, but should be a unicode string. '
+                    'Put  from __future__ import unicode_literals  at the top of your code file or consider switching to Python 3.x.')
         return outtmpl_dict
 
     def get_output_path(self, dir_type='', filename=None):
@@ -2440,6 +2441,7 @@ class YoutubeDL(object):
                 new_info['__original_infodict'] = info_dict
                 new_info.update(fmt)
                 self.process_info(new_info)
+
         # We update the info dict with the best quality format (backwards compatibility)
         if formats_to_download:
             info_dict.update(formats_to_download[-1])
@@ -2550,6 +2552,8 @@ class YoutubeDL(object):
         print_mandatory('format')
 
         if self.params.get('forcejson'):
+            #self.post_extract(info_dict)
+            #self.to_stdout(json.dumps(info_dict, default=repr))
             self.to_stdout(json.dumps(self.sanitize_info(info_dict)))
 
     def dl(self, name, info, subtitle=False, test=False):
@@ -3145,6 +3149,7 @@ class YoutubeDL(object):
                 infodict['__files_to_move'].setdefault(f, '')
         else:
             for old_filename in set(files_to_delete):
+                #if old_filename.endswith('.m4a'):   # ie_info.get('multi_fmt_dl') == True
                 if infodict.get('multi_fmt_dl') == True and old_filename.endswith('.m4a'):
                     self.to_screen(f"FIX ME... not deleting m4a file '{old_filename}'")
                     continue

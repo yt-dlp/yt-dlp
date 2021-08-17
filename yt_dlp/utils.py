@@ -1988,7 +1988,6 @@ def get_elements_by_attribute(attribute, value, html, escape_value=True):
 
 class HTMLAttributeParser(compat_HTMLParser):
     """Trivial HTML parser to gather the attributes for a single element"""
-
     def __init__(self):
         self.attrs = {}
         compat_HTMLParser.__init__(self)
@@ -2273,9 +2272,7 @@ def encodeFilename(s, for_subprocess=False):
     """
     @param s The name of the file
     """
-
     assert type(s) == compat_str
-
     return s
 
     # Pass '' directly to use Unicode APIs on Windows 2000 and up
@@ -2368,7 +2365,6 @@ def bug_reports_message(before=';'):
 
     return (before + ' ' if before else '') + msg
 
-
 class YoutubeDLError(Exception):
     """Base exception for YoutubeDL errors."""
     pass
@@ -2428,7 +2424,6 @@ class GeoRestrictedError(ExtractorError):
     This exception may be thrown when a video is not available from your
     geographic location due to geographic restrictions imposed by a website.
     """
-
     def __init__(self, msg, countries=None):
         super(GeoRestrictedError, self).__init__(msg, expected=True)
         self.msg = msg
@@ -3309,7 +3304,6 @@ if sys.platform == 'win32':
         #return h
         return h if h and h != HANDLE(-1) and (GetFileType(h) & ~8) == 2 else None
 
-
 def _windows_write_string(s, out):
     """ Returns True if the string was written using special methods,
     False if it has yet to be written out."""
@@ -3339,7 +3333,6 @@ def _windows_write_string(s, out):
             assert written.value > 0
             s = s[written.value:]
     return True
-
 
 def write_string(s, out=None, encoding=None):
     if out is None:
@@ -3416,7 +3409,7 @@ if sys.platform == 'win32':
         overlapped.Offset = 0
         overlapped.OffsetHigh = 0
         overlapped.hEvent = 0
-        f._lock_file_overlapped_p = ctypes.pointer(overlapped)
+        f._lock_file_overlapped_p = POINTER(overlapped)
         handle = msvcrt.get_osfhandle(f.fileno())
         if not LockFileEx(handle, 0x2 if exclusive else 0x0, 0,
                           whole_low, whole_high, f._lock_file_overlapped_p):
