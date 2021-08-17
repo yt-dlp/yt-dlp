@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="urn:mpeg:dash:schema:mpd:2011" type="static" minBufferTime="PT2S" profiles="urn:mpeg:dash:profile:isoff-on-demand:2011" mediaPresentationDuration="PT6014S">
+	<Period bitstreamSwitching="true">
+		<AdaptationSet mimeType="audio/mp4" codecs="mp4a.40.2" startWithSAP="1" segmentAlignment="true">
+			<SegmentTemplate timescale="1000000" presentationTimeOffset="0" initialization="ai_$RepresentationID$.mp4d" media="a_$RepresentationID$_$Number$.mp4d" duration="2000000.0" startNumber="0"></SegmentTemplate>
+			<Representation id="318597" bandwidth="61587"></Representation>
+		</AdaptationSet>
+		<AdaptationSet mimeType="video/mp4" startWithSAP="1" segmentAlignment="true">
+			<SegmentTemplate timescale="1000000" presentationTimeOffset="0" initialization="vi_$RepresentationID$.mp4d" media="v_$RepresentationID$_$Number$.mp4d" duration="2000000.0" startNumber="0"></SegmentTemplate>
+			<Representation id="318597" codecs="avc1.42001f" width="340" height="192" bandwidth="318597"></Representation>
+			<Representation id="638590" codecs="avc1.42001f" width="512" height="288" bandwidth="638590"></Representation>
+			<Representation id="1022565" codecs="avc1.4d001f" width="688" height="384" bandwidth="1022565"></Representation>
+			<Representation id="2046506" codecs="avc1.4d001f" width="1024" height="576" bandwidth="2046506"></Representation>
+			<Representation id="3998017" codecs="avc1.640029" width="1280" height="720" bandwidth="3998017"></Representation>
+			<Representation id="5997485" codecs="avc1.640032" width="1920" height="1080" bandwidth="5997485"></Representation>
+		</AdaptationSet>
+	</Period>
+</MPD>

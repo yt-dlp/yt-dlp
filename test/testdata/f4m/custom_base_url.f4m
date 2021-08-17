@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="http://ns.adobe.com/f4m/1.0">
+    <streamType>recorded</streamType>
+    <baseURL>http://vod.livestream.com/events/0000000000673980/</baseURL>
+    <duration>269.293</duration>
+    <bootstrapInfo profile="named" id="bootstrap_1">AAAAm2Fic3QAAAAAAAAAAQAAAAPoAAAAAAAEG+0AAAAAAAAAAAAAAAAAAQAAABlhc3J0AAAAAAAAAAABAAAAAQAAAC4BAAAAVmFmcnQAAAAAAAAD6AAAAAAEAAAAAQAAAAAAAAAAAAAXcAAAAC0AAAAAAAQHQAAAE5UAAAAuAAAAAAAEGtUAAAEYAAAAAAAAAAAAAAAAAAAAAAA=</bootstrapInfo>
+    <media url="b90f532f-b0f6-4f4e-8289-706d490b2fd8_2292" bootstrapInfoId="bootstrap_1" bitrate="2148" width="1280" height="720" videoCodec="avc1.4d401f" audioCodec="mp4a.40.2">
+        <metadata>AgAKb25NZXRhRGF0YQgAAAAIAAhkdXJhdGlvbgBAcNSwIMSbpgAFd2lkdGgAQJQAAAAAAAAABmhlaWdodABAhoAAAAAAAAAJZnJhbWVyYXRlAEA4/7DoLwW3AA12aWRlb2RhdGFyYXRlAECe1DLgjcobAAx2aWRlb2NvZGVjaWQAQBwAAAAAAAAADWF1ZGlvZGF0YXJhdGUAQGSimlvaPKQADGF1ZGlvY29kZWNpZABAJAAAAAAAAAAACQ==</metadata>
+    </media>
+</manifest>

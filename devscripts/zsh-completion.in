@@ -1,0 +1,30 @@
+#compdef yt-dlp
+
+__yt_dlp() {
+    local curcontext="$curcontext" fileopts diropts cur prev
+    typeset -A opt_args
+    fileopts="{{fileopts}}"
+    diropts="{{diropts}}"
+    cur=$words[CURRENT]
+    case $cur in
+        :)
+            _arguments '*: :(::ytfavorites ::ytrecommended ::ytsubscriptions ::ytwatchlater ::ythistory)'
+        ;;
+        *)
+            prev=$words[CURRENT-1]
+            if [[ ${prev} =~ ${fileopts} ]]; then
+                _path_files
+            elif [[ ${prev} =~ ${diropts} ]]; then
+                _path_files -/
+            elif [[ ${prev} == "--remux-video" ]]; then
+                _arguments '*: :(mp4 mkv)'
+            elif [[ ${prev} == "--recode-video" ]]; then
+                _arguments '*: :(mp4 flv ogg webm mkv)'
+            else
+                _arguments '*: :({{flags}})'
+            fi
+        ;;
+    esac
+}
+
+__yt_dlp

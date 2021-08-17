@@ -1,0 +1,9 @@
+# Netscape HTTP Cookie File
+# http://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated file!  Do not edit.
+
+# Cookie file entry with invalid number of fields - 6 instead of 7
+www.foobar.foobar	FALSE	/	FALSE	0	COOKIE
+
+# Cookie file entry with invalid expires at
+www.foobar.foobar	FALSE	/	FALSE	1.7976931348623157e+308	COOKIE	VALUE
