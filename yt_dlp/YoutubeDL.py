@@ -1981,6 +1981,7 @@ class YoutubeDL(object):
                 def selector_function(ctx):
                     for pair in itertools.product(
                             selector_1(copy.deepcopy(ctx)), selector_2(copy.deepcopy(ctx))):
+                        #yield _merge(pair)
                         avfmt = pair[0]['format_id'] + '+' + pair[1]['format_id']
                         if avfmt not in dedup:
                             #print(avfmt + ' ' + str(len(dedup)))
