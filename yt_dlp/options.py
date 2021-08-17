@@ -5,7 +5,6 @@ import os.path
 import optparse
 import re
 import sys
-import io
 
 from .compat import (
     compat_expanduser,
@@ -448,8 +447,8 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='continue_batch', default=False,
         help=(
             'Apply the `--max-downloads`, `--break-on-existing` and `--break-on-reject` options separately '
-            'for each URL listed in batch files and on the command line. Used with playlists to continue '
-            'downloading additional URLs after one playlist encounters a break condition'))
+            'for each URL given on the command line or in a batch file. Used with playlists; if one playlist '
+            'aborts on a break condition, continue downloading with the next URL in the batch.'))
     selection.add_option(
         '--skip-playlist-after-errors', metavar='N',
         dest='skip_playlist_after_errors', default=None, type=int,
