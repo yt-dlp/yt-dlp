@@ -542,7 +542,7 @@ class BilibiliChannelIE(InfoExtractor):
 
 # https://www.bilibili.com/v/kichiku/mad/#/
 class BilibiliCategoryIE(SearchInfoExtractor):
-    IE_NAME = "Bilibili category extractor"
+    IE_NAME = 'Bilibili category extractor'
     _MAX_RESULTS = 1000000
     _VALID_URL = r'https?://www\.bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
     _TESTS = [{
@@ -553,7 +553,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         },
         'playlist_mincount': 45,
         'params': {
-            "playlistend": 45
+            'playlistend': 45
         }
     }]
 
@@ -561,12 +561,12 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         time.sleep(2)
 
         parsed_json = self._download_json(
-            api_url + "&pn=%s" % pageNum, 'None', query={"Search_key": query},
+            api_url + '&pn=%s' % pageNum, 'None', query={'Search_key': query},
             note='Extracting results from page %s of %s' % (pageNum, num_pages))
 
         # Ascending by publish date
         video_list = sorted(parsed_json['data']['archives'], key=lambda video: video['pubdate'])
-        video_list_processed = list(map(lambda video: self.url_result("https://www.bilibili.com/video/%s" % video['bvid'],
+        video_list_processed = list(map(lambda video: self.url_result('https://www.bilibili.com/video/%s' % video['bvid'],
                                                                       'BiliBili', video['bvid']), video_list))
 
         for video in video_list_processed:
@@ -575,29 +575,29 @@ class BilibiliCategoryIE(SearchInfoExtractor):
     def _entries(self, category, subcategory, query):
         # map of categories : subcategories : RIDs
         rid_map = {
-            "kichiku": {
-                "mad": 26,
-                "manual_vocaloid": 126,
-                "guide": 22,
-                "theatre": 216,
-                "course": 127
+            'kichiku': {
+                'mad': 26,
+                'manual_vocaloid': 126,
+                'guide': 22,
+                'theatre': 216,
+                'course': 127
             },
         }
 
         if category not in rid_map:
-            raise ExtractorError("The supplied category, %s, is not supported. List of supported categories: %s" % (category, list(rid_map.keys())))
+            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (category, list(rid_map.keys())))
 
         if subcategory not in rid_map[category]:
-            raise ExtractorError("The supplied subcategory, %s, is not supported for this category. List of supported subcategories: %s" % (subcategory, list(rid_map[category].keys())))
+            raise ExtractorError('The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (subcategory, list(rid_map[category].keys())))
 
         rid_value = rid_map[category][subcategory]
 
-        api_url = "https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp" % rid_value
-        page_json = self._download_json(api_url + "&pn=1", "None", query={"Search_key": query})
+        api_url = 'https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp' % rid_value
+        page_json = self._download_json(api_url + '&pn=1', 'None', query={'Search_key': query})
         page_data = try_get(page_json, lambda x: x['data']['page'], dict)
         count, size = int_or_none(page_data.get('count')), int_or_none(page_data.get('size'))
         if not count or not size:
-            raise ExtractorError('failed to calculate pages: could not extract count or page size ')
+            raise ExtractorError('failed to calculate pages: could not extract count or page size')
 
         num_pages = math.ceil(page_data['count'] / page_data['size'])
 
@@ -612,7 +612,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         u = compat_urllib_parse_urlparse(url)
         category = u.path.split('/')[2]
         subcategory = u.path.split('/')[3]
-        query = "%s: %s" % (category, subcategory)
+        query = '%s: %s' % (category, subcategory)
 
         return self.playlist_result(self._entries(category, subcategory, query), query, query)
 
