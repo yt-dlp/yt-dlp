@@ -39,8 +39,10 @@ cookies.txt
 *.annotations.xml
 *.description
 
-# Allow config/media files in testdata
-!test/testdata/**
+# dev-test
+test/**
+docs/**
+devscripts/**
 
 # Python
 *.pyc
