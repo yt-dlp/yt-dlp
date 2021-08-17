@@ -1988,6 +1988,7 @@ def get_elements_by_attribute(attribute, value, html, escape_value=True):
 
 class HTMLAttributeParser(compat_HTMLParser):
     """Trivial HTML parser to gather the attributes for a single element"""
+
     def __init__(self):
         self.attrs = {}
         compat_HTMLParser.__init__(self)
@@ -2272,7 +2273,9 @@ def encodeFilename(s, for_subprocess=False):
     """
     @param s The name of the file
     """
+
     assert type(s) == compat_str
+
     return s
 
     # Pass '' directly to use Unicode APIs on Windows 2000 and up
@@ -2425,6 +2428,7 @@ class GeoRestrictedError(ExtractorError):
     This exception may be thrown when a video is not available from your
     geographic location due to geographic restrictions imposed by a website.
     """
+
     def __init__(self, msg, countries=None):
         super(GeoRestrictedError, self).__init__(msg, expected=True)
         self.msg = msg
@@ -3371,6 +3375,8 @@ def intlist_to_bytes(xs):
 
 # Cross-platform file locking
 if sys.platform == 'win32':
+    import ctypes.wintypes
+    import msvcrt
 
     class OVERLAPPED(ctypes.Structure):
         _fields_ = [

@@ -2198,6 +2198,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         author = self._get_text(comment_renderer, 'authorText')
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
+
         votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
                                                        lambda x: x['likeCount']), compat_str)) or 0
         author_thumbnail = try_get(comment_renderer,
@@ -4187,9 +4188,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             params = browse_endpoint.get('params')
             break
 
-        ytcfg = self._extract_ytcfg(item_id, webpage)
-        headers = self._generate_api_headers(
-            ytcfg, account_syncid=self._extract_account_syncid(ytcfg),
+        ytcfg = self.extract_ytcfg(item_id, webpage)
+        headers = self.generate_api_headers(
+            ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
             identity_token=self._extract_identity_token(webpage, item_id=item_id),
             visitor_data=try_get(
                 self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
@@ -4199,7 +4200,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         }
         return self._extract_response(
             item_id=item_id, headers=headers, query=query,
-            check_get_keys='contents', fatal=False,
+            check_get_keys='contents', fatal=False, ytcfg=ytcfg,
             note='Downloading API JSON with unavailable videos')
 
     def _extract_webpage(self, url, item_id):

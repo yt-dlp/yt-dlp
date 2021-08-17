@@ -35,32 +35,8 @@ class _TreeBuilder(etree.TreeBuilder):
     def doctype(self, name, pubid, system):
         pass
 
-from xml.etree.ElementTree import Element as compat_etree_Element
-
 def compat_etree_fromstring(text):
     return etree.XML(text, parser=etree.XMLParser(target=_TreeBuilder()))
-
-if hasattr(etree, 'register_namespace'):
-    compat_etree_register_namespace = etree.register_namespace
-else:
-    def compat_etree_register_namespace(prefix, uri):
-        """Register a namespace prefix.
-        The registry is global, and any existing mapping for either the
-        given prefix or the namespace URI will be removed.
-        *prefix* is the namespace prefix, *uri* is a namespace uri. Tags and
-        attributes in this namespace will be serialized with prefix if possible.
-        ValueError is raised if prefix is reserved or is invalid.
-        """
-        if re.match(r"ns\d+$", prefix):
-            raise ValueError("Prefix format reserved for internal use")
-        for k, v in list(etree._namespace_map.items()):
-            if k == uri or v == prefix:
-                del etree._namespace_map[k]
-        etree._namespace_map[uri] = prefix
-
-compat_xpath = lambda xpath: xpath
-
-from urllib.parse import parse_qs as compat_parse_qs
 
 compat_os_name = os._name if os.name == 'java' else os.name
 
@@ -76,13 +52,20 @@ def compat_ord(c):
     else:
         return ord(c)
 
-compat_getenv = os.getenv
-compat_expanduser = os.path.expanduser
-
 def compat_setenv(key, value, env=os.environ):
     env[key] = value
 
-compat_realpath = os.path.realpath
+
+if compat_os_name == 'nt' and sys.version_info < (3, 8):
+    # os.path.realpath on Windows does not follow symbolic links
+    # prior to Python 3.8 (see https://bugs.python.org/issue9949)
+    def compat_realpath(path):
+        while os.path.islink(path):
+            path = os.path.abspath(os.readlink(path))
+        return path
+else:
+    compat_realpath = os.path.realpath
+
 
 def compat_print(s):
     assert isinstance(s, compat_str)
@@ -112,6 +95,7 @@ try:
     compat_Pattern = re.Pattern
 except AttributeError:
     compat_Pattern = type(re.compile(''))
+
 
 try:
     compat_Match = re.Match

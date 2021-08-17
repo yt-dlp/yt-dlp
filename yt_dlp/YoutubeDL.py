@@ -861,8 +861,7 @@ class YoutubeDL(object):
         for key, val in outtmpl_dict.items():
             if isinstance(val, bytes):
                 self.report_warning(
-                    'Parameter outtmpl is bytes, but should be a unicode string. '
-                    'Put  from __future__ import unicode_literals  at the top of your code file or consider switching to Python 3.x.')
+                    'Parameter outtmpl is bytes, but should be a unicode string.')
         return outtmpl_dict
 
     def get_output_path(self, dir_type='', filename=None):
@@ -1149,8 +1148,7 @@ class YoutubeDL(object):
             return None
 
         if self.in_download_archive(info_dict):
-            #reason = '%s has already been recorded in the archive' % video_title
-            reason = f"[92m{self.params['download_archive']}[0m"
+            reason = '%s has already been recorded in the archive' % video_title
             break_opt, break_err = 'break_on_existing', ExistingVideoReached
         else:
             reason = check_filter()
@@ -2555,7 +2553,7 @@ class YoutubeDL(object):
         print_mandatory('format')
 
         if self.params.get('forcejson'):
-            #self.post_extract(info_dict)
+            self.post_extract(info_dict)
             #self.to_stdout(json.dumps(info_dict, default=repr))
             self.to_stdout(json.dumps(self.sanitize_info(info_dict)))
 
