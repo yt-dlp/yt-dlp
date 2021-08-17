@@ -560,8 +560,8 @@ class BilibiliCategoryIE(SearchInfoExtractor):
     def _fetch_page(self, api_url, num_pages, query, pageNum):
         time.sleep(2)
 
-        parsed_json =  self._download_json(
-            api_url + "&pn=%s" % pageNum,'None',  query={"Search_key": query},
+        parsed_json = self._download_json(
+            api_url + "&pn=%s" % pageNum, 'None', query={"Search_key": query},
             note='Extracting results from page %s of %s' % (pageNum, num_pages))
 
         # Ascending by publish date
@@ -601,10 +601,8 @@ class BilibiliCategoryIE(SearchInfoExtractor):
 
         num_pages = math.ceil(page_data['count'] / page_data['size'])
 
-
         return OnDemandPagedList(functools.partial(
             self._fetch_page, api_url, num_pages, query), size)
-
 
     @classmethod
     def _make_valid_url(cls):
@@ -617,7 +615,6 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         query = "%s: %s" % (category, subcategory)
 
         return self.playlist_result(self._entries(category, subcategory, query), query, query)
-
 
 
 class BiliBiliSearchIE(SearchInfoExtractor):
