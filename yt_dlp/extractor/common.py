@@ -583,7 +583,7 @@ class InfoExtractor(object):
             for _ in range(2):
                 try:
                     self.initialize()
-                    #self.write_debug('Extracting URL: %s' % url) # GCS
+                    #self.write_debug('Extracting URL: %s' % url)
                     ie_result = self._real_extract(url)
                     if ie_result is None:
                         return None

@@ -1362,7 +1362,7 @@ class YoutubeDL(object):
             #pprint.PrettyPrinter(depth = 2).pprint(ie_result)
 
             if additional_urls:
-                # TODO: Improve MetadataFromFieldPP to allow setting a list
+                # TODO: Improve MetadataParserPP to allow setting a list
                 if isinstance(additional_urls, compat_str):
                     additional_urls = [additional_urls]
                 self.to_screen(
@@ -2401,10 +2401,11 @@ class YoutubeDL(object):
 
         formats_to_download = list(format_selector(ctx))
         if not formats_to_download:
+            msg = f"Format '{req_format}' is not available"
             if not self.params.get('ignore_no_formats_error'):
-                raise ExtractorError('Requested format is not available', expected=True)
+                raise ExtractorError(msg, expected=True)
             else:
-                self.report_warning("format '%s' not available" % req_format)
+                self.report_warning(msg)
                 # Process what we can, even without any available formats.
                 raise Exception('what else could follow?')
                 self.process_info(dict(info_dict))
@@ -2553,7 +2554,7 @@ class YoutubeDL(object):
         print_mandatory('format')
 
         if self.params.get('forcejson'):
-            self.post_extract(info_dict)
+            #self.post_extract(info_dict)
             #self.to_stdout(json.dumps(info_dict, default=repr))
             self.to_stdout(json.dumps(self.sanitize_info(info_dict)))
 
@@ -2731,7 +2732,7 @@ class YoutubeDL(object):
                     self.report_error('Cannot write video metadata to JSON file ' + infofn)
                     return
             info_dict['__infojson_filename'] = infofn
-            info_dict['json_filename'] = infofn  # GCS GCS
+            #info_dict['json_filename'] = infofn  # GCS GCS
 
         for thumb_ext in self._write_thumbnails(info_dict, temp_filename):
             thumb_filename_temp = replace_extension(temp_filename, thumb_ext, info_dict.get('ext'))
@@ -3214,7 +3215,7 @@ class YoutubeDL(object):
             url = str_or_none(info_dict.get('url'))
             if not url:
                 return
-            # Try to find matching extractor key for the URL
+            # Try to find matching extractor for the URL and take its ie_key
             for ie in self._ies:
                 if ie.suitable(url):
                     ie_key = ie.ie_key()

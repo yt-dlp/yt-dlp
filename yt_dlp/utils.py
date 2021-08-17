@@ -2273,27 +2273,11 @@ def encodeFilename(s, for_subprocess=False):
     """
     @param s The name of the file
     """
-
-    assert type(s) == compat_str
-
     return s
-
-    # Pass '' directly to use Unicode APIs on Windows 2000 and up
-    # (Detecting Windows NT 4 is tricky because 'major >= 4' would
-    # match Windows 9x series as well. Besides, NT 4 is obsolete.)
-    if not for_subprocess and sys.platform == 'win32' and sys.getwindowsversion()[0] >= 5:
-        return s
-
-    # Jython assumes filenames are Unicode strings though reported as Python 2.x compatible
-    if sys.platform.startswith('java'):
-        return s
-
-    return s.encode(get_subprocess_encoding(), 'ignore')
 
 
 def decodeFilename(b, for_subprocess=False):
     return b
-
 
 def encodeArgument(s):
     if not isinstance(s, compat_str):

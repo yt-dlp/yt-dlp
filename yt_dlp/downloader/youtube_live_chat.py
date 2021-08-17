@@ -118,7 +118,7 @@ class YoutubeLiveChatFD(FragmentFD):
                     if not success:
                         return False, None, None, None
                     try:
-                        data = ie._extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
+                        data = ie.extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
                     except RegexNotFoundError:
                         data = None
                     if not data:
@@ -148,7 +148,7 @@ class YoutubeLiveChatFD(FragmentFD):
         if not success:
             return False
         try:
-            data = ie._extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
+            data = ie.extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
         except RegexNotFoundError:
             return False
         continuation_id = try_get(
@@ -157,7 +157,7 @@ class YoutubeLiveChatFD(FragmentFD):
         # no data yet but required to call _append_fragment
         self._append_fragment(ctx, b'')
 
-        ytcfg = ie._extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
+        ytcfg = ie.extract_ytcfg(video_id, raw_fragment.decode('utf-8', 'replace'))
 
         if not ytcfg:
             return False
@@ -185,7 +185,7 @@ class YoutubeLiveChatFD(FragmentFD):
                 request_data['currentPlayerState'] = {'playerOffsetMs': str(max(offset - 5000, 0))}
                 if click_tracking_params:
                     request_data['context']['clickTracking'] = {'clickTrackingParams': click_tracking_params}
-                headers = ie._generate_api_headers(ytcfg, visitor_data=visitor_data)
+                headers = ie.generate_api_headers(ytcfg, visitor_data=visitor_data)
                 headers.update({'content-type': 'application/json'})
                 fragment_request_data = json.dumps(request_data, ensure_ascii=False).encode('utf-8') + b'\n'
                 success, continuation_id, offset, click_tracking_params = download_and_parse_fragment(

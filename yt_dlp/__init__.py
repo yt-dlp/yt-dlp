@@ -132,7 +132,6 @@ def _real_main(argv=None):
             for mu in matchedUrls:
                 write_string('  ' + mu + '\n', out=sys.stdout)
         sys.exit(0)
-
     if opts.list_extractor_descriptions:
         for ie in list_extractors(opts.age_limit):
             if not ie._WORKING:
@@ -146,7 +145,6 @@ def _real_main(argv=None):
                 desc += ' (Example: "%s%s:%s" )' % (ie.SEARCH_KEY, random.choice(_COUNTS), random.choice(_SEARCHES))
             write_string(desc + '\n', out=sys.stdout)
         sys.exit(0)
-
     if opts.ap_list_mso:
         table = [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()]
         write_string('Supported TV Providers:\n' + render_table(['mso', 'mso name'], table) + '\n', out=sys.stdout)
@@ -761,5 +759,6 @@ def main(argv=None):
         devnull = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull, sys.stdout.fileno())
         sys.exit(r'\nERROR: {err}')
+
 
 __all__ = ['main', 'YoutubeDL', 'gen_extractors', 'list_extractors']

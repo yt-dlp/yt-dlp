@@ -843,31 +843,18 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return re.match(r'https?://music\.youtube\.com/', url) is not None
 
     def _extract_video(self, renderer):
-        video_id = renderer['videoId']
+        video_id = renderer.get('videoId')
         title = self._get_text(renderer, 'title')
         description = self._get_text(renderer, 'descriptionSnippet')
-
-        #duration_text = try_get(
-        #    renderer,
-        #    (lambda x: x['lengthText']['simpleText'],
-        #     lambda x: x['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['simpleText']),
-        #    compat_str)
         duration_text = self._get_text(
-            renderer,
-            'lengthText',
-            ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text'))
+            renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text'))
         #print(duration_text or '{video_id}: did not extract duration\n')
         duration = parse_duration(duration_text)
-
         view_count_text = self._get_text(renderer, 'viewCountText') or ''
         view_count = str_to_int(self._search_regex(
             r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
             'view count', default=None))
 
-        #uploader = try_get(
-        #    renderer,
-        #    (lambda x: x['ownerText']['runs'][0]['text'],
-        #     lambda x: x['shortBylineText']['runs'][0]['text']), compat_str)
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
 
         return {
@@ -4214,8 +4201,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if count:
                 self.report_warning('%s. Retrying ...' % last_error)
             webpage = self._download_webpage(
-                url,
-                item_id,
+                url, item_id,
                 'Downloading webpage%s' % (' (retry #%d)' % count if count else ''))
             data = self.extract_yt_initial_data(item_id, webpage)
             if data.get('contents') or data.get('currentVideoEndpoint'):
@@ -4278,8 +4264,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
             # Home URLs should redirect to /videos/
             self.report_warning(
-                'A channel/user page was given. All the channel\'s videos will be downloaded. '
-                'To download only the videos in the home page, add "/featured" to the URL')
+                'A channel or user home page URL was specified; all available videos from the uploader will '
+                'be downloaded. To download only the videos on the home page, add "/featured" to the URL.')
             tab = '/videos'
 
         url = ''.join((pre, tab, post))

@@ -24,21 +24,24 @@ import sys
 import tokenize
 import urllib
 import xml.etree.ElementTree as etree
-
 from subprocess import DEVNULL
 
 
 def compat_ctypes_WINFUNCTYPE(*args, **kwargs):
     return ctypes.WINFUNCTYPE(*args, **kwargs)
 
+
 class _TreeBuilder(etree.TreeBuilder):
     def doctype(self, name, pubid, system):
         pass
 
+
 def compat_etree_fromstring(text):
     return etree.XML(text, parser=etree.XMLParser(target=_TreeBuilder()))
 
+
 compat_os_name = os._name if os.name == 'java' else os.name
+
 
 if compat_os_name == 'nt':
     def compat_shlex_quote(s):
@@ -46,11 +49,13 @@ if compat_os_name == 'nt':
 else:
     from shlex import quote as compat_shlex_quote
 
+
 def compat_ord(c):
     if type(c) is int:
         return c
     else:
         return ord(c)
+
 
 def compat_setenv(key, value, env=os.environ):
     env[key] = value
@@ -70,6 +75,7 @@ else:
 def compat_print(s):
     assert isinstance(s, compat_str)
     print(s)
+
 
 # Fix https://github.com/ytdl-org/youtube-dl/issues/4223
 # See http://bugs.python.org/issue9161 for what is broken
@@ -91,6 +97,7 @@ def workaround_optparse_bug9161():
             return real_add_option(self, *bargs, **bkwargs)
         optparse.OptionGroup.add_option = _compat_add_option
 
+
 try:
     compat_Pattern = re.Pattern
 except AttributeError:
@@ -101,6 +108,7 @@ try:
     compat_Match = re.Match
 except AttributeError:
     compat_Match = type(re.compile('').match(''))
+
 
 try:
     compat_asyncio_run = asyncio.run  # >= 3.7
