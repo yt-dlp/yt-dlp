@@ -3335,6 +3335,7 @@ def _windows_write_string(s, out):
             s = s[written.value:]
     return True
 
+
 def write_string(s, out=None, encoding=None):
     if out is None:
         out = sys.stderr
@@ -3370,8 +3371,6 @@ def intlist_to_bytes(xs):
 
 # Cross-platform file locking
 if sys.platform == 'win32':
-    import ctypes.wintypes
-    import msvcrt
 
     class OVERLAPPED(ctypes.Structure):
         _fields_ = [
