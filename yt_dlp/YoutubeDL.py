@@ -734,7 +734,7 @@ class YoutubeDL(object):
             if ctypes.windll.kernel32.GetConsoleWindow():
                 # c_wchar_p() might not be necessary if `message` is
                 # already of type unicode()
-                # ctypes.windll.kernel32.SetConsoleTitleW(ctypes.c_wchar_p(message))
+                #ctypes.windll.kernel32.SetConsoleTitleW(ctypes.c_wchar_p(message))
                 ctypes.windll.kernel32.SetConsoleTitleW('abcdefg')
         elif 'TERM' in os.environ:
             self._write_string('\033]0;%s\007' % message, self._screen_file)

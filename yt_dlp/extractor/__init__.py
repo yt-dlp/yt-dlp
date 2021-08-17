@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from ..utils import load_plugins
-from .extractors import *
 
 #try:
 #    from .lazy_extractors import *
