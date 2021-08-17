@@ -692,7 +692,6 @@ class NicovideoSearchURLIE(SearchInfoExtractor):
         spans = self._get_spans_for_range(search_url, query, self._START_DATE, currDate)
 
         for (start_date, end_date) in spans:
-            print(start_date)
             videos = self._get_entries_for_date(search_url, query, start_date, endDate=end_date)
             for video in videos:
                 yield video
