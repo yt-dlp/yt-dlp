@@ -539,7 +539,6 @@ class BilibiliChannelIE(InfoExtractor):
         return self.playlist_result(self._entries(list_id), list_id)
 
 
-# https://www.bilibili.com/v/kichiku/mad/#/
 class BilibiliCategoryIE(InfoExtractor):
     IE_NAME = 'Bilibili category extractor'
     _MAX_RESULTS = 1000000
@@ -558,12 +557,12 @@ class BilibiliCategoryIE(InfoExtractor):
 
     def _fetch_page(self, api_url, num_pages, query, page_num):
         parsed_json = self._download_json(
-            api_url + '&pn=%s' % page_num, query, query={'Search_key': query},
+            api_url, query, query={'Search_key': query, 'pn': page_num},
             note='Extracting results from page %s of %s' % (page_num, num_pages))
 
         video_list = try_get(parsed_json, lambda x: x['data']['archives'], list)
         if not video_list:
-            raise ExtractorError('failed to retrieve video list for page %d' % page_num)
+            raise ExtractorError('Failed to retrieve video list for page %d' % page_num)
 
         for video in video_list:
             yield self.url_result(
@@ -590,20 +589,16 @@ class BilibiliCategoryIE(InfoExtractor):
         rid_value = rid_map[category][subcategory]
 
         api_url = 'https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp' % rid_value
-        page_json = self._download_json(api_url + '&pn=1', query, query={'Search_key': query})
+        page_json = self._download_json(api_url, query, query={'Search_key': query, 'pn': '1'})
         page_data = try_get(page_json, lambda x: x['data']['page'], dict)
         count, size = int_or_none(page_data.get('count')), int_or_none(page_data.get('size'))
-        if not count or not size:
-            raise ExtractorError('failed to calculate pages: could not extract count or page size')
+        if count is None or not size:
+            raise ExtractorError('Failed to calculate either page count or size')
 
-        num_pages = math.ceil(page_data['count'] / page_data['size'])
+        num_pages = math.ceil(count / size)
 
         return OnDemandPagedList(functools.partial(
             self._fetch_page, api_url, num_pages, query), size)
-
-    @classmethod
-    def _make_valid_url(cls):
-        return cls._VALID_URL
 
     def _real_extract(self, url):
         u = compat_urllib_parse_urlparse(url)
