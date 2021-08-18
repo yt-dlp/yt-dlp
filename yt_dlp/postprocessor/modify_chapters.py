@@ -49,7 +49,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             force_keyframes=False, use_sponsorblock=False,
             sponsorblock_query: AbstractSet[str] = frozenset(SPONSORBLOCK_CATEGORIES),
             sponsorblock_cut: AbstractSet[str] = frozenset(SPONSORBLOCK_CATEGORIES),
-            sponsorblock_force=False, sponsorblock_reveal_video_id=False,
+            sponsorblock_force=False, sponsorblock_hide_video_id=True,
             sponsorblock_api='https://sponsor.ajay.app'):
         FFmpegPostProcessor.__init__(self, downloader)
         self._remove_chapters_pattern = remove_chapters_pattern
@@ -58,7 +58,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         self._sponsorblock_query = sponsorblock_query
         self._sponsorblock_cut = sponsorblock_cut
         self._sponsorblock_force = sponsorblock_force
-        self._sponsorblock_reveal_video_id = sponsorblock_reveal_video_id
+        self._sponsorblock_hide_video_id = sponsorblock_hide_video_id
         # Force HTTPS if protocol is omitted, unsecure HTTP must be requested explicitly.
         self._sponsorblock_api = (sponsorblock_api if re.match('^https?://', sponsorblock_api)
                                   else 'https://' + sponsorblock_api)
@@ -161,8 +161,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 'Use --sponsorblock-force to SponsorBlock anyway')
             return []
 
-        segments = (self._get_sponsor_segments_revealing_id if self._sponsorblock_reveal_video_id
-                    else self._get_sponsor_segments_hiding_id)(info['id'])
+        segments = (self._get_sponsor_segments_hiding_id if self._sponsorblock_hide_video_id
+                    else self._get_sponsor_segments_revealing_id)(info['id'])
 
         def duration_filter(s: SponsorBlockSegment):
             start_end: MutableSequence[float] = s['segment']

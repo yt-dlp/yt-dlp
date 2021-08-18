@@ -1357,14 +1357,21 @@ def parseOpts(overrideArguments=None):
         dest='split_chapters', action='store_false',
         help='Do not split video based on chapters (default)')
     postproc.add_option(
-        '--remove-chapters', metavar='CHAPTER_REGEX', default=None, dest='remove_chapters',
+        '--remove-chapters', metavar='CHAPTER_REGEX', dest='remove_chapters',
         help='Remove chapters whose title matches a regular expression')
     postproc.add_option(
-        '--force-keyframes-at-splits-or-cuts', default=False,
-        action='store_true', dest='force_keyframes_at_splits_or_cuts',
+        '--no-remove-chapters', default=None, action='store_const', const=None,
+        dest='remove_chapters', help='Do not remove any chapters (default)')
+    postproc.add_option(
+        '--force-keyframes-at-splits-or-cuts', action='store_true',
+        dest='force_keyframes_at_splits_or_cuts',
         help='Force keyframes at splits/cuts before splitting/cutting. '
              'Requires re-encoding and thus very slow, but the resulting video '
              'may have fewer artifacts around splits/cuts')
+    postproc.add_option(
+        '--no-force-keyframes-at-splits-or-cuts', default=False,
+        action='store_false', dest='force_keyframes_at_splits_or_cuts',
+        help='Do not force keyframes at splits/cuts (default)')
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
         'Make chapter entries for or remove various segments (sponsor, introductions, etc.) '
@@ -1393,14 +1400,20 @@ def parseOpts(overrideArguments=None):
              'If a category is queried but not cut, a chapter is created for it. '
              'Defaults to "all"')
     sponsorblock.add_option(
-        '--sponsorblock-force', default=False,
-        action='store_true', dest='sponsorblock_force',
+        '--sponsorblock-force', action='store_true', dest='sponsorblock_force',
         help='Try to use SponsorBlock even if the video was already downloaded')
     sponsorblock.add_option(
-        '--sponsorblock-no-privacy', default=False,
-        action='store_true', dest='sponsorblock_reveal_video_id',
-        help='Send plaintext video ID instead of its hash prefix to SponsorBlock '
-             'to make sure it knows what videos you are watching')
+        '--no-sponsorblock-force', default=False, action='store_false', dest='sponsorblock_force',
+        help='Never use SponsorBlock on already downloaded videos (default)')
+    sponsorblock.add_option(
+        '--sponsorblock-privacy', default=True,
+        action='store_true', dest='sponsorblock_hide_video_id',
+        help='Use a hash prefix of the video ID when querying SponsorBlock '
+             'to hide what videos you are watching (default)')
+    sponsorblock.add_option(
+        '--no-sponsorblock-privacy', action='store_false', dest='sponsorblock_hide_video_id',
+        help='Send full video ID to SponsorBlock to make sure '
+             'it knows what videos you are watching')
     sponsorblock.add_option(
         '--sponsorblock-api', metavar='URL',
         default='https://sponsor.ajay.app', dest='sponsorblock_api',

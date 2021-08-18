@@ -498,7 +498,7 @@ def _real_main(argv=None):
             'sponsorblock_query': sponsorblock_query,
             'sponsorblock_cut': sponsorblock_cut,
             'sponsorblock_force': opts.sponsorblock_force,
-            'sponsorblock_reveal_video_id': opts.sponsorblock_reveal_video_id,
+            'sponsorblock_hide_video_id': opts.sponsorblock_hide_video_id,
             'sponsorblock_api': opts.sponsorblock_api
         })
     # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
