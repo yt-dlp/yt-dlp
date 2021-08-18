@@ -561,7 +561,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         time.sleep(2)
 
         parsed_json = self._download_json(
-            api_url + '&pn=%s' % page_num, 'None', query={'Search_key': query},
+            api_url + '&pn=%s' % page_num, query, query={'Search_key': query},
             note='Extracting results from page %s of %s' % (page_num, num_pages))
 
         video_list = try_get(parsed_json, lambda x: x['data']['archives'], list)
