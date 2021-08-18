@@ -56,6 +56,13 @@ if True:
         FC2IE,
         FC2EmbedIE,
     )
+    from .twitter import (
+        TwitterCardIE,
+        TwitterIE,
+        TwitterAmplifyIE,
+        TwitterBroadcastIE,
+        TwitterShortenerIE,
+    )
     from .pornhub import (
         PornHubIE,
         PornHubUserIE,
