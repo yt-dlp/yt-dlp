@@ -541,7 +541,7 @@ class BilibiliChannelIE(InfoExtractor):
 
 
 # https://www.bilibili.com/v/kichiku/mad/#/
-class BilibiliCategoryIE(SearchInfoExtractor):
+class BilibiliCategoryIE(InfoExtractor):
     IE_NAME = 'Bilibili category extractor'
     _MAX_RESULTS = 1000000
     _VALID_URL = r'https?://www\.bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
