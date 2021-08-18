@@ -7,7 +7,6 @@ import json
 import functools
 import re
 import math
-import time
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
