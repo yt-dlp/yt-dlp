@@ -568,11 +568,9 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         if not video_list:
             raise ExtractorError('failed to retrieve video list for page %d' % page_num)
 
-        video_list_processed = list(map(lambda video: self.url_result('https://www.bilibili.com/video/%s' % video['bvid'],
-                                                                      'BiliBili', video['bvid']), video_list))
-
-        for video in video_list_processed:
-            yield video
+        for video in video_list:
+            yield self.url_result(
+                'https://www.bilibili.com/video/%s' % video['bvid'], 'BiliBili', video['bvid'])
 
     def _entries(self, category, subcategory, query):
         # map of categories : subcategories : RIDs
