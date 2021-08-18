@@ -558,8 +558,6 @@ class BilibiliCategoryIE(InfoExtractor):
     }]
 
     def _fetch_page(self, api_url, num_pages, query, page_num):
-        time.sleep(2)
-
         parsed_json = self._download_json(
             api_url + '&pn=%s' % page_num, query, query={'Search_key': query},
             note='Extracting results from page %s of %s' % (page_num, num_pages))
