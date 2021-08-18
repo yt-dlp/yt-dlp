@@ -1254,7 +1254,7 @@ class YoutubeDL(object):
                 'extractor_key': ie.ie_key(),
             })
 
-    def process_ie_result(self, ie_result, download=True, extra_info={}):
+    def process_ie_result(self, ie_result, download=True, extra_info=None):
         """
         Take the result of the ie(may be modified) and resolve all unresolved
         references (URLs, playlist items).
@@ -1262,6 +1262,8 @@ class YoutubeDL(object):
         It will also download the videos if 'download'.
         Returns the resolved ie_result.
         """
+        if extra_info is None:
+            extra_info = {}
         result_type = ie_result.get('_type', 'video')
 
         if result_type in ('url', 'url_transparent'):
