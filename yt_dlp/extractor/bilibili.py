@@ -595,7 +595,7 @@ class BilibiliCategoryIE(SearchInfoExtractor):
         rid_value = rid_map[category][subcategory]
 
         api_url = 'https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp' % rid_value
-        page_json = self._download_json(api_url + '&pn=1', 'None', query={'Search_key': query})
+        page_json = self._download_json(api_url + '&pn=1', query, query={'Search_key': query})
         page_data = try_get(page_json, lambda x: x['data']['page'], dict)
         count, size = int_or_none(page_data.get('count')), int_or_none(page_data.get('size'))
         if not count or not size:
