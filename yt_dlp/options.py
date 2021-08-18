@@ -66,7 +66,7 @@ def parseOpts(overrideArguments=None):
 
     def _readUserConf(package_name, default=[]):
         # .config
-        xdg_config_home = compat_getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+        xdg_config_home = compat_getenv('XDG_CONFIG_HOME') or compat_expanduser('~' + os.path.sep + '.config')
         userConfFile = os.path.join(xdg_config_home, package_name, 'config')
         if not os.path.isfile(userConfFile):
             userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)

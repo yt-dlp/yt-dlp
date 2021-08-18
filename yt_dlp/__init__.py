@@ -7,6 +7,7 @@ import codecs
 import io
 import itertools
 import os
+import pprint
 import random
 import re
 import sys
@@ -698,6 +699,8 @@ def _real_main(argv=None):
         'useid': opts.useid or None,
     }
 
+    #pprint.PrettyPrinter(depth = 2).pprint(ydl_opts)
+
     with YoutubeDL(ydl_opts) as ydl:
         actual_use = len(all_urls) or opts.load_info_filename
 
@@ -723,15 +726,20 @@ def _real_main(argv=None):
                 'You must provide at least one URL.\n'
                 'Type yt-dlp --help to see a list of all options.')
 
-        try:
-            if opts.load_info_filename is not None:
-                retcode = ydl.download_with_info_file(expand_path(opts.load_info_filename))
-            else:
-                retcode = ydl.download(all_urls)
-        except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
-            ydl.to_screen('Aborting remaining downloads')
-            ydl.to_screen('[1;31mMaximum number of downloaded files reached (%d)[0m.' % ydl.params.get('max_downloads'))
-            retcode = 101
+        if opts.load_info_filename is not None:
+            retcode = ydl.download_with_info_file(expand_path(opts.load_info_filename))
+        else:
+            retcode = ydl.download(all_urls)
+
+        #try:
+        #    if opts.load_info_filename is not None:
+        #        retcode = ydl.download_with_info_file(expand_path(opts.load_info_filename))
+        #    else:
+        #        retcode = ydl.download(all_urls)
+        #except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
+        #    #ydl.to_screen('Aborting remaining downloads')
+        #    #ydl.to_screen('[1;31mMaximum number of downloaded files reached (%d)[0m.' % ydl.params.get('max_downloads'))
+        #    retcode = 101
 
     sys.exit(retcode)
 

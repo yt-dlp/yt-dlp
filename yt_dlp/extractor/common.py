@@ -1025,9 +1025,9 @@ class InfoExtractor(object):
             self._printed_messages.add(f'WARNING: {msg}')
         self._downloader.report_warning(msg, *args, **kwargs)
 
-    def to_screen(self, msg, *args, **kwargs):
-        """Print msg to screen, prefixing it with '[ie_name]'"""
-        self._downloader.to_screen('[%s] %s' % (self.IE_NAME, msg), *args, **kwargs)
+    def to_screen(self, msg, prefix=True, *args, **kwargs):
+        """Print msg to screen, optionally prefixing it with '[ie_name]'"""
+        self._downloader.to_screen(msg, *args, **kwargs)
 
     def write_debug(self, msg, *args, **kwargs):
         self._downloader.write_debug('[%s] %s' % (self.IE_NAME, msg), *args, **kwargs)

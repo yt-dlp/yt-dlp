@@ -1988,7 +1988,6 @@ def get_elements_by_attribute(attribute, value, html, escape_value=True):
 
 class HTMLAttributeParser(compat_HTMLParser):
     """Trivial HTML parser to gather the attributes for a single element"""
-
     def __init__(self):
         self.attrs = {}
         compat_HTMLParser.__init__(self)
@@ -2412,7 +2411,6 @@ class GeoRestrictedError(ExtractorError):
     This exception may be thrown when a video is not available from your
     geographic location due to geographic restrictions imposed by a website.
     """
-
     def __init__(self, msg, countries=None):
         super(GeoRestrictedError, self).__init__(msg, expected=True)
         self.msg = msg
@@ -3399,7 +3397,7 @@ if sys.platform == 'win32':
         overlapped.Offset = 0
         overlapped.OffsetHigh = 0
         overlapped.hEvent = 0
-        f._lock_file_overlapped_p = POINTER(overlapped)
+        f._lock_file_overlapped_p = ctypes.pointer(overlapped)
         handle = msvcrt.get_osfhandle(f.fileno())
         if not LockFileEx(handle, 0x2 if exclusive else 0x0, 0,
                           whole_low, whole_high, f._lock_file_overlapped_p):
@@ -4380,6 +4378,7 @@ OUTTMPL_TYPES = {
     'pl_thumbnail': None,
     'pl_description': 'description',
     'pl_infojson': 'info.json',
+    'item_archive': None,
 }
 
 # As of [1] format syntax is:

@@ -130,7 +130,7 @@ from .extractor import (
     gen_extractor_classes,
     get_info_extractor,
     #_LAZY_LOADER,
-    _PLUGIN_CLASSES
+    #_PLUGIN_CLASSES
 )
 from .extractor.openload import PhantomJSwrapper
 from .downloader import (
@@ -656,7 +656,7 @@ class YoutubeDL(object):
             ie = ie_cls(self)
             assert ie.ie_key() == ie_key
             ie_cls._inst = ie
-            sys.stdout.write(f"instantiate {repr(ie_key)} -> {repr(ie_cls)} -> {repr(ie)}\n")
+            #sys.stdout.write(f"instantiate {repr(ie_key)} -> {repr(ie_cls)} -> {repr(ie)}\n")
         return ie
 
     def add_default_info_extractors(self):
@@ -1147,19 +1147,25 @@ class YoutubeDL(object):
                     return ret
             return None
 
+        #break_err = None
         if self.in_download_archive(info_dict):
-            reason = '%s has already been recorded in the archive' % video_title
-            break_opt, break_err = 'break_on_existing', ExistingVideoReached
+            reason = f"[92m{self.params['download_archive']}[0m"
+            if self.params.get('break_on_existing', False):
+                if not silent: self.to_screen(reason + ' ', True)
+                #break_err = ExistingVideoReached
+                raise ExistingVideoReached()
+            #reason = '%s has already been recorded in the archive' % video_title
+            reason = f"[92m{self.params['download_archive']}[0m"
         else:
             reason = check_filter()
-            break_opt, break_err = 'break_on_reject', RejectedVideoReached
-        if reason is None:
-            return False
-        if not silent:
-            #self.to_screen('[download] ' + reason)
-            self.to_screen(reason)
-        if self.params.get(break_opt, False):
-            raise break_err()
+            if reason is None:
+                return False
+            if self.params.get('break_on_reject', False):
+                #break_err = RejectedVideoReached
+                raise RejectedVideoReached()
+
+        if not silent: self.to_screen(reason)
+        #if break_err: raise break_err()
         return True
 
     @staticmethod
@@ -1271,6 +1277,8 @@ class YoutubeDL(object):
             return ie_result
 
     def add_default_extra_info(self, ie_result, ie, url):
+        if 'ie_timestamp' not in ie_result:
+            ie_result['ie_timestamp'] = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
         if url is not None:
             self.add_extra_info(ie_result, {
                 'webpage_url': url,
@@ -1480,8 +1488,6 @@ class YoutubeDL(object):
                 return ret
             ie_result['entries'] = fill_missing_entries(ie_result['entries'], ie_result['requested_entries'])
 
-        playlist_results = []
-
         playliststart = self.params.get('playliststart', 1)
         playlistend = self.params.get('playlistend')
         # For backwards compatibility, interpret -1 as whole list
@@ -1501,40 +1507,50 @@ class YoutubeDL(object):
                         yield int(string_segment)
             playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
 
-        ie_entries = ie_result['entries']
-        msg = (
-            'Downloading %d videos' if not isinstance(ie_entries, list)
-            else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
-        if not isinstance(ie_entries, (list, PagedList)):
-            ie_entries = LazyList(ie_entries)
+        #ie_entries = ie_result['entries']
+        #msg = (
+        #    'Downloading %d videos' if not isinstance(ie_entries, list)
+        #    else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
+        #if not isinstance(ie_entries, (list, PagedList)):
+        #    ie_entries = LazyList(ie_entries)
+        #entries = ie_entries if isinstance(ie_entries, list) else list(ie_entries)
 
-        def get_entry(i):
-            return YoutubeDL.__handle_extraction_exceptions(
-                lambda self, i: ie_entries[i - 1],
-                False
-            )(self, i)
+        #def get_entry(i):
+        #    return YoutubeDL.__handle_extraction_exceptions(
+        #        lambda self, i: ie_entries[i - 1],
+        #        False
+        #    )(self, i)
 
+        gen = ie_result['entries']
         entries = []
+
         for i in playlistitems or itertools.count(playliststart):
             if playlistitems is None and playlistend is not None and playlistend < i:
                 break
-            entry = None
             try:
-                entry = get_entry(i)
+                entry = next(gen)
                 if entry is None:
-                    raise EntryNotInPlaylist()
-            except (IndexError, EntryNotInPlaylist):
-                if incomplete_entries:
-                    raise EntryNotInPlaylist()
-                elif not playlistitems:
-                    break
-            entries.append(entry)
-            try:
-                if entry is not None:
-                    self._match_entry(entry, incomplete=True, silent=True)
-            except (ExistingVideoReached, RejectedVideoReached):
+                    raise EntryNotInPlaylist() 
+                entries.append(entry)
+            except StopIteration:
                 break
-        ie_result['entries'] = entries
+            #try:
+            #    entry = get_entry(i)
+            #    if entry is None:
+            #        raise EntryNotInPlaylist()
+            #except (IndexError, EntryNotInPlaylist):
+            #    if incomplete_entries:
+            #        raise EntryNotInPlaylist()
+            #    elif not playlistitems:
+            #        break
+            #entries.append(entry)
+            #try:
+            #    if entry is not None:
+            #        self._match_entry(entry, incomplete=True, silent=True)
+            #except (ExistingVideoReached, RejectedVideoReached):
+            #    break
+
+        ie_result['entries'] = entries            
 
         # Save playlist_index before re-ordering
         entries = [
@@ -1547,6 +1563,10 @@ class YoutubeDL(object):
             playlistitems = list(range(playliststart, playliststart + n_entries))
         ie_result['requested_entries'] = playlistitems
 
+        #print('allow_playlist_files: ' + repr(self.params.get('allow_playlist_files')))
+        #print('writeinfojson (pl): ' + repr(self.params.get('writeinfojson')))
+        #print('cleaninfojson: ' + repr(self.params.get('cleaninfojson')))
+
         if self.params.get('allow_playlist_files', True):
             ie_copy = {
                 'playlist': playlist,
@@ -1555,41 +1575,52 @@ class YoutubeDL(object):
                 'playlist_uploader': ie_result.get('uploader'),
                 'playlist_uploader_id': ie_result.get('uploader_id'),
                 'playlist_index': 0,
+                'playlist_description': ie_result.get('description'),
             }
             ie_copy.update(dict(ie_result))
 
+            #pprint.PrettyPrinter(depth = 2).pprint(ie_result)
+
             if self.params.get('writeinfojson', False):
-                infofn = self.prepare_filename(ie_copy, 'pl_infojson')
-                if not self._ensure_dir_exists(encodeFilename(infofn)):
-                    return
-                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                    self.to_screen('[info] Playlist metadata is already present')
-                else:
-                    self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
-                    try:
-                        write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), infofn)
-                    except (OSError, IOError):
-                        self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
+                pl_infofn = self.prepare_filename(ie_copy, 'pl_infojson')
+                #pl_infofn = 'E:\\yt-json-pl\\' + playlist_id + '`' + ie_result.get('ie_timestamp') + '.json'           # GCS GCS
+                if self._ensure_dir_exists(encodeFilename(pl_infofn)):
+                    if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(pl_infofn)):
+                        self.to_screen(f"(exists: [1m{pl_infofn}[0m)")
+                        pass
+                    else:
+                        #self.to_screen('[info] Writing playlist metadata as JSON to: ' + pl_infofn)
+                        self.to_screen(f"[1m{pl_infofn}[0m")
+                        try:
+                            write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), pl_infofn)
+                            #ie_result['pl_infojson_filename'] = pl_infofn
+                        except (OSError, IOError):
+                            self.report_error('Cannot write playlist metadata to JSON file ' + pl_infofn)
+
+            #pprint.PrettyPrinter(depth = 2).pprint(ie_copy)
 
             # TODO: This should be passed to ThumbnailsConvertor if necessary
-            self._write_thumbnails(ie_copy, self.prepare_filename(ie_copy, 'pl_thumbnail'))
+            pl_thumbfn = self.prepare_filename(ie_copy, 'pl_thumbnail')
+            #pl_thumbfn = 'E:\\yt-thumb-pl\\' + playlist_id + '`' + ie_result.get('ie_timestamp') + '.xxx'           # GCS GCS
 
-            if self.params.get('writedescription', False):
-                descfn = self.prepare_filename(ie_copy, 'pl_description')
-                if not self._ensure_dir_exists(encodeFilename(descfn)):
-                    return
-                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
-                    self.to_screen('[info] Playlist description is already present')
-                elif ie_result.get('description') is None:
-                    self.report_warning('There\'s no playlist description to write.')
-                else:
-                    try:
-                        self.to_screen('[info] Writing playlist description to: ' + descfn)
-                        with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
-                            descfile.write(ie_result['description'])
-                    except (OSError, IOError):
-                        self.report_error('Cannot write playlist description file ' + descfn)
-                        return
+            #print(pl_thumbfn)
+            self._write_thumbnails(ie_copy, pl_thumbfn)
+
+            #if self.params.get('writedescription', False):
+            #    descfn = self.prepare_filename(ie_copy, 'pl_description')
+            #    if self._ensure_dir_exists(encodeFilename(descfn)):
+            #        if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
+            #            self.to_screen('[info] Playlist description is already present')
+            #        elif ie_result.get('description') is None:
+            #            self.report_warning('There\'s no playlist description to write.')
+            #        else:
+            #            try:
+            #                self.to_screen('[info] Writing playlist description to: ' + descfn)
+            #                with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
+            #                    descfile.write(ie_result['description'])
+            #                ie_result['__pl_description_filename'] = descfn
+            #            except (OSError, IOError):
+            #                self.report_error('Cannot write playlist description file ' + descfn)
 
         if self.params.get('playlistreverse', False):
             entries = entries[::-1]
@@ -1601,6 +1632,7 @@ class YoutubeDL(object):
         #self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg % n_entries))
         self.to_screen(f"[1m{ie_result['webpage_url'].replace('/videos' ,'')}[0m ── [{playlist_title.replace(' - Videos' ,'')}] ── {n_entries:,} videos  [38;5;238m{playlist_id}[0m")
 
+        playlist_results = []
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
@@ -2354,17 +2386,17 @@ class YoutubeDL(object):
         if list_only:
             # Without this printing, -F --print-json will not work
             self.__forced_printings(info_dict, self.prepare_filename(info_dict), incomplete=True)
-            if self.params.get('list_thumbnails'):
-                self.list_thumbnails(info_dict)
-            if self.params.get('listformats'):
-                if not info_dict.get('formats'):
-                    raise ExtractorError('No video formats found', expected=True)
-                self.list_formats(info_dict)
-            if self.params.get('listsubtitles'):
-                if 'automatic_captions' in info_dict:
-                    self.list_subtitles(
-                        info_dict['id'], automatic_captions, 'automatic captions')
-                self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
+            # GCS ??  if self.params.get('list_thumbnails'):
+            # GCS ??      self.list_thumbnails(info_dict)
+            # GCS ??  if self.params.get('listformats'):
+            # GCS ??      if not info_dict.get('formats'):
+            # GCS ??          raise ExtractorError('No video formats found', expected=True)
+            # GCS ??      self.list_formats(info_dict)
+            # GCS ??  if self.params.get('listsubtitles'):
+            # GCS ??      if 'automatic_captions' in info_dict:
+            # GCS ??          self.list_subtitles(
+            # GCS ??              info_dict['id'], automatic_captions, 'automatic captions')
+            # GCS ??      self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
             return
 
         format_selector = self.format_selector
@@ -2715,26 +2747,26 @@ class YoutubeDL(object):
                                                 (sub_lang, error_to_compat_str(err)))
                             continue
 
+        #print('writeinfojson: ' + repr(self.params.get('writeinfojson')))
+        #print('cleaninfojson: ' + repr(self.params.get('cleaninfojson')))
+
         if self.params.get('writeinfojson', False):
             #infofn = self.prepare_filename(info_dict, 'infojson')
             infofn = 'E:\\yt-json\\' + info_dict['id'] + '`' + info_dict.get('ie_timestamp') + '.json'           # GCS GCS
-            if not self._ensure_dir_exists(encodeFilename(infofn)):
-                return
-            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                #self.to_screen('[info] Video metadata is already present')
-                pass
-            else:
-                #self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
-                self.to_screen(f"[1m{infofn}[0m")
-                try:
-                    write_json_file(self.sanitize_info(info_dict, self.params.get('clean_infojson', True)), infofn)
-                except (OSError, IOError):
-                    self.report_error('Cannot write video metadata to JSON file ' + infofn)
-                    return
-            info_dict['__infojson_filename'] = infofn
-            #info_dict['json_filename'] = infofn  # GCS GCS
+            if self._ensure_dir_exists(encodeFilename(infofn)):
+                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
+                    #self.to_screen('[info] Video metadata is already present')
+                    pass
+                else:
+                    #self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
+                    self.to_screen(f"[1m{infofn}[0m")
+                    try:
+                        write_json_file(self.sanitize_info(info_dict, self.params.get('clean_infojson', True)), infofn)
+                        info_dict['infojson_filename'] = infofn
+                    except (OSError, IOError):
+                        self.report_error('Cannot write video metadata to JSON file ' + infofn)
 
-        for thumb_ext in self._write_thumbnails(info_dict, temp_filename):
+        for thumb_ext in self.__write_thumbnails(info_dict):
             thumb_filename_temp = replace_extension(temp_filename, thumb_ext, info_dict.get('ext'))
             thumb_filename = replace_extension(
                 self.prepare_filename(info_dict, 'thumbnail'), thumb_ext, info_dict.get('ext'))
@@ -2853,8 +2885,7 @@ class YoutubeDL(object):
                     old_ext = info_dict['ext']
                     if self.params.get('merge_output_format') is None and not compatible_formats(requested_formats):
                         info_dict['ext'] = 'mkv'
-                        self.report_warning(
-                            'Requested formats are incompatible for merge and will be merged into mkv.')
+                        #self.report_warning('Requested formats are incompatible for merge and will be merged into mkv.')
                     new_ext = info_dict['ext']
 
                     def correct_ext(filename, ext=new_ext):
@@ -3072,13 +3103,16 @@ class YoutubeDL(object):
                 except UnavailableVideoError:
                     self.report_error('unable to download video')
                 except MaxDownloadsReached:
-                    self.to_screen(f"[91mMaximum number of downloaded files reached ({self.params.get('max_downloads')})[0m")
+                    #self.to_screen(f"[38;5;124mMaximum number of downloaded files reached ({self.params.get('max_downloads')})[0m")
+                    self.to_screen(f"[38;5;124m--max-downloads ({self.params.get('max_downloads')}) [0m", True)
                     raise
                 except ExistingVideoReached:
-                    self.to_screen(f"[91mEncountered a file that is already in the archive, stopping due to --break-on-existing[0m")
+                    #self.to_screen(f"[38;5;124mEncountered a file that was previously recorded in the archive, stopping due to --break-on-existing[0m")
+                    self.to_screen(f"[38;5;124m--break-on-existing [0m", True)
                     raise
                 except RejectedVideoReached:
-                    self.to_screen(f"[91mEncountered a file that did not match filter, stopping due to --break-on-reject[0m")
+                    #self.to_screen(f"[38;5;124mEncountered a file that did not match the filter, stopping due to --break-on-reject[0m")
+                    self.to_screen(f"[38;5;124m--break-on-reject [0m", True)
                     raise
                 else:
                     if self.params.get('dump_single_json', False):
@@ -3087,8 +3121,11 @@ class YoutubeDL(object):
                         self.to_stdout(json.dumps(self.sanitize_info(res)))
             except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
                 if not self.params.get('continue_batch', False):
-                    raise
-                self.to_screen('[info] Continue batch processing of additional URLs (--continue-batch)')
+                    #self.to_screen('Aborting remaining downloads.')
+                    #raise
+                    return 101
+                #self.to_screen('[info] Continue batch processing of additional URLs (--continue-batch)')
+                self.to_screen(f"[38;5;2m--continue-batch[0m")
 
         return self._download_retcode
 
@@ -3155,11 +3192,11 @@ class YoutubeDL(object):
                 if infodict.get('multi_fmt_dl') == True and old_filename.endswith('.m4a'):
                     self.to_screen(f"FIX ME... not deleting m4a file '{old_filename}'")
                     continue
-                self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
+                #self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
                 try:
                     os.remove(encodeFilename(old_filename))
                 except (IOError, OSError):
-                    self.report_warning('Unable to remove downloaded original file')
+                    self.report_warning('Unable to remove downloaded original file %s' % old_filename)
                 if old_filename in infodict['__files_to_move']:
                     del infodict['__files_to_move'][old_filename]
         return infodict
@@ -3421,9 +3458,9 @@ class YoutubeDL(object):
         self._write_string('[debug] yt-dlp version %s %s\n' % (__version__, source))
         #if _LAZY_LOADER:
         #    self._write_string('[debug] Lazy loading extractors enabled\n')
-        if _PLUGIN_CLASSES:
-            self._write_string(
-                '[debug] Plugin Extractors: %s\n' % [ie.ie_key() for ie in _PLUGIN_CLASSES])
+        #if _PLUGIN_CLASSES:
+        #    self._write_string(
+        #        '[debug] Plugin Extractors: %s\n' % [ie.ie_key() for ie in _PLUGIN_CLASSES])
         if self.params.get('compat_opts'):
             self._write_string(
                 '[debug] Compatibility options: %s\n' % ', '.join(self.params.get('compat_opts')))
@@ -3567,6 +3604,43 @@ class YoutubeDL(object):
             encoding = preferredencoding()
         return encoding
 
+    def __write_thumbnails(self, info_dict):
+        write_all = self.params.get('write_all_thumbnails', False)
+        thumbnails = []
+        if write_all or self.params.get('writethumbnail', False):
+            thumbnails = info_dict.get('thumbnails') or []
+        multiple = write_all and len(thumbnails) > 1
+
+        ret = []
+        for t in thumbnails[::-1]:
+            thumb_ext = determine_ext(t['url'], 'jpg')
+            suffix = '%s.' % t['id'] if multiple else ''
+            thumb_display_id = '%s ' % t['id'] if multiple else ''
+            thumb_filename = 'E:\\yt-thumb\\' + info_dict['id'] + suffix + '.' + thumb_ext                      # GCS GCS
+
+            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
+                ret.append(suffix + thumb_ext)
+                t['filepath'] = thumb_filename
+                #self.to_screen('[%s] %s: Thumbnail %sis already present' % (info_dict['extractor'], info_dict['id'], thumb_display_id))
+                self.to_screen('[%s] %s: Thumbnail %s is already present' % (info_dict['extractor'], info_dict['id'], thumb_filename))      # GCS GCS
+            else:
+                #self.to_screen('[%s] %s: Downloading thumbnail %s ...' % (info_dict['extractor'], info_dict['id'], thumb_display_id))        # GCS GCS
+                try:
+                    uf = self.urlopen(t['url'])
+                    self.to_screen(f"[1m{thumb_filename}[0m")
+                    with open(encodeFilename(thumb_filename), 'wb') as thumbf:
+                        shutil.copyfileobj(uf, thumbf)
+                    ret.append(suffix + thumb_ext)
+                    self.to_screen('[%s] %s: Writing thumbnail %sto: %s' % (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
+                    t['filepath'] = thumb_filename
+                    #info_dict['thumb_filename'] = thumb_filename  # GCS GCS
+                except network_exceptions as err:
+                    self.report_warning('Unable to download thumbnail "%s": %s' %
+                                        (t['url'], error_to_compat_str(err)))
+            if ret and not write_all:
+                break
+        return ret
+
     def _write_thumbnails(self, info_dict, filename):  # return the extensions
         write_all = self.params.get('write_all_thumbnails', False)
         thumbnails = []
@@ -3579,26 +3653,25 @@ class YoutubeDL(object):
             thumb_ext = determine_ext(t['url'], 'jpg')
             suffix = '%s.' % t['id'] if multiple else ''
             thumb_display_id = '%s ' % t['id'] if multiple else ''
-            #thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
-            thumb_filename = 'E:\\yt-thumb\\' + info_dict['id'] + suffix + '.' + thumb_ext                      # GCS GCS
-            #t['filename'] = thumb_filename
+            thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
 
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
                 ret.append(suffix + thumb_ext)
                 t['filepath'] = thumb_filename
-                #self.to_screen('[%s] %s: Thumbnail %sis already present' % (info_dict['extractor'], info_dict['id'], thumb_display_id))
-                self.to_screen('[%s] %s: Thumbnail %s is already present' % (info_dict['extractor'], info_dict['id'], thumb_filename))      # GCS GCS
+                self.to_screen('[%s] %s: Thumbnail %sis already present' %
+                               (info_dict['extractor'], info_dict['id'], thumb_display_id))
             else:
-                #self.to_screen('[%s] %s: Downloading thumbnail %s ...' % (info_dict['extractor'], info_dict['id'], thumb_display_id))        # GCS GCS
+                #self.to_screen('[%s] %s: Downloading thumbnail %s ...' %
+                #               (info_dict['extractor'], info_dict['id'], thumb_display_id))
                 try:
                     uf = self.urlopen(t['url'])
+                    self.to_screen(f"[1m{thumb_filename}[0m")
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
-                    self.to_screen(f"[1m{thumb_filename}[0m")
                     ret.append(suffix + thumb_ext)
-                    self.to_screen('[%s] %s: Writing thumbnail %sto: %s' % (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
+                    #self.to_screen('[%s] %s: Writing thumbnail %sto: %s' %
+                    #               (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
                     t['filepath'] = thumb_filename
-                    #info_dict['thumb_filename'] = thumb_filename  # GCS GCS
                 except network_exceptions as err:
                     self.report_warning('Unable to download thumbnail "%s": %s' %
                                         (t['url'], error_to_compat_str(err)))
