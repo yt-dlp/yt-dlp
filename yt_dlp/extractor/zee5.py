@@ -82,9 +82,8 @@ class Zee5IE(InfoExtractor):
         'url': 'https://www.zee5.com/global/hi/tvshows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730',
         'only_matching': True
     }]
-    _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails?content_id={}&device_id=iIxsxYf40cqO3koIkwzKHZhnJzHN13zb&platform_name=desktop_web&country=IN&check_parental_control=false'
-    _OTP_REQUEST_URL = 'https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'
-    _OTP_VERIFY_URL = 'https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{}&otp={}&guest_token=iIxsxYf40cqO3koIkwzKHZhnJzHN13zb&platform=web'
+    _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails?content_id={}&device_id={}&platform_name=desktop_web&country=IN&check_parental_control=false'
+    _DEVICE_ID = 'iIxsxYf40cqO3koIkwzKHZhnJzHN13zb'
     _USER_TOKEN = None
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
     _NETRC_MACHINE = 'zee5'
@@ -94,13 +93,15 @@ class Zee5IE(InfoExtractor):
         if username:
             if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
                 self.report_login()
-                otp_request_json = self._download_json(self._OTP_REQUEST_URL.format(username), None, note="Sending OTP")
+                otp_request_json = self._download_json('https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'.format(username),
+                                                       None, note="Sending OTP")
                 if otp_request_json['code'] == 0:
                     self.to_screen(otp_request_json['message'])
                 else:
                     raise ExtractorError(otp_request_json['message'], expected=True)
                 otp_code = self._get_tfa_info('OTP')
-                otp_verify_json = self._download_json(self._OTP_VERIFY_URL.format(username, otp_code), None, note="Verifying OTP", fatal=False)
+                otp_verify_json = self._download_json('https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{}&otp={}&guest_token={}&platform=web'.format(username, otp_code, self._DEVICE_ID),
+                                                      None, note="Verifying OTP", fatal=False)
                 if not otp_verify_json:
                     raise ExtractorError('Unable to verify OTP.', expected=True)
                 self._USER_TOKEN = otp_verify_json.get('token')
@@ -123,10 +124,10 @@ class Zee5IE(InfoExtractor):
         if self._USER_TOKEN:
             data['Authorization'] = 'bearer %s' % self._USER_TOKEN
         else:
-            data['X-Z5-Guest-Token'] = 'iIxsxYf40cqO3koIkwzKHZhnJzHN13zb'
+            data['X-Z5-Guest-Token'] = self._DEVICE_ID
 
         json_data = self._download_json(
-            self._DETAIL_API_URL.format(video_id),
+            self._DETAIL_API_URL.format(video_id, self._DEVICE_ID),
             video_id, headers={'content-type': 'application/json'}, data=json.dumps(data).encode('utf-8'))
         asset_data = json_data['assetDetails']
         show_data = json_data.get('showDetails', {})
@@ -134,7 +135,7 @@ class Zee5IE(InfoExtractor):
             raise ExtractorError('Premium content is DRM protected.', expected=True)
         if not asset_data.get('hls_url'):
             self.raise_login_required(self._LOGIN_HINT, metadata_available=True, method=None)
-        formats = self._extract_m3u8_formats(asset_data['hls_url'], video_id, 'mp4', fatal=False)
+        formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(asset_data['hls_url'], video_id, 'mp4', fatal=False)
         self._sort_formats(formats)
 
         subtitles = {}
@@ -145,6 +146,7 @@ class Zee5IE(InfoExtractor):
             subtitles.setdefault(sub.get('language', 'en'), []).append({
                 'url': self._proto_relative_url(sub_url),
             })
+        subtitles = self._merge_subtitles(subtitles, m3u8_subs)
         return {
             'id': video_id,
             'display_id': display_id,
