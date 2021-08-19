@@ -1,5 +1,6 @@
 # coding: utf-8
-#!/usr/bin/env python3
+
+from __future__ import unicode_literals
 
 import base64
 import calendar
@@ -13,8 +14,6 @@ import random
 import re
 import time
 import traceback
-import string
-import pprint
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -723,7 +722,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     continue
                 message = cls._get_text(alert, 'text')
                 if message:
-                    message = data['header']['c4TabbedHeaderRenderer']['channelId'] + ': ' + message
                     yield alert_type, message
 
     def _report_alerts(self, alerts, expected=True, fatal=True):
@@ -738,7 +736,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         for alert_type, alert_message in (warnings + errors[:-1]):
             self.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
         if errors:
-            raise ExtractorError(errors[-1][1], expected=expected)
+            raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
 
     def _extract_and_report_alerts(self, data, *args, **kwargs):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
@@ -847,10 +845,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         video_id = renderer.get('videoId')
         title = self._get_text(renderer, 'title')
         description = self._get_text(renderer, 'descriptionSnippet')
-        duration_text = self._get_text(
-            renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text'))
-        #print(duration_text or '{video_id}: did not extract duration\n')
-        duration = parse_duration(duration_text)
+        duration = parse_duration(self._get_text(
+            renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
         view_count_text = self._get_text(renderer, 'viewCountText') or ''
         view_count = str_to_int(self._search_regex(
             r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
@@ -866,7 +862,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'title': title,
             'description': description,
             'duration': duration,
-            'duration_text': duration_text,
             'view_count': view_count,
             'uploader': uploader,
         }
@@ -1081,11 +1076,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '395': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
         '396': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
         '397': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
-        #'398': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},                         # GCS GCS
-        #'397': {'ext': 'mp4', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'h264'},     # GCS GCS
-        #'398': {'ext': 'mp4', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'h264'},     # GCS GCS
-        #'397': {'ext': 'mp4', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'av01.0.05M.08'},     # GCS GCS
-        #'398': {'ext': 'mp4', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'av01.0.05M.08'},     # GCS GCS
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
 
@@ -2818,16 +2808,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if reason:
                 self.raise_no_formats(reason, expected=True)
 
-        #for f in formats:
-        #    if '&c=WEB&' in f['url'] and '&ratebypass=yes&' not in f['url']:  # throttled
-        #        f['source_preference'] = -10
-        #        # TODO: this method is not reliable
-        #        f['format_note'] = format_field(f, 'format_note', '%s ') + '(maybe throttled)'
+        for f in formats:
+            if '&c=WEB&' in f['url'] and '&ratebypass=yes&' not in f['url']:  # throttled
+                f['source_preference'] = -10
+                # TODO: this method is not reliable
+                f['format_note'] = format_field(f, 'format_note', '%s ') + '(maybe throttled)'
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
-        #self._sort_formats(formats, ('quality', 'height', 'fps', 'source'))
-        self._sort_formats(formats)
+        self._sort_formats(formats, ('quality', 'height', 'fps', 'source'))
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:
@@ -4266,8 +4255,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
             # Home URLs should redirect to /videos/
             self.report_warning(
-                'A channel or user home page URL was specified; all available videos from the uploader will '
-                'be downloaded. To download only the videos on the home page, add "/featured" to the URL.')
+                'A channel/user page was given. All the channel\'s videos will be downloaded. '
+                'To download only the videos in the home page, add a "/featured" to the URL')
             tab = '/videos'
 
         url = ''.join((pre, tab, post))
@@ -4321,7 +4310,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     else:
                         self.report_warning('The URL does not have a %s tab. %s is being downloaded instead' % (mobj['tab'][1:], tab_name))
 
-        #self.write_debug('Final URL: %s' % url)
+        self.write_debug('Final URL: %s' % url)
 
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
         if 'no-youtube-unavailable-videos' not in compat_opts:
@@ -4345,12 +4334,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 self.report_warning('Unable to recognize playlist. Downloading just video %s' % video_id)
             return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
 
-        # Capture and output alerts
-        #alert = self._extract_alert(data)
-        #if alert:
-        #    self._downloader.to_screen('[1m' + url + '[0m ', True)           # GCS GCS
-        #    raise ExtractorError(alert, expected=True)
-        ## Failed to recognize
         raise ExtractorError('Unable to recognize tab page')
 
 

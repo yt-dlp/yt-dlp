@@ -1,4 +1,5 @@
 # UNUSED
+
 #!/usr/bin/python3
 
 import argparse
@@ -22,8 +23,16 @@ from yt_dlp.compat import (
 
 # These are not used outside of buildserver.py thus not in compat.py
 
-import winreg as compat_winreg
-import socketserver as compat_socketserver
+try:
+    import winreg as compat_winreg
+except ImportError:  # Python 2
+    import _winreg as compat_winreg
+
+try:
+    import socketserver as compat_socketserver
+except ImportError:  # Python 2
+    import SocketServer as compat_socketserver
+
 
 class BuildHTTPServer(compat_socketserver.ThreadingMixIn, compat_http_server.HTTPServer):
     allow_reuse_address = True

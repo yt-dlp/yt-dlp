@@ -1,5 +1,6 @@
 # coding: utf-8
-#!/usr/bin/env python3
+
+from __future__ import unicode_literals
 
 from ..compat import (
     compat_b64decode,

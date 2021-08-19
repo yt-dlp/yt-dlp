@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 from ..downloader import get_suitable_downloader
 from .fragment import FragmentFD
@@ -28,7 +28,6 @@ class DashSegmentsFD(FragmentFD):
         ctx = {
             'filename': filename,
             'total_frags': len(fragments),
-            'format_name': str(info_dict['format']),
         }
 
         if real_downloader:
@@ -54,8 +53,8 @@ class DashSegmentsFD(FragmentFD):
             })
 
         if real_downloader:
-            #self.to_screen(
-            #    '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
+            self.to_screen(
+                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
             info_copy = info_dict.copy()
             info_copy['fragments'] = fragments_to_download
             fd = real_downloader(self.ydl, self.params)

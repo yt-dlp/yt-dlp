@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-
-from __future__ import division
+from __future__ import division, unicode_literals
 
 import copy
 import os
@@ -14,7 +12,6 @@ from ..utils import (
     decodeArgument,
     encodeFilename,
     error_to_compat_str,
-    is_ansi_vt,
     format_bytes,
     shell_quote,
     timeconvert,
@@ -133,7 +130,6 @@ class FileDownloader(object):
 
     @staticmethod
     def best_block_size(elapsed_time, bytes):
-        return 0x40000
         new_min = max(bytes / 2.0, 1.0)
         new_max = min(max(bytes * 2.0, 1.0), 4194304)  # Do not surpass 4 MB
         if elapsed_time < 0.001:
@@ -188,7 +184,6 @@ class FileDownloader(object):
             return
         speed = float(byte_counter) / elapsed
         if speed > rate_limit:
-            #time.sleep(max((byte_counter // rate_limit) - elapsed, 0)) # GCS
             sleep_time = float(byte_counter) / rate_limit - elapsed
             if sleep_time > 0:
                 time.sleep(sleep_time)
@@ -242,31 +237,24 @@ class FileDownloader(object):
 
     def report_destination(self, filename):
         """Report destination filename."""
-        self.to_screen(f"[1m{filename}[0m ")        # GCS GCS   + str(self.params)
+        self.to_screen('[download] Destination: ' + filename)
 
     def _report_progress_status(self, msg, is_last_line=False):
-        if is_last_line:
-            self.to_screen('\r', skip_eol=True)
-            return
         fullmsg = '[download] ' + msg
         if self.params.get('progress_with_newline', False):
             self.to_screen(fullmsg)
         else:
             if compat_os_name == 'nt':
-                #prev_len = getattr(self, '_report_progress_prev_line_length', 0)
-                #if prev_len > len(fullmsg):
-                #    fullmsg += ' ' * (prev_len - len(fullmsg))
-                #self._report_progress_prev_line_length = len(fullmsg)
-                #clear_line = '\r'
-                clear_line = '\r\x1b[K'
-            elif is_ansi_vt(sys.stderr):
-                clear_line = '\r\x1b[K'
+                prev_len = getattr(self, '_report_progress_prev_line_length',
+                                   0)
+                if prev_len > len(fullmsg):
+                    fullmsg += ' ' * (prev_len - len(fullmsg))
+                self._report_progress_prev_line_length = len(fullmsg)
+                clear_line = '\r'
             else:
-                #clear_line = ('\r\x1b[K' if sys.stderr.isatty() else '\r')
-                clear_line = '\r'   # ['\r', '\n'][is_last_line]
-            #self.to_screen(clear_line + fullmsg + ' wxyz ', skip_eol=not is_last_line)
+                clear_line = ('\r\x1b[K' if sys.stderr.isatty() else '\r')
             self.to_screen(clear_line + fullmsg, skip_eol=not is_last_line)
-        #self.to_console_title('yt-dlp ' + msg)
+        self.to_console_title('yt-dlp ' + msg)
 
     def report_progress(self, s):
         if s['status'] == 'finished':

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import unified_strdate

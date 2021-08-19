@@ -1,5 +1,5 @@
 # coding: utf-8
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 from .prosiebensat1 import ProSiebenSat1BaseIE
 from ..utils import (

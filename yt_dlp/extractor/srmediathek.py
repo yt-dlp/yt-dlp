@@ -1,5 +1,5 @@
 # coding: utf-8
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 from .ard import ARDMediathekBaseIE
 from ..utils import (

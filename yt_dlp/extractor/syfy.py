@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 from .adobepass import AdobePassIE
 from ..utils import (

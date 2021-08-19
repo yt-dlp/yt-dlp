@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 import os.path
 import re
@@ -62,8 +62,7 @@ class ExternalFD(FileDownloader):
             }
             if filename != '-':
                 fsize = os.path.getsize(encodeFilename(tmpfilename))
-                #self.to_screen('\r[%s] Downloaded %s bytes' % (self.get_basename(), fsize))
-                self.to_screen(f" Downloaded {fsize:,} bytes")
+                self.to_screen('\r[%s] Downloaded %s bytes' % (self.get_basename(), fsize))
                 self.try_rename(tmpfilename, filename)
                 status.update({
                     'downloaded_bytes': fsize,
@@ -358,7 +357,7 @@ class FFmpegFD(ExternalFD):
         pass
 
     @classmethod
-    def can_merge_formats(cls, info_dict, params):
+    def can_merge_formats(cls, info_dict, params={}):
         return (
             info_dict.get('requested_formats')
             and info_dict.get('protocol')

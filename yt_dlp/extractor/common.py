@@ -1,5 +1,5 @@
 # coding: utf-8
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 import base64
 import datetime
@@ -12,7 +12,6 @@ import re
 import sys
 import time
 import math
-import pprint
 
 from ..compat import (
     compat_cookiejar_Cookie,
@@ -44,7 +43,6 @@ from ..utils import (
     determine_ext,
     determine_protocol,
     dict_get,
-    is_ansi_vt,
     error_to_compat_str,
     extract_attributes,
     ExtractorError,
@@ -425,7 +423,6 @@ class InfoExtractor(object):
     in order to warn the users and skip the tests.
     """
 
-    _inst = None
     _ready = False
     _downloader = None
     _x_forwarded_for_ip = None
@@ -444,8 +441,6 @@ class InfoExtractor(object):
 
     def __init__(self, downloader=None):
         """Constructor. Receives an optional downloader."""
-        type(self)._inst = self
-
         self._ready = False
         self._x_forwarded_for_ip = None
         self._printed_messages = set()
@@ -469,13 +464,6 @@ class InfoExtractor(object):
         m = cls._VALID_URL_RE.match(url)
         assert m
         return compat_str(m.group('id'))
-
-    @classmethod
-    def try_match_id(cls, url):
-        if '_VALID_URL_RE' not in cls.__dict__:
-            cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        m = cls._VALID_URL_RE.match(url)
-        return compat_str(m.group('id')) if m is not None else None
 
     @classmethod
     def working(cls):
@@ -583,7 +571,7 @@ class InfoExtractor(object):
             for _ in range(2):
                 try:
                     self.initialize()
-                    #self.write_debug('Extracting URL: %s' % url)
+                    self.write_debug('Extracting URL: %s' % url)
                     ie_result = self._real_extract(url)
                     if ie_result is None:
                         return None
@@ -598,6 +586,8 @@ class InfoExtractor(object):
                     if self.__maybe_fake_ip_and_retry(e.countries):
                         continue
                     raise
+        except ExtractorError:
+            raise
         except compat_http_client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True)
         except (KeyError, StopIteration) as e:
@@ -663,15 +653,13 @@ class InfoExtractor(object):
         else:
             self._downloader._first_webpage_request = False
 
-        #if note is None:
-        #    ''  # GCS GCS self.report_download_webpage(video_id)
-        #elif note is not False:
-        #    if video_id is None:
-        #        self.to_screen(note)
-        #    #elif not self.get_param('no_color') and is_ansi_vt(sys.stdout):  # GCS GCS
-        #    #    self.to_screen('[96m%s[0m ── %s' % (video_id, note))              # GCS GCS
-        #    else:                                                                         # GCS GCS
-        #        self.to_screen('[96m%s[0m ── %s' % (video_id, note))                             # GCS GCS
+        if note is None:
+            self.report_download_webpage(video_id)
+        elif note is not False:
+            if video_id is None:
+                self.to_screen('%s' % (note,))
+            else:
+                self.to_screen('%s: %s' % (video_id, note))
 
         # Some sites check X-Forwarded-For HTTP header in order to figure out
         # the origin of the client behind proxy. This allows bypassing geo
@@ -705,7 +693,7 @@ class InfoExtractor(object):
             if errnote is False:
                 return False
             if errnote is None:
-                errnote = 'Unable to download webpage \'' + url_or_request + '\''
+                errnote = 'Unable to download webpage'
 
             errmsg = '%s: %s' % (errnote, error_to_compat_str(err))
             if fatal:
@@ -1023,9 +1011,9 @@ class InfoExtractor(object):
             self._printed_messages.add(f'WARNING: {msg}')
         self._downloader.report_warning(msg, *args, **kwargs)
 
-    def to_screen(self, msg, prefix=True, *args, **kwargs):
-        """Print msg to screen, optionally prefixing it with '[ie_name]'"""
-        self._downloader.to_screen(msg, *args, **kwargs)
+    def to_screen(self, msg, *args, **kwargs):
+        """Print msg to screen, prefixing it with '[ie_name]'"""
+        self._downloader.to_screen('[%s] %s' % (self.IE_NAME, msg), *args, **kwargs)
 
     def write_debug(self, msg, *args, **kwargs):
         self._downloader.write_debug('[%s] %s' % (self.IE_NAME, msg), *args, **kwargs)
@@ -1126,8 +1114,8 @@ class InfoExtractor(object):
                 if mobj:
                     break
 
-        if not self.get_param('no_color') and is_ansi_vt(sys.stderr):  # GCS GCS
-            _name = '[0;1m%s[0m' % name
+        if not self.get_param('no_color') and compat_os_name != 'nt' and sys.stderr.isatty():
+            _name = '\033[0;34m%s\033[0m' % name
         else:
             _name = name
 
@@ -1497,12 +1485,9 @@ class InfoExtractor(object):
     class FormatSort:
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
-        #default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-        #           'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
-        #           'proto', 'ext', 'hasaud', 'source')  # These must not be aliases
-        #default = ('hidden', 'aud_or_vid', 'hasvid', 'res', 'fps', 'vext', 'aext', 'size', 'br', 'asr', 'format_id'  )
-        default = ('hasvid', 'vext', 'aext', 'res', 'fps', 'size', 'br', 'asr', 'format_id'  )
-
+        default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
+                   'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
+                   'proto', 'ext', 'hasaud', 'source', 'format_id')  # These must not be aliases
         ytdl_default = ('hasaud', 'quality', 'tbr', 'filesize', 'vbr',
                         'height', 'width', 'proto', 'vext', 'abr', 'aext',
                         'fps', 'fs_approx', 'source', 'format_id')
@@ -3566,11 +3551,7 @@ class SearchInfoExtractor(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return cls.try_match_id(url) is not None
-
-    @classmethod
-    def try_match_id(cls, url):
-        return re.match(cls._make_valid_url(), url)
+        return re.match(cls._make_valid_url(), url) is not None
 
     def _real_extract(self, query):
         mobj = re.match(self._make_valid_url(), query)

@@ -1,5 +1,6 @@
 # coding: utf-8
-#!/usr/bin/env python3
+
+from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, try_get

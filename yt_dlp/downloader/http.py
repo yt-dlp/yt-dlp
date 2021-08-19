@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 import errno
 import os
@@ -6,7 +6,6 @@ import socket
 import time
 import random
 import re
-import pprint
 
 from .common import FileDownloader
 from ..compat import (
@@ -47,21 +46,17 @@ class HttpFD(FileDownloader):
         if add_headers:
             headers.update(add_headers)
 
-        frag = self.params['frag']
-
-        #pprint.PrettyPrinter(depth = 2).pprint(dl.params)
-
-        #is_test = self.params.get('test', False)
-        #chunk_size = self._TEST_FILE_SIZE if is_test else (
-        #    info_dict.get('downloader_options', {}).get('http_chunk_size')
-        #    or self.params.get('http_chunk_size') or 0)
+        is_test = self.params.get('test', False)
+        chunk_size = self._TEST_FILE_SIZE if is_test else (
+            info_dict.get('downloader_options', {}).get('http_chunk_size')
+            or self.params.get('http_chunk_size') or 0)
 
         ctx.open_mode = 'wb'
         ctx.resume_len = 0
         ctx.data_len = None
-        #ctx.block_size = self.params.get('buffersize', 1024)
+        ctx.block_size = self.params.get('buffersize', 1024)
         ctx.start_time = time.time()
-        #ctx.chunk_size = None
+        ctx.chunk_size = None
 
         if self.params.get('continuedl', True):
             # Establish possible resume length
@@ -70,26 +65,6 @@ class HttpFD(FileDownloader):
                     encodeFilename(ctx.tmpfilename))
 
         ctx.is_resume = ctx.resume_len > 0
-        #ctx.block_size = 0x400 if frag['fragment_index'] == 0 else 0x40000 # self.params.get('buffersize', 65536)  ## GCS
-        ctx.chunk_size = 0x1000 if frag['fragment_index'] == 0 else 0x280000 # info_dict.get('downloader_options', {}).get('http_chunk_size') or self.params.get('http_chunk_size') or 0x200000        ## GCS
-        speed = (frag.get('speed') or 0.0) / 1048576.0
-        if speed > 0.0 and speed < 1.0:
-            ctx.block_size = min(ctx.chunk_size, 0x8000)
-            #ctx.block_size = ctx.chunk_size >> 2
-        else:
-            ctx.block_size = min(ctx.chunk_size, 0x40000)
-            #ctx.block_size = ctx.chunk_size >> 1
-            #ctx.block_size = ctx.chunk_size >> 3
-
-        #speed = frag.get('speed')
-        #if speed is not None and speed < 3000000.0:
-        #    print(' reset urllib')
-        #    frag['dl'].ydl._reset_opener()
-
-        #pprint.PrettyPrinter(depth = 2).pprint(info_dict)
-        #print('\r\n')
-        #pprint.PrettyPrinter(depth = 2).pprint(ctx)
-        #print('\r\n')
 
         count = 0
         retries = self.params.get('retries', 0)
@@ -111,9 +86,8 @@ class HttpFD(FileDownloader):
             req.add_header('Range', range_header)
 
         def establish_connection():
-            #ctx.chunk_size = (random.randint(int(chunk_size * 0.95), chunk_size)           ## GCS
-            #                  if not is_test and chunk_size else chunk_size)               ## GCS
-            #ctx.chunk_size = chunk_size                                                   ## GCS
+            ctx.chunk_size = (random.randint(int(chunk_size * 0.95), chunk_size)
+                              if not is_test and chunk_size else chunk_size)
             if ctx.resume_len > 0:
                 range_start = ctx.resume_len
                 if ctx.is_resume:
@@ -129,10 +103,6 @@ class HttpFD(FileDownloader):
                 range_end = ctx.data_len - 1
             has_range = range_start is not None
             ctx.has_range = has_range
-
-            #speed = (frag.get('speed') or 0.0) / 1048576.0
-            #print(f" \r\x1b[K{frag['fragment_index']:>4} / {frag['total_frags']:>4}  {'[' + str(range_start) + ' - ' + str(range_end):>24}]  {speed:5.2f}  chunk={ctx.chunk_size:>9x}  block={ctx.block_size:>7x}  {ctx.tmpfilename}")
-
             request = sanitized_Request(url, request_data, headers)
             if has_range:
                 set_range(request, range_start, range_end)
@@ -233,8 +203,8 @@ class HttpFD(FileDownloader):
             # However, for a test we still would like to download just a piece of a file.
             # To achieve this we limit data_len to _TEST_FILE_SIZE and manually control
             # block size when downloading a file.
-            #if is_test and (data_len is None or int(data_len) > self._TEST_FILE_SIZE):
-            #    data_len = self._TEST_FILE_SIZE
+            if is_test and (data_len is None or int(data_len) > self._TEST_FILE_SIZE):
+                data_len = self._TEST_FILE_SIZE
 
             if data_len is not None:
                 data_len = int(data_len) + ctx.resume_len
@@ -248,7 +218,7 @@ class HttpFD(FileDownloader):
                     return False
 
             byte_counter = 0 + ctx.resume_len
-            #block_size = ctx.block_size
+            block_size = ctx.block_size
             start = time.time()
 
             # measure time over whole while-loop, so slow_down() and best_block_size() work together properly
@@ -268,7 +238,7 @@ class HttpFD(FileDownloader):
             while True:
                 try:
                     # Download and write
-                    data_block = ctx.data.read(ctx.block_size if data_len is None else min(ctx.block_size, data_len - byte_counter))
+                    data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
                 # socket.timeout is a subclass of socket.error but may not have
                 # errno set
                 except socket.timeout as e:
@@ -319,8 +289,8 @@ class HttpFD(FileDownloader):
                 after = now
 
                 # Adjust block size
-                if True: # not self.params.get('noresizebuffer', False):
-                    ctx.block_size = self.best_block_size(after - before, len(data_block))
+                if not self.params.get('noresizebuffer', False):
+                    block_size = self.best_block_size(after - before, len(data_block))
 
                 before = after
 
@@ -345,20 +315,19 @@ class HttpFD(FileDownloader):
                 if data_len is not None and byte_counter == data_len:
                     break
 
-                #if speed and speed < (self.params.get('throttledratelimit') or 0):
-                #    # The speed must stay below the limit for 3 seconds
-                #    # This prevents raising error when the speed temporarily goes down
-                #    if throttle_start is None:
-                #        throttle_start = now
-                #    elif now - throttle_start > 3:
-                #        if ctx.stream is not None and ctx.tmpfilename != '-':
-                #            ctx.stream.close()
-                #        raise ThrottledDownload()
-                #else:
-                #    throttle_start = None
+                if speed and speed < (self.params.get('throttledratelimit') or 0):
+                    # The speed must stay below the limit for 3 seconds
+                    # This prevents raising error when the speed temporarily goes down
+                    if throttle_start is None:
+                        throttle_start = now
+                    elif now - throttle_start > 3:
+                        if ctx.stream is not None and ctx.tmpfilename != '-':
+                            ctx.stream.close()
+                        raise ThrottledDownload()
+                else:
+                    throttle_start = None
 
-            #if not is_test and ctx.chunk_size and ctx.data_len is not None and byte_counter < ctx.data_len:
-            if ctx.chunk_size                  and ctx.data_len is not None and byte_counter < ctx.data_len:
+            if not is_test and ctx.chunk_size and ctx.data_len is not None and byte_counter < ctx.data_len:
                 ctx.resume_len = byte_counter
                 # ctx.block_size = block_size
                 raise NextFragment()
@@ -406,5 +375,5 @@ class HttpFD(FileDownloader):
             except SucceedDownload:
                 return True
 
-        self.report_error('giving up after %s retries (HTTP)' % retries)
+        self.report_error('giving up after %s retries' % retries)
         return False

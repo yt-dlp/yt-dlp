@@ -1,5 +1,5 @@
 # coding: utf-8
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 import base64
 from datetime import datetime

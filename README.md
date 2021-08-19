@@ -944,6 +944,8 @@ To summarize, the general syntax for a field is:
 %(name[.keys][addition][>strf][|default])[flags][width][.precision][length]type
 ```
 
+Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation`, `infojson`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
+
 The available fields are:
 
  - `id` (string): Video identifier
@@ -1050,31 +1052,7 @@ Available only when used in `--print`:
  - `urls` (string): The URLs of all requested formats, one in each line
  - `filename` (string): Name of the video file. Note that the actual filename may be different due to post-processing. Use `--exec echo` to get the name after all postprocessing is complete
 
- There are several different output templates available, each one designated the task of generating distinct folder locations and filenames for a particular file type, such as media content, 
- downloaded metadata, or local administrative data. Each template is configured separately using the type keyword prefixes shown below. The type prefix must be followed by a colon `:`, and then
- the template specification. The different file types supported are:
-
-| template type prefix       | generates filenames for                    | example                                    |
-| -------------------------- | ------------------------------------------ | -------------------------------------------|
-| `default:` *-or-* `<none>` | audio/video media files                    |`-o 'default:%(epoch)s'` &nbsp; `-o '%(epoch)s'` |
-| `subtitle:`                | subtitle file                              |`-o 'subtitle:%(epoch)s'`                   |
-| `thumbnail:`               | video item thumbnail                       |`-o 'thumbnail:%(epoch)s'`                  |
-| `description:`             | video item text description                |`-o 'description:%(epoch)s'`                |
-| `infojson:`                | json metadata for a video                  |`-o 'infojson:%(epoch)s'`                   |
-| `pl_thumbnail:`            | user/channel front page banner image       |`-o 'pl_thumbnail:%(epoch)s'`               |
-| `pl_description:`          | user/channel/playlist text description     |`-o 'pl_description:%(epoch)s'`             |
-| `pl_infojson:`             | json metadata for a user/channel/playlist  |`-o 'pl_infojson:%(epoch)s'`                |
-| `annotation:`              |                                            |`-o 'annotation:%(epoch)s'`                 |
-| `chapter:`                 |                                            |`-o 'chapter:%(epoch)s'`                    |
-| `archive:`                 | downloaded videoId archive list file       |`-o 'archive:%(epoch)s'`                    |
-
- To specify the default template, you can either use the explicit keyword `default:`, which must be followed by a colon, or equivalently, omit both the prefix and colon entirely.
- Set custom output templates for the template types you're interested in by repeating the `--output-template` or `-o` option on the command line or in the configuration files multiple times as needed.
- For example, `--output-template '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  stores all videos in the same folder, and then puts each of their thumbnail files in 
- separate sub-folders, respectively matching the name of video, one level below.
-
-Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed 
-to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
+Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
 For example for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 import io
 import itertools
@@ -7,7 +7,6 @@ import subprocess
 import time
 import re
 import json
-import pprint
 
 
 from .common import AudioConversionError, PostProcessor
@@ -78,7 +77,7 @@ class FFmpegPostProcessor(PostProcessor):
         return FFmpegPostProcessor(downloader)._versions
 
     def _determine_executables(self):
-        programs = ['ffmpeg', 'ffprobe']    # 'avprobe', 'avconv',  GCS GCS
+        programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
         prefer_ffmpeg = True
 
         def get_ffmpeg_version(path):
@@ -557,40 +556,20 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         # 2. https://wiki.multimedia.cx/index.php/FFmpeg_Metadata
         # 3. https://kodi.wiki/view/Video_file_tagging
 
-        add('title')
+        add('title', ('track', 'title'))
         add('date', 'upload_date')
-        add('description')
-        add('comment', 'webpage_url')
-        #add(('purl', 'comment'), 'webpage_url')
-        #add('track', 'track_number')
-        add('artist', 'uploader')      # ('artist', 'creator', 'uploader', 'uploader_id'))
-        #add('genre')
-        #add('album')
-        add('album_artist', 'uploader_id')  # GCS
-        #add('disc', 'disc_number')
-        #add('show', 'series')
-        #add('season_number')
-        #add('episode_id', ('episode', 'episode_id'))
-        #add('episode_sort', 'episode_number')
-
-        for f in (#'description',
-                  #'webpage_url',
-                   'track_number',
-                   'artist',
-                   'creator',
-                  #'uploader',
-                  #'uploader_id',
-                   'genre',
-                   'album',
-                   'album_artist',
-                   'disc_number',
-                   'series',
-                   'season_number',
-                   'episode',
-                   'episode_id',
-                   'episode_number'):
-            if f in info:
-                print(f"metadata '{f}': {info[f]}")
+        add(('description', 'synopsis'), 'description')
+        add(('purl', 'comment'), 'webpage_url')
+        add('track', 'track_number')
+        add('artist', ('artist', 'creator', 'uploader', 'uploader_id'))
+        add('genre')
+        add('album')
+        add('album_artist')
+        add('disc', 'disc_number')
+        add('show', 'series')
+        add('season_number')
+        add('episode_id', ('episode', 'episode_id'))
+        add('episode_sort', 'episode_number')
 
         prefix = 'meta_'
         for key in filter(lambda k: k.startswith(prefix), info.keys()):
@@ -627,14 +606,14 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 options.append(('-map_metadata', '1'))
 
         if ('no-attach-info-json' not in self.get_param('compat_opts', [])
-                and 'infojson_filename' in info and info['ext'] in ('mkv', 'mka')):
+                and '__infojson_filename' in info and info['ext'] in ('mkv', 'mka')):
             old_stream, new_stream = self.get_stream_number(filename, ('tags', 'mimetype'), 'application/json')
             if old_stream is not None:
                 options.append(('-map', '-0:%d' % old_stream))
                 new_stream -= 1
 
             options.append((
-                '-attach', info['infojson_filename'],
+                '-attach', info['__infojson_filename'],
                 '-metadata:s:%d' % new_stream, 'mimetype=application/json'
             ))
 
@@ -643,7 +622,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             return [], info
 
         temp_filename = prepend_extension(filename, 'temp')
-        #self.to_screen('Adding metadata to "%s"' % filename, prefix=False)
+        self.to_screen('Adding metadata to "%s"' % filename)
         self.run_ffmpeg_multiple_files(
             (filename, metadata_filename), temp_filename,
             itertools.chain(self._options(info['ext']), *options))
@@ -665,7 +644,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
                 args.extend(['-map', '%u:a:0' % (i)])
             if fmt.get('vcodec') != 'none':
                 args.extend(['-map', '%u:v:0' % (i)])
-        self.to_screen('Merging formats into "%s"' % filename, prefix=False)
+        self.to_screen('Merging formats into "%s"' % filename)
         self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args)
         os.rename(encodeFilename(temp_filename), encodeFilename(filename))
         return info['__files_to_merge'], info

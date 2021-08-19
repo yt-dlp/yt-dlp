@@ -1,5 +1,5 @@
 # flake8: noqa
-#!/usr/bin/env python3
+from __future__ import unicode_literals
 
 from .abc import (
     ABCIE,

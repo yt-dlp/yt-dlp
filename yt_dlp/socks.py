@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
-
 # Public Domain SOCKS proxy protocol implementation
 # Adapted from https://gist.github.com/bluec0re/cafd3764412967417fd3
+
+from __future__ import unicode_literals
 
 # References:
 # SOCKS4 protocol http://www.openssh.com/txt/socks4.protocol
