@@ -71,6 +71,70 @@ class RadikoBaseIE(InfoExtractor):
         self._FULL_KEY = full_key
         return full_key
 
+    def _find_program(self, video_id, station, cursor):
+        station_program = self._download_xml(
+            'https://radiko.jp/v3/program/station/weekly/%s.xml' % station, video_id,
+            note='Downloading radio program for %s station' % station)
+
+        prog = None
+        for p in station_program.findall('.//prog'):
+            ft_str, to_str = p.attrib['ft'], p.attrib['to']
+            ft = unified_timestamp(ft_str, False)
+            to = unified_timestamp(to_str, False)
+            if ft <= cursor and cursor < to:
+                prog = p
+                break
+        if not prog:
+            raise ExtractorError('Cannot identify radio program to download!')
+        assert ft, to
+        return prog, station_program, ft, ft_str, to_str
+    
+    def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query):
+        m3u8_playlist_data = self._download_xml(
+            'https://radiko.jp/v3/station/stream/pc_html5/%s.xml' % station, video_id,
+            note='Downloading m3u8 information')
+        m3u8_urls = m3u8_playlist_data.findall('.//url')
+
+        formats = []
+        found = set()
+        for url_tag in m3u8_urls:
+            pcu = url_tag.find('playlist_create_url')
+            url_attrib = url_tag.attrib
+            playlist_url = update_url_query(pcu.text, {
+                'station_id': station,
+                **query,
+                'l': '15',
+                'lsid': '77d0678df93a1034659c14d6fc89f018',
+                'type': 'b',
+            })
+            if playlist_url in found:
+                continue
+            else:
+                found.add(playlist_url)
+
+            time_to_skip = None if is_onair else cursor - ft
+            try:
+                subformats = self._extract_m3u8_formats(
+                    playlist_url, video_id, ext='m4a', entry_protocol='m3u8',
+                    live=True, fatal=False, m3u8_id=None,
+                    headers={
+                        'X-Radiko-AreaId': area_id,
+                        'X-Radiko-AuthToken': auth_token,
+                    })
+                for sf in subformats:
+                    domain = sf['format_id'] = compat_urllib_parse.urlparse(sf['url']).netloc
+                    if re.match(r'^[cf]-radiko\.smartstream\.ne\.jp$', domain):
+                        sf['preference'] = 100 if is_onair else -100  # current radio stream
+                    if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
+                        # sf['format_note'] = 'timefree'
+                        sf['start_time'] = time_to_skip
+                formats.extend(subformats)
+            except ExtractorError:
+                pass
+
+        self._sort_formats(formats)
+        return formats
+
 
 class RadikoIE(RadikoBaseIE):
     _VALID_URL = r'https?://(?:www\.)?radiko\.jp/#!/ts/(?P<station>[A-Z0-9-]+)/(?P<id>\d+)'
@@ -97,73 +161,19 @@ class RadikoIE(RadikoBaseIE):
 
         auth_token, area_id = self._auth_client()
 
-        station_program = self._download_xml(
-            'https://radiko.jp/v3/program/station/weekly/%s.xml' % station, video_id,
-            note='Downloading radio program for %s station' % station)
-
-        prog = None
-        for p in station_program.findall('.//prog'):
-            ft_str, to_str = p.attrib['ft'], p.attrib['to']
-            ft = unified_timestamp(ft_str, False)
-            to = unified_timestamp(to_str, False)
-            if ft <= vid_int and vid_int < to:
-                prog = p
-                break
-        if not prog:
-            raise ExtractorError('Cannot identify radio program to download!')
-        assert ft, to
+        prog, station_program, ft, ft_str, to_str = self._find_program(video_id, station, vid_int)
 
         title = prog.find('title').text
         description = clean_html(prog.find('info').text)
         station_name = station_program.find('.//name').text
 
-        m3u8_playlist_data = self._download_xml(
-            'https://radiko.jp/v3/station/stream/pc_html5/%s.xml' % station, video_id,
-            note='Downloading m3u8 information')
-        m3u8_urls = m3u8_playlist_data.findall('.//url')
-
-        formats = []
-        found = set()
-        for url_tag in m3u8_urls:
-            pcu = url_tag.find('playlist_create_url')
-            url_attrib = url_tag.attrib
-            playlist_url = update_url_query(pcu.text, {
-                'station_id': station,
-                'start_at': ft_str,  # begin time of the radio
-                'ft': ft_str,  # same as start_id
-                'end_at': to_str,  # end time of the radio
-                'to': to_str,  # same as end_at
-                'seek': video_id,
-                'l': '15',
-                'lsid': '77d0678df93a1034659c14d6fc89f018',
-                'type': 'b',
-            })
-            if playlist_url in found:
-                continue
-            else:
-                found.add(playlist_url)
-
-            time_to_skip = vid_int - ft
-            try:
-                subformats = self._extract_m3u8_formats(
-                    playlist_url, video_id, ext='m4a', entry_protocol='m3u8',
-                    live=True, fatal=False, m3u8_id=None,
-                    headers={
-                        'X-Radiko-AreaId': area_id,
-                        'X-Radiko-AuthToken': auth_token,
-                    })
-                for sf in subformats:
-                    domain = sf['format_id'] = compat_urllib_parse.urlparse(sf['url']).netloc
-                    if re.match(r'^[cf]-radiko\.smartstream\.ne\.jp$', domain):
-                        sf['preference'] = -100  # current radio stream
-                    if url_attrib['timefree'] == '1' and time_to_skip:
-                        # sf['format_note'] = 'timefree'
-                        sf['start_time'] = time_to_skip
-                formats.extend(subformats)
-            except ExtractorError:
-                pass
-
-        self._sort_formats(formats)
+        formats = self._extract_formats(video_id, station, False, ft, vid_int, auth_token, area_id, {
+            'start_at': ft_str,  # begin time of the radio
+            'ft': ft_str,  # same as start_id
+            'end_at': to_str,  # end time of the radio
+            'to': to_str,  # same as end_at
+            'seek': video_id,
+        })
 
         return {
             'id': video_id,
@@ -203,65 +213,13 @@ class RadikoRadioIE(RadikoBaseIE):
         vid_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
         vid_now = calendar.timegm(vid_now.timetuple())
 
-        station_program = self._download_xml(
-            'https://radiko.jp/v3/program/station/weekly/%s.xml' % station, station,
-            note='Downloading radio program for %s station' % station)
-
-        prog = None
-        for p in station_program.findall('.//prog'):
-            ft_str, to_str = p.attrib['ft'], p.attrib['to']
-            ft = unified_timestamp(ft_str, False)
-            to = unified_timestamp(to_str, False)
-            if ft <= vid_now and vid_now < to:
-                prog = p
-                break
-        if not prog:
-            raise ExtractorError('Cannot identify radio program to download!')
-        assert ft, to
+        prog, station_program, ft, _, _ = self._find_program(station, station, vid_now)
 
         title = prog.find('title').text
         description = clean_html(prog.find('info').text)
         station_name = station_program.find('.//name').text
 
-        m3u8_playlist_data = self._download_xml(
-            'https://radiko.jp/v3/station/stream/pc_html5/%s.xml' % station, station,
-            note='Downloading m3u8 information')
-        m3u8_urls = m3u8_playlist_data.findall('.//url')
-
-        formats = []
-        found = set()
-        for url_tag in m3u8_urls:
-            pcu = url_tag.find('playlist_create_url')
-            playlist_url = update_url_query(pcu.text, {
-                'station_id': station,
-                'end_at': to_str,  # end time of the radio
-                'to': to_str,  # same as end_at
-                'l': '15',
-                'lsid': 'd610714da708d810f6936041ff7e507e',
-                'type': 'b',
-            })
-            if playlist_url in found:
-                continue
-            else:
-                found.add(playlist_url)
-
-            try:
-                subformats = self._extract_m3u8_formats(
-                    playlist_url, station, ext='m4a', entry_protocol='m3u8',
-                    live=True, fatal=False, m3u8_id=None,
-                    headers={
-                        'X-Radiko-AreaId': area_id,
-                        'X-Radiko-AuthToken': auth_token,
-                    })
-                for sf in subformats:
-                    domain = sf['format_id'] = compat_urllib_parse.urlparse(sf['url']).netloc
-                    if re.match(r'^[cf]-radiko\.smartstream\.ne\.jp$', domain):
-                        sf['preference'] = 100  # current radio stream
-                formats.extend(subformats)
-            except ExtractorError:
-                pass
-
-        self._sort_formats(formats)
+        formats = self._extract_formats(station, station, True, ft, vid_now, auth_token, area_id, {})
 
         return {
             'id': station,
