@@ -203,6 +203,7 @@ class InfoExtractor(object):
                                  width : height ratio as float.
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
+                    * has_drm    The format has DRM and cannot be downloaded. Boolean
                     * downloader_options  A dictionary of downloader options as
                                  described in FileDownloader
                     RTMP formats can also have the additional fields: page_url,
