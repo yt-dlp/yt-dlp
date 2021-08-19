@@ -1850,7 +1850,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._player_cache = {}
 
     def _extract_player_url(self, ytcfg=None, webpage=None):
-        player_url = try_get(ytcfg, (lambda x: x['PLAYER_JS_URL']), str)
+        player_url = player_url = traverse_obj(ytcfg,
+            'PLAYER_JS_URL', ('WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
+            get_all=False, expected_type=compat_str)
         if not player_url and webpage:
             player_url = self._search_regex(
                 r'"(?:PLAYER_JS_URL|jsUrl)"\s*:\s*"([^"]+)"',
@@ -2455,10 +2457,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
         sts = None
-        # assuming we need both sts and player_url
-        # todo: test clients that don't need/have one (though if we make global then doesn't matter)
-        for _ytcfg in (master_ytcfg, player_ytcfg, self._get_default_ytcfg(client)):
-            player_url = player_url or self._extract_player_url(_ytcfg)
+        strict_player_url = self._get_default_ytcfg(client).get('PLAYER_URL_STRICT')
+        for _ytcfg in (master_ytcfg if not strict_player_url else player_ytcfg, self._get_default_ytcfg(client)):
+            player_url = self._extract_player_url(_ytcfg) or player_url
             if not player_url:
                 continue
             sts = self._extract_signature_timestamp(video_id, player_url, _ytcfg, fatal=False)
@@ -2556,7 +2557,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             if pr:
-                pr['streamingData']['__ytdlp_playerUrl'] = client_player_url
+                if 'streamingData' in pr:
+                    pr['streamingData']['__ytdlp_playerUrl'] = client_player_url
                 yielded_pr = True
                 yield pr
 
@@ -2719,7 +2721,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage_url = base_url + 'watch?v=' + video_id
         webpage = self._download_webpage(
             webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
-
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
         player_url = self._extract_player_url(master_ytcfg, webpage)
         identity_token = self._extract_identity_token(webpage, video_id)
