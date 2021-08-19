@@ -1,11 +1,13 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import json
 import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     int_or_none,
     parse_age_limit,
     str_or_none,
@@ -80,53 +82,57 @@ class Zee5IE(InfoExtractor):
         'url': 'https://www.zee5.com/global/hi/tvshows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730',
         'only_matching': True
     }]
+    _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails?content_id={}&device_id=iIxsxYf40cqO3koIkwzKHZhnJzHN13zb&platform_name=desktop_web&country=IN&check_parental_control=false'
 
     def _real_extract(self, url):
         video_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
         access_token_request = self._download_json(
             'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
             video_id, note='Downloading access token')
-        token_request = self._download_json(
-            'https://useraction.zee5.com/tokennd',
-            video_id, note='Downloading video token')
+        data = {
+            "X-Z5-Guest-Token": "iIxsxYf40cqO3koIkwzKHZhnJzHN13zb",
+            "x-access-token": access_token_request['token']
+        }
         json_data = self._download_json(
-            'https://gwapi.zee5.com/content/details/{}?translation=en&country=IN'.format(video_id),
-            video_id, headers={'X-Access-Token': access_token_request['token']})
-        m3u8_url = try_get(
-            json_data,
-            (lambda x: x['hls'][0], lambda x: x['video_details']['hls_url']),
-            compat_str)
-        formats = self._extract_m3u8_formats(
-            'https://zee5vodnd.akamaized.net' + m3u8_url.replace('/drm', '/hls', 1) + token_request['video_token'],
-            video_id, 'mp4', fatal=False)
-        mpd_url = try_get(
-            json_data,
-            (lambda x: x['video'][0], lambda x: x['video_details']['url']),
-            compat_str)
-        formats += self._extract_mpd_formats(
-            'https://zee5vod.akamaized.net' + mpd_url,
-            video_id, fatal=False)
-
+            self._DETAIL_API_URL.format(video_id),
+            video_id, headers={'content-type': 'application/json'}, data=json.dumps(data).encode('utf-8'))
+        asset_data = json_data['assetDetails']
+        show_data = json_data.get('showDetails', {})
+        if 'premium' in asset_data['business_type']:
+            raise ExtractorError('Premium content is DRM protected.', expected=True)
+        if not asset_data.get('hls_url'):
+            raise ExtractorError('Login Required.', expected=True)
+        formats = self._extract_m3u8_formats(asset_data['hls_url'], video_id, 'mp4', fatal=False)
         self._sort_formats(formats)
+
+        subtitles = {}
+        for sub in asset_data.get('subtitle_url', []):
+            sub_url = sub.get('url')
+            if not sub_url:
+                continue
+            subtitles.setdefault(sub.get('language', 'en'), []).append({
+                'url': self._proto_relative_url(sub_url),
+            })
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': json_data['title'],
+            'title': asset_data['title'],
             'formats': formats,
-            'duration': int_or_none(json_data.get('duration')),
-            'average_rating': int_or_none(json_data.get('rating')),
-            'description': str_or_none(json_data.get('description')),
-            'alt_title': str_or_none(json_data.get('original_title')),
-            'uploader': str_or_none(json_data.get('content_owner')),
-            'age_limit': parse_age_limit(json_data.get('age_rating')),
-            'release_date': unified_strdate(json_data.get('release_date')),
-            'timestamp': unified_timestamp(json_data.get('release_date')),
-            'thumbnail': url_or_none(json_data.get('image_url')),
-            'series': try_get(json_data, lambda x: x['tvshow_details']['title'], str),
-            'season': try_get(json_data, lambda x: x['season_details']['title'], str),
-            'season_number': int_or_none(try_get(json_data, lambda x: x['season_details']['index'])),
-            'episode_number': int_or_none(try_get(json_data, lambda x: x['index'])),
-            'tags': try_get(json_data, lambda x: x['tags'], list)
+            'subtitles': subtitles,
+            'duration': int_or_none(asset_data.get('duration')),
+            'average_rating': int_or_none(asset_data.get('rating')),
+            'description': str_or_none(asset_data.get('description')),
+            'alt_title': str_or_none(asset_data.get('original_title')),
+            'uploader': str_or_none(asset_data.get('content_owner')),
+            'age_limit': parse_age_limit(asset_data.get('age_rating')),
+            'release_date': unified_strdate(asset_data.get('release_date')),
+            'timestamp': unified_timestamp(asset_data.get('release_date')),
+            'thumbnail': url_or_none(asset_data.get('image_url')),
+            'series': str_or_none(asset_data.get('tvshow_name')),
+            'season': try_get(show_data, lambda x: x['seasons']['title'], str),
+            'season_number': int_or_none(try_get(show_data, lambda x: x['seasons']['oderid'])),
+            'episode_number': int_or_none(try_get(asset_data, lambda x: x['orderid'])),
+            'tags': try_get(asset_data, lambda x: x['tags'], list)
         }
 
 
