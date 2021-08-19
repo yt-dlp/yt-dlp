@@ -93,9 +93,6 @@ yt-dlp.zip
 .idea
 *.iml
 .vscode
-.vs
-*.sln
-*.pyproj
 *.sublime-*
 
 # Lazy extractors
