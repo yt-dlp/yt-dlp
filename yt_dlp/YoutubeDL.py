@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
 # coding: utf-8
+#!/usr/bin/env python3
 
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 
 import collections
 import contextlib
@@ -25,6 +25,8 @@ import time
 import tokenize
 import traceback
 import random
+import pprint
+import json
 
 from string import ascii_letters
 from zipimport import zipimporter
@@ -73,9 +75,14 @@ from .utils import (
     HEADRequest,
     int_or_none,
     iri_to_uri,
+    is_ansi_vt,
     ISO3166Utils,
     LazyList,
     locked_file,
+    _lock_file,
+    _unlock_file,
+    os_lock,
+    os_unlock,
     make_dir,
     make_HTTPS_handler,
     MaxDownloadsReached,
@@ -116,13 +123,14 @@ from .utils import (
     YoutubeDLCookieProcessor,
     YoutubeDLHandler,
     YoutubeDLRedirectHandler,
+    #NoHandler,
 )
 from .cache import Cache
 from .extractor import (
     gen_extractor_classes,
     get_info_extractor,
-    _LAZY_LOADER,
-    _PLUGIN_CLASSES
+    #_LAZY_LOADER,
+    #_PLUGIN_CLASSES
 )
 from .extractor.openload import PhantomJSwrapper
 from .downloader import (
@@ -243,6 +251,7 @@ class YoutubeDL(object):
     playlistrandom:    Download playlist items in random order.
     matchtitle:        Download only matching titles.
     rejecttitle:       Reject downloads for matching titles.
+    max_downloads      Limit the total number of items downloaded.
     logger:            Log messages to a logging.Logger instance.
     logtostderr:       Log messages to stderr instead of stdout.
     writedescription:  Write the video description to a .description file
@@ -295,6 +304,8 @@ class YoutubeDL(object):
                        file that is in the archive.
     break_on_reject:   Stop the download process when encountering a video that
                        has been filtered out.
+    continue_batch:    Apply the `max_downloads`, `break_on_existing` and
+                       `break_on_reject` conditions separately for each URL.
     cookiefile:        File name where cookies should be read from and dumped to
     cookiesfrombrowser: A tuple containing the name of the browser and the profile
                        name/path from where cookies are loaded.
@@ -361,8 +372,6 @@ class YoutubeDL(object):
                        - "detect_or_warn": check whether we can do anything
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
-    call_home:         Boolean, true iff we are allowed to contact the
-                       yt-dlp servers for debugging. (BROKEN)
     sleep_interval_requests: Number of seconds to sleep between requests
                        during extraction
     sleep_interval:    Number of seconds to sleep before each download when
@@ -470,13 +479,18 @@ class YoutubeDL(object):
     _playlist_level = 0
     _playlist_urls = set()
     _screen_file = None
+    _archive_cache = None
+    _axv_seek = -1
+
+    #req_format_sel = None
+    #def_format_sel = None
+    #_GCS_DEFAULT_FORMAT = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best'
 
     def __init__(self, params=None, auto_init=True):
         """Create a FileDownloader object with the given options."""
         if params is None:
             params = {}
         self._ies = []
-        self._ies_instances = {}
         self._pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
         self._printed_messages = set()
         self._first_webpage_request = True
@@ -485,6 +499,7 @@ class YoutubeDL(object):
         self._download_retcode = 0
         self._num_downloads = 0
         self._screen_file = [sys.stdout, sys.stderr][params.get('logtostderr', False)]
+        self._GCS_ANSI = 196
         self._err_file = sys.stderr
         self.params = {
             # Default parameters
@@ -594,7 +609,8 @@ class YoutubeDL(object):
         preload_download_archive(self.params.get('download_archive'))
 
         if auto_init:
-            self.print_debug_header()
+            if self.params.get('verbose'):
+                self.print_debug_header()
             self.add_default_info_extractors()
 
         for pp_def_raw in self.params.get('postprocessors', []):
@@ -628,31 +644,27 @@ class YoutubeDL(object):
                 'Use -- to separate parameters and URLs, like this:\n%s\n' %
                 args_to_str(correct_argv))
 
-    def add_info_extractor(self, ie):
-        """Add an InfoExtractor object to the end of the list."""
-        self._ies.append(ie)
-        if not isinstance(ie, type):
-            self._ies_instances[ie.ie_key()] = ie
-            ie.set_downloader(self)
-
     def get_info_extractor(self, ie_key):
         """
-        Get an instance of an IE with name ie_key, it will try to get one from
-        the _ies list, if there's no instance it will create a new one and add
-        it to the extractor list.
+        Gets or creates the singleton IE instance for name ie_key. It tries to fetch the
+        stored singleton instance from the class type, or otherwise creates a new one
+        and stores it there
         """
-        ie = self._ies_instances.get(ie_key)
+        ie_cls = get_info_extractor(ie_key)
+        ie = ie_cls._inst
         if ie is None:
-            ie = get_info_extractor(ie_key)()
-            self.add_info_extractor(ie)
+            ie = ie_cls(self)
+            assert ie.ie_key() == ie_key
+            ie_cls._inst = ie
+            #sys.stdout.write(f"instantiate {repr(ie_key)} -> {repr(ie_cls)} -> {repr(ie)}\n")
         return ie
 
     def add_default_info_extractors(self):
         """
         Add the InfoExtractors returned by gen_extractors to the end of the list
         """
-        for ie in gen_extractor_classes():
-            self.add_info_extractor(ie)
+        for ie_cls in gen_extractor_classes():
+            self._ies.append(ie_cls)
 
     def add_post_processor(self, pp, when='post_process'):
         """Add a PostProcessor object to the end of the chain."""
@@ -680,12 +692,23 @@ class YoutubeDL(object):
                       for _ in range(line_count))
         return res[:-len('\n')]
 
+    def next_ansi(self):
+        """ 184 190 196 202 208 214 220 228 """
+        self._GCS_ANSI += 6
+        if self._GCS_ANSI > 228:
+            self._GCS_ANSI = 184
+        return '[01;38;5;' + str(self._GCS_ANSI) + 'm'
+
     def _write_string(self, message, out=None, only_once=False):
         if only_once:
             if message in self._printed_messages:
                 return
             self._printed_messages.add(message)
         write_string(message, out=out, encoding=self.params.get('encoding'))
+
+    def to_screen(self, message, skip_eol=False):
+        """Print message to stdout if not in quiet mode"""
+        self.to_stdout(message, skip_eol, quiet=self.params.get('quiet', False))
 
     def to_stdout(self, message, skip_eol=False, quiet=False):
         """Print message to stdout"""
@@ -711,7 +734,8 @@ class YoutubeDL(object):
             if ctypes.windll.kernel32.GetConsoleWindow():
                 # c_wchar_p() might not be necessary if `message` is
                 # already of type unicode()
-                ctypes.windll.kernel32.SetConsoleTitleW(ctypes.c_wchar_p(message))
+                #ctypes.windll.kernel32.SetConsoleTitleW(ctypes.c_wchar_p(message))
+                ctypes.windll.kernel32.SetConsoleTitleW('abcdefg')
         elif 'TERM' in os.environ:
             self._write_string('\033]0;%s\007' % message, self._screen_file)
 
@@ -774,11 +798,6 @@ class YoutubeDL(object):
             raise DownloadError(message, exc_info)
         self._download_retcode = 1
 
-    def to_screen(self, message, skip_eol=False):
-        """Print message to stdout if not in quiet mode"""
-        self.to_stdout(
-            message, skip_eol, quiet=self.params.get('quiet', False))
-
     def report_warning(self, message, only_once=False):
         '''
         Print the message to stderr, it will be prefixed with 'WARNING:'
@@ -789,23 +808,23 @@ class YoutubeDL(object):
         else:
             if self.params.get('no_warnings'):
                 return
-            if not self.params.get('no_color') and self._err_file.isatty() and compat_os_name != 'nt':
-                _msg_header = '\033[0;33mWARNING:\033[0m'
+            if not self.params.get('no_color') and is_ansi_vt(self._err_file):
+                warning_message = f"[1;38;5;208mWARNING:[0m [0;33m{message}[0m"
             else:
-                _msg_header = 'WARNING:'
-            warning_message = '%s %s' % (_msg_header, message)
-            self.to_stderr(warning_message, only_once)
+                warning_message = 'WARNING: ' + message
+            self.to_stderr(warning_message)
 
     def report_error(self, message, tb=None):
         '''
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
         '''
-        if not self.params.get('no_color') and self._err_file.isatty() and compat_os_name != 'nt':
-            _msg_header = '\033[0;31mERROR:\033[0m'
+        if not self.params.get('no_color') and is_ansi_vt(self._err_file):
+            _msg_header = '[1;31mERROR:[0m'
         else:
             _msg_header = 'ERROR:'
         error_message = '%s %s' % (_msg_header, message)
+        #print(''.join(traceback.format_list(traceback.extract_stack())))
         self.trouble(error_message, tb)
 
     def write_debug(self, message, only_once=False):
@@ -842,8 +861,7 @@ class YoutubeDL(object):
         for key, val in outtmpl_dict.items():
             if isinstance(val, bytes):
                 self.report_warning(
-                    'Parameter outtmpl is bytes, but should be a unicode string. '
-                    'Put  from __future__ import unicode_literals  at the top of your code file or consider switching to Python 3.x.')
+                    'Parameter outtmpl is bytes, but should be a unicode string.')
         return outtmpl_dict
 
     def get_output_path(self, dir_type='', filename=None):
@@ -1099,8 +1117,9 @@ class YoutubeDL(object):
                         return '"' + title + '" title did not match pattern "' + matchtitle + '"'
                 rejecttitle = self.params.get('rejecttitle', False)
                 if rejecttitle:
-                    if re.search(rejecttitle, title, re.IGNORECASE):
-                        return '"' + title + '" title matched reject pattern "' + rejecttitle + '"'
+                    reject_match = re.search(rejecttitle, title, re.IGNORECASE)  # GCS GCS
+                    if reject_match:                                             # GCS GCS
+                        return 'reject-title: [31m' +  title.replace(reject_match.group(0), '[0;41m' + reject_match.group(0) + '[0;31m')  + '[0m'  # GCS GCS
             date = info_dict.get('upload_date')
             if date is not None:
                 dateRange = self.params.get('daterange', DateRange())
@@ -1117,26 +1136,37 @@ class YoutubeDL(object):
             if age_restricted(info_dict.get('age_limit'), self.params.get('age_limit')):
                 return 'Skipping "%s" because it is age restricted' % video_title
 
-            if not incomplete:
-                match_filter = self.params.get('match_filter')
-                if match_filter is not None:
-                    ret = match_filter(info_dict)
-                    if ret is not None:
-                        return ret
+            match_filter = self.params.get('match_filter')
+            if match_filter is not None:
+                try:
+                    ret = match_filter(info_dict, incomplete=incomplete)
+                except TypeError:
+                    # For backward compatibility
+                    ret = None if incomplete else match_filter(info_dict)
+                if ret is not None:
+                    return ret
             return None
 
+        #break_err = None
         if self.in_download_archive(info_dict):
-            reason = '%s has already been recorded in the archive' % video_title
-            break_opt, break_err = 'break_on_existing', ExistingVideoReached
+            reason = f"[92m{self.params['download_archive']}[0m"
+            if self.params.get('break_on_existing', False):
+                if not silent: self.to_screen(reason + ' ', True)
+                #break_err = ExistingVideoReached
+                raise ExistingVideoReached()
+            #reason = '%s has already been recorded in the archive' % video_title
+            reason = f"[92m{self.params['download_archive']}[0m"
         else:
             reason = check_filter()
-            break_opt, break_err = 'break_on_reject', RejectedVideoReached
-        if reason is not None:
-            if not silent:
-                self.to_screen('[download] ' + reason)
-            if self.params.get(break_opt, False):
-                raise break_err()
-        return reason
+            if reason is None:
+                return False
+            if self.params.get('break_on_reject', False):
+                #break_err = RejectedVideoReached
+                raise RejectedVideoReached()
+
+        if not silent: self.to_screen(reason)
+        #if break_err: raise break_err()
+        return True
 
     @staticmethod
     def add_extra_info(info_dict, extra_info):
@@ -1169,11 +1199,19 @@ class YoutubeDL(object):
         else:
             ies = self._ies
 
-        for ie in ies:
-            if not ie.suitable(url):
+        for ie_cls in ies:
+            if not ie_cls.suitable(url):
                 continue
 
-            ie_key = ie.ie_key()
+            ie_key = ie_cls.ie_key()
+
+            #self.to_screen(f"{id_match} ", True)
+
+            #ar = self._in_download_archive(ie_key, id_match)
+            #if ar and 'result' in ar:
+            #    self.to_screen(f"[92m{repr(ar)}[0m")
+            #    return ar
+
             ie = self.get_info_extractor(ie_key)
             if not ie.working():
                 self.report_warning('The program functionality for this site has been marked as broken, '
@@ -1186,8 +1224,8 @@ class YoutubeDL(object):
             except (AssertionError, IndexError, AttributeError):
                 temp_id = None
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': ie_key}):
-                self.to_screen("[%s] %s: has already been recorded in archive" % (
-                               ie_key, temp_id))
+                #self.to_screen("[%s] %s: has already been recorded in archive" % (ie_key, temp_id))
+                self.to_screen(f"[92m{self.params['download_archive']}[0m")
                 break
             return self.__extract_info(url, ie, download, extra_info, process)
         else:
@@ -1206,10 +1244,10 @@ class YoutubeDL(object):
                 self.report_error(msg)
             except ExtractorError as e:  # An error we somewhat expected
                 self.report_error(compat_str(e), e.format_traceback())
-            except ThrottledDownload:
-                self.to_stderr('\r')
-                self.report_warning('The download speed is below throttle limit. Re-extracting data')
-                return wrapper(self, *args, **kwargs)
+            #except ThrottledDownload:
+            #    self.to_stderr('\r')
+            #    self.report_warning('The download speed is below throttle limit. Re-extracting data')
+            #    return wrapper(self, *args, **kwargs)
             except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
                 raise
             except Exception as e:
@@ -1239,6 +1277,8 @@ class YoutubeDL(object):
             return ie_result
 
     def add_default_extra_info(self, ie_result, ie, url):
+        if 'ie_timestamp' not in ie_result:
+            ie_result['ie_timestamp'] = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
         if url is not None:
             self.add_extra_info(ie_result, {
                 'webpage_url': url,
@@ -1251,7 +1291,7 @@ class YoutubeDL(object):
                 'extractor_key': ie.ie_key(),
             })
 
-    def process_ie_result(self, ie_result, download=True, extra_info={}):
+    def process_ie_result(self, ie_result, download=True, extra_info=None):
         """
         Take the result of the ie(may be modified) and resolve all unresolved
         references (URLs, playlist items).
@@ -1259,7 +1299,10 @@ class YoutubeDL(object):
         It will also download the videos if 'download'.
         Returns the resolved ie_result.
         """
+        if extra_info is None:
+            extra_info = {}
         result_type = ie_result.get('_type', 'video')
+        #print(result_type)
 
         if result_type in ('url', 'url_transparent'):
             ie_result['url'] = sanitize_url(ie_result['url'])
@@ -1278,8 +1321,56 @@ class YoutubeDL(object):
 
         if result_type == 'video':
             self.add_extra_info(ie_result, extra_info)
+
+            #pprint.PrettyPrinter(depth = 2).pprint(ie_result)
+            #pprint.PrettyPrinter(depth = 2).pprint(extra_info)
+
+            if not extra_info:
+                pass
+            elif 'n_entries' in ie_result:
+                pass
+            else:
+                self.to_screen(f"[0;36m{ie_result['channel_id']}[0m [96m{ie_result['id']}[0m  ", True)
+
             ie_result = self.process_video_result(ie_result, download=download)
             additional_urls = (ie_result or {}).get('additional_urls')
+
+            if ie_result is None or 'multi_fmt_dl' in ie_result:
+                self.to_screen('')
+            else:
+                pass
+                #uploader = ie_result.get('uploader')
+                #if ord(uploader[0]) > 255:
+                #    uploader = f"'{ie_result.get('uploader_id')}'"
+                #else:
+                #    uploader = f"[{uploader}]"
+
+                #pprint.PrettyPrinter(depth = 2).pprint(ar)
+
+                #ud = ie_result['upload_date']
+                #ud = ud[:4] + '/' + ud[4:6] + '/' + ud[6:]
+                #
+                #hms = formatSeconds(ie_result['duration'])
+                #
+                #fmt = ie_result['format'].replace(' -', '+').replace(' (', '+').split('+')
+                #itag = fmt[0]
+                #if len(fmt) > 3:
+                #    itag += '+' + fmt[3]
+                #(w, h) = fmt[1].split('x')
+                #
+                #self.to_screen(f"{ud}  {hms:>9}  ──  {itag:<7}   {ie_result['fps']:>2}  {w:>6} ×{h:>5}", True)
+                #
+                #fn = ie_result.get('_filename')
+                #if os.path.exists(fn):
+                #    filetime = time.localtime(os.path.getmtime(fn))
+                #    self.to_screen(f"  ──  {time.strftime('%Y-%m-%d %H:%M:%S',filetime)} {os.path.getsize(fn):>14,}  {self.next_ansi()}{fn}[0m")
+                #else:
+                #    self.to_screen('      ?? file not found ??  \'_filename\' = ' + fn)
+
+                #self.to_screen(f"{'xx'}  {'xxxxx'}  ──  {'abcde'}   {60}  {1920} ×{1080}", True)
+
+            #pprint.PrettyPrinter(depth = 2).pprint(ie_result)
+
             if additional_urls:
                 # TODO: Improve MetadataParserPP to allow setting a list
                 if isinstance(additional_urls, compat_str):
@@ -1298,7 +1389,8 @@ class YoutubeDL(object):
             # We have to add extra_info to the results because it may be
             # contained in a playlist
             return self.extract_info(
-                ie_result['url'], download,
+                ie_result['url'],
+                download,
                 ie_key=ie_result.get('ie_key'),
                 extra_info=extra_info)
         elif result_type == 'url_transparent':
@@ -1377,8 +1469,15 @@ class YoutubeDL(object):
 
     def __process_playlist(self, ie_result, download):
         # We process each entry in the playlist
-        playlist = ie_result.get('title') or ie_result.get('id')
-        self.to_screen('[download] Downloading playlist: %s' % playlist)
+        playlist_id = ie_result.get('id')
+        playlist_title = ie_result.get('title')
+        playlist = playlist_title or playlist_id
+
+        #with open('E:\\junk.json.tmp', 'w') as ff:
+        #    json.dump(sorted(ie_result), ff)
+        #pprint.PrettyPrinter().pprint(ie_result)
+
+        #self.to_screen('[download] Downloading playlist: %s' % playlist)
 
         if 'entries' not in ie_result:
             raise EntryNotInPlaylist()
@@ -1390,8 +1489,6 @@ class YoutubeDL(object):
                     ret[i - 1] = entry
                 return ret
             ie_result['entries'] = fill_missing_entries(ie_result['entries'], ie_result['requested_entries'])
-
-        playlist_results = []
 
         playliststart = self.params.get('playliststart', 1)
         playlistend = self.params.get('playlistend')
@@ -1412,44 +1509,54 @@ class YoutubeDL(object):
                         yield int(string_segment)
             playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
 
-        ie_entries = ie_result['entries']
-        msg = (
-            'Downloading %d videos' if not isinstance(ie_entries, list)
-            else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
-        if not isinstance(ie_entries, (list, PagedList)):
-            ie_entries = LazyList(ie_entries)
+        #ie_entries = ie_result['entries']
+        #msg = (
+        #    'Downloading %d videos' if not isinstance(ie_entries, list)
+        #    else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
+        #if not isinstance(ie_entries, (list, PagedList)):
+        #    ie_entries = LazyList(ie_entries)
+        #entries = ie_entries if isinstance(ie_entries, list) else list(ie_entries)
 
-        def get_entry(i):
-            return YoutubeDL.__handle_extraction_exceptions(
-                lambda self, i: ie_entries[i - 1],
-                False
-            )(self, i)
+        #def get_entry(i):
+        #    return YoutubeDL.__handle_extraction_exceptions(
+        #        lambda self, i: ie_entries[i - 1],
+        #        False
+        #    )(self, i)
 
+        gen = ie_result['entries']
         entries = []
+
         for i in playlistitems or itertools.count(playliststart):
             if playlistitems is None and playlistend is not None and playlistend < i:
                 break
-            entry = None
             try:
-                entry = get_entry(i)
+                entry = next(gen)
                 if entry is None:
                     raise EntryNotInPlaylist()
-            except (IndexError, EntryNotInPlaylist):
-                if incomplete_entries:
-                    raise EntryNotInPlaylist()
-                elif not playlistitems:
-                    break
-            entries.append(entry)
-            try:
-                if entry is not None:
-                    self._match_entry(entry, incomplete=True, silent=True)
-            except (ExistingVideoReached, RejectedVideoReached):
+                entries.append(entry)
+            except StopIteration:
                 break
+            #try:
+            #    entry = get_entry(i)
+            #    if entry is None:
+            #        raise EntryNotInPlaylist()
+            #except (IndexError, EntryNotInPlaylist):
+            #    if incomplete_entries:
+            #        raise EntryNotInPlaylist()
+            #    elif not playlistitems:
+            #        break
+            #entries.append(entry)
+            #try:
+            #    if entry is not None:
+            #        self._match_entry(entry, incomplete=True, silent=True)
+            #except (ExistingVideoReached, RejectedVideoReached):
+            #    break
+
         ie_result['entries'] = entries
 
         # Save playlist_index before re-ordering
         entries = [
-            ((playlistitems[i - 1] if playlistitems else i), entry)
+            ((playlistitems[i - 1] if playlistitems else i + playliststart - 1), entry)
             for i, entry in enumerate(entries, 1)
             if entry is not None]
         n_entries = len(entries)
@@ -1458,49 +1565,64 @@ class YoutubeDL(object):
             playlistitems = list(range(playliststart, playliststart + n_entries))
         ie_result['requested_entries'] = playlistitems
 
+        #print('allow_playlist_files: ' + repr(self.params.get('allow_playlist_files')))
+        #print('writeinfojson (pl): ' + repr(self.params.get('writeinfojson')))
+        #print('cleaninfojson: ' + repr(self.params.get('cleaninfojson')))
+
         if self.params.get('allow_playlist_files', True):
             ie_copy = {
                 'playlist': playlist,
-                'playlist_id': ie_result.get('id'),
-                'playlist_title': ie_result.get('title'),
+                'playlist_id': playlist_id,
+                'playlist_title': playlist_title,
                 'playlist_uploader': ie_result.get('uploader'),
                 'playlist_uploader_id': ie_result.get('uploader_id'),
                 'playlist_index': 0,
+                'playlist_description': ie_result.get('description'),
             }
             ie_copy.update(dict(ie_result))
 
+            #pprint.PrettyPrinter(depth = 2).pprint(ie_result)
+
             if self.params.get('writeinfojson', False):
-                infofn = self.prepare_filename(ie_copy, 'pl_infojson')
-                if not self._ensure_dir_exists(encodeFilename(infofn)):
-                    return
-                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                    self.to_screen('[info] Playlist metadata is already present')
-                else:
-                    self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
-                    try:
-                        write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), infofn)
-                    except (OSError, IOError):
-                        self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
+                pl_infofn = self.prepare_filename(ie_copy, 'pl_infojson')
+                #pl_infofn = 'E:\\yt-json-pl\\' + playlist_id + '`' + ie_result.get('ie_timestamp') + '.json'           # GCS GCS
+                if self._ensure_dir_exists(encodeFilename(pl_infofn)):
+                    if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(pl_infofn)):
+                        self.to_screen(f"(exists: [1m{pl_infofn}[0m)")
+                        pass
+                    else:
+                        #self.to_screen('[info] Writing playlist metadata as JSON to: ' + pl_infofn)
+                        self.to_screen(f"[1m{pl_infofn}[0m")
+                        try:
+                            write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), pl_infofn)
+                            #ie_result['pl_infojson_filename'] = pl_infofn
+                        except (OSError, IOError):
+                            self.report_error('Cannot write playlist metadata to JSON file ' + pl_infofn)
+
+            #pprint.PrettyPrinter(depth = 2).pprint(ie_copy)
 
             # TODO: This should be passed to ThumbnailsConvertor if necessary
-            self._write_thumbnails(ie_copy, self.prepare_filename(ie_copy, 'pl_thumbnail'))
+            pl_thumbfn = self.prepare_filename(ie_copy, 'pl_thumbnail')
+            #pl_thumbfn = 'E:\\yt-thumb-pl\\' + playlist_id + '`' + ie_result.get('ie_timestamp') + '.xxx'           # GCS GCS
 
-            if self.params.get('writedescription', False):
-                descfn = self.prepare_filename(ie_copy, 'pl_description')
-                if not self._ensure_dir_exists(encodeFilename(descfn)):
-                    return
-                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
-                    self.to_screen('[info] Playlist description is already present')
-                elif ie_result.get('description') is None:
-                    self.report_warning('There\'s no playlist description to write.')
-                else:
-                    try:
-                        self.to_screen('[info] Writing playlist description to: ' + descfn)
-                        with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
-                            descfile.write(ie_result['description'])
-                    except (OSError, IOError):
-                        self.report_error('Cannot write playlist description file ' + descfn)
-                        return
+            #print(pl_thumbfn)
+            self._write_thumbnails(ie_copy, pl_thumbfn)
+
+            #if self.params.get('writedescription', False):
+            #    descfn = self.prepare_filename(ie_copy, 'pl_description')
+            #    if self._ensure_dir_exists(encodeFilename(descfn)):
+            #        if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
+            #            self.to_screen('[info] Playlist description is already present')
+            #        elif ie_result.get('description') is None:
+            #            self.report_warning('There\'s no playlist description to write.')
+            #        else:
+            #            try:
+            #                self.to_screen('[info] Writing playlist description to: ' + descfn)
+            #                with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
+            #                    descfile.write(ie_result['description'])
+            #                ie_result['__pl_description_filename'] = descfn
+            #            except (OSError, IOError):
+            #                self.report_error('Cannot write playlist description file ' + descfn)
 
         if self.params.get('playlistreverse', False):
             entries = entries[::-1]
@@ -1509,26 +1631,33 @@ class YoutubeDL(object):
 
         x_forwarded_for = ie_result.get('__x_forwarded_for_ip')
 
-        self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg % n_entries))
+        #self.to_screen('[%s] playlist %s: %s' % (ie_result['extractor'], playlist, msg % n_entries))
+        self.to_screen(f"[1m{ie_result['webpage_url'].replace('/videos' ,'')}[0m ── [{playlist_title.replace(' - Videos' ,'')}] ── {n_entries:,} videos  [38;5;238m{playlist_id}[0m")
+
+        playlist_results = []
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
             playlist_index, entry = entry_tuple
-            if 'playlist_index' in self.params.get('compat_options', []):
+            if 'playlist-index' in self.params.get('compat_options', []):
                 playlist_index = playlistitems[i - 1] if playlistitems else i
-            self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
+            #self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
+            self.to_screen(f"{i:4} / {n_entries:4} [0;36m{entry['id']}[0m  ", True)
+
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes
             if x_forwarded_for:
                 entry['__x_forwarded_for_ip'] = x_forwarded_for
             extra = {
+                'ie_timestamp': ie_result.get('ie_timestamp'),  # GCS GCS
                 'n_entries': n_entries,
                 '_last_playlist_index': max(playlistitems) if playlistitems else (playlistend or n_entries),
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i,
                 'playlist': playlist,
-                'playlist_id': ie_result.get('id'),
-                'playlist_title': ie_result.get('title'),
+                'playlist_id': playlist_id,
+                'playlist_title': playlist_title,
+                'playlist_description': ie_result.get('description'),   # GCS GCS
                 'playlist_uploader': ie_result.get('uploader'),
                 'playlist_uploader_id': ie_result.get('uploader_id'),
                 'extractor': ie_result['extractor'],
@@ -1537,7 +1666,13 @@ class YoutubeDL(object):
                 'extractor_key': ie_result['extractor_key'],
             }
 
-            if self._match_entry(entry, incomplete=True) is not None:
+            #ar = self._match_entry(entry, incomplete=True)
+            #if ar is not None:
+            if self._match_entry(entry, incomplete=True):
+                #self.to_screen(f"[32m{os.path.basename(ar['archive_file']):>18}[0m")
+                #self.to_screen(f"[92m{repr(ar)}[0m")
+                #if self.params.get('break_on_existing', False):
+                #    raise ExistingVideoReached()
                 continue
 
             entry_result = self.__process_iterable_entry(entry, download, extra)
@@ -1550,7 +1685,11 @@ class YoutubeDL(object):
             # TODO: skip failed (empty) entries?
             playlist_results.append(entry_result)
         ie_result['entries'] = playlist_results
-        self.to_screen('[download] Finished downloading playlist: %s' % playlist)
+        #self.to_screen('[download] Finished downloading playlist: %s' % playlist)
+        msg = f"       └―► finished downloading [1m{playlist_id}[0m ── [{playlist_title.replace(' - Videos' ,'')}]"
+        if playlist_id.startswith("UC"):
+            msg = msg + f"  ―→  [01;48;5;2mE:\\yt\\{playlist_id}[0m"
+        self.to_screen(msg + '\n')
         return ie_result
 
     @__handle_extraction_exceptions
@@ -1620,7 +1759,6 @@ class YoutubeDL(object):
         return _filter
 
     def _default_format_spec(self, info_dict, download=True):
-
         def can_merge():
             merger = FFmpegMergerPP(self)
             return merger.available and merger.can_merge()
@@ -1653,6 +1791,7 @@ class YoutubeDL(object):
         MERGE = 'MERGE'
         SINGLE = 'SINGLE'
         GROUP = 'GROUP'
+        dedup = set()
         FormatSelector = collections.namedtuple('FormatSelector', ['type', 'selector', 'filters'])
 
         allow_multiple_streams = {'audio': self.params.get('allow_multiple_audio_streams', False),
@@ -1874,7 +2013,12 @@ class YoutubeDL(object):
                 def selector_function(ctx):
                     for pair in itertools.product(
                             selector_1(copy.deepcopy(ctx)), selector_2(copy.deepcopy(ctx))):
-                        yield _merge(pair)
+                        #yield _merge(pair)
+                        avfmt = pair[0]['format_id'] + '+' + pair[1]['format_id']
+                        if avfmt not in dedup:
+                            #print(avfmt + ' ' + str(len(dedup)))
+                            dedup.add(avfmt)
+                            yield _merge(pair)
 
             elif selector.type == SINGLE:  # atom
                 format_spec = selector.selector or 'best'
@@ -2021,7 +2165,7 @@ class YoutubeDL(object):
                 def test_thumbnail(t):
                     if not test_all and not t.get('_test_url'):
                         return True
-                    to_screen('Testing thumbnail %s' % t['id'])
+                    #to_screen('Testing thumbnail %s' % t['id'])
                     try:
                         self.urlopen(HEADRequest(t['url']))
                     except network_exceptions as err:
@@ -2089,7 +2233,7 @@ class YoutubeDL(object):
         elif thumbnails:
             info_dict['thumbnail'] = thumbnails[-1]['url']
 
-        if info_dict.get('display_id') is None and 'id' in info_dict:
+        if 'display_id' not in info_dict and 'id' in info_dict:
             info_dict['display_id'] = info_dict['id']
 
         for ts_key, date_key in (
@@ -2244,6 +2388,17 @@ class YoutubeDL(object):
         if list_only:
             # Without this printing, -F --print-json will not work
             self.__forced_printings(info_dict, self.prepare_filename(info_dict), incomplete=True)
+            # GCS ??  if self.params.get('list_thumbnails'):
+            # GCS ??      self.list_thumbnails(info_dict)
+            # GCS ??  if self.params.get('listformats'):
+            # GCS ??      if not info_dict.get('formats'):
+            # GCS ??          raise ExtractorError('No video formats found', expected=True)
+            # GCS ??      self.list_formats(info_dict)
+            # GCS ??  if self.params.get('listsubtitles'):
+            # GCS ??      if 'automatic_captions' in info_dict:
+            # GCS ??          self.list_subtitles(
+            # GCS ??              info_dict['id'], automatic_captions, 'automatic captions')
+            # GCS ??      self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
             return
 
         format_selector = self.format_selector
@@ -2280,18 +2435,44 @@ class YoutubeDL(object):
 
         formats_to_download = list(format_selector(ctx))
         if not formats_to_download:
+            msg = f"Format '{req_format}' is not available"
             if not self.params.get('ignore_no_formats_error'):
-                raise ExtractorError('Requested format is not available', expected=True)
+                raise ExtractorError(msg, expected=True)
             else:
-                self.report_warning('Requested format is not available')
+                self.report_warning(msg)
                 # Process what we can, even without any available formats.
+                raise Exception('what else could follow?')
                 self.process_info(dict(info_dict))
         elif download:
-            self.to_screen(
-                '[info] %s: Downloading %d format(s): %s' % (
-                    info_dict['id'], len(formats_to_download),
-                    ", ".join([f['format_id'] for f in formats_to_download])))
+            if len(formats_to_download) > 1:
+                #if len(formats_to_download) != len(set([fmt['format_id'] for fmt in formats_to_download])):
+                #    raise Exception('need dedup')
+
+                uploader = info_dict.get('uploader')
+                if ord(uploader[0]) > 255:
+                    uploader = f"'{info_dict.get('uploader_id')}'"
+                else:
+                    uploader = f"[{uploader}]"
+                ud = info_dict['upload_date']
+                ud = ud[:4] + '/' + ud[4:6] + '/' + ud[6:]
+
+                hms = formatSeconds(info_dict['duration'])
+
+                #pprint.PrettyPrinter(depth = 2).pprint(info_dict)
+
+                self.to_screen(f"[48;5;238m {info_dict.get('webpage_url')}  ──  [38;5;231m{ud}[0m[48;5;238m  ──  [38;5;231m{hms}[0m[48;5;238m  ──  [96m{info_dict['id']}[38;5;231m   [0m[48;5;238m[{info_dict['title']}]{'':<30}[0m")
+                self.to_screen(f"[38;5;48m{info_dict['channel_id']}[0m ── [[1m{info_dict['channel']}[0m] ── {uploader}  ::  ({len(formats_to_download)} formats)\t[38;5;238m{info_dict.get('channel_url')}")    # {info_dict['id']}[1m
+                info_dict['multi_fmt_dl'] = True
+
+                #self.to_screen(
+                #    '[info] %s: Downloading %d format(s): %s' % (
+                #        info_dict['id'], len(formats_to_download),
+                #        ", ".join([f['format_id'] for f in formats_to_download])))
+
             for fmt in formats_to_download:
+
+                #_download(None, info_dict, fmt)
+
                 new_info = dict(info_dict)
                 # Save a reference to the original info_dict so that it can be modified in process_info if needed
                 new_info['__original_infodict'] = info_dict
@@ -2407,6 +2588,8 @@ class YoutubeDL(object):
         print_mandatory('format')
 
         if self.params.get('forcejson'):
+            #self.post_extract(info_dict)
+            #self.to_stdout(json.dumps(info_dict, default=repr))
             self.to_stdout(json.dumps(self.sanitize_info(info_dict)))
 
     def dl(self, name, info, subtitle=False, test=False):
@@ -2453,7 +2636,10 @@ class YoutubeDL(object):
         if 'format' not in info_dict and 'ext' in info_dict:
             info_dict['format'] = info_dict['ext']
 
-        if self._match_entry(info_dict) is not None:
+        #ar = self._match_entry(info_dict)
+        #if ar is not None:
+        if self._match_entry(info_dict):
+            #self.to_screen(f"[92m{repr(ar)}[0m")
             return
 
         self.post_extract(info_dict)
@@ -2463,6 +2649,11 @@ class YoutubeDL(object):
         info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
         temp_filename = self.prepare_filename(info_dict, 'temp')
         files_to_move = {}
+
+        if info_dict.get('multi_fmt_dl') == True:
+            self.to_screen(f"[1;38;5;208m{full_filename}[0m ...")
+        else:
+            self.to_screen(f" ...   [38;5;238mhttps://www.youtube.com/watch?v=[1m{info_dict['id']}[0m                     {self.next_ansi()}{full_filename}[0m")
 
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
@@ -2558,22 +2749,26 @@ class YoutubeDL(object):
                                                 (sub_lang, error_to_compat_str(err)))
                             continue
 
-        if self.params.get('writeinfojson', False):
-            infofn = self.prepare_filename(info_dict, 'infojson')
-            if not self._ensure_dir_exists(encodeFilename(infofn)):
-                return
-            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                self.to_screen('[info] Video metadata is already present')
-            else:
-                self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
-                try:
-                    write_json_file(self.sanitize_info(info_dict, self.params.get('clean_infojson', True)), infofn)
-                except (OSError, IOError):
-                    self.report_error('Cannot write video metadata to JSON file ' + infofn)
-                    return
-            info_dict['__infojson_filename'] = infofn
+        #print('writeinfojson: ' + repr(self.params.get('writeinfojson')))
+        #print('cleaninfojson: ' + repr(self.params.get('cleaninfojson')))
 
-        for thumb_ext in self._write_thumbnails(info_dict, temp_filename):
+        if self.params.get('writeinfojson', False):
+            #infofn = self.prepare_filename(info_dict, 'infojson')
+            infofn = 'E:\\yt-json\\' + info_dict['id'] + '`' + info_dict.get('ie_timestamp') + '.json'           # GCS GCS
+            if self._ensure_dir_exists(encodeFilename(infofn)):
+                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
+                    #self.to_screen('[info] Video metadata is already present')
+                    pass
+                else:
+                    #self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
+                    self.to_screen(f"[1m{infofn}[0m")
+                    try:
+                        write_json_file(self.sanitize_info(info_dict, self.params.get('clean_infojson', True)), infofn)
+                        info_dict['infojson_filename'] = infofn
+                    except (OSError, IOError):
+                        self.report_error('Cannot write video metadata to JSON file ' + infofn)
+
+        for thumb_ext in self.__write_thumbnails(info_dict):
             thumb_filename_temp = replace_extension(temp_filename, thumb_ext, info_dict.get('ext'))
             thumb_filename = replace_extension(
                 self.prepare_filename(info_dict, 'thumbnail'), thumb_ext, info_dict.get('ext'))
@@ -2644,7 +2839,6 @@ class YoutubeDL(object):
             # Download
             info_dict.setdefault('__postprocessors', [])
             try:
-
                 def existing_file(*filepaths):
                     ext = info_dict.get('ext')
                     final_ext = self.params.get('final_ext', ext)
@@ -2663,6 +2857,7 @@ class YoutubeDL(object):
                             os.remove(encodeFilename(file))
                         return None
 
+                    #self.report_file_already_downloaded(existing_files[0])
                     info_dict['ext'] = os.path.splitext(existing_files[0])[1][1:]
                     return existing_files[0]
 
@@ -2692,8 +2887,7 @@ class YoutubeDL(object):
                     old_ext = info_dict['ext']
                     if self.params.get('merge_output_format') is None and not compatible_formats(requested_formats):
                         info_dict['ext'] = 'mkv'
-                        self.report_warning(
-                            'Requested formats are incompatible for merge and will be merged into mkv.')
+                        #self.report_warning('Requested formats are incompatible for merge and will be merged into mkv.')
                     new_ext = info_dict['ext']
 
                     def correct_ext(filename, ext=new_ext):
@@ -2715,7 +2909,7 @@ class YoutubeDL(object):
                     _protocols = set(determine_protocol(f) for f in requested_formats)
                     if len(_protocols) == 1:  # All requested formats have same protocol
                         info_dict['protocol'] = _protocols.pop()
-                    directly_mergable = FFmpegFD.can_merge_formats(info_dict)
+                    directly_mergable = FFmpegFD.can_merge_formats(info_dict, self.params)
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif (directly_mergable and get_suitable_downloader(
@@ -2848,6 +3042,28 @@ class YoutubeDL(object):
                 except Exception as err:
                     self.report_error('post hooks: %s' % str(err))
                     return
+
+                ud = info_dict.get('upload_date')
+                ud = '??/??/????' if ud is None else ud[:4] + '/' + ud[4:6] + '/' + ud[6:]
+
+                hms = info_dict.get('duration')
+                hms = '??:??' if hms is None else formatSeconds(hms)
+
+                fmt = info_dict['format']
+                #print(fmt)
+                fmt = fmt.replace(' -', '+').replace(' (', '+').split('+')
+                itag = fmt[0]
+                if len(fmt) > 3:
+                    itag += '+' + fmt[3]
+                w, h = '?', '?'
+                if len(fmt) > 1:
+                    wh = fmt[1].split('x')
+                    if len(wh) == 2:
+                        (w, h) = wh
+
+                filetime = time.localtime(os.path.getmtime(full_filename))
+                self.to_screen(f"{ud}  {hms:>9}  ──  {itag:<7}   {info_dict.get('fps') or '??':>2}  {w:>6} ×{h:>5}  ──  {time.strftime('%Y-%m-%d %H:%M:%S',filetime)} {os.path.getsize(full_filename):>14,}  {self.next_ansi()}{full_filename:<58}[0m")
+
                 must_record_download_archive = True
 
         if must_record_download_archive or self.params.get('force_write_download_archive', False):
@@ -2855,6 +3071,25 @@ class YoutubeDL(object):
         max_downloads = self.params.get('max_downloads')
         if max_downloads is not None and self._num_downloads >= int(max_downloads):
             raise MaxDownloadsReached()
+
+    def dl_result_items_info_sync(_self):
+
+        def inner1(_container, _content, _asset):
+            sys.stdout.write('test message\n')
+            msg = ''
+            if _container is not None:
+                msg += type(_container) + ' '
+            if _content is not None:
+                msg += type(_content) + ' ' + _content['id']
+            if _asset is not None:
+                msg +=- type(_asset) + ' ' + _asset['format_id']
+
+            #def try3(k):
+            #if _container
+            #    return _container[k] if k in _container else _content[k] if k in _content else _asset[k] if k in _asset else None
+            #print(f"{try3('_filename')}  {try3('channel_id')}  {try3('id')}  {try3('format_id')}")
+            return
+        return inner1
 
     def download(self, url_list):
         """Download a given list of URLs."""
@@ -2866,25 +3101,43 @@ class YoutubeDL(object):
             raise SameFileError(outtmpl)
 
         for url in url_list:
+            if len(url_list) > 1 and self.params.get('continue_batch', False):
+                self._num_downloads = 0
             try:
-                # It also downloads the videos
-                res = self.extract_info(
-                    url, force_generic_extractor=self.params.get('force_generic_extractor', False))
-            except UnavailableVideoError:
-                self.report_error('unable to download video')
-            except MaxDownloadsReached:
-                self.to_screen('[info] Maximum number of downloaded files reached')
-                raise
-            except ExistingVideoReached:
-                self.to_screen('[info] Encountered a file that is already in the archive, stopping due to --break-on-existing')
-                raise
-            except RejectedVideoReached:
-                self.to_screen('[info] Encountered a file that did not match filter, stopping due to --break-on-reject')
-                raise
-            else:
-                if self.params.get('dump_single_json', False):
-                    self.post_extract(res)
-                    self.to_stdout(json.dumps(self.sanitize_info(res)))
+                try:
+                    # It also downloads the videos
+                    res = self.extract_info(
+                        url,
+                        force_generic_extractor=self.params.get('force_generic_extractor', False))
+                except UnavailableVideoError:
+                    self.report_error('unable to download video')
+                except MaxDownloadsReached:
+                    #self.to_screen(f"[38;5;124mMaximum number of downloaded files reached ({self.params.get('max_downloads')})[0m")
+                    self.to_screen(f"[38;5;124m--max-downloads ({self.params.get('max_downloads')}) [0m", True)
+                    raise
+                except ExistingVideoReached:
+                    #self.to_screen(f"[38;5;124mEncountered a file that was previously recorded in the archive, stopping due to --break-on-existing[0m")
+                    #self.to_screen(f"[38;5;124m--break-on-existing [0m", True)
+                    msg = f"\n       └―► [38;5;124m--break-on-existing [0m"
+                    if self.params.get('continue_batch', False): msg += f" [38;5;216m--continue-batch[0m"
+                    self.to_screen(msg + '\n')
+                    raise
+                except RejectedVideoReached:
+                    #self.to_screen(f"[38;5;124mEncountered a file that did not match the filter, stopping due to --break-on-reject[0m")
+                    self.to_screen(f"[38;5;124m--break-on-reject [0m", True)
+                    raise
+                else:
+                    if self.params.get('dump_single_json', False):
+                        self.post_extract(res)
+                        #self.to_stdout(json.dumps(res, default=repr))
+                        self.to_stdout(json.dumps(self.sanitize_info(res)))
+            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
+                if not self.params.get('continue_batch', False):
+                    #self.to_screen('Aborting remaining downloads.')
+                    #raise
+                    return 101
+                #self.to_screen('[info] Continue batch processing of additional URLs (--continue-batch)')
+                #self.to_screen(f"[38;5;2m--continue-batch[0m")
 
         return self._download_retcode
 
@@ -2908,6 +3161,8 @@ class YoutubeDL(object):
     @staticmethod
     def sanitize_info(info_dict, remove_private_keys=False):
         ''' Sanitize the infodict for converting to json '''
+        if info_dict is None:
+            return info_dict
         info_dict.setdefault('epoch', int(time.time()))
         remove_keys = {'__original_infodict'}  # Always remove this since this may contain a copy of the entire dict
         keep_keys = ['_type'],  # Always keep this to facilitate load-info-json
@@ -2945,11 +3200,15 @@ class YoutubeDL(object):
                 infodict['__files_to_move'].setdefault(f, '')
         else:
             for old_filename in set(files_to_delete):
-                self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
+                #if old_filename.endswith('.m4a'):   # ie_info.get('multi_fmt_dl') == True
+                if infodict.get('multi_fmt_dl') == True and old_filename.endswith('.m4a'):
+                    self.to_screen(f"FIX ME... not deleting m4a file '{old_filename}'")
+                    continue
+                #self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
                 try:
                     os.remove(encodeFilename(old_filename))
                 except (IOError, OSError):
-                    self.report_warning('Unable to remove downloaded original file')
+                    self.report_warning('Unable to remove downloaded original file %s' % old_filename)
                 if old_filename in infodict['__files_to_move']:
                     del infodict['__files_to_move'][old_filename]
         return infodict
@@ -3000,19 +3259,19 @@ class YoutubeDL(object):
             return
         # Future-proof against any change in case
         # and backwards compatibility with prior versions
-        extractor = info_dict.get('extractor_key') or info_dict.get('ie_key')  # key in a playlist
-        if extractor is None:
+        ie_key = info_dict.get('extractor_key') or info_dict.get('ie_key')  # key in a playlist
+        if ie_key is None:
             url = str_or_none(info_dict.get('url'))
             if not url:
                 return
             # Try to find matching extractor for the URL and take its ie_key
             for ie in self._ies:
                 if ie.suitable(url):
-                    extractor = ie.ie_key()
+                    ie_key = ie.ie_key()
                     break
             else:
                 return
-        return '%s %s' % (extractor.lower(), video_id)
+        return ie_key.lower() + ' ' + video_id
 
     def in_download_archive(self, info_dict):
         fn = self.params.get('download_archive')
@@ -3193,9 +3452,6 @@ class YoutubeDL(object):
         return self._opener.open(req, timeout=self._socket_timeout)
 
     def print_debug_header(self):
-        if not self.params.get('verbose'):
-            return
-
         stdout_encoding = getattr(
             sys.stdout, 'encoding', 'missing (%s)' % type(sys.stdout).__name__)
         encoding_str = (
@@ -3212,28 +3468,30 @@ class YoutubeDL(object):
             else '(source)' if os.path.basename(sys.argv[0]) == '__main__.py'
             else '')
         self._write_string('[debug] yt-dlp version %s %s\n' % (__version__, source))
-        if _LAZY_LOADER:
-            self._write_string('[debug] Lazy loading extractors enabled\n')
-        if _PLUGIN_CLASSES:
-            self._write_string(
-                '[debug] Plugin Extractors: %s\n' % [ie.ie_key() for ie in _PLUGIN_CLASSES])
+        #if _LAZY_LOADER:
+        #    self._write_string('[debug] Lazy loading extractors enabled\n')
+        #if _PLUGIN_CLASSES:
+        #    self._write_string(
+        #        '[debug] Plugin Extractors: %s\n' % [ie.ie_key() for ie in _PLUGIN_CLASSES])
         if self.params.get('compat_opts'):
             self._write_string(
                 '[debug] Compatibility options: %s\n' % ', '.join(self.params.get('compat_opts')))
-        try:
-            sp = subprocess.Popen(
-                ['git', 'rev-parse', '--short', 'HEAD'],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                cwd=os.path.dirname(os.path.abspath(__file__)))
-            out, err = process_communicate_or_kill(sp)
-            out = out.decode().strip()
-            if re.match('[0-9a-f]+', out):
-                self._write_string('[debug] Git HEAD: %s\n' % out)
-        except Exception:
-            try:
-                sys.exc_clear()
-            except Exception:
-                pass
+
+        #raise Exception()
+        #try:
+        #    sp = subprocess.Popen(
+        #        ['git', 'rev-parse', '--short', 'HEAD'],
+        #        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        #        cwd=os.path.dirname(os.path.abspath(__file__)))
+        #    out, err = process_communicate_or_kill(sp)
+        #    out = out.decode().strip()
+        #    if re.match('[0-9a-f]+', out):
+        #        self._write_string('[debug] Git HEAD: %s\n' % out)
+        #except Exception:
+        #    try:
+        #        sys.exc_clear()
+        #    except Exception:
+        #        pass
 
         def python_implementation():
             impl_name = platform.python_implementation()
@@ -3275,17 +3533,23 @@ class YoutubeDL(object):
                 proxy_map.update(handler.proxies)
         self._write_string('[debug] Proxy map: ' + compat_str(proxy_map) + '\n')
 
-        if self.params.get('call_home', False):
-            ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode('utf-8')
-            self._write_string('[debug] Public IP address: %s\n' % ipaddr)
-            return
-            latest_version = self.urlopen(
-                'https://yt-dl.org/latest/version').read().decode('utf-8')
-            if version_tuple(latest_version) > version_tuple(__version__):
-                self.report_warning(
-                    'You are using an outdated version (newest version: %s)! '
-                    'See https://yt-dl.org/update if you need help updating.' %
-                    latest_version)
+    #def _reset_opener(self):
+    #    self._opener = None
+    #
+    #    s = socket.socket(socket.AF_INET6)
+    #    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    #    s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+    #    # if we want to inherit this option:
+    #    #s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
+    #    s.bind(('', 2323))
+    #    s.listen()
+    #    con, addr = s.accept()
+    #    con.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
+    #    time.sleep(1)
+    #    con.close()
+    #    time.sleep(3)
+    #
+    #    self._setup_opener()
 
     def _setup_opener(self):
         timeout_val = self.params.get('socket_timeout')
@@ -3312,6 +3576,7 @@ class YoutubeDL(object):
 
         debuglevel = 1 if self.params.get('debug_printtraffic') else 0
         https_handler = make_HTTPS_handler(self.params, debuglevel=debuglevel)
+        #ytlh = NoHandler(self.params, debuglevel=debuglevel)
         ydlh = YoutubeDLHandler(self.params, debuglevel=debuglevel)
         redirect_handler = YoutubeDLRedirectHandler()
         data_handler = compat_urllib_request_DataHandler()
@@ -3351,6 +3616,43 @@ class YoutubeDL(object):
             encoding = preferredencoding()
         return encoding
 
+    def __write_thumbnails(self, info_dict):
+        write_all = self.params.get('write_all_thumbnails', False)
+        thumbnails = []
+        if write_all or self.params.get('writethumbnail', False):
+            thumbnails = info_dict.get('thumbnails') or []
+        multiple = write_all and len(thumbnails) > 1
+
+        ret = []
+        for t in thumbnails[::-1]:
+            thumb_ext = determine_ext(t['url'], 'jpg')
+            suffix = '%s.' % t['id'] if multiple else ''
+            thumb_display_id = '%s ' % t['id'] if multiple else ''
+            thumb_filename = 'E:\\yt-thumb\\' + info_dict['id'] + suffix + '.' + thumb_ext                      # GCS GCS
+
+            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
+                ret.append(suffix + thumb_ext)
+                t['filepath'] = thumb_filename
+                #self.to_screen('[%s] %s: Thumbnail %sis already present' % (info_dict['extractor'], info_dict['id'], thumb_display_id))
+                #self.to_screen('[%s] %s: Thumbnail %s is already present' % (info_dict['extractor'], info_dict['id'], thumb_filename))      # GCS GCS
+            else:
+                #self.to_screen('[%s] %s: Downloading thumbnail %s ...' % (info_dict['extractor'], info_dict['id'], thumb_display_id))        # GCS GCS
+                try:
+                    uf = self.urlopen(t['url'])
+                    self.to_screen(f"[1m{thumb_filename}[0m")
+                    with open(encodeFilename(thumb_filename), 'wb') as thumbf:
+                        shutil.copyfileobj(uf, thumbf)
+                    ret.append(suffix + thumb_ext)
+                    #self.to_screen('[%s] %s: Writing thumbnail %sto: %s' % (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
+                    t['filepath'] = thumb_filename
+                    #info_dict['thumb_filename'] = thumb_filename  # GCS GCS
+                except network_exceptions as err:
+                    self.report_warning('Unable to download thumbnail "%s": %s' %
+                                        (t['url'], error_to_compat_str(err)))
+            if ret and not write_all:
+                break
+        return ret
+
     def _write_thumbnails(self, info_dict, filename):  # return the extensions
         write_all = self.params.get('write_all_thumbnails', False)
         thumbnails = []
@@ -3368,18 +3670,19 @@ class YoutubeDL(object):
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
                 ret.append(suffix + thumb_ext)
                 t['filepath'] = thumb_filename
-                self.to_screen('[%s] %s: Thumbnail %sis already present' %
-                               (info_dict['extractor'], info_dict['id'], thumb_display_id))
+                #self.to_screen('[%s] %s: Thumbnail %s is already present' % (info_dict['extractor'], info_dict['id'], thumb_display_id))
+                #self.to_screen('[%s] %s: Thumbnail %s is already present' % (info_dict['extractor'], info_dict['id'], thumb_filename))      # GCS GCS
             else:
-                self.to_screen('[%s] %s: Downloading thumbnail %s ...' %
-                               (info_dict['extractor'], info_dict['id'], thumb_display_id))
+                #self.to_screen('[%s] %s: Downloading thumbnail %s ...' %
+                #               (info_dict['extractor'], info_dict['id'], thumb_display_id))
                 try:
                     uf = self.urlopen(t['url'])
+                    self.to_screen(f"[1m{thumb_filename}[0m")
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
                     ret.append(suffix + thumb_ext)
-                    self.to_screen('[%s] %s: Writing thumbnail %sto: %s' %
-                                   (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
+                    #self.to_screen('[%s] %s: Writing thumbnail %sto: %s' %
+                    #               (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
                     self.report_warning('Unable to download thumbnail "%s": %s' %

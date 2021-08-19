@@ -1,5 +1,5 @@
 # coding: utf-8
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 from .turner import TurnerBaseIE
 from ..utils import int_or_none

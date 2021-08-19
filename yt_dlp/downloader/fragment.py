@@ -1,4 +1,6 @@
-from __future__ import division, unicode_literals
+#!/usr/bin/env python3
+
+from __future__ import division
 
 import os
 import time
@@ -73,11 +75,11 @@ class FragmentFD(FileDownloader):
 
     def report_retry_fragment(self, err, frag_index, count, retries):
         self.to_screen(
-            '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
+            ' %s: Retrying fragment %d (attempt %d of %s)...'
             % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
 
     def report_skip_fragment(self, frag_index):
-        self.to_screen('[download] Skipping fragment %d ...' % frag_index)
+        self.to_screen('Skipping fragment %d...' % frag_index)
 
     def _prepare_url(self, info_dict, url):
         headers = info_dict.get('http_headers')
@@ -162,12 +164,13 @@ class FragmentFD(FileDownloader):
                 total_frags_str += ' (not including %d ad)' % ad_frags
         else:
             total_frags_str = 'unknown (live)'
-        self.to_screen(
-            '[%s] Total fragments: %s' % (self.FD_NAME, total_frags_str))
-        self.report_destination(ctx['filename'])
+        self.to_screen(f"[38;5;48m{ctx.get('format_name')}[0m [1m{ctx['filename']}[0m  ({total_frags_str} fragments)")
+        #self.to_screen('[%s] Total fragments: %s' % (self.FD_NAME, total_frags_str))
+        #self.report_destination(ctx['filename'])
         dl = HttpQuietDownloader(
             self.ydl,
             {
+                'frag': ctx,
                 'continuedl': True,
                 'quiet': True,
                 'noprogress': True,
@@ -318,8 +321,8 @@ class FragmentFD(FileDownloader):
                 total_frags_str += ' (not including %d ad)' % ad_frags
         else:
             total_frags_str = 'unknown (live)'
-        self.to_screen(
-            '[%s] Total fragments: %s' % (self.FD_NAME, total_frags_str))
+        #self.to_screen(f"[{self.FD_NAME}] Total fragments: {total_frags_str}")
+        self.to_screen(f"Total fragments: {total_frags_str}")
 
         tmpfilename = self.temp_name(ctx['filename'])
 

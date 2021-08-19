@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 import functools
 import os
@@ -42,10 +42,11 @@ class PostProcessor(object):
         name = cls.__name__[:-2]
         return compat_str(name[6:]) if name[:6].lower() == 'ffmpeg' else name
 
-    def to_screen(self, text, prefix=True, *args, **kwargs):
-        tag = '[%s] ' % self.PP_NAME if prefix else ''
+    def to_screen(self, msg, prefix=True, *args, **kwargs):
         if self._downloader:
-            return self._downloader.to_screen('%s%s' % (tag, text), *args, **kwargs)
+            #if prefix:
+            msg = (('[' + self.PP_NAME + '] ') if prefix else '') + msg
+            return self._downloader.to_screen(msg, *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):
         if self._downloader:

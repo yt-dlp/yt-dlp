@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 # coding: utf-8
-
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 import base64
 import binascii
@@ -38,7 +36,6 @@ import xml.etree.ElementTree
 import zlib
 
 from .compat import (
-    compat_HTMLParseError,
     compat_HTMLParser,
     compat_HTTPError,
     compat_basestring,
@@ -1991,7 +1988,6 @@ def get_elements_by_attribute(attribute, value, html, escape_value=True):
 
 class HTMLAttributeParser(compat_HTMLParser):
     """Trivial HTML parser to gather the attributes for a single element"""
-
     def __init__(self):
         self.attrs = {}
         compat_HTMLParser.__init__(self)
@@ -2017,12 +2013,8 @@ def extract_attributes(html_element):
     but the cases in the unit test will work for all of 2.6, 2.7, 3.2-3.5.
     """
     parser = HTMLAttributeParser()
-    try:
-        parser.feed(html_element)
-        parser.close()
-    # Older Python may throw HTMLParseError in case of malformed HTML
-    except compat_HTMLParseError:
-        pass
+    parser.feed(html_element)
+    parser.close()
     return parser.attrs
 
 
@@ -2280,36 +2272,11 @@ def encodeFilename(s, for_subprocess=False):
     """
     @param s The name of the file
     """
-
-    assert type(s) == compat_str
-
-    # Python 3 has a Unicode API
-    if sys.version_info >= (3, 0):
-        return s
-
-    # Pass '' directly to use Unicode APIs on Windows 2000 and up
-    # (Detecting Windows NT 4 is tricky because 'major >= 4' would
-    # match Windows 9x series as well. Besides, NT 4 is obsolete.)
-    if not for_subprocess and sys.platform == 'win32' and sys.getwindowsversion()[0] >= 5:
-        return s
-
-    # Jython assumes filenames are Unicode strings though reported as Python 2.x compatible
-    if sys.platform.startswith('java'):
-        return s
-
-    return s.encode(get_subprocess_encoding(), 'ignore')
+    return s
 
 
 def decodeFilename(b, for_subprocess=False):
-
-    if sys.version_info >= (3, 0):
-        return b
-
-    if not isinstance(b, bytes):
-        return b
-
-    return b.decode(get_subprocess_encoding(), 'ignore')
-
+    return b
 
 def encodeArgument(s):
     if not isinstance(s, compat_str):
@@ -2407,7 +2374,8 @@ class ExtractorError(YoutubeDLError):
         if sys.exc_info()[0] in network_exceptions:
             expected = True
         if video_id is not None:
-            msg = video_id + ': ' + msg
+            #msg = video_id + ': ' + msg
+            msg = f"https://www.youtube.com/watch?v=[1m{video_id}[0m ── {msg}"  ## GCS GCS
         if cause:
             msg += ' (caused by %r)' % cause
         if not expected:
@@ -2443,7 +2411,6 @@ class GeoRestrictedError(ExtractorError):
     This exception may be thrown when a video is not available from your
     geographic location due to geographic restrictions imposed by a website.
     """
-
     def __init__(self, msg, countries=None):
         super(GeoRestrictedError, self).__init__(msg, expected=True)
         self.msg = msg
@@ -2608,20 +2575,7 @@ def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
         if hasattr(hc, '_create_connection'):
             hc._create_connection = _create_connection
         sa = (source_address, 0)
-        if hasattr(hc, 'source_address'):  # Python 2.7+
-            hc.source_address = sa
-        else:  # Python 2.6
-            def _hc_connect(self, *args, **kwargs):
-                sock = _create_connection(
-                    (self.host, self.port), self.timeout, sa)
-                if is_https:
-                    self.sock = ssl.wrap_socket(
-                        sock, self.key_file, self.cert_file,
-                        ssl_version=ssl.PROTOCOL_TLSv1)
-                else:
-                    self.sock = sock
-            hc.connect = functools.partial(_hc_connect, hc)
-
+        hc.source_address = sa
     return hc
 
 
@@ -2951,19 +2905,6 @@ class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
         compat_urllib_request.HTTPCookieProcessor.__init__(self, cookiejar)
 
     def http_response(self, request, response):
-        # Python 2 will choke on next HTTP request in row if there are non-ASCII
-        # characters in Set-Cookie HTTP header of last response (see
-        # https://github.com/ytdl-org/youtube-dl/issues/6769).
-        # In order to at least prevent crashing we will percent encode Set-Cookie
-        # header before HTTPCookieProcessor starts processing it.
-        # if sys.version_info < (3, 0) and response.headers:
-        #     for set_cookie_header in ('Set-Cookie', 'Set-Cookie2'):
-        #         set_cookie = response.headers.get(set_cookie_header)
-        #         if set_cookie:
-        #             set_cookie_escaped = compat_urllib_parse.quote(set_cookie, b"%/;:@&=+$,!~*'()?#[] ")
-        #             if set_cookie != set_cookie_escaped:
-        #                 del response.headers[set_cookie_header]
-        #                 response.headers[set_cookie_header] = set_cookie_escaped
         return compat_urllib_request.HTTPCookieProcessor.http_response(self, request, response)
 
     https_request = compat_urllib_request.HTTPCookieProcessor.http_request
@@ -3275,58 +3216,87 @@ def platform_name():
     assert isinstance(res, compat_str)
     return res
 
+def is_ansi_vt(handle):
+    return handle.isatty()
+
+if sys.platform == 'win32':
+    import msvcrt
+    from ctypes import byref, POINTER, windll
+    from ctypes.wintypes import BOOL, DWORD, HANDLE, LPWSTR, LPVOID
+
+    GetStdHandle = compat_ctypes_WINFUNCTYPE(
+        HANDLE,
+        DWORD)(('GetStdHandle', windll.kernel32))
+
+    GetFileType = compat_ctypes_WINFUNCTYPE(
+        DWORD,
+        HANDLE)(('GetFileType', windll.kernel32))
+
+    GetConsoleMode = compat_ctypes_WINFUNCTYPE(
+        BOOL,
+        HANDLE,
+        POINTER(DWORD))(('GetConsoleMode', windll.kernel32))
+
+    SetConsoleMode = compat_ctypes_WINFUNCTYPE(
+        BOOL,
+        HANDLE,
+        DWORD)(('SetConsoleMode', windll.kernel32))
+
+    WriteConsoleW = compat_ctypes_WINFUNCTYPE(
+        BOOL,
+        HANDLE,
+        LPWSTR,
+        DWORD,
+        POINTER(DWORD),
+        LPVOID)(('WriteConsoleW', windll.kernel32))
+
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+
+    def ensure_vtp():
+        h = h_tty(sys.stdout)
+        if h is None:
+            return False
+
+        cmode = DWORD()
+        if not GetConsoleMode(h, byref(cmode)):
+            return False
+
+        if (cmode.value & ENABLE_VIRTUAL_TERMINAL_PROCESSING) == 0:
+            SetConsoleMode(h, cmode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+        return True
+
+    def h_tty(out):
+        try:
+            fileno = out.fileno()
+        except AttributeError:
+            # If the output stream doesn't have a fileno, it's virtual
+            return None
+        except io.UnsupportedOperation:
+            # Some strange Windows pseudo files?
+            return None
+        if fileno == 1: h = GetStdHandle(-11)
+        elif fileno == 2: h = GetStdHandle(-12)
+        else: return None
+
+        #if not h or h == HANDLE(-1):
+        #    return None
+
+        #FILE_TYPE_CHAR = 0x0002
+        #FILE_TYPE_REMOTE = 0x8000
+
+        #if (GetFileType(h) & ~FILE_TYPE_REMOTE) != FILE_TYPE_CHAR:
+        #    return None
+
+        #return h if GetConsoleMode(h, byref(DWORD())) else None
+        #return h
+        return h if h and h != HANDLE(-1) and (GetFileType(h) & ~8) == 2 else None
 
 def _windows_write_string(s, out):
     """ Returns True if the string was written using special methods,
     False if it has yet to be written out."""
     # Adapted from http://stackoverflow.com/a/3259271/35070
-
-    import ctypes
-    import ctypes.wintypes
-
-    WIN_OUTPUT_IDS = {
-        1: -11,
-        2: -12,
-    }
-
-    try:
-        fileno = out.fileno()
-    except AttributeError:
-        # If the output stream doesn't have a fileno, it's virtual
-        return False
-    except io.UnsupportedOperation:
-        # Some strange Windows pseudo files?
-        return False
-    if fileno not in WIN_OUTPUT_IDS:
-        return False
-
-    GetStdHandle = compat_ctypes_WINFUNCTYPE(
-        ctypes.wintypes.HANDLE, ctypes.wintypes.DWORD)(
-        ('GetStdHandle', ctypes.windll.kernel32))
-    h = GetStdHandle(WIN_OUTPUT_IDS[fileno])
-
-    WriteConsoleW = compat_ctypes_WINFUNCTYPE(
-        ctypes.wintypes.BOOL, ctypes.wintypes.HANDLE, ctypes.wintypes.LPWSTR,
-        ctypes.wintypes.DWORD, ctypes.POINTER(ctypes.wintypes.DWORD),
-        ctypes.wintypes.LPVOID)(('WriteConsoleW', ctypes.windll.kernel32))
-    written = ctypes.wintypes.DWORD(0)
-
-    GetFileType = compat_ctypes_WINFUNCTYPE(ctypes.wintypes.DWORD, ctypes.wintypes.DWORD)(('GetFileType', ctypes.windll.kernel32))
-    FILE_TYPE_CHAR = 0x0002
-    FILE_TYPE_REMOTE = 0x8000
-    GetConsoleMode = compat_ctypes_WINFUNCTYPE(
-        ctypes.wintypes.BOOL, ctypes.wintypes.HANDLE,
-        ctypes.POINTER(ctypes.wintypes.DWORD))(
-        ('GetConsoleMode', ctypes.windll.kernel32))
-    INVALID_HANDLE_VALUE = ctypes.wintypes.DWORD(-1).value
-
-    def not_a_console(handle):
-        if handle == INVALID_HANDLE_VALUE or handle is None:
-            return True
-        return ((GetFileType(handle) & ~FILE_TYPE_REMOTE) != FILE_TYPE_CHAR
-                or GetConsoleMode(handle, ctypes.byref(ctypes.wintypes.DWORD())) == 0)
-
-    if not_a_console(h):
+    h = h_tty(out)
+    if h is None:
         return False
 
     def next_nonbmp_pos(s):
@@ -3335,13 +3305,14 @@ def _windows_write_string(s, out):
         except StopIteration:
             return len(s)
 
+    written = DWORD()
     while s:
         count = min(next_nonbmp_pos(s), 1024)
 
         ret = WriteConsoleW(
-            h, s, count if count else 2, ctypes.byref(written), None)
+            h, s, count if count else 2, byref(written), None)
         if ret == 0:
-            raise OSError('Failed to write string')
+            raise OSError('Failed to write string [' + s + ']')
         if not count:  # We just wrote a non-BMP character
             assert written.value == 2
             s = s[1:]
@@ -3356,12 +3327,11 @@ def write_string(s, out=None, encoding=None):
         out = sys.stderr
     assert type(s) == compat_str
 
-    if sys.platform == 'win32' and encoding is None and hasattr(out, 'fileno'):
+    if sys.platform == 'win32' and hasattr(out, 'fileno'):
         if _windows_write_string(s, out):
             return
 
-    if ('b' in getattr(out, 'mode', '')
-            or sys.version_info[0] < 3):  # Python 2 lies about mode of sys.stderr
+    if 'b' in getattr(out, 'mode', ''):
         byt = s.encode(encoding or preferredencoding(), 'ignore')
         out.write(byt)
     elif hasattr(out, 'buffer'):
@@ -3376,10 +3346,7 @@ def write_string(s, out=None, encoding=None):
 def bytes_to_intlist(bs):
     if not bs:
         return []
-    if isinstance(bs[0], int):  # Python 3
-        return list(bs)
-    else:
-        return [ord(c) for c in bs]
+    return list(bs)
 
 
 def intlist_to_bytes(xs):
@@ -3395,33 +3362,33 @@ if sys.platform == 'win32':
 
     class OVERLAPPED(ctypes.Structure):
         _fields_ = [
-            ('Internal', ctypes.wintypes.LPVOID),
-            ('InternalHigh', ctypes.wintypes.LPVOID),
-            ('Offset', ctypes.wintypes.DWORD),
-            ('OffsetHigh', ctypes.wintypes.DWORD),
-            ('hEvent', ctypes.wintypes.HANDLE),
+            ('Internal', LPVOID),
+            ('InternalHigh', LPVOID),
+            ('Offset', DWORD),
+            ('OffsetHigh', DWORD),
+            ('hEvent', HANDLE),
         ]
 
-    kernel32 = ctypes.windll.kernel32
+    kernel32 = windll.kernel32
     LockFileEx = kernel32.LockFileEx
     LockFileEx.argtypes = [
-        ctypes.wintypes.HANDLE,     # hFile
-        ctypes.wintypes.DWORD,      # dwFlags
-        ctypes.wintypes.DWORD,      # dwReserved
-        ctypes.wintypes.DWORD,      # nNumberOfBytesToLockLow
-        ctypes.wintypes.DWORD,      # nNumberOfBytesToLockHigh
-        ctypes.POINTER(OVERLAPPED)  # Overlapped
+        HANDLE,     # hFile
+        DWORD,      # dwFlags
+        DWORD,      # dwReserved
+        DWORD,      # nNumberOfBytesToLockLow
+        DWORD,      # nNumberOfBytesToLockHigh
+        POINTER(OVERLAPPED)  # Overlapped
     ]
-    LockFileEx.restype = ctypes.wintypes.BOOL
+    LockFileEx.restype = BOOL
     UnlockFileEx = kernel32.UnlockFileEx
     UnlockFileEx.argtypes = [
-        ctypes.wintypes.HANDLE,     # hFile
-        ctypes.wintypes.DWORD,      # dwReserved
-        ctypes.wintypes.DWORD,      # nNumberOfBytesToLockLow
-        ctypes.wintypes.DWORD,      # nNumberOfBytesToLockHigh
-        ctypes.POINTER(OVERLAPPED)  # Overlapped
+        HANDLE,     # hFile
+        DWORD,      # dwReserved
+        DWORD,      # nNumberOfBytesToLockLow
+        DWORD,      # nNumberOfBytesToLockHigh
+        POINTER(OVERLAPPED)  # Overlapped
     ]
-    UnlockFileEx.restype = ctypes.wintypes.BOOL
+    UnlockFileEx.restype = BOOL
     whole_low = 0xffffffff
     whole_high = 0x7fffffff
 
@@ -3443,6 +3410,23 @@ if sys.platform == 'win32':
                             whole_low, whole_high, f._lock_file_overlapped_p):
             raise OSError('Unlocking file failed: %r' % ctypes.FormatError())
 
+    def os_lock(fileno, mode):
+        o1 = OVERLAPPED()
+        o1.Offset = 0
+        o1.OffsetHigh = 0
+        o1.hEvent = 0
+        h = msvcrt.get_osfhandle(fileno)
+        if not LockFileEx(h, mode, 0, 0xffffffff, 0x7fffffff, POINTER(o1)):
+            raise OSError('Locking file failed: %r' % ctypes.FormatError())
+
+    def os_unlock(fileno):
+        o2 = OVERLAPPED()
+        o2.Offset = 0
+        o2.OffsetHigh = 0
+        o2.hEvent = 0
+        h = msvcrt.get_osfhandle(fileno)
+        if not UnlockFileEx(h, 0, 0xffffffff, 0x7fffffff, POINTER(o2)):
+            raise OSError('Unlocking file failed: %r' % ctypes.FormatError())
 else:
     # Some platforms, such as Jython, is missing fcntl
     try:
@@ -3465,7 +3449,7 @@ else:
 
 class locked_file(object):
     def __init__(self, filename, mode, encoding=None):
-        assert mode in ['r', 'a', 'w']
+        #assert mode in ['r', 'a', 'w']
         self.f = io.open(filename, mode, encoding=encoding)
         self.mode = mode
 
@@ -3703,32 +3687,6 @@ def fix_xml_ampersands(xml_str):
         r'&(?!amp;|lt;|gt;|apos;|quot;|#x[0-9a-fA-F]{,4};|#[0-9]{,4};)',
         '&amp;',
         xml_str)
-
-
-def setproctitle(title):
-    assert isinstance(title, compat_str)
-
-    # ctypes in Jython is not complete
-    # http://bugs.jython.org/issue2148
-    if sys.platform.startswith('java'):
-        return
-
-    try:
-        libc = ctypes.cdll.LoadLibrary('libc.so.6')
-    except OSError:
-        return
-    except TypeError:
-        # LoadLibrary in Windows Python 2.7.13 only expects
-        # a bytestring, but since unicode_literals turns
-        # every string into a unicode string, it fails.
-        return
-    title_bytes = title.encode('utf-8')
-    buf = ctypes.create_string_buffer(len(title_bytes))
-    buf.value = title_bytes
-    try:
-        libc.prctl(15, buf, 0, 0, 0)
-    except AttributeError:
-        return  # Strange libc, just skip this
 
 
 def remove_start(s, start):
@@ -4168,22 +4126,15 @@ def escape_url(url):
 
 
 def read_batch_urls(batch_fd):
-    def fixup(url):
-        if not isinstance(url, compat_str):
-            url = url.decode('utf-8', 'replace')
-        BOM_UTF8 = ('\xef\xbb\xbf', '\ufeff')
-        for bom in BOM_UTF8:
-            if url.startswith(bom):
-                url = url[len(bom):]
-        url = url.lstrip()
-        if not url or url.startswith(('#', ';', ']')):
-            return False
-        # "#" cannot be stripped out since it is part of the URI
-        # However, it can be safely stipped out if follwing a whitespace
-        return re.split(r'\s#', url, 1)[0].rstrip()
-
     with contextlib.closing(batch_fd) as fd:
-        return [url for url in map(fixup, fd) if url]
+        for url in fd:
+            if isinstance(url, bytes):
+                url = url.decode('utf-8-sig', 'replace')
+            url = url.lstrip()
+            if url and url[0] not in ['#', ';', ']', '┏', '┃']:
+                # "#" cannot be stripped out since it is part of the URI
+                # However, it can be safely stipped out if follwing a whitespace
+                yield re.split(r'\s[#;]', url, 1)[0].rstrip()
 
 
 def urlencode_postdata(*args, **kargs):
@@ -4427,6 +4378,7 @@ OUTTMPL_TYPES = {
     'pl_thumbnail': None,
     'pl_description': 'description',
     'pl_infojson': 'info.json',
+    #'item_archive': None,
 }
 
 # As of [1] format syntax is:
@@ -4657,7 +4609,7 @@ def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
     return '\n'.join(format_str % tuple(row) for row in table)
 
 
-def _match_one(filter_part, dct):
+def _match_one(filter_part, dct, incomplete):
     # TODO: Generalize code with YoutubeDL._build_format_filter
     STRING_OPERATORS = {
         '*=': operator.contains,
@@ -4718,7 +4670,7 @@ def _match_one(filter_part, dct):
                         'Invalid integer value %r in filter part %r' % (
                             m.group('intval'), filter_part))
         if actual_value is None:
-            return m.group('none_inclusive')
+            return incomplete or m.group('none_inclusive')
         return op(actual_value, comparison_value)
 
     UNARY_OPERATORS = {
@@ -4733,22 +4685,25 @@ def _match_one(filter_part, dct):
     if m:
         op = UNARY_OPERATORS[m.group('op')]
         actual_value = dct.get(m.group('key'))
+        if incomplete and actual_value is None:
+            return True
         return op(actual_value)
 
     raise ValueError('Invalid filter part %r' % filter_part)
 
 
-def match_str(filter_str, dct):
-    """ Filter a dictionary with a simple string syntax. Returns True (=passes filter) or false """
-
+def match_str(filter_str, dct, incomplete=False):
+    """ Filter a dictionary with a simple string syntax. Returns True (=passes filter) or false
+        When incomplete, all conditions passes on missing fields
+    """
     return all(
-        _match_one(filter_part.replace(r'\&', '&'), dct)
+        _match_one(filter_part.replace(r'\&', '&'), dct, incomplete)
         for filter_part in re.split(r'(?<!\\)&', filter_str))
 
 
 def match_filter_func(filter_str):
-    def _match_func(info_dict):
-        if match_str(filter_str, info_dict):
+    def _match_func(info_dict, *args, **kwargs):
+        if match_str(filter_str, info_dict, *args, **kwargs):
             return None
         else:
             video_title = info_dict.get('title', info_dict.get('id', 'video'))
@@ -5982,87 +5937,20 @@ def decode_png(png_data):
 
 
 def write_xattr(path, key, value):
-    # This mess below finds the best xattr tool for the job
-    try:
-        # try the pyxattr module...
-        import xattr
+    if compat_os_name == 'nt':
+        # Write xattrs to NTFS Alternate Data Streams:
+        # http://en.wikipedia.org/wiki/NTFS#Alternate_data_streams_.28ADS.29
+        assert ':' not in key
+        assert os.path.exists(path)
 
-        if hasattr(xattr, 'set'):  # pyxattr
-            # Unicode arguments are not supported in python-pyxattr until
-            # version 0.5.0
-            # See https://github.com/ytdl-org/youtube-dl/issues/5498
-            pyxattr_required_version = '0.5.0'
-            if version_tuple(xattr.__version__) < version_tuple(pyxattr_required_version):
-                # TODO: fallback to CLI tools
-                raise XAttrUnavailableError(
-                    'python-pyxattr is detected but is too old. '
-                    'yt-dlp requires %s or above while your version is %s. '
-                    'Falling back to other xattr implementations' % (
-                        pyxattr_required_version, xattr.__version__))
-
-            setxattr = xattr.set
-        else:  # xattr
-            setxattr = xattr.setxattr
-
+        ads_fn = path + ':' + key
         try:
-            setxattr(path, key, value)
+            with open(ads_fn, 'wb') as f:
+                f.write(value)
         except EnvironmentError as e:
             raise XAttrMetadataError(e.errno, e.strerror)
-
-    except ImportError:
-        if compat_os_name == 'nt':
-            # Write xattrs to NTFS Alternate Data Streams:
-            # http://en.wikipedia.org/wiki/NTFS#Alternate_data_streams_.28ADS.29
-            assert ':' not in key
-            assert os.path.exists(path)
-
-            ads_fn = path + ':' + key
-            try:
-                with open(ads_fn, 'wb') as f:
-                    f.write(value)
-            except EnvironmentError as e:
-                raise XAttrMetadataError(e.errno, e.strerror)
-        else:
-            user_has_setfattr = check_executable('setfattr', ['--version'])
-            user_has_xattr = check_executable('xattr', ['-h'])
-
-            if user_has_setfattr or user_has_xattr:
-
-                value = value.decode('utf-8')
-                if user_has_setfattr:
-                    executable = 'setfattr'
-                    opts = ['-n', key, '-v', value]
-                elif user_has_xattr:
-                    executable = 'xattr'
-                    opts = ['-w', key, value]
-
-                cmd = ([encodeFilename(executable, True)]
-                       + [encodeArgument(o) for o in opts]
-                       + [encodeFilename(path, True)])
-
-                try:
-                    p = subprocess.Popen(
-                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-                except EnvironmentError as e:
-                    raise XAttrMetadataError(e.errno, e.strerror)
-                stdout, stderr = process_communicate_or_kill(p)
-                stderr = stderr.decode('utf-8', 'replace')
-                if p.returncode != 0:
-                    raise XAttrMetadataError(p.returncode, stderr)
-
-            else:
-                # On Unix, and can't find pyxattr, setfattr, or xattr.
-                if sys.platform.startswith('linux'):
-                    raise XAttrUnavailableError(
-                        "Couldn't find a tool to set the xattrs. "
-                        "Install either the python 'pyxattr' or 'xattr' "
-                        "modules, or the GNU 'attr' package "
-                        "(which contains the 'setfattr' tool).")
-                else:
-                    raise XAttrUnavailableError(
-                        "Couldn't find a tool to set the xattrs. "
-                        "Install either the python 'xattr' module, "
-                        "or the 'xattr' binary.")
+    else:
+        raise Exception()
 
 
 def random_birthday(year_field, month_field, day_field):

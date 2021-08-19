@@ -978,54 +978,31 @@ class TestYoutubeDL(unittest.TestCase):
             ydl.process_ie_result(copy.deepcopy(playlist))
             return ydl.downloaded_info_dicts
 
-        def get_ids(params):
-            return [int(v['id']) for v in get_downloaded_info_dicts(params)]
+        def test_selection(params, expected_ids):
+            results = [
+                (v['playlist_autonumber'] - 1, (int(v['id']), v['playlist_index']))
+                for v in get_downloaded_info_dicts(params)]
+            self.assertEqual(results, list(enumerate(zip(expected_ids, expected_ids))))
 
-        result = get_ids({})
-        self.assertEqual(result, [1, 2, 3, 4])
-
-        result = get_ids({'playlistend': 10})
-        self.assertEqual(result, [1, 2, 3, 4])
-
-        result = get_ids({'playlistend': 2})
-        self.assertEqual(result, [1, 2])
-
-        result = get_ids({'playliststart': 10})
-        self.assertEqual(result, [])
-
-        result = get_ids({'playliststart': 2})
-        self.assertEqual(result, [2, 3, 4])
-
-        result = get_ids({'playlist_items': '2-4'})
-        self.assertEqual(result, [2, 3, 4])
-
-        result = get_ids({'playlist_items': '2,4'})
-        self.assertEqual(result, [2, 4])
-
-        result = get_ids({'playlist_items': '10'})
-        self.assertEqual(result, [])
-
-        result = get_ids({'playlist_items': '3-10'})
-        self.assertEqual(result, [3, 4])
-
-        result = get_ids({'playlist_items': '2-4,3-4,3'})
-        self.assertEqual(result, [2, 3, 4])
+        test_selection({}, [1, 2, 3, 4])
+        test_selection({'playlistend': 10}, [1, 2, 3, 4])
+        test_selection({'playlistend': 2}, [1, 2])
+        test_selection({'playliststart': 10}, [])
+        test_selection({'playliststart': 2}, [2, 3, 4])
+        test_selection({'playlist_items': '2-4'}, [2, 3, 4])
+        test_selection({'playlist_items': '2,4'}, [2, 4])
+        test_selection({'playlist_items': '10'}, [])
 
         # Tests for https://github.com/ytdl-org/youtube-dl/issues/10591
-        # @{
-        result = get_downloaded_info_dicts({'playlist_items': '2-4,3-4,3'})
-        self.assertEqual(result[0]['playlist_index'], 2)
-        self.assertEqual(result[1]['playlist_index'], 3)
+        test_selection({'playlist_items': '2-4,3-4,3'}, [2, 3, 4])
+        test_selection({'playlist_items': '4,2'}, [4, 2])
 
-        result = get_downloaded_info_dicts({'playlist_items': '2-4,3-4,3'})
-        self.assertEqual(result[0]['playlist_index'], 2)
-        self.assertEqual(result[1]['playlist_index'], 3)
-        self.assertEqual(result[2]['playlist_index'], 4)
-
-        result = get_downloaded_info_dicts({'playlist_items': '4,2'})
-        self.assertEqual(result[0]['playlist_index'], 4)
-        self.assertEqual(result[1]['playlist_index'], 2)
-        # @}
+        # Tests for https://github.com/yt-dlp/yt-dlp/issues/720
+        # https://github.com/yt-dlp/yt-dlp/issues/302
+        test_selection({'playlistreverse': True}, [4, 3, 2, 1])
+        test_selection({'playliststart': 2, 'playlistreverse': True}, [4, 3, 2])
+        test_selection({'playlist_items': '2,4', 'playlistreverse': True}, [4, 2])
+        test_selection({'playlist_items': '4,2'}, [4, 2])
 
     def test_urlopen_no_file_protocol(self):
         # see https://github.com/ytdl-org/youtube-dl/issues/8227

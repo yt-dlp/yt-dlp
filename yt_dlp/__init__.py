@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 # coding: utf-8
-
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 __license__ = 'Public Domain'
 
@@ -9,6 +7,7 @@ import codecs
 import io
 import itertools
 import os
+import pprint
 import random
 import re
 import sys
@@ -27,6 +26,7 @@ from .utils import (
     DateRange,
     decodeOption,
     DownloadError,
+    ensure_vtp,
     error_to_compat_str,
     ExistingVideoReached,
     expand_path,
@@ -37,7 +37,6 @@ from .utils import (
     RejectedVideoReached,
     render_table,
     SameFileError,
-    setproctitle,
     std_headers,
     write_string,
 )
@@ -68,8 +67,6 @@ def _real_main(argv=None):
 
     workaround_optparse_bug9161()
 
-    setproctitle('yt-dlp')
-
     parser, opts, args = parseOpts(argv)
     warnings = []
 
@@ -90,7 +87,7 @@ def _real_main(argv=None):
         sys.exit(0)
 
     # Batch file verification
-    batch_urls = []
+    all_urls = []
     if opts.batchfile is not None:
         try:
             if opts.batchfile == '-':
@@ -98,15 +95,36 @@ def _real_main(argv=None):
             else:
                 batchfd = io.open(
                     expand_path(opts.batchfile),
-                    'r', encoding='utf-8', errors='ignore')
-            batch_urls = read_batch_urls(batchfd)
-            if opts.verbose:
-                write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
+                    'r', encoding='utf-8-sig', errors='ignore')
+            all_urls = list(read_batch_urls(batchfd))
+            #if opts.verbose:
+            #    write_string('[debug] Batch file urls: \n' + repr(all_urls) + '\n')
         except IOError:
             sys.exit('ERROR: batch file %s could not be read' % opts.batchfile)
-    all_urls = batch_urls + [url.strip() for url in args]  # batch_urls are already striped in read_batch_urls
-    _enc = preferredencoding()
-    all_urls = [url.decode(_enc, 'ignore') if isinstance(url, bytes) else url for url in all_urls]
+
+    for url in args:
+        if isinstance(url, bytes):
+            url = url.decode(preferredencoding(), 'ignore')
+        url = url.strip()
+        if url and url[0] not in ['#', ';']:
+            all_urls.append(url)
+
+    def url_adjust(url):
+        if len(url) > 2 and url[0]=='\"' and url[-1]=='\"':
+            url = url[1:-1].strip()
+        if re.match(r'^[0-9A-Za-z_-]{10}[048AEIMQUYcgkosw]$', url):
+            url = 'https://www.youtube.com/watch?v=' + url
+        else:
+            if re.match(r'^UC[0-9A-Za-z_-]{21}[AQgw]$', url):
+                url = 'https://www.youtube.com/channel/' + url
+            if not url.endswith('/videos') and url.startswith('https://www.youtube.com/channel/UC'):
+                url += '/videos'
+        return url
+
+    seen = set()
+    all_urls = [x for x in map(url_adjust, all_urls) if x is not None and len(seen) < len(seen.add(x) or seen)]
+
+    #sys.stdout.write('\n' + str(all_urls)[2:-2].replace('\', \'', '\n') + '\n')
 
     if opts.list_extractors:
         for ie in list_extractors(opts.age_limit):
@@ -346,7 +364,7 @@ def _real_main(argv=None):
 
     any_getting = opts.forceprint or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration or opts.dumpjson or opts.dump_single_json
     any_printing = opts.print_json
-    download_archive_fn = expand_path(opts.download_archive) if opts.download_archive is not None else opts.download_archive
+    download_archive_fn = expand_path(opts.download_archive) if opts.download_archive and opts.download_archive != os.devnull else None
 
     # If JSON is not printed anywhere, but comments are requested, save it to file
     printing_json = opts.dumpjson or opts.print_json or opts.dump_single_json
@@ -626,6 +644,7 @@ def _real_main(argv=None):
         'download_archive': download_archive_fn,
         'break_on_existing': opts.break_on_existing,
         'break_on_reject': opts.break_on_reject,
+        'continue_batch': opts.continue_batch,
         'skip_playlist_after_errors': opts.skip_playlist_after_errors,
         'cookiefile': opts.cookiefile,
         'cookiesfrombrowser': opts.cookiesfrombrowser,
@@ -680,6 +699,8 @@ def _real_main(argv=None):
         'useid': opts.useid or None,
     }
 
+    #pprint.PrettyPrinter(depth = 2).pprint(ydl_opts)
+
     with YoutubeDL(ydl_opts) as ydl:
         actual_use = len(all_urls) or opts.load_info_filename
 
@@ -705,27 +726,42 @@ def _real_main(argv=None):
                 'You must provide at least one URL.\n'
                 'Type yt-dlp --help to see a list of all options.')
 
-        try:
-            if opts.load_info_filename is not None:
-                retcode = ydl.download_with_info_file(expand_path(opts.load_info_filename))
-            else:
-                retcode = ydl.download(all_urls)
-        except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
-            ydl.to_screen('Aborting remaining downloads')
-            retcode = 101
+        if opts.load_info_filename is not None:
+            retcode = ydl.download_with_info_file(expand_path(opts.load_info_filename))
+        else:
+            retcode = ydl.download(all_urls)
+
+        #try:
+        #    if opts.load_info_filename is not None:
+        #        retcode = ydl.download_with_info_file(expand_path(opts.load_info_filename))
+        #    else:
+        #        retcode = ydl.download(all_urls)
+        #except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
+        #    #ydl.to_screen('Aborting remaining downloads')
+        #    #ydl.to_screen('[1;31mMaximum number of downloaded files reached (%d)[0m.' % ydl.params.get('max_downloads'))
+        #    retcode = 101
 
     sys.exit(retcode)
 
 
 def main(argv=None):
     try:
-        _real_main(argv)
+        blink_off = sys.platform == 'win32' and ensure_vtp()
+        if blink_off:
+            sys.stdout.write('[?25l')
+        try:
+            _real_main(argv)
+        finally:
+            if blink_off:
+                sys.stdout.write('[?25h')
     except DownloadError:
         sys.exit(1)
     except SameFileError:
         sys.exit('ERROR: fixed output name but more than one file to download')
     except KeyboardInterrupt:
-        sys.exit('\nERROR: Interrupted by user')
+        sys.stdout.flush()
+        sys.stdout.write('\n')
+        sys.exit()
     except BrokenPipeError:
         # https://docs.python.org/3/library/signal.html#note-on-sigpipe
         devnull = os.open(os.devnull, os.O_WRONLY)
