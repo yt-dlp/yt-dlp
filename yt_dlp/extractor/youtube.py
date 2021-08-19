@@ -723,6 +723,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     continue
                 message = cls._get_text(alert, 'text')
                 if message:
+                    message = data['header']['c4TabbedHeaderRenderer']['channelId'] + ': ' + message
                     yield alert_type, message
 
     def _report_alerts(self, alerts, expected=True, fatal=True):
@@ -737,7 +738,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         for alert_type, alert_message in (warnings + errors[:-1]):
             self.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
         if errors:
-            raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
+            raise ExtractorError(errors[-1][1], expected=expected)
 
     def _extract_and_report_alerts(self, data, *args, **kwargs):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
@@ -2817,15 +2818,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if reason:
                 self.raise_no_formats(reason, expected=True)
 
-        for f in formats:
-            if '&c=WEB&' in f['url'] and '&ratebypass=yes&' not in f['url']:  # throttled
-                f['source_preference'] = -10
-                # TODO: this method is not reliable
-                f['format_note'] = format_field(f, 'format_note', '%s ') + '(maybe throttled)'
+        #for f in formats:
+        #    if '&c=WEB&' in f['url'] and '&ratebypass=yes&' not in f['url']:  # throttled
+        #        f['source_preference'] = -10
+        #        # TODO: this method is not reliable
+        #        f['format_note'] = format_field(f, 'format_note', '%s ') + '(maybe throttled)'
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
-        self._sort_formats(formats, ('quality', 'height', 'fps', 'source'))
+        #self._sort_formats(formats, ('quality', 'height', 'fps', 'source'))
+        self._sort_formats(formats)
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:
@@ -4319,7 +4321,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     else:
                         self.report_warning('The URL does not have a %s tab. %s is being downloaded instead' % (mobj['tab'][1:], tab_name))
 
-        self.write_debug('Final URL: %s' % url)
+        #self.write_debug('Final URL: %s' % url)
 
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
         if 'no-youtube-unavailable-videos' not in compat_opts:

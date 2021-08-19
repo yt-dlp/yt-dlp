@@ -1244,10 +1244,10 @@ class YoutubeDL(object):
                 self.report_error(msg)
             except ExtractorError as e:  # An error we somewhat expected
                 self.report_error(compat_str(e), e.format_traceback())
-            except ThrottledDownload:
-                self.to_stderr('\r')
-                self.report_warning('The download speed is below throttle limit. Re-extracting data')
-                return wrapper(self, *args, **kwargs)
+            #except ThrottledDownload:
+            #    self.to_stderr('\r')
+            #    self.report_warning('The download speed is below throttle limit. Re-extracting data')
+            #    return wrapper(self, *args, **kwargs)
             except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
                 raise
             except Exception as e:
@@ -1333,7 +1333,7 @@ class YoutubeDL(object):
             ie_result = self.process_video_result(ie_result, download=download)
             additional_urls = (ie_result or {}).get('additional_urls')
 
-            if 'multi_fmt_dl' in ie_result:
+            if ie_result is None or 'multi_fmt_dl' in ie_result:
                 self.to_screen('')
             else:
                 pass
@@ -1530,7 +1530,7 @@ class YoutubeDL(object):
             try:
                 entry = next(gen)
                 if entry is None:
-                    raise EntryNotInPlaylist() 
+                    raise EntryNotInPlaylist()
                 entries.append(entry)
             except StopIteration:
                 break
@@ -1550,7 +1550,7 @@ class YoutubeDL(object):
             #except (ExistingVideoReached, RejectedVideoReached):
             #    break
 
-        ie_result['entries'] = entries            
+        ie_result['entries'] = entries
 
         # Save playlist_index before re-ordering
         entries = [
@@ -1684,7 +1684,7 @@ class YoutubeDL(object):
             playlist_results.append(entry_result)
         ie_result['entries'] = playlist_results
         #self.to_screen('[download] Finished downloading playlist: %s' % playlist)
-        msg = f"       └―► finished downloading [1m{playlist_id}[0m ── [{playlist_title.replace(' - Videos' ,'')}]"     # GCS GCS
+        msg = f"       └―► finished downloading [1m{playlist_id}[0m ── [{playlist_title.replace(' - Videos' ,'')}]"
         if playlist_id.startswith("UC"):
             msg = msg + f"  ―→  [01;48;5;2mE:\\yt\\{playlist_id}[0m"
         self.to_screen(msg + '\n')
@@ -2163,7 +2163,7 @@ class YoutubeDL(object):
                 def test_thumbnail(t):
                     if not test_all and not t.get('_test_url'):
                         return True
-                    to_screen('Testing thumbnail %s' % t['id'])
+                    #to_screen('Testing thumbnail %s' % t['id'])
                     try:
                         self.urlopen(HEADRequest(t['url']))
                     except network_exceptions as err:
@@ -2651,7 +2651,7 @@ class YoutubeDL(object):
         if info_dict.get('multi_fmt_dl') == True:
             self.to_screen(f"[1;38;5;208m{full_filename}[0m ...")
         else:
-            self.to_screen(f"[1;38;5;208m{full_filename}[0m ... [38;5;238mhttps://www.youtube.com/watch?v={info_dict['id']}[0m")
+            self.to_screen(f" ...   [38;5;238mhttps://www.youtube.com/watch?v=[1m{info_dict['id']}[0m                     {self.next_ansi()}{full_filename}[0m")
 
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
@@ -3041,19 +3041,26 @@ class YoutubeDL(object):
                     self.report_error('post hooks: %s' % str(err))
                     return
 
-                ud = info_dict['upload_date']
-                ud = ud[:4] + '/' + ud[4:6] + '/' + ud[6:]
+                ud = info_dict.get('upload_date')
+                ud = '??/??/????' if ud is None else ud[:4] + '/' + ud[4:6] + '/' + ud[6:]
 
-                hms = formatSeconds(info_dict['duration'])
+                hms = info_dict.get('duration')
+                hms = '??:??' if hms is None else formatSeconds(hms)
 
-                fmt = info_dict['format'].replace(' -', '+').replace(' (', '+').split('+')
+                fmt = info_dict['format']
+                #print(fmt)
+                fmt = fmt.replace(' -', '+').replace(' (', '+').split('+')
                 itag = fmt[0]
                 if len(fmt) > 3:
                     itag += '+' + fmt[3]
-                (w, h) = fmt[1].split('x')
+                w, h = '?', '?'
+                if len(fmt) > 1:
+                    wh = fmt[1].split('x')
+                    if len(wh) == 2:
+                        (w, h) = wh
 
                 filetime = time.localtime(os.path.getmtime(full_filename))
-                self.to_screen(f"{ud}  {hms:>9}  ──  {itag:<7}   {info_dict['fps']:>2}  {w:>6} ×{h:>5}  ──  {time.strftime('%Y-%m-%d %H:%M:%S',filetime)} {os.path.getsize(full_filename):>14,}  {self.next_ansi()}{full_filename:<58}[0m")
+                self.to_screen(f"{ud}  {hms:>9}  ──  {itag:<7}   {info_dict.get('fps') or '??':>2}  {w:>6} ×{h:>5}  ──  {time.strftime('%Y-%m-%d %H:%M:%S',filetime)} {os.path.getsize(full_filename):>14,}  {self.next_ansi()}{full_filename:<58}[0m")
 
                 must_record_download_archive = True
 
@@ -3108,7 +3115,10 @@ class YoutubeDL(object):
                     raise
                 except ExistingVideoReached:
                     #self.to_screen(f"[38;5;124mEncountered a file that was previously recorded in the archive, stopping due to --break-on-existing[0m")
-                    self.to_screen(f"[38;5;124m--break-on-existing [0m", True)
+                    #self.to_screen(f"[38;5;124m--break-on-existing [0m", True)
+                    msg = f"\n       └―► [38;5;124m--break-on-existing [0m"
+                    if self.params.get('continue_batch', False): msg += f" [38;5;216m--continue-batch[0m"
+                    self.to_screen(msg + '\n')
                     raise
                 except RejectedVideoReached:
                     #self.to_screen(f"[38;5;124mEncountered a file that did not match the filter, stopping due to --break-on-reject[0m")
@@ -3125,7 +3135,7 @@ class YoutubeDL(object):
                     #raise
                     return 101
                 #self.to_screen('[info] Continue batch processing of additional URLs (--continue-batch)')
-                self.to_screen(f"[38;5;2m--continue-batch[0m")
+                #self.to_screen(f"[38;5;2m--continue-batch[0m")
 
         return self._download_retcode
 
@@ -3622,7 +3632,7 @@ class YoutubeDL(object):
                 ret.append(suffix + thumb_ext)
                 t['filepath'] = thumb_filename
                 #self.to_screen('[%s] %s: Thumbnail %sis already present' % (info_dict['extractor'], info_dict['id'], thumb_display_id))
-                self.to_screen('[%s] %s: Thumbnail %s is already present' % (info_dict['extractor'], info_dict['id'], thumb_filename))      # GCS GCS
+                #self.to_screen('[%s] %s: Thumbnail %s is already present' % (info_dict['extractor'], info_dict['id'], thumb_filename))      # GCS GCS
             else:
                 #self.to_screen('[%s] %s: Downloading thumbnail %s ...' % (info_dict['extractor'], info_dict['id'], thumb_display_id))        # GCS GCS
                 try:
@@ -3631,7 +3641,7 @@ class YoutubeDL(object):
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
                     ret.append(suffix + thumb_ext)
-                    self.to_screen('[%s] %s: Writing thumbnail %sto: %s' % (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
+                    #self.to_screen('[%s] %s: Writing thumbnail %sto: %s' % (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
                     t['filepath'] = thumb_filename
                     #info_dict['thumb_filename'] = thumb_filename  # GCS GCS
                 except network_exceptions as err:
@@ -3658,8 +3668,8 @@ class YoutubeDL(object):
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
                 ret.append(suffix + thumb_ext)
                 t['filepath'] = thumb_filename
-                self.to_screen('[%s] %s: Thumbnail %sis already present' %
-                               (info_dict['extractor'], info_dict['id'], thumb_display_id))
+                #self.to_screen('[%s] %s: Thumbnail %s is already present' % (info_dict['extractor'], info_dict['id'], thumb_display_id))
+                #self.to_screen('[%s] %s: Thumbnail %s is already present' % (info_dict['extractor'], info_dict['id'], thumb_filename))      # GCS GCS
             else:
                 #self.to_screen('[%s] %s: Downloading thumbnail %s ...' %
                 #               (info_dict['extractor'], info_dict['id'], thumb_display_id))

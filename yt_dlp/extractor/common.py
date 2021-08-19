@@ -598,8 +598,6 @@ class InfoExtractor(object):
                     if self.__maybe_fake_ip_and_retry(e.countries):
                         continue
                     raise
-        except ExtractorError:
-            raise
         except compat_http_client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True)
         except (KeyError, StopIteration) as e:
@@ -1499,9 +1497,12 @@ class InfoExtractor(object):
     class FormatSort:
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
-        default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-                   'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
-                   'proto', 'ext', 'hasaud', 'source', 'format_id')  # These must not be aliases
+        #default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
+        #           'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
+        #           'proto', 'ext', 'hasaud', 'source')  # These must not be aliases
+        #default = ('hidden', 'aud_or_vid', 'hasvid', 'res', 'fps', 'vext', 'aext', 'size', 'br', 'asr', 'format_id'  )
+        default = ('hasvid', 'vext', 'aext', 'res', 'fps', 'size', 'br', 'asr', 'format_id'  )
+
         ytdl_default = ('hasaud', 'quality', 'tbr', 'filesize', 'vbr',
                         'height', 'width', 'proto', 'vext', 'abr', 'aext',
                         'fps', 'fs_approx', 'source', 'format_id')

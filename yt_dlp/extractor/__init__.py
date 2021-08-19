@@ -97,9 +97,9 @@ if True:
     ]
     _ALL_CLASSES.append(GenericIE)
 
-    import pprint
-    for x in _ALL_CLASSES:
-        print(x.__name__)
+    #import pprint
+    #for x in _ALL_CLASSES:
+    #    print(x.__name__)
 
     #_PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
     #_ALL_CLASSES = _PLUGIN_CLASSES + _ALL_CLASSES

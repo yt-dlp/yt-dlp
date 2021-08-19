@@ -643,7 +643,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             return [], info
 
         temp_filename = prepend_extension(filename, 'temp')
-        self.to_screen('Adding metadata to "%s"' % filename)
+        #self.to_screen('Adding metadata to "%s"' % filename, prefix=False)
         self.run_ffmpeg_multiple_files(
             (filename, metadata_filename), temp_filename,
             itertools.chain(self._options(info['ext']), *options))
@@ -665,7 +665,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
                 args.extend(['-map', '%u:a:0' % (i)])
             if fmt.get('vcodec') != 'none':
                 args.extend(['-map', '%u:v:0' % (i)])
-        self.to_screen('Merging formats into "%s"' % filename)
+        self.to_screen('Merging formats into "%s"' % filename, prefix=False)
         self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args)
         os.rename(encodeFilename(temp_filename), encodeFilename(filename))
         return info['__files_to_merge'], info

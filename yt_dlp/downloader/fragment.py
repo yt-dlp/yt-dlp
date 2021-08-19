@@ -321,8 +321,8 @@ class FragmentFD(FileDownloader):
                 total_frags_str += ' (not including %d ad)' % ad_frags
         else:
             total_frags_str = 'unknown (live)'
-        self.to_screen(
-            '[%s] Total fragments: %s' % (self.FD_NAME, total_frags_str))
+        #self.to_screen(f"[{self.FD_NAME}] Total fragments: {total_frags_str}")
+        self.to_screen(f"Total fragments: {total_frags_str}")
 
         tmpfilename = self.temp_name(ctx['filename'])
 

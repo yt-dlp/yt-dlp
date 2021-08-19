@@ -4378,7 +4378,7 @@ OUTTMPL_TYPES = {
     'pl_thumbnail': None,
     'pl_description': 'description',
     'pl_infojson': 'info.json',
-    'item_archive': None,
+    #'item_archive': None,
 }
 
 # As of [1] format syntax is:

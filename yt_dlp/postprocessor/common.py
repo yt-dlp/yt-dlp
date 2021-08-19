@@ -45,7 +45,7 @@ class PostProcessor(object):
     def to_screen(self, msg, prefix=True, *args, **kwargs):
         if self._downloader:
             #if prefix:
-            msg = (prefix and ('[' + self.PP_NAME + '] ')) + msg
+            msg = (('[' + self.PP_NAME + '] ') if prefix else '') + msg
             return self._downloader.to_screen(msg, *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):
