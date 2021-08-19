@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 import os
 import re
@@ -117,7 +117,7 @@ class RtmpFD(FileDownloader):
 
         # Check for rtmpdump first
         if not check_executable('rtmpdump', ['-h']):
-            self.report_error('RTMP download detected but "rtmpdump" could not be run. Please install')
+            self.report_error('RTMP download detected but "rtmpdump" could not be run. Please install it.')
             return False
 
         # Download using rtmpdump. rtmpdump returns exit code 2 when

@@ -1,5 +1,6 @@
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
+import io
 import os.path
 import optparse
 import re
@@ -52,14 +53,12 @@ def _hide_login_info(opts):
 def parseOpts(overrideArguments=None):
     def _readOptions(filename_bytes, default=[]):
         try:
-            optionf = open(filename_bytes)
+            optionf = io.open(filename_bytes, 'r', encoding='utf8')
         except IOError:
             return default  # silently skip if file is not present
         try:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
             contents = optionf.read()
-            if sys.version_info < (3,):
-                contents = contents.decode(preferredencoding())
             res = compat_shlex_split(contents, comments=True)
         finally:
             optionf.close()
@@ -67,7 +66,7 @@ def parseOpts(overrideArguments=None):
 
     def _readUserConf(package_name, default=[]):
         # .config
-        xdg_config_home = compat_getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+        xdg_config_home = compat_getenv('XDG_CONFIG_HOME') or compat_expanduser('~' + os.path.sep + '.config')
         userConfFile = os.path.join(xdg_config_home, package_name, 'config')
         if not os.path.isfile(userConfFile):
             userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
@@ -181,14 +180,11 @@ def parseOpts(overrideArguments=None):
     fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
     fmt.format_option_strings = _format_option_string
 
-    kw = {
-        'version': __version__,
-        'formatter': fmt,
-        'usage': '%prog [OPTIONS] URL [URL...]',
-        'conflict_handler': 'resolve',
-    }
-
-    parser = optparse.OptionParser(**compat_kwargs(kw))
+    parser = optparse.OptionParser(
+        usage='%prog [OPTIONS] URL [URL...]',
+        formatter=fmt,
+        version=__version__,
+        conflict_handler='resolve')
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -443,6 +439,13 @@ def parseOpts(overrideArguments=None):
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
         help='Stop the download process when encountering a file that has been filtered out')
+    selection.add_option(
+        '--continue-batch',
+        action='store_true', dest='continue_batch', default=False,
+        help=(
+            'Apply the `--max-downloads`, `--break-on-existing` and `--break-on-reject` options separately '
+            'for each URL given on the command line or in a batch file. Used with playlists; if one playlist '
+            'aborts on a break condition, continue downloading with the next URL in the batch.'))
     selection.add_option(
         '--skip-playlist-after-errors', metavar='N',
         dest='skip_playlist_after_errors', default=None, type=int,
@@ -1293,9 +1296,9 @@ def parseOpts(overrideArguments=None):
         choices=('never', 'ignore', 'warn', 'detect_or_warn', 'force'),
         help=(
             'Automatically correct known faults of the file. '
-            'One of never (do nothing), warn (only emit a warning), '
+            'One of: never (do nothing), warn (only emit a warning), '
             'detect_or_warn (the default; fix file if we can, warn otherwise), '
-            'force (try fixing even if file already exists'))
+            'force (try fixing even if file already exists)'))
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',

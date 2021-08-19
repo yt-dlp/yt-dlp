@@ -1,5 +1,7 @@
 # coding: utf-8
-from __future__ import unicode_literals, print_function, division
+#!/usr/bin/env python3
+
+from __future__ import print_function, division
 
 """
 A partial parser for WebVTT segments. Interprets enough of the WebVTT stream

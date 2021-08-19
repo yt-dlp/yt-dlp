@@ -1,5 +1,6 @@
 # coding: utf-8
-from __future__ import unicode_literals
+#!/usr/bin/env python3
+
 import hashlib
 import hmac
 import json

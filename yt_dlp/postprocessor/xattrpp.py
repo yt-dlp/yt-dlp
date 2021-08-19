@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+#!/usr/bin/env python3
 
 from .common import PostProcessor
 from ..compat import compat_os_name
