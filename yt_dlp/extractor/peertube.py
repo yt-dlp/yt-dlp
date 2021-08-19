@@ -529,7 +529,7 @@ class PeerTubeIE(InfoExtractor):
         return subtitles
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host') or mobj.group('host_2')
         video_id = mobj.group('id')
 

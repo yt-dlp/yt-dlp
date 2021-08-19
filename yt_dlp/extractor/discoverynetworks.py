@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .dplay import DPlayIE
 
@@ -35,7 +34,7 @@ class DiscoveryNetworksDeIE(DPlayIE):
     }]
 
     def _real_extract(self, url):
-        domain, programme, alternate_id = re.match(self._VALID_URL, url).groups()
+        domain, programme, alternate_id = self._match_valid_url(url).groups()
         country = 'GB' if domain == 'dplay.co.uk' else 'DE'
         realm = 'questuk' if country == 'GB' else domain.replace('.', '')
         return self._get_disco_api_info(

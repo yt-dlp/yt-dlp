@@ -246,7 +246,7 @@ class TVPWebsiteIE(InfoExtractor):
                     video_id=video_id)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id, playlist_id = mobj.group('display_id', 'id')
         return self.playlist_result(
             self._entries(display_id, playlist_id), playlist_id)

@@ -38,7 +38,7 @@ class DBTVIE(InfoExtractor):
             webpage)]
 
     def _real_extract(self, url):
-        display_id, video_id = re.match(self._VALID_URL, url).groups()
+        display_id, video_id = self._match_valid_url(url).groups()
         info = {
             '_type': 'url_transparent',
             'id': video_id,

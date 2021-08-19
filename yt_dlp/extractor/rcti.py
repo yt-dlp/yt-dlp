@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 import itertools
 import json
 import random
-import re
 import time
 
 from .common import InfoExtractor
@@ -148,7 +147,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
     }
 
     def _real_extract(self, url):
-        match = re.match(self._VALID_URL, url).groupdict()
+        match = self._match_valid_url(url).groupdict()
         video_type, video_id, display_id = match['type'], match['id'], match['display_id']
 
         url_api_version = 'v2' if video_type == 'missed-event' else 'v1'
@@ -280,7 +279,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                 yield url_res
 
     def _real_extract(self, url):
-        series_id, display_id = re.match(self._VALID_URL, url).groups()
+        series_id, display_id = self._match_valid_url(url).groups()
 
         series_meta, meta_paths = self._call_api(
             'https://api.rctiplus.com/api/v1/program/%s/detail' % series_id, display_id, 'Downloading series metadata')
@@ -347,7 +346,7 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
         return False if RCTIPlusIE.suitable(url) else super(RCTIPlusTVIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        match = re.match(self._VALID_URL, url).groupdict()
+        match = self._match_valid_url(url).groupdict()
         tv_id = match.get('tvname') or match.get('eventname')
         webpage = self._download_webpage(url, tv_id)
         video_type, video_id = self._search_regex(

@@ -2088,8 +2088,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         mobj = re.match(cls._VALID_URL, url, re.VERBOSE)
         if mobj is None:
             raise ExtractorError('Invalid URL: %s' % url)
-        video_id = mobj.group(2)
-        return video_id
+        return mobj.group('id')
 
     def _extract_chapters_from_json(self, data, duration):
         chapter_list = traverse_obj(
@@ -4452,7 +4451,7 @@ class YoutubeYtBeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         playlist_id = mobj.group('playlist_id')
         return self.url_result(

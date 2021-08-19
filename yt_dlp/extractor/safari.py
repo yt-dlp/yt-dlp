@@ -127,7 +127,7 @@ class SafariIE(SafariBaseIE):
     _UICONF_ID = '29375172'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
 
         reference_id = mobj.group('reference_id')
         if reference_id:
@@ -189,7 +189,7 @@ class SafariApiIE(SafariBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         part = self._download_json(
             url, '%s/%s' % (mobj.group('course_id'), mobj.group('part')),
             'Downloading part JSON')

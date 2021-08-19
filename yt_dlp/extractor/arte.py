@@ -49,7 +49,7 @@ class ArteTVIE(ArteTVBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         lang = mobj.group('lang') or mobj.group('lang_2')
 
@@ -227,7 +227,7 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
     }]
 
     def _real_extract(self, url):
-        lang, playlist_id = re.match(self._VALID_URL, url).groups()
+        lang, playlist_id = self._match_valid_url(url).groups()
         collection = self._download_json(
             '%s/collectionData/%s/%s?source=videos'
             % (self._API_BASE, lang, playlist_id), playlist_id)

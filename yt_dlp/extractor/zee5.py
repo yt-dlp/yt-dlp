@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -114,7 +113,7 @@ class Zee5IE(InfoExtractor):
         self._login()
 
     def _real_extract(self, url):
-        video_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
+        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         access_token_request = self._download_json(
             'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
             video_id, note='Downloading access token')

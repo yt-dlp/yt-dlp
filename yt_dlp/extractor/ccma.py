@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import calendar
 import datetime
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -61,7 +60,7 @@ class CCMAIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        media_type, media_id = re.match(self._VALID_URL, url).groups()
+        media_type, media_id = self._match_valid_url(url).groups()
 
         media = self._download_json(
             'http://dinamics.ccma.cat/pvideo/media.jsp', media_id, query={

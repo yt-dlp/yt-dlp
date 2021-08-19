@@ -2,7 +2,6 @@
 
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import (
@@ -222,7 +221,7 @@ class FranceTVIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         catalog = mobj.group('catalog')
 
@@ -546,7 +545,7 @@ class FranceTVJeunesseIE(FranceTVBaseInfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
 
         playlist = self._download_json(

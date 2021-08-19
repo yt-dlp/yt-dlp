@@ -165,7 +165,7 @@ class UstreamIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        m = re.match(self._VALID_URL, url)
+        m = self._match_valid_url(url)
         video_id = m.group('id')
 
         # some sites use this embed format (see: https://github.com/ytdl-org/youtube-dl/issues/2990)
@@ -258,7 +258,7 @@ class UstreamChannelIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        m = re.match(self._VALID_URL, url)
+        m = self._match_valid_url(url)
         display_id = m.group('slug')
         webpage = self._download_webpage(url, display_id)
         channel_id = self._html_search_meta('ustream:channel_id', webpage)

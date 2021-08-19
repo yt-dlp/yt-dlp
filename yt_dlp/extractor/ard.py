@@ -199,7 +199,7 @@ class ARDMediathekIE(ARDMediathekBaseIE):
 
     def _real_extract(self, url):
         # determine video id from url
-        m = re.match(self._VALID_URL, url)
+        m = self._match_valid_url(url)
 
         document_id = None
 
@@ -325,7 +325,7 @@ class ARDIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('id')
 
         player_url = mobj.group('mainurl') + '~playerXml.xml'
@@ -525,7 +525,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         return self.playlist_result(entries, playlist_title=display_id)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('video_id')
         display_id = mobj.group('display_id')
         if display_id:

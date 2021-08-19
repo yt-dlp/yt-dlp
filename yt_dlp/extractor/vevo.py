@@ -212,7 +212,7 @@ class VevoPlaylistIE(VevoBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
         playlist_kind = mobj.group('kind')
 

@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 import json
 
 from .common import InfoExtractor
@@ -32,7 +31,7 @@ class GiantBombIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         display_id = mobj.group('display_id')
 

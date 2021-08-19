@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -20,7 +19,7 @@ class NineCNineMediaIE(InfoExtractor):
     _API_BASE_TEMPLATE = 'http://capi.9c9media.com/destinations/%s/platforms/desktop/contents/%s/'
 
     def _real_extract(self, url):
-        destination_code, content_id = re.match(self._VALID_URL, url).groups()
+        destination_code, content_id = self._match_valid_url(url).groups()
         api_base_url = self._API_BASE_TEMPLATE % (destination_code, content_id)
         content = self._download_json(api_base_url, content_id, query={
             '$include': '[Media.Name,Season,ContentPackages.Duration,ContentPackages.Id]',

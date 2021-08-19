@@ -61,7 +61,7 @@ class UplynkPreplayIE(UplynkIE):
     _TEST = None
 
     def _real_extract(self, url):
-        path, external_id, video_id = re.match(self._VALID_URL, url).groups()
+        path, external_id, video_id = self._match_valid_url(url).groups()
         display_id = video_id or external_id
         preplay = self._download_json(url, display_id)
         content_url = 'http://content.uplynk.com/%s.m3u8' % path

@@ -238,7 +238,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'countries': smuggled_data.get('geo_countries'),
         })
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         provider_id = mobj.group('provider_id')
         video_id = mobj.group('id')
 
@@ -404,7 +404,7 @@ class ThePlatformFeedIE(ThePlatformBaseIE):
         return ret
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
 
         video_id = mobj.group('id')
         provider_id = mobj.group('provider_id')

@@ -672,7 +672,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             headers['Referer'] = url
 
         # Extract ID from URL
-        video_id, unlisted_hash = re.match(self._VALID_URL, url).groups()
+        video_id, unlisted_hash = self._match_valid_url(url).groups()
         if unlisted_hash:
             token = self._download_json(
                 'https://vimeo.com/_rv/jwt', video_id, headers={
@@ -1187,7 +1187,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         self._login()
 
     def _real_extract(self, url):
-        page_url, video_id = re.match(self._VALID_URL, url).groups()
+        page_url, video_id = self._match_valid_url(url).groups()
         data = self._download_json(
             page_url.replace('/review/', '/review/data/'), video_id)
         if data.get('isLocked') is True:

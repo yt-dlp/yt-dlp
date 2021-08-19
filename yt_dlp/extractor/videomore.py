@@ -144,7 +144,7 @@ class VideomoreIE(InfoExtractor):
             return mobj.group('url')
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('sid') or mobj.group('id')
         partner_id = mobj.group('partner_id') or compat_parse_qs(compat_urllib_parse_urlparse(url).query).get('partner_id', [None])[0] or '97'
 

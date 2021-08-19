@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import js_to_json
@@ -31,7 +30,7 @@ class C56IE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url, flags=re.VERBOSE)
+        mobj = self._match_valid_url(url)
         text_id = mobj.group('textid')
 
         webpage = self._download_webpage(url, text_id)

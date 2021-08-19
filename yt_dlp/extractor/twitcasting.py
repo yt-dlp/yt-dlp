@@ -63,7 +63,7 @@ class TwitCastingIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        uploader_id, video_id = re.match(self._VALID_URL, url).groups()
+        uploader_id, video_id = self._match_valid_url(url).groups()
 
         video_password = self.get_param('videopassword')
         request_data = None

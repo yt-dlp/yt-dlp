@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -165,7 +164,7 @@ class PinterestCollectionIE(PinterestBaseIE):
             PinterestCollectionIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        username, slug = re.match(self._VALID_URL, url).groups()
+        username, slug = self._match_valid_url(url).groups()
         board = self._call_api(
             'Board', slug, {
                 'slug': slug,

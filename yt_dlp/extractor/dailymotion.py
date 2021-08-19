@@ -204,7 +204,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         return urls
 
     def _real_extract(self, url):
-        video_id, playlist_id = re.match(self._VALID_URL, url).groups()
+        video_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
             if not self.get_param('noplaylist'):

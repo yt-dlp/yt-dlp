@@ -86,7 +86,7 @@ class NBCIE(ThePlatformIE):
     ]
 
     def _real_extract(self, url):
-        permalink, video_id = re.match(self._VALID_URL, url).groups()
+        permalink, video_id = self._match_valid_url(url).groups()
         permalink = 'http' + compat_urllib_parse_unquote(permalink)
         video_data = self._download_json(
             'https://friendship.nbc.co/v2/graphql', video_id, query={

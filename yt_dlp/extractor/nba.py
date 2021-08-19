@@ -337,7 +337,7 @@ class NBABaseIE(NBACVPBaseIE):
         return info
 
     def _real_extract(self, url):
-        team, display_id = re.match(self._VALID_URL, url).groups()
+        team, display_id = self._match_valid_url(url).groups()
         if '/play#/' in url:
             display_id = compat_urllib_parse_unquote(display_id)
         else:

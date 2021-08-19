@@ -5,7 +5,6 @@ import base64
 from datetime import datetime
 import itertools
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -162,7 +161,7 @@ class MildomVodIE(MildomBaseIE):
     _VALID_URL = r'https?://(?:(?:www|m)\.)mildom\.com/playback/(?P<user_id>\d+)/(?P<id>(?P=user_id)-[a-zA-Z0-9]+)'
 
     def _real_extract(self, url):
-        m = re.match(self._VALID_URL, url)
+        m = self._match_valid_url(url)
         user_id, video_id = m.group('user_id'), m.group('id')
         url = 'https://www.mildom.com/playback/%s/%s' % (user_id, video_id)
 

@@ -290,7 +290,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         url = re.sub(r'(?<=[?&])(videoI(d|D)|idVideo|bctid)', '%40videoPlayer', url)
         # Change bckey (used by bcove.me urls) to playerKey
         url = re.sub(r'(?<=[?&])bckey', 'playerKey', url)
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         query_str = mobj.group('query')
         query = compat_urlparse.parse_qs(query_str)
 
@@ -595,7 +595,7 @@ class BrightcoveNewIE(AdobePassIE):
             'ip_blocks': smuggled_data.get('geo_ip_blocks'),
         })
 
-        account_id, player_id, embed, content_type, video_id = re.match(self._VALID_URL, url).groups()
+        account_id, player_id, embed, content_type, video_id = self._match_valid_url(url).groups()
 
         policy_key_id = '%s_%s' % (account_id, player_id)
         policy_key = self._downloader.cache.load('brightcove', policy_key_id)

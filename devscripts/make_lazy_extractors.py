@@ -31,8 +31,10 @@ with open('devscripts/lazy_load_template.py', 'rt') as f:
     module_template = f.read()
 
 module_contents = [
-    module_template + '\n' + getsource(InfoExtractor.suitable) + '\n',
-    'class LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n']
+    module_template,
+    getsource(InfoExtractor._match_valid_url),
+    getsource(InfoExtractor.suitable),
+    '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n']
 
 ie_template = '''
 class {name}({bases}):

@@ -11,7 +11,6 @@ from ..utils import (
     unified_strdate,
 )
 
-import re
 import itertools
 
 
@@ -81,7 +80,7 @@ class VoicyIE(VoicyBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         assert mobj
         voice_id = mobj.group('id')
         channel_id = mobj.group('channel_id')

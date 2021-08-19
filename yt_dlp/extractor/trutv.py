@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .turner import TurnerBaseIE
 from ..utils import (
@@ -27,7 +26,7 @@ class TruTVIE(TurnerBaseIE):
     }
 
     def _real_extract(self, url):
-        series_slug, clip_slug, video_id = re.match(self._VALID_URL, url).groups()
+        series_slug, clip_slug, video_id = self._match_valid_url(url).groups()
 
         if video_id:
             path = 'episode'

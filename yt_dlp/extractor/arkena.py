@@ -63,7 +63,7 @@ class ArkenaIE(InfoExtractor):
             return mobj.group('url')
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         account_id = mobj.group('account_id')
 

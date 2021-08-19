@@ -685,7 +685,7 @@ class TwitterShortenerIE(TwitterBaseIE):
     _BASE_URL = 'https://t.co/'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         eid, id = mobj.group('eid', 'id')
         if eid:
             id = eid

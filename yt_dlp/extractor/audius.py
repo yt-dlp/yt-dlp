@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import random
-import re
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, try_get, compat_str, str_or_none
@@ -124,7 +123,7 @@ class AudiusIE(AudiusBaseIE):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         track_id = try_get(mobj, lambda x: x.group('track_id'))
         if track_id is None:
             title = mobj.group('title')
@@ -217,7 +216,7 @@ class AudiusPlaylistIE(AudiusBaseIE):
 
     def _real_extract(self, url):
         self._select_api_base()
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         title = mobj.group('title')
         # uploader = mobj.group('uploader')
         url = self._prepare_url(url, title)

@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import (
@@ -41,7 +40,7 @@ class SixPlayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        domain, video_id = re.search(self._VALID_URL, url).groups()
+        domain, video_id = self._match_valid_url(url).groups()
         service, consumer_name = {
             '6play.fr': ('6play', 'm6web'),
             'rtlplay.be': ('rtlbe_rtl_play', 'rtlbe'),

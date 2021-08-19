@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -133,7 +132,7 @@ class VineUserIE(InfoExtractor):
         return False if VineIE.suitable(url) else super(VineUserIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         user = mobj.group('user')
         u = mobj.group('u')
 

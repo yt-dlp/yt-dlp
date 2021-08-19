@@ -240,7 +240,7 @@ class WDRPageIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('display_id')
         webpage = self._download_webpage(url, display_id)
 
@@ -342,7 +342,7 @@ class WDRMobileIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         return {
             'id': mobj.group('id'),
             'title': mobj.group('title'),

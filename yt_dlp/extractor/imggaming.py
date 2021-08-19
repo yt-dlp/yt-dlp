@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -62,7 +61,7 @@ class ImgGamingBaseIE(InfoExtractor):
             raise
 
     def _real_extract(self, url):
-        domain, media_type, media_id, playlist_id = re.match(self._VALID_URL, url).groups()
+        domain, media_type, media_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
             if self.get_param('noplaylist'):

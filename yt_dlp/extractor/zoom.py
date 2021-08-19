@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -28,7 +27,7 @@ class ZoomIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        base_url, play_id = re.match(self._VALID_URL, url).groups()
+        base_url, play_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, play_id)
 
         try:

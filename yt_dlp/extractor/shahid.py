@@ -111,7 +111,7 @@ class ShahidIE(ShahidBaseIE):
             }))
 
     def _real_extract(self, url):
-        page_type, video_id = re.match(self._VALID_URL, url).groups()
+        page_type, video_id = self._match_valid_url(url).groups()
         if page_type == 'clip':
             page_type = 'episode'
 

@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -56,7 +55,7 @@ class GooglePodcastsIE(GooglePodcastsBaseIE):
     }
 
     def _real_extract(self, url):
-        b64_feed_url, b64_guid = re.match(self._VALID_URL, url).groups()
+        b64_feed_url, b64_guid = self._match_valid_url(url).groups()
         episode = self._batch_execute(
             'oNjqVe', b64_guid, [b64_feed_url, b64_guid])[1]
         return self._extract_episode(episode)

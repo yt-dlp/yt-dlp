@@ -279,7 +279,7 @@ class YahooIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        url, country, display_id = re.match(self._VALID_URL, url).groups()
+        url, country, display_id = self._match_valid_url(url).groups()
         if not country:
             country = 'us'
         else:
@@ -527,7 +527,7 @@ class YahooJapanNewsIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host')
         display_id = mobj.group('id') or host
 

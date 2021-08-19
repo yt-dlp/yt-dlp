@@ -173,7 +173,7 @@ class NitterIE(InfoExtractor):
             title = self._html_search_regex(r'<div class="tweet-content[^>]+>([^<]+)</div>', webpage, 'title')
         description = title
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         uploader_id = (
             mobj.group('uploader_id')
             or self._html_search_regex(r'<a class="fullname"[^>]+title="([^"]+)"', webpage, 'uploader name', fatal=False)

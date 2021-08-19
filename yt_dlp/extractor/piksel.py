@@ -85,7 +85,7 @@ class PikselIE(InfoExtractor):
         return response
 
     def _real_extract(self, url):
-        ref_id, display_id = re.match(self._VALID_URL, url).groups()
+        ref_id, display_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, display_id)
         app_token = self._search_regex([
             r'clientAPI\s*:\s*"([^"]+)"',

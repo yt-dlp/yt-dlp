@@ -30,7 +30,7 @@ class RICEIE(InfoExtractor):
     _NS = 'http://schemas.datacontract.org/2004/07/ensembleVideo.Data.Service.Contracts.Models.Player.Config'
 
     def _real_extract(self, url):
-        qs = compat_parse_qs(re.match(self._VALID_URL, url).group('query'))
+        qs = compat_parse_qs(self._match_valid_url(url).group('query'))
         if not qs.get('PortalID') or not qs.get('DestinationID') or not qs.get('ContentID'):
             raise ExtractorError('Invalid URL', expected=True)
 

@@ -447,23 +447,22 @@ class InfoExtractor(object):
         self.set_downloader(downloader)
 
     @classmethod
-    def suitable(cls, url):
-        """Receives a URL and returns True if suitable for this IE."""
-
+    def _match_valid_url(cls, url):
         # This does not use has/getattr intentionally - we want to know whether
         # we have cached the regexp for *this* class, whereas getattr would also
         # match the superclass
         if '_VALID_URL_RE' not in cls.__dict__:
             cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        return cls._VALID_URL_RE.match(url) is not None
+        return cls._VALID_URL_RE.match(url)
+
+    @classmethod
+    def suitable(cls, url):
+        """Receives a URL and returns True if suitable for this IE."""
+        return cls._match_valid_url(url) is not None
 
     @classmethod
     def _match_id(cls, url):
-        if '_VALID_URL_RE' not in cls.__dict__:
-            cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        m = cls._VALID_URL_RE.match(url)
-        assert m
-        return compat_str(m.group('id'))
+        return cls._match_valid_url(url).group('id')
 
     @classmethod
     def working(cls):

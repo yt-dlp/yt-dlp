@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -52,7 +51,7 @@ class BYUtvIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         display_id = mobj.group('display_id') or video_id
 
