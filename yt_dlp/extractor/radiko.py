@@ -12,7 +12,6 @@ from ..utils import (
     update_url_query,
     clean_html,
     unified_timestamp,
-    time_millis,
 )
 from ..compat import compat_urllib_parse
 
@@ -58,7 +57,7 @@ class RadikoBaseIE(InfoExtractor):
             return self._FULL_KEY
 
         jscode = self._download_webpage(
-            'https://radiko.jp/apps/js/playerCommon.js?_=%d' % time_millis(), None,
+            'https://radiko.jp/apps/js/playerCommon.js', None,
             note='Downloading player js code')
         full_key = self._search_regex(
             (r"RadikoJSPlayer\([^,]*,\s*(['\"])pc_html5\1,\s*(['\"])(?P<fullkey>[0-9a-f]+)\2,\s*{"),
