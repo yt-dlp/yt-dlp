@@ -113,24 +113,22 @@ class RadikoBaseIE(InfoExtractor):
                 found.add(playlist_url)
 
             time_to_skip = None if is_onair else cursor - ft
-            try:
-                subformats = self._extract_m3u8_formats(
-                    playlist_url, video_id, ext='m4a', entry_protocol='m3u8',
-                    live=True, fatal=False, m3u8_id=None,
-                    headers={
-                        'X-Radiko-AreaId': area_id,
-                        'X-Radiko-AuthToken': auth_token,
-                    })
-                for sf in subformats:
-                    domain = sf['format_id'] = compat_urllib_parse.urlparse(sf['url']).netloc
-                    if re.match(r'^[cf]-radiko\.smartstream\.ne\.jp$', domain):
-                        sf['preference'] = 100 if is_onair else -100  # current radio stream
-                    if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
-                        # sf['format_note'] = 'timefree'
-                        sf['start_time'] = time_to_skip
-                formats.extend(subformats)
-            except ExtractorError:
-                pass
+            
+            subformats = self._extract_m3u8_formats(
+                playlist_url, video_id, ext='m4a', entry_protocol='m3u8',
+                live=True, fatal=False, m3u8_id=None,
+                headers={
+                    'X-Radiko-AreaId': area_id,
+                    'X-Radiko-AuthToken': auth_token,
+                })
+            for sf in subformats:
+                domain = sf['format_id'] = compat_urllib_parse.urlparse(sf['url']).netloc
+                if re.match(r'^[cf]-radiko\.smartstream\.ne\.jp$', domain):
+                    sf['preference'] = 100 if is_onair else -100  # current radio stream
+                if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
+                    # sf['format_note'] = 'timefree'
+                    sf['start_time'] = time_to_skip
+            formats.extend(subformats)
 
         self._sort_formats(formats)
         return formats
