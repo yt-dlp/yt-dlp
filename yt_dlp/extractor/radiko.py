@@ -24,14 +24,14 @@ class RadikoBaseIE(InfoExtractor):
         if self._AUTH_CACHE:
             return self._AUTH_CACHE
 
-        auth1_handle = self._download_webpage_handle(
-            'https://radiko.jp/v2/api/auth1', None, 'Authenticating (1)',
+        _, auth1_handle = self._download_webpage_handle(
+            'https://radiko.jp/v2/api/auth1', None, 'Downloading authentication page',
             headers={
                 'x-radiko-app': 'pc_html5',
                 'x-radiko-app-version': '0.0.1',
                 'x-radiko-device': 'pc',
                 'x-radiko-user': 'dummy_user',
-            })[1]  # response body is completely useless
+            })
         auth1_header = auth1_handle.info()
 
         auth_token = auth1_header['X-Radiko-AuthToken']
@@ -41,7 +41,7 @@ class RadikoBaseIE(InfoExtractor):
         partial_key = base64.b64encode(raw_partial_key).decode()
 
         area_id = self._download_webpage(
-            'https://radiko.jp/v2/api/auth2', None, 'Authenticating (2)',
+            'https://radiko.jp/v2/api/auth2', None, 'Authenticating',
             headers={
                 'x-radiko-device': 'pc',
                 'x-radiko-user': 'dummy_user',
