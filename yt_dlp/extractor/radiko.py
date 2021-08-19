@@ -88,7 +88,7 @@ class RadikoBaseIE(InfoExtractor):
             raise ExtractorError('Cannot identify radio program to download!')
         assert ft, to
         return prog, station_program, ft, ft_str, to_str
-    
+
     def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query):
         m3u8_playlist_data = self._download_xml(
             'https://radiko.jp/v3/station/stream/pc_html5/%s.xml' % station, video_id,
