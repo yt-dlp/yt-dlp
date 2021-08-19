@@ -113,7 +113,7 @@ class RadikoBaseIE(InfoExtractor):
                 found.add(playlist_url)
 
             time_to_skip = None if is_onair else cursor - ft
-            
+
             subformats = self._extract_m3u8_formats(
                 playlist_url, video_id, ext='m4a', entry_protocol='m3u8',
                 live=True, fatal=False, m3u8_id=None,
