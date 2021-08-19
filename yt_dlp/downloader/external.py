@@ -394,12 +394,12 @@ class FFmpegFD(ExternalFD):
             # http://trac.ffmpeg.org/ticket/6125#comment:10
             args += ['-seekable', '1' if seekable else '0']
 
-        # start_time = info_dict.get('start_time') or 0
-        # if start_time:
-        #     args += ['-ss', compat_str(start_time)]
-        # end_time = info_dict.get('end_time')
-        # if end_time:
-        #     args += ['-t', compat_str(end_time - start_time)]
+        start_time = info_dict.get('start_time') or 0
+        if start_time:
+            args += ['-ss', compat_str(start_time)]
+        end_time = info_dict.get('end_time')
+        if end_time:
+            args += ['-t', compat_str(end_time - start_time)]
 
         if info_dict.get('http_headers') is not None and re.match(r'^https?://', urls[0]):
             # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
