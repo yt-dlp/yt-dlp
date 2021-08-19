@@ -833,11 +833,13 @@ class YoutubeDL(object):
         except UnicodeEncodeError:
             self.to_screen('Deleting existing file')
 
-    def raise_no_formats(self, has_drm=False, forced=False):
+    def raise_no_formats(self, info, forced=False):
+        has_drm = info.get('__has_drm')
         msg = 'This video is DRM protected' if has_drm else 'No video formats found!'
         expected = self.params.get('ignore_no_formats_error')
         if forced or not expected:
-            raise ExtractorError(msg, expected=has_drm or expected)
+            raise ExtractorError(msg, video_id=info['id'], ie=info['extractor'],
+                                 expected=has_drm or expected)
         else:
             self.report_warning(msg)
 
@@ -1191,12 +1193,7 @@ class YoutubeDL(object):
                 self.report_warning('The program functionality for this site has been marked as broken, '
                                     'and will probably not work.')
 
-            try:
-                temp_id = str_or_none(
-                    ie.extract_id(url) if callable(getattr(ie, 'extract_id', None))
-                    else ie._match_id(url))
-            except (AssertionError, IndexError, AttributeError):
-                temp_id = None
+            temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': ie_key}):
                 self.to_screen("[%s] %s: has already been recorded in archive" % (
                                ie_key, temp_id))
@@ -2064,7 +2061,8 @@ class YoutubeDL(object):
         if 'id' not in info_dict:
             raise ExtractorError('Missing "id" field in extractor result')
         if 'title' not in info_dict:
-            raise ExtractorError('Missing "title" field in extractor result')
+            raise ExtractorError('Missing "title" field in extractor result',
+                                 video_id=info_dict['id'], ie=info_dict['extractor'])
 
         def report_force_conversion(field, field_not, conversion):
             self.report_warning(
@@ -2170,7 +2168,7 @@ class YoutubeDL(object):
         info_dict['__has_drm'] = len(info_dict.get('formats') or ['']) > len(formats)
 
         if not formats:
-            self.raise_no_formats(info_dict.get('__has_drm'))
+            self.raise_no_formats(info_dict)
 
         def is_wellformed(f):
             url = f.get('url')
@@ -2297,7 +2295,8 @@ class YoutubeDL(object):
         formats_to_download = list(format_selector(ctx))
         if not formats_to_download:
             if not self.params.get('ignore_no_formats_error'):
-                raise ExtractorError('Requested format is not available', expected=True)
+                raise ExtractorError('Requested format is not available', expected=True,
+                                     video_id=info_dict['id'], ie=info_dict['extractor'])
             else:
                 self.report_warning('Requested format is not available')
                 # Process what we can, even without any available formats.
@@ -2427,7 +2426,7 @@ class YoutubeDL(object):
 
     def dl(self, name, info, subtitle=False, test=False):
         if not info.get('url'):
-            self.raise_no_formats(info.get('__has_drm'), forced=True)
+            self.raise_no_formats(info, True)
 
         if test:
             verbose = self.params.get('verbose')

@@ -468,6 +468,13 @@ class InfoExtractor(object):
         return cls._match_valid_url(url).group('id')
 
     @classmethod
+    def get_temp_id(cls, url):
+        try:
+            return cls._match_id(url)
+        except (IndexError, AttributeError):
+            return None
+
+    @classmethod
     def working(cls):
         """Getter method for _WORKING."""
         return cls._WORKING
@@ -588,12 +595,14 @@ class InfoExtractor(object):
                     if self.__maybe_fake_ip_and_retry(e.countries):
                         continue
                     raise
-        except ExtractorError:
-            raise
+        except ExtractorError as e:
+            video_id = e.video_id or self.get_temp_id(url)
+            raise ExtractorError(
+                e.msg, video_id=video_id, ie=self.IE_NAME, tb=e.traceback, expected=e.expected, cause=e.cause)
         except compat_http_client.IncompleteRead as e:
-            raise ExtractorError('A network error has occurred.', cause=e, expected=True)
+            raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
-            raise ExtractorError('An extractor error has occurred.', cause=e)
+            raise ExtractorError('An extractor error has occurred.', cause=e, video_id=self.get_temp_id(url))
 
     def __maybe_fake_ip_and_retry(self, countries):
         if (not self.get_param('geo_bypass_country', None)
