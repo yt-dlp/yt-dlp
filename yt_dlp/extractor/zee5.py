@@ -62,7 +62,7 @@ class Zee5IE(InfoExtractor):
             'average_rating': 4,
             'description': compat_str,
             'alt_title': 'Episode 1 - The Test Of Bramha',
-            'uploader': 'Green Gold',
+            'uploader': 'Zee Entertainment Enterprises Ltd',
             'release_date': '20090101',
             'upload_date': '20090101',
             'timestamp': 1230768000,
@@ -83,6 +83,34 @@ class Zee5IE(InfoExtractor):
         'only_matching': True
     }]
     _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails?content_id={}&device_id=iIxsxYf40cqO3koIkwzKHZhnJzHN13zb&platform_name=desktop_web&country=IN&check_parental_control=false'
+    _OTP_REQUEST_URL = 'https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'
+    _OTP_VERIFY_URL = 'https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{}&otp={}&guest_token=iIxsxYf40cqO3koIkwzKHZhnJzHN13zb&platform=web'
+    _USER_TOKEN = None
+    _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
+    _NETRC_MACHINE = 'zee5'
+
+    def _login(self):
+        username, password = self._get_login_info()
+        if username:
+            if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
+                self.report_login()
+                otp_request_json = self._download_json(self._OTP_REQUEST_URL.format(username), None, note="Sending OTP")
+                if otp_request_json['code'] == 0:
+                    self.to_screen(otp_request_json['message'])
+                else:
+                    raise ExtractorError(otp_request_json['message'], expected=True)
+                otp_code = self._get_tfa_info('OTP')
+                otp_verify_json = self._download_json(self._OTP_VERIFY_URL.format(username, otp_code), None, note="Verifying OTP", fatal=False)
+                if not otp_verify_json:
+                    raise ExtractorError('Unable to verify OTP.', expected=True)
+                self._USER_TOKEN = otp_verify_json.get('token')
+                if not self._USER_TOKEN:
+                    raise ExtractorError(otp_request_json['message'], expected=True)
+            elif username.lower() == 'token' and len(password) > 1198:
+                self._USER_TOKEN = password
+
+    def _real_initialize(self):
+        self._login()
 
     def _real_extract(self, url):
         video_id, display_id = re.match(self._VALID_URL, url).group('id', 'display_id')
@@ -90,9 +118,13 @@ class Zee5IE(InfoExtractor):
             'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
             video_id, note='Downloading access token')
         data = {
-            "X-Z5-Guest-Token": "iIxsxYf40cqO3koIkwzKHZhnJzHN13zb",
             "x-access-token": access_token_request['token']
         }
+        if self._USER_TOKEN:
+            data['Authorization'] = 'bearer %s' % self._USER_TOKEN
+        else:
+            data['X-Z5-Guest-Token'] = 'iIxsxYf40cqO3koIkwzKHZhnJzHN13zb'
+
         json_data = self._download_json(
             self._DETAIL_API_URL.format(video_id),
             video_id, headers={'content-type': 'application/json'}, data=json.dumps(data).encode('utf-8'))
@@ -101,7 +133,7 @@ class Zee5IE(InfoExtractor):
         if 'premium' in asset_data['business_type']:
             raise ExtractorError('Premium content is DRM protected.', expected=True)
         if not asset_data.get('hls_url'):
-            raise ExtractorError('Login Required.', expected=True)
+            self.raise_login_required(self._LOGIN_HINT, metadata_available=True, method=None)
         formats = self._extract_m3u8_formats(asset_data['hls_url'], video_id, 'mp4', fatal=False)
         self._sort_formats(formats)
 
@@ -130,7 +162,7 @@ class Zee5IE(InfoExtractor):
             'thumbnail': url_or_none(asset_data.get('image_url')),
             'series': str_or_none(asset_data.get('tvshow_name')),
             'season': try_get(show_data, lambda x: x['seasons']['title'], str),
-            'season_number': int_or_none(try_get(show_data, lambda x: x['seasons']['oderid'])),
+            'season_number': int_or_none(try_get(show_data, lambda x: x['seasons'][0]['orderid'])),
             'episode_number': int_or_none(try_get(asset_data, lambda x: x['orderid'])),
             'tags': try_get(asset_data, lambda x: x['tags'], list)
         }
@@ -160,7 +192,7 @@ class Zee5SeriesIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.zee5.com/tvshows/details/agent-raghav-crime-branch/0-6-965',
-        'playlist_mincount': 25,
+        'playlist_mincount': 24,
         'info_dict': {
             'id': '0-6-965',
         },
