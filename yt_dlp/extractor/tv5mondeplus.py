@@ -6,6 +6,7 @@ from ..utils import (
     determine_ext,
     extract_attributes,
     int_or_none,
+    parse_duration,
 )
 
 
