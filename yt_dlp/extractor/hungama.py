@@ -90,19 +90,19 @@ class HungamaSongIE(InfoExtractor):
         data = self._download_json(
             'https://www.hungama.com/audio-player-data/track/%s' % audio_id,
             audio_id, query={'_country': 'IN'})[0]
-        print(data)
         track = data['song_name']
         artist = data.get('singer_name')
         formats = []
         media_json = self._download_json(data.get('file') or data['preview_link'], audio_id)
         media_url = try_get(media_json, lambda x: x['response']['media_url'], str)
+        media_type = try_get(media_json, lambda x: x['response']['type'], str)
 
         if media_url:
             formats.append({
                 'url': media_url,
-                'ext': media_json['response']['type'],
+                'ext': media_type,
                 'vcodec': 'none',
-                'acodec': media_json['response']['type'],
+                'acodec': media_type,
             })
 
         title = '%s - %s' % (artist, track) if artist else track
