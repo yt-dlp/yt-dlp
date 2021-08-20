@@ -27,7 +27,7 @@ class HearThisAtIE(InfoExtractor):
             'title': 'Moofi - Dr. Kreep',
             'thumbnail': r're:^https?://.*\.jpg$',
             'timestamp': 1421564134,
-            'description': 'Listen to Dr. Kreep by Moofi on hearthis.at - Modular, Eurorack, Mutable Intruments Braids, Valhalla-DSP',
+            'description': 'md5:a4b6190da9075c89b203ac369f24d66e',
             'upload_date': '20150118',
             'comment_count': int,
             'view_count': int,
@@ -43,7 +43,7 @@ class HearThisAtIE(InfoExtractor):
             'id': '811296',
             'ext': 'mp3',
             'title': 'TwitchSF - DJ Jim Hopkins -  Totally Bitchin\' 80\'s Dance Mix!',
-            'description': 'Listen to DJ Jim Hopkins -  Totally Bitchin\' 80\'s Dance Mix! by TwitchSF on hearthis.at - Dance',
+            'description': 'md5:a51bfa527d49ee0bd9acc46b894c3f9c',
             'upload_date': '20160328',
             'timestamp': 1459186146,
             'thumbnail': r're:^https?://.*\.jpg$',
@@ -78,27 +78,23 @@ class HearThisAtIE(InfoExtractor):
         thumbnail = self._og_search_thumbnail(webpage)
 
         meta_span = r'<span[^>]+class="%s".*?</i>([^<]+)</span>'
-        view_count = str_to_int(self._search_regex(
-            meta_span % 'plays_count', webpage, 'view count', fatal=False))
-        like_count = str_to_int(self._search_regex(
-            meta_span % 'likes_count', webpage, 'like count', fatal=False))
-        comment_count = str_to_int(self._search_regex(
-            meta_span % 'comment_count', webpage, 'comment count', fatal=False))
-        duration = str_to_int(self._search_regex(
-            r'data-length="(\d+)', webpage, 'duration', fatal=False))
-        timestamp = str_to_int(self._search_regex(
-            r'<span[^>]+class="calctime"[^>]+data-time="(\d+)', webpage, 'timestamp', fatal=False))
+        view_count = str_to_int(re.findall(meta_span % 'plays_count', webpage)[-1])
+        like_count = str_to_int(re.findall(meta_span % 'likes_count', webpage)[-1])
+        comment_count = str_to_int(re.findall(meta_span % 'comment_count', webpage)[-1])
+        duration = str_to_int(re.findall(r'data-length="(\d+)', webpage)[-1])
+        timestamp = str_to_int(re.findall(r'<span[^>]+class="calctime"[^>]+data-time="(\d+)', webpage)[-1])
 
         formats = []
-        mp3_url = self._search_regex(
+        mp3_urls = re.findall(
             r'(?s)<a class="player-link"\s+(?:[a-zA-Z0-9_:-]+="[^"]+"\s+)*?data-mp3="([^"]+)"',
-            webpage, 'mp3 URL', fatal=False)
-        if mp3_url:
+            webpage)
+
+        if mp3_urls[-1]:
             formats.append({
                 'format_id': 'mp3',
                 'vcodec': 'none',
                 'acodec': 'mp3',
-                'url': mp3_url,
+                'url': mp3_urls[-1],
             })
         download_path = self._search_regex(
             r'<a class="[^"]*download_fct[^"]*"\s+href="([^"]+)"',
