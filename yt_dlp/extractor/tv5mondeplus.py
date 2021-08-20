@@ -7,6 +7,7 @@ from ..utils import (
     extract_attributes,
     int_or_none,
     parse_duration,
+    try_get,
 )
 
 
