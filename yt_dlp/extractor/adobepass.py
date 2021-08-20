@@ -1541,15 +1541,14 @@ class AdobePassIE(InfoExtractor):
                         saml_login_page = self._download_webpage(
                             saml_redirect_url, video_id,
                             'Downloading SAML Login Page')
-                        saml_login_page_res = post_form(
+                        saml_login_page, urlh = post_form(
                             [saml_login_page, saml_redirect_url], 'Logging in', {
                                 mso_info['username_field']: username,
                                 mso_info['password_field']: password,
                             })
-                        saml_login_page, urlh = saml_login_page_res
                         if 'Please try again.' in saml_login_page:
                             raise ExtractorError(
-                                'We\'re sorry, but either the User ID or Password entered is not correct.')
+                                'Failed to login, incorrect User ID or Password.')
                     saml_login_url = self._search_regex(
                         r'xmlHttp\.open\("POST"\s*,\s*(["\'])(?P<url>.+?)\1',
                         saml_login_page, 'SAML Login URL', group='url')
