@@ -25,10 +25,9 @@ class HearThisAtIE(InfoExtractor):
             'timestamp': 1421564134,
             'description': 'md5:1adb0667b01499f9d27e97ddfd53852a',
             'upload_date': '20150118',
-            'playback_count': int,
-            'favoritings_count': int,
+            'view_count': int,
             'duration': 71,
-            'categories': 'Experimental',
+            'genre': 'Experimental',
         }
     }, {
         # 'download' link redirects to the original webpage
@@ -42,10 +41,9 @@ class HearThisAtIE(InfoExtractor):
             'upload_date': '20160328',
             'timestamp': 1459186146,
             'thumbnail': r're:^https?://.*\.jpg$',
-            'playback_count': int,
-            'favoritings_count': int,
+            'view_count': int,
             'duration': 4360,
-            'categories': 'Dance',
+            'genre': 'Dance',
         },
     }]
 
@@ -57,15 +55,10 @@ class HearThisAtIE(InfoExtractor):
         track_id = data_json.get('id')
         artist_json = data_json.get('user')
         title = '{} - {}'.format(artist_json.get('username'), data_json.get('title'))
-
-        categories = None
-        if data_json.get('genre'):
-            categories = data_json['genre']
-
+        genre = data_json.get('genre')
         description = data_json.get('description')
-        thumbnail = data_json.get('thumb')
-        playback_count = str_to_int(data_json.get('playback_count'))
-        favoritings_count = str_to_int(data_json.get('favoritings_count'))
+        thumbnail = data_json.get('artwork_url') or data_json.get('thumb')
+        view_count = str_to_int(data_json.get('playback_count'))
         duration = str_to_int(data_json.get('duration'))
         timestamp = data_json.get('release_timestamp')
 
@@ -104,7 +97,6 @@ class HearThisAtIE(InfoExtractor):
             'description': description,
             'duration': duration,
             'timestamp': timestamp,
-            'playback_count': playback_count,
-            'favoritings_count': favoritings_count,
-            'categories': categories,
+            'view_count': view_count,
+            'genre': genre,
         }
