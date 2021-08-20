@@ -81,7 +81,7 @@ class HungamaSongIE(InfoExtractor):
             'title': 'Lucky Ali - Kitni Haseen Zindagi',
             'track': 'Kitni Haseen Zindagi',
             'artist': 'Lucky Ali',
-            'album': '',
+            'album': None,
             'release_year': 2000,
         }
     }
@@ -116,7 +116,7 @@ class HungamaSongIE(InfoExtractor):
             'thumbnail': thumbnail,
             'track': track,
             'artist': artist,
-            'album': data.get('album_name'),
+            'album': data.get('album_name') or None,
             'release_year': int_or_none(data.get('date')),
             'formats': formats,
         }
@@ -143,9 +143,5 @@ class HungamaAlbumPlaylistIE(InfoExtractor):
         webpage = self._download_webpage(url, id)
         ptrn = r'<meta[^>]+?property=[\"\']?music:song:url[\"\']?[^>]+?content=[\"\']?([^\"\']+)'
         items = re.findall(ptrn, webpage)
-        entries = [
-            self.url_result(
-                item,
-                ie=HungamaSongIE.ie_key())
-            for item in items]
+        entries = [self.url_result(item, ie=HungamaSongIE.ie_key()) for item in items]
         return self.playlist_result(entries, id)
