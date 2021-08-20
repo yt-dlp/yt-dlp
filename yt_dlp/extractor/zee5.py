@@ -94,14 +94,14 @@ class Zee5IE(InfoExtractor):
             if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
                 self.report_login()
                 otp_request_json = self._download_json('https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'.format(username),
-                                                       None, note="Sending OTP")
+                                                       None, note='Sending OTP')
                 if otp_request_json['code'] == 0:
                     self.to_screen(otp_request_json['message'])
                 else:
                     raise ExtractorError(otp_request_json['message'], expected=True)
                 otp_code = self._get_tfa_info('OTP')
                 otp_verify_json = self._download_json('https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{}&otp={}&guest_token={}&platform=web'.format(username, otp_code, self._DEVICE_ID),
-                                                      None, note="Verifying OTP", fatal=False)
+                                                      None, note='Verifying OTP', fatal=False)
                 if not otp_verify_json:
                     raise ExtractorError('Unable to verify OTP.', expected=True)
                 self._USER_TOKEN = otp_verify_json.get('token')
@@ -119,7 +119,7 @@ class Zee5IE(InfoExtractor):
             'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
             video_id, note='Downloading access token')
         data = {
-            "x-access-token": access_token_request['token']
+            'x-access-token': access_token_request['token']
         }
         if self._USER_TOKEN:
             data['Authorization'] = 'bearer %s' % self._USER_TOKEN
