@@ -538,6 +538,7 @@ from .huffpost import HuffPostIE
 from .hungama import (
     HungamaIE,
     HungamaSongIE,
+    HungamaAlbumPlaylistIE,
 )
 from .hypem import HypemIE
 from .ign import (

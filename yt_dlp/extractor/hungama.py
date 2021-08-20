@@ -1,6 +1,8 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -118,3 +120,32 @@ class HungamaSongIE(InfoExtractor):
             'release_year': int_or_none(data.get('date')),
             'formats': formats,
         }
+
+
+class HungamaAlbumPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?hungama\.com/(?:playlists|album)/[^/]+/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.hungama.com/album/bhuj-the-pride-of-india/69481490/',
+        'playlist_mincount': 7,
+        'info_dict': {
+            'id': '69481490',
+        },
+    }, {
+        'url': 'https://www.hungama.com/playlists/hindi-jan-to-june-2021/123063/',
+        'playlist_mincount': 50,
+        'info_dict': {
+            'id': '123063',
+        },
+    }]
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        webpage = self._download_webpage(url, id)
+        ptrn = r'<meta[^>]+?property=[\"\']?music:song:url[\"\']?[^>]+?content=[\"\']?([^\"\']+)'
+        items = re.findall(ptrn, webpage)
+        entries = [
+            self.url_result(
+                item,
+                ie=HungamaSongIE.ie_key())
+            for item in items]
+        return self.playlist_result(entries, id)
