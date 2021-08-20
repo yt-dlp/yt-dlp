@@ -82,11 +82,8 @@ class TV5MondePlusIE(InfoExtractor):
 
         metadata = self._parse_json(
             vpl_data['data-metadata'], display_id)
-        duration = 0
-        if metadata:
-            content = metadata.get('content')
-            if content:
-                duration = int_or_none(content.get('duration'))
+        duration = (int_or_none(try_get(metadata, lambda x: x['content']['duration']))
+                    or parse_duration(self._html_search_meta('duration', webpage)))
 
         description = self._html_search_regex(
             r'(?s)<div[^>]+class=["\']episode-texte[^>]+>(.+?)</div>', webpage,
