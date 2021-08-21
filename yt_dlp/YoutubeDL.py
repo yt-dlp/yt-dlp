@@ -514,11 +514,6 @@ class YoutubeDL(object):
         for msg in self.params.get('warnings', []):
             self.report_warning(msg)
 
-        if self.params.get('final_ext'):
-            if self.params.get('merge_output_format'):
-                self.report_warning('--merge-output-format will be ignored since --remux-video or --recode-video is given')
-            self.params['merge_output_format'] = self.params['final_ext']
-
         if self.params.get('overwrites') is None:
             self.params.pop('overwrites', None)
         elif self.params.get('nooverwrites') is not None:
