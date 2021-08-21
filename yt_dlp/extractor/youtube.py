@@ -1072,14 +1072,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '_rtmp': {'protocol': 'rtmp'},
 
         # av01 video only formats sometimes served with "unknown" codecs
-        '394': {'ext': 'mp4', 'height': 144, 'DASH video', 'vcodec': 'av01.0.00M.08'}
-        '395': {'ext': 'mp4', 'height': 240, 'DASH video', 'vcodec': 'av01.0.00M.08'}
-        '396': {'ext': 'mp4', 'height': 360, 'DASH video', 'vcodec': 'av01.0.01M.08'}
-        '397': {'ext': 'mp4', 'height': 480, 'DASH video', 'vcodec': 'av01.0.04M.08'}
-        '398': {'ext': 'mp4', 'height': 720, 'DASH video', 'vcodec': 'av01.0.05M.08'}
-        '399': {'ext': 'mp4', 'height': 1080, 'DASH video', 'vcodec': 'av01.0.08M.08'}
-        '400': {'ext': 'mp4', 'height': 1440, 'DASH video', 'vcodec': 'av01.0.12M.08'}
-        '401': {'ext': 'mp4', 'height': 2160, 'DASH video', 'vcodec': 'av01.0.12M.08'}
+        '394': {'ext': 'mp4', 'height': 144, 'DASH video', 'vcodec': 'av01.0.00M.08'},
+        '395': {'ext': 'mp4', 'height': 240, 'DASH video', 'vcodec': 'av01.0.00M.08'},
+        '396': {'ext': 'mp4', 'height': 360, 'DASH video', 'vcodec': 'av01.0.01M.08'},
+        '397': {'ext': 'mp4', 'height': 480, 'DASH video', 'vcodec': 'av01.0.04M.08'},
+        '398': {'ext': 'mp4', 'height': 720, 'DASH video', 'vcodec': 'av01.0.05M.08'},
+        '399': {'ext': 'mp4', 'height': 1080, 'DASH video', 'vcodec': 'av01.0.08M.08'},
+        '400': {'ext': 'mp4', 'height': 1440, 'DASH video', 'vcodec': 'av01.0.12M.08'},
+        '401': {'ext': 'mp4', 'height': 2160, 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
 
