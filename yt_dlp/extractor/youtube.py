@@ -2454,19 +2454,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
-        sts = None
-        # assuming we need both sts and player_url
-        # todo: test clients that don't need/have one (though if we make global then doesn't matter)
-        for _ytcfg in (master_ytcfg, player_ytcfg, self._get_default_ytcfg(client)):
-            player_url = player_url or self._extract_player_url(_ytcfg)
-            if not player_url:
-                continue
-            sts = self._extract_signature_timestamp(video_id, player_url, _ytcfg, fatal=False)
-            if not sts:
-                player_url = None
-                continue
-            break
-
+        sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
         headers = self.generate_api_headers(
             player_ytcfg, identity_token, syncid,
             default_client=client, session_index=session_index)
@@ -2478,7 +2466,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             ytcfg=player_ytcfg, headers=headers, fatal=True,
             default_client=client,
             note='Downloading %s player API JSON' % client.replace('_', ' ').strip()
-        ) or None, player_url
+        ) or None
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
@@ -2544,10 +2532,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
 
             try:
-                if client == 'web' and initial_pr:
-                    pr, client_player_url = initial_pr, player_url or self._extract_player_url(self._get_default_ytcfg(client))
-                else:
-                    pr, client_player_url = self._extract_player_response(
+                pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
                     client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr)
             except ExtractorError as e:
                 if last_error:
@@ -2556,7 +2541,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             if pr:
-                pr['streamingData']['__ytdlp_playerUrl'] = client_player_url
                 yielded_pr = True
                 yield pr
 
@@ -2571,7 +2555,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 raise last_error
             self.report_warning(last_error)
 
-    def _extract_formats(self, streaming_data, video_id, is_live):
+    def _extract_formats(self, streaming_data, video_id, player_url, is_live):
         itags, stream_ids = [], []
         itag_qualities, res_qualities = {}, {}
         q = qualities([
@@ -2581,93 +2565,90 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'audio_quality_ultralow', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
-        #streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
-        for data in streaming_data:
-            streaming_formats = traverse_obj(data, (('formats', 'adaptiveFormats'), ...), default=[])
-            player_url = data.get('__ytdlp_playerUrl')
-           # player_urls = traverse_obj(streaming_data, (..., '__ytdlp_playerUrl'))
-            for fmt in streaming_formats:
-                if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
-                    continue
+        streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
 
-                itag = str_or_none(fmt.get('itag'))
-                audio_track = fmt.get('audioTrack') or {}
-                stream_id = '%s.%s' % (itag or '', audio_track.get('id', ''))
-                if stream_id in stream_ids:
-                    continue
+        for fmt in streaming_formats:
+            if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
+                continue
 
-                quality = fmt.get('quality')
-                height = int_or_none(fmt.get('height'))
-                if quality == 'tiny' or not quality:
-                    quality = fmt.get('audioQuality', '').lower() or quality
-                # The 3gp format (17) in android client has a quality of "small",
-                # but is actually worse than other formats
-                if itag == '17':
-                    quality = 'tiny'
-                if quality:
-                    if itag:
-                        itag_qualities[itag] = quality
-                    if height:
-                        res_qualities[height] = quality
-                # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
-                # (adding `&sq=0` to the URL) and parsing emsg box to determine the
-                # number of fragment that would subsequently requested with (`&sq=N`)
-                if fmt.get('type') == 'FORMAT_STREAM_TYPE_OTF':
-                    continue
+            itag = str_or_none(fmt.get('itag'))
+            audio_track = fmt.get('audioTrack') or {}
+            stream_id = '%s.%s' % (itag or '', audio_track.get('id', ''))
+            if stream_id in stream_ids:
+                continue
 
-                fmt_url = fmt.get('url')
-                if not fmt_url:
-                    sc = compat_parse_qs(fmt.get('signatureCipher'))
-                    fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
-                    encrypted_sig = try_get(sc, lambda x: x['s'][0])
-                    if not (sc and fmt_url and encrypted_sig):
-                        continue
-                    if not player_url:
-                        continue
-                    signature = self._decrypt_signature(sc['s'][0], video_id, player_url)
-                    sp = try_get(sc, lambda x: x['sp'][0]) or 'signature'
-                    fmt_url += '&' + sp + '=' + signature
-
+            quality = fmt.get('quality')
+            height = int_or_none(fmt.get('height'))
+            if quality == 'tiny' or not quality:
+                quality = fmt.get('audioQuality', '').lower() or quality
+            # The 3gp format (17) in android client has a quality of "small",
+            # but is actually worse than other formats
+            if itag == '17':
+                quality = 'tiny'
+            if quality:
                 if itag:
-                    itags.append(itag)
-                    stream_ids.append(stream_id)
+                    itag_qualities[itag] = quality
+                if height:
+                    res_qualities[height] = quality
+            # FORMAT_STREAM_TYPE_OTF(otf=1) requires downloading the init fragment
+            # (adding `&sq=0` to the URL) and parsing emsg box to determine the
+            # number of fragment that would subsequently requested with (`&sq=N`)
+            if fmt.get('type') == 'FORMAT_STREAM_TYPE_OTF':
+                continue
 
-                tbr = float_or_none(
-                    fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
-                dct = {
-                    'asr': int_or_none(fmt.get('audioSampleRate')),
-                    'filesize': int_or_none(fmt.get('contentLength')),
-                    'format_id': itag,
-                    'format_note': ', '.join(filter(None, (
-                        audio_track.get('displayName'),
-                        fmt.get('qualityLabel') or quality.replace('audio_quality_', '')))),
-                    'fps': int_or_none(fmt.get('fps')),
-                    'height': height,
-                    'quality': q(quality),
-                    'tbr': tbr,
-                    'url': fmt_url,
-                    'width': int_or_none(fmt.get('width')),
-                    'language': audio_track.get('id', '').split('.')[0],
+            fmt_url = fmt.get('url')
+            if not fmt_url:
+                sc = compat_parse_qs(fmt.get('signatureCipher'))
+                fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
+                encrypted_sig = try_get(sc, lambda x: x['s'][0])
+                if not (sc and fmt_url and encrypted_sig):
+                    continue
+                if not player_url:
+                    continue
+                signature = self._decrypt_signature(sc['s'][0], video_id, player_url)
+                sp = try_get(sc, lambda x: x['sp'][0]) or 'signature'
+                fmt_url += '&' + sp + '=' + signature
+
+            if itag:
+                itags.append(itag)
+                stream_ids.append(stream_id)
+
+            tbr = float_or_none(
+                fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
+            dct = {
+                'asr': int_or_none(fmt.get('audioSampleRate')),
+                'filesize': int_or_none(fmt.get('contentLength')),
+                'format_id': itag,
+                'format_note': ', '.join(filter(None, (
+                    audio_track.get('displayName'),
+                    fmt.get('qualityLabel') or quality.replace('audio_quality_', '')))),
+                'fps': int_or_none(fmt.get('fps')),
+                'height': height,
+                'quality': q(quality),
+                'tbr': tbr,
+                'url': fmt_url,
+                'width': int_or_none(fmt.get('width')),
+                'language': audio_track.get('id', '').split('.')[0],
+            }
+            mime_mobj = re.match(
+                r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
+            if mime_mobj:
+                dct['ext'] = mimetype2ext(mime_mobj.group(1))
+                dct.update(parse_codecs(mime_mobj.group(2)))
+            no_audio = dct.get('acodec') == 'none'
+            no_video = dct.get('vcodec') == 'none'
+            if no_audio:
+                dct['vbr'] = tbr
+            if no_video:
+                dct['abr'] = tbr
+            if no_audio or no_video:
+                dct['downloader_options'] = {
+                    # Youtube throttles chunks >~10M
+                    'http_chunk_size': 10485760,
                 }
-                mime_mobj = re.match(
-                    r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
-                if mime_mobj:
-                    dct['ext'] = mimetype2ext(mime_mobj.group(1))
-                    dct.update(parse_codecs(mime_mobj.group(2)))
-                no_audio = dct.get('acodec') == 'none'
-                no_video = dct.get('vcodec') == 'none'
-                if no_audio:
-                    dct['vbr'] = tbr
-                if no_video:
-                    dct['abr'] = tbr
-                if no_audio or no_video:
-                    dct['downloader_options'] = {
-                        # Youtube throttles chunks >~10M
-                        'http_chunk_size': 10485760,
-                    }
-                    if dct.get('ext'):
-                        dct['container'] = dct['ext'] + '_dash'
-                yield dct
+                if dct.get('ext'):
+                    dct['container'] = dct['ext'] + '_dash'
+            yield dct
 
         skip_manifests = self._configuration_arg('skip')
         get_dash = (
@@ -2805,7 +2786,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_live = get_first(live_broadcast_details, 'isLiveNow')
 
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
-        formats = list(self._extract_formats(streaming_data, video_id, is_live))
+        formats = list(self._extract_formats(streaming_data, video_id, player_url, is_live))
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
