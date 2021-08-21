@@ -1865,7 +1865,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_url(self, *ytcfgs, webpage=None):
         for ytcfg in ytcfgs:
             player_url = traverse_obj(
-                ytcfg,'PLAYER_JS_URL', ('WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
+                ytcfg, 'PLAYER_JS_URL', ('WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
                 get_all=False, expected_type=compat_str)
             if player_url:
                 break
@@ -2564,7 +2564,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 requires_js_player = True
             if not player_url and not tried_iframe_api and requires_js_player:
                 player_url = self._download_player_url(video_id)
-                player_tried_iframe = True
+                tried_iframe_api = True
 
             try:
                 pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
