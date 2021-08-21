@@ -2692,17 +2692,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f['filesize'] = filesize
                     yield f
 
+    def _download_player_url(self, video_id, fatal=False):
+        res = self._download_webpage(
+            "https://www.youtube.com/iframe_api",
+            note="Downloading iframe API JS", video_id=video_id, fatal=fatal)
+        if res:
+            player_version = self._search_regex(
+                r'player\\?/([0-9a-fA-F]{8})\\?/', res, 'player version', fatal=fatal)
+            if player_version:
+                return f'https://www.youtube.com/s/player/{player_version}/player_ias.vflset/en_US/base.js'
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
-
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage = self._download_webpage(
-            webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
+        webpage = None
+        if 'webpage' not in self._configuration_arg('player_skip'):
+            webpage = self._download_webpage(
+                webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
 
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
-        player_url = self._extract_player_url(master_ytcfg, webpage)
+        player_url = self._extract_player_url(master_ytcfg, webpage) or self._download_player_url(video_id)
         identity_token = self._extract_identity_token(webpage, video_id)
 
         player_responses = list(self._extract_player_responses(
