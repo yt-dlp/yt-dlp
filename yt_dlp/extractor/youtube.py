@@ -1861,7 +1861,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         super(YoutubeIE, self).__init__(*args, **kwargs)
         self._code_cache = {}
         self._player_cache = {}
-        self._player_url = None
 
     def _extract_player_url(self, *ytcfgs, webpage=None):
         for ytcfg in ytcfgs:
@@ -2745,7 +2744,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
         webpage = None
-        if 'webpage' not in self._configuration_arg('player_skip'):
+        if 'configs' not in self._configuration_arg('player_skip'):
             webpage = self._download_webpage(
                 webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
 
