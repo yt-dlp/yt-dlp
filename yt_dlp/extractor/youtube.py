@@ -577,6 +577,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             f'{time_now} {self._SAPISID} {origin}'.encode('utf-8')).hexdigest()
         return f'SAPISIDHASH {time_now}_{sapisidhash}'
 
+    @property
+    def is_authenticated(self):
+        return bool(self._generate_sapisidhash_header())
+
     def _call_api(self, ep, query, video_id, fatal=True, headers=None,
                   note='Downloading API JSON', errnote='Unable to download API page',
                   context=None, api_key=None, api_hostname=None, default_client='web'):
@@ -2472,6 +2476,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
+        if any(_ is None for _ in (syncid, session_index)) and self.is_authenticated:
+            self.report_warning(
+                'Could not extract session index or datasync id. '
+                'Authentication may not behave correctly depending on your account setup.', only_once=True)
+
         sts = None
         if requires_js_player:
             sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
@@ -2580,7 +2589,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 yield pr
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if client.endswith('_agegate') and self._is_unplayable(pr) and self._generate_sapisidhash_header():
+            if client.endswith('_agegate') and self._is_unplayable(pr) and self.is_authenticated:
                 append_client(client.replace('_agegate', '_creator'))
             elif self._is_agegated(pr):
                 append_client(f'{client}_agegate')
