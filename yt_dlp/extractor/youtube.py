@@ -2476,11 +2476,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
-        if any(_ is None for _ in (syncid, session_index)) and self.is_authenticated:
-            self.report_warning(
-                'Could not extract session index or datasync id. '
-                'Authentication may not behave correctly depending on your account setup.', only_once=True)
-
         sts = None
         if requires_js_player:
             sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
