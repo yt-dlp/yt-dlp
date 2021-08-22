@@ -2475,9 +2475,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         sts = None
         if requires_js_player:
             sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
-            if not sts:
-                self.report_warning(f'skipping client {client}')
-                return
         headers = self.generate_api_headers(
             player_ytcfg, identity_token, syncid,
             default_client=client, session_index=session_index)
