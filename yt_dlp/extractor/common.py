@@ -458,6 +458,8 @@ class InfoExtractor(object):
     @classmethod
     def suitable(cls, url):
         """Receives a URL and returns True if suitable for this IE."""
+        # This function must import everything it needs (except other extractors),
+        # so that lazy_extractors works correctly
         return cls._match_valid_url(url) is not None
 
     @classmethod
@@ -622,7 +624,7 @@ class InfoExtractor(object):
     @classmethod
     def ie_key(cls):
         """A string for getting the InfoExtractor with get_info_extractor"""
-        return compat_str(cls.__name__[:-2])
+        return cls.__name__[:-2]
 
     @property
     def IE_NAME(self):

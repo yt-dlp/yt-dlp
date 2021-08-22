@@ -1837,8 +1837,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        # Hack for lazy extractors until more generic solution is implemented
-        # (see #28780)
         from ..utils import parse_qs
 
         qs = parse_qs(url)

@@ -297,6 +297,8 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
 
     @classmethod
     def suitable(cls, url):
+        from ..utils import int_or_none, parse_qs
+
         if not super(RutubePlaylistIE, cls).suitable(url):
             return False
         params = parse_qs(url)

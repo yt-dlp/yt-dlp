@@ -32,6 +32,7 @@ with open('devscripts/lazy_load_template.py', 'rt') as f:
 
 module_contents = [
     module_template,
+    getsource(InfoExtractor.ie_key),
     getsource(InfoExtractor._match_valid_url),
     getsource(InfoExtractor.suitable),
     '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n']
@@ -104,7 +105,7 @@ for ie in ordered_cls:
         names.append(name)
 
 module_contents.append(
-    '_ALL_CLASSES = [{0}]'.format(', '.join(names)))
+    '\n_ALL_CLASSES = [{0}]'.format(', '.join(names)))
 
 module_src = '\n'.join(module_contents) + '\n'
 

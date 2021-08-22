@@ -8,10 +8,6 @@ import re
 class LazyLoadExtractor(object):
     _module = None
 
-    @classmethod
-    def ie_key(cls):
-        return cls.__name__[:-2]
-
     def __new__(cls, *args, **kwargs):
         mod = __import__(cls._module, fromlist=(cls.__name__,))
         real_cls = getattr(mod, cls.__name__)
