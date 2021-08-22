@@ -1179,7 +1179,7 @@ class YoutubeDL(object):
             ie_key = 'Generic'
 
         if ie_key:
-            ies = [self.get_info_extractor(ie_key)]
+            ies = [get_info_extractor(ie_key)]
         else:
             ies = self._ies
 
@@ -1188,7 +1188,6 @@ class YoutubeDL(object):
                 continue
 
             ie_key = ie.ie_key()
-            ie = self.get_info_extractor(ie_key)
             if not ie.working():
                 self.report_warning('The program functionality for this site has been marked as broken, '
                                     'and will probably not work.')
@@ -1198,7 +1197,8 @@ class YoutubeDL(object):
                 self.to_screen("[%s] %s: has already been recorded in archive" % (
                                ie_key, temp_id))
                 break
-            return self.__extract_info(url, ie, download, extra_info, process)
+            return self.__extract_info(url, self.get_info_extractor(ie.ie_key()),
+                                       download, extra_info, process)
         else:
             self.report_error('no suitable InfoExtractor for URL %s' % url)
 

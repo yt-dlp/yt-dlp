@@ -30,16 +30,14 @@ if os.path.exists(plugins_blocked_dirname):
 with open('devscripts/lazy_load_template.py', 'rt') as f:
     module_template = f.read()
 
+CLASS_PROPERTIES = ['ie_key', 'working', '_match_valid_url', 'suitable', '_match_id', 'get_temp_id']
 module_contents = [
     module_template,
-    getsource(InfoExtractor.ie_key),
-    getsource(InfoExtractor._match_valid_url),
-    getsource(InfoExtractor.suitable),
+    *[getsource(getattr(InfoExtractor, k)) for k in CLASS_PROPERTIES],
     '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n']
 
 ie_template = '''
 class {name}({bases}):
-    _VALID_URL = {valid_url!r}
     _module = '{module}'
 '''
 
@@ -60,14 +58,17 @@ def get_base_name(base):
 
 
 def build_lazy_ie(ie, name):
-    valid_url = getattr(ie, '_VALID_URL', None)
     s = ie_template.format(
         name=name,
         bases=', '.join(map(get_base_name, ie.__bases__)),
-        valid_url=valid_url,
         module=ie.__module__)
+    valid_url = getattr(ie, '_VALID_URL', None)
+    if valid_url:
+        s += f'    _VALID_URL = {valid_url!r}\n'
+    if not ie._WORKING:
+        s += f'    _WORKING = False\n'
     if ie.suitable.__func__ is not InfoExtractor.suitable.__func__:
-        s += '\n' + getsource(ie.suitable)
+        s += f'\n{getsource(ie.suitable)}'
     if hasattr(ie, '_make_valid_url'):
         # search extractors
         s += make_valid_template.format(valid_url=ie._make_valid_url())

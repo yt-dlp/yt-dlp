@@ -9,6 +9,7 @@ class LazyLoadMetaClass(type):
 
 class LazyLoadExtractor(metaclass=LazyLoadMetaClass):
     _module = None
+    _WORKING = True
 
     @classmethod
     def _get_real_class(cls):
