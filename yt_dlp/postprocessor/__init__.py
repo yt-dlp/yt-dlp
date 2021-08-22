@@ -28,6 +28,10 @@ from .metadataparser import (
 from .movefilesafterdownload import MoveFilesAfterDownloadPP
 from .sponskrub import SponSkrubPP
 
+from .gstreamer import (
+    GstPostProcessor,
+    GstMergerPP
+)
 
 def get_postprocessor(key):
     return globals()[key + 'PP']
@@ -58,4 +62,6 @@ __all__ = [
     'MoveFilesAfterDownloadPP',
     'SponSkrubPP',
     'XAttrMetadataPP',
+    'GstPostProcessor',
+    'GstMergerPP'
 ]
