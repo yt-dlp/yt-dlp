@@ -945,7 +945,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             youtube\.googleapis\.com)/                        # the various hostnames, with wildcard subdomains
                          (?:.*?\#/)?                                          # handle anchor (#/) redirect urls
                          (?:                                                  # the various things that can precede the ID:
-                             (?:(?:v|embed|e)/(?!videoseries))                # v/ or embed/ or e/
+                             (?:(?:v|embed|e|shorts)/(?!videoseries))         # v/ or embed/ or e/ or shorts/
                              |(?:                                             # or the v= param in all its forms
                                  (?:(?:watch|movie)(?:_popup)?(?:\.php)?/?)?  # preceding watch(_popup|.php) or nothing (like /?v=xxxx)
                                  (?:\?|\#!?)                                  # the params delimiter ? or # or #!
@@ -1831,7 +1831,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {
                 'extractor_args': {'youtube': {'player_skip': ['configs']}},
             },
-        }
+        }, {
+            # shorts
+            'url': 'https://www.youtube.com/shorts/BGQWPY4IigY',
+            'only_matching': True,
+        },
     ]
 
     @classmethod
