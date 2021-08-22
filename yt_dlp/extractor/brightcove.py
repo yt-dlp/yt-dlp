@@ -549,7 +549,7 @@ class BrightcoveNewIE(AdobePassIE):
                     error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
             elif (not self.get_param('allow_unplayable_formats')
                     and sources and num_drm_sources == len(sources)):
-                raise ExtractorError('This video is DRM protected.', expected=True)
+                self.report_drm(video_id)
 
         self._sort_formats(formats)
 

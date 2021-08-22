@@ -66,11 +66,12 @@ class NineNowIE(InfoExtractor):
 
         video_data = common_data['video']
 
-        if not self.get_param('allow_unplayable_formats') and video_data.get('drm'):
-            raise ExtractorError('This video is DRM protected.', expected=True)
-
         brightcove_id = video_data.get('brightcoveId') or 'ref:' + video_data['referenceId']
         video_id = compat_str(video_data.get('id') or brightcove_id)
+
+        if not self.get_param('allow_unplayable_formats') and video_data.get('drm'):
+            self.report_drm(video_id)
+
         title = common_data['name']
 
         thumbnails = [{

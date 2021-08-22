@@ -281,7 +281,7 @@ class RaiPlayIE(RaiBaseIE):
                     (lambda x: x['rights_management']['rights']['drm'],
                      lambda x: x['program_info']['rights_management']['rights']['drm']),
                     dict):
-                raise ExtractorError('This video is DRM protected.', expected=True)
+                self.report_drm(video_id)
 
         title = media['name']
         video = media['video']

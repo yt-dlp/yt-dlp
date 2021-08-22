@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     float_or_none,
     int_or_none,
     parse_iso8601,
@@ -35,7 +34,7 @@ class NineCNineMediaIE(InfoExtractor):
 
         if (not self.get_param('allow_unplayable_formats')
                 and try_get(content_package, lambda x: x['Constraints']['Security']['Type'])):
-            raise ExtractorError('This video is DRM protected.', expected=True)
+            self.report_drm(content_id)
 
         manifest_base_url = content_package_url + 'manifest.'
         formats = []

@@ -2793,8 +2793,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
-                self.raise_no_formats(
-                    'This video is DRM protected.', expected=True)
+                self.report_drm(video_id)
             pemr = get_first(
                 playability_statuses,
                 ('errorScreen', 'playerErrorMessageRenderer'), expected_type=dict) or {}
