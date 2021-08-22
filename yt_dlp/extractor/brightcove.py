@@ -11,7 +11,6 @@ from ..compat import (
     compat_etree_fromstring,
     compat_HTTPError,
     compat_parse_qs,
-    compat_urllib_parse_urlparse,
     compat_urlparse,
     compat_xml_parse_error,
 )
@@ -26,6 +25,7 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     parse_iso8601,
+    parse_qs,
     smuggle_url,
     str_or_none,
     try_get,
@@ -177,7 +177,7 @@ class BrightcoveLegacyIE(InfoExtractor):
             flashvars = {}
 
         data_url = object_doc.attrib.get('data', '')
-        data_url_params = compat_parse_qs(compat_urllib_parse_urlparse(data_url).query)
+        data_url_params = parse_qs(data_url)
 
         def find_param(name):
             if name in flashvars:

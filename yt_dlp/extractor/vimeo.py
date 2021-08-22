@@ -25,6 +25,7 @@ from ..utils import (
     OnDemandPagedList,
     parse_filesize,
     parse_iso8601,
+    parse_qs,
     RegexNotFoundError,
     sanitized_Request,
     smuggle_url,
@@ -265,7 +266,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
                 continue
-            query = compat_urlparse.parse_qs(compat_urlparse.urlparse(download_url).query)
+            query = parse_qs(download_url)
             return {
                 'url': download_url,
                 'ext': determine_ext(query.get('filename', [''])[0].lower()),

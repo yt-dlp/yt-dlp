@@ -4,11 +4,11 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
+    parse_qs,
     xpath_text,
     qualities,
 )
@@ -56,7 +56,7 @@ class PladformIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         pl = qs.get('pl', ['1'])[0]
 
         video = self._download_xml(

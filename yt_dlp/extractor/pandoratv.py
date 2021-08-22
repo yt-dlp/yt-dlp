@@ -5,12 +5,12 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_urlparse,
 )
 from ..utils import (
     ExtractorError,
     float_or_none,
     parse_duration,
+    parse_qs,
     str_to_int,
     urlencode_postdata,
 )
@@ -75,7 +75,7 @@ class PandoraTVIE(InfoExtractor):
         video_id = mobj.group('id')
 
         if not user_id or not video_id:
-            qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+            qs = parse_qs(url)
             video_id = qs.get('prgid', [None])[0]
             user_id = qs.get('ch_userid', [None])[0]
             if any(not f for f in (video_id, user_id,)):

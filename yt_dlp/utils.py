@@ -4167,6 +4167,10 @@ def escape_url(url):
     ).geturl()
 
 
+def parse_qs(url):
+    return compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+
+
 def read_batch_urls(batch_fd):
     def fixup(url):
         if not isinstance(url, compat_str):

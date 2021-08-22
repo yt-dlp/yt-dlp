@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_urlparse,
 )
 from ..utils import (
     clean_html,
@@ -14,6 +13,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_duration,
+    parse_qs,
     try_get,
     url_or_none,
     urljoin,
@@ -226,7 +226,7 @@ class FranceTVIE(InfoExtractor):
         catalog = mobj.group('catalog')
 
         if not video_id:
-            qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+            qs = parse_qs(url)
             video_id = qs.get('idDiffusion', [None])[0]
             catalog = qs.get('catalogue', [None])[0]
             if not video_id:

@@ -6,11 +6,11 @@ import re
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_urlparse,
 )
 from ..utils import (
     ExtractorError,
     int_or_none,
+    parse_qs,
     qualities,
     try_get,
     unified_strdate,
@@ -204,7 +204,7 @@ class ArteTVEmbedIE(InfoExtractor):
             webpage)]
 
     def _real_extract(self, url):
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         json_url = qs['json_url'][0]
         video_id = ArteTVIE._match_id(json_url)
         return self.url_result(

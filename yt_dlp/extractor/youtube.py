@@ -46,6 +46,7 @@ from ..utils import (
     parse_count,
     parse_duration,
     parse_iso8601,
+    parse_qs,
     qualities,
     remove_start,
     smuggle_url,
@@ -62,10 +63,6 @@ from ..utils import (
     urljoin,
     variadic,
 )
-
-
-def parse_qs(url):
-    return compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
 
 
 # any clients starting with _ cannot be explicity requested by the user
@@ -1842,7 +1839,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def suitable(cls, url):
         # Hack for lazy extractors until more generic solution is implemented
         # (see #28780)
-        from .youtube import parse_qs
+        from ..utils import parse_qs
+
         qs = parse_qs(url)
         if qs.get('list', [None])[0]:
             return False
@@ -4598,7 +4596,7 @@ class YoutubeSearchURLIE(YoutubeSearchIE):
         return cls._VALID_URL
 
     def _real_extract(self, url):
-        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        qs = parse_qs(url)
         query = (qs.get('search_query') or qs.get('q'))[0]
         self._SEARCH_PARAMS = qs.get('sp', ('',))[0]
         return self._get_n_results(query, self._MAX_RESULTS)

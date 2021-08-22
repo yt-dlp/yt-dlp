@@ -11,7 +11,6 @@ from .common import InfoExtractor
 from ..compat import (
     compat_parse_qs,
     compat_str,
-    compat_urlparse,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
 )
@@ -23,6 +22,7 @@ from ..utils import (
     int_or_none,
     parse_duration,
     parse_iso8601,
+    parse_qs,
     qualities,
     try_get,
     unified_timestamp,
@@ -571,7 +571,7 @@ class TwitchVideosIE(TwitchPlaylistBaseIE):
 
     def _real_extract(self, url):
         channel_name = self._match_id(url)
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         filter = qs.get('filter', ['all'])[0]
         sort = qs.get('sort', ['time'])[0]
         broadcast = self._BROADCASTS.get(filter, self._DEFAULT_BROADCAST)
@@ -647,7 +647,7 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
 
     def _real_extract(self, url):
         channel_name = self._match_id(url)
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         range = qs.get('range', ['7d'])[0]
         clip = self._RANGE.get(range, self._DEFAULT_CLIP)
         return self.playlist_result(
