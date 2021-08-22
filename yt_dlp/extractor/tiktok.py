@@ -2,6 +2,8 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -150,3 +152,52 @@ class TikTokIE(TikTokBaseIE):
             raise ExtractorError('This video is private', expected=True)
 
         raise ExtractorError('Video not available', video_id=video_id)
+
+
+class TikTokUserIE(InfoExtractor):
+    IE_NAME = 'tiktok:user'
+    _VALID_URL = r'(?!.*/video/)https?://www\.tiktok\.com/@(?P<id>[\w\._]+)'
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/@corgibobaa?lang=en',
+        'playlist_mincount': 45,
+        'info_dict': {
+            'id': '6935371178089399301',
+        },
+        'skip': 'Cookies are required to download from TikTok user account.'
+    }, {
+        'url': 'https://www.tiktok.com/@meme',
+        'playlist_mincount': 593,
+        'info_dict': {
+            'id': '79005827461758976',
+        },
+        'skip': 'Cookies are required to download from TikTok user account.'
+    }]
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        webpage = self._download_webpage(url, id)
+        user_id = re.search(r'\"id\":\"(?P<userid>\d+)', webpage)
+        if not user_id:
+            raise ExtractorError('Cookies are required to download from TikTok user account.', expected=True)
+        user_id = user_id.group('userid')
+        secuid = re.search(r'\"secUid\":\"(?P<secUid>[^\"]+)', webpage).group('secUid')
+        verifyFp_cookie = self._get_cookies('https://www.tiktok.com').get('s_v_web_id')
+        if not verifyFp_cookie:
+            raise ExtractorError('Improper cookies (missing s_v_web_id).', expected=True)
+        api_url = f'https://m.tiktok.com/api/post/item_list/?aid=1988&cookie_enabled=true&count=30&verifyFp={verifyFp_cookie.value}&secUid={secuid}&cursor='
+        hasMore = True
+        cursor = '0'
+        entries = []
+        page = 0
+        while hasMore:
+            data_json = self._download_json(api_url + cursor, user_id, note='Downloading Page %d' % page)
+            cursor = data_json['cursor']
+            hasMore = data_json['hasMore']
+            videos = data_json.get('itemList', [])
+            for video in videos:
+                video_id = video['id']
+                entries.append(self.url_result('https://www.tiktok.com/@%s/video/%s' % (id, video_id),
+                                               ie=TikTokIE.ie_key(),
+                                               video_id=video_id))
+            page += 1
+        return self.playlist_result(entries, user_id)
