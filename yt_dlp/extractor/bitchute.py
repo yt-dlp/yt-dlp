@@ -17,7 +17,7 @@ from ..utils import (
 class BitChuteIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
     _TESTS = [{
-        'url': 'https://www.bitchute.com/video/szoMrox2JEI/',
+        'url': 'https://www.bitchute.com/video/UGlrF9o9b-Q/',
         'md5': '7e427d7ed7af5a75b5855705ec750e2b',
         'info_dict': {
             'id': 'szoMrox2JEI',
