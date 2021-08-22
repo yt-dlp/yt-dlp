@@ -1509,7 +1509,7 @@ class AdobePassIE(InfoExtractor):
                     # you will not actually pass your credentials.
                     provider_redirect_page, urlh = provider_redirect_page_res
                     # From non-Verizon IP, still gave 'Please wait', but noticed N==Y; will need to try on Verizon IP
-                    if 'Please wait ...' in provider_redirect_page and "'N'== \"Y\"" not in provider_redirect_page:
+                    if 'Please wait ...' in provider_redirect_page and '\'N\'== "Y"' not in provider_redirect_page:
                         saml_redirect_url = self._html_search_regex(
                             r'self\.parent\.location=(["\'])(?P<url>.+?)\1',
                             provider_redirect_page,
