@@ -1529,7 +1529,6 @@ class AdobePassIE(InfoExtractor):
                             raise ExtractorError(
                                 'We\'re sorry, but either the User ID or Password entered is not correct.')
                     else:
-                        # elif 'Please wait ...' in provider_redirect_page and "'N'== \"Y\"" in provider_redirect_page:
                         # ABC from non-Verizon IP
                         saml_redirect_url = self._html_search_regex(
                             r'var\surl\s*=\s*(["\'])(?P<url>.+?)\1',
