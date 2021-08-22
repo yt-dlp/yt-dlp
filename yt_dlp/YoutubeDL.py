@@ -461,7 +461,7 @@ class YoutubeDL(object):
     ))
 
     params = None
-    _ies = []
+    _ies = {}
     _pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
     _printed_messages = set()
     _first_webpage_request = True
@@ -475,7 +475,7 @@ class YoutubeDL(object):
         """Create a FileDownloader object with the given options."""
         if params is None:
             params = {}
-        self._ies = []
+        self._ies = {}
         self._ies_instances = {}
         self._pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
         self._printed_messages = set()
@@ -631,10 +631,18 @@ class YoutubeDL(object):
 
     def add_info_extractor(self, ie):
         """Add an InfoExtractor object to the end of the list."""
-        self._ies.append(ie)
+        ie_key = ie.ie_key()
+        self._ies[ie_key] = ie
         if not isinstance(ie, type):
-            self._ies_instances[ie.ie_key()] = ie
+            self._ies_instances[ie_key] = ie
             ie.set_downloader(self)
+
+    def _get_info_extractor_class(self, ie_key):
+        ie = self._ies.get(ie_key)
+        if ie is None:
+            ie = get_info_extractor(ie_key)
+            self.add_info_extractor(ie)
+        return ie
 
     def get_info_extractor(self, ie_key):
         """
@@ -1179,15 +1187,14 @@ class YoutubeDL(object):
             ie_key = 'Generic'
 
         if ie_key:
-            ies = [get_info_extractor(ie_key)]
+            ies = {ie_key: self._get_info_extractor_class(ie_key)}
         else:
             ies = self._ies
 
-        for ie in ies:
+        for ie_key, ie in ies.items():
             if not ie.suitable(url):
                 continue
 
-            ie_key = ie.ie_key()
             if not ie.working():
                 self.report_warning('The program functionality for this site has been marked as broken, '
                                     'and will probably not work.')
@@ -1197,8 +1204,7 @@ class YoutubeDL(object):
                 self.to_screen("[%s] %s: has already been recorded in archive" % (
                                ie_key, temp_id))
                 break
-            return self.__extract_info(url, self.get_info_extractor(ie.ie_key()),
-                                       download, extra_info, process)
+            return self.__extract_info(url, self.get_info_extractor(ie_key), download, extra_info, process)
         else:
             self.report_error('no suitable InfoExtractor for URL %s' % url)
 
@@ -3025,9 +3031,9 @@ class YoutubeDL(object):
             if not url:
                 return
             # Try to find matching extractor for the URL and take its ie_key
-            for ie in self._ies:
+            for ie_key, ie in self._ies.items():
                 if ie.suitable(url):
-                    extractor = ie.ie_key()
+                    extractor = ie_key
                     break
             else:
                 return

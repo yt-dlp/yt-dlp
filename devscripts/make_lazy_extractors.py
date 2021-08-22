@@ -66,7 +66,7 @@ def build_lazy_ie(ie, name):
     if valid_url:
         s += f'    _VALID_URL = {valid_url!r}\n'
     if not ie._WORKING:
-        s += f'    _WORKING = False\n'
+        s += '    _WORKING = False\n'
     if ie.suitable.__func__ is not InfoExtractor.suitable.__func__:
         s += f'\n{getsource(ie.suitable)}'
     if hasattr(ie, '_make_valid_url'):
