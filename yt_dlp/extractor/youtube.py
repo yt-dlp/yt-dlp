@@ -120,7 +120,7 @@ INNERTUBE_CLIENTS = {
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
-        'REQUIRES_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False
     },
     'android_embedded': {
         'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
@@ -131,7 +131,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
-        'REQUIRES_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False
     },
     'android_music': {
         'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
@@ -143,7 +143,7 @@ INNERTUBE_CLIENTS = {
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
-        'REQUIRES_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False
     },
     'android_creator': {
         'INNERTUBE_CONTEXT': {
@@ -153,7 +153,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
-        'REQUIRES_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False
     },
     # ios has HLS live streams
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680
@@ -166,7 +166,7 @@ INNERTUBE_CLIENTS = {
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
-        'REQUIRES_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False
     },
     'ios_embedded': {
         'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
@@ -177,7 +177,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
-        'REQUIRES_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False
     },
     'ios_music': {
         'INNERTUBE_API_KEY': 'AIzaSyDK3iBpDP9nHVTk2qL73FLJICfOC3c51Og',
@@ -189,7 +189,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
-        'REQUIRES_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False
     },
     'ios_creator': {
         'INNERTUBE_CONTEXT': {
@@ -199,7 +199,7 @@ INNERTUBE_CLIENTS = {
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
-        'REQUIRES_JS_PLAYER': False
+        'REQUIRE_JS_PLAYER': False
     },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
@@ -226,7 +226,7 @@ def build_innertube_clients():
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
         ytcfg.setdefault('INNERTUBE_API_KEY', 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8')
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
-        ytcfg.setdefault('REQUIRES_JS_PLAYER', True)
+        ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
         ytcfg['priority'] = 10 * priority(client.split('_', 1)[0])
 
@@ -2559,16 +2559,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
 
             # TODO: proper cli arg
-            requires_js_player = False
-            if 'jsplayerfilter' in self._configuration_arg('player_skip') or self._get_ytcfg_default_opt('REQUIRES_JS_PLAYER', client):
-                requires_js_player = True
-            if not player_url and not tried_iframe_api and requires_js_player:
+            # player_js=require,no_require
+            player_js_opt = self._configuration_arg('player_js')
+            require_js_player = 'require' in player_js_opt or self._get_ytcfg_default_opt('REQUIRE_JS_PLAYER', client)
+            if 'no_require' in player_js_opt:
+                require_js_player = False
+
+            if not player_url and not tried_iframe_api and require_js_player:
                 player_url = self._download_player_url(video_id)
                 tried_iframe_api = True
 
             try:
                 pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr, requires_js_player)
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr, require_js_player)
             except ExtractorError as e:
                 if last_error:
                     self.report_warning(last_error)
