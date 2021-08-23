@@ -703,6 +703,11 @@ from .mangomolo import (
     MangomoloVideoIE,
     MangomoloLiveIE,
 )
+from .manoto import (
+    ManotoTVIE,
+    ManotoTVShowIE,
+    ManotoTVLiveIE,
+)
 from .manyvids import ManyVidsIE
 from .maoritv import MaoriTVIE
 from .markiza import (
