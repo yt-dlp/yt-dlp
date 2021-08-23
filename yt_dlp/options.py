@@ -758,6 +758,10 @@ def parseOpts(overrideArguments=None):
         dest='encoding', metavar='ENCODING',
         help='Force the specified encoding (experimental)')
     workarounds.add_option(
+        '--legacy-server-connect',
+        action='store_true', dest='legacy_server_connect', default=False,
+        help='Explicitly allow HTTPS connection to servers that do not support RFC 5746 secure renegotiation')
+    workarounds.add_option(
         '--no-check-certificate',
         action='store_true', dest='no_check_certificate', default=False,
         help='Suppress HTTPS certificate validation')
