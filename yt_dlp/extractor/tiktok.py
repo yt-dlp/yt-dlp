@@ -1,6 +1,5 @@
 # coding: utf-8
 from __future__ import unicode_literals
-from datetime import datetime
 
 import itertools
 
@@ -73,7 +72,7 @@ class TikTokIE(InfoExtractor):
 
         user_id = str_or_none(author_info.get('uniqueId'))
         download_url = try_get(video_info, (lambda x: x['video']['playAddr'],
-                                   lambda x: x['video']['downloadAddr']))
+                                            lambda x: x['video']['downloadAddr']))
         height = try_get(video_info, lambda x: x['video']['height'], int)
         width = try_get(video_info, lambda x: x['video']['width'], int)
         thumbnails = [{
@@ -150,12 +149,12 @@ class TikTokUserIE(InfoExtractor):
         'skip': 'Cookies (not necessarily logged in) are needed.'
     }]
 
-    def _entries(self, url, id):
-        webpage = self._download_webpage(url, id)
-        user_id = self._search_regex(r'\"id\":\"(?P<userid>\d+)', webpage, id, default=None)
-        if not user_id:
+    def _entries(self, url, user_id):
+        webpage = self._download_webpage(url, user_id)
+        own_id = self._search_regex(r'\"id\":\"(?P<userid>\d+)', webpage, user_id, default=None)
+        if not own_id:
             raise ExtractorError('Cookies (not necessarily logged in) are needed.', expected=True)
-        secuid = self._search_regex(r'\"secUid\":\"(?P<secUid>[^\"]+)', webpage, id)
+        secuid = self._search_regex(r'\"secUid\":\"(?P<secUid>[^\"]+)', webpage, user_id)
         verifyfp_cookie = self._get_cookies('https://www.tiktok.com').get('s_v_web_id')
         if not verifyfp_cookie:
             raise ExtractorError('Improper cookies (missing s_v_web_id).', expected=True)
@@ -164,64 +163,44 @@ class TikTokUserIE(InfoExtractor):
         cursor = '0'
         for page in itertools.count():
             data_json = self._download_json(api_url + cursor, user_id, note='Downloading Page %d' % page)
-            cursor = data_json['cursor']
-            has_more = data_json['hasMore']
-            videos = data_json.get('itemList', [])
-            for video in videos:
+            for video in data_json.get('itemList', []):
                 video_id = video['id']
-                video_url = f'https://www.tiktok.com/@{id}/video/{video_id}'
+                video_url = f'https://www.tiktok.com/@{user_id}/video/{video_id}'
+                download_url = try_get(video, (lambda x: x['video']['playAddr'],
+                                               lambda x: x['video']['downloadAddr']))
                 thumbnail = try_get(video, lambda x: x['video']['originCover'])
                 height = try_get(video, lambda x: x['video']['height'], int)
                 width = try_get(video, lambda x: x['video']['width'], int)
-                resolution = '%sx%s' % (width, height)
-                timestamp = video.get('createTime')
-                download_url = ''
-                if not download_url:
-                    download_url = try_get(video, lambda x: x['video']['playAddr'])
-                if not download_url:
-                    download_url = try_get(video, lambda x: x['video']['downloadAddr'])
-                formats = [{
+                yield {
+                    'id': video_id,
+                    'ie_key': TikTokIE.ie_key(),
+                    'extractor': 'TikTok',
                     'url': download_url,
                     'ext': 'mp4',
                     'height': height,
-                    'width': width
-                }]
-                tracker = self._get_cookies('https://www.tiktok.com').get('tt_webid').value
-                yield {
-                    'url': video_url,
-                    'ie_key': TikTokIE.ie_key(),
-                    'comment_count': try_get(video, lambda x: x['stats']['commentCount'], int),
-                    'duration': try_get(video, lambda x: x['video']['duration'], int),
-                    'height': height,
-                    'id': video_id,
-                    'like_count': try_get(video, lambda x: x['stats']['diggCount'], int),
-                    'repost_count': try_get(video, lambda x: x['stats']['shareCount'], int),
-                    'thumbnail': thumbnail,
-                    'timestamp': timestamp,
                     'width': width,
                     'title': str_or_none(video.get('desc')),
-                    'creator': str_or_none(try_get(video, lambda x: x['author']['nickname'])),
-                    'uploader': str_or_none(try_get(video, lambda x: x['author']['uniqueId'])),
-                    'uploader_id': str_or_none(try_get(video, lambda x: x['author']['id'])),
-                    'uploader_url': 'https://www.tiktok.com/@' + id,
-                    'thumbnails': [{'url': thumbnail, 'height': height, 'width': width, 'id': '0', 'resolution': resolution}],
-                    'upload_date': datetime.fromtimestamp(timestamp).strftime('%Y%m%d'),
-                    'webpage_url': video_url,
+                    'duration': try_get(video, lambda x: x['video']['duration'], int),
+                    'view_count': try_get(video, lambda x: x['stats']['playCount'], int),
+                    'like_count': try_get(video, lambda x: x['stats']['diggCount'], int),
+                    'comment_count': try_get(video, lambda x: x['stats']['commentCount'], int),
+                    'repost_count': try_get(video, lambda x: x['stats']['shareCount'], int),
+                    'timestamp': video.get('createTime'),
+                    'creator': try_get(video, lambda x: x['author']['nickname'], str),
+                    'uploader': try_get(video, lambda x: x['author']['uniqueId'], str),
+                    'uploader_id': try_get(video, lambda x: x['author']['id'], str),
+                    'uploader_url': 'https://www.tiktok.com/@' + user_id,
+                    'thumbnails': [{'url': thumbnail, 'height': height, 'width': width}],
                     'description': str_or_none(video.get('desc')),
-                    'ext': 'mp4',
-                    'formats': formats,
+                    'webpage_url': video_url,
                     'http_headers': {
                         'Referer': video_url,
-                        'Cookie': 'tt_webid=%s; tt_webid_v2=%s' % (tracker, tracker),
                     }
                 }
-            if not has_more:
+            if not data_json['hasMore']:
                 break
+            cursor = data_json['cursor']
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        return {
-            '_type': 'playlist',
-            'entries': self._entries(url, id),
-            'title': id,
-        }
+        user_id = self._match_id(url)
+        return self.playlist_result(self._entries(url, user_id), user_id)
