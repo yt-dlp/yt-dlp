@@ -22,7 +22,7 @@ from ..utils import (
     cli_option,
     cli_valueless_option,
     cli_bool_option,
-    cli_configuration_args,
+    _configuration_args,
     encodeFilename,
     encodeArgument,
     handle_youtubedl_headers,
@@ -111,11 +111,10 @@ class ExternalFD(FileDownloader):
     def _valueless_option(self, command_option, param, expected_value=True):
         return cli_valueless_option(self.params, command_option, param, expected_value)
 
-    def _configuration_args(self, *args, **kwargs):
-        return cli_configuration_args(
-            self.params.get('external_downloader_args'),
-            [self.get_basename(), 'default'],
-            *args, **kwargs)
+    def _configuration_args(self, keys=None, *args, **kwargs):
+        return _configuration_args(
+            self.get_basename(), self.params.get('external_downloader_args'), self.get_basename(),
+            keys, *args, **kwargs)
 
     def _call_downloader(self, tmpfilename, info_dict):
         """ Either overwrite this or implement _make_cmd """
@@ -459,10 +458,10 @@ class FFmpegFD(ExternalFD):
             elif isinstance(conn, compat_str):
                 args += ['-rtmp_conn', conn]
 
-        for url in urls:
-            args += ['-i', url]
+        for i, url in enumerate(urls):
+            args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', url]
 
-        args += self._configuration_args() + ['-c', 'copy']
+        args += ['-c', 'copy']
         if info_dict.get('requested_formats'):
             for (i, fmt) in enumerate(info_dict['requested_formats']):
                 if fmt.get('acodec') != 'none':
@@ -491,9 +490,10 @@ class FFmpegFD(ExternalFD):
         else:
             args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
 
+        args += self._configuration_args((f'_o1', '_o', ''))
+
         args = [encodeArgument(opt) for opt in args]
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
-
         self._debug_cmd(args)
 
         proc = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)

@@ -439,9 +439,12 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (Alias: --external-downloader)
     --downloader-args NAME:ARGS      Give these arguments to the external
                                      downloader. Specify the downloader name and
-                                     the arguments separated by a colon ":". You
-                                     can use this option multiple times to give
-                                     different arguments to different downloaders
+                                     the arguments separated by a colon ":". For
+                                     ffmpeg, arguments can be passed to
+                                     different positions using the same syntax
+                                     as --postprocessor-args. You can use this
+                                     option multiple times to give different
+                                     arguments to different downloaders
                                      (Alias: --external-downloader-args)
 
 ## Filesystem Options:

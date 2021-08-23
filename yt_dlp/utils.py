@@ -4987,6 +4987,18 @@ def cli_configuration_args(argdict, keys, default=[], use_compat=True):
             return [arg for args in arg_list for arg in args]
     return default
 
+def _configuration_args(main_key, argdict, exe, keys=None, default=[], use_compat=True):
+    main_key, exe = main_key.lower(), exe.lower()
+    root_key = exe if main_key == exe else f'{main_key}+{exe}'
+    keys = [f'{root_key}{k}' for k in (keys or [''])]
+    if root_key in keys:
+        if main_key != exe:
+            keys.append((main_key, exe))
+        keys.append('default')
+    else:
+        use_compat = False
+    return cli_configuration_args(argdict, keys, default, use_compat)
+
 
 class ISO639Utils(object):
     # See http://www.loc.gov/standards/iso639-2/ISO-639-2_utf-8.txt
