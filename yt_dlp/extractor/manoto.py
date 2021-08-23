@@ -5,7 +5,7 @@ from .common import InfoExtractor, traverse_obj, clean_html
 
 
 _API_URL = 'https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/{}/{}?id={}'
-EXT = 'mp4'
+
 
 class ManotoTVIE(InfoExtractor):
     IE_NAME = 'Manoto TV (Episode)'
@@ -24,7 +24,7 @@ class ManotoTVIE(InfoExtractor):
             'title': 'سه ماه تعطیلی',
             'description': 'سه ماه تعطیلی فیلمی به کارگردانی و نویسندگی شاپور قریب ساختهٔ سال ۱۳۵۶ است.',
             'thumbnail': r're:^https?://.*\.jpeg$',
-            'ext': EXT
+            'ext': 'mp4'
         }
     }
 
@@ -38,7 +38,7 @@ class ManotoTVIE(InfoExtractor):
         episode_number = details.get('episodeNumber')
         if not(episode_number.isdigit()):
             episode_number = 0
-        formats = self._extract_m3u8_formats(details.get('videoM3u8Url'), video_id, EXT)
+        formats = self._extract_m3u8_formats(details.get('videoM3u8Url'), video_id, 'mp4')
         return {
             'id': video_id,
             'series': details.get('showTitle'),
@@ -51,7 +51,7 @@ class ManotoTVIE(InfoExtractor):
             'title': details.get('episodeTitle'),
             'description': clean_html(details.get('episodeDescription')),
             'thumbnail': details.get('episodelandscapeImgIxUrl'),
-            'ext': EXT,
+            'ext': 'mp4',
             'formats': formats,
         }
 
@@ -97,7 +97,7 @@ class ManotoTVLiveIE(InfoExtractor):
         'info_dict': {
             'id': 'live',
             'title': 'Manoto TV Live',
-            'ext': EXT,
+            'ext': 'mp4',
             'is_live': True,
         }
     }
@@ -107,10 +107,10 @@ class ManotoTVLiveIE(InfoExtractor):
         json = self._download_json(_API_URL.format('livemodule', 'details', ''), video_id)
         details = json.get('details', {})
         video_url = details.get('liveUrl')
-        formats = self._extract_m3u8_formats(video_url, video_id, EXT, live=True)
+        formats = self._extract_m3u8_formats(video_url, video_id, 'mp4', live=True)
         return {
             'id': video_id,
             'title': 'Manoto TV Live',
-            'ext': EXT,
+            'ext': 'mp4',
             'formats': formats,
         }
