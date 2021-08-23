@@ -11,10 +11,17 @@ class ManotoTVIE(InfoExtractor):
         'url': 'https://www.manototv.com/episode/12576',
         'info_dict': {
             'id': '12576',
-            'title': 'Seh Mah Taatili',
-            'description': 'مجموعه ای از فیلم های سینمای کلاسیک ایران',
+            'series': 'فیلم های ایرانی',
+            'season_number': 0,
+            'episode_number': 0,
+            'episode_id': 'Seh Mah Taatili',
+            'duration': 5400,
+            'view_count': 10550,
+            'categories': ['سرگرمی'],
+            'title': 'سه ماه تعطیلی',
+            'description': 'سه ماه تعطیلی فیلمی به کارگردانی و نویسندگی شاپور قریب ساختهٔ سال ۱۳۵۶ است.<br/><br/>',
             'thumbnail': r're:^https?://.*\.jpeg$',
-            'ext': 'm3u8',
+            'ext': 'mp4'
         }
     }
 
@@ -22,14 +29,32 @@ class ManotoTVIE(InfoExtractor):
         video_id = self._match_id(url)
         episode_json = self._download_json('https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/showmodule/episodedetails?id=' + video_id, video_id)
         details = episode_json.get('details', {})
-        title = details.get('analyticsEpisodeTitle')
+        series = details.get('showTitle')
+        season_number = details.get('analyticsSeasonNumber')
+        if not(season_number.isdigit()):
+            season_number = 0
+        episode_number = details.get('episodeNumber')
+        if not(episode_number.isdigit()):
+            episode_number = 0
+        title = details.get('episodeTitle')
+        episode_id = details.get('analyticsEpisodeTitle')
+        description = details.get('episodeDescription')
+        duration = details.get('durationInMinutes') * 60
+        view_count = details.get('viewCount')
+        categories = [details.get('videoCategory')]
         video_url = details.get('videoM3u8Url')
-        description = details.get('showSynopsis')
         thumbnail = details.get('episodelandscapeImgIxUrl')
-        ext = 'm3u8'
+        ext = 'mp4'
         formats = self._extract_m3u8_formats(video_url, video_id, ext)
         return {
             'id': video_id,
+            'series': series,
+            'season_number': int(season_number),
+            'episode_number': int(episode_number),
+            'episode_id': episode_id,
+            'duration': duration,
+            'view_count': view_count,
+            'categories': categories,
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
@@ -81,7 +106,7 @@ class ManotoTVLiveIE(InfoExtractor):
         'info_dict': {
             'id': 'live',
             'title': 'Manoto TV Live',
-            'ext': 'm3u8',
+            'ext': 'mp4',
         }
     }
 
@@ -90,7 +115,7 @@ class ManotoTVLiveIE(InfoExtractor):
         json = self._download_json('https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/livemodule/details', video_id)
         details = json.get('details', {})
         video_url = details.get('liveUrl')
-        ext = 'm3u8'
+        ext = 'mp4'
         formats = self._extract_m3u8_formats(video_url, video_id, ext)
         return {
             'id': video_id,
