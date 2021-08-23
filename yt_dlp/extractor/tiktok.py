@@ -189,7 +189,7 @@ class TikTokUserIE(InfoExtractor):
                     'creator': try_get(video, lambda x: x['author']['nickname'], str),
                     'uploader': try_get(video, lambda x: x['author']['uniqueId'], str),
                     'uploader_id': try_get(video, lambda x: x['author']['id'], str),
-                    'uploader_url': 'https://www.tiktok.com/@' + user_id,
+                    'uploader_url': f'https://www.tiktok.com/@{user_id}',
                     'thumbnails': [{'url': thumbnail, 'height': height, 'width': width}],
                     'description': str_or_none(video.get('desc')),
                     'webpage_url': video_url,
