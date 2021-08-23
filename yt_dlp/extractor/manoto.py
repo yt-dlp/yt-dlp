@@ -20,8 +20,8 @@ class ManotoTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        json = self._download_json('https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/showmodule/episodedetails?id=' + video_id, video_id)
-        details = json.get('details', {})
+        episode_json = self._download_json('https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/showmodule/episodedetails?id=' + video_id, video_id)
+        details = episode_json.get('details', {})
         title = details.get('analyticsEpisodeTitle', '')
         video_url = details.get('videoM3u8Url', '')
         description = details.get('showSynopsis', '')
