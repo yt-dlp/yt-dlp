@@ -1,7 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from .common import InfoExtractor, traverse_obj
+from .common import InfoExtractor, traverse_obj, clean_html
 
 
 _API_URL = 'https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/{}/{}?id={}'
@@ -22,7 +22,7 @@ class ManotoTVIE(InfoExtractor):
             'view_count': 10550,
             'categories': ['سرگرمی'],
             'title': 'سه ماه تعطیلی',
-            'description': 'سه ماه تعطیلی فیلمی به کارگردانی و نویسندگی شاپور قریب ساختهٔ سال ۱۳۵۶ است.<br/><br/>',
+            'description': 'سه ماه تعطیلی فیلمی به کارگردانی و نویسندگی شاپور قریب ساختهٔ سال ۱۳۵۶ است.',
             'thumbnail': r're:^https?://.*\.jpeg$',
             'ext': EXT
         }
@@ -41,7 +41,7 @@ class ManotoTVIE(InfoExtractor):
             episode_number = 0
         title = details.get('episodeTitle')
         episode_id = details.get('analyticsEpisodeTitle')
-        description = details.get('episodeDescription')
+        description = clean_html(details.get('episodeDescription'))
         duration = details.get('durationInMinutes') * 60
         view_count = details.get('viewCount')
         categories = [details.get('videoCategory')]
