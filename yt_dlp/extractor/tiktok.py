@@ -159,7 +159,6 @@ class TikTokUserIE(InfoExtractor):
         if not verifyfp_cookie:
             raise ExtractorError('Improper cookies (missing s_v_web_id).', expected=True)
         api_url = f'https://m.tiktok.com/api/post/item_list/?aid=1988&cookie_enabled=true&count=30&verifyFp={verifyfp_cookie.value}&secUid={secuid}&cursor='
-        has_more = True
         cursor = '0'
         for page in itertools.count():
             data_json = self._download_json(api_url + cursor, user_id, note='Downloading Page %d' % page)
