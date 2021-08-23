@@ -39,7 +39,7 @@ class ManotoTVIE(InfoExtractor):
 
 
 class ManotoTVShowIE(InfoExtractor):
-    IE_NAME = 'Manoto TV (Show / Playlist)'
+    IE_NAME = 'Manoto TV (Show)'
     _VALID_URL = r'https?://(?:www\.)?manototv\.com/show/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.manototv.com/show/2526',
@@ -76,7 +76,7 @@ class ManotoTVShowIE(InfoExtractor):
 
 
 class ManotoTVLiveIE(InfoExtractor):
-    IE_NAME = 'Manoto TV Live'
+    IE_NAME = 'Manoto TV (Live)'
     _VALID_URL = r'https?://(?:www\.)?manototv\.com/live/'
     _TEST = {
         'url': 'https://www.manototv.com/live/',
