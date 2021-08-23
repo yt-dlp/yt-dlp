@@ -355,7 +355,7 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
         return self._remove_template_parameter(config['feedWithQueryParams'])
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         mgid = mobj.group('mgid')
         return self._get_videos_info(mgid)
 
@@ -437,7 +437,7 @@ class MTVVideoIE(MTVServicesInfoExtractor):
         return 'http://mtv.mtvnimages.com/uri/' + uri
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('videoid')
         uri = mobj.groupdict().get('mgid')
         if uri is None:

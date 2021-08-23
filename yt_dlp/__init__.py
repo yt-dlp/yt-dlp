@@ -110,14 +110,14 @@ def _real_main(argv=None):
 
     if opts.list_extractors:
         for ie in list_extractors(opts.age_limit):
-            write_string(ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie._WORKING else '') + '\n', out=sys.stdout)
+            write_string(ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie.working() else '') + '\n', out=sys.stdout)
             matchedUrls = [url for url in all_urls if ie.suitable(url)]
             for mu in matchedUrls:
                 write_string('  ' + mu + '\n', out=sys.stdout)
         sys.exit(0)
     if opts.list_extractor_descriptions:
         for ie in list_extractors(opts.age_limit):
-            if not ie._WORKING:
+            if not ie.working():
                 continue
             desc = getattr(ie, 'IE_DESC', ie.IE_NAME)
             if desc is False:

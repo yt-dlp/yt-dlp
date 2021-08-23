@@ -77,7 +77,7 @@ class DisneyIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        domain, video_id, display_id = re.match(self._VALID_URL, url).groups()
+        domain, video_id, display_id = self._match_valid_url(url).groups()
         if not video_id:
             webpage = self._download_webpage(url, display_id)
             grill = re.sub(r'"\s*\+\s*"', '', self._search_regex(

@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -98,7 +97,7 @@ class RedditRIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         url, video_id = mobj.group('url', 'id')
 
         video_id = self._match_id(url)

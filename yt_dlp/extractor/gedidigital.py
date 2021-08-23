@@ -143,7 +143,7 @@ class GediDigitalIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        url = re.match(self._VALID_URL, url).group('url')
+        url = self._match_valid_url(url).group('url')
         webpage = self._download_webpage(url, video_id)
         title = self._html_search_meta(
             ['twitter:title', 'og:title'], webpage, fatal=True)

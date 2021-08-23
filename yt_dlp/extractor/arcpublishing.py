@@ -86,7 +86,7 @@ class ArcPublishingIE(InfoExtractor):
         return entries
 
     def _real_extract(self, url):
-        org, uuid = re.match(self._VALID_URL, url).groups()
+        org, uuid = self._match_valid_url(url).groups()
         for orgs, tmpl in self._POWA_DEFAULTS:
             if org in orgs:
                 base_api_tmpl = tmpl

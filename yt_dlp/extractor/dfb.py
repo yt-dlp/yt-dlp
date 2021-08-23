@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import unified_strdate
@@ -23,7 +22,7 @@ class DFBIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        display_id, video_id = re.match(self._VALID_URL, url).groups()
+        display_id, video_id = self._match_valid_url(url).groups()
 
         player_info = self._download_xml(
             'http://tv.dfb.de/server/hd_video.php?play=%s' % video_id,

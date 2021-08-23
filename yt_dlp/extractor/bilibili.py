@@ -144,7 +144,7 @@ class BiliBiliIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id_bv') or mobj.group('id')
 
         av_id, bv_id = self._get_video_id_set(video_id, mobj.group('id_bv') is not None)

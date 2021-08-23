@@ -72,7 +72,7 @@ class RayWenderlichIE(InfoExtractor):
                     return compat_str(video_id)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         course_id, lesson_id = mobj.group('course_id', 'id')
         display_id = '%s/%s' % (course_id, lesson_id)
 

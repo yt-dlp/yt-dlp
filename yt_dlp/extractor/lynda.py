@@ -128,7 +128,7 @@ class LyndaIE(LyndaBaseIE):
             'Video %s is only available for members' % video_id)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         course_id = mobj.group('course_id')
 
@@ -281,7 +281,7 @@ class LyndaCourseIE(LyndaBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         course_path = mobj.group('coursepath')
         course_id = mobj.group('courseid')
 

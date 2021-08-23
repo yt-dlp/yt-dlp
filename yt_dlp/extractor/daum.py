@@ -6,10 +6,9 @@ import itertools
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_parse_qs,
     compat_urllib_parse_unquote,
-    compat_urlparse,
 )
+from ..utils import parse_qs
 
 
 class DaumBaseIE(InfoExtractor):
@@ -155,7 +154,7 @@ class DaumListIE(InfoExtractor):
         return name, entries
 
     def _check_clip(self, url, list_id):
-        query_dict = compat_parse_qs(compat_urlparse.urlparse(url).query)
+        query_dict = parse_qs(url)
         if 'clipid' in query_dict:
             clip_id = query_dict['clipid'][0]
             if self.get_param('noplaylist'):
@@ -256,7 +255,7 @@ class DaumUserIE(DaumListIE):
         if clip_result:
             return clip_result
 
-        query_dict = compat_parse_qs(compat_urlparse.urlparse(url).query)
+        query_dict = parse_qs(url)
         if 'playlistid' in query_dict:
             playlist_id = query_dict['playlistid'][0]
             return self.url_result(DaumPlaylistIE._URL_TEMPLATE % playlist_id, 'DaumPlaylist')

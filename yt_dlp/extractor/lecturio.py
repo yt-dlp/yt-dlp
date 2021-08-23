@@ -103,7 +103,7 @@ class LecturioIE(LecturioBaseIE):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         nt = mobj.group('nt') or mobj.group('nt_de')
         lecture_id = mobj.group('id')
         display_id = nt or lecture_id
@@ -196,7 +196,7 @@ class LecturioCourseIE(LecturioBaseIE):
     }]
 
     def _real_extract(self, url):
-        nt, course_id = re.match(self._VALID_URL, url).groups()
+        nt, course_id = self._match_valid_url(url).groups()
         display_id = nt or course_id
         api_path = 'courses/' + course_id if course_id else 'course/content/' + nt + '.json'
         course = self._download_json(

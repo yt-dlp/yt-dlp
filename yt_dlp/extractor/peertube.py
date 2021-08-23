@@ -410,18 +410,18 @@ class PeerTubeIE(InfoExtractor):
                             video\.colibris-outilslibres\.org|
                             tube\.svnet\.fr|
                             peertube\.video|
-                            peertube3\.cpy\.re|
                             peertube2\.cpy\.re|
+                            peertube3\.cpy\.re|
                             videos\.tcit\.fr|
                             peertube\.cpy\.re|
                             canard\.tube
                         )'''
-    _UUID_RE = r'[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
+    _UUID_RE = r'[\da-zA-Z]{22}|[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
     _API_BASE = 'https://%s/api/v1/videos/%s/%s'
     _VALID_URL = r'''(?x)
                     (?:
                         peertube:(?P<host>[^:]+):|
-                        https?://(?P<host_2>%s)/(?:videos/(?:watch|embed)|api/v\d/videos)/
+                        https?://(?P<host_2>%s)/(?:videos/(?:watch|embed)|api/v\d/videos|w)/
                     )
                     (?P<id>%s)
                     ''' % (_INSTANCES_RE, _UUID_RE)
@@ -451,6 +451,39 @@ class PeerTubeIE(InfoExtractor):
             'tags': ['framasoft', 'peertube'],
             'categories': ['Science & Technology'],
         }
+    }, {
+        'url': 'https://peertube2.cpy.re/w/122d093a-1ede-43bd-bd34-59d2931ffc5e',
+        'info_dict': {
+            'id': '122d093a-1ede-43bd-bd34-59d2931ffc5e',
+            'ext': 'mp4',
+            'title': 'E2E tests',
+            'uploader_id': '37855',
+            'timestamp': 1589276219,
+            'upload_date': '20200512',
+            'uploader': 'chocobozzz',
+        }
+    }, {
+        'url': 'https://peertube2.cpy.re/w/3fbif9S3WmtTP8gGsC5HBd',
+        'info_dict': {
+            'id': '3fbif9S3WmtTP8gGsC5HBd',
+            'ext': 'mp4',
+            'title': 'E2E tests',
+            'uploader_id': '37855',
+            'timestamp': 1589276219,
+            'upload_date': '20200512',
+            'uploader': 'chocobozzz',
+        },
+    }, {
+        'url': 'https://peertube2.cpy.re/api/v1/videos/3fbif9S3WmtTP8gGsC5HBd',
+        'info_dict': {
+            'id': '3fbif9S3WmtTP8gGsC5HBd',
+            'ext': 'mp4',
+            'title': 'E2E tests',
+            'uploader_id': '37855',
+            'timestamp': 1589276219,
+            'upload_date': '20200512',
+            'uploader': 'chocobozzz',
+        },
     }, {
         # Issue #26002
         'url': 'peertube:spacepub.space:d8943b2d-8280-497b-85ec-bc282ec2afdc',
@@ -484,9 +517,10 @@ class PeerTubeIE(InfoExtractor):
     @staticmethod
     def _extract_peertube_url(webpage, source_url):
         mobj = re.match(
-            r'https?://(?P<host>[^/]+)/videos/(?:watch|embed)/(?P<id>%s)'
+            r'https?://(?P<host>[^/]+)/(?:videos/(?:watch|embed)|w)/(?P<id>%s)'
             % PeerTubeIE._UUID_RE, source_url)
         if mobj and any(p in webpage for p in (
+                'meta property="og:platform" content="PeerTube"',
                 '<title>PeerTube<',
                 'There will be other non JS-based clients to access PeerTube',
                 '>We are sorry but it seems that PeerTube is not compatible with your web browser.<')):
@@ -529,7 +563,7 @@ class PeerTubeIE(InfoExtractor):
         return subtitles
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host') or mobj.group('host_2')
         video_id = mobj.group('id')
 

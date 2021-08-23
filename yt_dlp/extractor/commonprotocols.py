@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import (
@@ -72,4 +71,4 @@ class ViewSourceIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        return self.url_result(re.match(self._VALID_URL, url).group('url'))
+        return self.url_result(self._match_valid_url(url).group('url'))

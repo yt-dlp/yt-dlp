@@ -103,7 +103,7 @@ class TV2IE(InfoExtractor):
                         'filesize': int_or_none(item.get('fileSize')),
                     })
         if not formats and data.get('drmProtected'):
-            self.raise_no_formats('This video is DRM protected.', expected=True)
+            self.report_drm(video_id)
         self._sort_formats(formats)
 
         thumbnails = [{

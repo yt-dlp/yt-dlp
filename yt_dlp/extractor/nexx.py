@@ -289,7 +289,7 @@ class NexxIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         domain_id = mobj.group('domain_id') or mobj.group('domain_id_s')
         video_id = mobj.group('id')
 

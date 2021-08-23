@@ -111,7 +111,7 @@ class ShahidIE(ShahidBaseIE):
             }))
 
     def _real_extract(self, url):
-        page_type, video_id = re.match(self._VALID_URL, url).groups()
+        page_type, video_id = self._match_valid_url(url).groups()
         if page_type == 'clip':
             page_type = 'episode'
 
@@ -119,7 +119,7 @@ class ShahidIE(ShahidBaseIE):
             'playout/new/url/' + video_id, video_id)['playout']
 
         if not self.get_param('allow_unplayable_formats') and playout.get('drm'):
-            raise ExtractorError('This video is DRM protected.', expected=True)
+            self.report_drm(video_id)
 
         formats = self._extract_m3u8_formats(re.sub(
             # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html

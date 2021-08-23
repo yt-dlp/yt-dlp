@@ -262,7 +262,7 @@ class PornHubIE(PornHubBaseIE):
             pattern, webpage, '%s count' % name, fatal=False))
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host') or 'pornhub.com'
         video_id = mobj.group('id')
 
@@ -567,7 +567,7 @@ class PornHubUserIE(PornHubPlaylistBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         user_id = mobj.group('id')
         videos_url = '%s/videos' % mobj.group('url')
         page = self._extract_page(url)
@@ -629,7 +629,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
                 break
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host')
         item_id = mobj.group('id')
 
@@ -808,7 +808,7 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
                 yield e
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host')
         item_id = mobj.group('id')
 

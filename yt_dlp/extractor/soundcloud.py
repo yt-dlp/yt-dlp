@@ -557,7 +557,7 @@ class SoundcloudIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
 
         track_id = mobj.group('track_id')
 
@@ -637,7 +637,7 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
 
         full_title = '%s/sets/%s' % mobj.group('uploader', 'slug_title')
         token = mobj.group('token')
@@ -789,7 +789,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         uploader = mobj.group('user')
 
         user = self._download_json(
@@ -842,7 +842,7 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
 
         query = {}

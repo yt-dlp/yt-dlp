@@ -97,7 +97,7 @@ class GloboIE(InfoExtractor):
             'http://api.globovideos.com/videos/%s/playlist' % video_id,
             video_id)['videos'][0]
         if not self.get_param('allow_unplayable_formats') and video.get('encrypted') is True:
-            raise ExtractorError('This video is DRM protected.', expected=True)
+            self.report_drm(video_id)
 
         title = video['title']
 

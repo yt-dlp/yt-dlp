@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -48,7 +47,7 @@ class HearThisAtIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        m = re.match(self._VALID_URL, url)
+        m = self._match_valid_url(url)
         display_id = '{artist:s} - {title:s}'.format(**m.groupdict())
         api_url = url.replace('www.', '').replace('hearthis.at', 'api-v2.hearthis.at')
         data_json = self._download_json(api_url, display_id)

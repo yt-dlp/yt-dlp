@@ -139,9 +139,9 @@ class HungamaAlbumPlaylistIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         ptrn = r'<meta[^>]+?property=[\"\']?music:song:url[\"\']?[^>]+?content=[\"\']?([^\"\']+)'
         items = re.findall(ptrn, webpage)
         entries = [self.url_result(item, ie=HungamaSongIE.ie_key()) for item in items]
-        return self.playlist_result(entries, id)
+        return self.playlist_result(entries, video_id)

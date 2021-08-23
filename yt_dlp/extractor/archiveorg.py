@@ -9,8 +9,6 @@ from .youtube import YoutubeIE
 from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_unquote_plus,
-    compat_urlparse,
-    compat_parse_qs,
     compat_HTTPError
 )
 from ..utils import (
@@ -25,6 +23,7 @@ from ..utils import (
     merge_dicts,
     mimetype2ext,
     parse_duration,
+    parse_qs,
     RegexNotFoundError,
     str_to_int,
     str_or_none,
@@ -399,7 +398,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     expected=True)
             raise
         video_file_url = compat_urllib_parse_unquote(video_file_webpage.url)
-        video_file_url_qs = compat_parse_qs(compat_urlparse.urlparse(video_file_url).query)
+        video_file_url_qs = parse_qs(video_file_url)
 
         # Attempt to recover any ext & format info from playback url
         format = {'url': video_file_url}

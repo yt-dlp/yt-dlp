@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -76,7 +75,7 @@ class MxplayerIE(InfoExtractor):
                     yield stream_type, 'base', stream
 
     def _real_extract(self, url):
-        display_id, video_id = re.match(self._VALID_URL, url).groups()
+        display_id, video_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, video_id)
 
         source = self._parse_json(
@@ -170,7 +169,7 @@ class MxplayerShowIE(InfoExtractor):
                 next_url = season_json.get('next')
 
     def _real_extract(self, url):
-        display_id, show_id = re.match(self._VALID_URL, url).groups()
+        display_id, show_id = self._match_valid_url(url).groups()
         return self.playlist_result(
             self._entries(show_id), playlist_id=show_id,
             playlist_title=display_id.replace('-', ' ').title())

@@ -190,7 +190,7 @@ class NovaIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('id')
         site = mobj.group('site')
 

@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -63,7 +62,7 @@ class PlayPlusTVIE(InfoExtractor):
         self._profile = self._call_api('Profiles')['list'][0]['_id']
 
     def _real_extract(self, url):
-        project_id, media_id = re.match(self._VALID_URL, url).groups()
+        project_id, media_id = self._match_valid_url(url).groups()
         media = self._call_api(
             'Media', media_id, {
                 'profileId': self._profile,

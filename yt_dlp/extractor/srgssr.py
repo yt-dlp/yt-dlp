@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -82,7 +81,7 @@ class SRGSSRIE(InfoExtractor):
         return media_data
 
     def _real_extract(self, url):
-        bu, media_type, media_id = re.match(self._VALID_URL, url).groups()
+        bu, media_type, media_id = self._match_valid_url(url).groups()
         media_data = self._get_media_data(bu, media_type, media_id)
         title = media_data['title']
 
@@ -249,7 +248,7 @@ class SRGSSRPlayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         bu = mobj.group('bu')
         media_type = mobj.group('type') or mobj.group('type_2')
         media_id = mobj.group('id')

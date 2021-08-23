@@ -1508,7 +1508,8 @@ class AdobePassIE(InfoExtractor):
                     # In general, if you're connecting from a Verizon-assigned IP,
                     # you will not actually pass your credentials.
                     provider_redirect_page, urlh = provider_redirect_page_res
-                    if 'Please wait ...' in provider_redirect_page:
+                    # From non-Verizon IP, still gave 'Please wait', but noticed N==Y; will need to try on Verizon IP
+                    if 'Please wait ...' in provider_redirect_page and '\'N\'== "Y"' not in provider_redirect_page:
                         saml_redirect_url = self._html_search_regex(
                             r'self\.parent\.location=(["\'])(?P<url>.+?)\1',
                             provider_redirect_page,
@@ -1516,7 +1517,8 @@ class AdobePassIE(InfoExtractor):
                         saml_login_page = self._download_webpage(
                             saml_redirect_url, video_id,
                             'Downloading SAML Login Page')
-                    else:
+                    elif 'Verizon FiOS - sign in' in provider_redirect_page:
+                        # FXNetworks from non-Verizon IP
                         saml_login_page_res = post_form(
                             provider_redirect_page_res, 'Logging in', {
                                 mso_info['username_field']: username,
@@ -1526,6 +1528,26 @@ class AdobePassIE(InfoExtractor):
                         if 'Please try again.' in saml_login_page:
                             raise ExtractorError(
                                 'We\'re sorry, but either the User ID or Password entered is not correct.')
+                    else:
+                        # ABC from non-Verizon IP
+                        saml_redirect_url = self._html_search_regex(
+                            r'var\surl\s*=\s*(["\'])(?P<url>.+?)\1',
+                            provider_redirect_page,
+                            'SAML Redirect URL', group='url')
+                        saml_redirect_url = saml_redirect_url.replace(r'\/', '/')
+                        saml_redirect_url = saml_redirect_url.replace(r'\-', '-')
+                        saml_redirect_url = saml_redirect_url.replace(r'\x26', '&')
+                        saml_login_page = self._download_webpage(
+                            saml_redirect_url, video_id,
+                            'Downloading SAML Login Page')
+                        saml_login_page, urlh = post_form(
+                            [saml_login_page, saml_redirect_url], 'Logging in', {
+                                mso_info['username_field']: username,
+                                mso_info['password_field']: password,
+                            })
+                        if 'Please try again.' in saml_login_page:
+                            raise ExtractorError(
+                                'Failed to login, incorrect User ID or Password.')
                     saml_login_url = self._search_regex(
                         r'xmlHttp\.open\("POST"\s*,\s*(["\'])(?P<url>.+?)\1',
                         saml_login_page, 'SAML Login URL', group='url')

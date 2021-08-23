@@ -183,7 +183,7 @@ class ORFTVthekIE(InfoExtractor):
 
 class ORFRadioIE(InfoExtractor):
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         show_date = mobj.group('date')
         show_id = mobj.group('show')
 

@@ -43,7 +43,7 @@ class SevenPlusIE(BrightcoveNewIE):
     }]
 
     def _real_extract(self, url):
-        path, episode_id = re.match(self._VALID_URL, url).groups()
+        path, episode_id = self._match_valid_url(url).groups()
 
         try:
             media = self._download_json(

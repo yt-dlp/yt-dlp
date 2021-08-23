@@ -102,7 +102,7 @@ class SenateISVPIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
-        qs = compat_parse_qs(re.match(self._VALID_URL, url).group('qs'))
+        qs = compat_parse_qs(self._match_valid_url(url).group('qs'))
         if not qs.get('filename') or not qs.get('type') or not qs.get('comm'):
             raise ExtractorError('Invalid URL', expected=True)
 

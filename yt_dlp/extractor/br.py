@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -86,7 +85,7 @@ class BRIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        base_url, display_id = re.search(self._VALID_URL, url).groups()
+        base_url, display_id = self._match_valid_url(url).groups()
         page = self._download_webpage(url, display_id)
         xml_url = self._search_regex(
             r"return BRavFramework\.register\(BRavFramework\('avPlayer_(?:[a-f0-9-]{36})'\)\.setup\({dataURL:'(/(?:[a-z0-9\-]+/)+[a-z0-9/~_.-]+)'}\)\);", page, 'XMLURL')
