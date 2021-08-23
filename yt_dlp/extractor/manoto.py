@@ -70,7 +70,7 @@ class ManotoTVIE(InfoExtractor):
             'title': details.get('episodeTitle'),
             'description': clean_html(details.get('episodeDescription')),
             'thumbnail': details.get('episodelandscapeImgIxUrl'),
-            'formats': formats,
+            'formats': self._sort_formats(formats),
         }
 
 
