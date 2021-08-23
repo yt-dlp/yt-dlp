@@ -32,34 +32,25 @@ class ManotoTVIE(InfoExtractor):
         video_id = self._match_id(url)
         episode_json = self._download_json(_API_URL.format('showmodule', 'episodedetails', video_id), video_id)
         details = episode_json.get('details', {})
-        series = details.get('showTitle')
         season_number = details.get('analyticsSeasonNumber')
         if not(season_number.isdigit()):
             season_number = 0
         episode_number = details.get('episodeNumber')
         if not(episode_number.isdigit()):
             episode_number = 0
-        title = details.get('episodeTitle')
-        episode_id = details.get('analyticsEpisodeTitle')
-        description = clean_html(details.get('episodeDescription'))
-        duration = details.get('durationInMinutes') * 60
-        view_count = details.get('viewCount')
-        categories = [details.get('videoCategory')]
-        video_url = details.get('videoM3u8Url')
-        thumbnail = details.get('episodelandscapeImgIxUrl')
-        formats = self._extract_m3u8_formats(video_url, video_id, EXT)
+        formats = self._extract_m3u8_formats(details.get('videoM3u8Url'), video_id, EXT)
         return {
             'id': video_id,
-            'series': series,
+            'series': details.get('showTitle'),
             'season_number': int(season_number),
             'episode_number': int(episode_number),
-            'episode_id': episode_id,
-            'duration': duration,
-            'view_count': view_count,
-            'categories': categories,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
+            'episode_id': details.get('analyticsEpisodeTitle'),
+            'duration': details.get('durationInMinutes') * 60,
+            'view_count': details.get('viewCount'),
+            'categories': [details.get('videoCategory')],
+            'title': details.get('episodeTitle'),
+            'description': clean_html(details.get('episodeDescription')),
+            'thumbnail': details.get('episodelandscapeImgIxUrl'),
             'ext': EXT,
             'formats': formats,
         }
