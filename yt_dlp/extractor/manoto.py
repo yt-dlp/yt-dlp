@@ -1,7 +1,12 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from .common import InfoExtractor, traverse_obj, clean_html
+from .common import InfoExtractor
+from ..utils import (
+    clean_html,
+    int_or_none,
+    traverse_obj
+)
 
 
 _API_URL = 'https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/{}/{}?id={}'
@@ -15,16 +20,17 @@ class ManotoTVIE(InfoExtractor):
         'info_dict': {
             'id': '12576',
             'series': 'فیلم های ایرانی',
-            'season_number': 0,
-            'episode_number': 0,
             'episode_id': 'Seh Mah Taatili',
             'duration': 5400,
-            'view_count': 10550,
+            'view_count': int,
             'categories': ['سرگرمی'],
             'title': 'سه ماه تعطیلی',
             'description': 'سه ماه تعطیلی فیلمی به کارگردانی و نویسندگی شاپور قریب ساختهٔ سال ۱۳۵۶ است.',
             'thumbnail': r're:^https?://.*\.jpeg$',
             'ext': 'mp4'
+        },
+        'params': {
+            'skip_download': 'm3u8',
         }
     }
 
@@ -45,7 +51,6 @@ class ManotoTVIE(InfoExtractor):
             'title': details.get('episodeTitle'),
             'description': clean_html(details.get('episodeDescription')),
             'thumbnail': details.get('episodelandscapeImgIxUrl'),
-            'ext': 'mp4',
             'formats': formats,
         }
 
@@ -93,6 +98,9 @@ class ManotoTVLiveIE(InfoExtractor):
             'title': 'Manoto TV Live',
             'ext': 'mp4',
             'is_live': True,
+        },
+        'params': {
+            'skip_download': 'm3u8',
         }
     }
 
@@ -105,7 +113,6 @@ class ManotoTVLiveIE(InfoExtractor):
         return {
             'id': video_id,
             'title': 'Manoto TV Live',
-            'ext': 'mp4',
             'is_live': True,
             'formats': formats,
         }
