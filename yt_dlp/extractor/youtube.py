@@ -633,15 +633,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, default_client),
             'Origin': origin
         }
-        if not visitor_data and ytcfg:
-            visitor_data = try_get(
-                self._extract_context(ytcfg, default_client), lambda x: x['client']['visitorData'], compat_str)
+        if ytcfg:
+            if not visitor_data:
+                visitor_data = try_get(
+                    self._extract_context(ytcfg, default_client), lambda x: x['client']['visitorData'], compat_str)
+            if not account_syncid:
+                account_syncid = self._extract_account_syncid(ytcfg)
+            if session_index is None:
+                session_index = self._extract_session_index(ytcfg)
+
         if identity_token:
             headers['X-Youtube-Identity-Token'] = identity_token
         if account_syncid:
             headers['X-Goog-PageId'] = account_syncid
-        if session_index is None and ytcfg:
-            session_index = self._extract_session_index(ytcfg)
         if account_syncid or session_index is not None:
             headers['X-Goog-AuthUser'] = session_index if session_index is not None else 0
         if visitor_data:
@@ -3023,10 +3027,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_DATA_RE, video_id,
                 'yt initial data')
         if not initial_data:
-            headers = self.generate_api_headers(
-                master_ytcfg, identity_token, self._extract_account_syncid(master_ytcfg),
-                session_index=self._extract_session_index(master_ytcfg))
-
+            headers = self.generate_api_headers(master_ytcfg, identity_token)
             initial_data = self._extract_response(
                 item_id=video_id, ep='next', fatal=False,
                 ytcfg=master_ytcfg, headers=headers, query={'videoId': video_id},
