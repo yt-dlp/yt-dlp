@@ -57,6 +57,7 @@ class ManotoTVIE(InfoExtractor):
         episode_json = self._download_json(_API_URL.format('showmodule', 'episodedetails', video_id), video_id)
         details = episode_json.get('details', {})
         formats = self._extract_m3u8_formats(details.get('videoM3u8Url'), video_id, 'mp4')
+        self._sort_formats(formats)
         return {
             'id': video_id,
             'series': details.get('showTitle'),
@@ -69,7 +70,7 @@ class ManotoTVIE(InfoExtractor):
             'title': details.get('episodeTitle'),
             'description': clean_html(details.get('episodeDescription')),
             'thumbnail': details.get('episodelandscapeImgIxUrl'),
-            'formats': self._sort_formats(formats),
+            'formats': formats,
         }
 
 
