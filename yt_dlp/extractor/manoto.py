@@ -22,8 +22,7 @@ class ManotoTVIE(InfoExtractor):
             'series': 'خانه های رویایی با برادران اسکات',
             'season_number': 7,
             'episode_number': 25,
-            'episode_id':
-            'My Dream Home S7: Carol & John',
+            'episode_id': 'My Dream Home S7: Carol & John',
             'duration': 3600,
             'categories': ['سرگرمی'],
             'title': 'کارول و جان',
