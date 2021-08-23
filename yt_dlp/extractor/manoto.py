@@ -129,6 +129,7 @@ class ManotoTVLiveIE(InfoExtractor):
         details = json.get('details', {})
         video_url = details.get('liveUrl')
         formats = self._extract_m3u8_formats(video_url, video_id, 'mp4', live=True)
+        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': 'Manoto TV Live',
