@@ -159,7 +159,7 @@ class TV2ArticleIE(InfoExtractor):
         return self.playlist_result(entries, playlist_id, title, description)
 
 
-class KatsomoIE(TV2IE):
+class KatsomoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:katsomo|mtv(uutiset)?)\.fi/(?:sarja/[0-9a-z-]+-\d+/[0-9a-z-]+-|(?:#!/)?jakso/(?:\d+/[^/]+/)?|video/prog)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.mtv.fi/sarja/mtv-uutiset-live-33001002003/lahden-pelicans-teki-kovan-ratkaisun-ville-nieminen-pihalle-1181321',
