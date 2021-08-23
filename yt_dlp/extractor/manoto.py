@@ -5,7 +5,7 @@ from .common import InfoExtractor
 
 
 class ManotoTVIE(InfoExtractor):
-    IE_NAME = 'Manoto TV (Episode / Video)'
+    IE_NAME = 'Manoto TV (Episode)'
     _VALID_URL = r'https?://(?:www\.)?manototv\.com/episode/(?P<id>[0-9]+)'
     _TEST = {
         'url': 'https://www.manototv.com/episode/12576',
