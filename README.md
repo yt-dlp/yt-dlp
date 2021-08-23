@@ -255,9 +255,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      an error. The default value "fixup_error"
                                      repairs broken URLs, but emits an error if
                                      this is not possible instead of searching
-    --ignore-config, --no-config     Disable loading any configuration files
-                                     except the one provided by --config-location.
-                                     When given inside a configuration
+    --ignore-config                  Disable loading any configuration files
+                                     except the one provided by --config-
+                                     location. When given inside a configuration
                                      file, no further configuration files are
                                      loaded. Additionally, (for backward
                                      compatibility) if this option is found
@@ -317,10 +317,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      specify range: "--playlist-items
                                      1-3,7,10-13", it will download the videos
                                      at index 1, 2, 3, 7, 10, 11, 12 and 13
-    --match-title REGEX              Download only matching titles (regex or
-                                     caseless sub-string)
-    --reject-title REGEX             Skip download for matching titles (regex or
-                                     caseless sub-string)
     --max-downloads NUMBER           Abort after downloading NUMBER files
     --min-filesize SIZE              Do not download any videos smaller than
                                      SIZE (e.g. 50k or 44.6m)
@@ -328,17 +324,14 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (e.g. 50k or 44.6m)
     --date DATE                      Download only videos uploaded in this date.
                                      The date can be "YYYYMMDD" or in the format
-                                     "(now|today)[+-][0-9](day|week|month|year)(s)?"
+                                     "(now|today)[+-][0-9](day|week|month|year)(
+                                     s)?"
     --datebefore DATE                Download only videos uploaded on or before
                                      this date. The date formats accepted is the
                                      same as --date
     --dateafter DATE                 Download only videos uploaded on or after
                                      this date. The date formats accepted is the
                                      same as --date
-    --min-views COUNT                Do not download any videos with less than
-                                     COUNT views
-    --max-views COUNT                Do not download any videos with more than
-                                     COUNT views
     --match-filter FILTER            Generic video filter. Any field (see
                                      "OUTPUT TEMPLATE") can be compared with a
                                      number or a string using the operators
@@ -350,8 +343,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      can be done using "~=", and multiple
                                      filters can be checked with "&". Use a "\"
                                      to escape "&" or quotes if needed. Eg:
-                                     --match-filter "!is_live & like_count>?100
-                                     & description~=\'(?i)\bcats \& dogs\b\'"
+                                     --match-filter '!is_live & like_count>?100
+                                     & description~=\"(?i)\bcats \& dogs\b\"'
                                      matches only videos that are not live, has
                                      a like count more than 100 (or the like
                                      field is not available), and also has a
@@ -390,10 +383,11 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      is 10), or "infinite" (DASH, hlsnative and
                                      ISM)
     --skip-unavailable-fragments     Skip unavailable fragments for DASH,
-                                     hlsnative and ISM (default)
-                                     (Alias: --no-abort-on-unavailable-fragment)
-    --abort-on-unavailable-fragment  Abort downloading if a fragment is unavailable
-                                     (Alias: --no-skip-unavailable-fragments)
+                                     hlsnative and ISM (default) (Alias: --no-
+                                     abort-on-unavailable-fragment)
+    --abort-on-unavailable-fragment  Abort downloading if a fragment is
+                                     unavailable (Alias: --no-skip-unavailable-
+                                     fragments)
     --keep-fragments                 Keep downloaded fragments on disk after
                                      downloading is finished
     --no-keep-fragments              Delete downloaded fragments after
@@ -435,14 +429,15 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      example, --downloader aria2c --downloader
                                      "dash,m3u8:native" will use aria2c for
                                      http/ftp downloads, and the native
-                                     downloader for dash/m3u8 downloads
-                                     (Alias: --external-downloader)
+                                     downloader for dash/m3u8 downloads (Alias:
+                                     --external-downloader)
     --downloader-args NAME:ARGS      Give these arguments to the external
                                      downloader. Specify the downloader name and
                                      the arguments separated by a colon ":". You
                                      can use this option multiple times to give
-                                     different arguments to different downloaders
-                                     (Alias: --external-downloader-args)
+                                     different arguments to different
+                                     downloaders (Alias: --external-downloader-
+                                     args)
 
 ## Filesystem Options:
     -a, --batch-file FILE            File containing URLs to download ('-' for
@@ -504,8 +499,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      .annotations.xml file
     --no-write-annotations           Do not write video annotations (default)
     --write-playlist-metafiles       Write playlist metadata in addition to the
-                                     video metadata when using --write-info-json,
-                                     --write-description etc. (default)
+                                     video metadata when using --write-info-
+                                     json, --write-description etc. (default)
     --no-write-playlist-metafiles    Do not write playlist metadata when using
                                      --write-info-json, --write-description etc.
     --clean-infojson                 Remove some private fields such as
@@ -518,8 +513,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      without this option if the extraction is
                                      known to be quick (Alias: --get-comments)
     --no-write-comments              Do not retrieve video comments unless the
-                                     extraction is known to be quick
-                                     (Alias: --no-get-comments)
+                                     extraction is known to be quick (Alias:
+                                     --no-get-comments)
     --load-info-json FILE            JSON file containing the video information
                                      (created with the "--write-info-json"
                                      option)
@@ -629,7 +624,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      when used along with --max-sleep-interval
                                      (Alias: --min-sleep-interval)
     --max-sleep-interval SECONDS     Maximum number of seconds to sleep. Can
-                                     only be used along with --min-sleep-interval
+                                     only be used along with --min-sleep-
+                                     interval
     --sleep-subtitles SECONDS        Number of seconds to sleep before each
                                      subtitle download
 
@@ -638,7 +634,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      for more details
     -S, --format-sort SORTORDER      Sort the formats by the fields given, see
                                      "Sorting Formats" for more details
-    --S-force, --format-sort-force   Force user specified sort order to have
+    --format-sort-force              Force user specified sort order to have
                                      precedence over all fields, see "Sorting
                                      Formats" for more details
     --no-format-sort-force           Some fields have precedence over the user
@@ -675,7 +671,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --write-auto-subs                Write automatically generated subtitle file
                                      (Alias: --write-automatic-subs)
     --no-write-auto-subs             Do not write auto-generated subtitles
-                                     (default) (Alias: --no-write-automatic-subs)
+                                     (default) (Alias: --no-write-automatic-
+                                     subs)
     --list-subs                      List available subtitles of each video.
                                      Simulate unless --no-simulate is used
     --sub-format FORMAT              Subtitle format, accepts formats
@@ -727,7 +724,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      m4a, mov to mp4 and anything else to mkv.
     --recode-video FORMAT            Re-encode the video into another format if
                                      re-encoding is necessary. The syntax and
-                                     supported formats are the same as --remux-video
+                                     supported formats are the same as --remux-
+                                     video
     --postprocessor-args NAME:ARGS   Give these arguments to the postprocessors.
                                      Specify the postprocessor/executable name
                                      and the arguments separated by a colon ":"
@@ -767,8 +765,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --embed-metadata                 Embed metadata including chapter markers
                                      (if supported by the format) to the video
                                      file (Alias: --add-metadata)
-    --no-embed-metadata              Do not write metadata (default)
-                                     (Alias: --no-add-metadata)
+    --no-embed-metadata              Do not write metadata (default)  (Alias:
+                                     --no-add-metadata)
     --parse-metadata FROM:TO         Parse additional metadata like title/artist
                                      from other fields; see "MODIFYING METADATA"
                                      for details
@@ -802,8 +800,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      download. The syntax is the same as --exec
                                      but "filepath" is not available. This
                                      option can be used multiple times
-    --no-exec-before-download        Remove any previously defined
-                                     --exec-before-download
+    --no-exec-before-download        Remove any previously defined --exec-
+                                     before-download
     --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
@@ -818,9 +816,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (default)
 
 ## SponSkrub (SponsorBlock) Options:
-[SponSkrub](https://github.com/yt-dlp/SponSkrub) is a utility to
+    SponSkrub (https://github.com/yt-dlp/SponSkrub) is a utility to
     mark/remove sponsor segments from downloaded YouTube videos using
-    [SponsorBlock API](https://sponsor.ajay.app)
+    SponsorBlock API (https://sponsor.ajay.app)
 
     --sponskrub                      Use sponskrub to mark sponsored sections.
                                      This is enabled by default if the sponskrub

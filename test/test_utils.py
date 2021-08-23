@@ -1283,7 +1283,7 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
 
         # Example from docs
         self.assertTrue(match_str(
-            r"!is_live & like_count>?100 & description~='(?i)\bcats \& dogs\b'",
+            r'!is_live & like_count>?100 & description~="(?i)\bcats \& dogs\b"',
             {'description': 'Raining Cats & Dogs'}))
 
         # Incomplete
