@@ -59,7 +59,6 @@ from ..utils import (
     unsmuggle_url,
     update_url_query,
     url_or_none,
-    urlencode_postdata,
     urljoin,
     variadic,
 )
