@@ -112,5 +112,6 @@ class ManotoTVLiveIE(InfoExtractor):
             'id': video_id,
             'title': 'Manoto TV Live',
             'ext': 'mp4',
+            'is_live': True,
             'formats': formats,
         }
