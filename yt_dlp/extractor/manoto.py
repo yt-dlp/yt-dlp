@@ -8,7 +8,7 @@ _API_URL = 'https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/{}/{}?id={}'
 
 
 class ManotoTVIE(InfoExtractor):
-    IE_NAME = 'Manoto TV (Episode)'
+    IE_DESC = 'Manoto TV (Episode)'
     _VALID_URL = r'https?://(?:www\.)?manototv\.com/episode/(?P<id>[0-9]+)'
     _TEST = {
         'url': 'https://www.manototv.com/episode/12576',
@@ -57,7 +57,7 @@ class ManotoTVIE(InfoExtractor):
 
 
 class ManotoTVShowIE(InfoExtractor):
-    IE_NAME = 'Manoto TV (Show)'
+    IE_DESC = 'Manoto TV (Show)'
     _VALID_URL = r'https?://(?:www\.)?manototv\.com/show/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.manototv.com/show/2526',
@@ -90,7 +90,7 @@ class ManotoTVShowIE(InfoExtractor):
 
 
 class ManotoTVLiveIE(InfoExtractor):
-    IE_NAME = 'Manoto TV (Live)'
+    IE_DESC = 'Manoto TV (Live)'
     _VALID_URL = r'https?://(?:www\.)?manototv\.com/live/'
     _TEST = {
         'url': 'https://www.manototv.com/live/',
