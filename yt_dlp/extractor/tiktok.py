@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
-from datetime import datetime
+
+import itertools
 
 from .common import InfoExtractor
 from ..utils import (
@@ -71,7 +72,7 @@ class TikTokIE(InfoExtractor):
 
         user_id = str_or_none(author_info.get('uniqueId'))
         download_url = try_get(video_info, (lambda x: x['video']['playAddr'],
-                                   lambda x: x['video']['downloadAddr']))
+                                            lambda x: x['video']['downloadAddr']))
         height = try_get(video_info, lambda x: x['video']['height'], int)
         width = try_get(video_info, lambda x: x['video']['width'], int)
         thumbnails = [{
@@ -127,3 +128,78 @@ class TikTokIE(InfoExtractor):
             raise ExtractorError('This video is private', expected=True)
 
         raise ExtractorError('Video not available', video_id=video_id)
+
+
+class TikTokUserIE(InfoExtractor):
+    IE_NAME = 'tiktok:user'
+    _VALID_URL = r'(?!.*/video/)https?://www\.tiktok\.com/@(?P<id>[\w\._]+)'
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/@corgibobaa?lang=en',
+        'playlist_mincount': 45,
+        'info_dict': {
+            'id': '6935371178089399301',
+        },
+        'skip': 'Cookies (not necessarily logged in) are needed.'
+    }, {
+        'url': 'https://www.tiktok.com/@meme',
+        'playlist_mincount': 593,
+        'info_dict': {
+            'id': '79005827461758976',
+        },
+        'skip': 'Cookies (not necessarily logged in) are needed.'
+    }]
+
+    def _entries(self, url, user_id):
+        webpage = self._download_webpage(url, user_id)
+        own_id = self._search_regex(r'\"id\":\"(?P<userid>\d+)', webpage, user_id, default=None)
+        if not own_id:
+            raise ExtractorError('Cookies (not necessarily logged in) are needed.', expected=True)
+        secuid = self._search_regex(r'\"secUid\":\"(?P<secUid>[^\"]+)', webpage, user_id)
+        verifyfp_cookie = self._get_cookies('https://www.tiktok.com').get('s_v_web_id')
+        if not verifyfp_cookie:
+            raise ExtractorError('Improper cookies (missing s_v_web_id).', expected=True)
+        api_url = f'https://m.tiktok.com/api/post/item_list/?aid=1988&cookie_enabled=true&count=30&verifyFp={verifyfp_cookie.value}&secUid={secuid}&cursor='
+        cursor = '0'
+        for page in itertools.count():
+            data_json = self._download_json(api_url + cursor, user_id, note='Downloading Page %d' % page)
+            for video in data_json.get('itemList', []):
+                video_id = video['id']
+                video_url = f'https://www.tiktok.com/@{user_id}/video/{video_id}'
+                download_url = try_get(video, (lambda x: x['video']['playAddr'],
+                                               lambda x: x['video']['downloadAddr']))
+                thumbnail = try_get(video, lambda x: x['video']['originCover'])
+                height = try_get(video, lambda x: x['video']['height'], int)
+                width = try_get(video, lambda x: x['video']['width'], int)
+                yield {
+                    'id': video_id,
+                    'ie_key': TikTokIE.ie_key(),
+                    'extractor': 'TikTok',
+                    'url': download_url,
+                    'ext': 'mp4',
+                    'height': height,
+                    'width': width,
+                    'title': str_or_none(video.get('desc')),
+                    'duration': try_get(video, lambda x: x['video']['duration'], int),
+                    'view_count': try_get(video, lambda x: x['stats']['playCount'], int),
+                    'like_count': try_get(video, lambda x: x['stats']['diggCount'], int),
+                    'comment_count': try_get(video, lambda x: x['stats']['commentCount'], int),
+                    'repost_count': try_get(video, lambda x: x['stats']['shareCount'], int),
+                    'timestamp': video.get('createTime'),
+                    'creator': try_get(video, lambda x: x['author']['nickname'], str),
+                    'uploader': try_get(video, lambda x: x['author']['uniqueId'], str),
+                    'uploader_id': try_get(video, lambda x: x['author']['id'], str),
+                    'uploader_url': f'https://www.tiktok.com/@{user_id}',
+                    'thumbnails': [{'url': thumbnail, 'height': height, 'width': width}],
+                    'description': str_or_none(video.get('desc')),
+                    'webpage_url': video_url,
+                    'http_headers': {
+                        'Referer': video_url,
+                    }
+                }
+            if not data_json['hasMore']:
+                break
+            cursor = data_json['cursor']
+
+    def _real_extract(self, url):
+        user_id = self._match_id(url)
+        return self.playlist_result(self._entries(url, user_id), user_id)
