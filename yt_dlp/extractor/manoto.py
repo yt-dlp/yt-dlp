@@ -15,7 +15,26 @@ _API_URL = 'https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/{}/{}?id={}'
 class ManotoTVIE(InfoExtractor):
     IE_DESC = 'Manoto TV (Episode)'
     _VALID_URL = r'https?://(?:www\.)?manototv\.com/episode/(?P<id>[0-9]+)'
-    _TEST = {
+    _TESTS = [{
+        'url': 'https://www.manototv.com/episode/8475',
+        'info_dict': {
+            'id': '8475',
+            'series': 'خانه های رویایی با برادران اسکات',
+            'season_number': 7,
+            'episode_number': 25,
+            'episode_id':
+            'My Dream Home S7: Carol & John',
+            'duration': 3600,
+            'categories': ['سرگرمی'],
+            'title': 'کارول و جان',
+            'description': 'بعد از 3 سال دوستی، (کارول) و (جان) به دنبال خانه ای مشترک برای زندگی همیشگی هستند. آنها به دنبال خانه ای در محله محبوب خود کنار دریاچه، خارج از شهر (نشویل) هستند.تعداد خانه هایی که برای فروش در بازار گذاشته شده اند، به شدت محدود هستند، و در آخر آنها باید از بین یکی از دو خانه مورد نظر خود یکی را انتخاب کنند. (جاناتان) از تخریب دیوارها شروع می کند تا فضای خانه را باز کند، و با توجه به صرفه جویی هایی که در مخارج همین مرحله شد، برای ساخت سقف طاق نما بودجه کافی دارد. سپس، بعد از اینکه (کارول) تمام پول های پس انداز را برای نو کردن وسایل خرج کرده است، مشکل برقی پرهزینه ای پیش می آید.',
+            'thumbnail': r're:^https?://.*\.(jpeg|png|jpg)$',
+            'ext': 'mp4'
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        }
+    }, {
         'url': 'https://www.manototv.com/episode/12576',
         'info_dict': {
             'id': '12576',
@@ -26,13 +45,13 @@ class ManotoTVIE(InfoExtractor):
             'categories': ['سرگرمی'],
             'title': 'سه ماه تعطیلی',
             'description': 'سه ماه تعطیلی فیلمی به کارگردانی و نویسندگی شاپور قریب ساختهٔ سال ۱۳۵۶ است.',
-            'thumbnail': r're:^https?://.*\.jpeg$',
+            'thumbnail': r're:^https?://.*\.(jpeg|png|jpg)$',
             'ext': 'mp4'
         },
         'params': {
             'skip_download': 'm3u8',
         }
-    }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
