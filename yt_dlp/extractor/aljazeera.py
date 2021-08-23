@@ -39,7 +39,7 @@ class AlJazeeraIE(InfoExtractor):
         }[post_type.split('/')[0]]
         video = self._download_json(
             'https://www.aljazeera.com/graphql', name, query={
-                'operationName': 'SingleArticleQuery',
+                'operationName': 'ArchipelagoSingleArticleQuery',
                 'variables': json.dumps({
                     'name': name,
                     'postType': post_type,
