@@ -32,20 +32,14 @@ class ManotoTVIE(InfoExtractor):
         video_id = self._match_id(url)
         episode_json = self._download_json(_API_URL.format('showmodule', 'episodedetails', video_id), video_id)
         details = episode_json.get('details', {})
-        season_number = details.get('analyticsSeasonNumber')
-        if not(season_number.isdigit()):
-            season_number = 0
-        episode_number = details.get('episodeNumber')
-        if not(episode_number.isdigit()):
-            episode_number = 0
         formats = self._extract_m3u8_formats(details.get('videoM3u8Url'), video_id, 'mp4')
         return {
             'id': video_id,
             'series': details.get('showTitle'),
-            'season_number': int(season_number),
-            'episode_number': int(episode_number),
+            'season_number': int_or_none(details.get('analyticsSeasonNumber')),
+            'episode_number': int_or_none(details.get('episodeNumber')),
             'episode_id': details.get('analyticsEpisodeTitle'),
-            'duration': details.get('durationInMinutes') * 60,
+            'duration': int_or_none(details.get('durationInMinutes'), invscale=60),
             'view_count': details.get('viewCount'),
             'categories': [details.get('videoCategory')],
             'title': details.get('episodeTitle'),
