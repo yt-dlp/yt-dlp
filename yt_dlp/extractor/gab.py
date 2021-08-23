@@ -51,7 +51,7 @@ class GabTVIE(InfoExtractor):
             else:
                 frmt['height'] = str_to_int(resolution.replace('p', ''))
             formats.append(frmt)
-            self._sort_formats(formats)
+        self._sort_formats(formats)
 
         return {
             'id': id,
