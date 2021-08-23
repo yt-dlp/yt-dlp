@@ -48,7 +48,6 @@ class ManotoTVShowIE(InfoExtractor):
             'id': '2526',
             'title': 'فیلم های ایرانی',
             'description': 'مجموعه ای از فیلم های سینمای کلاسیک ایران',
-            # 'thumbnail': r're:^https?://.*\.png$',
         },
     }]
 
@@ -58,7 +57,6 @@ class ManotoTVShowIE(InfoExtractor):
         show_details = show_json.get('details', {})
         title = show_details.get('showTitle')
         description = show_details.get('showSynopsis')
-        # thumbnail = show_details.get('overlayImgIxUrl')
 
         series_json = self._download_json('https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/showmodule/serieslist?id=' + show_id, show_id)
         series_details = series_json.get('details', {})
