@@ -44,7 +44,6 @@ class ManotoTVIE(InfoExtractor):
         categories = [details.get('videoCategory')]
         video_url = details.get('videoM3u8Url')
         thumbnail = details.get('episodelandscapeImgIxUrl')
-        ext = 'mp4'
         formats = self._extract_m3u8_formats(video_url, video_id, ext)
         return {
             'id': video_id,
