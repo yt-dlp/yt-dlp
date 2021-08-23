@@ -2,8 +2,6 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -163,41 +161,39 @@ class TikTokUserIE(InfoExtractor):
         'info_dict': {
             'id': '6935371178089399301',
         },
-        'skip': 'Cookies are required to download from TikTok user account.'
+        'skip': 'Cookies (not necessarily logged in) are needed.'
     }, {
         'url': 'https://www.tiktok.com/@meme',
         'playlist_mincount': 593,
         'info_dict': {
             'id': '79005827461758976',
         },
-        'skip': 'Cookies are required to download from TikTok user account.'
+        'skip': 'Cookies (not necessarily logged in) are needed.'
     }]
 
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
-        user_id = re.search(r'\"id\":\"(?P<userid>\d+)', webpage)
+        user_id = self._search_regex(r'\"id\":\"(?P<userid>\d+)', webpage, id, default=None)
         if not user_id:
-            raise ExtractorError('Cookies are required to download from TikTok user account.', expected=True)
-        user_id = user_id.group('userid')
-        secuid = re.search(r'\"secUid\":\"(?P<secUid>[^\"]+)', webpage).group('secUid')
-        verifyFp_cookie = self._get_cookies('https://www.tiktok.com').get('s_v_web_id')
-        if not verifyFp_cookie:
+            raise ExtractorError('Cookies (not necessarily logged in) are needed.', expected=True)
+        secuid = self._search_regex(r'\"secUid\":\"(?P<secUid>[^\"]+)', webpage, id)
+        verifyfp_cookie = self._get_cookies('https://www.tiktok.com').get('s_v_web_id')
+        if not verifyfp_cookie:
             raise ExtractorError('Improper cookies (missing s_v_web_id).', expected=True)
-        api_url = f'https://m.tiktok.com/api/post/item_list/?aid=1988&cookie_enabled=true&count=30&verifyFp={verifyFp_cookie.value}&secUid={secuid}&cursor='
-        hasMore = True
+        api_url = f'https://m.tiktok.com/api/post/item_list/?aid=1988&cookie_enabled=true&count=30&verifyFp={verifyfp_cookie.value}&secUid={secuid}&cursor='
+        has_more = True
         cursor = '0'
         entries = []
         page = 0
-        while hasMore:
+        while has_more:
             data_json = self._download_json(api_url + cursor, user_id, note='Downloading Page %d' % page)
             cursor = data_json['cursor']
-            hasMore = data_json['hasMore']
+            has_more = data_json['hasMore']
             videos = data_json.get('itemList', [])
             for video in videos:
                 video_id = video['id']
                 entries.append(self.url_result('https://www.tiktok.com/@%s/video/%s' % (id, video_id),
-                                               ie=TikTokIE.ie_key(),
-                                               video_id=video_id))
+                                               ie=TikTokIE.ie_key(), video_id=video_id))
             page += 1
         return self.playlist_result(entries, user_id)
