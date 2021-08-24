@@ -2169,9 +2169,9 @@ class YoutubeDL(object):
         else:
             formats = info_dict['formats']
 
+        info_dict['__has_drm'] = any(f.get('has_drm') for f in formats)
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
-        info_dict['__has_drm'] = len(info_dict.get('formats') or ['']) > len(formats)
 
         if not formats:
             self.raise_no_formats(info_dict)
