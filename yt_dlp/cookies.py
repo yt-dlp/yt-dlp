@@ -190,7 +190,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chrome': os.path.join(appdata, 'Google/Chrome'),
             'chromium': os.path.join(appdata, 'Chromium'),
             'edge': os.path.join(appdata, 'Microsoft Edge'),
-            'edgesxs': os.path.join(config, 'microsoft-edge'),
+            'edgesxs': os.path.join(appdata, 'Microsoft Edge'),
             'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
         }[browser_name]
