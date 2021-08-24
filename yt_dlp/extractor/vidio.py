@@ -262,8 +262,8 @@ class VidioLiveIE(VidioBaseIE):
                     display_id, note='Downloading HLS token JSON', data=b'')
                 formats.extend(self._extract_m3u8_formats(
                     sources['source'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
-            if str_or_none(sources.get('source_dash')):
-                parsed_base_dash = compat_urllib_parse_urlparse(stream_meta['stream_dash_url'])
+            if str_or_none(sources.get('source_dash')): # TODO: Find live example with source_dash
+                parsed_base_dash = compat_urllib_parse_urlparse(sources['source_dash'])
                 token_json = self._download_json(
                     'https://www.vidio.com/live/%s/tokens?type=dash' % video_id,
                     display_id, note='Downloading DASH token JSON', data=b'')
