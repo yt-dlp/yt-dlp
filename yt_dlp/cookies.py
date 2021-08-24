@@ -54,7 +54,7 @@ except Exception as _err:
     KEYRING_UNAVAILABLE_REASON = 'as the `keyring` module could not be initialized: %s' % _err
 
 
-CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
+CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'edgesxs', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
@@ -165,6 +165,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chrome': os.path.join(config, 'google-chrome'),
             'chromium': os.path.join(config, 'chromium'),
             'edge': os.path.join(config, 'microsoft-edge'),
+            'edgesxs': os.path.join(config, 'microsoft-edge'),
             'opera': os.path.join(config, 'opera'),
             'vivaldi': os.path.join(config, 'vivaldi'),
         }[browser_name]
@@ -177,6 +178,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chrome': os.path.join(appdata_local, r'Google\Chrome\User Data'),
             'chromium': os.path.join(appdata_local, r'Chromium\User Data'),
             'edge': os.path.join(appdata_local, r'Microsoft\Edge\User Data'),
+            'edgesxs': os.path.join(appdata_local, r'Microsoft\Edge SxS\User Data'),
             'opera': os.path.join(appdata_roaming, r'Opera Software\Opera Stable'),
             'vivaldi': os.path.join(appdata_local, r'Vivaldi\User Data'),
         }[browser_name]
@@ -188,6 +190,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chrome': os.path.join(appdata, 'Google/Chrome'),
             'chromium': os.path.join(appdata, 'Chromium'),
             'edge': os.path.join(appdata, 'Microsoft Edge'),
+            'edgesxs': os.path.join(config, 'microsoft-edge'),
             'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
         }[browser_name]
