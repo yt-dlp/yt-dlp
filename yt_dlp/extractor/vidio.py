@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 
 from .common import InfoExtractor
+from ..compat import compat_urllib_parse_urlparse
 from ..utils import (
     clean_html,
     ExtractorError,
@@ -262,7 +263,15 @@ class VidioLiveIE(VidioBaseIE):
                 formats.extend(self._extract_m3u8_formats(
                     sources['source'] + '?' + token_json.get('token', ''), display_id, 'mp4', 'm3u8_native'))
             if str_or_none(sources.get('source_dash')):
-                pass
+                parsed_base_dash = compat_urllib_parse_urlparse(stream_meta['stream_dash_url'])
+                token_json = self._download_json(
+                    'https://www.vidio.com/live/%s/tokens?type=dash' % video_id,
+                    display_id, note='Downloading DASH token JSON', data=b'')
+                parsed_tokenized_dash = parsed_base_dash._replace(path=token_json.get('token', '')
+                                                                  + (parsed_base_dash.path if parsed_base_dash.path[0] == '/'
+                                                                     else '/' + parsed_base_dash.path))
+                formats.extend(self._extract_mpd_formats(
+                    parsed_tokenized_dash.geturl(), display_id, 'dash'))
         else:
             if stream_meta.get('stream_token_url'):
                 token_json = self._download_json(
@@ -272,7 +281,15 @@ class VidioLiveIE(VidioBaseIE):
                     stream_meta['stream_token_url'] + '?' + token_json.get('token', ''),
                     display_id, 'mp4', 'm3u8_native'))
             if stream_meta.get('stream_dash_url'):
-                pass
+                parsed_base_dash = compat_urllib_parse_urlparse(stream_meta['stream_dash_url'])
+                token_json = self._download_json(
+                    'https://www.vidio.com/live/%s/tokens?type=dash' % video_id,
+                    display_id, note='Downloading DASH token JSON', data=b'')
+                parsed_tokenized_dash = parsed_base_dash._replace(path=token_json.get('token', '')
+                                                                  + (parsed_base_dash.path if parsed_base_dash.path[0] == '/'
+                                                                     else '/' + parsed_base_dash.path))
+                formats.extend(self._extract_mpd_formats(
+                    parsed_tokenized_dash.geturl(), display_id, 'dash'))
             if stream_meta.get('stream_url'):
                 formats.extend(self._extract_m3u8_formats(
                     stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native'))
