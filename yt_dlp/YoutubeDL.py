@@ -299,6 +299,8 @@ class YoutubeDL(object):
     cookiesfrombrowser: A tuple containing the name of the browser and the profile
                        name/path from where cookies are loaded.
                        Eg: ('chrome', ) or (vivaldi, 'default')
+    legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
+                       support RFC 5746 secure renegotiation
     nocheckcertificate:Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.
@@ -488,6 +490,7 @@ class YoutubeDL(object):
         self._err_file = sys.stderr
         self.params = {
             # Default parameters
+            'legacyserverconnect': False,
             'nocheckcertificate': False,
         }
         self.params.update(params)

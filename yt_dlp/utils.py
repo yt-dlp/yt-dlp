@@ -2345,9 +2345,13 @@ def formatSeconds(secs, delim=':', msec=False):
 
 
 def make_HTTPS_handler(params, **kwargs):
+    _OP_LEGACY_SERVER_CONNECT = 4
+    opts_legacy_server_connect = params.get('legacyserverconnect', False)
     opts_no_check_certificate = params.get('nocheckcertificate', False)
     if hasattr(ssl, 'create_default_context'):  # Python >= 3.4 or 2.7.9
         context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        if opts_legacy_server_connect:
+            context.options |= _OP_LEGACY_SERVER_CONNECT
         if opts_no_check_certificate:
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
@@ -2362,6 +2366,8 @@ def make_HTTPS_handler(params, **kwargs):
         return YoutubeDLHTTPSHandler(params, **kwargs)
     else:  # Python < 3.4
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        if opts_legacy_server_connect:
+            context.options |= _OP_LEGACY_SERVER_CONNECT
         context.verify_mode = (ssl.CERT_NONE
                                if opts_no_check_certificate
                                else ssl.CERT_REQUIRED)
