@@ -1070,11 +1070,11 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--write-annotations',
         action='store_true', dest='writeannotations', default=False,
-        help='Write video annotations to a .annotations.xml file')
+        help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '--no-write-annotations',
         action='store_false', dest='writeannotations',
-        help='Do not write video annotations (default)')
+        help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '--write-playlist-metafiles',
         action='store_true', dest='allow_playlist_files', default=None,

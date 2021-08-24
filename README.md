@@ -1500,6 +1500,8 @@ These options may no longer work as intended
     --no-call-home                   Default
     --include-ads                    No longer supported
     --no-include-ads                 Default
+    --write-annotations              No supported site has annotations now
+    --no-write-annotations           Default
 
 #### Removed
 These options were deprecated since 2014 and have now been entirely removed
