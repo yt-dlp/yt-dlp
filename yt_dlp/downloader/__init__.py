@@ -94,6 +94,10 @@ def _get_suitable_downloader(info_dict, params, default):
         if ed.can_download(info_dict, external_downloader):
             return ed
 
+    if protocol == 'http_dash_segments':
+        if info_dict.get('is_live') and external_downloader.lower() != 'native':
+            return FFmpegFD
+
     if protocol in ('m3u8', 'm3u8_native'):
         if info_dict.get('is_live'):
             return FFmpegFD
