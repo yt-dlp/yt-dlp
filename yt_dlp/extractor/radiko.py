@@ -127,7 +127,7 @@ class RadikoBaseIE(InfoExtractor):
                     sf['preference'] = 100 if is_onair else -100  # current radio stream
                 if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
                     # sf['format_note'] = 'timefree'
-                    sf['start_time'] = time_to_skip
+                    sf['_ffmpeg_args'] = ['-ss', time_to_skip]
             formats.extend(subformats)
 
         self._sort_formats(formats)
