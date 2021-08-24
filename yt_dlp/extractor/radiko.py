@@ -151,10 +151,7 @@ class RadikoIE(RadikoBaseIE):
     }]
 
     def _real_extract(self, url):
-        m = re.match(self._VALID_URL, url)
-        assert m
-        station = m.group('station')
-        video_id = m.group('id')
+        station, video_id = self._match_valid_url(url).groups()
         vid_int = unified_timestamp(video_id, False)
 
         auth_token, area_id = self._auth_client()
