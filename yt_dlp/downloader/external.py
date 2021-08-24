@@ -342,7 +342,7 @@ class HttpieFD(ExternalFD):
 
 
 class FFmpegFD(ExternalFD):
-    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms', 'http_dash_segments')
     can_download_to_stdout = True
 
     @classmethod
@@ -462,12 +462,11 @@ class FFmpegFD(ExternalFD):
             args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', url]
 
         args += ['-c', 'copy']
-        if info_dict.get('requested_formats'):
-            for (i, fmt) in enumerate(info_dict['requested_formats']):
-                if fmt.get('acodec') != 'none':
-                    args.extend(['-map', '%d:a:0' % i])
-                if fmt.get('vcodec') != 'none':
-                    args.extend(['-map', '%d:v:0' % i])
+        if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
+            for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
+                stream_number = fmt.get('manifest_stream_number', 0)
+                a_or_v = 'a' if fmt.get('acodec') != 'none' else 'v'
+                args.extend(['-map', f'{i}:{a_or_v}:{stream_number}'])
 
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
@@ -490,7 +489,7 @@ class FFmpegFD(ExternalFD):
         else:
             args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
 
-        args += self._configuration_args((f'_o1', '_o', ''))
+        args += self._configuration_args(('_o1', '_o', ''))
 
         args = [encodeArgument(opt) for opt in args]
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
