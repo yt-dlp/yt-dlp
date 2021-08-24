@@ -72,6 +72,10 @@ class IwaraIE(InfoExtractor):
         title = remove_end(self._html_search_regex(
             r'<title>([^<]+)</title>', webpage, 'title'), ' | Iwara')
 
+        thumbnail = self._html_search_regex(
+            r'<video[^>]+id=[\'"]video-player[\'"][^>]+poster=[\'"]([^\'"]+)',
+            webpage, 'thumbnail', default=None)
+
         formats = []
         for a_format in video_data:
             format_uri = url_or_none(a_format.get('uri'))
@@ -96,4 +100,5 @@ class IwaraIE(InfoExtractor):
             'title': title,
             'age_limit': age_limit,
             'formats': formats,
+            'thumbnail': self._proto_relative_url(thumbnail, 'https:'),
         }
