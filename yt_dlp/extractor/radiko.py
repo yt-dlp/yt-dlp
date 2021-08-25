@@ -157,17 +157,17 @@ class RadikoIE(RadikoBaseIE):
 
         auth_token, area_id = self._auth_client()
 
-        prog, station_program, ft, ft_str, to_str = self._find_program(video_id, station, vid_int)
+        prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
 
         title = prog.find('title').text
         description = clean_html(prog.find('info').text)
         station_name = station_program.find('.//name').text
 
         formats = self._extract_formats(video_id, station, False, ft, vid_int, auth_token, area_id, {
-            'start_at': ft_str,  # begin time of the radio
-            'ft': ft_str,  # same as start_id
-            'end_at': to_str,  # end time of the radio
-            'to': to_str,  # same as end_at
+            'start_at': radio_begin,
+            'ft': radio_begin,
+            'end_at': radio_end,
+            'to': radio_end,
             'seek': video_id,
         })
 
