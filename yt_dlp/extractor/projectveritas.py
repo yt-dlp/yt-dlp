@@ -35,15 +35,15 @@ class ProjectVeritasIE(InfoExtractor):
         id, type = self._match_valid_url(url).group('id', 'type')
         api_url = f'https://www.projectveritas.com/page-data/{type}/{id}/page-data.json'
         data_json = self._download_json(api_url, id)['result']['data']
-        main_data = data_json.get('video') or data_json.get('post')
+        main_data = traverse_obj(data_json, 'video', 'post')
         video_id = main_data['id']
-        thumbnail = traverse_obj(main_data, ('image', 'ogImage', 'src'), get_all=False)
+        thumbnail = traverse_obj(main_data, ('image', 'ogImage', 'src'))
         mux_asset = traverse_obj(main_data,
                                  'muxAsset', ('body', 'json', 'content', ..., 'data', 'target', 'fields', 'muxAsset'),
                                  get_all=False, expected_type=dict)
         if not mux_asset:
             raise ExtractorError('No video on the provided url.', expected=True)
-        playback_id = traverse_obj(mux_asset, 'playbackId', ('en-US', 'playbackId'), get_all=False)
+        playback_id = traverse_obj(mux_asset, 'playbackId', ('en-US', 'playbackId'))
         formats = self._extract_m3u8_formats(f'https://stream.mux.com/{playback_id}.m3u8', video_id)
         self._sort_formats(formats)
         return {
