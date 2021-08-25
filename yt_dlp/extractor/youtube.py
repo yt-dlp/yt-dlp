@@ -2415,19 +2415,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
     @staticmethod
-    def _generate_player_context(sts=None):
+    def _get_checkok_params():
+        return {'contentCheckOk': True, 'racyCheckOk': True}
+
+    @classmethod
+    def _generate_player_context(cls, sts=None):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
-        return {
+        playback_context = {
             'playbackContext': {
                 'contentPlaybackContext': context
-            },
-            'contentCheckOk': True,
-            'racyCheckOk': True
+            }
         }
+        playback_context.update(cls._get_checkok_params())
+        return playback_context
 
     @staticmethod
     def _is_agegated(player_response):
@@ -3015,9 +3019,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_DATA_RE, video_id,
                 'yt initial data')
         if not initial_data:
+            query = {'videoId': video_id}
+            query.update(self._get_checkok_params())
             initial_data = self._extract_response(
                 item_id=video_id, ep='next', fatal=False,
-                ytcfg=master_ytcfg, query={'videoId': video_id},
+                ytcfg=master_ytcfg, query=query,
                 headers=self.generate_api_headers(master_ytcfg),
                 note='Downloading initial data API JSON')
 
