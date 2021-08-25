@@ -390,6 +390,10 @@ from .elonet import ElonetIE
 from .elpais import ElPaisIE
 from .embedly import EmbedlyIE
 from .engadget import EngadgetIE
+from .epicon import (
+    EpiconIE,
+    EpiconSeriesIE,
+)
 from .eporner import EpornerIE
 from .eroprofile import (
     EroProfileIE,
