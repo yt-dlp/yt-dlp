@@ -200,7 +200,7 @@ class RadikoRadioIE(RadikoBaseIE):
 
     def _real_extract(self, url):
         station = self._match_id(url)
-        self.report_warning('Downloader will not stop at the end of the program! Be careful.')
+        self.report_warning('Downloader will not stop at the end of the program! Press Ctrl+C to stop')
 
         auth_token, area_id = self._auth_client()
         # get current time in JST (GMT+9:00 w/o DST)
