@@ -623,8 +623,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 default='{}'), video_id, fatal=False) or {}
 
     def generate_api_headers(
-            self, ytcfg=None, identity_token=None, account_syncid=None,
-            visitor_data=None, api_hostname=None, default_client='web', session_index=None):
+            self, ytcfg=None, account_syncid=None, session_index=None,
+            visitor_data=None, identity_token=None, api_hostname=None, default_client='web'):
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(default_client))
         headers = {
             'X-YouTube-Client-Name': compat_str(
@@ -2460,8 +2460,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
         identity_token = self._extract_identity_token(master_ytcfg)
         headers = self.generate_api_headers(
-            player_ytcfg, identity_token, syncid,
-            default_client=client, session_index=session_index)
+            player_ytcfg, syncid, session_index,
+            identity_token=identity_token, default_client=client)
 
         yt_query = {'videoId': video_id}
         yt_query.update(self._generate_player_context(sts))
@@ -3888,7 +3888,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         for page_num in itertools.count(1):
             if not continuation:
                 break
-            headers = self.generate_api_headers(ytcfg, account_syncid=account_syncid, visitor_data=visitor_data)
+            headers = self.generate_api_headers(ytcfg, account_syncid, visitor_data=visitor_data)
             response = self._extract_response(
                 item_id='%s page %s' % (item_id, page_num),
                 query=continuation, headers=headers, ytcfg=ytcfg,
