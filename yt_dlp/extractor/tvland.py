@@ -1,12 +1,12 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from .spike import ParamountNetworkIE
+from .mtv import MTVServicesInfoExtractor
 
 # TODO: Remove - Reason not used anymore - Service moved to youtube
 
 
-class TVLandIE(ParamountNetworkIE):
+class TVLandIE(MTVServicesInfoExtractor):
     IE_NAME = 'tvland.com'
     _VALID_URL = r'https?://(?:www\.)?tvland\.com/(?:video-clips|(?:full-)?episodes)/(?P<id>[^/?#.]+)'
     _FEED_URL = 'http://www.tvland.com/feeds/mrss/'
