@@ -75,10 +75,6 @@ class NickIE(MTVServicesInfoExtractor):
             'mgid': uri,
         }
 
-    def _extract_mgid(self, webpage):
-        mgid = self._search_regex(r'"media":{"video":{"config":{"uri":"(mgid:.*?)"', webpage, 'mgid', default=None)
-        return mgid
-
     def _real_extract(self, url):
         domain, video_type, display_id = self._match_valid_url(url).groups()
         if video_type.startswith("episodes"):
