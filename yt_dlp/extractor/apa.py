@@ -42,7 +42,7 @@ class APAIE(InfoExtractor):
                 webpage)]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id, base_url = mobj.group('id', 'base_url')
 
         webpage = self._download_webpage(

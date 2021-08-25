@@ -98,7 +98,7 @@ class XFileShareIE(InfoExtractor):
                 webpage)]
 
     def _real_extract(self, url):
-        host, video_id = re.match(self._VALID_URL, url).groups()
+        host, video_id = self._match_valid_url(url).groups()
 
         url = 'https://%s/' % host + ('embed-%s.html' % video_id if host in ('govid.me', 'vidlo.us') else video_id)
         webpage = self._download_webpage(url, video_id)

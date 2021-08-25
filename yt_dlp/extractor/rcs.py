@@ -203,8 +203,8 @@ class RCSBaseIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        mobj = re.search(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
+        video_id = mobj.group('id')
 
         if 'cdn' not in mobj.groupdict():
             raise ExtractorError('CDN not found in url: %s' % url)

@@ -98,7 +98,7 @@ class VVVVIDIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        show_id, season_id, video_id = re.match(self._VALID_URL, url).groups()
+        show_id, season_id, video_id = self._match_valid_url(url).groups()
 
         response = self._download_info(
             show_id, 'season/%s' % season_id,
@@ -246,7 +246,7 @@ class VVVVIDShowIE(VVVVIDIE):
     }]
 
     def _real_extract(self, url):
-        base_url, show_id, show_title = re.match(self._VALID_URL, url).groups()
+        base_url, show_id, show_title = self._match_valid_url(url).groups()
 
         seasons = self._download_info(
             show_id, 'seasons/', show_title)

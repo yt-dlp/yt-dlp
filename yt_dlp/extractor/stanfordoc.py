@@ -25,7 +25,7 @@ class StanfordOpenClassroomIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
 
         if mobj.group('course') and mobj.group('video'):  # A specific video
             course = mobj.group('course')

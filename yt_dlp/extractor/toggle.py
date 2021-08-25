@@ -155,8 +155,7 @@ class ToggleIE(InfoExtractor):
             for meta in (info.get('Metas') or []):
                 if (not self.get_param('allow_unplayable_formats')
                         and meta.get('Key') == 'Encryption' and meta.get('Value') == '1'):
-                    self.raise_no_formats(
-                        'This video is DRM protected.', expected=True)
+                    self.report_drm(video_id)
             # Most likely because geo-blocked if no formats and no DRM
         self._sort_formats(formats)
 

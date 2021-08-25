@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from .gigya import GigyaBaseIE
@@ -47,7 +46,7 @@ class CanvasIE(InfoExtractor):
     _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v1'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         site_id, video_id = mobj.group('site_id'), mobj.group('id')
 
         data = None
@@ -192,7 +191,7 @@ class CanvasEenIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         site_id, display_id = mobj.group('site_id'), mobj.group('id')
 
         webpage = self._download_webpage(url, display_id)

@@ -51,7 +51,7 @@ class RTL2IE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        vico_id, vivi_id, display_id = re.match(self._VALID_URL, url).groups()
+        vico_id, vivi_id, display_id = self._match_valid_url(url).groups()
         if not vico_id:
             webpage = self._download_webpage(url, display_id)
 

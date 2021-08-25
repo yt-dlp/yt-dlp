@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     merge_dicts,
     urljoin,
 )
@@ -47,7 +46,7 @@ class WakanimIE(InfoExtractor):
                 r'encryption%3D(c(?:enc|bc(?:s-aapl)?))',
                 m3u8_url, 'encryption', default=None)
             if encryption in ('cenc', 'cbcs-aapl'):
-                raise ExtractorError('This video is DRM protected.', expected=True)
+                self.report_drm(video_id)
 
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',

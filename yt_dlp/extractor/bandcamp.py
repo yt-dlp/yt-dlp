@@ -294,7 +294,7 @@ class BandcampAlbumIE(BandcampIE):
                 else super(BandcampAlbumIE, cls).suitable(url))
 
     def _real_extract(self, url):
-        uploader_id, album_id = re.match(self._VALID_URL, url).groups()
+        uploader_id, album_id = self._match_valid_url(url).groups()
         playlist_id = album_id or uploader_id
         webpage = self._download_webpage(url, playlist_id)
         tralbum = self._extract_data_attr(webpage, playlist_id)

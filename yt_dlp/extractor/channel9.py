@@ -96,7 +96,7 @@ class Channel9IE(InfoExtractor):
         return self.playlist_result(entries, video_id, title_text)
 
     def _real_extract(self, url):
-        content_path, rss = re.match(self._VALID_URL, url).groups()
+        content_path, rss = self._match_valid_url(url).groups()
 
         if rss:
             return self._extract_list(content_path, url)

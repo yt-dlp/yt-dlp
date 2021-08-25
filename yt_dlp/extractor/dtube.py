@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 from socket import timeout
 
 from .common import InfoExtractor
@@ -32,7 +31,7 @@ class DTubeIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        uploader_id, video_id = re.match(self._VALID_URL, url).groups()
+        uploader_id, video_id = self._match_valid_url(url).groups()
         result = self._download_json('https://api.steemit.com/', video_id, data=json.dumps({
             'jsonrpc': '2.0',
             'method': 'get_content',

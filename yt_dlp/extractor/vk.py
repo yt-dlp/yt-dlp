@@ -308,7 +308,7 @@ class VKIE(VKBaseIE):
             webpage)]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('videoid')
 
         mv_data = {}
@@ -538,7 +538,7 @@ class VKUserVideosIE(VKBaseIE):
                 'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
 
     def _real_extract(self, url):
-        page_id, section = re.match(self._VALID_URL, url).groups()
+        page_id, section = self._match_valid_url(url).groups()
         if not section:
             section = 'all'
 

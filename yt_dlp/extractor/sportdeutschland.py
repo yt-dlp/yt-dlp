@@ -2,15 +2,12 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     clean_html,
     float_or_none,
     int_or_none,
     parse_iso8601,
+    parse_qs,
     strip_or_none,
     try_get,
 )
@@ -61,7 +58,7 @@ class SportDeutschlandIE(InfoExtractor):
         }
         videos = asset.get('videos') or []
         if len(videos) > 1:
-            playlist_id = compat_parse_qs(compat_urllib_parse_urlparse(url).query).get('playlistId', [None])[0]
+            playlist_id = parse_qs(url).get('playlistId', [None])[0]
             if playlist_id:
                 if self.get_param('noplaylist'):
                     videos = [videos[int(playlist_id)]]

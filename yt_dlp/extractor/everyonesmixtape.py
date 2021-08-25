@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -36,7 +35,7 @@ class EveryonesMixtapeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
 
         pllist_url = 'http://everyonesmixtape.com/mixtape.php?a=getMixes&u=-1&linked=%s&explore=' % playlist_id

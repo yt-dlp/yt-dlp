@@ -111,7 +111,7 @@ class TeacherTubeUserIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         user_id = mobj.group('user')
 
         urls = []

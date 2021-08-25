@@ -381,7 +381,7 @@ class ViafreeIE(InfoExtractor):
         return False if TVPlayIE.suitable(url) else super(ViafreeIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        country, path = re.match(self._VALID_URL, url).groups()
+        country, path = self._match_valid_url(url).groups()
         content = self._download_json(
             'https://viafree-content.mtg-api.com/viafree-content/v1/%s/path/%s' % (country, path), path)
         program = content['_embedded']['viafreeBlocks'][0]['_embedded']['program']

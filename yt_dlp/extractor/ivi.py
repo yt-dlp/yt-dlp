@@ -245,7 +245,7 @@ class IviCompilationIE(InfoExtractor):
                 r'<a\b[^>]+\bhref=["\']/watch/%s/(\d+)["\']' % compilation_id, html)]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         compilation_id = mobj.group('compilationid')
         season_id = mobj.group('seasonid')
 

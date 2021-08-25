@@ -1,17 +1,15 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_parse_qs,
     compat_str,
-    compat_urllib_parse_urlparse,
 )
 from ..utils import (
     determine_ext,
     int_or_none,
+    parse_qs,
     try_get,
     qualities,
 )
@@ -41,7 +39,7 @@ class SixPlayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        domain, video_id = re.search(self._VALID_URL, url).groups()
+        domain, video_id = self._match_valid_url(url).groups()
         service, consumer_name = {
             '6play.fr': ('6play', 'm6web'),
             'rtlplay.be': ('rtlbe_rtl_play', 'rtlbe'),
@@ -79,7 +77,7 @@ class SixPlayIE(InfoExtractor):
                 continue
             if container == 'm3u8' or ext == 'm3u8':
                 if protocol == 'usp':
-                    if compat_parse_qs(compat_urllib_parse_urlparse(asset_url).query).get('token', [None])[0]:
+                    if parse_qs(asset_url).get('token', [None])[0]:
                         urlh = self._request_webpage(
                             asset_url, video_id, fatal=False,
                             headers=self.geo_verification_headers())

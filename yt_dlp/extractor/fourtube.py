@@ -41,7 +41,7 @@ class FourTubeBaseIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         kind, video_id, display_id = mobj.group('kind', 'id', 'display_id')
 
         if kind == 'm' or not display_id:
@@ -228,7 +228,7 @@ class PornTubeIE(FourTubeBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id, display_id = mobj.group('id', 'display_id')
 
         webpage = self._download_webpage(url, display_id)

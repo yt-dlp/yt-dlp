@@ -161,7 +161,7 @@ class GoIE(AdobePassIE):
             display_id)['video']
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         sub_domain = remove_start(remove_end(mobj.group('sub_domain') or '', '.go'), 'www.')
         video_id, display_id = mobj.group('id', 'display_id')
         site_info = self._SITE_INFO.get(sub_domain, {})

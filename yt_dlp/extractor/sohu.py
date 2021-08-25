@@ -97,7 +97,7 @@ class SohuIE(InfoExtractor):
                 'Downloading JSON data for %s' % vid_id,
                 headers=self.geo_verification_headers())
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         mytv = mobj.group('mytv') is not None
 

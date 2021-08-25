@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -41,7 +40,7 @@ class TF1IE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        program_slug, slug = re.match(self._VALID_URL, url).groups()
+        program_slug, slug = self._match_valid_url(url).groups()
         video = self._download_json(
             'https://www.tf1.fr/graphql/web', slug, query={
                 'id': '9b80783950b85247541dd1d851f9cc7fa36574af015621f853ab111a679ce26f',

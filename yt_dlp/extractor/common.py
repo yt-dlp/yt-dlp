@@ -203,6 +203,7 @@ class InfoExtractor(object):
                                  width : height ratio as float.
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
+                    * has_drm    The format has DRM and cannot be downloaded. Boolean
                     * downloader_options  A dictionary of downloader options as
                                  described in FileDownloader
                     RTMP formats can also have the additional fields: page_url,
@@ -447,23 +448,31 @@ class InfoExtractor(object):
         self.set_downloader(downloader)
 
     @classmethod
-    def suitable(cls, url):
-        """Receives a URL and returns True if suitable for this IE."""
-
+    def _match_valid_url(cls, url):
         # This does not use has/getattr intentionally - we want to know whether
         # we have cached the regexp for *this* class, whereas getattr would also
         # match the superclass
         if '_VALID_URL_RE' not in cls.__dict__:
             cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        return cls._VALID_URL_RE.match(url) is not None
+        return cls._VALID_URL_RE.match(url)
+
+    @classmethod
+    def suitable(cls, url):
+        """Receives a URL and returns True if suitable for this IE."""
+        # This function must import everything it needs (except other extractors),
+        # so that lazy_extractors works correctly
+        return cls._match_valid_url(url) is not None
 
     @classmethod
     def _match_id(cls, url):
-        if '_VALID_URL_RE' not in cls.__dict__:
-            cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        m = cls._VALID_URL_RE.match(url)
-        assert m
-        return compat_str(m.group('id'))
+        return cls._match_valid_url(url).group('id')
+
+    @classmethod
+    def get_temp_id(cls, url):
+        try:
+            return cls._match_id(url)
+        except (IndexError, AttributeError):
+            return None
 
     @classmethod
     def working(cls):
@@ -586,12 +595,14 @@ class InfoExtractor(object):
                     if self.__maybe_fake_ip_and_retry(e.countries):
                         continue
                     raise
-        except ExtractorError:
-            raise
+        except ExtractorError as e:
+            video_id = e.video_id or self.get_temp_id(url)
+            raise ExtractorError(
+                e.msg, video_id=video_id, ie=self.IE_NAME, tb=e.traceback, expected=e.expected, cause=e.cause)
         except compat_http_client.IncompleteRead as e:
-            raise ExtractorError('A network error has occurred.', cause=e, expected=True)
+            raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
-            raise ExtractorError('An extractor error has occurred.', cause=e)
+            raise ExtractorError('An extractor error has occurred.', cause=e, video_id=self.get_temp_id(url))
 
     def __maybe_fake_ip_and_retry(self, countries):
         if (not self.get_param('geo_bypass_country', None)
@@ -623,7 +634,7 @@ class InfoExtractor(object):
     @classmethod
     def ie_key(cls):
         """A string for getting the InfoExtractor with get_info_extractor"""
-        return compat_str(cls.__name__[:-2])
+        return cls.__name__[:-2]
 
     @property
     def IE_NAME(self):
@@ -1022,6 +1033,9 @@ class InfoExtractor(object):
         if self._downloader:
             return self._downloader.params.get(name, default, *args, **kwargs)
         return default
+
+    def report_drm(self, video_id, partial=False):
+        self.raise_no_formats('This video is DRM protected', expected=True, video_id=video_id)
 
     def report_extraction(self, id_or_name):
         """Report information extraction."""
@@ -1751,9 +1765,7 @@ class InfoExtractor(object):
 
     def _sort_formats(self, formats, field_preference=[]):
         if not formats:
-            if self.get_param('ignore_no_formats_error'):
-                return
-            raise ExtractorError('No video formats found')
+            return
         format_sort = self.FormatSort()  # params and to_screen are taken from the downloader
         format_sort.evaluate_params(self._downloader.params, field_preference)
         if self.get_param('verbose', False):
@@ -1991,9 +2003,7 @@ class InfoExtractor(object):
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
             return formats, subtitles
 
-        if (not self.get_param('allow_unplayable_formats')
-                and re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)):  # Apple FairPlay
-            return formats, subtitles
+        has_drm = re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)
 
         def format_url(url):
             return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)
@@ -2039,6 +2049,7 @@ class InfoExtractor(object):
                 'protocol': entry_protocol,
                 'preference': preference,
                 'quality': quality,
+                'has_drm': has_drm,
             } for idx in _extract_m3u8_playlist_indices(m3u8_doc=m3u8_doc)]
 
             return formats, subtitles
@@ -2572,11 +2583,9 @@ class InfoExtractor(object):
                         extract_Initialization(segment_template)
             return ms_info
 
-        skip_unplayable = not self.get_param('allow_unplayable_formats')
-
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
-        formats = []
-        subtitles = {}
+        formats, subtitles = [], {}
+        stream_numbers = {'audio': 0, 'video': 0}
         for period in mpd_doc.findall(_add_ns('Period')):
             period_duration = parse_duration(period.get('duration')) or mpd_duration
             period_ms_info = extract_multisegment_info(period, {
@@ -2584,12 +2593,8 @@ class InfoExtractor(object):
                 'timescale': 1,
             })
             for adaptation_set in period.findall(_add_ns('AdaptationSet')):
-                if skip_unplayable and is_drm_protected(adaptation_set):
-                    continue
                 adaption_set_ms_info = extract_multisegment_info(adaptation_set, period_ms_info)
                 for representation in adaptation_set.findall(_add_ns('Representation')):
-                    if skip_unplayable and is_drm_protected(representation):
-                        continue
                     representation_attrib = adaptation_set.attrib.copy()
                     representation_attrib.update(representation.attrib)
                     # According to [1, 5.3.7.2, Table 9, page 41], @mimeType is mandatory
@@ -2642,8 +2647,10 @@ class InfoExtractor(object):
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
+                            'manifest_stream_number': stream_numbers[content_type]
                         }
                         f.update(parse_codecs(codecs))
+                        stream_numbers[content_type] += 1
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
@@ -2661,6 +2668,8 @@ class InfoExtractor(object):
                             'acodec': 'none',
                             'vcodec': 'none',
                         }
+                    if is_drm_protected(adaptation_set) or is_drm_protected(representation):
+                        f['has_drm'] = True
                     representation_ms_info = extract_multisegment_info(representation, adaption_set_ms_info)
 
                     def prepare_template(template_name, identifiers):
@@ -2847,9 +2856,6 @@ class InfoExtractor(object):
         """
         if ism_doc.get('IsLive') == 'TRUE':
             return [], {}
-        if (not self.get_param('allow_unplayable_formats')
-                and ism_doc.find('Protection') is not None):
-            return [], {}
 
         duration = int(ism_doc.attrib['Duration'])
         timescale = int_or_none(ism_doc.get('TimeScale')) or 10000000
@@ -2940,6 +2946,7 @@ class InfoExtractor(object):
                         'acodec': 'none' if stream_type == 'video' else fourcc,
                         'protocol': 'ism',
                         'fragments': fragments,
+                        'has_drm': ism_doc.find('Protection') is not None,
                         '_download_params': {
                             'stream_type': stream_type,
                             'duration': duration,

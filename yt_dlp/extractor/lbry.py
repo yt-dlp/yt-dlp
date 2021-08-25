@@ -6,16 +6,15 @@ import json
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_parse_qs,
     compat_str,
     compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
 )
 from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
     mimetype2ext,
+    parse_qs,
     OnDemandPagedList,
     try_get,
     urljoin,
@@ -256,7 +255,7 @@ class LBRYChannelIE(LBRYBaseIE):
         result = self._resolve_url(
             'lbry://' + display_id, display_id, 'channel')
         claim_id = result['claim_id']
-        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        qs = parse_qs(url)
         content = qs.get('content', [None])[0]
         params = {
             'fee_amount': qs.get('fee_amount', ['>=0'])[0],

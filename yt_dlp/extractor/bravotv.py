@@ -42,7 +42,7 @@ class BravoTVIE(AdobePassIE):
     }]
 
     def _real_extract(self, url):
-        site, display_id = re.match(self._VALID_URL, url).groups()
+        site, display_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, display_id)
         settings = self._parse_json(self._search_regex(
             r'<script[^>]+data-drupal-selector="drupal-settings-json"[^>]*>({.+?})</script>', webpage, 'drupal settings'),

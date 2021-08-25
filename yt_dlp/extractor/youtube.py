@@ -46,6 +46,7 @@ from ..utils import (
     parse_count,
     parse_duration,
     parse_iso8601,
+    parse_qs,
     qualities,
     remove_start,
     smuggle_url,
@@ -58,14 +59,9 @@ from ..utils import (
     unsmuggle_url,
     update_url_query,
     url_or_none,
-    urlencode_postdata,
     urljoin,
     variadic,
 )
-
-
-def parse_qs(url):
-    return compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
 
 
 # any clients starting with _ cannot be explicity requested by the user
@@ -945,7 +941,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             youtube\.googleapis\.com)/                        # the various hostnames, with wildcard subdomains
                          (?:.*?\#/)?                                          # handle anchor (#/) redirect urls
                          (?:                                                  # the various things that can precede the ID:
-                             (?:(?:v|embed|e)/(?!videoseries))                # v/ or embed/ or e/
+                             (?:(?:v|embed|e|shorts)/(?!videoseries))         # v/ or embed/ or e/ or shorts/
                              |(?:                                             # or the v= param in all its forms
                                  (?:(?:watch|movie)(?:_popup)?(?:\.php)?/?)?  # preceding watch(_popup|.php) or nothing (like /?v=xxxx)
                                  (?:\?|\#!?)                                  # the params delimiter ? or # or #!
@@ -1072,10 +1068,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         '_rtmp': {'protocol': 'rtmp'},
 
         # av01 video only formats sometimes served with "unknown" codecs
-        '394': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
-        '395': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
-        '396': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
-        '397': {'acodec': 'none', 'vcodec': 'av01.0.05M.08'},
+        '394': {'ext': 'mp4', 'height': 144, 'format_note': 'DASH video', 'vcodec': 'av01.0.00M.08'},
+        '395': {'ext': 'mp4', 'height': 240, 'format_note': 'DASH video', 'vcodec': 'av01.0.00M.08'},
+        '396': {'ext': 'mp4', 'height': 360, 'format_note': 'DASH video', 'vcodec': 'av01.0.01M.08'},
+        '397': {'ext': 'mp4', 'height': 480, 'format_note': 'DASH video', 'vcodec': 'av01.0.04M.08'},
+        '398': {'ext': 'mp4', 'height': 720, 'format_note': 'DASH video', 'vcodec': 'av01.0.05M.08'},
+        '399': {'ext': 'mp4', 'height': 1080, 'format_note': 'DASH video', 'vcodec': 'av01.0.08M.08'},
+        '400': {'ext': 'mp4', 'height': 1440, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
+        '401': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'vcodec': 'av01.0.12M.08'},
     }
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'vtt')
 
@@ -1831,14 +1831,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {
                 'extractor_args': {'youtube': {'player_skip': ['configs']}},
             },
-        }
+        }, {
+            # shorts
+            'url': 'https://www.youtube.com/shorts/BGQWPY4IigY',
+            'only_matching': True,
+        },
     ]
 
     @classmethod
     def suitable(cls, url):
-        # Hack for lazy extractors until more generic solution is implemented
-        # (see #28780)
-        from .youtube import parse_qs
+        from ..utils import parse_qs
+
         qs = parse_qs(url)
         if qs.get('list', [None])[0]:
             return False
@@ -2088,8 +2091,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         mobj = re.match(cls._VALID_URL, url, re.VERBOSE)
         if mobj is None:
             raise ExtractorError('Invalid URL: %s' % url)
-        video_id = mobj.group(2)
-        return video_id
+        return mobj.group('id')
 
     def _extract_chapters_from_json(self, data, duration):
         chapter_list = traverse_obj(
@@ -2790,8 +2792,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
-                self.raise_no_formats(
-                    'This video is DRM protected.', expected=True)
+                self.report_drm(video_id)
             pemr = get_first(
                 playability_statuses,
                 ('errorScreen', 'playerErrorMessageRenderer'), expected_type=dict) or {}
@@ -3166,40 +3167,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             needs_auth=info['age_limit'] >= 18,
             is_unlisted=None if is_private is None else is_unlisted)
 
-        # get xsrf for annotations or comments
-        get_annotations = self.get_param('writeannotations', False)
-        get_comments = self.get_param('getcomments', False)
-        if get_annotations or get_comments:
-            xsrf_token = None
-            if master_ytcfg:
-                xsrf_token = try_get(master_ytcfg, lambda x: x['XSRF_TOKEN'], compat_str)
-            if not xsrf_token:
-                xsrf_token = self._search_regex(
-                    r'([\'"])XSRF_TOKEN\1\s*:\s*([\'"])(?P<xsrf_token>(?:(?!\2).)+)\2',
-                    webpage, 'xsrf token', group='xsrf_token', fatal=False)
-
-        # annotations
-        if get_annotations:
-            invideo_url = get_first(
-                player_responses,
-                ('annotations', 0, 'playerAnnotationsUrlsRenderer', 'invideoUrl'),
-                expected_type=str)
-            if xsrf_token and invideo_url:
-                xsrf_field_name = None
-                if master_ytcfg:
-                    xsrf_field_name = try_get(master_ytcfg, lambda x: x['XSRF_FIELD_NAME'], compat_str)
-                if not xsrf_field_name:
-                    xsrf_field_name = self._search_regex(
-                        r'([\'"])XSRF_FIELD_NAME\1\s*:\s*([\'"])(?P<xsrf_field_name>\w+)\2',
-                        webpage, 'xsrf field name',
-                        group='xsrf_field_name', default='session_token')
-                info['annotations'] = self._download_webpage(
-                    self._proto_relative_url(invideo_url),
-                    video_id, note='Downloading annotations',
-                    errnote='Unable to download video annotations', fatal=False,
-                    data=urlencode_postdata({xsrf_field_name: xsrf_token}))
-
-        if get_comments:
+        if self.get_param('getcomments', False):
             info['__post_extractor'] = lambda: self._extract_comments(master_ytcfg, video_id, contents, webpage)
 
         self.mark_watched(video_id, player_responses)
@@ -4452,7 +4420,7 @@ class YoutubeYtBeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         playlist_id = mobj.group('playlist_id')
         return self.url_result(
@@ -4595,7 +4563,7 @@ class YoutubeSearchURLIE(YoutubeSearchIE):
         return cls._VALID_URL
 
     def _real_extract(self, url):
-        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        qs = parse_qs(url)
         query = (qs.get('search_query') or qs.get('q'))[0]
         self._SEARCH_PARAMS = qs.get('sp', ('',))[0]
         return self._get_n_results(query, self._MAX_RESULTS)

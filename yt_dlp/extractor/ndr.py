@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -17,7 +16,7 @@ from ..utils import (
 
 class NDRBaseIE(InfoExtractor):
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = next(group for group in mobj.groups() if group)
         id = mobj.group('id')
         webpage = self._download_webpage(url, display_id)
@@ -205,7 +204,7 @@ class NDREmbedBaseIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id') or mobj.group('id_s')
 
         ppjson = self._download_json(

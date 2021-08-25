@@ -111,7 +111,7 @@ class AsianCrushIE(AsianCrushBaseIE):
     }]
 
     def _real_extract(self, url):
-        host, video_id = re.match(self._VALID_URL, url).groups()
+        host, video_id = self._match_valid_url(url).groups()
 
         if host == 'cocoro.tv':
             webpage = self._download_webpage(url, video_id)
@@ -161,7 +161,7 @@ class AsianCrushPlaylistIE(AsianCrushBaseIE):
             yield self._parse_video_data(video)
 
     def _real_extract(self, url):
-        host, playlist_id = re.match(self._VALID_URL, url).groups()
+        host, playlist_id = self._match_valid_url(url).groups()
 
         if host == 'cocoro.tv':
             webpage = self._download_webpage(url, playlist_id)

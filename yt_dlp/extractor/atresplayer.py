@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -75,7 +74,7 @@ class AtresPlayerIE(InfoExtractor):
         self._request_webpage(target_url, None, 'Following Target URL')
 
     def _real_extract(self, url):
-        display_id, video_id = re.match(self._VALID_URL, url).groups()
+        display_id, video_id = self._match_valid_url(url).groups()
 
         try:
             episode = self._download_json(

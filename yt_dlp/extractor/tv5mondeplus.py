@@ -7,6 +7,7 @@ from ..utils import (
     extract_attributes,
     int_or_none,
     parse_duration,
+    try_get,
 )
 
 
@@ -15,28 +16,28 @@ class TV5MondePlusIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:tv5mondeplus|revoir\.tv5monde)\.com/toutes-les-videos/[^/]+/(?P<id>[^/?#]+)'
     _TESTS = [{
         # movie
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/cinema/rendez-vous-a-atlit',
-        'md5': '8cbde5ea7b296cf635073e27895e227f',
+        'url': 'https://revoir.tv5monde.com/toutes-les-videos/cinema/ceux-qui-travaillent',
+        'md5': '32fa0cde16a4480d1251502a66856d5f',
         'info_dict': {
-            'id': '822a4756-0712-7329-1859-a13ac7fd1407',
-            'display_id': 'rendez-vous-a-atlit',
+            'id': 'dc57a011-ec4b-4648-2a9a-4f03f8352ed3',
+            'display_id': 'ceux-qui-travaillent',
             'ext': 'mp4',
-            'title': 'Rendez-vous à Atlit',
-            'description': 'md5:2893a4c5e1dbac3eedff2d87956e4efb',
-            'upload_date': '20200130',
+            'title': 'Ceux qui travaillent',
+            'description': 'md5:570e8bb688036ace873b2d50d24c026d',
+            'upload_date': '20210819',
         },
     }, {
         # series episode
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/series-fictions/c-est-la-vie-ennemie-juree',
+        'url': 'https://revoir.tv5monde.com/toutes-les-videos/series-fictions/vestiaires-caro-actrice',
         'info_dict': {
-            'id': '0df7007c-4900-3936-c601-87a13a93a068',
-            'display_id': 'c-est-la-vie-ennemie-juree',
+            'id': '9e9d599e-23af-6915-843e-ecbf62e97925',
+            'display_id': 'vestiaires-caro-actrice',
             'ext': 'mp4',
-            'title': "C'est la vie - Ennemie jurée",
-            'description': 'md5:dfb5c63087b6f35fe0cc0af4fe44287e',
-            'upload_date': '20200130',
-            'series': "C'est la vie",
-            'episode': 'Ennemie jurée',
+            'title': "Vestiaires - Caro actrice",
+            'description': 'md5:db15d2e1976641e08377f942778058ea',
+            'upload_date': '20210819',
+            'series': "Vestiaires",
+            'episode': 'Caro actrice',
         },
         'params': {
             'skip_download': True,
@@ -63,7 +64,7 @@ class TV5MondePlusIE(InfoExtractor):
             webpage, 'video player loader'))
 
         video_files = self._parse_json(
-            vpl_data['data-broadcast'], display_id).get('files', [])
+            vpl_data['data-broadcast'], display_id)
         formats = []
         for video_file in video_files:
             v_url = video_file.get('url')
@@ -80,6 +81,11 @@ class TV5MondePlusIE(InfoExtractor):
                     'format_id': video_format,
                 })
         self._sort_formats(formats)
+
+        metadata = self._parse_json(
+            vpl_data['data-metadata'], display_id)
+        duration = (int_or_none(try_get(metadata, lambda x: x['content']['duration']))
+                    or parse_duration(self._html_search_meta('duration', webpage)))
 
         description = self._html_search_regex(
             r'(?s)<div[^>]+class=["\']episode-texte[^>]+>(.+?)</div>', webpage,
@@ -109,7 +115,7 @@ class TV5MondePlusIE(InfoExtractor):
             'title': title,
             'description': description,
             'thumbnail': vpl_data.get('data-image'),
-            'duration': int_or_none(vpl_data.get('data-duration')) or parse_duration(self._html_search_meta('duration', webpage)),
+            'duration': duration,
             'upload_date': upload_date,
             'formats': formats,
             'series': series,
