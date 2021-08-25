@@ -115,7 +115,7 @@ class RadikoBaseIE(InfoExtractor):
             time_to_skip = None if is_onair else cursor - ft
 
             subformats = self._extract_m3u8_formats(
-                playlist_url, video_id, ext='m4a', entry_protocol='m3u8',
+                playlist_url, video_id, ext='m4a',
                 live=True, fatal=False, m3u8_id=None,
                 headers={
                     'X-Radiko-AreaId': area_id,
