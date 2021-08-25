@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    try_get,
+    traverse_obj,
     unified_strdate,
 )
 
@@ -37,17 +37,13 @@ class ProjectVeritasIE(InfoExtractor):
         data_json = self._download_json(api_url, id)['result']['data']
         main_data = data_json.get('video') or data_json.get('post')
         video_id = main_data['id']
-        thumbnail = try_get(main_data, lambda x: x['image']['ogImage']['src'])
-        mux_asset = main_data.get('muxAsset')
-        if not mux_asset:
-            contents = try_get(main_data, lambda x: x['body']['json']['content']) or []
-            for content in contents:
-                mux_asset = try_get(content, lambda x: x['data']['target']['fields']['muxAsset'])
-                if mux_asset:
-                    break
+        thumbnail = traverse_obj(main_data, ('image', 'ogImage', 'src'), get_all=False)
+        mux_asset = traverse_obj(main_data,
+                                 'muxAsset', ('body', 'json', 'content', ..., 'data', 'target', 'fields', 'muxAsset'),
+                                 get_all=False, expected_type=dict)
         if not mux_asset:
             raise ExtractorError('No video on the provided url.', expected=True)
-        playback_id = mux_asset.get('playbackId') or try_get(mux_asset, lambda x: x['en-US']['playbackId'])
+        playback_id = traverse_obj(mux_asset, 'playbackId', ('en-US', 'playbackId'), get_all=False)
         formats = self._extract_m3u8_formats(f'https://stream.mux.com/{playback_id}.m3u8', video_id)
         self._sort_formats(formats)
         return {
