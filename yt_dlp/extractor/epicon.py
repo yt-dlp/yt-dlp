@@ -32,7 +32,7 @@ class EpiconIE(InfoExtractor):
         'info_dict': {
             'id': 'vardaan',
             'ext': 'mp4',
-            'title': 'Ep 1 - VARDAAN',
+            'title': 'Paapnaashini Ganga - Season 1 - Ep 1 - VARDAAN',
             'description': 'md5:f517058c3d0402398eefa6242f4dd6ae',
             'thumbnail': r're:^https?://.*\.jpg$',
         }
@@ -58,7 +58,7 @@ class EpiconIE(InfoExtractor):
         if not data_json['success']:
             raise ExtractorError(data_json['message'], expected=True)
 
-        title = self._og_search_title(webpage).replace('Short Film ', '').replace('Watch ', '').replace(' |', '').replace(' Online at EPIC ON', '').replace(' Online On EPIC ON', '')
+        title = self._search_regex(r'setplaytitle=\"([^\"]+)', webpage, 'title')
         description = self._og_search_description(webpage) or None
         thumbnail = self._og_search_thumbnail(webpage) or None
         formats = self._extract_m3u8_formats(data_json['url']['video_url'], id)
