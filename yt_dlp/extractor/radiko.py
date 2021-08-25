@@ -127,7 +127,6 @@ class RadikoBaseIE(InfoExtractor):
                 if re.match(r'^[cf]-radiko\.smartstream\.ne\.jp$', domain):
                     sf['preference'] = 100 if is_onair else -100  # current radio stream
                 if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
-                    # sf['format_note'] = 'timefree'
                     sf['_ffmpeg_args'] = ['-ss', time_to_skip]
             formats.extend(subformats)
 
@@ -179,7 +178,6 @@ class RadikoIE(RadikoBaseIE):
             'uploader_id': station,
             'timestamp': vid_int,
             'formats': formats,
-            # we have to mark this live since they behave as if it's a live
             'is_live': True,
         }
 
