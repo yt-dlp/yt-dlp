@@ -634,7 +634,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             # Auth related headers
             'X-Youtube-Identity-Token': identity_token or self._extract_identity_token(ytcfg),
             'X-Goog-PageId': account_syncid or self._extract_account_syncid(ytcfg),
-            'X-Goog-Visitor-Id': visitor_data or try_get(ytcfg, lambda x: x['VISITOR_DATA'], compat_str)
+            'X-Goog-Visitor-Id': visitor_data or try_get(
+                self._extract_context(ytcfg, default_client), lambda x: x['client']['visitorData'], compat_str)
         }
         if session_index is None:
             session_index = self._extract_session_index(ytcfg)
