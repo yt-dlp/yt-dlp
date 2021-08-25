@@ -548,7 +548,7 @@ def parseOpts(overrideArguments=None):
             'Use with "-S ext" to strictly prefer free containers irrespective of quality'))
     video_format.add_option(
         '--no-prefer-free-formats',
-        action='store_true', dest='prefer_free_formats', default=False,
+        action='store_false', dest='prefer_free_formats', default=False,
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
