@@ -1059,6 +1059,7 @@ from .puhutv import (
     PuhuTVSerieIE,
 )
 from .presstv import PressTVIE
+from .projectveritas import ProjectVeritasIE
 from .prosiebensat1 import ProSiebenSat1IE
 from .puls4 import Puls4IE
 from .pyvideo import PyvideoIE
