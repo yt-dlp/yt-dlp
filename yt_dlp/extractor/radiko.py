@@ -162,13 +162,16 @@ class RadikoIE(RadikoBaseIE):
         description = clean_html(prog.find('info').text)
         station_name = station_program.find('.//name').text
 
-        formats = self._extract_formats(video_id, station, False, ft, vid_int, auth_token, area_id, {
-            'start_at': radio_begin,
-            'ft': radio_begin,
-            'end_at': radio_end,
-            'to': radio_end,
-            'seek': video_id,
-        })
+        formats = self._extract_formats(
+            video_id=video_id, station=station, is_onair=False,
+            ft=ft, cursor=vid_int, auth_token=auth_token, area_id=area_id,
+            query={
+                'start_at': radio_begin,
+                'ft': radio_begin,
+                'end_at': radio_end,
+                'to': radio_end,
+                'seek': video_id,
+            })
 
         return {
             'id': video_id,
@@ -213,7 +216,10 @@ class RadikoRadioIE(RadikoBaseIE):
         description = clean_html(prog.find('info').text)
         station_name = station_program.find('.//name').text
 
-        formats = self._extract_formats(station, station, True, ft, vid_now, auth_token, area_id, {})
+        formats = self._extract_formats(
+            video_id=station, station=station, is_onair=True,
+            ft=ft, cursor=vid_now, auth_token=auth_token, area_id=area_id,
+            query={})
 
         return {
             'id': station,
