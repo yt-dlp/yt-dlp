@@ -353,6 +353,8 @@ def _real_main(argv=None):
     if opts.getcomments and not printing_json:
         opts.writeinfojson = True
 
+    if opts.addmetadata and opts.addchapters is None:
+        opts.addchapters = True
     def report_conflict(arg1, arg2):
         warnings.append('%s is ignored since %s was given' % (arg2, arg1))
 
@@ -508,10 +510,11 @@ def _real_main(argv=None):
     # extra metadata. By default ffmpeg preserves metadata applicable for both
     # source and target containers. From this point the container won't change,
     # so metadata can be added here.
-    if opts.addmetadata or opts.sponsorblock:
+    if opts.addmetadata or opts.addchapters:
         postprocessors.append({
             'key': 'FFmpegMetadata',
-            'only_chapters': not opts.addmetadata
+            'add_chapters': opts.addchapters,
+            'add_metadata': opts.addmetadata,
         })
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata

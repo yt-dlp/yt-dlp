@@ -577,9 +577,11 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
-    def __init__(self, downloader=None, only_chapters=False):
-        super(FFmpegMetadataPP, self).__init__(downloader)
-        self._only_chapters = only_chapters
+
+    def __init__(self, downloader, add_metadata=True, add_chapters=True):
+        FFmpegPostProcessor.__init__(self, downloader)
+        self._add_metadata = add_metadata
+        self._add_chapters = add_chapters
 
     @staticmethod
     def _options(target_ext):
@@ -591,13 +593,51 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if self._only_chapters and '__has_sponsor_chapters' not in info:
+        filename, metadata_filename = info['filepath'], None
+        options = []
+        if self._add_chapters and info.get('chapters'):
+            metadata_filename = replace_extension(filename, 'meta')
+            options.extend(self._get_chapter_opts(info['chapters'], metadata_filename))
+        if self._add_metadata:
+            options.extend(self._get_metadata_opts(info))
+
+        if not options:
+            self.to_screen('There isn\'t any metadata to add')
             return [], info
 
+        temp_filename = prepend_extension(filename, 'temp')
+        self.to_screen('Adding metadata to "%s"' % filename)
+        self.run_ffmpeg_multiple_files(
+            (filename, metadata_filename), temp_filename,
+            itertools.chain(self._options(info['ext']), *options))
+        if metadata_filename:
+            os.remove(metadata_filename)
+        os.remove(encodeFilename(filename))
+        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+        return [], info
+
+    @staticmethod
+    def _get_chapter_opts(chapters, metadata_filename):
+        with io.open(metadata_filename, 'wt', encoding='utf-8') as f:
+            def ffmpeg_escape(text):
+                return re.sub(r'([\\=;#\n])', r'\\\1', text)
+
+            metadata_file_content = ';FFMETADATA1\n'
+            for chapter in chapters:
+                metadata_file_content += '[CHAPTER]\nTIMEBASE=1/1000\n'
+                metadata_file_content += 'START=%d\n' % (chapter['start_time'] * 1000)
+                metadata_file_content += 'END=%d\n' % (chapter['end_time'] * 1000)
+                chapter_title = chapter.get('title')
+                if chapter_title:
+                    metadata_file_content += 'title=%s\n' % ffmpeg_escape(chapter_title)
+            f.write(metadata_file_content)
+        yield ('-map_metadata', '1')
+
+    def _get_metadata_opts(self, info):
         metadata = {}
 
         def add(meta_list, info_list=None):
-            if self._only_chapters or not meta_list:
+            if not meta_list:
                 return
             for info_f in variadic(info_list or meta_list):
                 if isinstance(info.get(info_f), (compat_str, compat_numeric_types)):
@@ -630,68 +670,27 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         for key in filter(lambda k: k.startswith(prefix), info.keys()):
             add(key[len(prefix):], key)
 
-        filename, metadata_filename = info['filepath'], None
-        options = [('-metadata', f'{name}={value}') for name, value in metadata.items()]
+        for name, value in metadata.items():
+            yield ('-metadata', f'{name}={value}')
 
-        if not self._only_chapters:
-            stream_idx = 0
-            for fmt in info.get('requested_formats') or []:
-                stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
-                if fmt.get('language'):
-                    lang = ISO639Utils.short2long(fmt['language']) or fmt['language']
-                    options.extend(('-metadata:s:%d' % (stream_idx + i), 'language=%s' % lang)
-                                   for i in range(stream_count))
-                stream_idx += stream_count
+        stream_idx = 0
+        for fmt in info.get('requested_formats') or []:
+            stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
+            if fmt.get('language'):
+                lang = ISO639Utils.short2long(fmt['language']) or fmt['language']
+                for i in range(stream_count):
+                    yield ('-metadata:s:%d' % (stream_idx + i), 'language=%s' % lang)
+            stream_idx += stream_count
 
-        chapters = info.get('chapters', [])
-        if self._only_chapters and not chapters:
-            return [], info
-
-        if chapters:
-            metadata_filename = replace_extension(filename, 'meta')
-            with io.open(metadata_filename, 'wt', encoding='utf-8') as f:
-                def ffmpeg_escape(text):
-                    return re.sub(r'([\\=;#\n])', r'\\\1', text)
-
-                metadata_file_content = ';FFMETADATA1\n'
-                for chapter in chapters:
-                    metadata_file_content += '[CHAPTER]\nTIMEBASE=1/1000\n'
-                    metadata_file_content += 'START=%d\n' % (chapter['start_time'] * 1000)
-                    metadata_file_content += 'END=%d\n' % (chapter['end_time'] * 1000)
-                    chapter_title = chapter.get('title')
-                    if chapter_title:
-                        metadata_file_content += 'title=%s\n' % ffmpeg_escape(chapter_title)
-                f.write(metadata_file_content)
-                options.append(('-map_metadata', '1'))
-
-        if not self._only_chapters and (
-                'no-attach-info-json' not in self.get_param('compat_opts', [])
+        if ('no-attach-info-json' not in self.get_param('compat_opts', [])
                 and '__infojson_filename' in info and info['ext'] in ('mkv', 'mka')):
-            old_stream, new_stream = self.get_stream_number(filename, ('tags', 'mimetype'), 'application/json')
+            old_stream, new_stream = self.get_stream_number(info['filepath'], ('tags', 'mimetype'), 'application/json')
             if old_stream is not None:
-                options.append(('-map', '-0:%d' % old_stream))
+                yield ('-map', '-0:%d' % old_stream)
                 new_stream -= 1
 
-            options.append((
-                '-attach', info['__infojson_filename'],
-                '-metadata:s:%d' % new_stream, 'mimetype=application/json'
-            ))
-
-        if not options:
-            self.to_screen('There isn\'t any metadata to add')
-            return [], info
-
-        temp_filename = prepend_extension(filename, 'temp')
-        self.to_screen('Adding %s to "%s"' % (
-            'chapters' if self._only_chapters else 'metadata', filename))
-        self.run_ffmpeg_multiple_files(
-            (filename, metadata_filename), temp_filename,
-            itertools.chain(self._options(info['ext']), *options))
-        if chapters:
-            os.remove(metadata_filename)
-        os.remove(encodeFilename(filename))
-        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
-        return [], info
+            yield ('-attach', info['__infojson_filename'],
+                   '-metadata:s:%d' % new_stream, 'mimetype=application/json')
 
 
 class FFmpegMergerPP(FFmpegPostProcessor):
