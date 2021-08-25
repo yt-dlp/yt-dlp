@@ -125,7 +125,8 @@ class RadikoBaseIE(InfoExtractor):
             for sf in subformats:
                 domain = sf['format_id'] = compat_urllib_parse.urlparse(sf['url']).netloc
                 if re.match(r'^[cf]-radiko\.smartstream\.ne\.jp$', domain):
-                    sf['preference'] = 100 if is_onair else -100  # current radio stream
+                    # Prioritize live radio vs playback based on extractor
+                    sf['preference'] = 100 if is_onair else -100
                 if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
                     sf['_ffmpeg_args'] = ['-ss', time_to_skip]
             formats.extend(subformats)
