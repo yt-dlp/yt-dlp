@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
@@ -96,7 +95,7 @@ class CorusIE(ThePlatformFeedIE):
     }
 
     def _real_extract(self, url):
-        domain, video_id = re.match(self._VALID_URL, url).groups()
+        domain, video_id = self._match_valid_url(url).groups()
         site = domain.split('.')[0]
         path = self._SITE_MAP.get(site, site)
         if path != 'series':
@@ -131,7 +130,7 @@ class CorusIE(ThePlatformFeedIE):
             formats.extend(self._parse_smil_formats(
                 smil, smil_url, video_id, namespace))
         if not formats and video.get('drm'):
-            self.raise_no_formats('This video is DRM protected.', expected=True)
+            self.report_drm(video_id)
         self._sort_formats(formats)
 
         subtitles = {}

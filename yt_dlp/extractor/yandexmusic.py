@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import hashlib
 import itertools
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -109,7 +108,7 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         tld, album_id, track_id = mobj.group('tld'), mobj.group('album_id'), mobj.group('id')
 
         track = self._call_api(
@@ -291,7 +290,7 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
         return False if YandexMusicTrackIE.suitable(url) else super(YandexMusicAlbumIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         tld = mobj.group('tld')
         album_id = mobj.group('id')
 
@@ -342,7 +341,7 @@ class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         tld = mobj.group('tld')
         user = mobj.group('user')
         playlist_id = mobj.group('id')
@@ -381,7 +380,7 @@ class YandexMusicArtistBaseIE(YandexMusicPlaylistBaseIE):
             })
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         tld = mobj.group('tld')
         artist_id = mobj.group('id')
         data = self._call_artist(tld, url, artist_id)
@@ -410,7 +409,7 @@ class YandexMusicArtistTracksIE(YandexMusicArtistBaseIE):
     _ARTIST_WHAT = 'tracks'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         tld = mobj.group('tld')
         artist_id = mobj.group('id')
         data = self._call_artist(tld, url, artist_id)
@@ -440,7 +439,7 @@ class YandexMusicArtistAlbumsIE(YandexMusicArtistBaseIE):
     _ARTIST_WHAT = 'albums'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         tld = mobj.group('tld')
         artist_id = mobj.group('id')
         data = self._call_artist(tld, url, artist_id)

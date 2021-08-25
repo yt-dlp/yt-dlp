@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import json
 import random
-import re
 
 from .common import InfoExtractor
 from ..compat import (
@@ -162,7 +161,7 @@ class LinuxAcademyIE(InfoExtractor):
             % access_token, None, 'Downloading token validation page')
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         chapter_id, lecture_id, course_id = mobj.group('chapter_id', 'lesson_id', 'course_id')
         item_id = course_id if course_id else '%s-%s' % (chapter_id, lecture_id)
 

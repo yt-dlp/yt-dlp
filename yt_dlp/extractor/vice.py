@@ -118,7 +118,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
         return urls[0] if urls else None
 
     def _real_extract(self, url):
-        locale, video_id = re.match(self._VALID_URL, url).groups()
+        locale, video_id = self._match_valid_url(url).groups()
 
         video = self._call_api('videos', 'id', video_id, locale, '''body
     locked
@@ -225,7 +225,7 @@ class ViceShowIE(ViceBaseIE):
                 video['url'], ViceIE.ie_key(), video.get('id'))
 
     def _real_extract(self, url):
-        locale, display_id = re.match(self._VALID_URL, url).groups()
+        locale, display_id = self._match_valid_url(url).groups()
         show = self._call_api('shows', 'slug', display_id, locale, '''dek
     id
     title''')[0]
@@ -302,7 +302,7 @@ class ViceArticleIE(ViceBaseIE):
     }]
 
     def _real_extract(self, url):
-        locale, display_id = re.match(self._VALID_URL, url).groups()
+        locale, display_id = self._match_valid_url(url).groups()
 
         article = self._call_api('articles', 'slug', display_id, locale, '''body
     embed_code''')[0]

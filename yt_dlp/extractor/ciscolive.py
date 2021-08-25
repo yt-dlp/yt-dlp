@@ -4,14 +4,11 @@ from __future__ import unicode_literals
 import itertools
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     clean_html,
     float_or_none,
     int_or_none,
+    parse_qs,
     try_get,
     urlencode_postdata,
 )
@@ -145,7 +142,7 @@ class CiscoLiveSearchIE(CiscoLiveBaseIE):
             query['from'] += query['size']
 
     def _real_extract(self, url):
-        query = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        query = parse_qs(url)
         query['type'] = 'session'
         return self.playlist_result(
             self._entries(query, url), playlist_title='Search query')

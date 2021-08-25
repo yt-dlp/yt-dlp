@@ -11,6 +11,7 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     parse_codecs,
+    parse_qs,
     update_url_query,
     urljoin,
     xpath_element,
@@ -20,7 +21,6 @@ from ..compat import (
     compat_b64decode,
     compat_ord,
     compat_struct_pack,
-    compat_urlparse,
 )
 
 
@@ -113,7 +113,7 @@ class VideaIE(InfoExtractor):
         for i in range(0, 32):
             result += s[i - (self._STATIC_SECRET.index(l[i]) - 31)]
 
-        query = compat_urlparse.parse_qs(compat_urlparse.urlparse(player_url).query)
+        query = parse_qs(player_url)
         random_seed = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
         query['_s'] = random_seed
         query['_t'] = result[:16]

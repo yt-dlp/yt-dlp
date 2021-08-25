@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import random
-import re
 import string
 
 from .common import InfoExtractor
@@ -49,7 +48,7 @@ class FunimationPageIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('id').replace('/', '_')
         if not mobj.group('lang'):
             url = '%s/en/%s' % (mobj.group('origin'), mobj.group('path'))
@@ -304,7 +303,7 @@ class FunimationShowIE(FunimationIE):
     }]
 
     def _real_extract(self, url):
-        base_url, locale, display_id = re.match(self._VALID_URL, url).groups()
+        base_url, locale, display_id = self._match_valid_url(url).groups()
 
         show_info = self._download_json(
             'https://title-api.prd.funimationsvc.com/v2/shows/%s?region=US&deviceType=web&locale=%s'

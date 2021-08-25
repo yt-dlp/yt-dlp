@@ -5,7 +5,6 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_parse_qs,
     compat_str,
     compat_urllib_parse_urlparse,
 )
@@ -13,6 +12,7 @@ from ..utils import (
     urljoin,
     int_or_none,
     parse_codecs,
+    parse_qs,
     try_get,
 )
 
@@ -108,7 +108,7 @@ class SeznamZpravyIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        params = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        params = parse_qs(url)
 
         src = params['src'][0]
         title = params['title'][0]

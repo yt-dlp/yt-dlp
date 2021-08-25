@@ -452,7 +452,7 @@ class NRKTVEpisodeIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id, season_number, episode_number = re.match(self._VALID_URL, url).groups()
+        display_id, season_number, episode_number = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(url, display_id)
 
@@ -594,7 +594,7 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
                 else super(NRKTVSeasonIE, cls).suitable(url))
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         domain = mobj.group('domain')
         serie_kind = mobj.group('serie_kind')
         serie = mobj.group('serie')
@@ -692,7 +692,7 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
             else super(NRKTVSeriesIE, cls).suitable(url))
 
     def _real_extract(self, url):
-        site, serie_kind, series_id = re.match(self._VALID_URL, url).groups()
+        site, serie_kind, series_id = self._match_valid_url(url).groups()
         is_radio = site == 'radio.nrk'
         domain = 'radio' if is_radio else 'tv'
 

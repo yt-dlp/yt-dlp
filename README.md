@@ -64,7 +64,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **[SponSkrub Integration](#sponskrub-sponsorblock-options)**: You can use [SponSkrub](https://github.com/yt-dlp/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
-* **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection that what is possible by simply using `--format` ([examples](#format-selection-examples))
+* **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection than what is possible by simply using `--format` ([examples](#format-selection-examples))
 
 * **Merged with youtube-dl [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)**: (v2021.06.06) You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
@@ -90,7 +90,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ
 
-* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds, 
+* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -213,7 +213,7 @@ Once you have all the necessary dependencies installed, just run `py pyinst.py`.
 You can also build the executable without any version info or metadata by using:
 
     pyinstaller.exe yt_dlp\__main__.py --onefile --name yt-dlp
-    
+
 Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment
 
 **For Unix**:
@@ -273,7 +273,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-mark-watched                Do not mark videos watched (default)
     --no-colors                      Do not emit color codes in output
     --compat-options OPTS            Options that can help keep compatibility
-                                     with youtube-dl and youtube-dlc
+                                     with youtube-dl or youtube-dlc
                                      configurations by reverting some of the
                                      changes made in yt-dlp. See "Differences in
                                      default behavior" for details
@@ -668,11 +668,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      bestvideo+bestaudio), output to given
                                      container format. One of mkv, mp4, ogg,
                                      webm, flv. Ignored if no merge is required
-    --allow-unplayable-formats       Allow unplayable formats to be listed and
-                                     downloaded. All video post-processing will
-                                     also be turned off
-    --no-allow-unplayable-formats    Do not allow unplayable formats to be
-                                     listed or downloaded (default)
 
 ## Subtitle Options:
     --write-subs                     Write subtitle file
@@ -1405,7 +1400,7 @@ The following extractors use this feature:
     * `include_live_dash`: Include live dash formats (These formats don't download properly)
     * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side).
     * `max_comments`: Maximum amount of comments to download (default all).
-    * `max_comment_depth`: Maximum depth for nested comments. YouTube supports depths 1 or 2 (default). 
+    * `max_comment_depth`: Maximum depth for nested comments. YouTube supports depths 1 or 2 (default).
 
 * **funimation**
     * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
@@ -1439,6 +1434,10 @@ While these options are redundant, they are still expected to be used due to the
     -e, --get-title                  --print title
     -g, --get-url                    --print urls
     -j, --dump-json                  --print "%()j"
+    --match-title REGEX              --match-filter "title ~= (?i)REGEX"
+    --reject-title REGEX             --match-filter "title !~= (?i)REGEX"
+    --min-views COUNT                --match-filter "view_count >=? COUNT"
+    --max-views COUNT                --match-filter "view_count <=? COUNT"
 
 
 #### Not recommended
@@ -1466,6 +1465,8 @@ These options are not intended to be used by the end-user
 
     --test                           Download only part of video for testing extractors
     --youtube-print-sig-code         For testing youtube signatures
+    --allow-unplayable-formats       List unplayable formats also
+    --no-allow-unplayable-formats    Default
 
 
 #### Old aliases

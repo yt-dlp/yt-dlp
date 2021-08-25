@@ -141,7 +141,7 @@ class InstagramIE(InfoExtractor):
             return mobj.group('link')
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         url = mobj.group('url')
 
@@ -277,6 +277,9 @@ class InstagramIE(InfoExtractor):
             'like_count': like_count,
             'comment_count': comment_count,
             'comments': comments,
+            'http_headers': {
+                'Referer': 'https://www.instagram.com/',
+            }
         }
 
 

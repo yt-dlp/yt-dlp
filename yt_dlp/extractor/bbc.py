@@ -10,9 +10,7 @@ from .common import InfoExtractor
 from ..compat import (
     compat_etree_Element,
     compat_HTTPError,
-    compat_parse_qs,
     compat_str,
-    compat_urllib_parse_urlparse,
     compat_urlparse,
 )
 from ..utils import (
@@ -26,6 +24,7 @@ from ..utils import (
     js_to_json,
     parse_duration,
     parse_iso8601,
+    parse_qs,
     strip_or_none,
     try_get,
     unescapeHTML,
@@ -1410,7 +1409,7 @@ class BBCCoUkIPlayerPlaylistBaseIE(InfoExtractor):
 
     def _real_extract(self, url):
         pid = self._match_id(url)
-        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        qs = parse_qs(url)
         series_id = qs.get('seriesId', [None])[0]
         page = qs.get('page', [None])[0]
         per_page = 36 if page else self._PAGE_SIZE

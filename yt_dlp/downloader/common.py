@@ -204,9 +204,12 @@ class FileDownloader(object):
         return filename + '.ytdl'
 
     def try_rename(self, old_filename, new_filename):
+        if old_filename == new_filename:
+            return
         try:
-            if old_filename == new_filename:
-                return
+            if self.params.get('overwrites', False):
+                if os.path.isfile(encodeFilename(new_filename)):
+                    os.remove(encodeFilename(new_filename))
             os.rename(encodeFilename(old_filename), encodeFilename(new_filename))
         except (IOError, OSError) as err:
             self.report_error('unable to rename file: %s' % error_to_compat_str(err))

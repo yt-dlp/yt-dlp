@@ -436,7 +436,7 @@ class PBSIE(InfoExtractor):
                 self._set_cookie('.pbs.org', 'pbsol.station', station)
 
     def _extract_webpage(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
 
         description = None
 

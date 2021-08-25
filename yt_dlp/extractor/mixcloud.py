@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import itertools
-import re
 
 from .common import InfoExtractor
 from ..compat import (
@@ -79,7 +78,7 @@ class MixcloudIE(MixcloudBaseIE):
             for ch, k in compat_zip(ciphertext, itertools.cycle(key))])
 
     def _real_extract(self, url):
-        username, slug = re.match(self._VALID_URL, url).groups()
+        username, slug = self._match_valid_url(url).groups()
         username, slug = compat_urllib_parse_unquote(username), compat_urllib_parse_unquote(slug)
         track_id = '%s_%s' % (username, slug)
 
@@ -214,7 +213,7 @@ class MixcloudPlaylistBaseIE(MixcloudBaseIE):
         return title
 
     def _real_extract(self, url):
-        username, slug = re.match(self._VALID_URL, url).groups()
+        username, slug = self._match_valid_url(url).groups()
         username = compat_urllib_parse_unquote(username)
         if not slug:
             slug = 'uploads'

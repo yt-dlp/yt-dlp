@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 import uuid
 
 from .common import InfoExtractor
@@ -64,7 +63,7 @@ class LEGOIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        locale, video_id = re.match(self._VALID_URL, url).groups()
+        locale, video_id = self._match_valid_url(url).groups()
         countries = [locale.split('-')[1].upper()]
         self._initialize_geo_bypass({
             'countries': countries,

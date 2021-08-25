@@ -66,7 +66,7 @@ class SteamIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        m = re.match(self._VALID_URL, url)
+        m = self._match_valid_url(url)
         fileID = m.group('fileID')
         if fileID:
             videourl = url

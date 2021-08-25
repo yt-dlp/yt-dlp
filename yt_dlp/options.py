@@ -122,6 +122,30 @@ def parseOpts(overrideArguments=None):
             parser.values, option.dest,
             current + value if append is True else value + current)
 
+    def _set_from_options_callback(
+            option, opt_str, value, parser,
+            delim=',', allowed_values=None, process=str.lower, aliases={}):
+        current = getattr(parser.values, option.dest)
+        values = [process(value)] if delim is None else process(value).split(delim)[::-1]
+        while values:
+            actual_val = val = values.pop()
+            if val == 'all':
+                current.update(allowed_values)
+            elif val == '-all':
+                current = set()
+            elif val in aliases:
+                values.extend(aliases[val])
+            else:
+                if val[0] == '-':
+                    val = val[1:]
+                    current.discard(val)
+                else:
+                    current.update([val])
+                if allowed_values is not None and val not in allowed_values:
+                    raise optparse.OptionValueError(f'wrong {option.metavar} for {opt_str}: {actual_val}')
+
+        setattr(parser.values, option.dest, current)
+
     def _dict_from_options_callback(
             option, opt_str, value, parser,
             allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True):
@@ -241,10 +265,21 @@ def parseOpts(overrideArguments=None):
         help='Do not emit color codes in output')
     general.add_option(
         '--compat-options',
-        metavar='OPTS', dest='compat_opts', default=[],
-        action='callback', callback=_list_from_options_callback, type='str',
-        help=(
-            'Options that can help keep compatibility with youtube-dl and youtube-dlc '
+        metavar='OPTS', dest='compat_opts', default=set(), type='str',
+        action='callback', callback=_set_from_options_callback,
+        callback_kwargs={
+            'allowed_values': {
+                'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
+                'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
+                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
+                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
+            },
+            'aliases': {
+                'youtube-dl': ['-multistreams', 'all'],
+                'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
+            }
+        }, help=(
+            'Options that can help keep compatibility with youtube-dl or youtube-dlc '
             'configurations by reverting some of the changes made in yt-dlp. '
             'See "Differences in default behavior" for details'))
 
@@ -321,11 +356,11 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--match-title',
         dest='matchtitle', metavar='REGEX',
-        help='Download only matching titles (regex or caseless sub-string)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--reject-title',
         dest='rejecttitle', metavar='REGEX',
-        help='Skip download for matching titles (regex or caseless sub-string)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--max-downloads',
         dest='max_downloads', metavar='NUMBER', type=int, default=None,
@@ -360,11 +395,11 @@ def parseOpts(overrideArguments=None):
     selection.add_option(
         '--min-views',
         metavar='COUNT', dest='min_views', default=None, type=int,
-        help='Do not download any videos with less than COUNT views')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--max-views',
         metavar='COUNT', dest='max_views', default=None, type=int,
-        help='Do not download any videos with more than COUNT views')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--match-filter',
         metavar='FILTER', dest='match_filter', default=None,
@@ -545,13 +580,11 @@ def parseOpts(overrideArguments=None):
     video_format.add_option(
         '--allow-unplayable-formats',
         action='store_true', dest='allow_unplayable_formats', default=False,
-        help=(
-            'Allow unplayable formats to be listed and downloaded. '
-            'All video post-processing will also be turned off'))
+        help=optparse.SUPPRESS_HELP)
     video_format.add_option(
         '--no-allow-unplayable-formats',
         action='store_false', dest='allow_unplayable_formats',
-        help='Do not allow unplayable formats to be listed or downloaded (default)')
+        help=optparse.SUPPRESS_HELP)
 
     subtitles = optparse.OptionGroup(parser, 'Subtitle Options')
     subtitles.add_option(

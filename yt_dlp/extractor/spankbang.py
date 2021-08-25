@@ -70,7 +70,7 @@ class SpankBangIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id') or mobj.group('id_2')
         webpage = self._download_webpage(
             url.replace('/%s/embed' % video_id, '/%s/video' % video_id),
@@ -177,7 +177,7 @@ class SpankBangPlaylistIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
         display_id = mobj.group('display_id')
 

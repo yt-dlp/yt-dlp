@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -31,7 +30,7 @@ class LineTVIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        series_id, segment = re.match(self._VALID_URL, url).groups()
+        series_id, segment = self._match_valid_url(url).groups()
         video_id = '%s_%s' % (series_id, segment)
 
         webpage = self._download_webpage(url, video_id)
@@ -154,7 +153,7 @@ class LineLiveIE(LineLiveBaseIE):
     }]
 
     def _real_extract(self, url):
-        channel_id, broadcast_id = re.match(self._VALID_URL, url).groups()
+        channel_id, broadcast_id = self._match_valid_url(url).groups()
         broadcast = self._download_json(
             self._API_BASE_URL + '%s/broadcast/%s' % (channel_id, broadcast_id),
             broadcast_id)

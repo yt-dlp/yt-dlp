@@ -92,7 +92,7 @@ class WatIE(InfoExtractor):
         extract_formats({delivery.get('format'): delivery.get('url')})
         if not formats:
             if delivery.get('drm'):
-                self.raise_no_formats('This video is DRM protected.', expected=True)
+                self.report_drm(video_id)
             manifest_urls = self._download_json(
                 'http://www.wat.tv/get/webhtml/' + video_id, video_id, fatal=False)
             if manifest_urls:

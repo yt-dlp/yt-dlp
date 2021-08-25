@@ -110,14 +110,14 @@ def _real_main(argv=None):
 
     if opts.list_extractors:
         for ie in list_extractors(opts.age_limit):
-            write_string(ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie._WORKING else '') + '\n', out=sys.stdout)
+            write_string(ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie.working() else '') + '\n', out=sys.stdout)
             matchedUrls = [url for url in all_urls if ie.suitable(url)]
             for mu in matchedUrls:
                 write_string('  ' + mu + '\n', out=sys.stdout)
         sys.exit(0)
     if opts.list_extractor_descriptions:
         for ie in list_extractors(opts.age_limit):
-            if not ie._WORKING:
+            if not ie.working():
                 continue
             desc = getattr(ie, 'IE_DESC', ie.IE_NAME)
             if desc is False:
@@ -257,35 +257,7 @@ def _real_main(argv=None):
     else:
         date = DateRange(opts.dateafter, opts.datebefore)
 
-    def parse_compat_opts():
-        parsed_compat_opts, compat_opts = set(), opts.compat_opts[::-1]
-        while compat_opts:
-            actual_opt = opt = compat_opts.pop().lower()
-            if opt == 'youtube-dl':
-                compat_opts.extend(['-multistreams', 'all'])
-            elif opt == 'youtube-dlc':
-                compat_opts.extend(['-no-youtube-channel-redirect', '-no-live-chat', 'all'])
-            elif opt == 'all':
-                parsed_compat_opts.update(all_compat_opts)
-            elif opt == '-all':
-                parsed_compat_opts = set()
-            else:
-                if opt[0] == '-':
-                    opt = opt[1:]
-                    parsed_compat_opts.discard(opt)
-                else:
-                    parsed_compat_opts.update([opt])
-                if opt not in all_compat_opts:
-                    parser.error('Invalid compatibility option %s' % actual_opt)
-        return parsed_compat_opts
-
-    all_compat_opts = [
-        'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
-        'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-        'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
-        'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
-    ]
-    compat_opts = parse_compat_opts()
+    compat_opts = opts.compat_opts
 
     def _unused_compat_opt(name):
         if name not in compat_opts:

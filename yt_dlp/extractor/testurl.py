@@ -15,7 +15,7 @@ class TestURLIE(InfoExtractor):
     def _real_extract(self, url):
         from ..extractor import gen_extractors
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         extractor_id = mobj.group('extractor')
         all_extractors = gen_extractors()

@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 
@@ -32,7 +31,7 @@ class AlJazeeraIE(InfoExtractor):
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
 
     def _real_extract(self, url):
-        post_type, name = re.match(self._VALID_URL, url).groups()
+        post_type, name = self._match_valid_url(url).groups()
         post_type = {
             'features': 'post',
             'program': 'episode',

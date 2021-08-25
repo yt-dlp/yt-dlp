@@ -4,12 +4,12 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
     parse_iso8601,
+    parse_qs,
     try_get,
 )
 
@@ -63,13 +63,13 @@ class ArkenaIE(InfoExtractor):
             return mobj.group('url')
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         account_id = mobj.group('account_id')
 
         # Handle http://video.arkena.com/play2/embed/player URL
         if not video_id:
-            qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+            qs = parse_qs(url)
             video_id = qs.get('mediaId', [None])[0]
             account_id = qs.get('accountId', [None])[0]
             if not video_id or not account_id:

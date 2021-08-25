@@ -390,7 +390,7 @@ class AnvatoIE(InfoExtractor):
             'countries': smuggled_data.get('geo_countries'),
         })
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         access_key, video_id = mobj.group('access_key_or_mcp', 'id')
         if access_key not in self._ANVACK_TABLE:
             access_key = self._MCP_TO_ACCESS_KEY_TABLE.get(

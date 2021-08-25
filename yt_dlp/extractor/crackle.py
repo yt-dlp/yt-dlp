@@ -176,8 +176,8 @@ class CrackleIE(InfoExtractor):
                     'width': mfs_info['width'],
                     'height': mfs_info['height'],
                 })
-        if not formats and has_drm and not ignore_no_formats:
-            raise ExtractorError('The video is DRM protected', expected=True)
+        if not formats and has_drm:
+            self.report_drm(video_id)
         self._sort_formats(formats)
 
         description = media.get('Description')

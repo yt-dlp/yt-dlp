@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 import base64
 
 from .common import InfoExtractor
@@ -22,7 +21,7 @@ class AWAANIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:awaan|dcndigital)\.ae/(?:#/)?show/(?P<show_id>\d+)/[^/]+(?:/(?P<id>\d+)/(?P<season_id>\d+))?'
 
     def _real_extract(self, url):
-        show_id, video_id, season_id = re.match(self._VALID_URL, url).groups()
+        show_id, video_id, season_id = self._match_valid_url(url).groups()
         if video_id and int(video_id) > 0:
             return self.url_result(
                 'http://awaan.ae/media/%s' % video_id, 'AWAANVideo')
@@ -154,7 +153,7 @@ class AWAANSeasonIE(InfoExtractor):
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
-        show_id, season_id = re.match(self._VALID_URL, url).groups()
+        show_id, season_id = self._match_valid_url(url).groups()
 
         data = {}
         if season_id:

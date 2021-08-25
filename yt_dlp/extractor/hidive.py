@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -55,7 +54,7 @@ class HiDiveIE(InfoExtractor):
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(data))
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         title, key = mobj.group('title', 'key')
         video_id = '%s/%s' % (title, key)
 

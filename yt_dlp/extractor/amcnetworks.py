@@ -63,7 +63,7 @@ class AMCNetworksIE(ThePlatformIE):
     }
 
     def _real_extract(self, url):
-        site, display_id = re.match(self._VALID_URL, url).groups()
+        site, display_id = self._match_valid_url(url).groups()
         requestor_id = self._REQUESTOR_ID_MAP[site]
         page_data = self._download_json(
             'https://content-delivery-gw.svc.ds.amcn.com/api/v2/content/amcn/%s/url/%s'

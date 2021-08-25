@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -47,7 +46,7 @@ class LRTIE(InfoExtractor):
             webpage, var_name.replace('_', ' '), default, group=2)
 
     def _real_extract(self, url):
-        path, video_id = re.match(self._VALID_URL, url).groups()
+        path, video_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, video_id)
 
         media_url = self._extract_js_var(webpage, 'main_url', path)

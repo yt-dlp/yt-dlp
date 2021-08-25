@@ -62,6 +62,7 @@ from yt_dlp.utils import (
     parse_iso8601,
     parse_resolution,
     parse_bitrate,
+    parse_qs,
     pkcs1pad,
     read_batch_urls,
     sanitize_filename,
@@ -117,8 +118,6 @@ from yt_dlp.compat import (
     compat_getenv,
     compat_os_name,
     compat_setenv,
-    compat_urlparse,
-    compat_parse_qs,
 )
 
 
@@ -688,38 +687,36 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(isinstance(data, bytes))
 
     def test_update_url_query(self):
-        def query_dict(url):
-            return compat_parse_qs(compat_urlparse.urlparse(url).query)
-        self.assertEqual(query_dict(update_url_query(
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'quality': ['HD'], 'format': ['mp4']})),
-            query_dict('http://example.com/path?quality=HD&format=mp4'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?quality=HD&format=mp4'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'system': ['LINUX', 'WINDOWS']})),
-            query_dict('http://example.com/path?system=LINUX&system=WINDOWS'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?system=LINUX&system=WINDOWS'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'fields': 'id,formats,subtitles'})),
-            query_dict('http://example.com/path?fields=id,formats,subtitles'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?fields=id,formats,subtitles'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'fields': ('id,formats,subtitles', 'thumbnails')})),
-            query_dict('http://example.com/path?fields=id,formats,subtitles&fields=thumbnails'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?fields=id,formats,subtitles&fields=thumbnails'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path?manifest=f4m', {'manifest': []})),
-            query_dict('http://example.com/path'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path?system=LINUX&system=WINDOWS', {'system': 'LINUX'})),
-            query_dict('http://example.com/path?system=LINUX'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?system=LINUX'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'fields': b'id,formats,subtitles'})),
-            query_dict('http://example.com/path?fields=id,formats,subtitles'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?fields=id,formats,subtitles'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'width': 1080, 'height': 720})),
-            query_dict('http://example.com/path?width=1080&height=720'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?width=1080&height=720'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'bitrate': 5020.43})),
-            query_dict('http://example.com/path?bitrate=5020.43'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?bitrate=5020.43'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'test': '第二行тест'})),
-            query_dict('http://example.com/path?test=%E7%AC%AC%E4%BA%8C%E8%A1%8C%D1%82%D0%B5%D1%81%D1%82'))
+            parse_qs('http://example.com/path?test=%E7%AC%AC%E4%BA%8C%E8%A1%8C%D1%82%D0%B5%D1%81%D1%82'))
 
     def test_multipart_encode(self):
         self.assertEqual(
@@ -1285,9 +1282,15 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertTrue(match_str(r'x="foo \& bar" & x^=foo', {'x': 'foo & bar'}))
 
         # Example from docs
-        self.assertTrue(
-            r'!is_live & like_count>?100 & description~=\'(?i)\bcats \& dogs\b\'',
-            {'description': 'Raining Cats & Dogs'})
+        self.assertTrue(match_str(
+            r"!is_live & like_count>?100 & description~='(?i)\bcats \& dogs\b'",
+            {'description': 'Raining Cats & Dogs'}))
+
+        # Incomplete
+        self.assertFalse(match_str('id!=foo', {'id': 'foo'}, True))
+        self.assertTrue(match_str('x', {'id': 'foo'}, True))
+        self.assertTrue(match_str('!x', {'id': 'foo'}, True))
+        self.assertFalse(match_str('x', {'id': 'foo'}, False))
 
     def test_parse_dfxp_time_expr(self):
         self.assertEqual(parse_dfxp_time_expr(None), None)
