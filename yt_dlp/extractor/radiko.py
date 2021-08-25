@@ -18,11 +18,11 @@ from ..compat import compat_urllib_parse
 
 class RadikoBaseIE(InfoExtractor):
     _FULL_KEY = None
-    _AUTH_CACHE = ()
 
     def _auth_client(self):
-        if self._AUTH_CACHE:
-            return self._AUTH_CACHE
+        auth_cache = self._downloader.cache.load('radiko', 'auth_data')
+        if auth_cache:
+            return auth_cache
 
         _, auth1_handle = self._download_webpage_handle(
             'https://radiko.jp/v2/api/auth1', None, 'Downloading authentication page',
@@ -49,8 +49,9 @@ class RadikoBaseIE(InfoExtractor):
                 'x-radiko-partialkey': partial_key,
             }).split(',')[0]
 
-        self._AUTH_CACHE = (auth_token, area_id)
-        return self._AUTH_CACHE
+        auth_data = (auth_token, area_id)
+        self._downloader.cache.store('radiko', 'auth_data', auth_data)
+        return auth_data
 
     def _extract_full_key(self):
         if self._FULL_KEY:
