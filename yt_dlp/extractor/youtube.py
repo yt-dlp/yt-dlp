@@ -630,31 +630,22 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'X-YouTube-Client-Name': compat_str(
                 self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=default_client)),
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, default_client),
-            'Origin': origin
+            'Origin': origin,
+            # Auth related headers
+            'X-Youtube-Identity-Token': identity_token or self._extract_identity_token(ytcfg),
+            'X-Goog-PageId': account_syncid or self._extract_account_syncid(ytcfg),
+            'X-Goog-Visitor-Id': visitor_data or try_get(ytcfg, lambda x: x['VISITOR_DATA'], compat_str)
         }
-        if ytcfg:
-            if not visitor_data:
-                visitor_data = try_get(
-                    self._extract_context(ytcfg, default_client), lambda x: x['client']['visitorData'], compat_str)
-            if not account_syncid:
-                account_syncid = self._extract_account_syncid(ytcfg)
-            if session_index is None:
-                session_index = self._extract_session_index(ytcfg)
-            if identity_token is None:
-                identity_token = self._extract_identity_token(ytcfg)
-        if identity_token:
-            headers['X-Youtube-Identity-Token'] = identity_token
-        if account_syncid:
-            headers['X-Goog-PageId'] = account_syncid
+        if session_index is None:
+            session_index = self._extract_session_index(ytcfg)
         if account_syncid or session_index is not None:
             headers['X-Goog-AuthUser'] = session_index if session_index is not None else 0
-        if visitor_data:
-            headers['X-Goog-Visitor-Id'] = visitor_data
+
         auth = self._generate_sapisidhash_header(origin)
         if auth is not None:
             headers['Authorization'] = auth
             headers['X-Origin'] = origin
-        return headers
+        return {h: v for h, v in headers.items() if v is not None}
 
     @staticmethod
     def _build_api_continuation_query(continuation, ctp=None):
