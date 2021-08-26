@@ -499,9 +499,7 @@ def _real_main(argv=None):
     # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
     # FFmpegExtractAudioPP as containers before conversion may not support
     # metadata (3gp, webm, etc.)
-    # And this post-processor should be placed before other metadata
-    # manipulating post-processors (FFmpegEmbedSubtitle) to prevent loss of
-    # extra metadata. By default ffmpeg preserves metadata applicable for both
+    # By default ffmpeg preserves metadata applicable for both
     # source and target containers. From this point the container won't change,
     # so metadata can be added here.
     if opts.addmetadata or opts.addchapters:
@@ -533,8 +531,10 @@ def _real_main(argv=None):
         if not already_have_thumbnail:
             opts.writethumbnail = True
     if opts.split_chapters:
-        postprocessors.append({'key': 'FFmpegSplitChapters',
-                               'force_keyframes': opts.force_keyframes_at_splits_or_cuts})
+        postprocessors.append({
+            'key': 'FFmpegSplitChapters',
+            'force_keyframes': opts.force_keyframes_at_cuts,
+        })
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})

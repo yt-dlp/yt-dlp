@@ -3,7 +3,11 @@ import heapq
 import os
 from collections import OrderedDict
 
-from .ffmpeg import FFmpegPostProcessor
+from .common import PostProcessor
+from .ffmpeg import (
+    FFmpegPostProcessor,
+    FFmpegSubtitlesConvertorPP
+)
 from .sponsorblock import SponsorBlockPP
 from ..utils import (
     float_or_none,
@@ -12,19 +16,17 @@ from ..utils import (
     traverse_obj,
 )
 
-# See https://ffmpeg.org/general.html#Subtitle-Formats.
-SUPPORTED_SUBS = 'srt', 'ass', 'vtt'
-
 
 class ModifyChaptersPP(FFmpegPostProcessor):
     def __init__(self, downloader, remove_chapters_patterns=None,
                  remove_sponsor_segments=None, force_keyframes=False, force_remove=False):
         FFmpegPostProcessor.__init__(self, downloader)
-        self._remove_chapters_patterns = remove_chapters_patterns or []
-        self._remove_sponsor_segments = remove_sponsor_segments or []
+        self._remove_chapters_patterns = set(remove_chapters_patterns or [])
+        self._remove_sponsor_segments = set(remove_sponsor_segments or [])
         self._force_keyframes = force_keyframes
         self._force_remove = force_remove
 
+    @PostProcessor._restrict_to(images=False)
     def run(self, info):
         chapters, sponsor_chapters = self._mark_chapters_to_remove(info.get('chapters'), info.get('sponsorblock_chapters'))
 
@@ -116,7 +118,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             if not sub_file or not os.path.exists(sub_file):
                 continue
             ext = sub['ext']
-            if ext not in self.SUPPORTED_SUBS:
+            if ext not in FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS:
                 self.report_warning(f'Cannot remove chapters from external {ext} subtitles; "{sub_file}" is now out of sync')
                 continue
             # TODO: create __real_download for subs?

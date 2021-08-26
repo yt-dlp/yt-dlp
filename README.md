@@ -1491,6 +1491,18 @@ These are aliases that are no longer documented for various reasons
     --write-srt                      --write-subs
     --yes-overwrites                 --force-overwrites
 
+#### Sponskrub Options
+Support for [SponSkrub](https://github.com/yt-dlp/SponSkrub) has been deprecated in favor of `--sponsorblock`
+
+    --sponskrub                      --sponsorblock --add-chapters
+    --no-sponskrub                   --no-sponsorblock
+    --sponskrub-cut                  --remove-sponsor-segments all
+    --no-sponskrub-cut               --remove-sponsor-segments -all
+    --sponskrub-force                --force-remove-chapters
+    --no-sponskrub-force             --no-force-remove-chapters
+    --sponskrub-location             Not applicable
+    --sponskrub-args                 Not applicable
+
 #### No longer supported
 These options may no longer work as intended
 

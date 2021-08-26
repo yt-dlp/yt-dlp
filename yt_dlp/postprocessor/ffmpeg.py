@@ -12,17 +12,18 @@ from .common import AudioConversionError, PostProcessor
 
 from ..compat import compat_str, compat_numeric_types
 from ..utils import (
+    dfxp2srt,
     encodeArgument,
     encodeFilename,
     get_exe_version,
     is_outdated_version,
+    ISO639Utils,
+    orderedSet,
     PostProcessingError,
     prepend_extension,
-    shell_quote,
-    dfxp2srt,
-    ISO639Utils,
     process_communicate_or_kill,
     replace_extension,
+    shell_quote,
     traverse_obj,
     variadic,
 )
@@ -280,7 +281,8 @@ class FFmpegPostProcessor(PostProcessor):
     def run_ffmpeg(self, path, out_path, opts, **kwargs):
         return self.run_ffmpeg_multiple_files([path], out_path, opts, **kwargs)
 
-    def _ffmpeg_filename_argument(self, fn):
+    @staticmethod
+    def _ffmpeg_filename_argument(fn):
         # Always use 'file:' because the filename may contain ':' (ffmpeg
         # interprets that as a protocol) or can start with '-' (-- is broken in
         # ffmpeg, see https://ffmpeg.org/trac/ffmpeg/ticket/2127 for details)
@@ -291,7 +293,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     @staticmethod
     def _quote_for_ffmpeg(string):
-        # See https://ffmpeg.org/ffmpeg-utils.html#toc-Quoting-and-escaping.
+        # See https://ffmpeg.org/ffmpeg-utils.html#toc-Quoting-and-escaping
         # A sequence of '' produces '\'''\'';
         # final replace removes the empty '' between \' \'.
         string = string.replace("'", r"'\''").replace("'''", "'")
@@ -299,27 +301,31 @@ class FFmpegPostProcessor(PostProcessor):
         string = string[1:] if string[0] == "'" else "'" + string
         return string[:-1] if string[-1] == "'" else string + "'"
 
-    def force_keyframes(self, in_file, timestamps):
-        keyframes_file = prepend_extension(in_file, 'keyframes')
-        self.to_screen(f'Adding keyframes to "{in_file}"')
-        self.run_ffmpeg(in_file, keyframes_file, [
-            '-force_key_frames', ','.join(f'{t:.6f}' for t in timestamps)])
-        return keyframes_file
+    def force_keyframes(self, filename, timestamps):
+        timestamps = orderedSet(timestamps)
+        if timestamps[0] == 0:
+            timestamps = timestamps[1:]
+        keyframe_file = prepend_extension(filename, 'keyframes.temp')
+        self.to_screen(f'Re-encoding "{filename}" with appropriate keyframes')
+        self.run_ffmpeg(filename, keyframe_file, ['-force_key_frames', ','.join(
+            f'{t:.6f}' for t in timestamps)])
+        return keyframe_file
 
     def concat_files(self, in_files, out_file, concat_opts=None):
         """
         Use concat demuxer to concatenate multiple files having identical streams.
 
         Only inpoint, outpoint, and duration concat options are supported.
-        See https://ffmpeg.org/ffmpeg-formats.html#concat-1 for details.
+        See https://ffmpeg.org/ffmpeg-formats.html#concat-1 for details
         """
-        concat_file = out_file + '.concat'
+        concat_file = f'{out_file}.concat'
+        self.write_debug(f'Writing concat spec to {concat_file}')
         with open(concat_file, 'wt', encoding='utf-8') as f:
             f.writelines(self._concat_spec(in_files, concat_opts))
 
         out_flags = ['-c', 'copy']
         if out_file.rpartition('.')[-1] in ('mp4', 'mov'):
-            # For some reason, '-c copy' is not enough to copy subtitles.
+            # For some reason, '-c copy' is not enough to copy subtitles
             out_flags.extend(['-c:s', 'mov_text', '-movflags', '+faststart'])
 
         try:
@@ -329,15 +335,14 @@ class FFmpegPostProcessor(PostProcessor):
         finally:
             os.remove(concat_file)
 
-    def _concat_spec(self, in_files, concat_opts=None):
+    @classmethod
+    def _concat_spec(cls, in_files, concat_opts=None):
         if concat_opts is None:
             concat_opts = [{}] * len(in_files)
         yield 'ffconcat version 1.0\n'
-        for f, o in zip(in_files, concat_opts):
-            yield f'file {self._quote_for_ffmpeg(self._ffmpeg_filename_argument(f))}\n'
-            for directive in 'inpoint', 'outpoint', 'duration':
-                if directive in o:
-                    yield f'{directive} {o[directive]}\n'
+        for file, opts in zip(in_files, concat_opts):
+            yield f'file {cls._quote_for_ffmpeg(cls._ffmpeg_filename_argument(file))}\n'
+            yield from (f'{key} {val}\n' for key, val in opts.items())
 
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
@@ -612,8 +617,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             itertools.chain(self._options(info['ext']), *options))
         if metadata_filename:
             os.remove(metadata_filename)
-        os.remove(encodeFilename(filename))
-        os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+        os.remove(filename)
+        os.rename(temp_filename, filename)
         return [], info
 
     @staticmethod
@@ -898,19 +903,17 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
     def run(self, info):
         chapters = info.get('chapters') or []
         if not chapters:
-            self.report_warning('Chapter information is unavailable')
+            self.to_screen('Chapter information is unavailable')
             return [], info
 
         in_file = info['filepath']
         if self._force_keyframes and len(chapters) > 1:
-            timestamps = (c['start_time'] for c in chapters)
-            next(timestamps)  # Do not force keyframes at the beginning of the video.
-            in_file = self.force_keyframes(in_file, timestamps)
+            in_file = self.force_keyframes(in_file, (c['start_time'] for c in chapters))
         self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
             self.real_run_ffmpeg([(in_file, opts)], [(destination, ['-c', 'copy'])])
-        if self._force_keyframes:
+        if in_file != info['filepath']:
             os.remove(in_file)
         return [], info
 

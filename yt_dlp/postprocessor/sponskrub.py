@@ -17,6 +17,7 @@ from ..utils import (
 )
 
 
+# Deprecated in favor of the native implementation
 class SponSkrubPP(PostProcessor):
     _temp_ext = 'spons'
     _exe_name = 'sponskrub'

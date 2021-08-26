@@ -1221,7 +1221,7 @@ def parseOpts(overrideArguments=None):
             'to give the argument to the specified postprocessor/executable. Supported PP are: '
             'Merger, ExtractAudio, SplitChapters, Metadata, EmbedSubtitle, EmbedThumbnail, '
             'SubtitlesConvertor, ThumbnailsConvertor, VideoRemuxer, VideoConvertor, '
-            'FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
+            'ModifyChapters, FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
             'The supported executables are: AtomicParsley, FFmpeg and FFprobe.'
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
@@ -1276,7 +1276,7 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--no-embed-chapters', '--no-add-chapters',
         action='store_false', dest='addchapters',
-        help='Do not add chapter markers (default)  (Alias: --no-add-chapters)')
+        help='Do not add chapter markers (default) (Alias: --no-add-chapters)')
     postproc.add_option(
         '--metadata-from-title',
         metavar='FORMAT', dest='metafromtitle',
