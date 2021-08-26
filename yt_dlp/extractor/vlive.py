@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import itertools
 import json
+import re
 
 from .naver import NaverBaseIE
 from ..compat import (
@@ -17,6 +18,7 @@ from ..utils import (
     strip_or_none,
     try_get,
     urlencode_postdata,
+    url_or_none,
 )
 
 
@@ -112,12 +114,12 @@ class VLiveIE(VLiveBaseIE):
         if not is_logged_in():
             raise ExtractorError('Unable to log in', expected=True)
 
-    def _call_api(self, path_template, video_id, fields=None, limit=None):
+    def _call_api(self, path_template, video_id, fields=None, query_add={}):
         query = {'appId': self._APP_ID, 'gcc': 'KR', 'platformType': 'PC'}
         if fields:
             query['fields'] = fields
-        if limit:
-            query['limit'] = limit
+        if query_add:
+            query.update(query_add)
         try:
             return self._download_json(
                 'https://www.vlive.tv/globalv-web/vam-web/' + path_template % video_id, video_id,
@@ -150,7 +152,7 @@ class VLiveIE(VLiveBaseIE):
             playlist_count = str_or_none(playlist.get('totalCount'))
 
             playlist = self._call_api(
-                'playlist/v1.0/playlist-%s/posts', playlist_id, 'data', limit=playlist_count)
+                'playlist/v1.0/playlist-%s/posts', playlist_id, 'data', query_add={'limit': playlist_count})
 
             entries = []
             for video_data in playlist['data']:
@@ -293,7 +295,7 @@ class VLivePostIE(VLiveIE):
             entries, post_id, title, strip_or_none(post.get('plainBody')))
 
 
-class VLiveChannelIE(VLiveBaseIE):
+class VLiveChannelIE(VLiveIE):
     IE_NAME = 'vlive:channel'
     _VALID_URL = r'https?://(?:channels\.vlive\.tv|(?:(?:www|m)\.)?vlive\.tv/channel)/(?P<id>[0-9A-Z]+)'
     _TESTS = [{
@@ -308,76 +310,84 @@ class VLiveChannelIE(VLiveBaseIE):
         'only_matching': True,
     }]
 
-    def _call_api(self, path, channel_key_suffix, channel_value, note, query):
-        q = {
-            'app_id': self._APP_ID,
-            'channel' + channel_key_suffix: channel_value,
-        }
-        q.update(query)
-        return self._download_json(
-            'http://api.vfan.vlive.tv/vproxy/channelplus/' + path,
-            channel_value, note='Downloading ' + note, query=q)['result']
-
     def _real_extract(self, url):
         channel_code = self._match_id(url)
 
-        channel_seq = self._call_api(
-            'decodeChannelCode', 'Code', channel_code,
-            'decode channel code', {})['channelSeq']
-
         channel_name = None
+
+        mobj = re.search(r'channel/[0-9A-Z]+/board/(?P<id>[0-9]+)', url)
+        if mobj:
+            board_id = mobj.group('id')
+            # check the board type
+            board = self._call_api(
+                'board/v1.0/board-%s', board_id, 'title,boardType')
+            board_name = board.get('title') or 'Unknown'
+            if board.get('boardType') not in ('STAR', 'VLIVE_PLUS'):
+                raise ExtractorError('Board "%s" is not supported' % board_name, expected=True)
+            posts_path = 'post/v1.0/board-%s/posts'
+            posts_id = board_id
+            query_add = {'limit': 100, 'sortType': 'LATEST'}
+        else:
+            board_name = None
+            posts_path = 'post/v1.0/channel-%s/starPosts'
+            posts_id = channel_code
+            query_add = {'limit': 100}
+
         entries = []
 
         for page_num in itertools.count(1):
-            video_list = self._call_api(
-                'getChannelVideoList', 'Seq', channel_seq,
-                'channel list page #%d' % page_num, {
-                    # Large values of maxNumOfRows (~300 or above) may cause
-                    # empty responses (see [1]), e.g. this happens for [2] that
-                    # has more than 300 videos.
-                    # 1. https://github.com/ytdl-org/youtube-dl/issues/13830
-                    # 2. http://channels.vlive.tv/EDBF.
-                    'maxNumOfRows': 100,
-                    'pageNo': page_num
-                }
-            )
+            # although the api has changed, I leave the following lines as notes
 
-            if not channel_name:
-                channel_name = try_get(
-                    video_list,
-                    lambda x: x['channelInfo']['channelName'],
-                    compat_str)
+            # video_list = self._call_api(
+            #     'getChannelVideoList', 'Seq', channel_seq,
+            #     'channel list page #%d' % page_num, {
+            #         # Large values of maxNumOfRows (~300 or above) may cause
+            #         # empty responses (see [1]), e.g. this happens for [2] that
+            #         # has more than 300 videos.
+            #         # 1. https://github.com/ytdl-org/youtube-dl/issues/13830
+            #         # 2. http://channels.vlive.tv/EDBF.
+            #         'maxNumOfRows': 100,
+            #         'pageNo': page_num
+            #     }
+            # )
+
+            self.to_screen('Downloading channel list page#%d' % page_num)
+            video_list = self._call_api(
+                posts_path, posts_id,
+                'channel{channelName},contentType,postId,title,url', query_add=query_add)
 
             videos = try_get(
-                video_list, lambda x: x['videoList'], list)
+                video_list, lambda x: x['data'], list)
             if not videos:
                 break
 
             for video in videos:
-                video_id = video.get('videoSeq')
-                video_type = video.get('videoType')
-
-                if not video_id or not video_type:
+                if not channel_name:
+                    channel_name = try_get(video, lambda x: x['channel']['channelName'], compat_str) or ''
+                    if board_name and board_name != 'Unknown':
+                        channel_name += ' - ' + board_name
+                if video.get('contentType') != 'VIDEO':
+                    continue
+                video_id = video.get('postId')
+                if not video_id:
                     continue
                 video_id = compat_str(video_id)
+                video_title = video.get('title')
+                if not video_title:
+                    continue
+                video_title = compat_str(video_title)
+                video_url = url_or_none(video.get('url'))
+                if not video_url:
+                    continue
+                entries.append(
+                    self.url_result(
+                        video_url,
+                        ie=VLivePostIE.ie_key(), video_id=video_id, video_title=video_title))
 
-                if video_type in ('PLAYLIST'):
-                    first_video_id = try_get(
-                        video,
-                        lambda x: x['videoPlaylist']['videoList'][0]['videoSeq'], int)
-
-                    if not first_video_id:
-                        continue
-
-                    entries.append(
-                        self.url_result(
-                            'http://www.vlive.tv/video/%s' % first_video_id,
-                            ie=VLiveIE.ie_key(), video_id=first_video_id))
-                else:
-                    entries.append(
-                        self.url_result(
-                            'http://www.vlive.tv/video/%s' % video_id,
-                            ie=VLiveIE.ie_key(), video_id=video_id))
+            after = try_get(video_list, lambda x: x['paging']['nextParams']['after'], compat_str)
+            if not after:
+                break
+            query_add['after'] = after
 
         return self.playlist_result(
             entries, channel_code, channel_name)
