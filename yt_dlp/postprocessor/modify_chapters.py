@@ -1,220 +1,126 @@
 import copy
 import heapq
-import json
 import os
-import re
 from collections import OrderedDict
-from hashlib import sha256
 
-from .ffmpeg import FFmpegPostProcessor, FFmpegPostProcessorError
-from ..compat import compat_urllib_parse_urlencode, compat_HTTPError
+from .ffmpeg import FFmpegPostProcessor
+from .sponsorblock import SponsorBlockPP
 from ..utils import (
     float_or_none,
     PostProcessingError,
     prepend_extension,
-    sanitized_Request,
-    traverse_obj
+    traverse_obj,
 )
-
-
-SPONSORBLOCK_CATEGORIES = 'sponsor', 'intro', 'outro', 'interaction', 'selfpromo', 'preview', 'music_offtopic'
-
-SPONSORBLOCK_CATEGORY_TO_CHAPTER = {
-    'sponsor': 'Sponsor',
-    'intro': 'Intro',
-    'outro': 'Outro',
-    'interaction': 'Interaction Reminder',
-    'selfpromo': 'Self-Promotion',
-    'preview': 'Preview/Recap',
-    'music_offtopic': 'Non-Music Section'
-}
 
 # See https://ffmpeg.org/general.html#Subtitle-Formats.
 SUPPORTED_SUBS = 'srt', 'ass', 'vtt'
 
 
 class ModifyChaptersPP(FFmpegPostProcessor):
-    def __init__(
-            self, downloader, remove_chapters_pattern=None,
-            force_keyframes=False, use_sponsorblock=False,
-            sponsorblock_query=frozenset(SPONSORBLOCK_CATEGORIES),
-            sponsorblock_cut=frozenset(SPONSORBLOCK_CATEGORIES),
-            sponsorblock_force=False, sponsorblock_hide_video_id=True,
-            sponsorblock_api='https://sponsor.ajay.app'):
+    def __init__(self, downloader, remove_chapters_patterns=None,
+                 remove_sponsor_segments=None, force_keyframes=False, force_remove=False):
         FFmpegPostProcessor.__init__(self, downloader)
-        self._remove_chapters_pattern = remove_chapters_pattern
+        self._remove_chapters_patterns = remove_chapters_patterns or []
+        self._remove_sponsor_segments = remove_sponsor_segments or []
         self._force_keyframes = force_keyframes
-        self._use_sponsorblock = use_sponsorblock
-        self._sponsorblock_query = sponsorblock_query
-        self._sponsorblock_cut = sponsorblock_cut
-        self._sponsorblock_force = sponsorblock_force
-        self._sponsorblock_hide_video_id = sponsorblock_hide_video_id
-        # Force HTTPS if protocol is omitted, unsecure HTTP must be requested explicitly.
-        self._sponsorblock_api = (sponsorblock_api if re.match('^https?://', sponsorblock_api)
-                                  else 'https://' + sponsorblock_api)
+        self._force_remove = force_remove
 
     def run(self, info):
-        video_file = info['filepath']
-        # When cut is requested, simple info['chapters'] update is insufficient.
-        if not os.path.exists(video_file) and (
-                self._remove_chapters_pattern or self._sponsorblock_cut):
-            return [], info
+        chapters, sponsor_chapters = self._mark_chapters_to_remove(info.get('chapters'), info.get('sponsorblock_chapters'))
 
-        # Chapter will be flagged for removal, which can fail. Deep copy to make sure
-        # original chapters are not flagged.
-        chapters = copy.deepcopy(info.get('chapters', None))
-        if not chapters and not self._use_sponsorblock:
-            return [], info
-
-        duration = self._get_video_duration(video_file)
-        sponsor_chapters = self._get_sponsor_chapters(info, duration)
-        if not sponsor_chapters and not (chapters and self._remove_chapters_pattern):
-            return [], info
-
-        if chapters and self._remove_chapters_pattern:
-            for c in chapters:
-                if 'title' in c and self._remove_chapters_pattern.match(c['title']):
-                    c['remove'] = True
+        duration = self._get_real_video_duration(info['filepath'])
         if not chapters:
             chapters = [{'start_time': 0, 'end_time': duration, 'title': info['title']}]
-        chapters += sponsor_chapters
 
-        new_chapters, cuts, has_sponsors = self._remove_marked_arrange_sponsors(chapters)
+        # TODO: Refactor _remove_marked_arrange_sponsors to not need this
+        for c in sponsor_chapters:
+            c['categories'] = (c['start_time'], c['end_time'], c['category'])
+
+        info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters + sponsor_chapters)
         if not cuts:
-            info['chapters'] = new_chapters
-            self._downloader.write_info_json(info, override=True)
-            if has_sponsors:
-                # Tell FFmpegMetadataPP to add chapters even
-                # if --add-metadata was not requested explicitly.
-                info['__has_sponsor_chapters'] = True
             return [], info
 
-        real_download, cut_warn = info.get('__real_download', False), False
+        if not info.get('__real_download'):
+            # TODO: Check using duration instead
+            if self._force_remove:
+                self.report_warning('Removing chapters multiple times may cut out unintended parts of the video')
+            else:
+                self.report_warning(
+                    f'Skipping {self.pp_key()} since the video was already downloaded. '
+                    'Use --force-remove-chapters to remove the chapters anyway')
+                return [], info
+
+        concat_opts = self._make_concat_opts(cuts, duration)
+
+        def remove_chapters(file, is_sub):
+            return file, self.remove_chapters(file, cuts, concat_opts, self._force_keyframes and not is_sub)
+
+        in_out_files = [remove_chapters(info['filepath'], False)]
+        in_out_files.extend(remove_chapters(in_file, True) for in_file in self._get_supported_subs(info))
+
+        # Renaming should only happen after all files are processed
         files_to_remove = []
-
-        def move_to_uncut(file):
-            nonlocal cut_warn
-            uncut_file = prepend_extension(file, 'uncut')
-            if real_download or not os.path.exists(uncut_file):
-                if not real_download and not cut_warn:
-                    cut_warn = True
-                    self.report_warning('Removing chapters multiple times may cut out '
-                                        'unintended parts of the video')
-                os.rename(file, uncut_file)
+        for in_file, out_file in in_out_files:
+            uncut_file = prepend_extension(in_file, 'uncut')
+            if os.path.exists(uncut_file):
+                os.remove(uncut_file)
+            os.rename(in_file, uncut_file)
+            os.rename(out_file, in_file)
             files_to_remove.append(uncut_file)
-            return uncut_file
 
-        files_to_cut = [(move_to_uncut(video_file), video_file)]
-        # get(..., {}) is broken: sometimes a literal None is stored under this key.
-        for lang, sub in (info.get('requested_subtitles') or {}).items():
+        return files_to_remove, info
+
+    def _mark_chapters_to_remove(self, chapters, sponsor_chapters):
+        chapters = copy.deepcopy(chapters or [])
+        if self._remove_chapters_patterns:
+            warn_no_chapter_to_remove = True
+            if not chapters:
+                self.to_screen('Chapter information is unavailable')
+                warn_no_chapter_to_remove = False
+            for c in chapters:
+                if any(regex.search(c['title']) for regex in self._remove_chapters_patterns):
+                    c['remove'] = True
+                    warn_no_chapter_to_remove = False
+            if warn_no_chapter_to_remove:
+                self.to_screen('There are no chapters matching the regex')
+
+        sponsor_chapters = copy.deepcopy(sponsor_chapters or [])
+        if self._remove_sponsor_segments:
+            warn_no_chapter_to_remove = True
+            if not sponsor_chapters:
+                self.to_screen('SponsorBlock information is unavailable')
+                warn_no_chapter_to_remove = False
+            for c in sponsor_chapters:
+                if c['category'] in self._remove_sponsor_segments:
+                    c['remove'] = True
+                    warn_no_chapter_to_remove = False
+            if warn_no_chapter_to_remove:
+                self.to_screen('There are no matching SponsorBlock chapters')
+
+        return chapters, sponsor_chapters
+
+    def _get_real_video_duration(self, filename):
+        try:
+            duration = float_or_none(
+                traverse_obj(self.get_metadata_object(filename), ('format', 'duration')))
+            if duration is None:
+                raise PostProcessingError('ffprobe returned empty duration')
+            return duration
+        except PostProcessingError as err:
+            raise PostProcessingError(f'Cannot determine the video duration; {err}')
+
+    def _get_supported_subs(self, info):
+        for sub in (info.get('requested_subtitles') or {}).values():
             sub_file = sub.get('filepath')
-            # The file might have been removed by --embed-subs.
+            # The file might have been removed by --embed-subs
             if not sub_file or not os.path.exists(sub_file):
                 continue
             ext = sub['ext']
-            if ext not in SUPPORTED_SUBS:
-                self.report_warning('Cannot remove chapters from external subtitles '
-                                    f'of type ".{ext}". They are now out of sync.')
+            if ext not in self.SUPPORTED_SUBS:
+                self.report_warning(f'Cannot remove chapters from external {ext} subtitles; "{sub_file}" is now out of sync')
                 continue
-            files_to_cut.append((move_to_uncut(sub_file), sub_file))
-
-        if self._try_remove_chapters(files_to_cut, cuts, duration):
-            info['chapters'] = new_chapters
-            self._downloader.write_info_json(info, override=True)
-            return files_to_remove, info
-        # Revert everything.
-        for uncut, original in files_to_cut:
-            os.rename(uncut, original)
-        return [], info
-
-    def _get_video_duration(self, video_file):
-        # In contrast to info['duration'], ffprobe reports real duration,
-        # thus providing protection against cutting the same pieces twice
-        # (see duration_match in _get_sponsor_chapters below).
-        duration = float_or_none(
-            traverse_obj(self.get_metadata_object(video_file), ['format', 'duration']))
-        if duration is None:
-            raise PostProcessingError('Cannot determine the video duration')
-        return duration
-
-    def _get_sponsor_chapters(self, info, duration):
-        if not self._use_sponsorblock:
-            return []
-        if info['extractor_key'].lower() != 'youtube':
-            self.to_screen('Skipping SponsorBlock since it is not a YouTube video')
-            return []
-        # When cut is requested, simple info['chapters'] update is insufficient.
-        if not info.get('__real_download', False) and (
-                self._sponsorblock_cut and not self._sponsorblock_force):
-            self.report_warning(
-                'Skipping SponsorBlock since the video was already downloaded. '
-                'Use --sponsorblock-force to SponsorBlock anyway')
-            return []
-
-        segments = (self._get_sponsor_segments_hiding_id if self._sponsorblock_hide_video_id
-                    else self._get_sponsor_segments_revealing_id)(info['id'])
-
-        def duration_filter(s):
-            start_end = s['segment']
-            # Ignore milliseconds difference at the start.
-            if start_end[0] <= 1:
-                start_end[0] = 0
-            # Ignore milliseconds difference at the end.
-            # Never allow the segment to exceed the video.
-            if duration - start_end[1] <= 1:
-                start_end[1] = duration
-            # SponsorBlock duration may be absent or it may deviate from the real one.
-            return s['videoDuration'] == 0 or abs(duration - s['videoDuration']) <= 1
-
-        duration_match = [s for s in segments if duration_filter(s)]
-        if len(duration_match) != len(segments):
-            warning = 'Some SponsorBlock segments are from a video of different duration'
-            warning += (', maybe from an old version of this video' if not self._sponsorblock_force
-                        else '. Looks like SponsorBlock has already run')
-            self.report_warning(warning)
-
-        def to_chapter(s):
-            (start, end), cat = s['segment'], s['category']
-            c = {'start_time': start, 'end_time': end, 'categories': [(cat, start, end)]}
-            if cat in self._sponsorblock_cut:
-                c['remove'] = True
-            return c
-
-        sponsor_chapters = [to_chapter(s) for s in duration_match]
-        if not sponsor_chapters:
-            self.to_screen('No skippable segments were found by SponsorBlock')
-        return sponsor_chapters
-
-    def _get_sponsor_segments_revealing_id(self, video_id):
-        url = f'{self._sponsorblock_api}/api/skipSegments?' + compat_urllib_parse_urlencode({
-            'videoID': video_id,
-            'categories': json.dumps(tuple(self._sponsorblock_query)),
-            'service': 'YouTube'
-        })
-        return self._get_json(url)
-
-    def _get_sponsor_segments_hiding_id(self, video_id):
-        hash = sha256(video_id.encode('ascii')).hexdigest()
-        # SponsorBlock API recommends using first 4 hash characters.
-        url = f'{self._sponsorblock_api}/api/skipSegments/{hash[:4]}?' + (
-            compat_urllib_parse_urlencode({
-                'categories': json.dumps(tuple(self._sponsorblock_query)),
-                'service': 'YouTube'
-            }))
-        for d in self._get_json(url):
-            if d['videoID'] == video_id:
-                return d['segments']
-        return []
-
-    def _get_json(self, url):
-        try:
-            self.write_debug(f'SponsorBlock query: {url}')
-            rsp = self._downloader.urlopen(sanitized_Request(url))
-            return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
-        except compat_HTTPError as e:
-            if e.code == 404:
-                return []
-            raise PostProcessingError('Error communicating with SponsorBlock API') from e
+            # TODO: create __real_download for subs?
+            yield sub_file
 
     def _remove_marked_arrange_sponsors(self, chapters):
         # Store cuts separately, since adjacent and overlapping cuts must be merged.
@@ -269,10 +175,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         # e.g. multiple 'Sponsor' chapters will be renamed to 'Sponsor - 1', 'Sponsor - 2', etc.
         same_titles = {}
         new_chapters = []
-        has_sponsors = False
 
         def append_chapter(c):
-            nonlocal has_sponsors
             assert 'remove' not in c
             length = c['end_time'] - c['start_time'] - excess_duration(c)
             if length <= 0:
@@ -281,14 +185,13 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             start = new_chapters[-1]['end_time'] if new_chapters else 0
             c.update(start_time=start, end_time=start + length)
             if 'categories' in c:
-                has_sponsors = True
                 cats = [cat for cat, _, _ in c['categories']]
                 # Overlapping sponsor chapters will have a title that looks like
                 # '[SponsorBlock]: Sponsor/Interaction Remainder/Self-Promotion',
                 # in the order in which the categories were encountered.
                 # OrderedDict removes duplicates preserving the order.
                 c['title'] = '[SponsorBlock]: ' + '/'.join(OrderedDict(
-                    zip(cats, map(SPONSORBLOCK_CATEGORY_TO_CHAPTER.__getitem__, cats))).values())
+                    zip(cats, map(SponsorBlockPP.CATEGORIES.__getitem__, cats))).values())
                 del c['categories']
             # According to InfoExtractor docs, chapter title is optional.
             same_titles.setdefault(c.setdefault('title', 'Untitled'), []).append(c)
@@ -393,33 +296,18 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             if len(cs) > 1:
                 for i, c in enumerate(cs, 1):
                     c['title'] += f' - {i}'
-        return new_chapters, cuts, has_sponsors
+        return new_chapters, cuts
 
-    def _try_remove_chapters(self, in_out_files, chapters_to_remove, duration):
-        concat_opts = self._make_concat_opts(chapters_to_remove, duration)
-        for in_file, out_file in in_out_files:
-            force_keyframes = (self._force_keyframes
-                               and out_file.rpartition('.')[-1] not in SUPPORTED_SUBS)
-            if force_keyframes:
-                in_file = self.force_keyframes(
-                    in_file, (s[t] for s in chapters_to_remove for t in ['start_time', 'end_time']))
-
-            try:
-                self.to_screen(f'Removing parts of {in_file}')
-                self.concat_files([in_file] * len(concat_opts), out_file, concat_opts)
-            except FFmpegPostProcessorError:
-                msg = 'FFmpeg was unable to cut chapters from the video '
-                if not self.get_param('verbose', False):
-                    msg += '(use -v to see the details). '
-                msg += 'You can try to download a different format'
-                if not self._force_keyframes:
-                    msg += ' or re-encode with --remove-chapters-force-keyframes'
-                self.report_warning(msg)
-                return False
-
-            if force_keyframes:
-                os.remove(in_file)
-        return True
+    def remove_chapters(self, filename, ranges_to_cut, concat_opts, force_keyframes=False):
+        in_file = filename
+        out_file = prepend_extension(in_file, 'temp')
+        if force_keyframes:
+            in_file = self.force_keyframes(in_file, (t for r in ranges_to_cut for t in r))
+        self.to_screen(f'Removing chapters from {filename}')
+        self.concat_files([in_file] * len(concat_opts), out_file, concat_opts)
+        if in_file != filename:
+            os.remove(in_file)
+        return out_file
 
     @staticmethod
     def _make_concat_opts(chapters_to_remove, duration):

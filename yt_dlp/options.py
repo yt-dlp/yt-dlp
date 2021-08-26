@@ -28,8 +28,8 @@ from .postprocessor import (
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoRemuxerPP,
+    SponsorBlockPP,
 )
-from .postprocessor.modify_chapters import SPONSORBLOCK_CATEGORIES
 
 
 def _hide_login_info(opts):
@@ -1364,63 +1364,64 @@ def parseOpts(overrideArguments=None):
         dest='split_chapters', action='store_false',
         help='Do not split video based on chapters (default)')
     postproc.add_option(
-        '--remove-chapters', metavar='CHAPTER_REGEX', dest='remove_chapters',
-        help='Remove chapters whose title matches a regular expression')
+        '--remove-chapters',
+        metavar='REGEX', dest='remove_chapters', action='append',
+        help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
     postproc.add_option(
-        '--no-remove-chapters', default=None, action='store_const', const=None,
-        dest='remove_chapters', help='Do not remove any chapters (default)')
+        '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
+        help='Do not remove any chapters from the file (default)')
     postproc.add_option(
-        '--force-keyframes-at-splits-or-cuts', action='store_true',
-        dest='force_keyframes_at_splits_or_cuts',
-        help='Force keyframes at splits/cuts before splitting/cutting. '
-             'Requires re-encoding and thus very slow, but the resulting video '
-             'may have fewer artifacts around splits/cuts')
+        '--force-remove-chapters', default=False, dest='force_remove_chapters', action='store_true',
+        help='Remove chapters even if the video was already downloaded')
     postproc.add_option(
-        '--no-force-keyframes-at-splits-or-cuts', default=False,
-        action='store_false', dest='force_keyframes_at_splits_or_cuts',
-        help='Do not force keyframes at splits/cuts (default)')
+        '--no-force-remove-chapters', dest='force_remove_chapters', action='store_false',
+        help='Do not remove chapters if the video was already downloaded (default)')
+    postproc.add_option(
+        '--force-keyframes-at-cuts',
+        action='store_true', dest='force_keyframes_at_cuts', default=False,
+        help=(
+            'Force keyframes around the chapters before removing/splitting them. '
+            'Requires re-encoding and thus very slow, but the resulting video '
+            'may have fewer artifacts around the cuts'))
+    postproc.add_option(
+        '--no-force-keyframes-at-cuts',
+        action='store_false', dest='force_keyframes_at_cuts',
+        help='Do not force keyframes around the chapters when cutting/splitting (default)')
 
-    sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
-        'Make chapter entries for or remove various segments (sponsor, introductions, etc.) '
-        'from downloaded YouTube videos using SponsorBlock API (https://sponsor.ajay.app)'))
+    sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options')
     sponsorblock.add_option(
         '--sponsorblock',
-        action='store_true', dest='sponsorblock',
-        help='Use SponsorBlock')
+        action='store_true', dest='sponsorblock', default=None,
+        help=(
+            'Retrieve sponsor segments from the SponsorBlock API (sponsor.ajay.app). '
+            'Also adds the chapter markers to file unless --no-add-chapters is used'))
     sponsorblock.add_option(
-        '--no-sponsorblock', default=False,
-        action='store_false', dest='sponsorblock',
-        help='Do not use SponsorBlock (default)')
+        '--no-sponsorblock', action='store_false', dest='sponsorblock',
+        help='Do not use the SponsorBlock API')
     sponsorblock.add_option(
-        '--sponsorblock-query', metavar='CATEGORIES', default=['all'],
-        dest='sponsorblock_query', type='str', action='callback',
-        callback=_list_from_options_callback, callback_kwargs={'append': False},
-        help='Segment categories to query SponsorBlock API for '
-             '(see https://github.com/ajayyy/SponsorBlock/wiki/Segment-Categories). '
-             f'Available categories: {", ".join(SPONSORBLOCK_CATEGORIES)}'
-             'Use "all" to select all of the above. Defaults to "all"')
+        '--remove-sponsor-segments', metavar='CATS',
+        dest='remove_sponsor_segments', default=set(), action='callback', type='str',
+        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
+        help=(
+            'Sponsorblock categories to be removed from the video file, seperated by commas. Implies --sponsorblock. '
+            'Available categories are all, %s. You can prefix the category with a "-" to exempt it from being removed. '
+            'Eg: --remove-sponsor-segments all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
-        '--sponsorblock-cut', metavar='CATEGORIES', default=['all'],
-        dest='sponsorblock_cut', type='str', action='callback',
-        callback=_list_from_options_callback, callback_kwargs={'append': False},
-        help='Segment categories to remove from the video. '
-             'If a category is queried but not cut, a chapter is created for it. '
-             'Defaults to "all"')
-    sponsorblock.add_option(
-        '--sponsorblock-force', action='store_true', dest='sponsorblock_force',
-        help='Try to use SponsorBlock even if the video was already downloaded')
-    sponsorblock.add_option(
-        '--no-sponsorblock-force', default=False, action='store_false', dest='sponsorblock_force',
-        help='Never use SponsorBlock on already downloaded videos (default)')
+        '--sponsorblock-query', metavar='CATS',
+        dest='sponsorblock_query', default=set(), action='callback', type='str',
+        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
+        help=(
+            'Sponsorblock categories to query SponsorBlock API for, seperated by commas. '
+            'See https://github.com/ajayyy/SponsorBlock/wiki/Segment-Categories'
+            'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
+            'Eg: --sponsorblock-query all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
         '--sponsorblock-privacy', default=True,
         action='store_true', dest='sponsorblock_hide_video_id',
-        help='Use a hash prefix of the video ID when querying SponsorBlock '
-             'to hide what videos you are watching (default)')
+        help='Use a hash prefix of the video ID when querying SponsorBlock to hide what videos you are watching (default)')
     sponsorblock.add_option(
         '--no-sponsorblock-privacy', action='store_false', dest='sponsorblock_hide_video_id',
-        help='Send full video ID to SponsorBlock to make sure '
-             'it knows what videos you are watching')
+        help='Send full video ID to SponsorBlock to make sure it knows what videos you are watching')
     sponsorblock.add_option(
         '--sponsorblock-api', metavar='URL',
         default='https://sponsor.ajay.app', dest='sponsorblock_api',

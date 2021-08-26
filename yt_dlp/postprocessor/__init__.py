@@ -26,6 +26,7 @@ from .metadataparser import (
     MetadataParserPP,
 )
 from .movefilesafterdownload import MoveFilesAfterDownloadPP
+from .sponsorblock import SponsorBlockPP
 from .sponskrub import SponSkrubPP
 from .modify_chapters import ModifyChaptersPP
 
@@ -57,6 +58,7 @@ __all__ = [
     'MetadataFromFieldPP',
     'MetadataFromTitlePP',
     'MoveFilesAfterDownloadPP',
+    'SponsorBlockPP',
     'SponSkrubPP',
     'ModifyChaptersPP',
     'XAttrMetadataPP',

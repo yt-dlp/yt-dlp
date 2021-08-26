@@ -56,7 +56,6 @@ from .postprocessor import (
     MetadataFromFieldPP,
     MetadataParserPP,
 )
-from .postprocessor.modify_chapters import SPONSORBLOCK_CATEGORIES
 from .YoutubeDL import YoutubeDL
 
 
@@ -353,22 +352,29 @@ def _real_main(argv=None):
     if opts.getcomments and not printing_json:
         opts.writeinfojson = True
 
-    if opts.addmetadata and opts.addchapters is None:
+    if (opts.addmetadata or opts.sponsorblock) and opts.addchapters is None:
         opts.addchapters = True
+    if opts.remove_sponsor_segments and opts.sponsorblock is None:
+        opts.sponsorblock = True
+    opts.remove_chapters = opts.remove_chapters or []
+
     def report_conflict(arg1, arg2):
         warnings.append('%s is ignored since %s was given' % (arg2, arg1))
+
+    if (opts.remove_chapters or opts.remove_sponsor_segments) and opts.sponskrub is not False:
+        if opts.sponskrub:
+            if opts.remove_sponsor_segments:
+                report_conflict('--remove-sponsor-segments', '--sponskrub')
+            if opts.remove_chapters:
+                report_conflict('--remove-chapters', '--sponskrub')
+        opts.sponskrub = False
+    if opts.sponskrub_cut and opts.split_chapters and opts.sponskrub is not False:
+        report_conflict('--split-chapter', '--sponskrub-cut')
+        opts.sponskrub_cut = False
 
     if opts.remuxvideo and opts.recodevideo:
         report_conflict('--recode-video', '--remux-video')
         opts.remuxvideo = False
-    if opts.sponskrub_cut and opts.split_chapters and opts.sponskrub is not False:
-        report_conflict('--split-chapter', '--sponskrub-cut')
-        opts.sponskrub_cut = False
-    # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
-    if opts.sponskrub is not False and opts.sponsorblock:
-        if opts.sponskrub:
-            report_conflict('--sponsorblock', '--sponskrub')
-        opts.sponskrub = False
 
     if opts.allow_unplayable_formats:
         if opts.extractaudio:
@@ -394,19 +400,28 @@ def _real_main(argv=None):
             opts.xattrs = False
         if opts.fixup and opts.fixup.lower() not in ('never', 'ignore'):
             report_conflict('--allow-unplayable-formats', '--fixup')
-            opts.fixup = 'never'
+        opts.fixup = 'never'
         if opts.remove_chapters:
             report_conflict('--allow-unplayable-formats', '--remove-chapters')
-            opts.remove_chapters = None
+            opts.remove_chapters = []
+        if opts.remove_sponsor_segments:
+            report_conflict('--allow-unplayable-formats', '--remove-sponsor-segments')
+            opts.remove_sponsor_segments = []
         if opts.sponskrub:
             report_conflict('--allow-unplayable-formats', '--sponskrub')
-            opts.sponskrub = False
-        if opts.sponsorblock:
-            report_conflict('--allow-unplayable-formats', '--sponsorblock')
-            opts.sponsorblock = False
+        opts.sponskrub = False
 
     # PostProcessors
     postprocessors = []
+    if opts.sponsorblock:
+        postprocessors.append({
+            'key': 'SponsorBlock',
+            'categories': opts.sponsorblock_query,
+            'hide_video_id': opts.sponsorblock_hide_video_id,
+            'api': opts.sponsorblock_api,
+            # Run this immediately after extraction is complete
+            'when': 'pre_process'
+        })
     if opts.parse_metadata:
         postprocessors.append({
             'key': 'MetadataParser',
@@ -466,41 +481,20 @@ def _real_main(argv=None):
     # this was the old behaviour if only --all-sub was given.
     if opts.allsubtitles and not opts.writeautomaticsub:
         opts.writesubtitles = True
-    # ModifyChapters must run before FFmpegMetadataPP.
-    # Always check arguments even if ModifyChapters will be disabled.
-    remove_chapters_pattern = None
-    if opts.remove_chapters is not None:
+    # ModifyChapters must run before FFmpegMetadataPP
+    remove_chapters_patterns = []
+    for regex in opts.remove_chapters:
         try:
-            remove_chapters_pattern = re.compile(opts.remove_chapters)
-        except re.error as e:
-            parser.error(f'invalid --remove-chapters regex {opts.remove_chapters!r}: {e}')
-
-    def categories_from_list(cats):
-        if cats == ['']:
-            return set()
-        cats = set(c.strip() for c in cats)
-        if 'all' in cats:
-            return set(SPONSORBLOCK_CATEGORIES)
-        return cats
-
-    sponsorblock_query = categories_from_list(opts.sponsorblock_query)
-    sponsorblock_cut = categories_from_list(opts.sponsorblock_cut)
-    for c in (sponsorblock_query | sponsorblock_cut).difference(SPONSORBLOCK_CATEGORIES):
-        parser.error(f'invalid SponsorBlock category: {c}')
-    # Categories to be cut must first be queried.
-    sponsorblock_query |= sponsorblock_cut
-    use_sponsorblock = opts.sponsorblock and sponsorblock_query
-    if remove_chapters_pattern or use_sponsorblock:
+            remove_chapters_patterns.append(re.compile(regex))
+        except re.error as err:
+            parser.error(f'invalid --remove-chapters regex {regex!r} - {err}')
+    if opts.remove_chapters or opts.remove_sponsor_segments:
         postprocessors.append({
             'key': 'ModifyChapters',
-            'remove_chapters_pattern': remove_chapters_pattern,
-            'force_keyframes': opts.force_keyframes_at_splits_or_cuts,
-            'use_sponsorblock': use_sponsorblock,
-            'sponsorblock_query': sponsorblock_query,
-            'sponsorblock_cut': sponsorblock_cut,
-            'sponsorblock_force': opts.sponsorblock_force,
-            'sponsorblock_hide_video_id': opts.sponsorblock_hide_video_id,
-            'sponsorblock_api': opts.sponsorblock_api
+            'remove_chapters_patterns': remove_chapters_patterns,
+            'remove_sponsor_segments': opts.remove_sponsor_segments,
+            'force_keyframes': opts.force_keyframes_at_cuts,
+            'force_remove': opts.force_remove_chapters,
         })
     # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
     # FFmpegExtractAudioPP as containers before conversion may not support
