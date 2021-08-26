@@ -36,7 +36,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
         # TODO: Refactor _remove_marked_arrange_sponsors to not need this
         for c in sponsor_chapters:
-            c['categories'] = (c['start_time'], c['end_time'], c['category'])
+            c['categories'] = [(c['category'], c['start_time'], c['end_time'])]
 
         info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters + sponsor_chapters)
         if not cuts:
