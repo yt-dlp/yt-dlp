@@ -67,6 +67,7 @@ class NickIE(MTVServicesInfoExtractor):
             'description': 'md5:9d65a66df38e02254852794b2809d1cf',
             'title': 'Blue\'s Imagination Station',
         },
+        'skip': 'Not accessible?'
     }]
 
     def _get_feed_query(self, uri):
