@@ -13,7 +13,6 @@ from ..compat import (
     compat_parse_qs,
     compat_urllib_parse_urlparse,
 )
-
 from ..utils import (
     ExtractorError,
     dict_get,
@@ -711,7 +710,6 @@ class NicovideoSearchIE(SearchInfoExtractor, NicovideoSearchURLIE):
     _TESTS = []
 
     def _get_n_results(self, query, n):
-        """Get a specified number of results for a query"""
         entries = self._entries(self._proto_relative_url(f'//www.nicovideo.jp/search/{query}'), query)
         if n < float('inf'):
             entries = itertools.islice(entries, 0, n)
