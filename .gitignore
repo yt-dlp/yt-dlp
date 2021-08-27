@@ -19,6 +19,8 @@ cookies.txt
 *.wav
 *.ape
 *.mkv
+*.flac
+*.avi
 *.swf
 *.part
 *.part-*

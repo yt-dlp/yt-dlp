@@ -207,12 +207,9 @@ class FileDownloader(object):
         if old_filename == new_filename:
             return
         try:
-            if self.params.get('overwrites', False):
-                if os.path.isfile(encodeFilename(new_filename)):
-                    os.remove(encodeFilename(new_filename))
-            os.rename(encodeFilename(old_filename), encodeFilename(new_filename))
+            os.replace(old_filename, new_filename)
         except (IOError, OSError) as err:
-            self.report_error('unable to rename file: %s' % error_to_compat_str(err))
+            self.report_error(f'unable to rename file: {err}')
 
     def try_utime(self, filename, last_modified_hdr):
         """Try to set the last-modified time of the given file."""
