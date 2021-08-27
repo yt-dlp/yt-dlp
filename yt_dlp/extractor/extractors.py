@@ -867,7 +867,14 @@ from .nick import (
     NickRuIE,
 )
 
-from .niconico import NiconicoIE, NiconicoPlaylistIE, NicovideoSearchURLIE, NiconicoUserIE
+from .niconico import (
+    NiconicoIE,
+    NiconicoPlaylistIE,
+    NiconicoUserIE,
+    NicovideoSearchDateIE,
+    NicovideoSearchIE,
+    NicovideoSearchURLIE,
+)
 from .ninecninemedia import NineCNineMediaIE
 from .ninegag import NineGagIE
 from .ninenow import NineNowIE
