@@ -410,7 +410,7 @@ def _real_main(argv=None):
             report_conflict('--allow-unplayable-formats', '--remove-chapters')
             opts.remove_chapters = []
         if opts.sponsorblock_remove:
-            report_conflict('--allow-unplayable-formats', '--sponsor-remove')
+            report_conflict('--allow-unplayable-formats', '--sponsorblock-remove')
             opts.sponsorblock_remove = set()
         if opts.sponskrub:
             report_conflict('--allow-unplayable-formats', '--sponskrub')
