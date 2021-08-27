@@ -1,12 +1,10 @@
-import copy
 import heapq
 import os
 from collections import OrderedDict
 
 from .common import PostProcessor
 from .ffmpeg import (
-    FFmpegPostProcessor,
-    FFmpegSubtitlesConvertorPP
+    FFmpegPostProcessor
 )
 from .sponsorblock import SponsorBlockPP
 from ..utils import (
