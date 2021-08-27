@@ -46,6 +46,7 @@ class NYTimesBaseIE(InfoExtractor):
 
         urls = []
         formats = []
+        subtitles = {}
         for video in video_data.get('renditions', []):
             video_url = video.get('url')
             format_id = video.get('type')
@@ -54,9 +55,11 @@ class NYTimesBaseIE(InfoExtractor):
             urls.append(video_url)
             ext = mimetype2ext(video.get('mimetype')) or determine_ext(video_url)
             if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
+                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     video_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id=format_id or 'hls', fatal=False))
+                    m3u8_id=format_id or 'hls', fatal=False)
+                formats.extend(m3u8_fmts)
+                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             elif ext == 'mpd':
                 continue
             #     formats.extend(self._extract_mpd_formats(
@@ -96,6 +99,7 @@ class NYTimesBaseIE(InfoExtractor):
             'uploader': video_data.get('byline'),
             'duration': float_or_none(video_data.get('duration'), 1000),
             'formats': formats,
+            'subtitles': subtitles,
             'thumbnails': thumbnails,
         }
 

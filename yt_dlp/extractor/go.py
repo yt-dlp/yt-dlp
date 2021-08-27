@@ -4,10 +4,14 @@ from __future__ import unicode_literals
 import re
 
 from .adobepass import AdobePassIE
+from ..compat import compat_str
 from ..utils import (
     int_or_none,
     determine_ext,
     parse_age_limit,
+    remove_start,
+    remove_end,
+    try_get,
     urlencode_postdata,
     ExtractorError,
 )
@@ -46,15 +50,15 @@ class GoIE(AdobePassIE):
     }
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:
-                            (?:(?P<sub_domain>%s)\.)?go|
-                            (?P<sub_domain_2>abc|freeform|disneynow|fxnow\.fxnetworks)
+                        (?P<sub_domain>
+                            (?:%s\.)?go|fxnow\.fxnetworks|
+                            (?:www\.)?(?:abc|freeform|disneynow)
                         )\.com/
                         (?:
                             (?:[^/]+/)*(?P<id>[Vv][Dd][Kk][Aa]\w+)|
                             (?:[^/]+/)*(?P<display_id>[^/?\#]+)
                         )
-                    ''' % '|'.join(list(_SITE_INFO.keys()))
+                    ''' % r'\.|'.join(list(_SITE_INFO.keys()))
     _TESTS = [{
         'url': 'http://abc.go.com/shows/designated-survivor/video/most-recent/VDKA3807643',
         'info_dict': {
@@ -117,6 +121,18 @@ class GoIE(AdobePassIE):
             'skip_download': True,
         },
     }, {
+        'url': 'https://abc.com/shows/modern-family/episode-guide/season-01/101-pilot',
+        'info_dict': {
+            'id': 'VDKA22600213',
+            'ext': 'mp4',
+            'title': 'Pilot',
+            'description': 'md5:74306df917cfc199d76d061d66bebdb4',
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+    }, {
         'url': 'http://abc.go.com/shows/the-catch/episode-guide/season-01/10-the-wedding',
         'only_matching': True,
     }, {
@@ -133,6 +149,9 @@ class GoIE(AdobePassIE):
     }, {
         'url': 'https://disneynow.com/shows/minnies-bow-toons/video/happy-campers/vdka4872013',
         'only_matching': True,
+    }, {
+        'url': 'https://www.freeform.com/shows/cruel-summer/episode-guide/season-01/01-happy-birthday-jeanette-turner',
+        'only_matching': True,
     }]
 
     def _extract_videos(self, brand, video_id='-1', show_id='-1'):
@@ -142,25 +161,37 @@ class GoIE(AdobePassIE):
             display_id)['video']
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        sub_domain = mobj.group('sub_domain') or mobj.group('sub_domain_2')
+        mobj = self._match_valid_url(url)
+        sub_domain = remove_start(remove_end(mobj.group('sub_domain') or '', '.go'), 'www.')
         video_id, display_id = mobj.group('id', 'display_id')
         site_info = self._SITE_INFO.get(sub_domain, {})
         brand = site_info.get('brand')
         if not video_id or not site_info:
             webpage = self._download_webpage(url, display_id or video_id)
-            video_id = self._search_regex(
-                (
-                    # There may be inner quotes, e.g. data-video-id="'VDKA3609139'"
-                    # from http://freeform.go.com/shows/shadowhunters/episodes/season-2/1-this-guilty-blood
-                    r'data-video-id=["\']*(VDKA\w+)',
-                    # https://github.com/ytdl-org/youtube-dl/pull/25216/files
-                    #  The following is based on the pull request on the line above. Changed the ABC.com URL to a show available now.
-                    # https://abc.com/shows/the-rookie/episode-guide/season-02/19-the-q-word
-                    r'\bvideoIdCode["\']\s*:\s*["\'](vdka\w+)',
-                    # Deprecated  fallback pattern
-                    r'\b(?:video)?id["\']\s*:\s*["\'](VDKA\w+)'
-                ), webpage, 'video id', default=video_id)
+            data = self._parse_json(
+                self._search_regex(
+                    r'["\']__abc_com__["\']\s*\]\s*=\s*({.+?})\s*;', webpage,
+                    'data', default='{}'),
+                display_id or video_id, fatal=False)
+            # https://abc.com/shows/modern-family/episode-guide/season-01/101-pilot
+            layout = try_get(data, lambda x: x['page']['content']['video']['layout'], dict)
+            video_id = None
+            if layout:
+                video_id = try_get(
+                    layout,
+                    (lambda x: x['videoid'], lambda x: x['video']['id']),
+                    compat_str)
+            if not video_id:
+                video_id = self._search_regex(
+                    (
+                        # There may be inner quotes, e.g. data-video-id="'VDKA3609139'"
+                        # from http://freeform.go.com/shows/shadowhunters/episodes/season-2/1-this-guilty-blood
+                        r'data-video-id=["\']*(VDKA\w+)',
+                        # page.analytics.videoIdCode
+                        r'\bvideoIdCode["\']\s*:\s*["\']((?:vdka|VDKA)\w+)',
+                        # https://abc.com/shows/the-rookie/episode-guide/season-02/03-the-bet
+                        r'\b(?:video)?id["\']\s*:\s*["\'](VDKA\w+)'
+                    ), webpage, 'video id', default=video_id)
             if not site_info:
                 brand = self._search_regex(
                     (r'data-brand=\s*["\']\s*(\d+)',

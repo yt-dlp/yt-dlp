@@ -19,6 +19,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    traverse_obj,
 )
 
 
@@ -217,7 +218,7 @@ class VRVIE(VRVBaseIE):
                 })
 
         thumbnails = []
-        for thumbnail in video_data.get('images', {}).get('thumbnails', []):
+        for thumbnail in traverse_obj(video_data, ('images', 'thumbnail', ..., ...)):
             thumbnail_url = thumbnail.get('source')
             if not thumbnail_url:
                 continue

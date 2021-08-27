@@ -1,21 +1,26 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-
+import base64
+import imghdr
 import os
 import subprocess
-import struct
 import re
-import base64
 
 try:
-    import mutagen
+    from mutagen.flac import Picture, FLAC
+    from mutagen.mp4 import MP4, MP4Cover
+    from mutagen.oggopus import OggOpus
+    from mutagen.oggvorbis import OggVorbis
     has_mutagen = True
 except ImportError:
     has_mutagen = False
 
-from .ffmpeg import FFmpegPostProcessor
-
+from .common import PostProcessor
+from .ffmpeg import (
+    FFmpegPostProcessor,
+    FFmpegThumbnailsConvertorPP,
+)
 from ..utils import (
     check_executable,
     encodeArgument,
@@ -24,7 +29,6 @@ from ..utils import (
     PostProcessingError,
     prepend_extension,
     process_communicate_or_kill,
-    replace_extension,
     shell_quote,
 )
 
@@ -36,9 +40,30 @@ class EmbedThumbnailPPError(PostProcessingError):
 class EmbedThumbnailPP(FFmpegPostProcessor):
 
     def __init__(self, downloader=None, already_have_thumbnail=False):
-        super(EmbedThumbnailPP, self).__init__(downloader)
+        FFmpegPostProcessor.__init__(self, downloader)
         self._already_have_thumbnail = already_have_thumbnail
 
+    def _get_thumbnail_resolution(self, filename, thumbnail_dict):
+        def guess():
+            width, height = thumbnail_dict.get('width'), thumbnail_dict.get('height')
+            if width and height:
+                return width, height
+
+        try:
+            size_regex = r',\s*(?P<w>\d+)x(?P<h>\d+)\s*[,\[]'
+            size_result = self.run_ffmpeg(filename, None, ['-hide_banner'], expected_retcodes=(1,))
+            mobj = re.search(size_regex, size_result)
+            if mobj is None:
+                return guess()
+        except PostProcessingError as err:
+            self.report_warning('unable to find the thumbnail resolution; %s' % error_to_compat_str(err))
+            return guess()
+        return int(mobj.group('w')), int(mobj.group('h'))
+
+    def _report_run(self, exe, filename):
+        self.to_screen('%s: Adding thumbnail to "%s"' % (exe, filename))
+
+    @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename = info['filepath']
         temp_filename = prepend_extension(filename, 'temp')
@@ -47,45 +72,29 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.to_screen('There aren\'t any thumbnails to embed')
             return [], info
 
-        initial_thumbnail = original_thumbnail = thumbnail_filename = info['thumbnails'][-1]['filepath']
-
+        idx = next((-i for i, t in enumerate(info['thumbnails'][::-1], 1) if t.get('filepath')), None)
+        if idx is None:
+            self.to_screen('There are no thumbnails on disk')
+            return [], info
+        thumbnail_filename = info['thumbnails'][idx]['filepath']
         if not os.path.exists(encodeFilename(thumbnail_filename)):
             self.report_warning('Skipping embedding the thumbnail because the file is missing.')
             return [], info
 
-        def is_webp(path):
-            with open(encodeFilename(path), 'rb') as f:
-                b = f.read(12)
-            return b[0:4] == b'RIFF' and b[8:] == b'WEBP'
-
         # Correct extension for WebP file with wrong extension (see #25687, #25717)
-        _, thumbnail_ext = os.path.splitext(thumbnail_filename)
-        if thumbnail_ext:
-            thumbnail_ext = thumbnail_ext[1:].lower()
-            if thumbnail_ext != 'webp' and is_webp(thumbnail_filename):
-                self.to_screen('Correcting extension to webp and escaping path for thumbnail "%s"' % thumbnail_filename)
-                thumbnail_webp_filename = replace_extension(thumbnail_filename, 'webp')
-                if os.path.exists(thumbnail_webp_filename):
-                    os.remove(thumbnail_webp_filename)
-                os.rename(encodeFilename(thumbnail_filename), encodeFilename(thumbnail_webp_filename))
-                original_thumbnail = thumbnail_filename = thumbnail_webp_filename
-                thumbnail_ext = 'webp'
+        convertor = FFmpegThumbnailsConvertorPP(self._downloader)
+        convertor.fixup_webp(info, idx)
 
-        # Convert unsupported thumbnail formats to JPEG (see #25687, #25717)
-        if thumbnail_ext not in ['jpg', 'png']:
-            # NB: % is supposed to be escaped with %% but this does not work
-            # for input files so working around with standard substitution
-            escaped_thumbnail_filename = thumbnail_filename.replace('%', '#')
-            os.rename(encodeFilename(thumbnail_filename), encodeFilename(escaped_thumbnail_filename))
-            escaped_thumbnail_jpg_filename = replace_extension(escaped_thumbnail_filename, 'jpg')
-            self.to_screen('Converting thumbnail "%s" to JPEG' % escaped_thumbnail_filename)
-            self.run_ffmpeg(escaped_thumbnail_filename, escaped_thumbnail_jpg_filename, ['-bsf:v', 'mjpeg2jpeg'])
-            thumbnail_jpg_filename = replace_extension(thumbnail_filename, 'jpg')
-            # Rename back to unescaped for further processing
-            os.rename(encodeFilename(escaped_thumbnail_filename), encodeFilename(thumbnail_filename))
-            os.rename(encodeFilename(escaped_thumbnail_jpg_filename), encodeFilename(thumbnail_jpg_filename))
-            thumbnail_filename = thumbnail_jpg_filename
-            thumbnail_ext = 'jpg'
+        original_thumbnail = thumbnail_filename = info['thumbnails'][idx]['filepath']
+
+        # Convert unsupported thumbnail formats to PNG (see #25687, #25717)
+        # Original behavior was to convert to JPG, but since JPG is a lossy
+        # format, there will be some additional data loss.
+        # PNG, on the other hand, is lossless.
+        thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:]
+        if thumbnail_ext not in ('jpg', 'jpeg', 'png'):
+            thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
+            thumbnail_ext = 'png'
 
         mtime = os.stat(encodeFilename(filename)).st_mtime
 
@@ -95,7 +104,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 '-c', 'copy', '-map', '0:0', '-map', '1:0', '-id3v2_version', '3',
                 '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment="Cover (front)"']
 
-            self.to_screen('Adding thumbnail to "%s"' % filename)
+            self._report_run('ffmpeg', filename)
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
         elif info['ext'] in ['mkv', 'mka']:
@@ -112,25 +121,52 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 '-metadata:s:%d' % new_stream, 'mimetype=%s' % mimetype,
                 '-metadata:s:%d' % new_stream, 'filename=cover.%s' % thumbnail_ext])
 
-            self.to_screen('Adding thumbnail to "%s"' % filename)
+            self._report_run('ffmpeg', filename)
             self.run_ffmpeg(filename, temp_filename, options)
 
         elif info['ext'] in ['m4a', 'mp4', 'mov']:
-            try:
-                options = ['-c', 'copy', '-map', '0', '-dn', '-map', '1']
+            prefer_atomicparsley = 'embed-thumbnail-atomicparsley' in self.get_param('compat_opts', [])
+            # Method 1: Use mutagen
+            if not has_mutagen or prefer_atomicparsley:
+                success = False
+            else:
+                try:
+                    self._report_run('mutagen', filename)
+                    meta = MP4(filename)
+                    # NOTE: the 'covr' atom is a non-standard MPEG-4 atom,
+                    # Apple iTunes 'M4A' files include the 'moov.udta.meta.ilst' atom.
+                    f = {'jpeg': MP4Cover.FORMAT_JPEG, 'png': MP4Cover.FORMAT_PNG}[imghdr.what(thumbnail_filename)]
+                    with open(thumbnail_filename, 'rb') as thumbfile:
+                        thumb_data = thumbfile.read()
+                    meta.tags['covr'] = [MP4Cover(data=thumb_data, imageformat=f)]
+                    meta.save()
+                    temp_filename = filename
+                except Exception as err:
+                    self.report_warning('unable to embed using mutagen; %s' % error_to_compat_str(err))
+                    success = False
 
-                old_stream, new_stream = self.get_stream_number(
-                    filename, ('disposition', 'attached_pic'), 1)
-                if old_stream is not None:
-                    options.extend(['-map', '-0:%d' % old_stream])
-                    new_stream -= 1
-                options.extend(['-disposition:%s' % new_stream, 'attached_pic'])
+            # Method 2: Use ffmpeg+ffprobe
+            if not success and not prefer_atomicparsley:
+                success = True
+                try:
+                    options = ['-c', 'copy', '-map', '0', '-dn', '-map', '1']
 
-                self.to_screen('Adding thumbnail to "%s"' % filename)
-                self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
+                    old_stream, new_stream = self.get_stream_number(
+                        filename, ('disposition', 'attached_pic'), 1)
+                    if old_stream is not None:
+                        options.extend(['-map', '-0:%d' % old_stream])
+                        new_stream -= 1
+                    options.extend(['-disposition:%s' % new_stream, 'attached_pic'])
 
-            except PostProcessingError as err:
-                self.report_warning('unable to embed using ffprobe & ffmpeg; %s' % error_to_compat_str(err))
+                    self._report_run('ffmpeg', filename)
+                    self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
+                except PostProcessingError as err:
+                    self.report_warning('unable to embed using ffprobe & ffmpeg; %s' % error_to_compat_str(err))
+                    success = False
+
+            # Method 3: Use AtomicParsley
+            if not success:
+                success = True
                 atomicparsley = next((
                     x for x in ['AtomicParsley', 'atomicparsley']
                     if check_executable(x, ['-v'])), None)
@@ -145,7 +181,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                        encodeFilename(temp_filename, True)]
                 cmd += [encodeArgument(o) for o in self._configuration_args('AtomicParsley')]
 
-                self.to_screen('Adding thumbnail to "%s"' % filename)
+                self._report_run('atomicparsley', filename)
                 self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = process_communicate_or_kill(p)
@@ -158,34 +194,32 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     self.report_warning('The file format doesn\'t support embedding a thumbnail')
                     success = False
 
-        elif info['ext'] in ['ogg', 'opus']:
+        elif info['ext'] in ['ogg', 'opus', 'flac']:
             if not has_mutagen:
                 raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python -m pip install mutagen`')
-            self.to_screen('Adding thumbnail to "%s"' % filename)
 
-            size_regex = r',\s*(?P<w>\d+)x(?P<h>\d+)\s*[,\[]'
-            size_result = self.run_ffmpeg(thumbnail_filename, thumbnail_filename, ['-hide_banner'])
-            mobj = re.search(size_regex, size_result)
-            width, height = int(mobj.group('w')), int(mobj.group('h'))
-            mimetype = ('image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')).encode('ascii')
+            self._report_run('mutagen', filename)
+            f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['ext']](filename)
 
-            # https://xiph.org/flac/format.html#metadata_block_picture
-            data = bytearray()
-            data += struct.pack('>II', 3, len(mimetype))
-            data += mimetype
-            data += struct.pack('>IIIIII', 0, width, height, 8, 0, os.stat(thumbnail_filename).st_size)  # 32 if png else 24
+            pic = Picture()
+            pic.mime = 'image/%s' % imghdr.what(thumbnail_filename)
+            with open(thumbnail_filename, 'rb') as thumbfile:
+                pic.data = thumbfile.read()
+            pic.type = 3  # front cover
+            res = self._get_thumbnail_resolution(thumbnail_filename, info['thumbnails'][idx])
+            if res is not None:
+                pic.width, pic.height = res
 
-            fin = open(thumbnail_filename, "rb")
-            data += fin.read()
-            fin.close()
-
-            temp_filename = filename
-            f = mutagen.File(temp_filename)
-            f.tags['METADATA_BLOCK_PICTURE'] = base64.b64encode(data).decode('ascii')
+            if info['ext'] == 'flac':
+                f.add_picture(pic)
+            else:
+                # https://wiki.xiph.org/VorbisComment#METADATA_BLOCK_PICTURE
+                f['METADATA_BLOCK_PICTURE'] = base64.b64encode(pic.write()).decode('ascii')
             f.save()
+            temp_filename = filename
 
         else:
-            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus, m4a/mp4/mov')
+            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/mov')
 
         if success and temp_filename != filename:
             os.remove(encodeFilename(filename))
@@ -195,9 +229,6 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         files_to_delete = [thumbnail_filename]
         if self._already_have_thumbnail:
-            info['__files_to_move'][original_thumbnail] = replace_extension(
-                info['__files_to_move'][initial_thumbnail],
-                os.path.splitext(original_thumbnail)[1][1:])
             if original_thumbnail == thumbnail_filename:
                 files_to_delete = []
         elif original_thumbnail != thumbnail_filename:

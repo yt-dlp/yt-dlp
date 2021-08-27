@@ -198,7 +198,7 @@ class XimalayaAlbumIE(XimalayaBaseIE):
     def _real_extract(self, url):
         self.scheme = scheme = 'https' if url.startswith('https') else 'http'
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         uid, playlist_id = mobj.group('uid'), mobj.group('id')
 
         webpage = self._download_webpage(self._TEMPLATE_URL % (scheme, uid, playlist_id), playlist_id,

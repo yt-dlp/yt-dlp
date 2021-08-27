@@ -29,9 +29,10 @@ Carefully read and work through this check list in order to prevent the most com
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
-- [ ] I'm reporting a broken site support issue
+- [ ] I'm reporting a bug unrelated to a specific site
 - [ ] I've verified that I'm running yt-dlp version **%(version)s**
 - [ ] I've checked that all provided URLs are alive and playable in a browser
+- [ ] The provided URLs do not contain any DRM to the best of my knowledge
 - [ ] I've checked that all URLs and arguments with special characters are properly quoted or escaped
 - [ ] I've searched the bugtracker for similar bug reports including closed ones
 - [ ] I've read bugs section in FAQ
@@ -44,7 +45,7 @@ Provide the complete verbose output of yt-dlp that clearly demonstrates the prob
 Add the `-v` flag to your command line you run yt-dlp with (`yt-dlp -v <your command line>`), copy the WHOLE output and insert it below. It should look similar to this:
  [debug] System config: []
  [debug] User config: []
- [debug] Command-line args: [u'-v', u'http://www.youtube.com/watch?v=BaW_jenozKcj']
+ [debug] Command-line args: [u'-v', u'http://www.youtube.com/watch?v=BaW_jenozKc']
  [debug] Encodings: locale cp1251, fs mbcs, out cp866, pref cp1251
  [debug] yt-dlp version %(version)s
  [debug] Python version 2.7.11 - Windows-2003Server-5.2.3790-SP2

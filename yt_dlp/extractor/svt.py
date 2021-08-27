@@ -49,7 +49,7 @@ class SVTBaseIE(InfoExtractor):
         if not formats and rights.get('geoBlockedSweden'):
             self.raise_geo_restricted(
                 'This video is only available in Sweden',
-                countries=self._GEO_COUNTRIES)
+                countries=self._GEO_COUNTRIES, metadata_available=True)
         self._sort_formats(formats)
 
         subtitles = {}
@@ -119,7 +119,7 @@ class SVTIE(SVTBaseIE):
             return mobj.group('url')
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         widget_id = mobj.group('widget_id')
         article_id = mobj.group('id')
 
@@ -146,7 +146,7 @@ class SVTPlayIE(SVTPlayBaseIE):
                         )
                         (?P<svt_id>[^/?#&]+)|
                         https?://(?:www\.)?(?:svtplay|oppetarkiv)\.se/(?:video|klipp|kanaler)/(?P<id>[^/?#&]+)
-                        (?:.*?modalId=(?P<modal_id>[\da-zA-Z-]+))?
+                        (?:.*?(?:modalId|id)=(?P<modal_id>[\da-zA-Z-]+))?
                     )
                     '''
     _TESTS = [{
@@ -176,6 +176,9 @@ class SVTPlayIE(SVTPlayBaseIE):
         },
     }, {
         'url': 'https://www.svtplay.se/video/30479064/husdrommar/husdrommar-sasong-8-designdrommar-i-stenungsund?modalId=8zVbDPA',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.svtplay.se/video/30684086/rapport/rapport-24-apr-18-00-7?id=e72gVpa',
         'only_matching': True,
     }, {
         # geo restricted to Sweden
@@ -222,7 +225,7 @@ class SVTPlayIE(SVTPlayBaseIE):
         return info_dict
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         svt_id = mobj.group('svt_id') or mobj.group('modal_id')
 
@@ -259,7 +262,7 @@ class SVTPlayIE(SVTPlayBaseIE):
         if not svt_id:
             svt_id = self._search_regex(
                 (r'<video[^>]+data-video-id=["\']([\da-zA-Z-]+)',
-                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/%s/[^"\']*\bmodalId=([\da-zA-Z-]+)' % re.escape(video_id),
+                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/%s/[^"\']*\b(?:modalId|id)=([\da-zA-Z-]+)' % re.escape(video_id),
                  r'["\']videoSvtId["\']\s*:\s*["\']([\da-zA-Z-]+)',
                  r'["\']videoSvtId\\?["\']\s*:\s*\\?["\']([\da-zA-Z-]+)',
                  r'"content"\s*:\s*{.*?"id"\s*:\s*"([\da-zA-Z-]+)"',
@@ -298,7 +301,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
         return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super(SVTSeriesIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        series_slug, season_id = re.match(self._VALID_URL, url).groups()
+        series_slug, season_id = self._match_valid_url(url).groups()
 
         series = self._download_json(
             'https://api.svt.se/contento/graphql', series_slug,
@@ -397,7 +400,7 @@ class SVTPageIE(InfoExtractor):
         return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super(SVTPageIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        path, display_id = re.match(self._VALID_URL, url).groups()
+        path, display_id = self._match_valid_url(url).groups()
 
         article = self._download_json(
             'https://api.svt.se/nss-api/page/' + path, display_id,

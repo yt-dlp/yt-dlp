@@ -98,6 +98,9 @@ class ORFTVthekIE(InfoExtractor):
                 elif ext == 'f4m':
                     formats.extend(self._extract_f4m_formats(
                         src, video_id, f4m_id=format_id, fatal=False))
+                elif ext == 'mpd':
+                    formats.extend(self._extract_mpd_formats(
+                        src, video_id, mpd_id=format_id, fatal=False))
                 else:
                     formats.append({
                         'format_id': format_id,
@@ -140,6 +143,25 @@ class ORFTVthekIE(InfoExtractor):
                 })
 
             upload_date = unified_strdate(sd.get('created_date'))
+
+            thumbnails = []
+            preview = sd.get('preview_image_url')
+            if preview:
+                thumbnails.append({
+                    'id': 'preview',
+                    'url': preview,
+                    'preference': 0,
+                })
+            image = sd.get('image_full_url')
+            if not image and len(data_jsb) == 1:
+                image = self._og_search_thumbnail(webpage)
+            if image:
+                thumbnails.append({
+                    'id': 'full',
+                    'url': image,
+                    'preference': 1,
+                })
+
             entries.append({
                 '_type': 'video',
                 'id': video_id,
@@ -149,7 +171,7 @@ class ORFTVthekIE(InfoExtractor):
                 'description': sd.get('description'),
                 'duration': int_or_none(sd.get('duration_in_seconds')),
                 'upload_date': upload_date,
-                'thumbnail': sd.get('image_full_url'),
+                'thumbnails': thumbnails,
             })
 
         return {
@@ -161,7 +183,7 @@ class ORFTVthekIE(InfoExtractor):
 
 class ORFRadioIE(InfoExtractor):
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         show_date = mobj.group('date')
         show_id = mobj.group('show')
 
@@ -182,7 +204,7 @@ class ORFRadioIE(InfoExtractor):
             duration = end - start if end and start else None
             entries.append({
                 'id': loop_stream_id.replace('.mp3', ''),
-                'url': 'http://loopstream01.apa.at/?channel=%s&id=%s' % (self._LOOP_STATION, loop_stream_id),
+                'url': 'https://loopstream01.apa.at/?channel=%s&id=%s' % (self._LOOP_STATION, loop_stream_id),
                 'title': title,
                 'description': clean_html(data.get('subtitle')),
                 'duration': duration,

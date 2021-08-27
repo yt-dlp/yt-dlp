@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import int_or_none
@@ -26,7 +25,7 @@ class DLiveVODIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        uploader_id, vod_id = re.match(self._VALID_URL, url).groups()
+        uploader_id, vod_id = self._match_valid_url(url).groups()
         broadcast = self._download_json(
             'https://graphigo.prd.dlive.tv/', vod_id,
             data=json.dumps({'query': '''query {

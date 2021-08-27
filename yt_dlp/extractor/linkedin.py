@@ -87,7 +87,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
     }
 
     def _real_extract(self, url):
-        course_slug, video_slug = re.match(self._VALID_URL, url).groups()
+        course_slug, video_slug = self._match_valid_url(url).groups()
 
         video_data = None
         formats = []

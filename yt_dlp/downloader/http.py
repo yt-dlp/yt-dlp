@@ -18,6 +18,7 @@ from ..utils import (
     int_or_none,
     sanitize_open,
     sanitized_Request,
+    ThrottledDownload,
     write_xattr,
     XAttrMetadataError,
     XAttrUnavailableError,
@@ -176,7 +177,7 @@ class HttpFD(FileDownloader):
                                 'status': 'finished',
                                 'downloaded_bytes': ctx.resume_len,
                                 'total_bytes': ctx.resume_len,
-                            })
+                            }, info_dict)
                             raise SucceedDownload()
                         else:
                             # The length does not match, we start the download over
@@ -223,6 +224,7 @@ class HttpFD(FileDownloader):
             # measure time over whole while-loop, so slow_down() and best_block_size() work together properly
             now = None  # needed for slow_down() in the first loop run
             before = start  # start measuring
+            throttle_start = None
 
             def retry(e):
                 to_stdout = ctx.tmpfilename == '-'
@@ -236,7 +238,7 @@ class HttpFD(FileDownloader):
             while True:
                 try:
                     # Download and write
-                    data_block = ctx.data.read(block_size if data_len is None else min(block_size, data_len - byte_counter))
+                    data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
                 # socket.timeout is a subclass of socket.error but may not have
                 # errno set
                 except socket.timeout as e:
@@ -308,10 +310,22 @@ class HttpFD(FileDownloader):
                     'eta': eta,
                     'speed': speed,
                     'elapsed': now - ctx.start_time,
-                })
+                }, info_dict)
 
                 if data_len is not None and byte_counter == data_len:
                     break
+
+                if speed and speed < (self.params.get('throttledratelimit') or 0):
+                    # The speed must stay below the limit for 3 seconds
+                    # This prevents raising error when the speed temporarily goes down
+                    if throttle_start is None:
+                        throttle_start = now
+                    elif now - throttle_start > 3:
+                        if ctx.stream is not None and ctx.tmpfilename != '-':
+                            ctx.stream.close()
+                        raise ThrottledDownload()
+                else:
+                    throttle_start = None
 
             if not is_test and ctx.chunk_size and ctx.data_len is not None and byte_counter < ctx.data_len:
                 ctx.resume_len = byte_counter
@@ -343,7 +357,7 @@ class HttpFD(FileDownloader):
                 'filename': ctx.filename,
                 'status': 'finished',
                 'elapsed': time.time() - ctx.start_time,
-            })
+            }, info_dict)
 
             return True
 

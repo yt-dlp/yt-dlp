@@ -1,38 +1,28 @@
 from __future__ import unicode_literals
 
 import re
+import io
 import binascii
-try:
-    from Crypto.Cipher import AES
-    can_decrypt_frag = True
-except ImportError:
-    can_decrypt_frag = False
-try:
-    import concurrent.futures
-    can_threaded_download = True
-except ImportError:
-    can_threaded_download = False
 
-from ..downloader import _get_real_downloader
-from .fragment import FragmentFD
+from ..downloader import get_suitable_downloader
+from .fragment import FragmentFD, can_decrypt_frag
 from .external import FFmpegFD
 
 from ..compat import (
-    compat_urllib_error,
     compat_urlparse,
-    compat_struct_pack,
 )
 from ..utils import (
     parse_m3u8_attributes,
-    sanitize_open,
     update_url_query,
+    bug_reports_message,
 )
+from .. import webvtt
 
 
 class HlsFD(FragmentFD):
     """
     Download segments in a m3u8 manifest. External downloaders can take over
-    the fragment downloads by supporting the 'frag_urls' protocol and
+    the fragment downloads by supporting the 'm3u8_frag_urls' protocol and
     re-defining 'supports_manifest' function
     """
 
@@ -90,12 +80,14 @@ class HlsFD(FragmentFD):
             fd = FFmpegFD(self.ydl, self.params)
             self.report_warning(
                 '%s detected unsupported features; extraction will be delegated to %s' % (self.FD_NAME, fd.get_basename()))
-            # TODO: Make progress updates work without hooking twice
-            # for ph in self._progress_hooks:
-            #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
 
-        real_downloader = _get_real_downloader(info_dict, 'frag_urls', self.params, None)
+        is_webvtt = info_dict['ext'] == 'vtt'
+        if is_webvtt:
+            real_downloader = None  # Packing the fragments is not currently supported for external downloader
+        else:
+            real_downloader = get_suitable_downloader(
+                info_dict, self.params, None, protocol='m3u8_frag_urls', to_stdout=(filename == '-'))
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:
@@ -139,11 +131,9 @@ class HlsFD(FragmentFD):
         if real_downloader:
             self._prepare_external_frag_download(ctx)
         else:
-            self._prepare_and_start_frag_download(ctx)
+            self._prepare_and_start_frag_download(ctx, info_dict)
 
-        fragment_retries = self.params.get('fragment_retries', 0)
-        skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
-        test = self.params.get('test', False)
+        extra_state = ctx.setdefault('extra_state', {})
 
         format_index = info_dict.get('format_index')
         extra_query = None
@@ -248,7 +238,7 @@ class HlsFD(FragmentFD):
                 media_sequence += 1
 
         # We only download the first fragment during the test
-        if test:
+        if self.params.get('test', False):
             fragments = [fragments[0] if fragments else None]
 
         if real_downloader:
@@ -258,111 +248,100 @@ class HlsFD(FragmentFD):
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
-            success = fd.real_download(filename, info_copy)
-            if not success:
-                return False
-        else:
-            def download_fragment(fragment):
-                frag_index = fragment['frag_index']
-                frag_url = fragment['url']
-                decrypt_info = fragment['decrypt_info']
-                byte_range = fragment['byte_range']
-                media_sequence = fragment['media_sequence']
+            return fd.real_download(filename, info_copy)
 
-                ctx['fragment_index'] = frag_index
+        if is_webvtt:
+            def pack_fragment(frag_content, frag_index):
+                output = io.StringIO()
+                adjust = 0
+                overflow = False
+                mpegts_last = None
+                for block in webvtt.parse_fragment(frag_content):
+                    if isinstance(block, webvtt.CueBlock):
+                        extra_state['webvtt_mpegts_last'] = mpegts_last
+                        if overflow:
+                            extra_state['webvtt_mpegts_adjust'] += 1
+                            overflow = False
+                        block.start += adjust
+                        block.end += adjust
 
-                count = 0
-                headers = info_dict.get('http_headers', {})
-                if byte_range:
-                    headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
-                while count <= fragment_retries:
-                    try:
-                        success, frag_content = self._download_fragment(
-                            ctx, frag_url, info_dict, headers)
-                        if not success:
-                            return False, frag_index
-                        break
-                    except compat_urllib_error.HTTPError as err:
-                        # Unavailable (possibly temporary) fragments may be served.
-                        # First we try to retry then either skip or abort.
-                        # See https://github.com/ytdl-org/youtube-dl/issues/10165,
-                        # https://github.com/ytdl-org/youtube-dl/issues/10448).
-                        count += 1
-                        if count <= fragment_retries:
-                            self.report_retry_fragment(err, frag_index, count, fragment_retries)
-                if count > fragment_retries:
-                    self.report_error('Giving up after %s fragment retries' % fragment_retries)
-                    return False, frag_index
+                        dedup_window = extra_state.setdefault('webvtt_dedup_window', [])
 
-                if decrypt_info['METHOD'] == 'AES-128':
-                    iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', media_sequence)
-                    decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
-                        self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
-                    # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
-                    # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
-                    # not what it decrypts to.
-                    if not test:
-                        frag_content = AES.new(
-                            decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
+                        ready = []
 
-                return frag_content, frag_index
+                        i = 0
+                        is_new = True
+                        while i < len(dedup_window):
+                            wcue = dedup_window[i]
+                            wblock = webvtt.CueBlock.from_json(wcue)
+                            i += 1
+                            if wblock.hinges(block):
+                                wcue['end'] = block.end
+                                is_new = False
+                                continue
+                            if wblock == block:
+                                is_new = False
+                                continue
+                            if wblock.end > block.start:
+                                continue
+                            ready.append(wblock)
+                            i -= 1
+                            del dedup_window[i]
 
-            def append_fragment(frag_content, frag_index):
-                if frag_content:
-                    fragment_filename = '%s-Frag%d' % (ctx['tmpfilename'], frag_index)
-                    try:
-                        file, frag_sanitized = sanitize_open(fragment_filename, 'rb')
-                        ctx['fragment_filename_sanitized'] = frag_sanitized
-                        file.close()
-                        self._append_fragment(ctx, frag_content)
-                        return True
-                    except FileNotFoundError:
-                        if skip_unavailable_fragments:
-                            self.report_skip_fragment(frag_index)
-                            return True
+                        if is_new:
+                            dedup_window.append(block.as_json)
+                        for block in ready:
+                            block.write_into(output)
+
+                        # we only emit cues once they fall out of the duplicate window
+                        continue
+                    elif isinstance(block, webvtt.Magic):
+                        # take care of MPEG PES timestamp overflow
+                        if block.mpegts is None:
+                            block.mpegts = 0
+                        extra_state.setdefault('webvtt_mpegts_adjust', 0)
+                        block.mpegts += extra_state['webvtt_mpegts_adjust'] << 33
+                        if block.mpegts < extra_state.get('webvtt_mpegts_last', 0):
+                            overflow = True
+                            block.mpegts += 1 << 33
+                        mpegts_last = block.mpegts
+
+                        if frag_index == 1:
+                            extra_state['webvtt_mpegts'] = block.mpegts or 0
+                            extra_state['webvtt_local'] = block.local or 0
+                            # XXX: block.local = block.mpegts = None ?
                         else:
-                            self.report_error(
-                                'fragment %s not found, unable to continue' % frag_index)
-                            return False
-                else:
-                    if skip_unavailable_fragments:
-                        self.report_skip_fragment(frag_index)
-                        return True
-                    else:
-                        self.report_error(
-                            'fragment %s not found, unable to continue' % frag_index)
-                        return False
+                            if block.mpegts is not None and block.local is not None:
+                                adjust = (
+                                    (block.mpegts - extra_state.get('webvtt_mpegts', 0))
+                                    - (block.local - extra_state.get('webvtt_local', 0))
+                                )
+                            continue
+                    elif isinstance(block, webvtt.HeaderBlock):
+                        if frag_index != 1:
+                            # XXX: this should probably be silent as well
+                            # or verify that all segments contain the same data
+                            self.report_warning(bug_reports_message(
+                                'Discarding a %s block found in the middle of the stream; '
+                                'if the subtitles display incorrectly,'
+                                % (type(block).__name__)))
+                            continue
+                    block.write_into(output)
 
-            max_workers = self.params.get('concurrent_fragment_downloads', 1)
-            if can_threaded_download and max_workers > 1:
-                self.report_warning('The download speed shown is only of one thread. This is a known issue')
-                with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
-                    futures = [pool.submit(download_fragment, fragment) for fragment in fragments]
-                    # timeout must be 0 to return instantly
-                    done, not_done = concurrent.futures.wait(futures, timeout=0)
-                    try:
-                        while not_done:
-                            # Check every 1 second for KeyboardInterrupt
-                            freshly_done, not_done = concurrent.futures.wait(not_done, timeout=1)
-                            done |= freshly_done
-                    except KeyboardInterrupt:
-                        for future in not_done:
-                            future.cancel()
-                        # timeout must be none to cancel
-                        concurrent.futures.wait(not_done, timeout=None)
-                        raise KeyboardInterrupt
-                results = [future.result() for future in futures]
+                return output.getvalue().encode('utf-8')
 
-                for frag_content, frag_index in results:
-                    result = append_fragment(frag_content, frag_index)
-                    if not result:
-                        return False
-            else:
-                for fragment in fragments:
-                    frag_content, frag_index = download_fragment(fragment)
-                    result = append_fragment(frag_content, frag_index)
-                    if not result:
-                        return False
+            def fin_fragments():
+                dedup_window = extra_state.get('webvtt_dedup_window')
+                if not dedup_window:
+                    return b''
 
-            self._finish_frag_download(ctx)
-        return True
+                output = io.StringIO()
+                for cue in dedup_window:
+                    webvtt.CueBlock.from_json(cue).write_into(output)
+
+                return output.getvalue().encode('utf-8')
+
+            self.download_and_append_fragments(
+                ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
+        else:
+            return self.download_and_append_fragments(ctx, fragments, info_dict)

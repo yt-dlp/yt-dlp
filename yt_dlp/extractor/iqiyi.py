@@ -280,7 +280,7 @@ class IqiyiIE(InfoExtractor):
                 msg = 'error %s' % code
                 if validation_result.get('msg'):
                     msg += ': ' + validation_result['msg']
-            self._downloader.report_warning('unable to log in: ' + msg)
+            self.report_warning('unable to log in: ' + msg)
             return False
 
         return True

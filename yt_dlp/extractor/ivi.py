@@ -165,7 +165,7 @@ class IviIE(InfoExtractor):
             content_format = f.get('content_format')
             if not f_url:
                 continue
-            if (not self._downloader.params.get('allow_unplayable_formats')
+            if (not self.get_param('allow_unplayable_formats')
                     and ('-MDRM-' in content_format or '-FPS-' in content_format)):
                 continue
             formats.append({
@@ -245,7 +245,7 @@ class IviCompilationIE(InfoExtractor):
                 r'<a\b[^>]+\bhref=["\']/watch/%s/(\d+)["\']' % compilation_id, html)]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         compilation_id = mobj.group('compilationid')
         season_id = mobj.group('seasonid')
 

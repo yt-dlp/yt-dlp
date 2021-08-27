@@ -92,7 +92,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
             return mobj.group('url')
 
     def _real_extract(self, url):
-        domain, film_id = re.match(self._VALID_URL, url).groups()
+        domain, film_id = self._match_valid_url(url).groups()
         site = domain.split('.')[-2]
         if site in self._SITE_MAP:
             site = self._SITE_MAP[site]
@@ -229,7 +229,7 @@ class ViewLiftIE(ViewLiftBaseIE):
         return False if ViewLiftEmbedIE.suitable(url) else super(ViewLiftIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        domain, path, display_id = re.match(self._VALID_URL, url).groups()
+        domain, path, display_id = self._match_valid_url(url).groups()
         site = domain.split('.')[-2]
         if site in self._SITE_MAP:
             site = self._SITE_MAP[site]

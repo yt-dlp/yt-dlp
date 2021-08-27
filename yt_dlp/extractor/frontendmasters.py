@@ -207,7 +207,7 @@ class FrontendMastersLessonIE(FrontendMastersPageBaseIE):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         course_name, lesson_name = mobj.group('course_name', 'lesson_name')
 
         course = self._download_course(course_name, url)

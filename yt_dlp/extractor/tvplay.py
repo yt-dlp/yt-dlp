@@ -298,7 +298,8 @@ class TVPlayIE(InfoExtractor):
 
         if not formats and video.get('is_geo_blocked'):
             self.raise_geo_restricted(
-                'This content might not be available in your country due to copyright reasons')
+                'This content might not be available in your country due to copyright reasons',
+                metadata_available=True)
 
         self._sort_formats(formats)
 
@@ -380,7 +381,7 @@ class ViafreeIE(InfoExtractor):
         return False if TVPlayIE.suitable(url) else super(ViafreeIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        country, path = re.match(self._VALID_URL, url).groups()
+        country, path = self._match_valid_url(url).groups()
         content = self._download_json(
             'https://viafree-content.mtg-api.com/viafree-content/v1/%s/path/%s' % (country, path), path)
         program = content['_embedded']['viafreeBlocks'][0]['_embedded']['program']

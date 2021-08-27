@@ -68,7 +68,7 @@ class RTBFIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        live, media_id = re.match(self._VALID_URL, url).groups()
+        live, media_id = self._match_valid_url(url).groups()
         embed_page = self._download_webpage(
             'https://www.rtbf.be/auvio/embed/' + ('direct' if live else 'media'),
             media_id, query={'id': media_id})
@@ -125,7 +125,7 @@ class RTBFIE(InfoExtractor):
                 })
 
         mpd_url = data.get('urlDash')
-        if mpd_url and (self._downloader.params.get('allow_unplayable_formats') or not data.get('drm')):
+        if mpd_url and (self.get_param('allow_unplayable_formats') or not data.get('drm')):
             formats.extend(self._extract_mpd_formats(
                 mpd_url, media_id, mpd_id='dash', fatal=False))
 

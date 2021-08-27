@@ -186,7 +186,7 @@ class DubokuPlaylistIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         if mobj is None:
             raise ExtractorError('Invalid URL: %s' % url)
         series_id = mobj.group('id')

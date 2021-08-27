@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -62,10 +61,10 @@ class ImgGamingBaseIE(InfoExtractor):
             raise
 
     def _real_extract(self, url):
-        domain, media_type, media_id, playlist_id = re.match(self._VALID_URL, url).groups()
+        domain, media_type, media_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
-            if self._downloader.params.get('noplaylist'):
+            if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % media_id)
             else:
                 self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % playlist_id)

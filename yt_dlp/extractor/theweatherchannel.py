@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .theplatform import ThePlatformIE
 from ..utils import (
@@ -33,7 +32,7 @@ class TheWeatherChannelIE(ThePlatformIE):
     }]
 
     def _real_extract(self, url):
-        asset_name, locale, display_id = re.match(self._VALID_URL, url).groups()
+        asset_name, locale, display_id = self._match_valid_url(url).groups()
         if not locale:
             locale = 'en-US'
         video_data = list(self._download_json(

@@ -19,7 +19,7 @@ from ..utils import (
 
 
 class PlutoTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?pluto\.tv/on-demand/(?P<video_type>movies|series)/(?P<slug>.*)/?$'
+    _VALID_URL = r'https?://(?:www\.)?pluto\.tv(?:/en)?/on-demand/(?P<video_type>movies|series)/(?P<slug>.*)/?$'
     _INFO_URL = 'https://service-vod.clusters.pluto.tv/v3/vod/slugs/'
     _INFO_QUERY_PARAMS = {
         'appName': 'web',
@@ -48,24 +48,21 @@ class PlutoTVIE(InfoExtractor):
                 'episode_number': 3,
                 'duration': 3600,
             }
-        },
-        {
+        }, {
             'url': 'https://pluto.tv/on-demand/series/i-love-money/season/1/',
             'playlist_count': 11,
             'info_dict': {
                 'id': '5de6c582e9379ae4912dedbd',
                 'title': 'I Love Money - Season 1',
             }
-        },
-        {
+        }, {
             'url': 'https://pluto.tv/on-demand/series/i-love-money/',
             'playlist_count': 26,
             'info_dict': {
                 'id': '5de6c582e9379ae4912dedbd',
                 'title': 'I Love Money',
             }
-        },
-        {
+        }, {
             'url': 'https://pluto.tv/on-demand/movies/arrival-2015-1-1',
             'md5': '3cead001d317a018bf856a896dee1762',
             'info_dict': {
@@ -75,48 +72,66 @@ class PlutoTVIE(InfoExtractor):
                 'description': 'When mysterious spacecraft touch down across the globe, an elite team - led by expert translator Louise Banks (Academy Award® nominee Amy Adams) – races against time to decipher their intent.',
                 'duration': 9000,
             }
-        },
+        }, {
+            'url': 'https://pluto.tv/en/on-demand/series/manhunters-fugitive-task-force/seasons/1/episode/third-times-the-charm-1-1',
+            'only_matching': True,
+        }
     ]
 
-    def _to_ad_free_formats(self, video_id, formats):
-        ad_free_formats = []
-        m3u8_urls = set()
-        for format in formats:
+    def _to_ad_free_formats(self, video_id, formats, subtitles):
+        ad_free_formats, ad_free_subtitles, m3u8_urls = [], {}, set()
+        for fmt in formats:
             res = self._download_webpage(
-                format.get('url'), video_id, note='Downloading m3u8 playlist',
+                fmt.get('url'), video_id, note='Downloading m3u8 playlist',
                 fatal=False)
             if not res:
                 continue
             first_segment_url = re.search(
                 r'^(https?://.*/)0\-(end|[0-9]+)/[^/]+\.ts$', res,
                 re.MULTILINE)
-            if not first_segment_url:
+            if first_segment_url:
+                m3u8_urls.add(
+                    compat_urlparse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
                 continue
-            m3u8_urls.add(
-                compat_urlparse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
+            first_segment_url = re.search(
+                r'^(https?://.*/).+\-0+\.ts$', res,
+                re.MULTILINE)
+            if first_segment_url:
+                m3u8_urls.add(
+                    compat_urlparse.urljoin(first_segment_url.group(1), 'master.m3u8'))
+                continue
 
         for m3u8_url in m3u8_urls:
-            ad_free_formats.extend(
-                self._extract_m3u8_formats(
-                    m3u8_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
-        self._sort_formats(ad_free_formats)
-        return ad_free_formats
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
+            ad_free_formats.extend(fmts)
+            ad_free_subtitles = self._merge_subtitles(ad_free_subtitles, subs)
+        if ad_free_formats:
+            formats, subtitles = ad_free_formats, ad_free_subtitles
+        else:
+            self.report_warning('Unable to find ad-free formats')
+        return formats, subtitles
 
     def _get_video_info(self, video_json, slug, series_name=None):
         video_id = video_json.get('_id', slug)
-        formats = []
+        formats, subtitles = [], {}
         for video_url in try_get(video_json, lambda x: x['stitched']['urls'], list) or []:
             if video_url.get('type') != 'hls':
                 continue
             url = url_or_none(video_url.get('url'))
-            formats.extend(
-                self._extract_m3u8_formats(
-                    url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
+
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            subtitles = self._merge_subtitles(subtitles, subs)
+
+        formats, subtitles = self._to_ad_free_formats(video_id, formats, subtitles)
+        self._sort_formats(formats)
+
         info = {
             'id': video_id,
-            'formats': self._to_ad_free_formats(video_id, formats),
+            'formats': formats,
+            'subtitles': subtitles,
             'title': video_json.get('name'),
             'description': video_json.get('description'),
             'duration': float_or_none(video_json.get('duration'), scale=1000),

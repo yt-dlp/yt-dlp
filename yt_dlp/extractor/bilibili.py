@@ -2,14 +2,18 @@
 from __future__ import unicode_literals
 
 import hashlib
+import itertools
 import json
+import functools
 import re
+import math
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
     compat_str,
     compat_parse_qs,
     compat_urlparse,
+    compat_urllib_parse_urlparse
 )
 from ..utils import (
     ExtractorError,
@@ -23,6 +27,7 @@ from ..utils import (
     unified_timestamp,
     unsmuggle_url,
     urlencode_postdata,
+    OnDemandPagedList
 )
 
 
@@ -36,7 +41,7 @@ class BiliBiliIE(InfoExtractor):
                                 video/[aA][vV]|
                                 anime/(?P<anime_id>\d+)/play\#
                             )(?P<id>\d+)|
-                            video/[bB][vV](?P<id_bv>[^/?#&]+)
+                            (s/)?video/[bB][vV](?P<id_bv>[^/?#&]+)
                         )
                         (?:/?\?p=(?P<page>\d+))?
                     '''
@@ -120,6 +125,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'https://www.bilibili.com/video/BV1bK411W797',
         'info_dict': {
             'id': 'BV1bK411W797',
+            'title': '物语中的人物是如何吐槽自己的OP的'
         },
         'playlist_count': 17,
     }]
@@ -138,7 +144,7 @@ class BiliBiliIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id_bv') or mobj.group('id')
 
         av_id, bv_id = self._get_video_id_set(video_id, mobj.group('id_bv') is not None)
@@ -151,12 +157,13 @@ class BiliBiliIE(InfoExtractor):
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
         # If the video has no page argument, check to see if it's an anthology
         if page_id is None:
-            if not self._downloader.params.get('noplaylist'):
+            if not self.get_param('noplaylist'):
                 r = self._extract_anthology_entries(bv_id, video_id, webpage)
                 if r is not None:
                     self.to_screen('Downloading anthology %s - add --no-playlist to just download video' % video_id)
                     return r
-            self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+            else:
+                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
         if 'anime/' not in url:
             cid = self._search_regex(
@@ -274,11 +281,11 @@ class BiliBiliIE(InfoExtractor):
         }
 
         uploader_mobj = re.search(
-            r'<a[^>]+href="(?:https?:)?//space\.bilibili\.com/(?P<id>\d+)"[^>]*>(?P<name>[^<]+)',
+            r'<a[^>]+href="(?:https?:)?//space\.bilibili\.com/(?P<id>\d+)"[^>]*>\s*(?P<name>[^<]+?)\s*<',
             webpage)
         if uploader_mobj:
             info.update({
-                'uploader': uploader_mobj.group('name'),
+                'uploader': uploader_mobj.group('name').strip(),
                 'uploader_id': uploader_mobj.group('id'),
             })
 
@@ -296,7 +303,7 @@ class BiliBiliIE(InfoExtractor):
             'tags': tags,
             'raw_tags': raw_tags,
         }
-        if self._downloader.params.get('getcomments', False):
+        if self.get_param('getcomments', False):
             def get_comments():
                 comments = self._get_all_comment_pages(video_id)
                 return {
@@ -496,28 +503,109 @@ class BiliBiliBangumiIE(InfoExtractor):
 
 class BilibiliChannelIE(InfoExtractor):
     _VALID_URL = r'https?://space.bilibili\.com/(?P<id>\d+)'
-    # May need to add support for pagination? Need to find a user with many video uploads to test
-    _API_URL = "https://api.bilibili.com/x/space/arc/search?mid=%s&pn=1&ps=25&jsonp=jsonp"
-    _TEST = {}  # TODO: Add tests
+    _API_URL = "https://api.bilibili.com/x/space/arc/search?mid=%s&pn=%d&jsonp=jsonp"
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/3985676/video',
+        'info_dict': {},
+        'playlist_mincount': 112,
+    }]
+
+    def _entries(self, list_id):
+        count, max_count = 0, None
+
+        for page_num in itertools.count(1):
+            data = self._parse_json(
+                self._download_webpage(
+                    self._API_URL % (list_id, page_num), list_id,
+                    note='Downloading page %d' % page_num),
+                list_id)['data']
+
+            max_count = max_count or try_get(data, lambda x: x['page']['count'])
+
+            entries = try_get(data, lambda x: x['list']['vlist'])
+            if not entries:
+                return
+            for entry in entries:
+                yield self.url_result(
+                    'https://www.bilibili.com/video/%s' % entry['bvid'],
+                    BiliBiliIE.ie_key(), entry['bvid'])
+
+            count += len(entries)
+            if max_count and count >= max_count:
+                return
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        json_str = self._download_webpage(self._API_URL % list_id, "None")
+        return self.playlist_result(self._entries(list_id), list_id)
 
-        json_parsed = json.loads(json_str)
-        entries = [{
-            '_type': 'url',
-            'ie_key': BiliBiliIE.ie_key(),
-            'url': ('https://www.bilibili.com/video/%s' %
-                    entry['bvid']),
-            'id': entry['bvid'],
-        } for entry in json_parsed['data']['list']['vlist']]
 
-        return {
-            '_type': 'playlist',
-            'id': list_id,
-            'entries': entries
+class BilibiliCategoryIE(InfoExtractor):
+    IE_NAME = 'Bilibili category extractor'
+    _MAX_RESULTS = 1000000
+    _VALID_URL = r'https?://www\.bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/v/kichiku/mad',
+        'info_dict': {
+            'id': 'kichiku: mad',
+            'title': 'kichiku: mad'
+        },
+        'playlist_mincount': 45,
+        'params': {
+            'playlistend': 45
         }
+    }]
+
+    def _fetch_page(self, api_url, num_pages, query, page_num):
+        parsed_json = self._download_json(
+            api_url, query, query={'Search_key': query, 'pn': page_num},
+            note='Extracting results from page %s of %s' % (page_num, num_pages))
+
+        video_list = try_get(parsed_json, lambda x: x['data']['archives'], list)
+        if not video_list:
+            raise ExtractorError('Failed to retrieve video list for page %d' % page_num)
+
+        for video in video_list:
+            yield self.url_result(
+                'https://www.bilibili.com/video/%s' % video['bvid'], 'BiliBili', video['bvid'])
+
+    def _entries(self, category, subcategory, query):
+        # map of categories : subcategories : RIDs
+        rid_map = {
+            'kichiku': {
+                'mad': 26,
+                'manual_vocaloid': 126,
+                'guide': 22,
+                'theatre': 216,
+                'course': 127
+            },
+        }
+
+        if category not in rid_map:
+            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (category, list(rid_map.keys())))
+
+        if subcategory not in rid_map[category]:
+            raise ExtractorError('The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (subcategory, list(rid_map[category].keys())))
+
+        rid_value = rid_map[category][subcategory]
+
+        api_url = 'https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp' % rid_value
+        page_json = self._download_json(api_url, query, query={'Search_key': query, 'pn': '1'})
+        page_data = try_get(page_json, lambda x: x['data']['page'], dict)
+        count, size = int_or_none(page_data.get('count')), int_or_none(page_data.get('size'))
+        if count is None or not size:
+            raise ExtractorError('Failed to calculate either page count or size')
+
+        num_pages = math.ceil(count / size)
+
+        return OnDemandPagedList(functools.partial(
+            self._fetch_page, api_url, num_pages, query), size)
+
+    def _real_extract(self, url):
+        u = compat_urllib_parse_urlparse(url)
+        category, subcategory = u.path.split('/')[2:4]
+        query = '%s: %s' % (category, subcategory)
+
+        return self.playlist_result(self._entries(category, subcategory, query), query, query)
 
 
 class BiliBiliSearchIE(SearchInfoExtractor):

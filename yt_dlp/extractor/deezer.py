@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -13,10 +12,10 @@ from ..utils import (
 
 class DeezerBaseInfoExtractor(InfoExtractor):
     def get_data(self, url):
-        if not self._downloader.params.get('test'):
-            self._downloader.report_warning('For now, this extractor only supports the 30 second previews. Patches welcome!')
+        if not self.get_param('test'):
+            self.report_warning('For now, this extractor only supports the 30 second previews. Patches welcome!')
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         data_id = mobj.group('id')
 
         webpage = self._download_webpage(url, data_id)

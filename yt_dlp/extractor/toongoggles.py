@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -63,7 +62,7 @@ class ToonGogglesIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        show_id, episode_id = re.match(self._VALID_URL, url).groups()
+        show_id, episode_id = self._match_valid_url(url).groups()
         if episode_id:
             episode_data = self._call_api('search', episode_id, {
                 'filter': 'episode',

@@ -2,12 +2,10 @@
 
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_urlparse,
 )
 from ..utils import (
     clean_html,
@@ -15,6 +13,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_duration,
+    parse_qs,
     try_get,
     url_or_none,
     urljoin,
@@ -151,6 +150,7 @@ class FranceTVIE(InfoExtractor):
                     videos.append(fallback_info['video'])
 
         formats = []
+        subtitles = {}
         for video in videos:
             video_url = video.get('url')
             if not video_url:
@@ -171,10 +171,12 @@ class FranceTVIE(InfoExtractor):
                     sign(video_url, format_id) + '&hdcore=3.7.0&plugin=aasp-3.7.0.39.44',
                     video_id, f4m_id=format_id, fatal=False))
             elif ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
+                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     sign(video_url, format_id), video_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id=format_id,
-                    fatal=False))
+                    fatal=False)
+                formats.extend(m3u8_fmts)
+                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             elif ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(
                     sign(video_url, format_id), video_id, mpd_id=format_id, fatal=False))
@@ -199,13 +201,12 @@ class FranceTVIE(InfoExtractor):
             title += ' - %s' % subtitle
         title = title.strip()
 
-        subtitles = {}
-        subtitles_list = [{
-            'url': subformat['url'],
-            'ext': subformat.get('format'),
-        } for subformat in info.get('subtitles', []) if subformat.get('url')]
-        if subtitles_list:
-            subtitles['fr'] = subtitles_list
+        subtitles.setdefault('fr', []).extend(
+            [{
+                'url': subformat['url'],
+                'ext': subformat.get('format'),
+            } for subformat in info.get('subtitles', []) if subformat.get('url')]
+        )
 
         return {
             'id': video_id,
@@ -220,12 +221,12 @@ class FranceTVIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         catalog = mobj.group('catalog')
 
         if not video_id:
-            qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+            qs = parse_qs(url)
             video_id = qs.get('idDiffusion', [None])[0]
             catalog = qs.get('catalogue', [None])[0]
             if not video_id:
@@ -358,6 +359,22 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
         },
         'add_ie': [FranceTVIE.ie_key()],
     }, {
+        'note': 'Only an image exists in initial webpage instead of the video',
+        'url': 'https://www.francetvinfo.fr/sante/maladie/coronavirus/covid-19-en-inde-une-situation-catastrophique-a-new-dehli_4381095.html',
+        'info_dict': {
+            'id': '7d204c9e-a2d3-11eb-9e4c-000d3a23d482',
+            'ext': 'mp4',
+            'title': 'Covid-19 : une situation catastrophique à New Dehli',
+            'thumbnail': str,
+            'duration': 76,
+            'timestamp': 1619028518,
+            'upload_date': '20210421',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'add_ie': [FranceTVIE.ie_key()],
+    }, {
         'url': 'http://www.francetvinfo.fr/elections/europeennes/direct-europeennes-regardez-le-debat-entre-les-candidats-a-la-presidence-de-la-commission_600639.html',
         'only_matching': True,
     }, {
@@ -384,6 +401,10 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
     }, {
         'url': 'http://france3-regions.francetvinfo.fr/limousin/emissions/jt-1213-limousin',
         'only_matching': True,
+    }, {
+        # "<figure id=" pattern (#28792)
+        'url': 'https://www.francetvinfo.fr/culture/patrimoine/incendie-de-notre-dame-de-paris/notre-dame-de-paris-de-l-incendie-de-la-cathedrale-a-sa-reconstruction_4372291.html',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -401,7 +422,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             (r'player\.load[^;]+src:\s*["\']([^"\']+)',
              r'id-video=([^@]+@[^"]+)',
              r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
-             r'data-id="([^"]+)"'),
+             r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
             webpage, 'video id')
 
         return self._make_url_result(video_id)
@@ -524,7 +545,7 @@ class FranceTVJeunesseIE(FranceTVBaseInfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
 
         playlist = self._download_json(

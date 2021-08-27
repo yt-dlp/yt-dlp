@@ -212,7 +212,7 @@ class BandcampIE(InfoExtractor):
 
 class BandcampAlbumIE(BandcampIE):
     IE_NAME = 'Bandcamp:album'
-    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?:/album/(?P<id>[^/?#&]+))?'
+    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?!/music)(?:/album/(?P<id>[^/?#&]+))?'
 
     _TESTS = [{
         'url': 'http://blazo.bandcamp.com/album/jazz-format-mixtape-vol-1',
@@ -294,7 +294,7 @@ class BandcampAlbumIE(BandcampIE):
                 else super(BandcampAlbumIE, cls).suitable(url))
 
     def _real_extract(self, url):
-        uploader_id, album_id = re.match(self._VALID_URL, url).groups()
+        uploader_id, album_id = self._match_valid_url(url).groups()
         playlist_id = album_id or uploader_id
         webpage = self._download_webpage(url, playlist_id)
         tralbum = self._extract_data_attr(webpage, playlist_id)
@@ -389,3 +389,43 @@ class BandcampWeeklyIE(BandcampIE):
             'episode_id': show_id,
             'formats': formats
         }
+
+
+class BandcampMusicIE(InfoExtractor):
+    _VALID_URL = r'https?://(?P<id>[^/]+)\.bandcamp\.com/music'
+    _TESTS = [{
+        'url': 'https://steviasphere.bandcamp.com/music',
+        'playlist_mincount': 47,
+        'info_dict': {
+            'id': 'steviasphere',
+        },
+    }, {
+        'url': 'https://coldworldofficial.bandcamp.com/music',
+        'playlist_mincount': 10,
+        'info_dict': {
+            'id': 'coldworldofficial',
+        },
+    }, {
+        'url': 'https://nuclearwarnowproductions.bandcamp.com/music',
+        'playlist_mincount': 399,
+        'info_dict': {
+            'id': 'nuclearwarnowproductions',
+        },
+    }
+    ]
+
+    _TYPE_IE_DICT = {
+        'album': BandcampAlbumIE.ie_key(),
+        'track': BandcampIE.ie_key()
+    }
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        webpage = self._download_webpage(url, id)
+        items = re.findall(r'href\=\"\/(?P<path>(?P<type>album|track)+/[^\"]+)', webpage)
+        entries = [
+            self.url_result(
+                f'https://{id}.bandcamp.com/{item[0]}',
+                ie=self._TYPE_IE_DICT[item[1]])
+            for item in items]
+        return self.playlist_result(entries, id)

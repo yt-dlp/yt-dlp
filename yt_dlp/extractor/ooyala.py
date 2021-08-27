@@ -10,7 +10,6 @@ from ..compat import (
 )
 from ..utils import (
     determine_ext,
-    ExtractorError,
     float_or_none,
     int_or_none,
     try_get,
@@ -85,7 +84,7 @@ class OoyalaBaseIE(InfoExtractor):
                     'fps': float_or_none(stream.get('framerate')),
                 })
         if not formats and not auth_data.get('authorized'):
-            raise ExtractorError('%s said: %s' % (
+            self.raise_no_formats('%s said: %s' % (
                 self.IE_NAME, auth_data['message']), expected=True)
         self._sort_formats(formats)
 
@@ -205,6 +204,6 @@ class OoyalaExternalIE(OoyalaBaseIE):
     }
 
     def _real_extract(self, url):
-        partner_id, video_id, pcode = re.match(self._VALID_URL, url).groups()
+        partner_id, video_id, pcode = self._match_valid_url(url).groups()
         content_tree_url = self._CONTENT_TREE_BASE + 'external_id/%s/%s:%s' % (pcode, partner_id, video_id)
         return self._extract(content_tree_url, video_id)

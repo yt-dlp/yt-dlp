@@ -9,7 +9,6 @@ from ..utils import (
     unified_strdate,
     compat_str,
     determine_ext,
-    ExtractorError,
     update_url_query,
 )
 
@@ -78,7 +77,7 @@ class DisneyIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        domain, video_id, display_id = re.match(self._VALID_URL, url).groups()
+        domain, video_id, display_id = self._match_valid_url(url).groups()
         if not video_id:
             webpage = self._download_webpage(url, display_id)
             grill = re.sub(r'"\s*\+\s*"', '', self._search_regex(
@@ -140,7 +139,7 @@ class DisneyIE(InfoExtractor):
                 'vcodec': 'none' if (width == 0 and height == 0) else None,
             })
         if not formats and video_data.get('expired'):
-            raise ExtractorError(
+            self.raise_no_formats(
                 '%s said: %s' % (self.IE_NAME, page_data['translations']['video_expired']),
                 expected=True)
         self._sort_formats(formats)

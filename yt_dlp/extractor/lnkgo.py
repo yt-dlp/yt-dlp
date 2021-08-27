@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -58,7 +57,7 @@ class LnkGoIE(InfoExtractor):
     _M3U8_TEMPL = 'https://vod.lnk.lt/lnk_vod/lnk/lnk/%s:%s/playlist.m3u8%s'
 
     def _real_extract(self, url):
-        display_id, video_id = re.match(self._VALID_URL, url).groups()
+        display_id, video_id = self._match_valid_url(url).groups()
 
         video_info = self._download_json(
             'https://lnk.lt/api/main/video-page/%s/%s/false' % (display_id, video_id or '0'),

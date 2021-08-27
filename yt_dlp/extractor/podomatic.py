@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import int_or_none
@@ -46,7 +45,7 @@ class PodomaticIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         channel = mobj.group('channel') or mobj.group('channel_2')
 

@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import int_or_none
@@ -27,7 +26,7 @@ class TwentyThreeVideoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        domain, query, photo_id = re.match(self._VALID_URL, url).groups()
+        domain, query, photo_id = self._match_valid_url(url).groups()
         base_url = 'https://%s' % domain
         photo_data = self._download_json(
             base_url + '/api/photo/list?' + query, photo_id, query={

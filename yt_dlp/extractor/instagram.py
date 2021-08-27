@@ -12,12 +12,14 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    float_or_none,
     get_element_by_attribute,
     int_or_none,
     lowercase_escape,
     std_headers,
     try_get,
     url_or_none,
+    variadic,
 )
 
 
@@ -32,6 +34,7 @@ class InstagramIE(InfoExtractor):
             'title': 'Video by naomipq',
             'description': 'md5:1f17f0ab29bd6fe2bfad705f58de3cb8',
             'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 0,
             'timestamp': 1371748545,
             'upload_date': '20130620',
             'uploader_id': 'naomipq',
@@ -48,6 +51,7 @@ class InstagramIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Video by britneyspears',
             'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 0,
             'timestamp': 1453760977,
             'upload_date': '20160125',
             'uploader_id': 'britneyspears',
@@ -87,6 +91,24 @@ class InstagramIE(InfoExtractor):
             'description': 'md5:0f9203fc6a2ce4d228da5754bcf54957',
         },
     }, {
+        # IGTV
+        'url': 'https://www.instagram.com/tv/BkfuX9UB-eK/',
+        'info_dict': {
+            'id': 'BkfuX9UB-eK',
+            'ext': 'mp4',
+            'title': 'Fingerboarding Tricks with @cass.fb',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 53.83,
+            'timestamp': 1530032919,
+            'upload_date': '20180626',
+            'uploader_id': 'instagram',
+            'uploader': 'Instagram',
+            'like_count': int,
+            'comment_count': int,
+            'comments': list,
+            'description': 'Meet Cass Hirst (@cass.fb), a fingerboarding pro who can perform tiny ollies and kickflips while blindfolded.',
+        }
+    }, {
         'url': 'https://instagram.com/p/-Cmh1cukG2/',
         'only_matching': True,
     }, {
@@ -119,7 +141,7 @@ class InstagramIE(InfoExtractor):
             return mobj.group('link')
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         url = mobj.group('url')
 
@@ -159,32 +181,37 @@ class InstagramIE(InfoExtractor):
             description = try_get(
                 media, lambda x: x['edge_media_to_caption']['edges'][0]['node']['text'],
                 compat_str) or media.get('caption')
+            title = media.get('title')
             thumbnail = media.get('display_src') or media.get('display_url')
+            duration = float_or_none(media.get('video_duration'))
             timestamp = int_or_none(media.get('taken_at_timestamp') or media.get('date'))
             uploader = media.get('owner', {}).get('full_name')
             uploader_id = media.get('owner', {}).get('username')
 
             def get_count(keys, kind):
-                if not isinstance(keys, (list, tuple)):
-                    keys = [keys]
-                for key in keys:
+                for key in variadic(keys):
                     count = int_or_none(try_get(
                         media, (lambda x: x['edge_media_%s' % key]['count'],
                                 lambda x: x['%ss' % kind]['count'])))
                     if count is not None:
                         return count
+
             like_count = get_count('preview_like', 'like')
             comment_count = get_count(
                 ('preview_comment', 'to_comment', 'to_parent_comment'), 'comment')
 
-            comments = [{
-                'author': comment.get('user', {}).get('username'),
-                'author_id': comment.get('user', {}).get('id'),
-                'id': comment.get('id'),
-                'text': comment.get('text'),
-                'timestamp': int_or_none(comment.get('created_at')),
-            } for comment in media.get(
-                'comments', {}).get('nodes', []) if comment.get('text')]
+            comments = []
+            for comment in try_get(media, lambda x: x['edge_media_to_parent_comment']['edges']):
+                comment_dict = comment.get('node', {})
+                comment_text = comment_dict.get('text')
+                if comment_text:
+                    comments.append({
+                        'author': try_get(comment_dict, lambda x: x['owner']['username']),
+                        'author_id': try_get(comment_dict, lambda x: x['owner']['id']),
+                        'id': comment_dict.get('id'),
+                        'text': comment_text,
+                        'timestamp': int_or_none(comment_dict.get('created_at')),
+                    })
             if not video_url:
                 edges = try_get(
                     media, lambda x: x['edge_sidecar_to_children']['edges'],
@@ -200,9 +227,10 @@ class InstagramIE(InfoExtractor):
                             continue
                         entries.append({
                             'id': node.get('shortcode') or node['id'],
-                            'title': 'Video %d' % edge_num,
+                            'title': node.get('title') or 'Video %d' % edge_num,
                             'url': node_video_url,
                             'thumbnail': node.get('display_url'),
+                            'duration': float_or_none(node.get('video_duration')),
                             'width': int_or_none(try_get(node, lambda x: x['dimensions']['width'])),
                             'height': int_or_none(try_get(node, lambda x: x['dimensions']['height'])),
                             'view_count': int_or_none(node.get('video_view_count')),
@@ -239,8 +267,9 @@ class InstagramIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'ext': 'mp4',
-            'title': 'Video by %s' % uploader_id,
+            'title': title or 'Video by %s' % uploader_id,
             'description': description,
+            'duration': duration,
             'thumbnail': thumbnail,
             'timestamp': timestamp,
             'uploader_id': uploader_id,
@@ -248,6 +277,9 @@ class InstagramIE(InfoExtractor):
             'like_count': like_count,
             'comment_count': comment_count,
             'comments': comments,
+            'http_headers': {
+                'Referer': 'https://www.instagram.com/',
+            }
         }
 
 

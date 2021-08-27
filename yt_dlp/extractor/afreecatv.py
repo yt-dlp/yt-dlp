@@ -257,7 +257,7 @@ class AfreecaTVIE(InfoExtractor):
             if flag and flag == 'SUCCEED':
                 break
             if flag == 'PARTIAL_ADULT':
-                self._downloader.report_warning(
+                self.report_warning(
                     'In accordance with local laws and regulations, underage users are restricted from watching adult content. '
                     'Only content suitable for all ages will be downloaded. '
                     'Provide account credentials if you wish to download restricted content.')
@@ -323,7 +323,7 @@ class AfreecaTVIE(InfoExtractor):
                         'url': file_url,
                         'format_id': 'http',
                     }]
-                if not formats:
+                if not formats and not self.get_param('ignore_no_formats'):
                     continue
                 self._sort_formats(formats)
                 file_info = common_entry.copy()

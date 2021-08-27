@@ -21,6 +21,7 @@ from ..utils import (
 class ShahidBaseIE(AWSIE):
     _AWS_PROXY_HOST = 'api2.shahid.net'
     _AWS_API_KEY = '2RRtuMHx95aNI1Kvtn2rChEuwsCogUd4samGPjLh'
+    _VALID_URL_BASE = r'https?://shahid\.mbc\.net/[a-z]{2}/'
 
     def _handle_error(self, e):
         fail_data = self._parse_json(
@@ -49,7 +50,7 @@ class ShahidBaseIE(AWSIE):
 
 class ShahidIE(ShahidBaseIE):
     _NETRC_MACHINE = 'shahid'
-    _VALID_URL = r'https?://shahid\.mbc\.net/ar/(?:serie|show|movie)s/[^/]+/(?P<type>episode|clip|movie)-(?P<id>\d+)'
+    _VALID_URL = ShahidBaseIE._VALID_URL_BASE + r'(?:serie|show|movie)s/[^/]+/(?P<type>episode|clip|movie)-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://shahid.mbc.net/ar/shows/%D9%85%D8%AA%D8%AD%D9%81-%D8%A7%D9%84%D8%AF%D8%AD%D9%8A%D8%AD-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D9%83%D9%84%D9%8A%D8%A8-1/clip-816924',
         'info_dict': {
@@ -72,6 +73,9 @@ class ShahidIE(ShahidBaseIE):
     }, {
         # shahid plus subscriber only
         'url': 'https://shahid.mbc.net/ar/series/%D9%85%D8%B1%D8%A7%D9%8A%D8%A7-2011-%D8%A7%D9%84%D9%85%D9%88%D8%B3%D9%85-1-%D8%A7%D9%84%D8%AD%D9%84%D9%82%D8%A9-1/episode-90511',
+        'only_matching': True
+    }, {
+        'url': 'https://shahid.mbc.net/en/shows/Ramez-Fi-Al-Shallal-season-1-episode-1/episode-359319',
         'only_matching': True
     }]
 
@@ -107,15 +111,15 @@ class ShahidIE(ShahidBaseIE):
             }))
 
     def _real_extract(self, url):
-        page_type, video_id = re.match(self._VALID_URL, url).groups()
+        page_type, video_id = self._match_valid_url(url).groups()
         if page_type == 'clip':
             page_type = 'episode'
 
         playout = self._call_api(
             'playout/new/url/' + video_id, video_id)['playout']
 
-        if not self._downloader.params.get('allow_unplayable_formats') and playout.get('drm'):
-            raise ExtractorError('This video is DRM protected.', expected=True)
+        if not self.get_param('allow_unplayable_formats') and playout.get('drm'):
+            self.report_drm(video_id)
 
         formats = self._extract_m3u8_formats(re.sub(
             # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
@@ -168,7 +172,7 @@ class ShahidIE(ShahidBaseIE):
 
 
 class ShahidShowIE(ShahidBaseIE):
-    _VALID_URL = r'https?://shahid\.mbc\.net/ar/(?:show|serie)s/[^/]+/(?:show|series)-(?P<id>\d+)'
+    _VALID_URL = ShahidBaseIE._VALID_URL_BASE + r'(?:show|serie)s/[^/]+/(?:show|series)-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://shahid.mbc.net/ar/shows/%D8%B1%D8%A7%D9%85%D8%B2-%D9%82%D8%B1%D8%B4-%D8%A7%D9%84%D8%A8%D8%AD%D8%B1/show-79187',
         'info_dict': {

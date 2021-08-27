@@ -120,7 +120,7 @@ class KalturaIE(InfoExtractor):
     def _extract_urls(webpage):
         # Embed codes: https://knowledge.kaltura.com/embedding-kaltura-media-players-your-site
         finditer = (
-            re.finditer(
+            list(re.finditer(
                 r"""(?xs)
                     kWidget\.(?:thumb)?[Ee]mbed\(
                     \{.*?
@@ -128,8 +128,8 @@ class KalturaIE(InfoExtractor):
                         (?P<q2>['"])_?(?P<partner_id>(?:(?!(?P=q2)).)+)(?P=q2),.*?
                         (?P<q3>['"])entry_?[Ii]d(?P=q3)\s*:\s*
                         (?P<q4>['"])(?P<id>(?:(?!(?P=q4)).)+)(?P=q4)(?:,|\s*\})
-                """, webpage)
-            or re.finditer(
+                """, webpage))
+            or list(re.finditer(
                 r'''(?xs)
                     (?P<q1>["'])
                         (?:https?:)?//cdnapi(?:sec)?\.kaltura\.com(?::\d+)?/(?:(?!(?P=q1)).)*\b(?:p|partner_id)/(?P<partner_id>\d+)(?:(?!(?P=q1)).)*
@@ -142,16 +142,16 @@ class KalturaIE(InfoExtractor):
                         \[\s*(?P<q2_1>["'])entry_?[Ii]d(?P=q2_1)\s*\]\s*=\s*
                     )
                     (?P<q3>["'])(?P<id>(?:(?!(?P=q3)).)+)(?P=q3)
-                ''', webpage)
-            or re.finditer(
+                ''', webpage))
+            or list(re.finditer(
                 r'''(?xs)
-                    <(?:iframe[^>]+src|meta[^>]+\bcontent)=(?P<q1>["'])
+                    <(?:iframe[^>]+src|meta[^>]+\bcontent)=(?P<q1>["'])\s*
                       (?:https?:)?//(?:(?:www|cdnapi(?:sec)?)\.)?kaltura\.com/(?:(?!(?P=q1)).)*\b(?:p|partner_id)/(?P<partner_id>\d+)
                       (?:(?!(?P=q1)).)*
                       [?&;]entry_id=(?P<id>(?:(?!(?P=q1))[^&])+)
                       (?:(?!(?P=q1)).)*
                     (?P=q1)
-                ''', webpage)
+                ''', webpage))
         )
         urls = []
         for mobj in finditer:
@@ -229,7 +229,7 @@ class KalturaIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         partner_id, entry_id = mobj.group('partner_id', 'id')
         ks = None
         captions = None
@@ -309,7 +309,7 @@ class KalturaIE(InfoExtractor):
             if f.get('fileExt') == 'chun':
                 continue
             # DRM-protected video, cannot be decrypted
-            if not self._downloader.params.get('allow_unplayable_formats') and f.get('fileExt') == 'wvm':
+            if not self.get_param('allow_unplayable_formats') and f.get('fileExt') == 'wvm':
                 continue
             if not f.get('fileExt'):
                 # QT indicates QuickTime; some videos have broken fileExt

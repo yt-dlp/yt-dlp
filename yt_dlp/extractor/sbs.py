@@ -10,7 +10,7 @@ from ..utils import (
 
 class SBSIE(InfoExtractor):
     IE_DESC = 'sbs.com.au'
-    _VALID_URL = r'https?://(?:www\.)?sbs\.com\.au/(?:ondemand(?:/video/(?:single/)?|.*?\bplay=)|news/(?:embeds/)?video/)(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?sbs\.com\.au/(?:ondemand(?:/video/(?:single/)?|.*?\bplay=|/watch/)|news/(?:embeds/)?video/)(?P<id>[0-9]+)'
 
     _TESTS = [{
         # Original URL is handled by the generic IE which finds the iframe:
@@ -42,6 +42,9 @@ class SBSIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.sbs.com.au/news/embeds/video/1840778819866',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.sbs.com.au/ondemand/watch/1698704451971',
         'only_matching': True,
     }]
 

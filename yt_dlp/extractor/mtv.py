@@ -249,6 +249,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
             if info:
                 entries.append(info)
 
+        # TODO: should be multi-video
         return self.playlist_result(
             entries, playlist_title=title, playlist_description=description)
 
@@ -275,7 +276,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
     @staticmethod
     def _extract_child_with_type(parent, t):
-        return next(c for c in parent['children'] if c.get('type') == t)
+        for c in parent['children']:
+            if c.get('type') == t:
+                return c
 
     def _extract_mgid(self, webpage):
         try:
@@ -306,7 +309,8 @@ class MTVServicesInfoExtractor(InfoExtractor):
             data = self._parse_json(self._search_regex(
                 r'__DATA__\s*=\s*({.+?});', webpage, 'data'), None)
             main_container = self._extract_child_with_type(data, 'MainContainer')
-            video_player = self._extract_child_with_type(main_container, 'VideoPlayer')
+            ab_testing = self._extract_child_with_type(main_container, 'ABTesting')
+            video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
             mgid = video_player['props']['media']['video']['config']['uri']
 
         return mgid
@@ -340,7 +344,7 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
     @staticmethod
     def _extract_url(webpage):
         mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media.mtvnservices.com/embed/.+?)\1', webpage)
+            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1', webpage)
         if mobj:
             return mobj.group('url')
 
@@ -351,7 +355,7 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
         return self._remove_template_parameter(config['feedWithQueryParams'])
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         mgid = mobj.group('mgid')
         return self._get_videos_info(mgid)
 
@@ -433,7 +437,7 @@ class MTVVideoIE(MTVServicesInfoExtractor):
         return 'http://mtv.mtvnimages.com/uri/' + uri
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('videoid')
         uri = mobj.groupdict().get('mgid')
         if uri is None:

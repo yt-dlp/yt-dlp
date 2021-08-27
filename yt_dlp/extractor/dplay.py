@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -287,57 +286,13 @@ class DPlayIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('id')
         domain = mobj.group('domain').lstrip('www.')
         country = mobj.group('country') or mobj.group('subdomain_country') or mobj.group('plus_country')
         host = 'disco-api.' + domain if domain[0] == 'd' else 'eu2-prod.disco-api.com'
         return self._get_disco_api_info(
             url, display_id, host, 'dplay' + country, country)
-
-
-class DiscoveryPlusIE(DPlayIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/video' + DPlayIE._PATH_REGEX
-    _TESTS = [{
-        'url': 'https://www.discoveryplus.com/video/property-brothers-forever-home/food-and-family',
-        'info_dict': {
-            'id': '1140794',
-            'display_id': 'property-brothers-forever-home/food-and-family',
-            'ext': 'mp4',
-            'title': 'Food and Family',
-            'description': 'The brothers help a Richmond family expand their single-level home.',
-            'duration': 2583.113,
-            'timestamp': 1609304400,
-            'upload_date': '20201230',
-            'creator': 'HGTV',
-            'series': 'Property Brothers: Forever Home',
-            'season_number': 1,
-            'episode_number': 1,
-        },
-        'skip': 'Available for Premium users',
-    }]
-
-    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers['x-disco-client'] = 'WEB:UNKNOWN:dplus_us:15.0.0'
-
-    def _download_video_playback_info(self, disco_base, video_id, headers):
-        return self._download_json(
-            disco_base + 'playback/v3/videoPlaybackInfo',
-            video_id, headers=headers, data=json.dumps({
-                'deviceInfo': {
-                    'adBlocker': False,
-                },
-                'videoId': video_id,
-                'wisteriaProperties': {
-                    'platform': 'desktop',
-                    'product': 'dplus_us',
-                },
-            }).encode('utf-8'))['data']['attributes']['streaming']
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        return self._get_disco_api_info(
-            url, display_id, 'us1-prod-direct.discoveryplus.com', 'go', 'us')
 
 
 class HGTVDeIE(DPlayIE):
@@ -367,3 +322,70 @@ class HGTVDeIE(DPlayIE):
         display_id = self._match_id(url)
         return self._get_disco_api_info(
             url, display_id, 'eu1-prod.disco-api.com', 'hgtv', 'de')
+
+
+class DiscoveryPlusIE(DPlayIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/video' + DPlayIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.com/video/property-brothers-forever-home/food-and-family',
+        'info_dict': {
+            'id': '1140794',
+            'display_id': 'property-brothers-forever-home/food-and-family',
+            'ext': 'mp4',
+            'title': 'Food and Family',
+            'description': 'The brothers help a Richmond family expand their single-level home.',
+            'duration': 2583.113,
+            'timestamp': 1609304400,
+            'upload_date': '20201230',
+            'creator': 'HGTV',
+            'series': 'Property Brothers: Forever Home',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'dplus_us'
+    _API_URL = 'us1-prod-direct.discoveryplus.com'
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers['x-disco-client'] = f'WEB:UNKNOWN:{self._PRODUCT}:15.0.0'
+
+    def _download_video_playback_info(self, disco_base, video_id, headers):
+        return self._download_json(
+            disco_base + 'playback/v3/videoPlaybackInfo',
+            video_id, headers=headers, data=json.dumps({
+                'deviceInfo': {
+                    'adBlocker': False,
+                },
+                'videoId': video_id,
+                'wisteriaProperties': {
+                    'platform': 'desktop',
+                    'product': self._PRODUCT,
+                },
+            }).encode('utf-8'))['data']['attributes']['streaming']
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        return self._get_disco_api_info(
+            url, display_id, self._API_URL, 'go', 'us')
+
+
+class ScienceChannelIE(DiscoveryPlusIE):
+    _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.sciencechannel.com/video/strangest-things-science-atve-us/nazi-mystery-machine',
+        'info_dict': {
+            'id': '2842849',
+            'display_id': 'strangest-things-science-atve-us/nazi-mystery-machine',
+            'ext': 'mp4',
+            'title': 'Nazi Mystery Machine',
+            'description': 'Experts investigate the secrets of a revolutionary encryption machine.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'sci'
+    _API_URL = 'us1-prod-direct.sciencechannel.com'

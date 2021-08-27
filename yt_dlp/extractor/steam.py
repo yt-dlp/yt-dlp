@@ -66,7 +66,7 @@ class SteamIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        m = re.match(self._VALID_URL, url)
+        m = self._match_valid_url(url)
         fileID = m.group('fileID')
         if fileID:
             videourl = url
@@ -139,7 +139,7 @@ class SteamIE(InfoExtractor):
                                         'format_id': ext + quality,
                                         'url': video_url,
                                     })
-                if not formats:
+                if not formats and not self.get_param('ignore_no_formats'):
                     continue
                 entry['formats'] = formats
                 entries.append(entry)

@@ -7,7 +7,6 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
-    ExtractorError,
     float_or_none,
     int_or_none,
     parse_iso8601,
@@ -154,12 +153,10 @@ class ToggleIE(InfoExtractor):
                 })
         if not formats:
             for meta in (info.get('Metas') or []):
-                if (not self._downloader.params.get('allow_unplayable_formats')
+                if (not self.get_param('allow_unplayable_formats')
                         and meta.get('Key') == 'Encryption' and meta.get('Value') == '1'):
-                    raise ExtractorError(
-                        'This video is DRM protected.', expected=True)
-            # Most likely because geo-blocked
-            raise ExtractorError('No downloadable videos found', expected=True)
+                    self.report_drm(video_id)
+            # Most likely because geo-blocked if no formats and no DRM
         self._sort_formats(formats)
 
         thumbnails = []

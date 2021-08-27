@@ -19,7 +19,7 @@ from ..utils import (
 
 
 class MetacafeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?metacafe\.com/watch/(?P<video_id>[^/]+)/(?P<display_id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?metacafe\.com/watch/(?P<id>[^/]+)/(?P<display_id>[^/?#]+)'
     _DISCLAIMER = 'http://www.metacafe.com/family_filter/'
     _FILTER_POST = 'http://www.metacafe.com/f/index.php?inputType=filter&controllerGroup=user'
     IE_NAME = 'metacafe'
@@ -130,7 +130,7 @@ class MetacafeIE(InfoExtractor):
 
     def _real_extract(self, url):
         # Extract id and simplified title from URL
-        video_id, display_id = re.match(self._VALID_URL, url).groups()
+        video_id, display_id = self._match_valid_url(url).groups()
 
         # the video may come from an external site
         m_external = re.match(r'^(\w{2})-(.*)$', video_id)

@@ -133,6 +133,8 @@ class CDAIE(InfoExtractor):
             'age_limit': 18 if need_confirm_age else 0,
         }
 
+        info = self._search_json_ld(webpage, video_id, default={})
+
         # Source: https://www.cda.pl/js/player.js?t=1606154898
         def decrypt_file(a):
             for p in ('_XDDD', '_CDA', '_ADC', '_CXD', '_QWE', '_Q5', '_IKSDE'):
@@ -197,7 +199,7 @@ class CDAIE(InfoExtractor):
                 handler = self._download_webpage
 
             webpage = handler(
-                self._BASE_URL + href, video_id,
+                urljoin(self._BASE_URL, href), video_id,
                 'Downloading %s version information' % resolution, fatal=False)
             if not webpage:
                 # Manually report warning because empty page is returned when
@@ -208,7 +210,5 @@ class CDAIE(InfoExtractor):
             extract_format(webpage, resolution)
 
         self._sort_formats(formats)
-
-        info = self._search_json_ld(webpage, video_id, default={})
 
         return merge_dicts(info_dict, info)

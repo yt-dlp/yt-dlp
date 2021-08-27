@@ -117,7 +117,7 @@ class ViideaIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        lecture_slug, explicit_part_id = re.match(self._VALID_URL, url).groups()
+        lecture_slug, explicit_part_id = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(url, lecture_slug)
 

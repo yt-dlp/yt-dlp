@@ -151,7 +151,7 @@ class TeachableIE(TeachableBaseIE):
             return '%s%s' % (TeachableBaseIE._URL_PREFIX, source_url)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         site = mobj.group('site') or mobj.group('site_t')
         video_id = mobj.group('id')
 
@@ -248,7 +248,7 @@ class TeachableCourseIE(TeachableBaseIE):
             TeachableCourseIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         site = mobj.group('site') or mobj.group('site_t')
         course_id = mobj.group('id')
 

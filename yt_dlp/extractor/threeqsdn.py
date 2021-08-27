@@ -99,16 +99,21 @@ class ThreeQSDNIE(InfoExtractor):
         aspect = float_or_none(config.get('aspect'))
 
         formats = []
+        subtitles = {}
         for source_type, source in (config.get('sources') or {}).items():
             if not source:
                 continue
             if source_type == 'dash':
-                formats.extend(self._extract_mpd_formats(
-                    source, video_id, mpd_id='mpd', fatal=False))
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    source, video_id, mpd_id='mpd', fatal=False)
+                formats.extend(fmts)
+                subtitles = self._merge_subtitles(subtitles, subs)
             elif source_type == 'hls':
-                formats.extend(self._extract_m3u8_formats(
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     source, video_id, 'mp4', 'm3u8' if live else 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
+                    m3u8_id='hls', fatal=False)
+                formats.extend(fmts)
+                subtitles = self._merge_subtitles(subtitles, subs)
             elif source_type == 'progressive':
                 for s in source:
                     src = s.get('src')
@@ -138,7 +143,6 @@ class ThreeQSDNIE(InfoExtractor):
         # behaviour is being kept as-is
         self._sort_formats(formats, ('res', 'source_preference'))
 
-        subtitles = {}
         for subtitle in (config.get('subtitles') or []):
             src = subtitle.get('src')
             if not src:

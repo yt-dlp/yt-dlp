@@ -7,7 +7,6 @@ import re
 import time
 import uuid
 import json
-import random
 
 from .common import InfoExtractor
 from ..compat import (
@@ -27,34 +26,24 @@ from ..utils import (
 class HotStarBaseIE(InfoExtractor):
     _AKAMAI_ENCRYPTION_KEY = b'\x05\xfc\x1a\x01\xca\xc9\x4b\xc4\x12\xfc\x53\x12\x07\x75\xf9\xee'
 
-    def _call_api_impl(self, path, video_id, query):
-        st = int(time.time())
+    def _call_api_impl(self, path, video_id, query, st=None, cookies=None):
+        st = int_or_none(st) or int(time.time())
         exp = st + 6000
         auth = 'st=%d~exp=%d~acl=/*' % (st, exp)
         auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
 
-        def _generate_device_id():
-            """
-            Reversed from javascript library.
-            JS function is generateUUID
-            """
-            t = int(round(time.time() * 1000))
-            e = "xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx"  # 4 seems to be interchangeable
-
-            def _replacer():
-                n = int((t + 16 * random.random())) % 16 | 0
-                return hex(n if "x" == e else 3 & n | 8)[2:]
-            return "".join([_.replace('x', _replacer()) for _ in e])
-
-        token = self._download_json(
-            'https://api.hotstar.com/um/v3/users',
-            video_id, note='Downloading token',
-            data=json.dumps({"device_ids": [{"id": compat_str(uuid.uuid4()), "type": "device_id"}]}).encode('utf-8'),
-            headers={
-                'hotstarauth': auth,
-                'x-hs-platform': 'PCTV',  # or 'web'
-                'Content-Type': 'application/json',
-            })['user_identity']
+        if cookies and cookies.get('userUP'):
+            token = cookies.get('userUP').value
+        else:
+            token = self._download_json(
+                'https://api.hotstar.com/um/v3/users',
+                video_id, note='Downloading token',
+                data=json.dumps({"device_ids": [{"id": compat_str(uuid.uuid4()), "type": "device_id"}]}).encode('utf-8'),
+                headers={
+                    'hotstarauth': auth,
+                    'x-hs-platform': 'PCTV',  # or 'web'
+                    'Content-Type': 'application/json',
+                })['user_identity']
 
         response = self._download_json(
             'https://api.hotstar.com/' + path, video_id, headers={
@@ -70,16 +59,19 @@ class HotStarBaseIE(InfoExtractor):
         return response['data']
 
     def _call_api(self, path, video_id, query_name='contentId'):
-        return self._call_api_impl(path, video_id, {
+        return self._download_json('https://api.hotstar.com/' + path, video_id=video_id, query={
             query_name: video_id,
             'tas': 10000,
+        }, headers={
+            'x-country-code': 'IN',
+            'x-platform-code': 'PCTV',
         })
 
-    def _call_api_v2(self, path, video_id):
+    def _call_api_v2(self, path, video_id, st=None, cookies=None):
         return self._call_api_impl(
-            '%s/content/%s' % (path, video_id), video_id, {
+            '%s/content/%s' % (path, video_id), video_id, st=st, cookies=cookies, query={
                 'desired-config': 'audio_channel:stereo|dynamic_range:sdr|encryption:plain|ladder:tv|package:dash|resolution:hd|subs-tag:HotstarVIP|video_codec:vp9',
-                'device-id': compat_str(uuid.uuid4()),
+                'device-id': cookies.get('device_id').value if cookies.get('device_id') else compat_str(uuid.uuid4()),
                 'os-name': 'Windows',
                 'os-version': '10',
             })
@@ -87,9 +79,26 @@ class HotStarBaseIE(InfoExtractor):
 
 class HotStarIE(HotStarBaseIE):
     IE_NAME = 'hotstar'
-    _VALID_URL = r'https?://(?:www\.)?hotstar\.com/.*(?P<id>\d{10})'
+    _VALID_URL = r'''(?x)
+                        (?:
+                            hotstar\:|
+                            https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
+                        )
+                        (?:
+                            (?P<type>movies|sports|episode|(?P<tv>tv))
+                            (?:
+                                \:|
+                                /[^/?#]+/
+                                (?(tv)
+                                    (?:[^/?#]+/){2}|
+                                    (?:[^/?#]+/)*
+                                )
+                            )|
+                            [^/?#]+/
+                        )?
+                        (?P<id>\d{10})
+                   '''
     _TESTS = [{
-        # contentData
         'url': 'https://www.hotstar.com/can-you-not-spread-rumours/1000076273',
         'info_dict': {
             'id': '1000076273',
@@ -100,55 +109,90 @@ class HotStarIE(HotStarBaseIE):
             'upload_date': '20151111',
             'duration': 381,
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        }
     }, {
-        # contentDetail
+        'url': 'hotstar:1000076273',
+        'only_matching': True,
+    }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
+        'info_dict': {
+            'id': '1000057157',
+            'ext': 'mp4',
+            'title': 'Radha Gopalam',
+            'description': 'md5:be3bc342cc120bbc95b3b0960e2b0d22',
+            'timestamp': 1140805800,
+            'upload_date': '20060224',
+            'duration': 9182,
+        },
+    }, {
+        'url': 'hotstar:movies:1000057157',
         'only_matching': True,
     }, {
-        'url': 'http://www.hotstar.com/sports/cricket/rajitha-sizzles-on-debut-with-329/2001477583',
+        'url': 'https://www.hotstar.com/in/sports/cricket/follow-the-blues-2021/recap-eng-fight-back-on-day-2/1260066104',
         'only_matching': True,
     }, {
-        'url': 'http://www.hotstar.com/1000000515',
+        'url': 'https://www.hotstar.com/in/sports/football/most-costly-pl-transfers-ft-grealish/1260065956',
         'only_matching': True,
     }, {
-        # only available via api v2
+        # contentData
+        'url': 'hotstar:sports:1260065956',
+        'only_matching': True,
+    }, {
+        # contentData
+        'url': 'hotstar:sports:1260066104',
+        'only_matching': True,
+    }, {
         'url': 'https://www.hotstar.com/tv/ek-bhram-sarvagun-sampanna/s-2116/janhvi-targets-suman/1000234847',
+        'info_dict': {
+            'id': '1000234847',
+            'ext': 'mp4',
+            'title': 'Janhvi Targets Suman',
+            'description': 'md5:78a85509348910bd1ca31be898c5796b',
+            'timestamp': 1556670600,
+            'upload_date': '20190501',
+            'duration': 1219,
+            'channel': 'StarPlus',
+            'channel_id': 3,
+            'series': 'Ek Bhram - Sarvagun Sampanna',
+            'season': 'Chapter 1',
+            'season_number': 1,
+            'season_id': 6771,
+            'episode': 'Janhvi Targets Suman',
+            'episode_number': 8,
+        },
+    }, {
+        'url': 'hotstar:episode:1000234847',
         'only_matching': True,
     }]
     _GEO_BYPASS = False
+    _TYPE = {
+        'movies': 'movie',
+        'sports': 'match',
+        'episode': 'episode',
+        'tv': 'episode',
+        None: 'content',
+    }
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, video_id)
-        app_state = self._parse_json(self._search_regex(
-            r'<script>window\.APP_STATE\s*=\s*({.+?})</script>',
-            webpage, 'app state'), video_id)
-        video_data = {}
-        getters = list(
-            lambda x, k=k: x['initialState']['content%s' % k]['content']
-            for k in ('Data', 'Detail')
-        )
-        for v in app_state.values():
-            content = try_get(v, getters, dict)
-            if content and content.get('contentId') == video_id:
-                video_data = content
-                break
-
+        mobj = self._match_valid_url(url)
+        video_id = mobj.group('id')
+        video_type = mobj.group('type')
+        cookies = self._get_cookies(url)
+        video_type = self._TYPE.get(video_type, video_type)
+        video_data = self._call_api(f'o/v1/{video_type}/detail', video_id)['body']['results']['item']
         title = video_data['title']
 
-        if not self._downloader.params.get('allow_unplayable_formats') and video_data.get('drmProtected'):
-            raise ExtractorError('This video is DRM protected.', expected=True)
+        if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
+            self.report_drm(video_id)
 
-        headers = {'Referer': url}
+        headers = {'Referer': 'https://www.hotstar.com/in'}
         formats = []
+        subs = {}
         geo_restricted = False
+        _, urlh = self._download_webpage_handle('https://www.hotstar.com/in', video_id)
+        # Required to fix https://github.com/yt-dlp/yt-dlp/issues/396
+        st = urlh.headers.get('x-origin-date')
         # change to v2 in the future
-        playback_sets = self._call_api_v2('play/v1/playback', video_id)['playBackSets']
+        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st, cookies=cookies)['playBackSets']
         for playback_set in playback_sets:
             if not isinstance(playback_set, dict):
                 continue
@@ -163,13 +207,17 @@ class HotStarIE(HotStarBaseIE):
             ext = determine_ext(format_url)
             try:
                 if 'package:hls' in tags or ext == 'm3u8':
-                    formats.extend(self._extract_m3u8_formats(
+                    hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
                         format_url, video_id, 'mp4',
                         entry_protocol='m3u8_native',
-                        m3u8_id='hls', headers=headers))
+                        m3u8_id='hls', headers=headers)
+                    formats.extend(hls_formats)
+                    subs = self._merge_subtitles(subs, hls_subs)
                 elif 'package:dash' in tags or ext == 'mpd':
-                    formats.extend(self._extract_mpd_formats(
-                        format_url, video_id, mpd_id='dash', headers=headers))
+                    dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
+                        format_url, video_id, mpd_id='dash', headers=headers)
+                    formats.extend(dash_formats)
+                    subs = self._merge_subtitles(subs, dash_subs)
                 elif ext == 'f4m':
                     # produce broken files
                     pass
@@ -184,7 +232,7 @@ class HotStarIE(HotStarBaseIE):
                     geo_restricted = True
                 continue
         if not formats and geo_restricted:
-            self.raise_geo_restricted(countries=['IN'])
+            self.raise_geo_restricted(countries=['IN'], metadata_available=True)
         self._sort_formats(formats)
 
         for f in formats:
@@ -197,6 +245,7 @@ class HotStarIE(HotStarBaseIE):
             'duration': int_or_none(video_data.get('duration')),
             'timestamp': int_or_none(video_data.get('broadcastDate') or video_data.get('startDate')),
             'formats': formats,
+            'subtitles': subs,
             'channel': video_data.get('channelName'),
             'channel_id': video_data.get('channelId'),
             'series': video_data.get('showName'),
@@ -225,8 +274,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        collection = self._call_api('o/v1/tray/find', playlist_id, 'uqId')
-
+        collection = self._call_api('o/v1/tray/find', playlist_id, 'uqId')['body']['results']
         entries = [
             self.url_result(
                 'https://www.hotstar.com/%s' % video['contentId'],
@@ -235,3 +283,47 @@ class HotStarPlaylistIE(HotStarBaseIE):
             if video.get('contentId')]
 
         return self.playlist_result(entries, playlist_id)
+
+
+class HotStarSeriesIE(HotStarBaseIE):
+    IE_NAME = 'hotstar:series'
+    _VALID_URL = r'(?:https?://)(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.hotstar.com/in/tv/radhakrishn/1260000646',
+        'info_dict': {
+            'id': '1260000646',
+        },
+        'playlist_mincount': 690,
+    }, {
+        'url': 'https://www.hotstar.com/tv/dancee-/1260050431',
+        'info_dict': {
+            'id': '1260050431',
+        },
+        'playlist_mincount': 43,
+    }, {
+        'url': 'https://www.hotstar.com/in/tv/mahabharat/435/',
+        'info_dict': {
+            'id': '435',
+        },
+        'playlist_mincount': 269,
+    }]
+
+    def _real_extract(self, url):
+        series_id = self._match_id(url)
+        headers = {
+            'x-country-code': 'IN',
+            'x-platform-code': 'PCTV',
+        }
+        detail_json = self._download_json('https://api.hotstar.com/o/v1/show/detail?contentId=' + series_id,
+                                          video_id=series_id, headers=headers)
+        id = compat_str(try_get(detail_json, lambda x: x['body']['results']['item']['id'], int))
+        item_json = self._download_json('https://api.hotstar.com/o/v1/tray/g/1/items?etid=0&tao=0&tas=10000&eid=' + id,
+                                        video_id=series_id, headers=headers)
+        entries = [
+            self.url_result(
+                'hotstar:episode:%d' % video['contentId'],
+                ie=HotStarIE.ie_key(), video_id=video['contentId'])
+            for video in item_json['body']['results']['items']
+            if video.get('contentId')]
+
+        return self.playlist_result(entries, series_id)

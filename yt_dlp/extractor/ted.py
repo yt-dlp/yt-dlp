@@ -123,6 +123,10 @@ class TEDIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+    }, {
+        # with own formats and private Youtube external
+        'url': 'https://www.ted.com/talks/spencer_wells_a_family_tree_for_humanity',
+        'only_matching': True,
     }]
 
     _NATIVE_FORMATS = {
@@ -210,16 +214,6 @@ class TEDIE(InfoExtractor):
 
         player_talk = talk_info['player_talks'][0]
 
-        external = player_talk.get('external')
-        if isinstance(external, dict):
-            service = external.get('service')
-            if isinstance(service, compat_str):
-                ext_url = None
-                if service.lower() == 'youtube':
-                    ext_url = external.get('code')
-
-                return self.url_result(ext_url or external['uri'])
-
         resources_ = player_talk.get('resources') or talk_info.get('resources')
 
         http_url = None
@@ -293,6 +287,16 @@ class TEDIE(InfoExtractor):
                 'format_id': 'audio',
                 'vcodec': 'none',
             })
+
+        if not formats:
+            external = player_talk.get('external')
+            if isinstance(external, dict):
+                service = external.get('service')
+                if isinstance(service, compat_str):
+                    ext_url = None
+                    if service.lower() == 'youtube':
+                        ext_url = external.get('code')
+                    return self.url_result(ext_url or external['uri'])
 
         self._sort_formats(formats)
 

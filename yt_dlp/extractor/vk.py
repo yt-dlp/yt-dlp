@@ -300,8 +300,15 @@ class VKIE(VKBaseIE):
             'only_matching': True,
         }]
 
+    @staticmethod
+    def _extract_sibnet_urls(webpage):
+        # https://help.sibnet.ru/?sibnet_video_embed
+        return [unescapeHTML(mobj.group('url')) for mobj in re.finditer(
+            r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//video\.sibnet\.ru/shell\.php\?.*?\bvideoid=\d+.*?)\1',
+            webpage)]
+
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('videoid')
 
         mv_data = {}
@@ -407,6 +414,10 @@ class VKIE(VKBaseIE):
         odnoklassniki_url = OdnoklassnikiIE._extract_url(info_page)
         if odnoklassniki_url:
             return self.url_result(odnoklassniki_url, OdnoklassnikiIE.ie_key())
+
+        sibnet_urls = self._extract_sibnet_urls(info_page)
+        if sibnet_urls:
+            return self.url_result(sibnet_urls[0])
 
         m_opts = re.search(r'(?s)var\s+opts\s*=\s*({.+?});', info_page)
         if m_opts:
@@ -527,7 +538,7 @@ class VKUserVideosIE(VKBaseIE):
                 'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
 
     def _real_extract(self, url):
-        page_id, section = re.match(self._VALID_URL, url).groups()
+        page_id, section = self._match_valid_url(url).groups()
         if not section:
             section = 'all'
 

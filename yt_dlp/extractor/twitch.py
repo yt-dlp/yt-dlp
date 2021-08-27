@@ -11,7 +11,6 @@ from .common import InfoExtractor
 from ..compat import (
     compat_parse_qs,
     compat_str,
-    compat_urlparse,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
 )
@@ -23,6 +22,7 @@ from ..utils import (
     int_or_none,
     parse_duration,
     parse_iso8601,
+    parse_qs,
     qualities,
     try_get,
     unified_timestamp,
@@ -49,6 +49,7 @@ class TwitchBaseIE(InfoExtractor):
         'ChannelCollectionsContent': '07e3691a1bad77a36aba590c351180439a40baefc1c275356f40fc7082419a84',
         'StreamMetadata': '1c719a40e481453e5c48d9bb585d971b8b372f8ebb105b17076722264dfa5b3e',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
+        'VideoAccessToken_Clip': '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11',
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
         'VideoMetadata': '226edb3e692509f727fd56821f5653c05740242c82b0388883e0c0e75dcbf687',
     }
@@ -570,7 +571,7 @@ class TwitchVideosIE(TwitchPlaylistBaseIE):
 
     def _real_extract(self, url):
         channel_name = self._match_id(url)
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         filter = qs.get('filter', ['all'])[0]
         sort = qs.get('sort', ['time'])[0]
         broadcast = self._BROADCASTS.get(filter, self._DEFAULT_BROADCAST)
@@ -646,7 +647,7 @@ class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
 
     def _real_extract(self, url):
         channel_name = self._match_id(url)
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         range = qs.get('range', ['7d'])[0]
         clip = self._RANGE.get(range, self._DEFAULT_CLIP)
         return self.playlist_result(
@@ -863,6 +864,7 @@ class TwitchClipsIE(TwitchBaseIE):
         'md5': '761769e1eafce0ffebfb4089cb3847cd',
         'info_dict': {
             'id': '42850523',
+            'display_id': 'FaintLightGullWholeWheat',
             'ext': 'mp4',
             'title': 'EA Play 2016 Live from the Novo Theatre',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -893,7 +895,25 @@ class TwitchClipsIE(TwitchBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        clip = self._download_base_gql(
+        clip = self._download_gql(
+            video_id, [{
+                'operationName': 'VideoAccessToken_Clip',
+                'variables': {
+                    'slug': video_id,
+                },
+            }],
+            'Downloading clip access token GraphQL')[0]['data']['clip']
+
+        if not clip:
+            raise ExtractorError(
+                'This clip is no longer available', expected=True)
+
+        access_query = {
+            'sig': clip['playbackAccessToken']['signature'],
+            'token': clip['playbackAccessToken']['value'],
+        }
+
+        data = self._download_base_gql(
             video_id, {
                 'query': '''{
   clip(slug: "%s") {
@@ -918,11 +938,10 @@ class TwitchClipsIE(TwitchBaseIE):
     }
     viewCount
   }
-}''' % video_id}, 'Downloading clip GraphQL')['data']['clip']
+}''' % video_id}, 'Downloading clip GraphQL', fatal=False)
 
-        if not clip:
-            raise ExtractorError(
-                'This clip is no longer available', expected=True)
+        if data:
+            clip = try_get(data, lambda x: x['data']['clip'], dict) or clip
 
         formats = []
         for option in clip.get('videoQualities', []):
@@ -932,7 +951,7 @@ class TwitchClipsIE(TwitchBaseIE):
             if not source:
                 continue
             formats.append({
-                'url': source,
+                'url': update_url_query(source, access_query),
                 'format_id': option.get('quality'),
                 'height': int_or_none(option.get('quality')),
                 'fps': int_or_none(option.get('frameRate')),
@@ -958,6 +977,7 @@ class TwitchClipsIE(TwitchBaseIE):
 
         return {
             'id': clip.get('id') or video_id,
+            'display_id': video_id,
             'title': clip.get('title') or video_id,
             'formats': formats,
             'duration': int_or_none(clip.get('durationSeconds')),

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 from __future__ import unicode_literals
@@ -6,6 +6,7 @@ import sys
 # import os
 import platform
 
+from PyInstaller.utils.hooks import collect_submodules
 from PyInstaller.utils.win32.versioninfo import (
     VarStruct, VarFileInfo, StringStruct, StringTable,
     StringFileInfo, FixedFileInfo, VSVersionInfo, SetVersion,
@@ -17,7 +18,7 @@ assert arch in ('32', '64')
 print('Building %sbit version' % arch)
 _x86 = '_x86' if arch == '32' else ''
 
-FILE_DESCRIPTION = 'Media Downloader%s' % (' (32 Bit)' if _x86 else '')
+FILE_DESCRIPTION = 'yt-dlp%s' % (' (32 Bit)' if _x86 else '')
 
 # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 # print('Changing working directory to %s' % root_dir)
@@ -58,21 +59,23 @@ VERSION_FILE = VSVersionInfo(
                     ),
                     StringStruct('OriginalFilename', 'yt-dlp%s.exe' % _x86),
                     StringStruct('ProductName', 'yt-dlp%s' % _x86),
-                    StringStruct('ProductVersion', '%s%s' % (VERSION, _x86)),
+                    StringStruct(
+                        'ProductVersion',
+                        '%s%s on Python %s' % (VERSION, _x86, platform.python_version())),
                 ])]),
         VarFileInfo([VarStruct('Translation', [0, 1200])])
     ]
 )
 
+dependancies = ['Crypto', 'mutagen'] + collect_submodules('websockets')
+excluded_modules = ['test', 'ytdlp_plugins', 'youtube-dl', 'youtube-dlc']
+
 PyInstaller.__main__.run([
     '--name=yt-dlp%s' % _x86,
     '--onefile',
-    '--icon=devscripts/cloud.ico',
-    '--exclude-module=youtube_dl',
-    '--exclude-module=test',
-    '--exclude-module=ytdlp_plugins',
-    '--hidden-import=mutagen',
-    '--hidden-import=Crypto',
+    '--icon=devscripts/logo.ico',
+    *[f'--exclude-module={module}' for module in excluded_modules],
+    *[f'--hidden-import={module}' for module in dependancies],
     '--upx-exclude=vcruntime140.dll',
     'yt_dlp/__main__.py',
 ])

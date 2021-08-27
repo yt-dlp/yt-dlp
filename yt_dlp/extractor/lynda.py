@@ -128,7 +128,7 @@ class LyndaIE(LyndaBaseIE):
             'Video %s is only available for members' % video_id)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         course_id = mobj.group('course_id')
 
@@ -281,7 +281,7 @@ class LyndaCourseIE(LyndaBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         course_path = mobj.group('coursepath')
         course_id = mobj.group('courseid')
 
@@ -331,7 +331,7 @@ class LyndaCourseIE(LyndaBaseIE):
                     })
 
         if unaccessible_videos > 0:
-            self._downloader.report_warning(
+            self.report_warning(
                 '%s videos are only available for members (or paid members) and will not be downloaded. '
                 % unaccessible_videos + self._ACCOUNT_CREDENTIALS_HINT)
 

@@ -23,6 +23,8 @@ class VGTVIE(XstreamIE):
         'fvn.no/fvntv': 'fvntv',
         'aftenposten.no/webtv': 'aptv',
         'ap.vgtv.no/webtv': 'aptv',
+        'tv.aftonbladet.se': 'abtv',
+        # obsolete URL schemas, kept in order to save one HTTP redirect
         'tv.aftonbladet.se/abtv': 'abtv',
         'www.aftonbladet.se/tv': 'abtv',
     }
@@ -141,6 +143,10 @@ class VGTVIE(XstreamIE):
             'only_matching': True,
         },
         {
+            'url': 'https://tv.aftonbladet.se/video/36015/vulkanutbrott-i-rymden-nu-slapper-nasa-bilderna',
+            'only_matching': True,
+        },
+        {
             'url': 'http://tv.aftonbladet.se/abtv/articles/36015',
             'only_matching': True,
         },
@@ -159,7 +165,7 @@ class VGTVIE(XstreamIE):
     ]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         host = mobj.group('host')
         appname = self._HOST_TO_APPNAME[host] if host else mobj.group('appname')

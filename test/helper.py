@@ -22,6 +22,14 @@ from yt_dlp.utils import (
 )
 
 
+if "pytest" in sys.modules:
+    import pytest
+    is_download_test = pytest.mark.download
+else:
+    def is_download_test(testClass):
+        return testClass
+
+
 def get_params(override=None):
     PARAMETERS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                    "parameters.json")
@@ -190,7 +198,10 @@ def expect_info_dict(self, got_dict, expected_dict):
     expect_dict(self, got_dict, expected_dict)
     # Check for the presence of mandatory fields
     if got_dict.get('_type') not in ('playlist', 'multi_video'):
-        for key in ('id', 'url', 'title', 'ext'):
+        mandatory_fields = ['id', 'title']
+        if expected_dict.get('ext'):
+            mandatory_fields.extend(('url', 'ext'))
+        for key in mandatory_fields:
             self.assertTrue(got_dict.get(key), 'Missing mandatory field %s' % key)
     # Check for mandatory fields that are automatically set by YoutubeDL
     for key in ['webpage_url', 'extractor', 'extractor_key']:

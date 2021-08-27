@@ -9,10 +9,10 @@ from ..utils import (
 
 
 class AppleConnectIE(InfoExtractor):
-    _VALID_URL = r'https?://itunes\.apple\.com/\w{0,2}/?post/idsa\.(?P<id>[\w-]+)'
-    _TEST = {
+    _VALID_URL = r'https?://itunes\.apple\.com/\w{0,2}/?post/(?:id)?sa\.(?P<id>[\w-]+)'
+    _TESTS = [{
         'url': 'https://itunes.apple.com/us/post/idsa.4ab17a39-2720-11e5-96c5-a5b38f6c42d3',
-        'md5': 'e7c38568a01ea45402570e6029206723',
+        'md5': 'c1d41f72c8bcaf222e089434619316e4',
         'info_dict': {
             'id': '4ab17a39-2720-11e5-96c5-a5b38f6c42d3',
             'ext': 'm4v',
@@ -22,7 +22,10 @@ class AppleConnectIE(InfoExtractor):
             'upload_date': '20150710',
             'timestamp': 1436545535,
         },
-    }
+    }, {
+        'url': 'https://itunes.apple.com/us/post/sa.0fe0229f-2457-11e5-9f40-1bb645f2d5d9',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -36,7 +39,7 @@ class AppleConnectIE(InfoExtractor):
 
         video_data = self._parse_json(video_json, video_id)
         timestamp = str_to_int(self._html_search_regex(r'data-timestamp="(\d+)"', webpage, 'timestamp'))
-        like_count = str_to_int(self._html_search_regex(r'(\d+) Loves', webpage, 'like count'))
+        like_count = str_to_int(self._html_search_regex(r'(\d+) Loves', webpage, 'like count', default=None))
 
         return {
             'id': video_id,

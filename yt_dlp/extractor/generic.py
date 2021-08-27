@@ -84,7 +84,6 @@ from .jwplatform import JWPlatformIE
 from .digiteka import DigitekaIE
 from .arkena import ArkenaIE
 from .instagram import InstagramIE
-from .liveleak import LiveLeakIE
 from .threeqsdn import ThreeQSDNIE
 from .theplatform import ThePlatformIE
 from .kaltura import KalturaIE
@@ -126,6 +125,7 @@ from .viqeo import ViqeoIE
 from .expressen import ExpressenIE
 from .zype import ZypeIE
 from .odnoklassniki import OdnoklassnikiIE
+from .vk import VKIE
 from .kinja import KinjaEmbedIE
 from .gedidigital import GediDigitalIE
 from .rcs import RCSEmbedsIE
@@ -1631,31 +1631,6 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20160409',
             },
         },
-        # LiveLeak embed
-        {
-            'url': 'http://www.wykop.pl/link/3088787/',
-            'md5': '7619da8c820e835bef21a1efa2a0fc71',
-            'info_dict': {
-                'id': '874_1459135191',
-                'ext': 'mp4',
-                'title': 'Man shows poor quality of new apartment building',
-                'description': 'The wall is like a sand pile.',
-                'uploader': 'Lake8737',
-            },
-            'add_ie': [LiveLeakIE.ie_key()],
-        },
-        # Another LiveLeak embed pattern (#13336)
-        {
-            'url': 'https://milo.yiannopoulos.net/2017/06/concealed-carry-robbery/',
-            'info_dict': {
-                'id': '2eb_1496309988',
-                'ext': 'mp4',
-                'title': 'Thief robs place where everyone was armed',
-                'description': 'md5:694d73ee79e535953cf2488562288eee',
-                'uploader': 'brazilwtf',
-            },
-            'add_ie': [LiveLeakIE.ie_key()],
-        },
         # Duplicated embedded video URLs
         {
             'url': 'http://www.hudl.com/athlete/2538180/highlights/149298443',
@@ -2252,6 +2227,10 @@ class GenericIE(InfoExtractor):
             'playlist_mincount': 52,
         },
         {
+            # Sibnet embed (https://help.sibnet.ru/?sibnet_video_embed)
+            'url': 'https://phpbb3.x-tk.ru/bbcode-video-sibnet-t24.html',
+            'only_matching': True,
+        }, {
             # WimTv embed player
             'url': 'http://www.msmotor.tv/wearefmi-pt-2-2021/',
             'info_dict': {
@@ -2259,6 +2238,87 @@ class GenericIE(InfoExtractor):
                 'title': '#WEAREFMI – PT.2 – 2021 – MsMotorTV',
             },
             'playlist_count': 1,
+        }, {
+            # KVS Player
+            'url': 'https://www.kvs-demo.com/videos/105/kelis-4th-of-july/',
+            'info_dict': {
+                'id': '105',
+                'display_id': 'kelis-4th-of-july',
+                'ext': 'mp4',
+                'title': 'Kelis - 4th Of July',
+                'thumbnail': 'https://kvs-demo.com/contents/videos_screenshots/0/105/preview.jpg',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }, {
+            # KVS Player
+            'url': 'https://www.kvs-demo.com/embed/105/',
+            'info_dict': {
+                'id': '105',
+                'display_id': 'kelis-4th-of-july',
+                'ext': 'mp4',
+                'title': 'Kelis - 4th Of July / Embed Player',
+                'thumbnail': 'https://kvs-demo.com/contents/videos_screenshots/0/105/preview.jpg',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }, {
+            # KVS Player
+            'url': 'https://thisvid.com/videos/french-boy-pantsed/',
+            'md5': '3397979512c682f6b85b3b04989df224',
+            'info_dict': {
+                'id': '2400174',
+                'display_id': 'french-boy-pantsed',
+                'ext': 'mp4',
+                'title': 'French Boy Pantsed - ThisVid.com',
+                'thumbnail': 'https://media.thisvid.com/contents/videos_screenshots/2400000/2400174/preview.mp4.jpg',
+            }
+        }, {
+            # KVS Player
+            'url': 'https://thisvid.com/embed/2400174/',
+            'md5': '3397979512c682f6b85b3b04989df224',
+            'info_dict': {
+                'id': '2400174',
+                'display_id': 'french-boy-pantsed',
+                'ext': 'mp4',
+                'title': 'French Boy Pantsed - ThisVid.com',
+                'thumbnail': 'https://media.thisvid.com/contents/videos_screenshots/2400000/2400174/preview.mp4.jpg',
+            }
+        }, {
+            # KVS Player
+            'url': 'https://youix.com/video/leningrad-zoj/',
+            'md5': '94f96ba95706dc3880812b27b7d8a2b8',
+            'info_dict': {
+                'id': '18485',
+                'display_id': 'leningrad-zoj',
+                'ext': 'mp4',
+                'title': 'Клип: Ленинград - ЗОЖ скачать, смотреть онлайн | Youix.com',
+                'thumbnail': 'https://youix.com/contents/videos_screenshots/18000/18485/preview_480x320_youix_com.mp4.jpg',
+            }
+        }, {
+            # KVS Player
+            'url': 'https://youix.com/embed/18485',
+            'md5': '94f96ba95706dc3880812b27b7d8a2b8',
+            'info_dict': {
+                'id': '18485',
+                'display_id': 'leningrad-zoj',
+                'ext': 'mp4',
+                'title': 'Ленинград - ЗОЖ',
+                'thumbnail': 'https://youix.com/contents/videos_screenshots/18000/18485/preview_480x320_youix_com.mp4.jpg',
+            }
+        }, {
+            # KVS Player
+            'url': 'https://bogmedia.org/videos/21217/40-nochey-40-nights-2016/',
+            'md5': '94166bdb26b4cb1fb9214319a629fc51',
+            'info_dict': {
+                'id': '21217',
+                'display_id': '40-nochey-40-nights-2016',
+                'ext': 'mp4',
+                'title': '40 ночей (2016) - BogMedia.org',
+                'thumbnail': 'https://bogmedia.org/contents/videos_screenshots/21000/21217/preview_480p.mp4.jpg',
+            }
         },
     ]
 
@@ -2364,19 +2424,57 @@ class GenericIE(InfoExtractor):
             'title': title,
         }
 
+    def _kvs_getrealurl(self, video_url, license_code):
+        if not video_url.startswith('function/0/'):
+            return video_url  # not obfuscated
+
+        url_path, _, url_query = video_url.partition('?')
+        urlparts = url_path.split('/')[2:]
+        license = self._kvs_getlicensetoken(license_code)
+        newmagic = urlparts[5][:32]
+
+        for o in range(len(newmagic) - 1, -1, -1):
+            new = ''
+            l = (o + sum([int(n) for n in license[o:]])) % 32
+
+            for i in range(0, len(newmagic)):
+                if i == o:
+                    new += newmagic[l]
+                elif i == l:
+                    new += newmagic[o]
+                else:
+                    new += newmagic[i]
+            newmagic = new
+
+        urlparts[5] = newmagic + urlparts[5][32:]
+        return '/'.join(urlparts) + '?' + url_query
+
+    def _kvs_getlicensetoken(self, license):
+        modlicense = license.replace('$', '').replace('0', '1')
+        center = int(len(modlicense) / 2)
+        fronthalf = int(modlicense[:center + 1])
+        backhalf = int(modlicense[center:])
+
+        modlicense = str(4 * abs(fronthalf - backhalf))
+        retval = ''
+        for o in range(0, center + 1):
+            for i in range(1, 5):
+                retval += str((int(license[o + i]) + int(modlicense[o])) % 10)
+        return retval
+
     def _real_extract(self, url):
         if url.startswith('//'):
             return self.url_result(self.http_scheme() + url)
 
         parsed_url = compat_urlparse.urlparse(url)
         if not parsed_url.scheme:
-            default_search = self._downloader.params.get('default_search')
+            default_search = self.get_param('default_search')
             if default_search is None:
                 default_search = 'fixup_error'
 
             if default_search in ('auto', 'auto_warning', 'fixup_error'):
                 if re.match(r'^[^\s/]+\.[^\s/]+/', url):
-                    self._downloader.report_warning('The url doesn\'t specify the protocol, trying with http')
+                    self.report_warning('The url doesn\'t specify the protocol, trying with http')
                     return self.url_result('http://' + url)
                 elif default_search != 'fixup_error':
                     if default_search == 'auto_warning':
@@ -2385,7 +2483,7 @@ class GenericIE(InfoExtractor):
                                 'Invalid URL:  %r . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ' % url,
                                 expected=True)
                         else:
-                            self._downloader.report_warning(
+                            self.report_warning(
                                 'Falling back to youtube search for  %s . Set --default-search "auto" to suppress this warning.' % url)
                     return self.url_result('ytsearch:' + url)
 
@@ -2444,8 +2542,9 @@ class GenericIE(InfoExtractor):
         m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             format_id = compat_str(m.group('format_id'))
+            subtitles = {}
             if format_id.endswith('mpegurl'):
-                formats = self._extract_m3u8_formats(url, video_id, 'mp4')
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
             elif format_id == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id)
             else:
@@ -2457,11 +2556,12 @@ class GenericIE(InfoExtractor):
                 info_dict['direct'] = True
             self._sort_formats(formats)
             info_dict['formats'] = formats
+            info_dict['subtitles'] = subtitles
             return info_dict
 
-        if not self._downloader.params.get('test', False) and not is_intentional:
-            force = self._downloader.params.get('force_generic_extractor', False)
-            self._downloader.report_warning(
+        if not self.get_param('test', False) and not is_intentional:
+            force = self.get_param('force_generic_extractor', False)
+            self.report_warning(
                 '%s on generic information extractor.' % ('Forcing' if force else 'Falling back'))
 
         if not full_response:
@@ -2481,14 +2581,14 @@ class GenericIE(InfoExtractor):
 
         # Is it an M3U playlist?
         if first_bytes.startswith(b'#EXTM3U'):
-            info_dict['formats'] = self._extract_m3u8_formats(url, video_id, 'mp4')
+            info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
             self._sort_formats(info_dict['formats'])
             return info_dict
 
         # Maybe it's a direct link to a video?
         # Be careful not to download the whole thing!
         if not is_html(first_bytes):
-            self._downloader.report_warning(
+            self.report_warning(
                 'URL could be a direct video link, returning it as such.')
             info_dict.update({
                 'direct': True,
@@ -2506,11 +2606,14 @@ class GenericIE(InfoExtractor):
 
         # Is it an RSS feed, a SMIL file, an XSPF playlist or a MPD manifest?
         try:
-            doc = compat_etree_fromstring(webpage.encode('utf-8'))
+            try:
+                doc = compat_etree_fromstring(webpage)
+            except compat_xml_parse_error:
+                doc = compat_etree_fromstring(webpage.encode('utf-8'))
             if doc.tag == 'rss':
                 return self._extract_rss(url, video_id, doc)
             elif doc.tag == 'SmoothStreamingMedia':
-                info_dict['formats'] = self._parse_ism_formats(doc, url)
+                info_dict['formats'], info_dict['subtitles'] = self._parse_ism_formats_and_subtitles(doc, url)
                 self._sort_formats(info_dict['formats'])
                 return info_dict
             elif re.match(r'^(?:{[^}]+})?smil$', doc.tag):
@@ -2524,7 +2627,7 @@ class GenericIE(InfoExtractor):
                         xspf_base_url=full_response.geturl()),
                     video_id)
             elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
-                info_dict['formats'] = self._parse_mpd_formats(
+                info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
                     mpd_base_url=full_response.geturl().rpartition('/')[0],
                     mpd_url=url)
@@ -2659,6 +2762,15 @@ class GenericIE(InfoExtractor):
         if vid_me_embed_url is not None:
             return self.url_result(vid_me_embed_url, 'Vidme')
 
+        # Invidious Instances
+        # https://github.com/yt-dlp/yt-dlp/issues/195
+        # https://github.com/iv-org/invidious/pull/1730
+        youtube_url = self._search_regex(
+            r'<link rel="alternate" href="(https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"',
+            webpage, 'youtube link', default=None)
+        if youtube_url:
+            return self.url_result(youtube_url, YoutubeIE.ie_key())
+
         # Look for YouTube embeds
         youtube_urls = YoutubeIE._extract_urls(webpage)
         if youtube_urls:
@@ -2788,6 +2900,11 @@ class GenericIE(InfoExtractor):
         odnoklassniki_url = OdnoklassnikiIE._extract_url(webpage)
         if odnoklassniki_url:
             return self.url_result(odnoklassniki_url, OdnoklassnikiIE.ie_key())
+
+        # Look for sibnet embedded player
+        sibnet_urls = VKIE._extract_sibnet_urls(webpage)
+        if sibnet_urls:
+            return self.playlist_from_matches(sibnet_urls, video_id, video_title)
 
         # Look for embedded ivi player
         mobj = re.search(r'<embed[^>]+?src=(["\'])(?P<url>https?://(?:www\.)?ivi\.ru/video/player.+?)\1', webpage)
@@ -2965,7 +3082,7 @@ class GenericIE(InfoExtractor):
             webpage)
         if not mobj:
             mobj = re.search(
-                r'data-video-link=["\'](?P<url>http://m.mlb.com/video/[^"\']+)',
+                r'data-video-link=["\'](?P<url>http://m\.mlb\.com/video/[^"\']+)',
                 webpage)
         if mobj is not None:
             return self.url_result(mobj.group('url'), 'MLB')
@@ -3179,11 +3296,6 @@ class GenericIE(InfoExtractor):
         if instagram_embed_url is not None:
             return self.url_result(
                 self._proto_relative_url(instagram_embed_url), InstagramIE.ie_key())
-
-        # Look for LiveLeak embeds
-        liveleak_urls = LiveLeakIE._extract_urls(webpage)
-        if liveleak_urls:
-            return self.playlist_from_matches(liveleak_urls, video_id, video_title)
 
         # Look for 3Q SDN embeds
         threeqsdn_url = ThreeQSDNIE._extract_url(webpage)
@@ -3417,6 +3529,7 @@ class GenericIE(InfoExtractor):
             if not isinstance(sources, list):
                 sources = [sources]
             formats = []
+            subtitles = {}
             for source in sources:
                 src = source.get('src')
                 if not src or not isinstance(src, compat_str):
@@ -3429,21 +3542,29 @@ class GenericIE(InfoExtractor):
                 if src_type == 'video/youtube':
                     return self.url_result(src, YoutubeIE.ie_key())
                 if src_type == 'application/dash+xml' or ext == 'mpd':
-                    formats.extend(self._extract_mpd_formats(
-                        src, video_id, mpd_id='dash', fatal=False))
+                    fmts, subs = self._extract_mpd_formats_and_subtitles(
+                        src, video_id, mpd_id='dash', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
                 elif src_type == 'application/x-mpegurl' or ext == 'm3u8':
-                    formats.extend(self._extract_m3u8_formats(
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
                         src, video_id, 'mp4', entry_protocol='m3u8_native',
-                        m3u8_id='hls', fatal=False))
+                        m3u8_id='hls', fatal=False)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
                 else:
                     formats.append({
                         'url': src,
                         'ext': (mimetype2ext(src_type)
                                 or ext if ext in KNOWN_EXTENSIONS else 'mp4'),
+                        'http_headers': {
+                            'Referer': full_response.geturl(),
+                        },
                     })
-            if formats:
+            if formats or subtitles:
                 self._sort_formats(formats)
                 info_dict['formats'] = formats
+                info_dict['subtitles'] = subtitles
                 return info_dict
 
         # Looking for http://schema.org/VideoObject
@@ -3477,6 +3598,52 @@ class GenericIE(InfoExtractor):
                 .*?
                 ['"]?file['"]?\s*:\s*["\'](.*?)["\']''', webpage))
         if not found:
+            # Look for generic KVS player
+            found = re.search(r'<script [^>]*?src="https://.+?/kt_player\.js\?v=(?P<ver>(?P<maj_ver>\d+)(\.\d+)+)".*?>', webpage)
+            if found:
+                if found.group('maj_ver') not in ['4', '5']:
+                    self.report_warning('Untested major version (%s) in player engine--Download may fail.' % found.group('ver'))
+                flashvars = re.search(r'(?ms)<script.*?>.*?var\s+flashvars\s*=\s*(\{.*?\});.*?</script>', webpage)
+                flashvars = self._parse_json(flashvars.group(1), video_id, transform_source=js_to_json)
+
+                # extract the part after the last / as the display_id from the
+                # canonical URL.
+                display_id = self._search_regex(
+                    r'(?:<link href="https?://[^"]+/(.+?)/?" rel="canonical"\s*/?>'
+                    r'|<link rel="canonical" href="https?://[^"]+/(.+?)/?"\s*/?>)',
+                    webpage, 'display_id', fatal=False
+                )
+                title = self._html_search_regex(r'<(?:h1|title)>(?:Video: )?(.+?)</(?:h1|title)>', webpage, 'title')
+
+                thumbnail = flashvars['preview_url']
+                if thumbnail.startswith('//'):
+                    protocol, _, _ = url.partition('/')
+                    thumbnail = protocol + thumbnail
+
+                formats = []
+                for key in ('video_url', 'video_alt_url', 'video_alt_url2'):
+                    if key in flashvars and '/get_file/' in flashvars[key]:
+                        next_format = {
+                            'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
+                            'format_id': flashvars.get(key + '_text', key),
+                            'ext': 'mp4',
+                        }
+                        height = re.search(r'%s_(\d+)p\.mp4(?:/[?].*)?$' % flashvars['video_id'], flashvars[key])
+                        if height:
+                            next_format['height'] = int(height.group(1))
+                        else:
+                            next_format['quality'] = 1
+                        formats.append(next_format)
+                self._sort_formats(formats)
+
+                return {
+                    'id': flashvars['video_id'],
+                    'display_id': display_id,
+                    'title': title,
+                    'thumbnail': thumbnail,
+                    'formats': formats,
+                }
+        if not found:
             # Broaden the search a little bit
             found = filter_video(re.findall(r'[^A-Za-z0-9]?(?:file|source)=(http[^\'"&]*)', webpage))
         if not found:
@@ -3508,7 +3675,7 @@ class GenericIE(InfoExtractor):
             m_video_type = re.findall(r'<meta.*?property="og:video:type".*?content="video/(.*?)"', webpage)
             # We only look in og:video if the MIME type is a video, don't try if it's a Flash player:
             if m_video_type is not None:
-                found = filter_video(re.findall(r'<meta.*?property="og:video".*?content="(.*?)"', webpage))
+                found = filter_video(re.findall(r'<meta.*?property="og:(?:video|audio)".*?content="(.*?)"', webpage))
         if not found:
             REDIRECT_REGEX = r'[0-9]{,2};\s*(?:URL|url)=\'?([^\'"]+)'
             found = re.search(
@@ -3578,13 +3745,13 @@ class GenericIE(InfoExtractor):
 
             ext = determine_ext(video_url)
             if ext == 'smil':
-                entry_info_dict['formats'] = self._extract_smil_formats(video_url, video_id)
+                entry_info_dict = {**self._extract_smil_info(video_url, video_id), **entry_info_dict}
             elif ext == 'xspf':
                 return self.playlist_result(self._extract_xspf_playlist(video_url, video_id), video_id)
             elif ext == 'm3u8':
-                entry_info_dict['formats'] = self._extract_m3u8_formats(video_url, video_id, ext='mp4')
+                entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4')
             elif ext == 'mpd':
-                entry_info_dict['formats'] = self._extract_mpd_formats(video_url, video_id)
+                entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_mpd_formats_and_subtitles(video_url, video_id)
             elif ext == 'f4m':
                 entry_info_dict['formats'] = self._extract_f4m_formats(video_url, video_id)
             elif re.search(r'(?i)\.(?:ism|smil)/manifest', video_url) and video_url != url:

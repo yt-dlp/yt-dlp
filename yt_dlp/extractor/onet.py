@@ -138,7 +138,7 @@ class OnetIE(OnetBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id, video_id = mobj.group('display_id', 'id')
 
         webpage = self._download_webpage(url, display_id)
@@ -182,7 +182,7 @@ class OnetChannelIE(OnetBaseIE):
         video_id = remove_start(current_clip_info['ckmId'], 'mvp:')
         video_name = url_basename(current_clip_info['url'])
 
-        if self._downloader.params.get('noplaylist'):
+        if self.get_param('noplaylist'):
             self.to_screen(
                 'Downloading just video %s because of --no-playlist' % video_name)
             return self._extract_from_id(video_id, webpage)

@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -9,7 +8,6 @@ from ..utils import (
     int_or_none,
     remove_start,
     smuggle_url,
-    strip_or_none,
     try_get,
 )
 
@@ -39,38 +37,24 @@ class TVerIE(InfoExtractor):
             'https://tver.jp/api/access_token.php', None)['token']
 
     def _real_extract(self, url):
-        path, video_id = re.match(self._VALID_URL, url).groups()
+        path, video_id = self._match_valid_url(url).groups()
         main = self._download_json(
             'https://api.tver.jp/v4/' + path, video_id,
             query={'token': self._TOKEN})['main']
         p_id = main['publisher_id']
         service = remove_start(main['service'], 'ts_')
-        info = {
+
+        r_id = main['reference_id']
+        if service not in ('tx', 'russia2018', 'sebare2018live', 'gorin'):
+            r_id = 'ref:' + r_id
+        bc_url = smuggle_url(
+            self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id),
+            {'geo_countries': ['JP']})
+
+        return {
             '_type': 'url_transparent',
             'description': try_get(main, lambda x: x['note'][0]['text'], compat_str),
             'episode_number': int_or_none(try_get(main, lambda x: x['ext']['episode_number'])),
+            'url': bc_url,
+            'ie_key': 'BrightcoveNew',
         }
-
-        if service == 'cx':
-            title = main['title']
-            subtitle = strip_or_none(main.get('subtitle'))
-            if subtitle:
-                title += ' - ' + subtitle
-            info.update({
-                'title': title,
-                'url': 'https://i.fod.fujitv.co.jp/plus7/web/%s/%s.html' % (p_id[:4], p_id),
-                'ie_key': 'FujiTVFODPlus7',
-            })
-        else:
-            r_id = main['reference_id']
-            if service not in ('tx', 'russia2018', 'sebare2018live', 'gorin'):
-                r_id = 'ref:' + r_id
-            bc_url = smuggle_url(
-                self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id),
-                {'geo_countries': ['JP']})
-            info.update({
-                'url': bc_url,
-                'ie_key': 'BrightcoveNew',
-            })
-
-        return info

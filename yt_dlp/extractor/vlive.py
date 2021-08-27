@@ -113,7 +113,7 @@ class VLiveIE(VLiveBaseIE):
             raise ExtractorError('Unable to log in', expected=True)
 
     def _call_api(self, path_template, video_id, fields=None, limit=None):
-        query = {'appId': self._APP_ID, 'gcc': 'KR'}
+        query = {'appId': self._APP_ID, 'gcc': 'KR', 'platformType': 'PC'}
         if fields:
             query['fields'] = fields
         if limit:
@@ -136,7 +136,7 @@ class VLiveIE(VLiveBaseIE):
             'author{nickname},channel{channelCode,channelName},officialVideo{commentCount,exposeStatus,likeCount,playCount,playTime,status,title,type,vodId},playlist{playlistSeq,totalCount,name}')
 
         playlist = post.get('playlist')
-        if not playlist or self._downloader.params.get('noplaylist'):
+        if not playlist or self.get_param('noplaylist'):
             if playlist:
                 self.to_screen(
                     'Downloading just video %s because of --no-playlist'
@@ -178,9 +178,15 @@ class VLiveIE(VLiveBaseIE):
         if video_type == 'VOD':
             inkey = self._call_api('video/v1.0/vod/%s/inkey', video_id)['inkey']
             vod_id = video['vodId']
-            return merge_dicts(
+            info_dict = merge_dicts(
                 get_common_fields(),
                 self._extract_video_info(video_id, vod_id, inkey))
+            thumbnail = video.get('thumb')
+            if thumbnail:
+                if not info_dict.get('thumbnails') and info_dict.get('thumbnail'):
+                    info_dict['thumbnails'] = [{'url': info_dict.pop('thumbnail')}]
+                info_dict.setdefault('thumbnails', []).append({'url': thumbnail, 'preference': 1})
+            return info_dict
         elif video_type == 'LIVE':
             status = video.get('status')
             if status == 'ON_AIR':

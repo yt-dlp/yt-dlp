@@ -4,9 +4,9 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     extract_attributes,
     int_or_none,
+    parse_count,
     parse_duration,
     parse_filesize,
     unified_timestamp,
@@ -14,18 +14,19 @@ from ..utils import (
 
 
 class NewgroundsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?newgrounds\.com/(?:audio/listen|portal/view)/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?newgrounds\.com/(?:audio/listen|portal/view)/(?P<id>\d+)(?:/format/flash)?'
     _TESTS = [{
         'url': 'https://www.newgrounds.com/audio/listen/549479',
         'md5': 'fe6033d297591288fa1c1f780386f07a',
         'info_dict': {
             'id': '549479',
             'ext': 'mp3',
-            'title': 'Burn7 - B7 - BusMode',
+            'title': 'B7 - BusMode',
             'uploader': 'Burn7',
             'timestamp': 1378878540,
             'upload_date': '20130911',
             'duration': 143,
+            'description': 'md5:6d885138814015dfd656c2ddb00dacfc',
         },
     }, {
         'url': 'https://www.newgrounds.com/portal/view/1',
@@ -33,10 +34,11 @@ class NewgroundsIE(InfoExtractor):
         'info_dict': {
             'id': '1',
             'ext': 'mp4',
-            'title': 'Brian-Beaton - Scrotum 1',
+            'title': 'Scrotum 1',
             'uploader': 'Brian-Beaton',
             'timestamp': 955064100,
             'upload_date': '20000406',
+            'description': 'Scrotum plays "catch."',
         },
     }, {
         # source format unavailable, additional mp4 formats
@@ -44,14 +46,39 @@ class NewgroundsIE(InfoExtractor):
         'info_dict': {
             'id': '689400',
             'ext': 'mp4',
-            'title': 'Bennettthesage - ZTV News Episode 8',
-            'uploader': 'BennettTheSage',
+            'title': 'ZTV News Episode 8',
+            'uploader': 'ZONE-SAMA',
             'timestamp': 1487965140,
             'upload_date': '20170224',
+            'description': 'ZTV News Episode 8 (February 2017)',
         },
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.newgrounds.com/portal/view/297383',
+        'md5': '2c11f5fd8cb6b433a63c89ba3141436c',
+        'info_dict': {
+            'id': '297383',
+            'ext': 'mp4',
+            'title': 'Metal Gear Awesome',
+            'uploader': 'Egoraptor',
+            'timestamp': 1140663240,
+            'upload_date': '20060223',
+            'description': 'Metal Gear is awesome is so is this movie.',
+        }
+    }, {
+        'url': 'https://www.newgrounds.com/portal/view/297383/format/flash',
+        'md5': '5d05585a9a0caca059f5abfbd3865524',
+        'info_dict': {
+            'id': '297383',
+            'ext': 'swf',
+            'title': 'Metal Gear Awesome',
+            'description': 'Metal Gear is awesome is so is this movie.',
+            'uploader': 'Egoraptor',
+            'upload_date': '20060223',
+            'timestamp': 1140663240,
+        }
     }]
 
     def _real_extract(self, url):
@@ -73,38 +100,14 @@ class NewgroundsIE(InfoExtractor):
                 'format_id': 'source',
                 'quality': 1,
             }]
-
-            max_resolution = int_or_none(self._search_regex(
-                r'max_resolution["\']\s*:\s*(\d+)', webpage, 'max resolution',
-                default=None))
-            if max_resolution:
-                url_base = media_url.rpartition('.')[0]
-                for resolution in (360, 720, 1080):
-                    if resolution > max_resolution:
-                        break
-                    formats.append({
-                        'url': '%s.%dp.mp4' % (url_base, resolution),
-                        'format_id': '%dp' % resolution,
-                        'height': resolution,
-                    })
         else:
-            video_id = int_or_none(self._search_regex(
-                r'data-movie-id=\\"([0-9]+)\\"', webpage, ''))
-            if not video_id:
-                raise ExtractorError('Could not extract media data')
-
-            url_video_data = 'https://www.newgrounds.com/portal/video/%s' % video_id
-            headers = {
+            json_video = self._download_json('https://www.newgrounds.com/portal/video/' + media_id, media_id, headers={
                 'Accept': 'application/json',
                 'Referer': url,
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-            json_video = self._download_json(url_video_data, video_id, headers=headers, fatal=False)
-            if not json_video:
-                raise ExtractorError('Could not fetch media data')
+            })
 
             uploader = json_video.get('author')
-            title = json_video.get('title')
             media_formats = json_video.get('sources', [])
             for media_format in media_formats:
                 media_sources = media_formats[media_format]
@@ -114,9 +117,6 @@ class NewgroundsIE(InfoExtractor):
                         'quality': int_or_none(media_format[:-1]),
                         'url': source.get('src')
                     })
-
-        self._check_formats(formats, media_id)
-        self._sort_formats(formats)
 
         if not uploader:
             uploader = self._html_search_regex(
@@ -132,6 +132,9 @@ class NewgroundsIE(InfoExtractor):
             r'(?s)<dd>\s*Song\s*</dd>\s*<dd>.+?</dd>\s*<dd>([^<]+)', webpage,
             'duration', default=None))
 
+        view_count = parse_count(self._html_search_regex(r'(?s)<dt>\s*Views\s*</dt>\s*<dd>([\d\.,]+)</dd>', webpage,
+                                                         'view_count', fatal=False, default=None))
+
         filesize_approx = parse_filesize(self._html_search_regex(
             r'(?s)<dd>\s*Song\s*</dd>\s*<dd>(.+?)</dd>', webpage, 'filesize',
             default=None))
@@ -140,9 +143,8 @@ class NewgroundsIE(InfoExtractor):
 
         if '<dd>Song' in webpage:
             formats[0]['vcodec'] = 'none'
-
-        if uploader:
-            title = "%s - %s" % (uploader, title)
+        self._check_formats(formats, media_id)
+        self._sort_formats(formats)
 
         return {
             'id': media_id,
@@ -151,6 +153,9 @@ class NewgroundsIE(InfoExtractor):
             'timestamp': timestamp,
             'duration': duration,
             'formats': formats,
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'description': self._og_search_description(webpage),
+            'view_count': view_count,
         }
 
 
@@ -162,14 +167,14 @@ class NewgroundsPlaylistIE(InfoExtractor):
             'id': 'cats',
             'title': 'Cats',
         },
-        'playlist_mincount': 46,
+        'playlist_mincount': 45,
     }, {
-        'url': 'http://www.newgrounds.com/portal/search/author/ZONE-SAMA',
+        'url': 'https://www.newgrounds.com/collection/dogs',
         'info_dict': {
-            'id': 'ZONE-SAMA',
-            'title': 'Portal Search: ZONE-SAMA',
+            'id': 'dogs',
+            'title': 'Dogs',
         },
-        'playlist_mincount': 47,
+        'playlist_mincount': 26,
     }, {
         'url': 'http://www.newgrounds.com/audio/search/title/cats',
         'only_matching': True,
@@ -190,7 +195,7 @@ class NewgroundsPlaylistIE(InfoExtractor):
 
         entries = []
         for a, path, media_id in re.findall(
-                r'(<a[^>]+\bhref=["\']/?((?:portal/view|audio/listen)/(\d+))[^>]+>)',
+                r'(<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>)',
                 webpage):
             a_class = extract_attributes(a).get('class')
             if a_class not in ('item-portalsubmission', 'item-audiosubmission'):

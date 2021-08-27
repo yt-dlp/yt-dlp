@@ -35,7 +35,7 @@ class KeezMoviesIE(InfoExtractor):
     }]
 
     def _extract_info(self, url, fatal=True):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         display_id = (mobj.group('display_id')
                       if 'display_id' in mobj.groupdict()
@@ -101,7 +101,7 @@ class KeezMoviesIE(InfoExtractor):
 
         if not formats:
             if 'title="This video is no longer available"' in webpage:
-                raise ExtractorError(
+                self.raise_no_formats(
                     'Video %s is no longer available' % video_id, expected=True)
 
         try:

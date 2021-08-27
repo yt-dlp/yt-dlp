@@ -9,8 +9,9 @@ from ..compat import compat_str
 from ..utils import (
     int_or_none,
     merge_dicts,
+    try_get,
     unified_timestamp,
-    xpath_text,
+    urljoin,
 )
 
 
@@ -27,10 +28,11 @@ class PhoenixIE(ZDFBaseIE):
             'title': 'Wohin führt der Protest in der Pandemie?',
             'description': 'md5:7d643fe7f565e53a24aac036b2122fbd',
             'duration': 1691,
-            'timestamp': 1613906100,
+            'timestamp': 1613902500,
             'upload_date': '20210221',
             'uploader': 'Phoenix',
-            'channel': 'corona nachgehakt',
+            'series': 'corona nachgehakt',
+            'episode': 'Wohin führt der Protest in der Pandemie?',
         },
     }, {
         # Youtube embed
@@ -79,50 +81,53 @@ class PhoenixIE(ZDFBaseIE):
 
         video_id = compat_str(video.get('basename') or video.get('content'))
 
-        details = self._download_xml(
+        details = self._download_json(
             'https://www.phoenix.de/php/mediaplayer/data/beitrags_details.php',
-            video_id, 'Downloading details XML', query={
+            video_id, 'Downloading details JSON', query={
                 'ak': 'web',
                 'ptmd': 'true',
                 'id': video_id,
                 'profile': 'player2',
             })
 
-        title = title or xpath_text(
-            details, './/information/title', 'title', fatal=True)
-        content_id = xpath_text(
-            details, './/video/details/basename', 'content id', fatal=True)
+        title = title or details['title']
+        content_id = details['tracking']['nielsen']['content']['assetid']
 
         info = self._extract_ptmd(
             'https://tmd.phoenix.de/tmd/2/ngplayer_2_3/vod/ptmd/phoenix/%s' % content_id,
             content_id, None, url)
 
-        timestamp = unified_timestamp(xpath_text(details, './/details/airtime'))
+        duration = int_or_none(try_get(
+            details, lambda x: x['tracking']['nielsen']['content']['length']))
+        timestamp = unified_timestamp(details.get('editorialDate'))
+        series = try_get(
+            details, lambda x: x['tracking']['nielsen']['content']['program'],
+            compat_str)
+        episode = title if details.get('contentType') == 'episode' else None
 
         thumbnails = []
-        for node in details.findall('.//teaserimages/teaserimage'):
-            thumbnail_url = node.text
+        teaser_images = try_get(details, lambda x: x['teaserImageRef']['layouts'], dict) or {}
+        for thumbnail_key, thumbnail_url in teaser_images.items():
+            thumbnail_url = urljoin(url, thumbnail_url)
             if not thumbnail_url:
                 continue
             thumbnail = {
                 'url': thumbnail_url,
             }
-            thumbnail_key = node.get('key')
-            if thumbnail_key:
-                m = re.match('^([0-9]+)x([0-9]+)$', thumbnail_key)
-                if m:
-                    thumbnail['width'] = int(m.group(1))
-                    thumbnail['height'] = int(m.group(2))
+            m = re.match('^([0-9]+)x([0-9]+)$', thumbnail_key)
+            if m:
+                thumbnail['width'] = int(m.group(1))
+                thumbnail['height'] = int(m.group(2))
             thumbnails.append(thumbnail)
 
         return merge_dicts(info, {
             'id': content_id,
             'title': title,
-            'description': xpath_text(details, './/information/detail'),
-            'duration': int_or_none(xpath_text(details, './/details/lengthSec')),
+            'description': details.get('leadParagraph'),
+            'duration': duration,
             'thumbnails': thumbnails,
             'timestamp': timestamp,
-            'uploader': xpath_text(details, './/details/channel'),
-            'uploader_id': xpath_text(details, './/details/originChannelId'),
-            'channel': xpath_text(details, './/details/originChannelTitle'),
+            'uploader': details.get('tvService'),
+            'series': series,
+            'episode': episode,
         })

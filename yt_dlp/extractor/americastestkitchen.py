@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -69,7 +68,7 @@ class AmericasTestKitchenIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        resource_type, video_id = re.match(self._VALID_URL, url).groups()
+        resource_type, video_id = self._match_valid_url(url).groups()
         is_episode = resource_type == 'episode'
         if is_episode:
             resource_type = 'episodes'
@@ -114,7 +113,7 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        show_name, season_number = re.match(self._VALID_URL, url).groups()
+        show_name, season_number = self._match_valid_url(url).groups()
         season_number = int(season_number)
 
         slug = 'atk' if show_name == 'americastestkitchen' else 'cco'

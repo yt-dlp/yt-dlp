@@ -6,7 +6,7 @@ from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlencode
 from ..utils import (
     ExtractorError,
-    unescapeHTML
+    merge_dicts,
 )
 
 
@@ -24,7 +24,8 @@ class EroProfileIE(InfoExtractor):
             'title': 'sexy babe softcore',
             'thumbnail': r're:https?://.*\.jpg',
             'age_limit': 18,
-        }
+        },
+        'skip': 'Video not found',
     }, {
         'url': 'http://www.eroprofile.com/m/videos/view/Try-It-On-Pee_cut_2-wmv-4shared-com-file-sharing-download-movie-file',
         'md5': '1baa9602ede46ce904c431f5418d8916',
@@ -77,19 +78,54 @@ class EroProfileIE(InfoExtractor):
             [r"glbUpdViews\s*\('\d*','(\d+)'", r'p/report/video/(\d+)'],
             webpage, 'video id', default=None)
 
-        video_url = unescapeHTML(self._search_regex(
-            r'<source src="([^"]+)', webpage, 'video url'))
         title = self._html_search_regex(
-            r'Title:</th><td>([^<]+)</td>', webpage, 'title')
-        thumbnail = self._search_regex(
-            r'onclick="showVideoPlayer\(\)"><img src="([^"]+)',
-            webpage, 'thumbnail', fatal=False)
+            (r'Title:</th><td>([^<]+)</td>', r'<h1[^>]*>(.+?)</h1>'),
+            webpage, 'title')
 
-        return {
+        info = self._parse_html5_media_entries(url, webpage, video_id)[0]
+
+        return merge_dicts(info, {
             'id': video_id,
             'display_id': display_id,
-            'url': video_url,
             'title': title,
-            'thumbnail': thumbnail,
             'age_limit': 18,
-        }
+        })
+
+
+class EroProfileAlbumIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?eroprofile\.com/m/videos/album/(?P<id>[^/]+)'
+    IE_NAME = 'EroProfile:album'
+
+    _TESTS = [{
+        'url': 'https://www.eroprofile.com/m/videos/album/BBW-2-893',
+        'info_dict': {
+            'id': 'BBW-2-893',
+            'title': 'BBW 2'
+        },
+        'playlist_mincount': 486,
+    },
+    ]
+
+    def _extract_from_page(self, page):
+        for url in re.findall(r'href=".*?(/m/videos/view/[^"]+)"', page):
+            yield self.url_result(f'https://www.eroprofile.com{url}', EroProfileIE.ie_key())
+
+    def _entries(self, playlist_id, first_page):
+        yield from self._extract_from_page(first_page)
+
+        page_urls = re.findall(rf'href=".*?(/m/videos/album/{playlist_id}\?pnum=(\d+))"', first_page)
+        max_page = max(int(n) for _, n in page_urls)
+
+        for n in range(2, max_page + 1):
+            url = f'https://www.eroprofile.com/m/videos/album/{playlist_id}?pnum={n}'
+            yield from self._extract_from_page(
+                self._download_webpage(url, playlist_id,
+                                       note=f'Downloading playlist page {int(n) - 1}'))
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        first_page = self._download_webpage(url, playlist_id, note='Downloading playlist')
+        playlist_title = self._search_regex(
+            r'<title>Album: (.*) - EroProfile</title>', first_page, 'playlist_title')
+
+        return self.playlist_result(self._entries(playlist_id, first_page), playlist_id, playlist_title)

@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .theplatform import ThePlatformIE
 from ..utils import (
@@ -20,8 +19,8 @@ class AENetworksBaseIE(ThePlatformIE):
             (?:history(?:vault)?|aetv|mylifetime|lifetimemovieclub)\.com|
             fyi\.tv
         )/'''
-    _THEPLATFORM_KEY = 'crazyjava'
-    _THEPLATFORM_SECRET = 's3cr3t'
+    _THEPLATFORM_KEY = '43jXaGRQud'
+    _THEPLATFORM_SECRET = 'S10BPXHMlb'
     _DOMAIN_MAP = {
         'history.com': ('HISTORY', 'history'),
         'aetv.com': ('AETV', 'aetv'),
@@ -170,7 +169,7 @@ class AENetworksIE(AENetworksBaseIE):
     }]
 
     def _real_extract(self, url):
-        domain, canonical = re.match(self._VALID_URL, url).groups()
+        domain, canonical = self._match_valid_url(url).groups()
         return self._extract_aetn_info(domain, 'canonical', '/' + canonical, url)
 
 
@@ -187,7 +186,7 @@ class AENetworksListBaseIE(AENetworksBaseIE):
             }))['data'][resource]
 
     def _real_extract(self, url):
-        domain, slug = re.match(self._VALID_URL, url).groups()
+        domain, slug = self._match_valid_url(url).groups()
         _, brand = self._DOMAIN_MAP[domain]
         playlist = self._call_api(self._RESOURCE, slug, brand, self._FIELDS)
         base_url = 'http://watch.%s' % domain
@@ -309,7 +308,7 @@ class HistoryPlayerIE(AENetworksBaseIE):
     _TESTS = []
 
     def _real_extract(self, url):
-        domain, video_id = re.match(self._VALID_URL, url).groups()
+        domain, video_id = self._match_valid_url(url).groups()
         return self._extract_aetn_info(domain, 'id', video_id, url)
 
 

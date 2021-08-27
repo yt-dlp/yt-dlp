@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import json
 import re
 import time
 import xml.etree.ElementTree as etree
@@ -61,6 +62,11 @@ MSO_INFO = {
         'username_field': 'IDToken1',
         'password_field': 'IDToken2',
     },
+    'Spectrum': {
+        'name': 'Spectrum',
+        'username_field': 'IDToken1',
+        'password_field': 'IDToken2',
+    },
     'Philo': {
         'name': 'Philo',
         'username_field': 'ident'
@@ -69,6 +75,11 @@ MSO_INFO = {
         'name': 'Verizon FiOS',
         'username_field': 'IDToken1',
         'password_field': 'IDToken2',
+    },
+    'Cablevision': {
+        'name': 'Optimum/Cablevision',
+        'username_field': 'j_username',
+        'password_field': 'j_password',
     },
     'thr030': {
         'name': '3 Rivers Communications'
@@ -1324,6 +1335,11 @@ MSO_INFO = {
     'cou060': {
         'name': 'Zito Media'
     },
+    'slingtv': {
+        'name': 'Sling TV',
+        'username_field': 'username',
+        'password_field': 'password',
+    },
 }
 
 
@@ -1414,7 +1430,7 @@ class AdobePassIE(InfoExtractor):
                 authn_token = None
             if not authn_token:
                 # TODO add support for other TV Providers
-                mso_id = self._downloader.params.get('ap_mso')
+                mso_id = self.get_param('ap_mso')
                 if not mso_id:
                     raise_mvpd_required()
                 username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
@@ -1492,7 +1508,8 @@ class AdobePassIE(InfoExtractor):
                     # In general, if you're connecting from a Verizon-assigned IP,
                     # you will not actually pass your credentials.
                     provider_redirect_page, urlh = provider_redirect_page_res
-                    if 'Please wait ...' in provider_redirect_page:
+                    # From non-Verizon IP, still gave 'Please wait', but noticed N==Y; will need to try on Verizon IP
+                    if 'Please wait ...' in provider_redirect_page and '\'N\'== "Y"' not in provider_redirect_page:
                         saml_redirect_url = self._html_search_regex(
                             r'self\.parent\.location=(["\'])(?P<url>.+?)\1',
                             provider_redirect_page,
@@ -1500,7 +1517,8 @@ class AdobePassIE(InfoExtractor):
                         saml_login_page = self._download_webpage(
                             saml_redirect_url, video_id,
                             'Downloading SAML Login Page')
-                    else:
+                    elif 'Verizon FiOS - sign in' in provider_redirect_page:
+                        # FXNetworks from non-Verizon IP
                         saml_login_page_res = post_form(
                             provider_redirect_page_res, 'Logging in', {
                                 mso_info['username_field']: username,
@@ -1510,6 +1528,26 @@ class AdobePassIE(InfoExtractor):
                         if 'Please try again.' in saml_login_page:
                             raise ExtractorError(
                                 'We\'re sorry, but either the User ID or Password entered is not correct.')
+                    else:
+                        # ABC from non-Verizon IP
+                        saml_redirect_url = self._html_search_regex(
+                            r'var\surl\s*=\s*(["\'])(?P<url>.+?)\1',
+                            provider_redirect_page,
+                            'SAML Redirect URL', group='url')
+                        saml_redirect_url = saml_redirect_url.replace(r'\/', '/')
+                        saml_redirect_url = saml_redirect_url.replace(r'\-', '-')
+                        saml_redirect_url = saml_redirect_url.replace(r'\x26', '&')
+                        saml_login_page = self._download_webpage(
+                            saml_redirect_url, video_id,
+                            'Downloading SAML Login Page')
+                        saml_login_page, urlh = post_form(
+                            [saml_login_page, saml_redirect_url], 'Logging in', {
+                                mso_info['username_field']: username,
+                                mso_info['password_field']: password,
+                            })
+                        if 'Please try again.' in saml_login_page:
+                            raise ExtractorError(
+                                'Failed to login, incorrect User ID or Password.')
                     saml_login_url = self._search_regex(
                         r'xmlHttp\.open\("POST"\s*,\s*(["\'])(?P<url>.+?)\1',
                         saml_login_page, 'SAML Login URL', group='url')
@@ -1524,6 +1562,75 @@ class AdobePassIE(InfoExtractor):
                         }), headers={
                             'Content-Type': 'application/x-www-form-urlencoded'
                         })
+                elif mso_id == 'Spectrum':
+                    # Spectrum's login for is dynamically loaded via JS so we need to hardcode the flow
+                    # as a one-off implementation.
+                    provider_redirect_page, urlh = provider_redirect_page_res
+                    provider_login_page_res = post_form(
+                        provider_redirect_page_res, self._DOWNLOADING_LOGIN_PAGE)
+                    saml_login_page, urlh = provider_login_page_res
+                    relay_state = self._search_regex(
+                        r'RelayState\s*=\s*"(?P<relay>.+?)";',
+                        saml_login_page, 'RelayState', group='relay')
+                    saml_request = self._search_regex(
+                        r'SAMLRequest\s*=\s*"(?P<saml_request>.+?)";',
+                        saml_login_page, 'SAMLRequest', group='saml_request')
+                    login_json = {
+                        mso_info['username_field']: username,
+                        mso_info['password_field']: password,
+                        'RelayState': relay_state,
+                        'SAMLRequest': saml_request,
+                    }
+                    saml_response_json = self._download_json(
+                        'https://tveauthn.spectrum.net/tveauthentication/api/v1/manualAuth', video_id,
+                        'Downloading SAML Response',
+                        data=json.dumps(login_json).encode(),
+                        headers={
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        })
+                    self._download_webpage(
+                        saml_response_json['SAMLRedirectUri'], video_id,
+                        'Confirming Login', data=urlencode_postdata({
+                            'SAMLResponse': saml_response_json['SAMLResponse'],
+                            'RelayState': relay_state,
+                        }), headers={
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        })
+                elif mso_id == 'slingtv':
+                    # SlingTV has a meta-refresh based authentication, but also
+                    # looks at the tab history to count the number of times the
+                    # browser has been on a page
+
+                    first_bookend_page, urlh = provider_redirect_page_res
+
+                    hidden_data = self._hidden_inputs(first_bookend_page)
+                    hidden_data['history'] = 1
+
+                    provider_login_page_res = self._download_webpage_handle(
+                        urlh.geturl(), video_id, 'Sending first bookend',
+                        query=hidden_data)
+
+                    provider_association_redirect, urlh = post_form(
+                        provider_login_page_res, 'Logging in', {
+                            mso_info['username_field']: username,
+                            mso_info['password_field']: password
+                        })
+
+                    provider_refresh_redirect_url = extract_redirect_url(
+                        provider_association_redirect, url=urlh.geturl())
+
+                    last_bookend_page, urlh = self._download_webpage_handle(
+                        provider_refresh_redirect_url, video_id,
+                        'Downloading Auth Association Redirect Page')
+                    hidden_data = self._hidden_inputs(last_bookend_page)
+                    hidden_data['history'] = 3
+
+                    mvpd_confirm_page_res = self._download_webpage_handle(
+                        urlh.geturl(), video_id, 'Sending final bookend',
+                        query=hidden_data)
+
+                    post_form(mvpd_confirm_page_res, 'Confirming Login')
                 else:
                     # Some providers (e.g. DIRECTV NOW) have another meta refresh
                     # based redirect that should be followed.
@@ -1536,10 +1643,13 @@ class AdobePassIE(InfoExtractor):
                             'Downloading Provider Redirect Page (meta refresh)')
                     provider_login_page_res = post_form(
                         provider_redirect_page_res, self._DOWNLOADING_LOGIN_PAGE)
-                    mvpd_confirm_page_res = post_form(provider_login_page_res, 'Logging in', {
+                    form_data = {
                         mso_info.get('username_field', 'username'): username,
-                        mso_info.get('password_field', 'password'): password,
-                    })
+                        mso_info.get('password_field', 'password'): password
+                    }
+                    if mso_id == 'Cablevision':
+                        form_data['_eventId_proceed'] = ''
+                    mvpd_confirm_page_res = post_form(provider_login_page_res, 'Logging in', form_data)
                     if mso_id != 'Rogers':
                         post_form(mvpd_confirm_page_res, 'Confirming Login')
 

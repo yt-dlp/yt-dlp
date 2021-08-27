@@ -8,7 +8,6 @@ import hashlib
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_urlparse,
 )
 from ..utils import (
     clean_html,
@@ -16,6 +15,7 @@ from ..utils import (
     int_or_none,
     float_or_none,
     parse_iso8601,
+    parse_qs,
     sanitized_Request,
     urlencode_postdata,
 )
@@ -123,7 +123,7 @@ class NocoIE(InfoExtractor):
             webpage, 'noco player', group='player',
             default='http://noco.tv/cdata/js/player/NocoPlayer-v1.2.40.swf')
 
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(player_url).query)
+        qs = parse_qs(player_url)
         ts = int_or_none(qs.get('ts', [None])[0])
         self._ts_offset = ts - self._ts() if ts else 0
         self._referer = player_url

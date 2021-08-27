@@ -22,7 +22,7 @@ from ..utils import (
     cli_option,
     cli_valueless_option,
     cli_bool_option,
-    cli_configuration_args,
+    _configuration_args,
     encodeFilename,
     encodeArgument,
     handle_youtubedl_headers,
@@ -36,6 +36,7 @@ from ..utils import (
 
 class ExternalFD(FileDownloader):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
+    can_download_to_stdout = False
 
     def real_download(self, filename, info_dict):
         self.report_destination(filename)
@@ -67,7 +68,7 @@ class ExternalFD(FileDownloader):
                     'downloaded_bytes': fsize,
                     'total_bytes': fsize,
                 })
-            self._hook_progress(status)
+            self._hook_progress(status, info_dict)
             return True
         else:
             self.to_stderr('\n')
@@ -81,15 +82,21 @@ class ExternalFD(FileDownloader):
 
     @property
     def exe(self):
-        return self.params.get('external_downloader')
+        return self.get_basename()
 
     @classmethod
     def available(cls, path=None):
-        return check_executable(path or cls.get_basename(), [cls.AVAILABLE_OPT])
+        path = check_executable(path or cls.get_basename(), [cls.AVAILABLE_OPT])
+        if path:
+            cls.exe = path
+            return path
+        return False
 
     @classmethod
     def supports(cls, info_dict):
-        return info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS
+        return (
+            (cls.can_download_to_stdout or not info_dict.get('to_stdout'))
+            and info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS)
 
     @classmethod
     def can_download(cls, info_dict, path=None):
@@ -104,11 +111,10 @@ class ExternalFD(FileDownloader):
     def _valueless_option(self, command_option, param, expected_value=True):
         return cli_valueless_option(self.params, command_option, param, expected_value)
 
-    def _configuration_args(self, *args, **kwargs):
-        return cli_configuration_args(
-            self.params.get('external_downloader_args'),
-            [self.get_basename(), 'default'],
-            *args, **kwargs)
+    def _configuration_args(self, keys=None, *args, **kwargs):
+        return _configuration_args(
+            self.get_basename(), self.params.get('external_downloader_args'), self.get_basename(),
+            keys, *args, **kwargs)
 
     def _call_downloader(self, tmpfilename, info_dict):
         """ Either overwrite this or implement _make_cmd """
@@ -259,7 +265,7 @@ class WgetFD(ExternalFD):
 
 class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
-    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'frag_urls')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'dash_frag_urls', 'm3u8_frag_urls')
 
     @staticmethod
     def supports_manifest(manifest):
@@ -276,21 +282,32 @@ class Aria2cFD(ExternalFD):
                '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
             cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
+        else:
+            cmd += ['--min-split-size', '1M']
 
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
+        cmd += self._option('--max-overall-download-limit', 'ratelimit')
         cmd += self._option('--interface', 'source_address')
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
         cmd += self._configuration_args()
 
+        # aria2c strips out spaces from the beginning/end of filenames and paths.
+        # We work around this issue by adding a "./" to the beginning of the
+        # filename and relative path, and adding a "/" at the end of the path.
+        # See: https://github.com/yt-dlp/yt-dlp/issues/276
+        # https://github.com/ytdl-org/youtube-dl/issues/20312
+        # https://github.com/aria2/aria2/issues/1373
         dn = os.path.dirname(tmpfilename)
         if dn:
-            cmd += ['--dir', dn]
+            if not os.path.isabs(dn):
+                dn = '.%s%s' % (os.path.sep, dn)
+            cmd += ['--dir', dn + os.path.sep]
         if 'fragments' not in info_dict:
-            cmd += ['--out', os.path.basename(tmpfilename)]
+            cmd += ['--out', '.%s%s' % (os.path.sep, os.path.basename(tmpfilename))]
         cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
@@ -310,9 +327,11 @@ class Aria2cFD(ExternalFD):
 
 
 class HttpieFD(ExternalFD):
+    AVAILABLE_OPT = '--version'
+
     @classmethod
     def available(cls, path=None):
-        return check_executable(path or 'http', ['--version'])
+        return ExternalFD.available(cls, path or 'http')
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]
@@ -324,14 +343,30 @@ class HttpieFD(ExternalFD):
 
 
 class FFmpegFD(ExternalFD):
-    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'rtsp', 'rtmp', 'mms')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms', 'http_dash_segments')
+    can_download_to_stdout = True
 
     @classmethod
-    def available(cls, path=None):  # path is ignored for ffmpeg
+    def available(cls, path=None):
+        # TODO: Fix path for ffmpeg
+        # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
 
+    def on_process_started(self, proc, stdin):
+        """ Override this in subclasses  """
+        pass
+
+    @classmethod
+    def can_merge_formats(cls, info_dict, params={}):
+        return (
+            info_dict.get('requested_formats')
+            and info_dict.get('protocol')
+            and not params.get('allow_unplayable_formats')
+            and 'no-direct-merge' not in params.get('compat_opts', [])
+            and cls.can_download(info_dict))
+
     def _call_downloader(self, tmpfilename, info_dict):
-        url = info_dict['url']
+        urls = [f['url'] for f in info_dict.get('requested_formats', [])] or [info_dict['url']]
         ffpp = FFmpegPostProcessor(downloader=self)
         if not ffpp.available:
             self.report_error('m3u8 download detected but ffmpeg could not be found. Please install')
@@ -344,7 +379,12 @@ class FFmpegFD(ExternalFD):
             if self.params.get(log_level, False):
                 args += ['-loglevel', log_level]
                 break
+        if not self.params.get('verbose'):
+            args += ['-hide_banner']
 
+        args += info_dict.get('_ffmpeg_args', [])
+
+        # This option exists only for compatibility. Extractors should use `_ffmpeg_args` instead
         seekable = info_dict.get('_seekable')
         if seekable is not None:
             # setting -seekable prevents ffmpeg from guessing if the server
@@ -354,8 +394,6 @@ class FFmpegFD(ExternalFD):
             # http://trac.ffmpeg.org/ticket/6125#comment:10
             args += ['-seekable', '1' if seekable else '0']
 
-        args += self._configuration_args()
-
         # start_time = info_dict.get('start_time') or 0
         # if start_time:
         #     args += ['-ss', compat_str(start_time)]
@@ -363,7 +401,7 @@ class FFmpegFD(ExternalFD):
         # if end_time:
         #     args += ['-t', compat_str(end_time - start_time)]
 
-        if info_dict.get('http_headers') is not None and re.match(r'^https?://', url):
+        if info_dict.get('http_headers') is not None and re.match(r'^https?://', urls[0]):
             # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
             # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
             headers = handle_youtubedl_headers(info_dict['http_headers'])
@@ -421,11 +459,20 @@ class FFmpegFD(ExternalFD):
             elif isinstance(conn, compat_str):
                 args += ['-rtmp_conn', conn]
 
-        args += ['-i', url, '-c', 'copy']
+        for i, url in enumerate(urls):
+            args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', url]
+
+        args += ['-c', 'copy']
+        if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
+            for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
+                stream_number = fmt.get('manifest_stream_number', 0)
+                a_or_v = 'a' if fmt.get('acodec') != 'none' else 'v'
+                args.extend(['-map', f'{i}:{a_or_v}:{stream_number}'])
 
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
 
+        ext = info_dict['ext']
         if protocol in ('m3u8', 'm3u8_native'):
             use_mpegts = (tmpfilename == '-') or self.params.get('hls_use_mpegts')
             if use_mpegts is None:
@@ -438,15 +485,20 @@ class FFmpegFD(ExternalFD):
                     args += ['-bsf:a', 'aac_adtstoasc']
         elif protocol == 'rtmp':
             args += ['-f', 'flv']
+        elif ext == 'mp4' and tmpfilename == '-':
+            args += ['-f', 'mpegts']
         else:
-            args += ['-f', EXT_TO_OUT_FORMATS.get(info_dict['ext'], info_dict['ext'])]
+            args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
+
+        args += self._configuration_args(('_o1', '_o', ''))
 
         args = [encodeArgument(opt) for opt in args]
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
-
         self._debug_cmd(args)
 
         proc = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
+        if url in ('-', 'pipe:'):
+            self.on_process_started(proc, proc.stdin)
         try:
             retval = proc.wait()
         except BaseException as e:
@@ -455,7 +507,7 @@ class FFmpegFD(ExternalFD):
             # produces a file that is playable (this is mostly useful for live
             # streams). Note that Windows is not affected and produces playable
             # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
-            if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32':
+            if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and url not in ('-', 'pipe:'):
                 process_communicate_or_kill(proc, b'q')
             else:
                 proc.kill()
@@ -484,4 +536,4 @@ def get_external_downloader(external_downloader):
         downloader . """
     # Drop .exe extension on Windows
     bn = os.path.splitext(os.path.basename(external_downloader))[0]
-    return _BY_NAME[bn]
+    return _BY_NAME.get(bn)
