@@ -520,7 +520,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         temp_filename = prepend_extension(filename, 'temp')
         self.to_screen('Embedding subtitles in "%s"' % filename)
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
-        os.replace(encodeFilename(temp_filename), encodeFilename(filename))
+        os.replace(temp_filename, filename)
 
         files_to_delete = [] if self._already_have_subtitle else sub_filenames
         return files_to_delete, information
@@ -627,7 +627,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             itertools.chain(self._options(info['ext']), *options))
         if chapters:
             os.remove(metadata_filename)
-        os.replace(encodeFilename(temp_filename), encodeFilename(filename))
+        os.replace(temp_filename, filename)
         return [], info
 
 
@@ -671,7 +671,7 @@ class FFmpegFixupPostProcessor(FFmpegPostProcessor):
         self.to_screen(f'{msg} of "{filename}"')
         self.run_ffmpeg(filename, temp_filename, options)
 
-        os.replace(encodeFilename(temp_filename), encodeFilename(filename))
+        os.replace(temp_filename, filename)
 
 
 class FFmpegFixupStretchedPP(FFmpegFixupPostProcessor):
@@ -863,7 +863,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
             if thumbnail_ext != 'webp' and self.is_webp(thumbnail_filename):
                 self.to_screen('Correcting thumbnail "%s" extension to webp' % thumbnail_filename)
                 webp_filename = replace_extension(thumbnail_filename, 'webp')
-                os.replace(encodeFilename(thumbnail_filename), encodeFilename(webp_filename))
+                os.replace(thumbnail_filename, webp_filename)
                 info['thumbnails'][idx]['filepath'] = webp_filename
                 info['__files_to_move'][webp_filename] = replace_extension(
                     info['__files_to_move'].pop(thumbnail_filename), 'webp')

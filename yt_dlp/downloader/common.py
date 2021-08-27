@@ -208,10 +208,10 @@ class FileDownloader(object):
             return
         try:
             if self.params.get('overwrites', False):
-                if os.path.isfile(encodeFilename(new_filename)):
-                    os.replace(encodeFilename(old_filename), encodeFilename(new_filename))
+                if os.path.isfile(new_filename):
+                    os.replace(old_filename, new_filename)
             else:
-                os.rename(encodeFilename(old_filename), encodeFilename(new_filename))
+                os.rename(old_filename, new_filename)
         except (IOError, OSError) as err:
             self.report_error('unable to rename file: %s' % error_to_compat_str(err))
 
