@@ -1,6 +1,6 @@
 ---
 name: Ask question
-about: Ask youtube-dl related question
+about: Ask yt-dlp related question
 title: "[Question]"
 labels: question
 assignees: ''

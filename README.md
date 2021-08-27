@@ -351,7 +351,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      filters can be checked with "&". Use a "\"
                                      to escape "&" or quotes if needed. Eg:
                                      --match-filter "!is_live & like_count>?100
-                                     & description~=\'(?i)\bcats \& dogs\b\'"
+                                     & description~='(?i)\bcats \& dogs\b'"
                                      matches only videos that are not live, has
                                      a like count more than 100 (or the like
                                      field is not available), and also has a
@@ -1173,7 +1173,9 @@ Format selectors can also be grouped using parentheses, for example if you want 
 
 ## Sorting Formats
 
-You can change the criteria for being considered the `best` by using `-S` (`--format-sort`). The general format for this is `--format-sort field1,field2...`. The available fields are:
+You can change the criteria for being considered the `best` by using `-S` (`--format-sort`). The general format for this is `--format-sort field1,field2...`.
+
+The available fields are:
 
  - `hasvid`: Gives priority to formats that has a video stream
  - `hasaud`: Gives priority to formats that has a audio stream
@@ -1339,7 +1341,7 @@ The metadata obtained the the extractors can be modified by using `--parse-metad
 
 `--replace-in-metadata FIELDS REGEX REPLACE` is used to replace text in any metadata field using [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax). [Backreferences](https://docs.python.org/3/library/re.html?highlight=backreferences#re.sub) can be used in the replace string for advanced use.
 
-The general syntax of `--parse-metadata FROM:TO` is to give the name of a field or a template (with same syntax as [output template](#output-template)) to extract data from, and the format to interpret it as, separated by a colon `:`. Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
+The general syntax of `--parse-metadata FROM:TO` is to give the name of a field or an [output template](#output-template) to extract data from, and the format to interpret it as, separated by a colon `:`. Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
 
 Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--add-metadata`.
 
