@@ -1371,12 +1371,6 @@ def parseOpts(overrideArguments=None):
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
         help='Do not remove any chapters from the file (default)')
     postproc.add_option(
-        '--force-remove-chapters', default=False, dest='force_remove_chapters', action='store_true',
-        help='Remove chapters even if the video was already downloaded')
-    postproc.add_option(
-        '--no-force-remove-chapters', dest='force_remove_chapters', action='store_false',
-        help='Do not remove chapters if the video was already downloaded (default)')
-    postproc.add_option(
         '--force-keyframes-at-cuts',
         action='store_true', dest='force_keyframes_at_cuts', default=False,
         help=(
@@ -1390,38 +1384,27 @@ def parseOpts(overrideArguments=None):
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options')
     sponsorblock.add_option(
-        '--sponsorblock',
-        action='store_true', dest='sponsorblock', default=None,
-        help=(
-            'Retrieve sponsor segments from the SponsorBlock API (sponsor.ajay.app). '
-            'Also adds the chapter markers to file unless --no-add-chapters is used'))
-    sponsorblock.add_option(
-        '--no-sponsorblock', action='store_false', dest='sponsorblock',
-        help='Do not use the SponsorBlock API')
-    sponsorblock.add_option(
-        '--remove-sponsor-segments', metavar='CATS',
-        dest='remove_sponsor_segments', default=set(), action='callback', type='str',
+        '--sponsorblock-mark', metavar='CATS',
+        dest='sponsorblock_mark', default=set(), action='callback', type='str',
         callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
         help=(
-            'Sponsorblock categories to be removed from the video file, seperated by commas. Implies --sponsorblock. '
-            'Available categories are all, %s. You can prefix the category with a "-" to exempt it from being removed. '
-            'Eg: --remove-sponsor-segments all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
-    sponsorblock.add_option(
-        '--sponsorblock-query', metavar='CATS',
-        dest='sponsorblock_query', default=set(), action='callback', type='str',
-        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
-        help=(
-            'Sponsorblock categories to query SponsorBlock API for, seperated by commas. '
+            'SponsorBlock categories to create chapters for, separated by commas. '
             'See https://github.com/ajayyy/SponsorBlock/wiki/Segment-Categories'
             'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
             'Eg: --sponsorblock-query all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
-        '--sponsorblock-privacy', default=True,
-        action='store_true', dest='sponsorblock_hide_video_id',
-        help='Use a hash prefix of the video ID when querying SponsorBlock to hide what videos you are watching (default)')
+        '--sponsorblock-remove', metavar='CATS',
+        dest='sponsorblock_remove', default=set(), action='callback', type='str',
+        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
+        help=(
+            'SponsorBlock categories to be removed from the video file, separated by commas. '
+            'If a category is present in both mark and remove, remove takes precedence. '
+            'Available categories are all, %s. You can prefix the category with a "-" to exempt it from being removed. '
+            'Eg: --remove-sponsor-segments all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
-        '--no-sponsorblock-privacy', action='store_false', dest='sponsorblock_hide_video_id',
-        help='Send full video ID to SponsorBlock to make sure it knows what videos you are watching')
+        '--no-sponsorblock', default=False,
+        action='store_true', dest='no_sponsorblock',
+        help='Disable both --sponsorblock-mark and --sponsorblock-remove')
     sponsorblock.add_option(
         '--sponsorblock-api', metavar='URL',
         default='https://sponsor.ajay.app', dest='sponsorblock_api',

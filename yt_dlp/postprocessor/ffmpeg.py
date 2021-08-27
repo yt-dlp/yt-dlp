@@ -342,7 +342,9 @@ class FFmpegPostProcessor(PostProcessor):
         yield 'ffconcat version 1.0\n'
         for file, opts in zip(in_files, concat_opts):
             yield f'file {cls._quote_for_ffmpeg(cls._ffmpeg_filename_argument(file))}\n'
-            yield from (f'{key} {val}\n' for key, val in opts.items())
+            for directive in 'inpoint', 'outpoint', 'duration':
+                if directive in opts:
+                    yield f'{directive} {opts[directive]}\n'
 
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):

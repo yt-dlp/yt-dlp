@@ -352,21 +352,26 @@ def _real_main(argv=None):
     if opts.getcomments and not printing_json:
         opts.writeinfojson = True
 
-    if (opts.addmetadata or opts.sponsorblock) and opts.addchapters is None:
+    if opts.no_sponsorblock:
+        opts.sponsorblock_mark = set()
+        opts.sponsorblock_remove = set()
+    sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
+
+    if (opts.addmetadata or sponsorblock_query) and opts.addchapters is None:
         opts.addchapters = True
-    if opts.remove_sponsor_segments and opts.sponsorblock is None:
-        opts.sponsorblock = True
     opts.remove_chapters = opts.remove_chapters or []
 
     def report_conflict(arg1, arg2):
         warnings.append('%s is ignored since %s was given' % (arg2, arg1))
 
-    if (opts.remove_chapters or opts.remove_sponsor_segments) and opts.sponskrub is not False:
+    if (opts.remove_chapters or sponsorblock_query) and opts.sponskrub is not False:
         if opts.sponskrub:
-            if opts.remove_sponsor_segments:
-                report_conflict('--remove-sponsor-segments', '--sponskrub')
             if opts.remove_chapters:
                 report_conflict('--remove-chapters', '--sponskrub')
+            if opts.sponsorblock_mark:
+                report_conflict('--sponsorblock-mark', '--sponskrub')
+            if opts.sponsorblock_remove:
+                report_conflict('--sponsorblock-remove', '--sponskrub')
         opts.sponskrub = False
     if opts.sponskrub_cut and opts.split_chapters and opts.sponskrub is not False:
         report_conflict('--split-chapter', '--sponskrub-cut')
@@ -404,20 +409,19 @@ def _real_main(argv=None):
         if opts.remove_chapters:
             report_conflict('--allow-unplayable-formats', '--remove-chapters')
             opts.remove_chapters = []
-        if opts.remove_sponsor_segments:
-            report_conflict('--allow-unplayable-formats', '--remove-sponsor-segments')
-            opts.remove_sponsor_segments = []
+        if opts.sponsorblock_remove:
+            report_conflict('--allow-unplayable-formats', '--sponsor-remove')
+            opts.sponsorblock_remove = set()
         if opts.sponskrub:
             report_conflict('--allow-unplayable-formats', '--sponskrub')
         opts.sponskrub = False
 
     # PostProcessors
     postprocessors = []
-    if opts.sponsorblock:
+    if sponsorblock_query:
         postprocessors.append({
             'key': 'SponsorBlock',
-            'categories': opts.sponsorblock_query,
-            'hide_video_id': opts.sponsorblock_hide_video_id,
+            'categories': sponsorblock_query,
             'api': opts.sponsorblock_api,
             # Run this immediately after extraction is complete
             'when': 'pre_process'
@@ -488,13 +492,12 @@ def _real_main(argv=None):
             remove_chapters_patterns.append(re.compile(regex))
         except re.error as err:
             parser.error(f'invalid --remove-chapters regex {regex!r} - {err}')
-    if opts.remove_chapters or opts.remove_sponsor_segments:
+    if opts.remove_chapters or opts.sponsorblock_remove:
         postprocessors.append({
             'key': 'ModifyChapters',
             'remove_chapters_patterns': remove_chapters_patterns,
-            'remove_sponsor_segments': opts.remove_sponsor_segments,
-            'force_keyframes': opts.force_keyframes_at_cuts,
-            'force_remove': opts.force_remove_chapters,
+            'remove_sponsor_segments': opts.sponsorblock_remove,
+            'force_keyframes': opts.force_keyframes_at_cuts
         })
     # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
     # FFmpegExtractAudioPP as containers before conversion may not support

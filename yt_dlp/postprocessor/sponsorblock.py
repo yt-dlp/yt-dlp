@@ -22,10 +22,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
         'music_offtopic': 'Non-Music Section'
     }
 
-    def __init__(self, downloader, categories=None, hide_video_id=True, api='https://sponsor.ajay.app'):
+    def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
         FFmpegPostProcessor.__init__(self, downloader)
         self._categories = tuple(categories or self.CATEGORIES.keys())
-        self._call_api = self._get_sponsor_segments_revealing_id if hide_video_id else self._get_sponsor_segments_hiding_id
         self._API_URL = api if re.match('^https?://', api) else 'https://' + api
 
     @classmethod
@@ -42,7 +41,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         return [], info
 
     def _get_sponsor_chapters(self, info, duration):
-        segments = self._call_api(info['id'], self.EXTRACTORS[info['extractor_key']])
+        segments = self._get_sponsor_segments(info['id'], self.EXTRACTORS[info['extractor_key']])
 
         def duration_filter(s):
             start_end = s['segment']
@@ -71,15 +70,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
             self.to_screen(f'Found {len(sponsor_chapters)} segments in the SponsorBlock database')
         return sponsor_chapters
 
-    def _get_sponsor_segments_revealing_id(self, video_id, service):
-        url = f'{self._API_URL}/api/skipSegments?' + compat_urllib_parse_urlencode({
-            'videoID': video_id,
-            'service': service,
-            'categories': json.dumps(self._categories),
-        })
-        return self._get_json(url)
-
-    def _get_sponsor_segments_hiding_id(self, video_id, service):
+    def _get_sponsor_segments(self, video_id, service):
         hash = sha256(video_id.encode('ascii')).hexdigest()
         # SponsorBlock API recommends using first 4 hash characters.
         url = f'{self._API_URL}/api/skipSegments/{hash[:4]}?' + compat_urllib_parse_urlencode({
