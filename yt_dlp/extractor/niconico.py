@@ -662,6 +662,7 @@ class NiconicoPlaylistIE(InfoExtractor):
             'entries': OnDemandPagedList(pagefunc, 25),
         }
 
+
 NicovideoSearchIE_NAME = 'nicovideo:search'
 
 
@@ -716,6 +717,7 @@ class NicovideoSearchIE(SearchInfoExtractor, NicovideoSearchURLIE):
             entries = itertools.islice(entries, 0, n)
         return self.playlist_result(entries, query, query)
 
+
 class NicovideoSearchDateIE(NicovideoSearchIE):
     IE_DESC = 'Nico video searches, newest first'
     IE_NAME = f'{NicovideoSearchIE_NAME}:date'
@@ -747,7 +749,7 @@ class NicovideoSearchDateIE(NicovideoSearchIE):
         else:
             self.to_screen(f'{item_id}: Downloading results from {start_date} to {end_date}')
             yield from self._get_entries_for_date(
-                url, item_id, start_date, end_date, note=f'    Downloading page %(page)s')
+                url, item_id, start_date, end_date, note='    Downloading page %(page)s')
 
     def _get_entries_for_date(self, url, item_id, start_date, end_date=None, page_num=None, note=None):
         query = {
