@@ -1,8 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt
 from ..compat import (
@@ -11,9 +9,9 @@ from ..compat import (
 )
 from ..utils import (
     bytes_to_intlist,
+    ExtractorError,
     intlist_to_bytes,
     unified_strdate,
-    url_or_none,
 )
 
 
@@ -26,7 +24,7 @@ class ShemarooMeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Dil Hai Tumhaara',
             'release_date': '20020906',
-            'thumbnail': 'https://daex9l847wg3n.cloudfront.net/shemoutputimages/Dil-Hai-Tumhaara/60599346a609d2faa3000020/large_16_9_1616436538.jpg?1616483693',
+            'thumbnail': r're:^https?://.*\.jpg$',
             'description': 'md5:2782c4127807103cf5a6ae2ca33645ce',
         },
         'params': {
@@ -39,7 +37,22 @@ class ShemarooMeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Laalach',
             'description': 'md5:92b79c2dcb539b0ab53f9fa5a048f53c',
+            'thumbnail': r're:^https?://.*\.jpg$',
             'release_date': '20210507',
+        },
+        'params': {
+            'skip_download': True
+        },
+        'skip': 'Premium videos cannot be downloaded yet.'
+    }, {
+        'url': 'https://www.shemaroome.com/shows/jai-jai-jai-bajrang-bali/jai-jai-jai-bajrang-bali-episode-99',
+        'info_dict': {
+            'id': 'jai-jai-jai-bajrang-bali_jai-jai-jai-bajrang-bali-episode-99',
+            'ext': 'mp4',
+            'title': 'Jai Jai Jai Bajrang Bali Episode 99',
+            'description': 'md5:850d127a18ee3f9529d7fbde2f49910d',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'release_date': '20110101',
         },
         'params': {
             'skip_download': True
@@ -49,28 +62,43 @@ class ShemarooMeIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url).replace('/', '_')
         webpage = self._download_webpage(url, video_id)
-        m = re.search(
-            r'params_for_player\s*=\s*"(?P<data>[^|]+)\|key=(?P<key>[^|]+)\|image=(?P<thumbnail>[^|]+)\|title=(?P<title>[^|]+)',
-            webpage)
-        data = bytes_to_intlist(compat_b64decode(m.group('data')))
-        key = bytes_to_intlist(compat_b64decode(m.group('key')))
+        title = self._search_regex(r'id=\"ma_title\" value=\"([^\"]+)', webpage, 'title')
+        thumbnail = self._og_search_thumbnail(webpage)
+        content_def = self._search_regex(r'id=\"content_definition\" value=\"([^\"]+)', webpage, 'content_def')
+        catalog_id = self._search_regex(r'id=\"catalog_id\" value=\"([^\"]+)', webpage, 'catalog_id')
+        item_category = self._search_regex(r'id=\"item_category\" value=\"([^\"]+)', webpage, 'item_category')
+        content_id = self._search_regex(r'id=\"content_id\" value=\"([^\"]+)', webpage, 'content_id')
+
+        data = f'catalog_id={catalog_id}&content_id={content_id}&category={item_category}&content_def={content_def}'
+        data_json = self._download_json('https://www.shemaroome.com/users/user_all_lists', video_id, data=data.encode())
+        if not data_json.get('status'):
+            raise ExtractorError('Premium videos cannot be downloaded yet.', expected=True)
+        url_data = bytes_to_intlist(compat_b64decode(data_json['new_play_url']))
+        key = bytes_to_intlist(compat_b64decode(data_json['key']))
         iv = [0] * 16
-        m3u8_url = intlist_to_bytes(aes_cbc_decrypt(data, key, iv))
+        m3u8_url = intlist_to_bytes(aes_cbc_decrypt(url_data, key, iv))
         m3u8_url = m3u8_url[:-compat_ord((m3u8_url[-1]))].decode('ascii')
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, fatal=False)
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, fatal=False, headers={'stream_key': data_json['stream_key']})
         self._sort_formats(formats)
 
         release_date = self._html_search_regex(
             (r'itemprop="uploadDate">\s*([\d-]+)', r'id="release_date" value="([\d-]+)'),
             webpage, 'release date', fatal=False)
 
+        subtitles = {}
+        sub_url = data_json.get('subtitle')
+        if sub_url:
+            subtitles.setdefault('EN', []).append({
+                'url': self._proto_relative_url(sub_url),
+            })
         description = self._html_search_regex(r'(?s)>Synopsis(</.+?)</', webpage, 'description', fatal=False)
 
         return {
             'id': video_id,
             'formats': formats,
-            'title': m.group('title'),
-            'thumbnail': url_or_none(m.group('thumbnail')),
+            'title': title,
+            'thumbnail': thumbnail,
             'release_date': unified_strdate(release_date),
             'description': description,
+            'subtitles': subtitles,
         }
