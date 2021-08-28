@@ -198,9 +198,9 @@ class CDAIE(InfoExtractor):
                                                         note=f"Fetching {quality} url",
                                                         errnote=f"Failed to fetch {quality} url", fatal=False)
                         if try_get(video_url, lambda x: x['result']['status']) == 'ok':
-                            video_q_url = try_get(video_url, lambda x: x['result']['resp'])
+                            video_url = try_get(video_url, lambda x: x['result']['resp'])
                             info_dict['formats'].append({
-                                'url': video_q_url,
+                                'url': video_url,
                                 'format_id': quality,
                                 'height': int_or_none(quality[:-1])
                             })
