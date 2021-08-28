@@ -189,22 +189,21 @@ class CDAIE(InfoExtractor):
                 for quality in qualities:
                     if quality != c_quality:
                         data = {"jsonrpc": "2.0", "method": "videoGetLink",
-                                "params": [video_id, qualities[quality], video.get('ts'), video.get('hash2'),
-                                           {}], "id": 2}
+                                "params": [video_id, qualities[quality],
+                                           video.get('ts'), video.get('hash2'), {}], "id": 2}
                         data = json.dumps(data).encode('utf-8')
-                        url = self._download_json('https://www.cda.pl/video/' + video_id, video_id,
-                                                  headers={'Content-Type': 'application/json',
-                                                           'X-Requested-With': 'XMLHttpRequest'}, data=data,
-                                                  note=f"Fetching {quality} url",
-                                                  errnote=f"Failed to fetch {quality} url", fatal=False)
-                        if try_get(url, lambda x: x['result']['status']) == 'ok':
-                            url = try_get(url, lambda x: x['result']['resp'])
-                            f = {
-                                'url': url,
+                        video_url = self._download_json('https://www.cda.pl/video/' + video_id, video_id,
+                                                        headers={'Content-Type': 'application/json',
+                                                                 'X-Requested-With': 'XMLHttpRequest'}, data=data,
+                                                        note=f"Fetching {quality} url",
+                                                        errnote=f"Failed to fetch {quality} url", fatal=False)
+                        if try_get(video_url, lambda x: x['result']['status']) == 'ok':
+                            video_q_url = try_get(video_url, lambda x: x['result']['resp'])
+                            info_dict['formats'].append({
+                                'url': video_q_url,
                                 'format_id': quality,
                                 'height': int_or_none(quality[:-1])
-                            }
-                            info_dict['formats'].append(f)
+                            })
 
             if not info_dict['duration']:
                 info_dict['duration'] = parse_duration(video.get('duration'))
