@@ -1440,7 +1440,10 @@ from .tv2dk import (
     TV2DKIE,
     TV2DKBornholmPlayIE,
 )
-from .tv2hu import TV2HuIE
+from .tv2hu import (
+    TV2HuIE,
+    TV2HuSeriesIE,
+)
 from .tv4 import TV4IE
 from .tv5mondeplus import TV5MondePlusIE
 from .tv5unis import (
