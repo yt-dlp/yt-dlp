@@ -1,11 +1,12 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-import json
 import datetime
+import itertools
+import json
+import re
 
-from .common import InfoExtractor
+from .common import InfoExtractor, SearchInfoExtractor
 from ..postprocessor.ffmpeg import FFmpegPostProcessor
 from ..compat import (
     compat_str,
@@ -661,6 +662,106 @@ class NiconicoPlaylistIE(InfoExtractor):
         }
 
 
+NicovideoSearchIE_NAME = 'nicovideo:search'
+
+
+class NicovideoSearchURLIE(InfoExtractor):
+    IE_NAME = f'{NicovideoSearchIE_NAME}_url'
+    IE_DESC = 'Nico video search URLs'
+    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/search/(?P<id>[^?#&]+)?'
+    _TESTS = [{
+        'url': 'http://www.nicovideo.jp/search/sm9',
+        'info_dict': {
+            'id': 'sm9',
+            'title': 'sm9'
+        },
+        'playlist_mincount': 40,
+    }, {
+        'url': 'https://www.nicovideo.jp/search/sm9?sort=h&order=d&end=2020-12-31&start=2020-01-01',
+        'info_dict': {
+            'id': 'sm9',
+            'title': 'sm9'
+        },
+        'playlist_count': 31,
+    }]
+
+    def _entries(self, url, item_id, query=None, note='Downloading page %(page)s'):
+        query = query or {}
+        pages = [query['page']] if 'page' in query else itertools.count(1)
+        for page_num in pages:
+            query['page'] = str(page_num)
+            webpage = self._download_webpage(url, item_id, query=query, note=note % {'page': page_num})
+            results = re.findall(r'(?<=data-video-id=)["\']?(?P<videoid>.*?)(?=["\'])', webpage)
+            for item in results:
+                yield self.url_result(f'http://www.nicovideo.jp/watch/{item}', 'Niconico', item)
+            if not results:
+                break
+
+    def _real_extract(self, url):
+        query = self._match_id(url)
+        return self.playlist_result(self._entries(url, query), query, query)
+
+
+class NicovideoSearchIE(SearchInfoExtractor, NicovideoSearchURLIE):
+    IE_DESC = 'Nico video searches'
+    _MAX_RESULTS = float('inf')
+    IE_NAME = NicovideoSearchIE_NAME
+    _SEARCH_KEY = 'nicosearch'
+    _TESTS = []
+
+    def _get_n_results(self, query, n):
+        entries = self._entries(self._proto_relative_url(f'//www.nicovideo.jp/search/{query}'), query)
+        if n < float('inf'):
+            entries = itertools.islice(entries, 0, n)
+        return self.playlist_result(entries, query, query)
+
+
+class NicovideoSearchDateIE(NicovideoSearchIE):
+    IE_DESC = 'Nico video searches, newest first'
+    IE_NAME = f'{NicovideoSearchIE_NAME}:date'
+    _SEARCH_KEY = 'nicosearchdate'
+    _TESTS = [{
+        'url': 'nicosearchdateall:a',
+        'info_dict': {
+            'id': 'a',
+            'title': 'a'
+        },
+        'playlist_mincount': 1610,
+    }]
+
+    _START_DATE = datetime.date(2007, 1, 1)
+    _RESULTS_PER_PAGE = 32
+    _MAX_PAGES = 50
+
+    def _entries(self, url, item_id, start_date=None, end_date=None):
+        start_date, end_date = start_date or self._START_DATE, end_date or datetime.datetime.now().date()
+
+        # If the last page has a full page of videos, we need to break down the query interval further
+        last_page_len = len(list(self._get_entries_for_date(
+            url, item_id, start_date, end_date, self._MAX_PAGES,
+            note=f'Checking number of videos from {start_date} to {end_date}')))
+        if (last_page_len == self._RESULTS_PER_PAGE and start_date != end_date):
+            midpoint = start_date + ((end_date - start_date) // 2)
+            yield from self._entries(url, item_id, midpoint, end_date)
+            yield from self._entries(url, item_id, start_date, midpoint)
+        else:
+            self.to_screen(f'{item_id}: Downloading results from {start_date} to {end_date}')
+            yield from self._get_entries_for_date(
+                url, item_id, start_date, end_date, note='    Downloading page %(page)s')
+
+    def _get_entries_for_date(self, url, item_id, start_date, end_date=None, page_num=None, note=None):
+        query = {
+            'start': str(start_date),
+            'end': str(end_date or start_date),
+            'sort': 'f',
+            'order': 'd',
+        }
+        if page_num:
+            query['page'] = str(page_num)
+
+        yield from NicovideoSearchURLIE._entries(self, url, item_id, query=query, note=note)
+
+
 class NiconicoUserIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/user/(?P<id>\d+)/?(?:$|[#?])'
     _TEST = {
@@ -678,7 +779,7 @@ class NiconicoUserIE(InfoExtractor):
         'X-Frontend-Version': '0'
     }
 
-    def _entries(self, list_id, ):
+    def _entries(self, list_id):
         total_count = 1
         count = page_num = 0
         while count < total_count:

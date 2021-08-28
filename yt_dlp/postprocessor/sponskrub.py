@@ -84,8 +84,7 @@ class SponSkrubPP(PostProcessor):
         stdout = process_communicate_or_kill(p)[0]
 
         if p.returncode == 0:
-            os.remove(encodeFilename(filename))
-            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+            os.replace(temp_filename, filename)
             self.to_screen('Sponsor sections have been %s' % ('removed' if self.cutout else 'marked'))
         elif p.returncode == 3:
             self.to_screen('No segments in the SponsorBlock database')
