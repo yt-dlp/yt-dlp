@@ -114,320 +114,332 @@ class TestModifyChaptersPP(unittest.TestCase):
         self.assertSequenceEqual(expected_removed, actual_removed)
 
     def test_remove_marked_arrange_sponsors_CanGetThroughUnaltered(self):
-        chapters = self._chapters([1, 2, 3, 4], ['c1', 'c2', 'c3', 'c4'])
+        chapters = self._chapters([10, 20, 30, 40], ['c1', 'c2', 'c3', 'c4'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, chapters, [])
 
     def test_remove_marked_arrange_sponsors_ChapterWithSponsors(self):
-        chapters = self._chapters([7], ['c']) + [
-            self._sponsor_chapter(1, 2, 'sponsor'),
-            self._sponsor_chapter(3, 4, 'preview'),
-            self._sponsor_chapter(5, 6, 'sponsor')]
+        chapters = self._chapters([70], ['c']) + [
+            self._sponsor_chapter(10, 20, 'sponsor'),
+            self._sponsor_chapter(30, 40, 'preview'),
+            self._sponsor_chapter(50, 60, 'sponsor')]
         expected = self._chapters(
-            [1, 2, 3, 4, 5, 6, 7],
+            [10, 20, 30, 40, 50, 60, 70],
             ['c', '[SponsorBlock]: Sponsor', 'c', '[SponsorBlock]: Preview/Recap',
              'c', '[SponsorBlock]: Sponsor', 'c'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_UniqueNamesForOverlappingSponsors(self):
-        chapters = self._chapters([12], ['c']) + [
-            self._sponsor_chapter(1, 3, 'sponsor'), self._sponsor_chapter(2, 4, 'selfpromo'),
-            self._sponsor_chapter(5, 7, 'sponsor'), self._sponsor_chapter(6, 8, 'selfpromo'),
-            self._sponsor_chapter(9, 11, 'selfpromo'), self._sponsor_chapter(10, 12, 'sponsor')]
+        chapters = self._chapters([120], ['c']) + [
+            self._sponsor_chapter(10, 45, 'sponsor'), self._sponsor_chapter(20, 40, 'selfpromo'),
+            self._sponsor_chapter(50, 70, 'sponsor'), self._sponsor_chapter(60, 85, 'selfpromo'),
+            self._sponsor_chapter(90, 120, 'selfpromo'), self._sponsor_chapter(100, 110, 'sponsor')]
         expected = self._chapters(
-            [1, 4, 5, 8, 9, 12],
-            ['c', '[SponsorBlock]: Sponsor/Self-Promotion',
-             'c', '[SponsorBlock]: Sponsor/Self-Promotion',
-             'c', '[SponsorBlock]: Self-Promotion/Sponsor'])
+            [10, 20, 40, 45, 50, 60, 70, 85, 90, 100, 110, 120],
+            ['c', '[SponsorBlock]: Sponsor', '[SponsorBlock]: Sponsor/Self-Promotion',
+             '[SponsorBlock]: Sponsor',
+             'c', '[SponsorBlock]: Sponsor', '[SponsorBlock]: Sponsor/Self-Promotion',
+             '[SponsorBlock]: Self-Promotion',
+             'c', '[SponsorBlock]: Self-Promotion', '[SponsorBlock]: Self-Promotion/Sponsor',
+             '[SponsorBlock]: Self-Promotion'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_ChapterWithCuts(self):
-        cuts = [self._chapter(1, 2, remove=True),
-                self._sponsor_chapter(3, 4, 'sponsor', remove=True),
-                self._chapter(5, 6, remove=True)]
-        chapters = self._chapters([7], ['c']) + cuts
+        cuts = [self._chapter(10, 20, remove=True),
+                self._sponsor_chapter(30, 40, 'sponsor', remove=True),
+                self._chapter(50, 60, remove=True)]
+        chapters = self._chapters([70], ['c']) + cuts
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, self._chapters([4], ['c']), cuts)
+            chapters, self._chapters([40], ['c']), cuts)
 
     def test_remove_marked_arrange_sponsors_ChapterWithSponsorsAndCuts(self):
-        chapters = self._chapters([7], ['c']) + [
-            self._sponsor_chapter(1, 2, 'sponsor'),
-            self._sponsor_chapter(3, 4, 'selfpromo', remove=True),
-            self._sponsor_chapter(5, 6, 'interaction')]
-        expected = self._chapters([1, 2, 4, 5, 6],
+        chapters = self._chapters([70], ['c']) + [
+            self._sponsor_chapter(10, 20, 'sponsor'),
+            self._sponsor_chapter(30, 40, 'selfpromo', remove=True),
+            self._sponsor_chapter(50, 60, 'interaction')]
+        expected = self._chapters([10, 20, 40, 50, 60],
                                   ['c', '[SponsorBlock]: Sponsor', 'c',
                                    '[SponsorBlock]: Interaction Reminder', 'c'])
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, expected, [self._chapter(3, 4, remove=True)])
+            chapters, expected, [self._chapter(30, 40, remove=True)])
 
     def test_remove_marked_arrange_sponsors_ChapterWithSponsorCutInTheMiddle(self):
-        cuts = [self._sponsor_chapter(2, 3, 'selfpromo', remove=True),
-                self._chapter(4, 5, remove=True)]
-        chapters = self._chapters([7], ['c']) + [self._sponsor_chapter(1, 6, 'sponsor')] + cuts
+        cuts = [self._sponsor_chapter(20, 30, 'selfpromo', remove=True),
+                self._chapter(40, 50, remove=True)]
+        chapters = self._chapters([70], ['c']) + [self._sponsor_chapter(10, 60, 'sponsor')] + cuts
         expected = self._chapters(
-            [1, 4, 5], ['c', '[SponsorBlock]: Sponsor', 'c'])
+            [10, 40, 50], ['c', '[SponsorBlock]: Sponsor', 'c'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_ChapterWithCutHidingSponsor(self):
-        cuts = [self._sponsor_chapter(2, 5, 'selpromo', remove=True)]
-        chapters = self._chapters([6], ['c']) + [
-            self._sponsor_chapter(1, 2, 'intro'),
-            self._sponsor_chapter(3, 4, 'sponsor'),
-            self._sponsor_chapter(5, 6, 'outro'),
+        cuts = [self._sponsor_chapter(20, 50, 'selpromo', remove=True)]
+        chapters = self._chapters([60], ['c']) + [
+            self._sponsor_chapter(10, 20, 'intro'),
+            self._sponsor_chapter(30, 40, 'sponsor'),
+            self._sponsor_chapter(50, 60, 'outro'),
         ] + cuts
         expected = self._chapters(
-            [1, 2, 3], ['c', '[SponsorBlock]: Intro', '[SponsorBlock]: Outro'])
+            [10, 20, 30], ['c', '[SponsorBlock]: Intro', '[SponsorBlock]: Outro'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_ChapterWithAdjacentSponsors(self):
-        chapters = self._chapters([7], ['c']) + [
-            self._sponsor_chapter(1, 2, 'sponsor'),
-            self._sponsor_chapter(2, 3, 'selfpromo'),
-            self._sponsor_chapter(3, 4, 'interaction')]
+        chapters = self._chapters([70], ['c']) + [
+            self._sponsor_chapter(10, 20, 'sponsor'),
+            self._sponsor_chapter(20, 30, 'selfpromo'),
+            self._sponsor_chapter(30, 40, 'interaction')]
         expected = self._chapters(
-            [1, 2, 3, 4, 7],
+            [10, 20, 30, 40, 70],
             ['c', '[SponsorBlock]: Sponsor', '[SponsorBlock]: Self-Promotion',
              '[SponsorBlock]: Interaction Reminder', 'c'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_ChapterWithAdjacentCuts(self):
-        chapters = self._chapters([7], ['c']) + [
-            self._sponsor_chapter(1, 2, 'sponsor'),
-            self._sponsor_chapter(2, 3, 'interaction', remove=True),
-            self._chapter(3, 4, remove=True),
-            self._sponsor_chapter(4, 5, 'selpromo', remove=True),
-            self._sponsor_chapter(5, 6, 'interaction')]
-        expected = self._chapters([1, 2, 3, 4],
+        chapters = self._chapters([70], ['c']) + [
+            self._sponsor_chapter(10, 20, 'sponsor'),
+            self._sponsor_chapter(20, 30, 'interaction', remove=True),
+            self._chapter(30, 40, remove=True),
+            self._sponsor_chapter(40, 50, 'selpromo', remove=True),
+            self._sponsor_chapter(50, 60, 'interaction')]
+        expected = self._chapters([10, 20, 30, 40],
                                   ['c', '[SponsorBlock]: Sponsor',
                                    '[SponsorBlock]: Interaction Reminder', 'c'])
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, expected, [self._chapter(2, 5, remove=True)])
+            chapters, expected, [self._chapter(20, 50, remove=True)])
 
     def test_remove_marked_arrange_sponsors_ChapterWithOverlappingSponsors(self):
-        chapters = self._chapters([7], ['c']) + [
-            self._sponsor_chapter(1, 3, 'sponsor'),
-            self._sponsor_chapter(2, 5, 'selfpromo'),
-            self._sponsor_chapter(4, 6, 'interaction')]
+        chapters = self._chapters([70], ['c']) + [
+            self._sponsor_chapter(10, 30, 'sponsor'),
+            self._sponsor_chapter(20, 50, 'selfpromo'),
+            self._sponsor_chapter(40, 60, 'interaction')]
         expected = self._chapters(
-            [1, 6, 7],
-            ['c', '[SponsorBlock]: Sponsor/Self-Promotion/Interaction Reminder', 'c'])
+            [10, 20, 30, 40, 50, 60, 70],
+            ['c', '[SponsorBlock]: Sponsor', '[SponsorBlock]: Sponsor/Self-Promotion',
+             '[SponsorBlock]: Self-Promotion', '[SponsorBlock]: Self-Promotion/Interaction Reminder',
+             '[SponsorBlock]: Interaction Reminder', 'c'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_ChapterWithOverlappingCuts(self):
-        chapters = self._chapters([7], ['c']) + [
-            self._sponsor_chapter(1, 3, 'sponsor', remove=True),
-            self._sponsor_chapter(2, 5, 'selfpromo', remove=True),
-            self._sponsor_chapter(4, 6, 'interaction', remove=True)]
+        chapters = self._chapters([70], ['c']) + [
+            self._sponsor_chapter(10, 30, 'sponsor', remove=True),
+            self._sponsor_chapter(20, 50, 'selfpromo', remove=True),
+            self._sponsor_chapter(40, 60, 'interaction', remove=True)]
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, self._chapters([2], ['c']), [self._chapter(1, 6, remove=True)])
+            chapters, self._chapters([20], ['c']), [self._chapter(10, 60, remove=True)])
 
     def test_remove_marked_arrange_sponsors_ChapterWithRunsOfOverlappingSponsors(self):
-        chapters = self._chapters([17], ['c']) + [
-            self._sponsor_chapter(0, 3, 'intro'),
-            self._sponsor_chapter(2, 5, 'sponsor'),
-            self._sponsor_chapter(4, 6, 'selfpromo'),
-            self._sponsor_chapter(7, 9, 'sponsor'),
-            self._sponsor_chapter(8, 10, 'sponsor'),
-            self._sponsor_chapter(9, 11, 'sponsor'),
-            self._sponsor_chapter(12, 14, 'selfpromo'),
-            self._sponsor_chapter(13, 16, 'interaction'),
-            self._sponsor_chapter(15, 17, 'outro')]
+        chapters = self._chapters([170], ['c']) + [
+            self._sponsor_chapter(0, 30, 'intro'),
+            self._sponsor_chapter(20, 50, 'sponsor'),
+            self._sponsor_chapter(40, 60, 'selfpromo'),
+            self._sponsor_chapter(70, 90, 'sponsor'),
+            self._sponsor_chapter(80, 100, 'sponsor'),
+            self._sponsor_chapter(90, 110, 'sponsor'),
+            self._sponsor_chapter(120, 140, 'selfpromo'),
+            self._sponsor_chapter(130, 160, 'interaction'),
+            self._sponsor_chapter(150, 170, 'outro')]
         expected = self._chapters(
-            [6, 7, 11, 12, 17],
-            ['[SponsorBlock]: Intro/Sponsor/Self-Promotion', 'c', '[SponsorBlock]: Sponsor',
-             'c', '[SponsorBlock]: Self-Promotion/Interaction Reminder/Outro'])
+            [20, 30, 40, 50, 60, 70, 110, 120, 130, 140, 150, 160, 170],
+            ['[SponsorBlock]: Intro', '[SponsorBlock]: Intro/Sponsor', '[SponsorBlock]: Sponsor',
+             '[SponsorBlock]: Sponsor/Self-Promotion', '[SponsorBlock]: Self-Promotion', 'c',
+             '[SponsorBlock]: Sponsor', 'c', '[SponsorBlock]: Self-Promotion',
+             '[SponsorBlock]: Self-Promotion/Interaction Reminder',
+             '[SponsorBlock]: Interaction Reminder',
+             '[SponsorBlock]: Interaction Reminder/Outro', '[SponsorBlock]: Outro'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_ChapterWithRunsOfOverlappingCuts(self):
-        chapters = self._chapters([17], ['c']) + [
-            self._chapter(0, 3, remove=True),
-            self._sponsor_chapter(2, 5, 'sponsor', remove=True),
-            self._chapter(4, 6, remove=True),
-            self._sponsor_chapter(7, 9, 'sponsor', remove=True),
-            self._chapter(8, 10, remove=True),
-            self._chapter(9, 11, remove=True),
-            self._sponsor_chapter(12, 14, 'sponsor', remove=True),
-            self._sponsor_chapter(13, 16, 'selfpromo', remove=True),
-            self._chapter(15, 17, remove=True)]
-        expected_cuts = [self._chapter(0, 6, remove=True),
-                         self._chapter(7, 11, remove=True),
-                         self._chapter(12, 17, remove=True)]
+        chapters = self._chapters([170], ['c']) + [
+            self._chapter(0, 30, remove=True),
+            self._sponsor_chapter(20, 50, 'sponsor', remove=True),
+            self._chapter(40, 60, remove=True),
+            self._sponsor_chapter(70, 90, 'sponsor', remove=True),
+            self._chapter(80, 100, remove=True),
+            self._chapter(90, 110, remove=True),
+            self._sponsor_chapter(120, 140, 'sponsor', remove=True),
+            self._sponsor_chapter(130, 160, 'selfpromo', remove=True),
+            self._chapter(150, 170, remove=True)]
+        expected_cuts = [self._chapter(0, 60, remove=True),
+                         self._chapter(70, 110, remove=True),
+                         self._chapter(120, 170, remove=True)]
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, self._chapters([2], ['c']), expected_cuts)
+            chapters, self._chapters([20], ['c']), expected_cuts)
 
     def test_remove_marked_arrange_sponsors_OverlappingSponsorsDifferentTitlesAfterCut(self):
-        chapters = self._chapters([6], ['c']) + [
-            self._sponsor_chapter(1, 6, 'sponsor'),
-            self._sponsor_chapter(1, 4, 'intro'),
-            self._sponsor_chapter(3, 5, 'interaction'),
-            self._sponsor_chapter(3, 5, 'selfpromo', remove=True),
-            self._sponsor_chapter(4, 5, 'interaction'),
-            self._sponsor_chapter(5, 6, 'outro')]
+        chapters = self._chapters([60], ['c']) + [
+            self._sponsor_chapter(10, 60, 'sponsor'),
+            self._sponsor_chapter(10, 40, 'intro'),
+            self._sponsor_chapter(30, 50, 'interaction'),
+            self._sponsor_chapter(30, 50, 'selfpromo', remove=True),
+            self._sponsor_chapter(40, 50, 'interaction'),
+            self._sponsor_chapter(50, 60, 'outro')]
         expected = self._chapters(
-            [1, 3, 4], ['c', '[SponsorBlock]: Sponsor/Intro', '[SponsorBlock]: Sponsor/Outro'])
+            [10, 30, 40], ['c', '[SponsorBlock]: Sponsor/Intro', '[SponsorBlock]: Sponsor/Outro'])
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, expected, [self._chapter(3, 5, remove=True)])
+            chapters, expected, [self._chapter(30, 50, remove=True)])
 
     def test_remove_marked_arrange_sponsors_SponsorsNoLongerOverlapAfterCut(self):
-        chapters = self._chapters([7], ['c']) + [
-            self._sponsor_chapter(1, 3, 'sponsor'),
-            self._sponsor_chapter(2, 5, 'interaction'),
-            self._sponsor_chapter(3, 5, 'selpromo', remove=True),
-            self._sponsor_chapter(4, 6, 'sponsor'),
-            self._sponsor_chapter(5, 6, 'interaction')]
+        chapters = self._chapters([70], ['c']) + [
+            self._sponsor_chapter(10, 30, 'sponsor'),
+            self._sponsor_chapter(20, 50, 'interaction'),
+            self._sponsor_chapter(30, 50, 'selpromo', remove=True),
+            self._sponsor_chapter(40, 60, 'sponsor'),
+            self._sponsor_chapter(50, 60, 'interaction')]
         expected = self._chapters(
-            [1, 4, 5], ['c', '[SponsorBlock]: Sponsor/Interaction Reminder', 'c'])
+            [10, 20, 40, 50], ['c', '[SponsorBlock]: Sponsor',
+                               '[SponsorBlock]: Sponsor/Interaction Reminder', 'c'])
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, expected, [self._chapter(3, 5, remove=True)])
+            chapters, expected, [self._chapter(30, 50, remove=True)])
 
     def test_remove_marked_arrange_sponsors_SponsorsStillOverlapAfterCut(self):
-        chapters = self._chapters([7], ['c']) + [
-            self._sponsor_chapter(1, 6, 'sponsor'),
-            self._sponsor_chapter(2, 6, 'interaction'),
-            self._sponsor_chapter(3, 5, 'selfpromo', remove=True)]
+        chapters = self._chapters([70], ['c']) + [
+            self._sponsor_chapter(10, 60, 'sponsor'),
+            self._sponsor_chapter(20, 60, 'interaction'),
+            self._sponsor_chapter(30, 50, 'selfpromo', remove=True)]
         expected = self._chapters(
-            [1, 4, 5], ['c', '[SponsorBlock]: Sponsor/Interaction Reminder', 'c'])
+            [10, 20, 40, 50], ['c', '[SponsorBlock]: Sponsor',
+                               '[SponsorBlock]: Sponsor/Interaction Reminder', 'c'])
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, expected, [self._chapter(3, 5, remove=True)])
+            chapters, expected, [self._chapter(30, 50, remove=True)])
 
     def test_remove_marked_arrange_sponsors_ChapterWithRunsOfOverlappingSponsorsAndCuts(self):
-        chapters = self._chapters([20], ['c']) + [
-            self._sponsor_chapter(1, 4, 'sponsor'),
-            self._sponsor_chapter(1, 3, 'intro'),
-            self._chapter(2, 3, remove=True),
-            self._sponsor_chapter(3, 4, 'selfpromo'),
-            self._sponsor_chapter(5, 7, 'sponsor'),
-            self._sponsor_chapter(6, 8, 'interaction'),
-            self._chapter(7, 8, remove=True),
-            self._sponsor_chapter(7, 9, 'sponsor'),
-            self._sponsor_chapter(8, 10, 'interaction'),
-            self._sponsor_chapter(12, 17, 'selfpromo'),
-            self._sponsor_chapter(13, 18, 'outro'),
-            self._chapter(14, 15, remove=True),
-            self._chapter(15, 16, remove=True)]
+        chapters = self._chapters([200], ['c']) + [
+            self._sponsor_chapter(10, 40, 'sponsor'),
+            self._sponsor_chapter(10, 30, 'intro'),
+            self._chapter(20, 30, remove=True),
+            self._sponsor_chapter(30, 40, 'selfpromo'),
+            self._sponsor_chapter(50, 70, 'sponsor'),
+            self._sponsor_chapter(60, 80, 'interaction'),
+            self._chapter(70, 80, remove=True),
+            self._sponsor_chapter(70, 90, 'sponsor'),
+            self._sponsor_chapter(80, 100, 'interaction'),
+            self._sponsor_chapter(120, 170, 'selfpromo'),
+            self._sponsor_chapter(130, 180, 'outro'),
+            self._chapter(140, 150, remove=True),
+            self._chapter(150, 160, remove=True)]
         expected = self._chapters(
-            [1, 2, 3, 4, 8, 10, 14, 16],
+            [10, 20, 30, 40, 50, 70, 80, 100, 110, 130, 140, 160],
             ['c', '[SponsorBlock]: Sponsor/Intro', '[SponsorBlock]: Sponsor/Self-Promotion',
-             'c', '[SponsorBlock]: Sponsor/Interaction Reminder',
-             'c', '[SponsorBlock]: Self-Promotion/Outro', 'c'])
-        expected_cuts = [self._chapter(2, 3, remove=True),
-                         self._chapter(7, 8, remove=True),
-                         self._chapter(14, 16, remove=True)]
+             'c', '[SponsorBlock]: Sponsor', '[SponsorBlock]: Sponsor/Interaction Reminder',
+             '[SponsorBlock]: Interaction Reminder', 'c', '[SponsorBlock]: Self-Promotion',
+             '[SponsorBlock]: Self-Promotion/Outro', '[SponsorBlock]: Outro', 'c'])
+        expected_cuts = [self._chapter(20, 30, remove=True),
+                         self._chapter(70, 80, remove=True),
+                         self._chapter(140, 160, remove=True)]
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, expected_cuts)
 
     def test_remove_marked_arrange_sponsors_SponsorOverlapsMultipleChapters(self):
-        chapters = (self._chapters([2, 4, 6, 8, 10], ['c1', 'c2', 'c3', 'c4', 'c5'])
-                    + [self._sponsor_chapter(1, 9, 'sponsor')])
-        expected = self._chapters([1, 9, 10], ['c1', '[SponsorBlock]: Sponsor', 'c5'])
+        chapters = (self._chapters([20, 40, 60, 80, 100], ['c1', 'c2', 'c3', 'c4', 'c5'])
+                    + [self._sponsor_chapter(10, 90, 'sponsor')])
+        expected = self._chapters([10, 90, 100], ['c1', '[SponsorBlock]: Sponsor', 'c5'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_CutOverlapsMultipleChapters(self):
-        cuts = [self._chapter(1, 9, remove=True)]
-        chapters = self._chapters([2, 4, 6, 8, 10], ['c1', 'c2', 'c3', 'c4', 'c5']) + cuts
-        expected = self._chapters([1, 2], ['c1', 'c5'])
+        cuts = [self._chapter(10, 90, remove=True)]
+        chapters = self._chapters([20, 40, 60, 80, 100], ['c1', 'c2', 'c3', 'c4', 'c5']) + cuts
+        expected = self._chapters([10, 20], ['c1', 'c5'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_SponsorsWithinSomeChaptersAndOverlappingOthers(self):
-        chapters = (self._chapters([1, 4, 6, 8], ['c1', 'c2', 'c3', 'c4'])
-                    + [self._sponsor_chapter(2, 3, 'sponsor'),
-                       self._sponsor_chapter(5, 7, 'selfpromo')])
-        expected = self._chapters([1, 2, 3, 4, 5, 7, 8],
+        chapters = (self._chapters([10, 40, 60, 80], ['c1', 'c2', 'c3', 'c4'])
+                    + [self._sponsor_chapter(20, 30, 'sponsor'),
+                       self._sponsor_chapter(50, 70, 'selfpromo')])
+        expected = self._chapters([10, 20, 30, 40, 50, 70, 80],
                                   ['c1', 'c2', '[SponsorBlock]: Sponsor', 'c2', 'c3',
                                    '[SponsorBlock]: Self-Promotion', 'c4'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_CutsWithinSomeChaptersAndOverlappingOthers(self):
-        cuts = [self._chapter(2, 3, remove=True), self._chapter(5, 7, remove=True)]
-        chapters = self._chapters([1, 4, 6, 8], ['c1', 'c2', 'c3', 'c4']) + cuts
-        expected = self._chapters([1, 3, 4, 5], ['c1', 'c2', 'c3', 'c4'])
+        cuts = [self._chapter(20, 30, remove=True), self._chapter(50, 70, remove=True)]
+        chapters = self._chapters([10, 40, 60, 80], ['c1', 'c2', 'c3', 'c4']) + cuts
+        expected = self._chapters([10, 30, 40, 50], ['c1', 'c2', 'c3', 'c4'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_ChaptersAfterLastSponsor(self):
-        chapters = (self._chapters([2, 4, 5, 6], ['c1', 'c2', 'c3', 'c4'])
-                    + [self._sponsor_chapter(1, 3, 'music_offtopic')])
+        chapters = (self._chapters([20, 40, 50, 60], ['c1', 'c2', 'c3', 'c4'])
+                    + [self._sponsor_chapter(10, 30, 'music_offtopic')])
         expected = self._chapters(
-            [1, 3, 4, 5, 6],
+            [10, 30, 40, 50, 60],
             ['c1', '[SponsorBlock]: Non-Music Section', 'c2', 'c3', 'c4'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_ChaptersAfterLastCut(self):
-        cuts = [self._chapter(1, 3, remove=True)]
-        chapters = self._chapters([2, 4, 5, 6], ['c1', 'c2', 'c3', 'c4']) + cuts
-        expected = self._chapters([1, 2, 3, 4], ['c1', 'c2', 'c3', 'c4'])
+        cuts = [self._chapter(10, 30, remove=True)]
+        chapters = self._chapters([20, 40, 50, 60], ['c1', 'c2', 'c3', 'c4']) + cuts
+        expected = self._chapters([10, 20, 30, 40], ['c1', 'c2', 'c3', 'c4'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_SponsorStartsAtChapterStart(self):
-        chapters = (self._chapters([1, 2, 4], ['c1', 'c2', 'c3'])
-                    + [self._sponsor_chapter(2, 3, 'sponsor')])
-        expected = self._chapters([1, 2, 3, 4], ['c1', 'c2', '[SponsorBlock]: Sponsor', 'c3'])
+        chapters = (self._chapters([10, 20, 40], ['c1', 'c2', 'c3'])
+                    + [self._sponsor_chapter(20, 30, 'sponsor')])
+        expected = self._chapters([10, 20, 30, 40], ['c1', 'c2', '[SponsorBlock]: Sponsor', 'c3'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_CutStartsAtChapterStart(self):
-        cuts = [self._chapter(2, 3, remove=True)]
-        chapters = self._chapters([1, 2, 4], ['c1', 'c2', 'c3']) + cuts
-        expected = self._chapters([1, 2, 3], ['c1', 'c2', 'c3'])
+        cuts = [self._chapter(20, 30, remove=True)]
+        chapters = self._chapters([10, 20, 40], ['c1', 'c2', 'c3']) + cuts
+        expected = self._chapters([10, 20, 30], ['c1', 'c2', 'c3'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_SponsorEndsAtChapterEnd(self):
-        chapters = (self._chapters([1, 3, 4], ['c1', 'c2', 'c3'])
-                    + [self._sponsor_chapter(2, 3, 'sponsor')])
-        expected = self._chapters([1, 2, 3, 4], ['c1', 'c2', '[SponsorBlock]: Sponsor', 'c3'])
+        chapters = (self._chapters([10, 30, 40], ['c1', 'c2', 'c3'])
+                    + [self._sponsor_chapter(20, 30, 'sponsor')])
+        expected = self._chapters([10, 20, 30, 40], ['c1', 'c2', '[SponsorBlock]: Sponsor', 'c3'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_CutEndsAtChapterEnd(self):
-        cuts = [self._chapter(2, 3, remove=True)]
-        chapters = self._chapters([1, 3, 4], ['c1', 'c2', 'c3']) + cuts
-        expected = self._chapters([1, 2, 3], ['c1', 'c2', 'c3'])
+        cuts = [self._chapter(20, 30, remove=True)]
+        chapters = self._chapters([10, 30, 40], ['c1', 'c2', 'c3']) + cuts
+        expected = self._chapters([10, 20, 30], ['c1', 'c2', 'c3'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_SponsorCoincidesWithChapters(self):
-        chapters = (self._chapters([1, 2, 3, 4], ['c1', 'c2', 'c3', 'c4'])
-                    + [self._sponsor_chapter(1, 3, 'sponsor')])
-        expected = self._chapters([1, 3, 4], ['c1', '[SponsorBlock]: Sponsor', 'c4'])
+        chapters = (self._chapters([10, 20, 30, 40], ['c1', 'c2', 'c3', 'c4'])
+                    + [self._sponsor_chapter(10, 30, 'sponsor')])
+        expected = self._chapters([10, 30, 40], ['c1', '[SponsorBlock]: Sponsor', 'c4'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_CutCoincidesWithChapters(self):
-        cuts = [self._chapter(1, 3, remove=True)]
-        chapters = self._chapters([1, 2, 3, 4], ['c1', 'c2', 'c3', 'c4']) + cuts
-        expected = self._chapters([1, 2], ['c1', 'c4'])
+        cuts = [self._chapter(10, 30, remove=True)]
+        chapters = self._chapters([10, 20, 30, 40], ['c1', 'c2', 'c3', 'c4']) + cuts
+        expected = self._chapters([10, 20], ['c1', 'c4'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_SponsorsAtVideoBoundaries(self):
-        chapters = (self._chapters([2, 4, 6], ['c1', 'c2', 'c3'])
-                    + [self._sponsor_chapter(0, 1, 'intro'), self._sponsor_chapter(5, 6, 'outro')])
+        chapters = (self._chapters([20, 40, 60], ['c1', 'c2', 'c3'])
+                    + [self._sponsor_chapter(0, 10, 'intro'), self._sponsor_chapter(50, 60, 'outro')])
         expected = self._chapters(
-            [1, 2, 4, 5, 6], ['[SponsorBlock]: Intro', 'c1', 'c2', 'c3', '[SponsorBlock]: Outro'])
+            [10, 20, 40, 50, 60], ['[SponsorBlock]: Intro', 'c1', 'c2', 'c3', '[SponsorBlock]: Outro'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_CutsAtVideoBoundaries(self):
-        cuts = [self._chapter(0, 1, remove=True), self._chapter(5, 6, remove=True)]
-        chapters = self._chapters([2, 4, 6], ['c1', 'c2', 'c3']) + cuts
-        expected = self._chapters([1, 3, 4], ['c1', 'c2', 'c3'])
+        cuts = [self._chapter(0, 10, remove=True), self._chapter(50, 60, remove=True)]
+        chapters = self._chapters([20, 40, 60], ['c1', 'c2', 'c3']) + cuts
+        expected = self._chapters([10, 30, 40], ['c1', 'c2', 'c3'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_SponsorsOverlapChaptersAtVideoBoundaries(self):
-        chapters = (self._chapters([1, 4, 5], ['c1', 'c2', 'c3'])
-                    + [self._sponsor_chapter(0, 2, 'intro'), self._sponsor_chapter(3, 5, 'outro')])
+        chapters = (self._chapters([10, 40, 50], ['c1', 'c2', 'c3'])
+                    + [self._sponsor_chapter(0, 20, 'intro'), self._sponsor_chapter(30, 50, 'outro')])
         expected = self._chapters(
-            [2, 3, 5], ['[SponsorBlock]: Intro', 'c2', '[SponsorBlock]: Outro'])
+            [20, 30, 50], ['[SponsorBlock]: Intro', 'c2', '[SponsorBlock]: Outro'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_CutsOverlapChaptersAtVideoBoundaries(self):
-        cuts = [self._chapter(0, 2, remove=True), self._chapter(3, 5, remove=True)]
-        chapters = self._chapters([1, 4, 5], ['c1', 'c2', 'c3']) + cuts
-        expected = self._chapters([1], ['c2'])
+        cuts = [self._chapter(0, 20, remove=True), self._chapter(30, 50, remove=True)]
+        chapters = self._chapters([10, 40, 50], ['c1', 'c2', 'c3']) + cuts
+        expected = self._chapters([10], ['c2'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, cuts)
 
     def test_remove_marked_arrange_sponsors_EverythingSponsored(self):
-        chapters = (self._chapters([1, 2, 3, 4], ['c1', 'c2', 'c3', 'c4'])
-                    + [self._sponsor_chapter(0, 2, 'intro'), self._sponsor_chapter(2, 4, 'outro')])
-        expected = self._chapters([2, 4], ['[SponsorBlock]: Intro', '[SponsorBlock]: Outro'])
+        chapters = (self._chapters([10, 20, 30, 40], ['c1', 'c2', 'c3', 'c4'])
+                    + [self._sponsor_chapter(0, 20, 'intro'), self._sponsor_chapter(20, 40, 'outro')])
+        expected = self._chapters([20, 40], ['[SponsorBlock]: Intro', '[SponsorBlock]: Outro'])
         self._remove_marked_arrange_sponsors_test_impl(chapters, expected, [])
 
     def test_remove_marked_arrange_sponsors_EverythingCut(self):
-        cuts = [self._chapter(0, 2, remove=True), self._chapter(2, 4, remove=True)]
-        chapters = self._chapters([1, 2, 3, 4], ['c1', 'c2', 'c3', 'c4']) + cuts
+        cuts = [self._chapter(0, 20, remove=True), self._chapter(20, 40, remove=True)]
+        chapters = self._chapters([10, 20, 30, 40], ['c1', 'c2', 'c3', 'c4']) + cuts
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, [], [self._chapter(0, 4, remove=True)])
+            chapters, [], [self._chapter(0, 40, remove=True)])
 
     def test_make_concat_opts_CommonCase(self):
         sponsor_chapters = [self._chapter(1, 2, 's1'), self._chapter(10, 20, 's2')]
