@@ -10,7 +10,7 @@ from ..utils import (
 
 class TV2HuIE(InfoExtractor):
     IE_NAME = 'tv2play.hu'
-    _VALID_URL = r'(?!.*szalag/)https?://(?:www\.)?tv2play\.hu/(?P<id>[^#&?]+)'
+    _VALID_URL = r'https?://(?:www\.)?tv2play\.hu/(?!szalag/)(?P<id>[^#&?]+)'
     _TESTS = [{
         'url': 'https://tv2play.hu/mintaapak/mintaapak_213_epizod_resz',
         'info_dict': {
