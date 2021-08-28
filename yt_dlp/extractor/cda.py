@@ -197,7 +197,7 @@ class CDAIE(InfoExtractor):
                                                            'X-Requested-With': 'XMLHttpRequest'}, data=data,
                                                   note=f"Fetching {quality} url",
                                                   errnote=f"Failed to fetch {quality} url", fatal=False)
-                        if url:
+                        if try_get(url, lambda x: x['result']['status']) == 'ok':
                             url = try_get(url, lambda x: x['result']['resp'])
                             f = {
                                 'url': url,
