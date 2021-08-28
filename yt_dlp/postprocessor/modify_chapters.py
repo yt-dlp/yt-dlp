@@ -4,7 +4,8 @@ from collections import OrderedDict
 
 from .common import PostProcessor
 from .ffmpeg import (
-    FFmpegPostProcessor
+    FFmpegPostProcessor,
+    FFmpegSubtitlesConvertorPP
 )
 from .sponsorblock import SponsorBlockPP
 from ..utils import (
@@ -25,21 +26,28 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        chapters, sponsor_chapters = self._mark_chapters_to_remove(info.get('chapters'), info.get('sponsorblock_chapters'))
+        chapters, sponsor_chapters = self._mark_chapters_to_remove(
+            info.get('chapters', []), info.get('sponsorblock_chapters', []))
+        if not chapters and not sponsor_chapters:
+            return [], info
 
-        duration = self._get_real_video_duration(info['filepath'])
+        real_duration = self._get_real_video_duration(info['filepath'])
         if not chapters:
-            chapters = [{'start_time': 0, 'end_time': duration, 'title': info['title']}]
+            chapters = [{'start_time': 0, 'end_time': real_duration, 'title': info['title']}]
 
         info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters + sponsor_chapters)
         if not cuts:
             return [], info
 
-        if not info.get('__real_download') and abs(duration - info['duration']) > 1:
-            self.report_warning(f'Skipping {self.pp_key()} since the video appears to be already cut.')
-            return [], info
+        if abs(real_duration - info['duration']) > 1:
+            if abs(real_duration - info['chapters'][-1]['end_time']) < 1:
+                self.to_screen('Already cut')
+                return [], info
+            if not info.get('__real_download'):
+                self.report_error('Real and expected durations mismatch, probably the video '
+                                  'was already cut. Refusing to cut the second time')
 
-        concat_opts = self._make_concat_opts(cuts, duration)
+        concat_opts = self._make_concat_opts(cuts, real_duration)
 
         def remove_chapters(file, is_sub):
             return file, self.remove_chapters(file, cuts, concat_opts, self._force_keyframes and not is_sub)
@@ -58,7 +66,6 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         return files_to_remove, info
 
     def _mark_chapters_to_remove(self, chapters, sponsor_chapters):
-        chapters = chapters or []
         if self._remove_chapters_patterns:
             warn_no_chapter_to_remove = True
             if not chapters:
@@ -71,7 +78,6 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             if warn_no_chapter_to_remove:
                 self.to_screen('There are no chapters matching the regex')
 
-        sponsor_chapters = sponsor_chapters or []
         if self._remove_sponsor_segments:
             warn_no_chapter_to_remove = True
             if not sponsor_chapters:
@@ -81,8 +87,6 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 if c['category'] in self._remove_sponsor_segments:
                     c['remove'] = True
                     warn_no_chapter_to_remove = False
-                else:
-                    c['categories'] = [(c['category'], c['start_time'], c['end_time'])]
             if warn_no_chapter_to_remove:
                 self.to_screen('There are no matching SponsorBlock chapters')
 
@@ -102,7 +106,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             if not sub_file or not os.path.exists(sub_file):
                 continue
             ext = sub['ext']
-            if ext not in ('srt', 'vtt', 'ass'):
+            if ext not in FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS:
                 self.report_warning(f'Cannot remove chapters from external {ext} subtitles; "{sub_file}" is now out of sync')
                 continue
             # TODO: create __real_download for subs?

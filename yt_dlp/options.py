@@ -1382,14 +1382,16 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='force_keyframes_at_cuts',
         help='Do not force keyframes around the chapters when cutting/splitting (default)')
 
-    sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options')
+    sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
+        'Make chapter entries for or remove various segments (sponsor, introductions, etc.) '
+        'from downloaded YouTube videos using SponsorBlock API (https://sponsor.ajay.app)'))
     sponsorblock.add_option(
         '--sponsorblock-mark', metavar='CATS',
         dest='sponsorblock_mark', default=set(), action='callback', type='str',
         callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
         help=(
             'SponsorBlock categories to create chapters for, separated by commas. '
-            'See https://github.com/ajayyy/SponsorBlock/wiki/Segment-Categories'
+            'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories. '
             'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
             'Eg: --sponsorblock-query all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
@@ -1399,8 +1401,7 @@ def parseOpts(overrideArguments=None):
         help=(
             'SponsorBlock categories to be removed from the video file, separated by commas. '
             'If a category is present in both mark and remove, remove takes precedence. '
-            'Available categories are all, %s. You can prefix the category with a "-" to exempt it from being removed. '
-            'Eg: --remove-sponsor-segments all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
+            'The syntax and available categories are the same as for --sponsorblock-mark'))
     sponsorblock.add_option(
         '--no-sponsorblock', default=False,
         action='store_true', dest='no_sponsorblock',

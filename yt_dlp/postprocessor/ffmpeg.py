@@ -342,6 +342,7 @@ class FFmpegPostProcessor(PostProcessor):
         yield 'ffconcat version 1.0\n'
         for file, opts in zip(in_files, concat_opts):
             yield f'file {cls._quote_for_ffmpeg(cls._ffmpeg_filename_argument(file))}\n'
+            # Iterate explicitly to yield the following directives in order, ignoring the rest.
             for directive in 'inpoint', 'outpoint', 'duration':
                 if directive in opts:
                     yield f'{directive} {opts[directive]}\n'

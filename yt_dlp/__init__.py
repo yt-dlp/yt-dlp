@@ -357,7 +357,7 @@ def _real_main(argv=None):
         opts.sponsorblock_remove = set()
     sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
 
-    if (opts.addmetadata or sponsorblock_query) and opts.addchapters is None:
+    if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
         opts.addchapters = True
     opts.remove_chapters = opts.remove_chapters or []
 
@@ -492,7 +492,7 @@ def _real_main(argv=None):
             remove_chapters_patterns.append(re.compile(regex))
         except re.error as err:
             parser.error(f'invalid --remove-chapters regex {regex!r} - {err}')
-    if opts.remove_chapters or opts.sponsorblock_remove:
+    if opts.remove_chapters or sponsorblock_query:
         postprocessors.append({
             'key': 'ModifyChapters',
             'remove_chapters_patterns': remove_chapters_patterns,
