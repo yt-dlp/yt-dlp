@@ -411,7 +411,7 @@ def parseOpts(overrideArguments=None):
             'Python style regular expression matching can be done using "~=", '
             'and multiple filters can be checked with "&". '
             'Use a "\\" to escape "&" or quotes if needed. Eg: --match-filter '
-            r'"!is_live & like_count>?100 & description~=\'(?i)\bcats \& dogs\b\'" '
+            '"!is_live & like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
             'matches only videos that are not live, has a like count more than 100 '
             '(or the like field is not available), and also has a description '
             'that contains the phrase "cats & dogs" (ignoring case)'))
@@ -548,7 +548,7 @@ def parseOpts(overrideArguments=None):
             'Use with "-S ext" to strictly prefer free containers irrespective of quality'))
     video_format.add_option(
         '--no-prefer-free-formats',
-        action='store_true', dest='prefer_free_formats', default=False,
+        action='store_false', dest='prefer_free_formats', default=False,
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
