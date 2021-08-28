@@ -61,33 +61,25 @@ class TV2HuIE(InfoExtractor):
             raise ExtractorError('Incorrect URL.', expected=True)
 
         video_id = str(json_data['id'])
-        title = json_data['title']
-        series = json_data.get('seriesTitle')
-        duration = json_data.get('length')
-        description = json_data.get('description')
-        thumbnail = 'https://tv2play.hu' + json_data.get('thumbnailUrl')
-        release_date = json_data.get('uploadedAt').replace('.', '')
         player_id = json_data.get('playerId')
         series_json = json_data.get('seriesInfo', {})
-        episode_number = series_json.get('episodeNr')
-        season_number = series_json.get('seasonNr')
 
         video_json_url = self._download_json(f'https://tv2play.hu/api/streaming-url?playerId={player_id}', video_id)['url']
         video_json = self._download_json(video_json_url, video_id)
-        m3u8_url = traverse_obj(video_json, ('bitrates', 'hls')).replace('//', 'https://')
+        m3u8_url = self._proto_relative_url(traverse_obj(video_json, ('bitrates', 'hls')))
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
-            'series': series,
-            'duration': duration,
-            'description': description,
-            'thumbnail': thumbnail,
-            'release_date': release_date,
-            'season_number': season_number,
-            'episode_number': episode_number,
+            'title': json_data['title'],
+            'series': json_data.get('seriesTitle'),
+            'duration': json_data.get('length'),
+            'description': json_data.get('description'),
+            'thumbnail': 'https://tv2play.hu' + json_data.get('thumbnailUrl'),
+            'release_date': json_data.get('uploadedAt').replace('.', ''),
+            'season_number': series_json.get('seasonNr'),
+            'episode_number': series_json.get('episodeNr'),
             'formats': formats,
             'subtitles': subtitles,
         }
