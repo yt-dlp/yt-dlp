@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     traverse_obj,
+    UnsupportedError,
 )
 
 
@@ -58,7 +58,7 @@ class TV2HuIE(InfoExtractor):
                                        ie=TV2HuSeriesIE.ie_key(), video_id=ribbon_id) for ribbon_id in ribbon_ids]
             return self.playlist_result(entries, playlist_id=id)
         elif json_data['contentType'] != 'video':
-            raise ExtractorError('Incorrect URL.', expected=True)
+            raise UnsupportedError(url)
 
         video_id = str(json_data['id'])
         player_id = json_data.get('playerId')
