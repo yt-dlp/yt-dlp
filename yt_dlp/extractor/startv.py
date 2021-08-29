@@ -82,6 +82,7 @@ class StarTVIE(InfoExtractor):
         info = traverse_obj(self._download_json(info_url, display_id), 'data', expected_type=dict)
         if not info:
             raise ExtractorError('Failed to extract API data')
+
         video_id = compat_str(info.get('id'))
         title = info.get('title') or self._og_search_title(webpage)
         description = clean_html(info.get('description')) or self._og_search_description(webpage, default=None)
