@@ -188,14 +188,15 @@ class CDAIE(InfoExtractor):
             for quality, cda_quality in qualities.items():
                 if quality == video_quality:
                     continue
-                data = {'jsonrpc': '2.0', 'method': 'videoGetLink',
-                        'params': [video_id, cda_quality, video.get('ts'), video.get('hash2'), {}], 'id': 2}
+                data = {'jsonrpc': '2.0', 'method': 'videoGetLink', 'id': 2,
+                        'params': [video_id, cda_quality, video.get('ts'), video.get('hash2'), {}]}
                 data = json.dumps(data).encode('utf-8')
-                video_url = self._download_json('https://www.cda.pl/video/' + video_id, video_id,
-                                                headers={'Content-Type': 'application/json',
-                                                         'X-Requested-With': 'XMLHttpRequest'}, data=data,
-                                                note=f'Fetching {quality} url',
-                                                errnote=f'Failed to fetch {quality} url', fatal=False)
+                video_url = self._download_json(
+                    f'https://www.cda.pl/video/{video_id}', video_id, headers={
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }, data=data, note=f'Fetching {quality} url',
+                    errnote=f'Failed to fetch {quality} url', fatal=False)
                 if try_get(video_url, lambda x: x['result']['status']) == 'ok':
                     video_url = try_get(video_url, lambda x: x['result']['resp'])
                     info_dict['formats'].append({
