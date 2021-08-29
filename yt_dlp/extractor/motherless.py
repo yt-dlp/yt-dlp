@@ -230,7 +230,7 @@ class MotherlessGroupIE(InfoExtractor):
         PAGE_SIZE = 80
 
         def _get_page(idx):
-            if page_count == 0:
+            if not page_count:
                 return
             webpage = self._download_webpage(
                 page_url, group_id, query={'page': idx + 1},
