@@ -297,7 +297,7 @@ class VLivePostIE(VLiveIE):
 
 class VLiveChannelIE(VLiveIE):
     IE_NAME = 'vlive:channel'
-    _VALID_URL = r'https?://(?:channels\.vlive\.tv|(?:(?:www|m)\.)?vlive\.tv/channel)/(?P<id>[0-9A-Z]+)'
+    _VALID_URL = r'https?://(?:channels\.vlive\.tv|(?:(?:www|m)\.)?vlive\.tv/channel)/(?P<id>[0-9A-Z]+)(?:/board/[0-9]+)?'
     _TESTS = [{
         'url': 'http://channels.vlive.tv/FCD4B',
         'info_dict': {
@@ -308,6 +308,13 @@ class VLiveChannelIE(VLiveIE):
     }, {
         'url': 'https://www.vlive.tv/channel/FCD4B',
         'only_matching': True,
+    }, {
+        'url': 'https://www.vlive.tv/channel/FCD4B/board/3546',
+        'info_dict': {
+            'id': 'FCD4B',
+            'title': 'MAMAMOO - Star Board',
+        },
+        'playlist_mincount': 880
     }]
 
     def _real_extract(self, url):
