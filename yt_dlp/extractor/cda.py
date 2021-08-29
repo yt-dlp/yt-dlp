@@ -40,6 +40,8 @@ class CDAIE(InfoExtractor):
             'average_rating': float,
             'duration': 39,
             'age_limit': 0,
+            'upload_date': '20160221',
+            'timestamp': 1456078244,
         }
     }, {
         'url': 'http://www.cda.pl/video/57413289',
