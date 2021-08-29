@@ -14,7 +14,6 @@ from ..utils import (
     orderedSet,
     strip_jsonp,
     strip_or_none,
-    try_get,
     unified_strdate,
     url_or_none,
     US_RATINGS,
@@ -437,7 +436,7 @@ class PBSIE(InfoExtractor):
                 self._set_cookie('.pbs.org', 'pbsol.station', station)
 
     def _extract_webpage(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
 
         description = None
 
@@ -478,7 +477,7 @@ class PBSIE(InfoExtractor):
             if media_id:
                 return media_id, presumptive_id, upload_date, description
 
-            # Fronline video embedded via flp
+            # Frontline video embedded via flp
             video_id = self._search_regex(
                 r'videoid\s*:\s*"([\d+a-z]{7,})"', webpage, 'videoid', default=None)
             if video_id:
