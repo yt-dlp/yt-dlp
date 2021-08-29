@@ -14,6 +14,7 @@ from ..utils import (
     orderedSet,
     strip_jsonp,
     strip_or_none,
+    try_get,
     unified_strdate,
     url_or_none,
     US_RATINGS,
@@ -436,7 +437,7 @@ class PBSIE(InfoExtractor):
                 self._set_cookie('.pbs.org', 'pbsol.station', station)
 
     def _extract_webpage(self, url):
-        mobj = self._match_valid_url(url)
+        mobj = re.match(self._VALID_URL, url)
 
         description = None
 
@@ -477,7 +478,7 @@ class PBSIE(InfoExtractor):
             if media_id:
                 return media_id, presumptive_id, upload_date, description
 
-            # Frontline video embedded via flp
+            # Fronline video embedded via flp
             video_id = self._search_regex(
                 r'videoid\s*:\s*"([\d+a-z]{7,})"', webpage, 'videoid', default=None)
             if video_id:
@@ -685,6 +686,17 @@ class PBSIE(InfoExtractor):
                         ttml_caption_suffix, '/%d_Encoded.vtt' % (ttml_caption_id + 2)),
                     'ext': 'vtt',
                 }])
+        else:
+            captions = try_get(info, lambda x: x['cc'], dict) or {}
+
+            if captions:
+                subtitles['en'] = []
+                for caption_url in captions.values():
+                    subtitles['en'].extend([{
+                        'ext': re.search(r'\.(\w{3,4})$',
+                                         caption_url).group(1),
+                        'url': caption_url
+                    }])
 
         # info['title'] is often incomplete (e.g. 'Full Episode', 'Episode 5', etc)
         # Try turning it to 'program - title' naming scheme if possible
