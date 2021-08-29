@@ -224,7 +224,7 @@ class PatreonUserIE(InfoExtractor):
         for page in itertools.count(1):
 
             params.update({'page[cursor]': cursor} if cursor else {})
-            posts_json = self._download_json('https://www.patreon.com/api/posts', user_id, note='Downloading posts page %d' % page, query=params, headers={'Cookie':'.'})
+            posts_json = self._download_json('https://www.patreon.com/api/posts', user_id, note='Downloading posts page %d' % page, query=params, headers={'Cookie': '.'})
 
             cursor = try_get(posts_json, lambda x: x['meta']['pagination']['cursors']['next'])
 
@@ -237,6 +237,6 @@ class PatreonUserIE(InfoExtractor):
     def _real_extract(self, url):
 
         user_id = self._match_id(url)
-        webpage = self._download_webpage(url, user_id, headers={'Cookie':'.'})
+        webpage = self._download_webpage(url, user_id, headers={'Cookie': '.'})
         campaign_id = self._search_regex(r'https://www.patreon.com/api/campaigns/(\d+)/?', webpage, 'Campaign ID')
         return self.playlist_result(self._entries(campaign_id, user_id), playlist_title=user_id)
