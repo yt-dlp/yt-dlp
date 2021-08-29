@@ -441,6 +441,38 @@ class TestModifyChaptersPP(unittest.TestCase):
         self._remove_marked_arrange_sponsors_test_impl(
             chapters, [], [self._chapter(0, 40, remove=True)])
 
+    def test_remove_marked_arrange_sponsors_TinyChaptersInTheOriginalArePreserved(self):
+        chapters = self._chapters([0.1, 0.2, 0.3, 0.4], ['c1', 'c2', 'c3', 'c4'])
+        self._remove_marked_arrange_sponsors_test_impl(chapters, chapters, [])
+
+    def test_remove_marked_arrange_sponsors_TinySponsorsAreIgnored(self):
+        chapters = [self._sponsor_chapter(0, 0.1, 'intro'), self._chapter(0.1, 0.2, 'c1'),
+                    self._sponsor_chapter(0.2, 0.3, 'sponsor'), self._chapter(0.3, 0.4, 'c2'),
+                    self._sponsor_chapter(0.4, 0.5, 'outro')]
+        self._remove_marked_arrange_sponsors_test_impl(
+            chapters, self._chapters([0.3, 0.5], ['c1', 'c2']), [])
+
+    def test_remove_marked_arrange_sponsors_TinyChaptersResultingFromCutsAreIgnored(self):
+        cuts = [self._chapter(1.5, 2.5, remove=True)]
+        chapters = self._chapters([2, 3, 3.5], ['c1', 'c2', 'c3']) + cuts
+        self._remove_marked_arrange_sponsors_test_impl(
+            chapters, self._chapters([2, 2.5], ['c1', 'c3']), cuts)
+
+    def test_remove_marked_arrange_sponsors_TinyChaptersResultingFromSponsorOverlapAreIgnored(self):
+        chapters = self._chapters([1, 3, 4], ['c1', 'c2', 'c3']) + [
+            self._sponsor_chapter(1.5, 2.5, 'sponsor')]
+        self._remove_marked_arrange_sponsors_test_impl(
+            chapters, self._chapters([1.5, 3, 4], ['c1', '[SponsorBlock]: Sponsor', 'c3']), [])
+
+    def test_remove_marked_arrange_sponsors_TinySponsorsOverlapsAreIgnored(self):
+        chapters = self._chapters([2, 3, 5], ['c1', 'c2', 'c3']) + [
+            self._sponsor_chapter(1, 3, 'sponsor'),
+            self._sponsor_chapter(2.5, 4, 'selfpromo')
+        ]
+        self._remove_marked_arrange_sponsors_test_impl(
+            chapters, self._chapters([1, 3, 4, 5], [
+                'c1', '[SponsorBlock]: Sponsor', '[SponsorBlock]: Self-Promotion', 'c3']), [])
+
     def test_make_concat_opts_CommonCase(self):
         sponsor_chapters = [self._chapter(1, 2, 's1'), self._chapter(10, 20, 's2')]
         expected = '''ffconcat version 1.0

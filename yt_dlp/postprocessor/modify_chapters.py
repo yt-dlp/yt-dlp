@@ -21,11 +21,12 @@ TINY_CHAPTER_SEC = 1
 
 
 class ModifyChaptersPP(FFmpegPostProcessor):
-    def __init__(self, downloader, remove_chapters_patterns=None,
-                 remove_sponsor_segments=None, force_keyframes=False):
+    def __init__(self, downloader, remove_chapters_patterns=None, remove_sponsor_segments=None,
+                 sponsorblock_chapter_title='[SponsorBlock]: {}', force_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._remove_chapters_patterns = set(remove_chapters_patterns or [])
         self._remove_sponsor_segments = set(remove_sponsor_segments or [])
+        self._sponsorblock_chapter_title = sponsorblock_chapter_title
         self._force_keyframes = force_keyframes
 
     @PostProcessor._restrict_to(images=False)
@@ -116,8 +117,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             # TODO: create __real_download for subs?
             yield sub_file
 
-    @staticmethod
-    def _remove_marked_arrange_sponsors(chapters):
+    def _remove_marked_arrange_sponsors(self, chapters):
         # Store cuts separately, since adjacent and overlapping cuts must be merged.
         cuts = []
 
@@ -157,6 +157,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
         def sponsor_categories(c):
             assert 'categories' in c
+            # Return categories for overlapping sponsor chapter in order
+            # in which they are encountered. OrderedDict removes duplicates preserving the order.
             return OrderedDict((cat, None) for cat, _, _ in c['categories']).keys()
 
         def append_chapter(c):
@@ -167,23 +169,24 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 return
             start = new_chapters[-1]['end_time'] if new_chapters else 0
             c.update(start_time=start, end_time=start + length)
-            # Only tiny chapters resulting from a cut can be skipped.
-            # Chapters that were already tiny in the original list will be preserved.
-            # Also append to prevent having a completely empty chapter list.
-            if original_uncut_chapter(c) or not new_chapters:
+            # Append without checking for tininess to prevent having
+            # a completely empty chapter list.
+            if not new_chapters:
                 new_chapters.append(c)
                 return
+            old_c = new_chapters[-1]
             # Merge with the previous if the chapter is tiny
             # or if both are sponsor chapters with identical categories.
-            if length < TINY_CHAPTER_SEC or (
-                    'categories' in new_chapters[-1] and 'categories' in c
-                    and sponsor_categories(new_chapters[-1]) == sponsor_categories(c)):
-                new_chapters[-1]['end_time'] = c['end_time']
+            # Only tiny chapters resulting from a cut can be skipped.
+            # Chapters that were already tiny in the original list will be preserved.
+            if (not original_uncut_chapter(c) and length < TINY_CHAPTER_SEC) or (
+                    'categories' in old_c and 'categories' in c
+                    and sponsor_categories(old_c) == sponsor_categories(c)):
+                old_c['end_time'] = c['end_time']
             # Previous tiny chapter was appended for the sake of preventing an empty chapter list.
             # Replace it with the current one.
-            elif (original_uncut_chapter(new_chapters[-1])
-                  and chapter_length(new_chapters[-1]) < TINY_CHAPTER_SEC):
-                c['start_time'] = new_chapters[-1]['start_time']
+            elif not original_uncut_chapter(old_c) and chapter_length(old_c) < TINY_CHAPTER_SEC:
+                c['start_time'] = old_c['start_time']
                 new_chapters[-1] = c
             else:
                 new_chapters.append(c)
@@ -289,13 +292,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         for c in new_chapters:
             c.pop('was_cut', None)
             if 'categories' in c:
-                cats = sponsor_categories(c)
-                # Overlapping sponsor chapters will have a title that looks like
-                # '[SponsorBlock]: Sponsor/Interaction Remainder/Self-Promotion',
-                # in the order in which the categories were encountered.
-                # OrderedDict removes duplicates preserving the order.
-                c['title'] = '[SponsorBlock]: ' + '/'.join(OrderedDict(
-                    zip(cats, map(SponsorBlockPP.CATEGORIES.__getitem__, cats))).values())
+                cats = '/'.join(map(SponsorBlockPP.CATEGORIES.__getitem__, sponsor_categories(c)))
+                c['title'] = self._sponsorblock_chapter_title.format(cats)
                 del c['categories']
 
         return new_chapters, cuts

@@ -1403,6 +1403,11 @@ def parseOpts(overrideArguments=None):
             'If a category is present in both mark and remove, remove takes precedence. '
             'The syntax and available categories are the same as for --sponsorblock-mark'))
     sponsorblock.add_option(
+        '--sponsorblock-chapter-title', metavar='TEMPLATE',
+        default='[SponsorBlock]: {}', dest='sponsorblock_chapter_title',
+        help='A title template for SponsorBlock chapters created by --sponsorblock-mark. '
+             '{} in the title will expand to SponsorBlock categories. Defaults to %default')
+    sponsorblock.add_option(
         '--no-sponsorblock', default=False,
         action='store_true', dest='no_sponsorblock',
         help='Disable both --sponsorblock-mark and --sponsorblock-remove')

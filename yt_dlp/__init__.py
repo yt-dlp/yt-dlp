@@ -497,6 +497,7 @@ def _real_main(argv=None):
             'key': 'ModifyChapters',
             'remove_chapters_patterns': remove_chapters_patterns,
             'remove_sponsor_segments': opts.sponsorblock_remove,
+            'sponsorblock_chapter_title': opts.sponsorblock_chapter_title,
             'force_keyframes': opts.force_keyframes_at_cuts
         })
     # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
