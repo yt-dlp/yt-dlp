@@ -129,10 +129,9 @@ class PelotonIE(InfoExtractor):
         is_live = False
         if ride_data.get('content_format') == 'audio':
             url = self._MANIFEST_URL_TEMPLATE % (ride_data.get('vod_stream_url'), compat_urllib_parse.quote(token))
-            ext = 'm4a'
             formats = [{
                 'url': url,
-                'ext': ext,
+                'ext': 'm4a',
                 'format_id': 'audio',
                 'vcodec': 'none',
             }]
@@ -148,13 +147,7 @@ class PelotonIE(InfoExtractor):
                 is_live = True
             else:
                 raise ExtractorError('Missing video URL')
-            ext = 'mp4'
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, ext)
-            for i, f in enumerate(formats, start=2):
-                if f.get('vcodec') == 'none':
-                    f['source_preference'] = -i
-                else:
-                    break
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
 
         if metadata.get('instructor_cues'):
             subtitles['cues'] = [{
@@ -174,8 +167,6 @@ class PelotonIE(InfoExtractor):
             'id': video_id,
             'title': ride_data.get('title'),
             'formats': formats,
-            'manifest_url': url,
-            'ext': ext,
             'thumbnail': url_or_none(ride_data.get('image_url')),
             'description': str_or_none(ride_data.get('description')),
             'creator': traverse_obj(ride_data, ('instructor', 'name')),
