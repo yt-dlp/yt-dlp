@@ -10,22 +10,22 @@ class VH1IE(MTVServicesInfoExtractor):
     IE_NAME = 'vh1.com'
     _FEED_URL = 'http://www.vh1.com/feeds/mrss/'
     _TESTS = [{
-        'url': 'http://www.vh1.com/episodes/0umwpq/hip-hop-squares-kent-jones-vs-nick-young-season-1-ep-120',
+        'url': 'https://www.vh1.com/episodes/0aqivv/nick-cannon-presents-wild-n-out-foushee-season-16-ep-12',
         'info_dict': {
-            'title': 'Kent Jones vs. Nick Young',
-            'description': 'Come to Play. Stay to Party. With Mike Epps, TIP, O’Shea Jackson Jr., T-Pain, Tisha Campbell-Martin and more.',
+            'title': 'Fousheé',
+            'description': 'Fousheé joins Team Evolutions fight against Nick and Team Revolution in Baby Daddy, Baby Mama; Kick Em Out the Classroom; Backseat of My Ride and Wildstyle; and Fousheé performs.',
         },
         'playlist_mincount': 4,
+        'skip': '404 Not found',
     }, {
         # Clip
-        'url': 'http://www.vh1.com/video-clips/t74mif/scared-famous-scared-famous-extended-preview',
+        'url': 'https://www.vh1.com/video-clips/e0sja0/nick-cannon-presents-wild-n-out-foushee-clap-for-him',
         'info_dict': {
-            'id': '0a50c2d2-a86b-4141-9565-911c7e2d0b92',
+            'id': 'a07563f7-a37b-4e7f-af68-85855c2c7cc3',
             'ext': 'mp4',
-            'title': 'Scared Famous|October 9, 2017|1|NO-EPISODE#|Scared Famous + Extended Preview',
-            'description': 'md5:eff5551a274c473a29463de40f7b09da',
-            'upload_date': '20171009',
-            'timestamp': 1507574700,
+            'title': 'Fousheé - "clap for him"',
+            'description': 'Singer Fousheé hits the Wild N Out: In the Dark stage with a performance of the tongue-in-cheek track "clap for him" from her 2021 album "time machine."',
+            'upload_date': '20210826',
         },
         'params': {
             # m3u8 download
@@ -34,10 +34,3 @@ class VH1IE(MTVServicesInfoExtractor):
     }]
 
     _VALID_URL = r'https?://(?:www\.)?vh1\.com/(?:video-clips|episodes)/(?P<id>[^/?#.]+)'
-
-    def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        webpage = self._download_webpage(url, playlist_id)
-        mgid = self._extract_triforce_mgid(webpage)
-        videos_info = self._get_videos_info(mgid)
-        return videos_info
