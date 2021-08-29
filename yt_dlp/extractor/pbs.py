@@ -600,6 +600,7 @@ class PBSIE(InfoExtractor):
                         })
 
         formats = []
+        hls_subs = {}
         http_url = None
         for num, redirect in enumerate(redirects):
             redirect_id = redirect.get('eeid')
@@ -623,8 +624,9 @@ class PBSIE(InfoExtractor):
                 continue
 
             if determine_ext(format_url) == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    format_url, display_id, 'mp4', m3u8_id='hls', fatal=False))
+                hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
+                formats.extend(hls_formats)
             else:
                 formats.append({
                     'url': format_url,
@@ -687,17 +689,13 @@ class PBSIE(InfoExtractor):
                     'ext': 'vtt',
                 }])
         else:
-            captions = try_get(info, lambda x: x['cc'], dict) or {}
+            captions = info.get('cc') or {}
+            for caption_url in captions.values():
+                subtitles.setdefault('en', []).append({
+                    'url': caption_url
+                })
 
-            if captions:
-                subtitles['en'] = []
-                for caption_url in captions.values():
-                    subtitles['en'].extend([{
-                        'ext': re.search(r'\.(\w{3,4})$',
-                                         caption_url).group(1),
-                        'url': caption_url
-                    }])
-
+        subtitles = self._merge_subtitles(subtitles, hls_subs)
         # info['title'] is often incomplete (e.g. 'Full Episode', 'Episode 5', etc)
         # Try turning it to 'program - title' naming scheme if possible
         alt_title = info.get('program', {}).get('title')
