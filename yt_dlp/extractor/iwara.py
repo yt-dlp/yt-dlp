@@ -1,5 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
+import re
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlparse
@@ -21,6 +22,7 @@ class IwaraIE(InfoExtractor):
             'ext': 'mp4',
             'title': '【MMD R-18】ガールフレンド carry_me_off',
             'age_limit': 18,
+            'thumbnail': 'https://i.iwara.tv/sites/default/files/videos/thumbnails/7951/thumbnail-7951_0001.png',
         },
     }, {
         'url': 'http://ecchi.iwara.tv/videos/Vb4yf2yZspkzkBO',
@@ -73,8 +75,18 @@ class IwaraIE(InfoExtractor):
             r'<title>([^<]+)</title>', webpage, 'title'), ' | Iwara')
 
         thumbnail = self._html_search_regex(
-            r'<video[^>]+id=[\'"]video-player[\'"][^>]+poster=[\'"]([^\'"]+)',
-            webpage, 'thumbnail', default=None)
+            r'poster=[\'"]([^\'"]+)', webpage, 'thumbnail', default=None)
+
+        uploader = self._html_search_regex(
+            r'class="username">([^<]+)', webpage, 'uploader', fatal=False)
+
+        upload_date = self._html_search_regex(
+            r'作成日:([^\s]+)', webpage, 'upload_date', fatal=False).replace("-", "")
+
+        description = self._search_regex(
+            r'<p>(.+?(?=</div))', webpage, 'description', fatal=False,
+            flags=re.DOTALL).strip()
+
 
         formats = []
         for a_format in video_data:
@@ -101,4 +113,7 @@ class IwaraIE(InfoExtractor):
             'age_limit': age_limit,
             'formats': formats,
             'thumbnail': self._proto_relative_url(thumbnail, 'https:'),
+            'uploader': uploader,
+            'upload_date': upload_date,
+            'description': description,
         }
