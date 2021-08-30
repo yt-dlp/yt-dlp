@@ -2,6 +2,10 @@
 from __future__ import unicode_literals
 
 import itertools
+import random
+import string
+import time
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
@@ -62,6 +66,8 @@ class TikTokIE(InfoExtractor):
             'comment_count': int,
         }
     }]
+    _APP_VERSION = '20.9.2'
+    _MANIFEST_APP_VERSION = '2022009020'
 
     def _extract_aweme(self, props_data, webpage, url):
         video_info = try_get(
@@ -108,8 +114,125 @@ class TikTokIE(InfoExtractor):
             }
         }
 
+    def _extract_aweme_app(self, aweme_id):
+        query = {
+            'aweme_id': aweme_id,
+            'version_name': self._APP_VERSION,
+            'version_code': self._APP_VERSION.replace('.', ''),
+            'build_number': self._APP_VERSION,
+            'manifest_version_code': self._MANIFEST_APP_VERSION,
+            'update_version_code': self._MANIFEST_APP_VERSION,
+            'openudid': ''.join(random.choice('0123456789abcdef') for i in range(16)),
+            'uuid': ''.join([random.choice(string.digits) for num in range(16)]),
+            '_rticket': int(time.time() * 1000),
+            'ts': int(time.time()),
+            'device_brand': 'Google',
+            'device_type': 'Pixel 4',
+            'device_platform': 'android',
+            'resolution': '1080*1920',
+            'dpi': 420,
+            'os_version': '10',
+            'os_api': '29',
+            'carrier_region': 'US',
+            'sys_region': 'US',
+            'region': 'US',
+            'app_name': 'trill',
+            'app_language': 'en',
+            'language': 'en',
+            'timezone_name': 'America/New_York',
+            'timezone_offset': '-14400',
+            'channel': 'googleplay',
+            'ac': 'wifi',
+            'mcc_mnc': '310260',
+            'is_my_cn': 0,
+            'aid': 1180,
+            'ssmix': 'a',
+            'as': 'a1qwert123',
+            'cp': 'cbfhckdckkde1',
+        }
+
+        aweme_detail = self._download_json(
+            'https://api-t2.tiktokv.com/aweme/v1/aweme/detail/', aweme_id,
+            'Downloading video details', 'Unable to download video details',
+            headers={
+                'User-Agent': f'com.ss.android.ugc.trill/{self._MANIFEST_APP_VERSION} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)'
+            }, query=query)['aweme_detail']
+
+        video_info = aweme_detail['video']
+        formats = []
+
+        def extract_addr(addr, add_meta={}):
+            return {
+                'url': addr['url_list'][0],
+                'filesize': int_or_none(addr.get('data_size')),
+                'ext': 'mp4',
+                'acodec': 'aac',
+                **add_meta,
+            }
+
+        if video_info.get('play_addr'):
+            addr = video_info.get('play_addr')
+            formats.append(extract_addr(addr, {
+                'format_id': 'play_addr',
+                'format_note': 'Direct video',
+                'vcodec': 'h265' if try_get(
+                    video_info, lambda x: x['is_bytevc1'] or x['is_h265']) else 'h264', # Always h264?
+                'width': video_info.get('width'),
+                'height': video_info.get('height'),
+            }))
+        if video_info.get('play_addr_h264'):
+            addr = video_info.get('play_addr_h264')
+            formats.append(extract_addr(addr, {
+                'format_id': 'play_addr_h264',
+                'format_note': 'Direct video',
+                'vcodec': 'h264',
+                'width': video_info.get('width'),
+                'height': video_info.get('height')
+            }))
+        if video_info.get('play_addr_bytevc1'):
+            play_addr = video_info.get('play_addr_bytevc1')
+            formats.append(extract_addr(addr, {
+                'format_id': 'play_addr_bytevc1',
+                'format_note': 'Direct video',
+                'vcodec': 'h265',
+                'width': video_info.get('width'),
+                'height': video_info.get('height')
+            }))
+
+
+        for bitrate in video_info.get('bit_rate', []):
+            play_addr = bitrate['play_addr']
+            formats.append(extract_addr(addr, {
+                'format_id': bitrate.get('gear_name'),
+                'format_note': 'Playback video',
+                'tbr': try_get(bitrate, lambda x: x['bit_rate'] / 125),
+                'vcodec': 'h265' if try_get(
+                    bitrate, lambda x: x['is_bytevc1'] or x['is_h265']) else 'h264',
+            }))
+
+        self._remove_duplicate_formats(formats)
+        self._sort_formats(formats)
+
+        stats_info = aweme_detail.get('statistics', {})
+        return {
+            'id': aweme_id,
+            'title': aweme_detail['desc'],
+            'description': aweme_detail['desc'],
+            'view_count': int_or_none(stats_info.get('play_count')),
+            'like_count': int_or_none(stats_info.get('digg_count')),
+            'repost_count': int_or_none(stats_info.get('share_count')),
+            'comment_count': int_or_none(stats_info.get('comment_count')),
+            'formats': formats,
+            'duration': try_get(video_info, lambda x: x['download_addr']['duration']/1000, int)
+        }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
+
+        try:
+            return self._extract_aweme_app(video_id)
+        except ExtractorError as e:
+            self.report_warning(str(e) + ' Retrying with webpage...')
 
         # If we only call once, we get a 403 when downlaoding the video.
         self._download_webpage(url, video_id)
