@@ -10,6 +10,7 @@ from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
+    unified_strdate,
     url_or_none,
     urlencode_postdata,
     xpath_text,
@@ -310,17 +311,14 @@ class AfreecaTVIE(InfoExtractor):
                 if not file_url:
                     continue
                 key = file_element.get('key', '')
-                upload_date = self._search_regex(
-                    r'^(\d{8})_', key, 'upload date', default=None)
+                upload_date = unified_strdate(self._search_regex(
+                    r'^(\d{8})_', key, 'upload date', default=None))
                 if upload_date is not None:
-                    try:
-                        # sometimes the upload date isn't included in the file name
-                        # instead, another random ID is, which may not parse as a date
-                        # or may be wildly out of a reasonable range
-                        parsed_date = date_from_str(upload_date)
-                        if parsed_date.year < 2000 or parsed_date.year >= 2100:
-                            upload_date = None
-                    except ValueError:
+                    # sometimes the upload date isn't included in the file name
+                    # instead, another random ID is, which may parse as a valid
+                    # date but be wildly out of a reasonable range
+                    parsed_date = date_from_str(upload_date)
+                    if parsed_date.year < 2000 or parsed_date.year >= 2100:
                         upload_date = None
                 file_duration = int_or_none(file_element.get('duration'))
                 format_id = key if key else '%s_%s' % (video_id, file_num)
