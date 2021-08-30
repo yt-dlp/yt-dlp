@@ -84,6 +84,15 @@ jobs:
         rm -rf dist/*
         python setup.py sdist bdist_wheel
         twine upload dist/*
+    - name: Update Homebrew Formulae
+      # can't use secrets.GITHUB_TOKEN because it's outside yt-dlp repository
+      if: ${{ secrets.GH_TOKEN }}
+      run: |
+        # FIXME: update required prior to merge
+        git clone https://example:${{ secrets.GH_TOKEN }}@github.com/yt-dlp/homebrew-taps taps/
+        python3 devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ steps.bump_version.outputs.ytdlp_version }}"
+        git -C taps/ commit -am 'yt-dlp: ${{ steps.bump_version.outputs.ytdlp_version }}'
+        git -C taps/ push
 
   build_windows:
     runs-on: windows-latest
