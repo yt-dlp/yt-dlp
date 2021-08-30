@@ -87,7 +87,6 @@ class IwaraIE(InfoExtractor):
             r'<p>(.+?(?=</div))', webpage, 'description', fatal=False,
             flags=re.DOTALL).strip()
 
-
         formats = []
         for a_format in video_data:
             format_uri = url_or_none(a_format.get('uri'))
