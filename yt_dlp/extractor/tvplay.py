@@ -392,10 +392,6 @@ class ViafreeIE(InfoExtractor):
     }]
     _GEO_BYPASS = False
 
-    @classmethod
-    def suitable(cls, url):
-        return False if TVPlayIE.suitable(url) else super(ViafreeIE, cls).suitable(url)
-
     def _real_extract(self, url):
         country, path = self._match_valid_url(url).groups()
         content = self._download_json(
