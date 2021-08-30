@@ -356,7 +356,6 @@ class ViafreeIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        # TODO: fix
         'url': 'https://www.viafree.dk/programmer/humor/comedy-central-roast-of-charlie-sheen/film/1047660',
         'info_dict': {
             'id': '1047660',
@@ -369,6 +368,9 @@ class ViafreeIE(InfoExtractor):
             'timestamp': 1608246060,
             'upload_date': '20201217'
         },
+        'params': {
+            'format': 'bestvideo'
+        }
     }, {
         # with relatedClips
         'url': 'http://www.viafree.se/program/reality/sommaren-med-youtube-stjarnorna/sasong-1/avsnitt-1',
@@ -386,8 +388,7 @@ class ViafreeIE(InfoExtractor):
     }, {
         'url': 'http://www.viafree.se/program/underhallning/i-like-radio-live/sasong-1/676869',
         'only_matching': True,
-        },
-    ]
+    }]
     _GEO_BYPASS = False
 
     @classmethod
