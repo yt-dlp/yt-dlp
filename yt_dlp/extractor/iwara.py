@@ -23,6 +23,9 @@ class IwaraIE(InfoExtractor):
             'title': '【MMD R-18】ガールフレンド carry_me_off',
             'age_limit': 18,
             'thumbnail': 'https://i.iwara.tv/sites/default/files/videos/thumbnails/7951/thumbnail-7951_0001.png',
+            'uploader': 'Reimu丨Action',
+            'upload_date': '20150828',
+            'description': 'md5:1d4905ce48c66c9299c617f08e106e0f',
         },
     }, {
         'url': 'http://ecchi.iwara.tv/videos/Vb4yf2yZspkzkBO',
