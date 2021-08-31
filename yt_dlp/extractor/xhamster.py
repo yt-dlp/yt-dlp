@@ -245,14 +245,16 @@ class XHamsterIE(InfoExtractor):
             else:
                 categories = None
 
+            uploader = try_get(video, lambda x: x['author']['name'], compat_str)
+
             return {
                 'id': video_id,
                 'display_id': display_id,
                 'title': title,
                 'description': video.get('description'),
                 'timestamp': int_or_none(video.get('created')),
-                'uploader': try_get(
-                    video, lambda x: x['author']['name'], compat_str),
+                'uploader': uploader,
+                'uploader_id': uploader,
                 'thumbnail': video.get('thumbURL'),
                 'duration': int_or_none(video.get('duration')),
                 'view_count': int_or_none(video.get('views')),
@@ -352,6 +354,7 @@ class XHamsterIE(InfoExtractor):
             'description': description,
             'upload_date': upload_date,
             'uploader': uploader,
+            'uploader_id': uploader,
             'thumbnail': thumbnail,
             'duration': duration,
             'view_count': view_count,
