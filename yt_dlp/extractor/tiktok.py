@@ -178,8 +178,7 @@ class TikTokIE(InfoExtractor):
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
         if video_info.get('play_addr'):
-            addr = video_info.get('play_addr')
-            formats.extend(extract_addr(addr, {
+            formats.extend(extract_addr(video_info['play_addr'], {
                 'format_id': 'play_addr',
                 'format_note': 'Direct video',
                 'vcodec': 'h265' if traverse_obj(
@@ -188,8 +187,7 @@ class TikTokIE(InfoExtractor):
                 'height': video_info.get('height'),
             }))
         if video_info.get('play_addr_h264'):
-            addr = video_info.get('play_addr_h264')
-            formats.extend(extract_addr(addr, {
+            formats.extend(extract_addr(video_info['play_addr_h264'], {
                 'format_id': 'play_addr_h264',
                 'format_note': 'Direct video',
                 'vcodec': 'h264',
@@ -197,8 +195,7 @@ class TikTokIE(InfoExtractor):
                 'height': video_info.get('height')
             }))
         if video_info.get('play_addr_bytevc1'):
-            addr = video_info.get('play_addr_bytevc1')
-            formats.extend(extract_addr(addr, {
+            formats.extend(extract_addr(video_info['play_addr_bytevc1'], {
                 'format_id': 'play_addr_bytevc1',
                 'format_note': 'Direct video',
                 'vcodec': 'h265',
@@ -206,8 +203,7 @@ class TikTokIE(InfoExtractor):
                 'height': video_info.get('height')
             }))
         if video_info.get('download_addr'):
-            addr = video_info.get('download_addr')
-            formats.extend(extract_addr(addr, {
+            formats.extend(extract_addr(video_info['download_addr'], {
                 'format_id': 'download_addr',
                 'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
                 'vcodec': 'h264',
@@ -217,8 +213,7 @@ class TikTokIE(InfoExtractor):
             }))
 
         for bitrate in video_info.get('bit_rate', []):
-            addr = bitrate['play_addr']
-            formats.extend(extract_addr(addr, {
+            formats.extend(extract_addr(bitrate['play_addr'], {
                 'format_id': bitrate.get('gear_name'),
                 'format_note': 'Playback video',
                 'tbr': try_get(bitrate, lambda x: x['bit_rate'] / 125),
@@ -283,7 +278,7 @@ class TikTokIE(InfoExtractor):
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
-            self.report_warning(str(e) + ' Retrying with webpage...')
+            self.report_warning(str(e) + ' Retrying with webpage')
 
         # If we only call once, we get a 403 when downlaoding the video.
         self._download_webpage(url, video_id)
@@ -339,37 +334,7 @@ class TikTokUserIE(InfoExtractor):
             for video in data_json.get('itemList', []):
                 video_id = video['id']
                 video_url = f'https://www.tiktok.com/@{user_id}/video/{video_id}'
-                download_url = try_get(video, (lambda x: x['video']['playAddr'],
-                                               lambda x: x['video']['downloadAddr']))
-                thumbnail = try_get(video, lambda x: x['video']['originCover'])
-                height = try_get(video, lambda x: x['video']['height'], int)
-                width = try_get(video, lambda x: x['video']['width'], int)
-                yield {
-                    'id': video_id,
-                    'ie_key': TikTokIE.ie_key(),
-                    'extractor': 'TikTok',
-                    'url': download_url,
-                    'ext': 'mp4',
-                    'height': height,
-                    'width': width,
-                    'title': str_or_none(video.get('desc')),
-                    'duration': try_get(video, lambda x: x['video']['duration'], int),
-                    'view_count': try_get(video, lambda x: x['stats']['playCount'], int),
-                    'like_count': try_get(video, lambda x: x['stats']['diggCount'], int),
-                    'comment_count': try_get(video, lambda x: x['stats']['commentCount'], int),
-                    'repost_count': try_get(video, lambda x: x['stats']['shareCount'], int),
-                    'timestamp': video.get('createTime'),
-                    'creator': try_get(video, lambda x: x['author']['nickname'], str),
-                    'uploader': try_get(video, lambda x: x['author']['uniqueId'], str),
-                    'uploader_id': try_get(video, lambda x: x['author']['id'], str),
-                    'uploader_url': f'https://www.tiktok.com/@{user_id}',
-                    'thumbnails': [{'url': thumbnail, 'height': height, 'width': width}],
-                    'description': str_or_none(video.get('desc')),
-                    'webpage_url': video_url,
-                    'http_headers': {
-                        'Referer': video_url,
-                    }
-                }
+                yield self._url_result(video_url, 'TikTok', video_id, str_or_none(video.get('desc')))
             if not data_json['hasMore']:
                 break
             cursor = data_json['cursor']
