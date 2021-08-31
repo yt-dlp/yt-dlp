@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class TokentubeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tokentube\.net/(l|v)/(?P<id>\d+)/.*'
+    _VALID_URL = r'https?://(?:www\.)?tokentube\.net/(?:view)?/?\??[lv]=?/?(?P<id>\d+)(?:/.*)?'
     _TESTS = [{
         'url': 'https://tokentube.net/l/3236632011/Praise-A-Thon-Pastori-Chrisin-ja-Pastori-Bennyn-kanssa-27-8-2021',
         'info_dict': {
@@ -39,6 +39,16 @@ class TokentubeIE(InfoExtractor):
             'uploader': 'jyrilehtonen',
             'upload_date': '20210825',
         },
+    }, {
+        'url': 'https://tokentube.net/view?v=3582463289',
+        'info_dict': {
+            'id': '3582463289',
+            'ext': 'mp4',
+            'title': 'Police for Freedom - toiminta aloitetaan Suomessa ❤️??',
+            'description': 'md5:cd92e620d7f5fa162e8410d0fc9a08be',
+            'uploader': 'Voitontie',
+            'upload_date': '20210428',
+        }
     }]
 
     def _real_extract(self, url):
@@ -64,7 +74,7 @@ class TokentubeIE(InfoExtractor):
             })
 
         view_count = parse_count(self._html_search_regex(
-            r'<p\s*class=["\']views_counter["\']>\s*([\d\.,]+)\s*<span>views</span></p>',
+            r'<p\s*class=["\']views_counter["\']>\s*([\d\.,]+)\s*<span>views?</span></p>',
             webpage, 'view_count', fatal=False))
 
         like_count = parse_count(self._html_search_regex(
@@ -108,16 +118,20 @@ class TokentubeChannelIE(InfoExtractor):
         'url': 'https://tokentube.net/channel/3697658904/TokenTube',
         'info_dict': {
             'id': '3697658904',
-            'title': 'Ylläpito',
         },
         'playlist_mincount': 7,
     }, {
         'url': 'https://tokentube.net/channel/3353234420/Linux/videos',
         'info_dict': {
             'id': '3353234420',
-            'title': 'Linux',
         },
         'playlist_mincount': 20,
+    }, {
+        'url': 'https://tokentube.net/channel/3475834195/Voitontie',
+        'info_dict': {
+            'id': '3475834195',
+        },
+        'playlist_mincount': 150,
     }]
 
     def _fetch_page(self, channel_id, page):
