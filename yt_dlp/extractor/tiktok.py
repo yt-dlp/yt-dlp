@@ -5,19 +5,19 @@ import itertools
 import random
 import string
 import time
-import re
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
     str_or_none,
+    traverse_obj,
     try_get
 )
 
 
 class TikTokIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.tiktok\.com/@[\w\._]+/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktok\.com/@[\w\d\._-]+/video/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.tiktok.com/@leenabhushan/video/6748451240264420610',
@@ -182,8 +182,8 @@ class TikTokIE(InfoExtractor):
             formats.extend(extract_addr(addr, {
                 'format_id': 'play_addr',
                 'format_note': 'Direct video',
-                'vcodec': 'h265' if try_get(
-                    video_info, lambda x: x['is_bytevc1'] or x['is_h265']) else 'h264',  # Always h264?
+                'vcodec': 'h265' if traverse_obj(
+                    video_info, 'is_bytevc1', 'is_h265') else 'h264',  # Always h264?
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
             }))
@@ -222,8 +222,8 @@ class TikTokIE(InfoExtractor):
                 'format_id': bitrate.get('gear_name'),
                 'format_note': 'Playback video',
                 'tbr': try_get(bitrate, lambda x: x['bit_rate'] / 125),
-                'vcodec': 'h265' if try_get(
-                    bitrate, lambda x: x['is_bytevc1'] or x['is_h265']) else 'h264',
+                'vcodec': 'h265' if traverse_obj(
+                    bitrate, 'is_bytevc1', 'is_h265') else 'h264',
             }))
 
         self._remove_duplicate_formats(formats)
@@ -244,6 +244,18 @@ class TikTokIE(InfoExtractor):
         author_info = aweme_detail.get('author', {})
         music_info = aweme_detail.get('music', {})
         user_id = str_or_none(author_info.get('nickname'))
+
+        contained_music_track = traverse_obj(
+            music_info, ('matched_song', 'title'), ('matched_pgc_sound', 'title'), expected_type=str)
+        contained_music_author = traverse_obj(
+            music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), 'author', expected_type=str)
+
+        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - %s' % music_info.get('owner_handle')
+        if is_generic_og_trackname:
+            music_track, music_author = contained_music_track or 'original sound', contained_music_author
+        else:
+            music_track, music_author = music_info.get('title'), music_info.get('author')
+
         return {
             'id': aweme_id,
             'title': aweme_detail['desc'],
@@ -256,13 +268,13 @@ class TikTokIE(InfoExtractor):
             'creator': user_id,
             'uploader_id': str_or_none(author_info.get('uid')),
             'uploader_url': f'https://www.tiktok.com/@{user_id}' if user_id else None,
-            'track': str_or_none(music_info.get('title')),
-            'album': str_or_none(music_info.get('album')),
-            'artist': str_or_none(music_info.get('author')),
+            'track': music_track,
+            'album': str_or_none(music_info.get('album')) or None,
+            'artist': music_author,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
             'thumbnails': thumbnails,
-            'duration': try_get(video_info, lambda x: x['download_addr']['duration'] / 1000, int)
+            'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000)
         }
 
     def _real_extract(self, url):
