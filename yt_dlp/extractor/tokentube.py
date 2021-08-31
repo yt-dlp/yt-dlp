@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import functools
 import re
 
 from .common import InfoExtractor
@@ -8,6 +9,7 @@ from ..utils import (
     parse_count,
     unified_strdate,
     js_to_json,
+    OnDemandPagedList,
 )
 
 
@@ -99,6 +101,7 @@ class TokentubeIE(InfoExtractor):
 
 
 class TokentubeChannelIE(InfoExtractor):
+    _PAGE_SIZE = 20
     IE_NAME = 'Tokentube:channel'
     _VALID_URL = r'https?://(?:www\.)?tokentube\.net/channel/(?P<id>\d+)/(?P<name>[^/]+)(?:/videos)?'
     _TESTS = [{
@@ -117,26 +120,21 @@ class TokentubeChannelIE(InfoExtractor):
         'playlist_mincount': 20,
     }]
 
+    def _fetch_page(self, channel_id, page):
+        page += 1
+        videos_info = self._download_webpage(
+            f'https://tokentube.net/videos?p=0&m=1&sort=recent&u={channel_id}&page={page}',
+            channel_id, headers={'X-Requested-With': 'XMLHttpRequest'}, note=f'Downloading page {page}', fatal=False)
+        if not '</i> Sorry, no results were found.' in videos_info:
+            for path, media_id in re.findall(
+                    r'<a[^>]+\bhref=["\']([^"\']+/[lv]/(\d+)/\S+)["\'][^>]+>',
+                    videos_info):
+                yield self.url_result(path, ie=TokentubeIE.ie_key(), video_id=media_id)
+
     def _real_extract(self, url):
-        channel_id, channel_name = self._match_valid_url(url).groups()
+        channel_id = self._match_id(url)
 
-        webpage = self._download_webpage(
-            f'https://tokentube.net/channel/{channel_id}/{channel_name}/videos', channel_id)
+        entries = OnDemandPagedList(functools.partial(
+            self._fetch_page, channel_id), self._PAGE_SIZE)
 
-        title = self._html_search_regex(
-            r'<h1>([^>]+)</h1>', webpage, 'title', default=None)
-
-        if '<button class="more-button"' in webpage:
-            videos = self._download_webpage(
-                f'https://tokentube.net/videos?p=0&m=1&sort=recent&u={channel_id}&page=2',
-                channel_id, headers={'X-Requested-With': 'XMLHttpRequest'}, note='Fetching more videos', fatal=False)
-            webpage += videos if videos else ''
-
-        entries = []
-        for path, media_id in re.findall(
-                r'<a[^>]+\bhref=["\']([^"\']+/[lv]/(\d+)/\S+)["\'][^>]+>',
-                webpage):
-            entries.append(
-                self.url_result(path, ie=TokentubeIE.ie_key(), video_id=media_id))
-
-        return self.playlist_result(entries, channel_id, title)
+        return self.playlist_result(entries, channel_id)
