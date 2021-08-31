@@ -78,6 +78,8 @@ class TikTokIE(InfoExtractor):
             props_data, lambda x: x['pageProps']['itemInfo']['itemStruct'], dict)
         author_info = try_get(
             props_data, lambda x: x['pageProps']['itemInfo']['itemStruct']['author'], dict) or {}
+        music_info = try_get(
+            props_data, lambda x: x['pageProps']['itemInfo']['itemStruct']['music'], dict) or {}
         stats_info = try_get(props_data, lambda x: x['pageProps']['itemInfo']['itemStruct']['stats'], dict) or {}
 
         user_id = str_or_none(author_info.get('uniqueId'))
@@ -109,6 +111,9 @@ class TikTokIE(InfoExtractor):
             'uploader': user_id,
             'uploader_id': str_or_none(author_info.get('id')),
             'uploader_url': f'https://www.tiktok.com/@{user_id}',
+            'track': str_or_none(music_info.get('title')),
+            'album': str_or_none(music_info.get('album')) or None,
+            'artist': str_or_none(music_info.get('authorName')),
             'thumbnails': thumbnails,
             'description': str_or_none(video_info.get('desc')),
             'webpage_url': self._og_search_url(webpage),
