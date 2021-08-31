@@ -83,8 +83,8 @@ class IwaraIE(InfoExtractor):
         uploader = self._html_search_regex(
             r'class="username">([^<]+)', webpage, 'uploader', fatal=False)
 
-        upload_date = self._html_search_regex(
-            r'作成日:([^\s]+)', webpage, 'upload_date', fatal=False).replace("-", "")
+        upload_date = unified_strdate(self._html_search_regex(
+            r'作成日:([^\s]+)', webpage, 'upload_date', fatal=False))
 
         description = self._search_regex(
             r'<p>(.+?(?=</div))', webpage, 'description', fatal=False,
