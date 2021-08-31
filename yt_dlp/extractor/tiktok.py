@@ -151,14 +151,13 @@ class TikTokIE(InfoExtractor):
             'cp': 'cbfhckdckkde1',
         }
 
-        odin_cookie = ''.join(random.choice('0123456789abcdef') for i in range(160))
+        self._set_cookie('.tiktokv.com', 'odin_tt', ''.join(random.choice('0123456789abcdef') for i in range(160)))
 
         aweme_detail = self._download_json(
             'https://api-t2.tiktokv.com/aweme/v1/aweme/detail/', aweme_id,
             'Downloading video details', 'Unable to download video details',
             headers={
                 'User-Agent': f'com.ss.android.ugc.trill/{self._MANIFEST_APP_VERSION} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
-                'Cookie': f'odin_tt={odin_cookie}',
             }, query=query)['aweme_detail']
 
         video_info = aweme_detail['video']
