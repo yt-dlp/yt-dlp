@@ -217,7 +217,7 @@ class TikTokIE(InfoExtractor):
                 'vcodec': 'h264',
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
-                'source_preference': -2,
+                'preference': -2 if video_info.get('has_watermark') else -1,
             }))
 
         for bitrate in video_info.get('bit_rate', []):
