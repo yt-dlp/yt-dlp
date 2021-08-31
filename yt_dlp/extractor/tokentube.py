@@ -47,7 +47,7 @@ class TokentubeIE(InfoExtractor):
         title = self._html_search_regex(r'<h1\s*class=["\']title-text["\']>(.+?)</h1>', webpage, 'title')
 
         data_json = self._html_search_regex(r'({["\']html5["\'].+?}}}+)', webpage, 'data json')
-        data_json = self._parse_json(js_to_json(data_json), video_id)
+        data_json = self._parse_json(js_to_json(data_json), video_id, fatal=False)
 
         sources = data_json.get('sources')
         if not sources:
