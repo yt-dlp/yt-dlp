@@ -65,6 +65,10 @@ class TikTokIE(InfoExtractor):
             'repost_count': int,
             'comment_count': int,
         }
+    }, {
+        # Promoted content/ad
+        'url': 'https://www.tiktok.com/@MS4wLjABAAAAAR29F6J2Ktu0Daw03BJyXPNoRQ-W7U5a0Mn3lVCq2rQhjOd_WNLclHUoFgwX8Eno/video/6932675057474981122',
+        'only_matching': True,
     }]
     _APP_VERSION = '20.9.3'
     _MANIFEST_APP_VERSION = '291'
