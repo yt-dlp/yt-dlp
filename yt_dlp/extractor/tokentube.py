@@ -103,7 +103,7 @@ class TokentubeIE(InfoExtractor):
 class TokentubeChannelIE(InfoExtractor):
     _PAGE_SIZE = 20
     IE_NAME = 'Tokentube:channel'
-    _VALID_URL = r'https?://(?:www\.)?tokentube\.net/channel/(?P<id>\d+)/(?P<name>[^/]+)(?:/videos)?'
+    _VALID_URL = r'https?://(?:www\.)?tokentube\.net/channel/(?P<id>\d+)/[^/]+(?:/videos)?'
     _TESTS = [{
         'url': 'https://tokentube.net/channel/3697658904/TokenTube',
         'info_dict': {
