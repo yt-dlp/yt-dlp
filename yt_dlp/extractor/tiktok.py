@@ -17,7 +17,7 @@ from ..utils import (
 
 
 class TikTokIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.tiktok\.com/@[\w\d\._-]+/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktok\.com/@[\w\.-]+/video/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.tiktok.com/@leenabhushan/video/6748451240264420610',
