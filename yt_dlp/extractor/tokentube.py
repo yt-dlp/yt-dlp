@@ -124,8 +124,9 @@ class TokentubeChannelIE(InfoExtractor):
         page += 1
         videos_info = self._download_webpage(
             f'https://tokentube.net/videos?p=0&m=1&sort=recent&u={channel_id}&page={page}',
-            channel_id, headers={'X-Requested-With': 'XMLHttpRequest'}, note=f'Downloading page {page}', fatal=False)
-        if not '</i> Sorry, no results were found.' in videos_info:
+            channel_id, headers={'X-Requested-With': 'XMLHttpRequest'},
+            note=f'Downloading page {page}', fatal=False)
+        if '</i> Sorry, no results were found.' not in videos_info:
             for path, media_id in re.findall(
                     r'<a[^>]+\bhref=["\']([^"\']+/[lv]/(\d+)/\S+)["\'][^>]+>',
                     videos_info):
