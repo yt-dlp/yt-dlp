@@ -86,9 +86,9 @@ class IwaraIE(InfoExtractor):
         upload_date = unified_strdate(self._html_search_regex(
             r'作成日:([^\s]+)', webpage, 'upload_date', fatal=False))
 
-        description = self._search_regex(
+        description = strip_or_none(self._search_regex(
             r'<p>(.+?(?=</div))', webpage, 'description', fatal=False,
-            flags=re.DOTALL).strip()
+            flags=re.DOTALL))
 
         formats = []
         for a_format in video_data:
