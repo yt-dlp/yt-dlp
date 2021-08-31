@@ -5,7 +5,7 @@ import itertools
 import random
 import string
 import time
-import uuid
+import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -66,8 +66,8 @@ class TikTokIE(InfoExtractor):
             'comment_count': int,
         }
     }]
-    _APP_VERSION = '20.9.2'
-    _MANIFEST_APP_VERSION = '2022009020'
+    _APP_VERSION = '20.9.3'
+    _MANIFEST_APP_VERSION = '291'
 
     def _extract_aweme(self, props_data, webpage, url):
         video_info = try_get(
@@ -118,7 +118,7 @@ class TikTokIE(InfoExtractor):
         query = {
             'aweme_id': aweme_id,
             'version_name': self._APP_VERSION,
-            'version_code': self._APP_VERSION.replace('.', ''),
+            'version_code': self._MANIFEST_APP_VERSION,
             'build_number': self._APP_VERSION,
             'manifest_version_code': self._MANIFEST_APP_VERSION,
             'update_version_code': self._MANIFEST_APP_VERSION,
@@ -151,38 +151,45 @@ class TikTokIE(InfoExtractor):
             'cp': 'cbfhckdckkde1',
         }
 
+        odin_cookie = ''.join(random.choice('0123456789abcdef') for i in range(160))
+
         aweme_detail = self._download_json(
             'https://api-t2.tiktokv.com/aweme/v1/aweme/detail/', aweme_id,
             'Downloading video details', 'Unable to download video details',
             headers={
-                'User-Agent': f'com.ss.android.ugc.trill/{self._MANIFEST_APP_VERSION} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)'
+                'User-Agent': f'com.ss.android.ugc.trill/{self._MANIFEST_APP_VERSION} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
+                'Cookie': f'odin_tt={odin_cookie}',
             }, query=query)['aweme_detail']
 
         video_info = aweme_detail['video']
         formats = []
 
         def extract_addr(addr, add_meta={}):
-            return {
-                'url': addr['url_list'][0],
-                'filesize': int_or_none(addr.get('data_size')),
-                'ext': 'mp4',
-                'acodec': 'aac',
-                **add_meta,
-            }
+            addr_formats = []
+            for url in addr['url_list']:
+                addr_formats.append({
+                    'url': url,
+                    'filesize': int_or_none(addr.get('data_size')),
+                    'ext': 'mp4',
+                    'acodec': 'aac',
+                    **add_meta,
+                })
+            return addr_formats
 
+        # Hack: Add direct video links first to prioritize them when removing duplicate formats
         if video_info.get('play_addr'):
             addr = video_info.get('play_addr')
-            formats.append(extract_addr(addr, {
+            formats.extend(extract_addr(addr, {
                 'format_id': 'play_addr',
                 'format_note': 'Direct video',
                 'vcodec': 'h265' if try_get(
-                    video_info, lambda x: x['is_bytevc1'] or x['is_h265']) else 'h264', # Always h264?
+                    video_info, lambda x: x['is_bytevc1'] or x['is_h265']) else 'h264',  # Always h264?
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
             }))
         if video_info.get('play_addr_h264'):
             addr = video_info.get('play_addr_h264')
-            formats.append(extract_addr(addr, {
+            formats.extend(extract_addr(addr, {
                 'format_id': 'play_addr_h264',
                 'format_note': 'Direct video',
                 'vcodec': 'h264',
@@ -190,19 +197,28 @@ class TikTokIE(InfoExtractor):
                 'height': video_info.get('height')
             }))
         if video_info.get('play_addr_bytevc1'):
-            play_addr = video_info.get('play_addr_bytevc1')
-            formats.append(extract_addr(addr, {
+            addr = video_info.get('play_addr_bytevc1')
+            formats.extend(extract_addr(addr, {
                 'format_id': 'play_addr_bytevc1',
                 'format_note': 'Direct video',
                 'vcodec': 'h265',
                 'width': video_info.get('width'),
                 'height': video_info.get('height')
             }))
-
+        if video_info.get('download_addr'):
+            addr = video_info.get('download_addr')
+            formats.extend(extract_addr(addr, {
+                'format_id': 'download_addr',
+                'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
+                'vcodec': 'h264',
+                'width': video_info.get('width'),
+                'height': video_info.get('height'),
+                'source_preference': -2,
+            }))
 
         for bitrate in video_info.get('bit_rate', []):
-            play_addr = bitrate['play_addr']
-            formats.append(extract_addr(addr, {
+            addr = bitrate['play_addr']
+            formats.extend(extract_addr(addr, {
                 'format_id': bitrate.get('gear_name'),
                 'format_note': 'Playback video',
                 'tbr': try_get(bitrate, lambda x: x['bit_rate'] / 125),
@@ -213,7 +229,21 @@ class TikTokIE(InfoExtractor):
         self._remove_duplicate_formats(formats)
         self._sort_formats(formats)
 
+        thumbnails = []
+        for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
+                         'origin_cover', 'dynamic_cover'):
+            cover = video_info.get(cover_id)
+            if cover:
+                for cover_url in cover['url_list']:
+                    thumbnails.append({
+                        'id': cover_id,
+                        'url': cover_url,
+                    })
+
         stats_info = aweme_detail.get('statistics', {})
+        author_info = aweme_detail.get('author', {})
+        music_info = aweme_detail.get('music', {})
+        user_id = str_or_none(author_info.get('nickname'))
         return {
             'id': aweme_id,
             'title': aweme_detail['desc'],
@@ -222,8 +252,17 @@ class TikTokIE(InfoExtractor):
             'like_count': int_or_none(stats_info.get('digg_count')),
             'repost_count': int_or_none(stats_info.get('share_count')),
             'comment_count': int_or_none(stats_info.get('comment_count')),
+            'uploader': str_or_none(author_info.get('unique_id')),
+            'creator': user_id,
+            'uploader_id': str_or_none(author_info.get('uid')),
+            'uploader_url': f'https://www.tiktok.com/@{user_id}' if user_id else None,
+            'track': str_or_none(music_info.get('title')),
+            'album': str_or_none(music_info.get('album')),
+            'artist': str_or_none(music_info.get('author')),
+            'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
-            'duration': try_get(video_info, lambda x: x['download_addr']['duration']/1000, int)
+            'thumbnails': thumbnails,
+            'duration': try_get(video_info, lambda x: x['download_addr']['duration'] / 1000, int)
         }
 
     def _real_extract(self, url):
