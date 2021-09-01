@@ -185,6 +185,7 @@ class TikTokIE(InfoExtractor):
                 'tbr': int_or_none(bitrate, scale=1000) or None,
                 'quality': qualities(['540p', '720p'])(res)
             }
+
         def extract_addr(addr, add_meta={}):
             addr_formats = []
             for url in addr['url_list']:
