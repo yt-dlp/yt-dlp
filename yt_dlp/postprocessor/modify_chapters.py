@@ -15,7 +15,7 @@ from ..utils import (
 )
 
 
-_TINY_SPONSOR_OVERLAP_DURATION = 1
+_TINY_CHAPTER_DURATION = 1
 DEFAULT_SPONSORBLOCK_CHAPTER_TITLE = '[SponsorBlock]: %(category_names)l'
 
 
@@ -50,7 +50,6 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             if not info.get('__real_download'):
                 raise PostProcessingError('Cannot cut video since the real and expected durations mismatch. '
                                           'Different chapters may have already been removed')
-                return [], info
             else:
                 self.write_debug('Expected and actual durations mismatch')
 
@@ -168,11 +167,11 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             # Merge with the previous if the chapter is tiny.
             # Only tiny chapters resulting from a cut can be skipped.
             # Chapters that were already tiny in the original list will be preserved.
-            if not original_uncut_chapter(c) and length < _TINY_SPONSOR_OVERLAP_DURATION:
+            if not original_uncut_chapter(c) and length < _TINY_CHAPTER_DURATION:
                 old_c['end_time'] = c['end_time']
             # Previous tiny chapter was appended for the sake of preventing an empty chapter list.
             # Replace it with the current one.
-            elif not original_uncut_chapter(old_c) and chapter_length(old_c) < _TINY_SPONSOR_OVERLAP_DURATION:
+            elif not original_uncut_chapter(old_c) and chapter_length(old_c) < _TINY_CHAPTER_DURATION:
                 c['start_time'] = old_c['start_time']
                 new_chapters[-1] = c
             else:
@@ -276,9 +275,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 cur_i, cur_chapter = i, c
         (append_chapter if 'remove' not in cur_chapter else append_cut)(cur_chapter)
 
-        i = -1
-        for c in new_chapters.copy():
-            i += 1
+        named_new_chapters = []
+        for c in new_chapters:
             c.pop('_was_cut', None)
             cats = c.pop('_categories', None)
             if cats:
@@ -292,12 +290,14 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 })
                 outtmpl, tmpl_dict = self._downloader.prepare_outtmpl(self._sponsorblock_chapter_title, c)
                 c['title'] = self._downloader.escape_outtmpl(outtmpl) % tmpl_dict
-            if i > 0 and c['title'] == new_chapters[i - 1]['title']:
-                new_chapters[i - 1]['end_time'] = c['end_time']
-                new_chapters.pop(i)
-                i -= 1
+                # Merge identically named sponsors.
+                if (named_new_chapters and 'categories' in named_new_chapters[-1]
+                        and named_new_chapters[-1]['title'] == c['title']):
+                    named_new_chapters[-1]['end_time'] = c['end_time']
+                    continue
+            named_new_chapters.append(c)
 
-        return new_chapters, cuts
+        return named_new_chapters, cuts
 
     def remove_chapters(self, filename, ranges_to_cut, concat_opts, force_keyframes=False):
         in_file = filename
