@@ -1410,6 +1410,10 @@ from .toggle import (
     ToggleIE,
     MeWatchIE,
 )
+from .tokentube import (
+    TokentubeIE,
+    TokentubeChannelIE
+)
 from .tonline import TOnlineIE
 from .toongoggles import ToonGogglesIE
 from .toutv import TouTvIE
