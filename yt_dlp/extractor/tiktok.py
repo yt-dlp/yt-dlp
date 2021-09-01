@@ -12,7 +12,8 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
-    try_get
+    try_get,
+    qualities,
 )
 
 
@@ -172,6 +173,18 @@ class TikTokIE(InfoExtractor):
         video_info = aweme_detail['video']
         formats = []
 
+        def parse_url_key(url_key):
+            format_id, codec, res, bitrate = self._search_regex(
+                r'v[^_]+_(?P<id>(?P<codec>[^_]+)_(?P<res>\d+p)_(?P<bitrate>\d+))', url_key,
+                'url key', default=(None, None, None, None), group=('id', 'codec', 'res', 'bitrate'))
+            if not format_id:
+                return {}
+            return {
+                'format_id': format_id,
+                'vcodec': 'h265' if codec == 'bytevc1' else codec,
+                'tbr': int_or_none(bitrate, scale=1000) or None,
+                'quality': qualities(['540p', '720p'])(res)
+            }
         def extract_addr(addr, add_meta={}):
             addr_formats = []
             for url in addr['url_list']:
@@ -181,6 +194,7 @@ class TikTokIE(InfoExtractor):
                     'ext': 'mp4',
                     'acodec': 'aac',
                     **add_meta,
+                    **parse_url_key(addr.get('url_key', ''))
                 })
             return addr_formats
 
