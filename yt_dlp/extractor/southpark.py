@@ -73,7 +73,7 @@ class SouthParkDeIE(SouthParkIE):
             'id': 'e99d45ea-ed00-11e0-aca6-0026b9414f30',
             'ext': 'mp4',
             'title': 'Tooth Fairy Cartman',
-            'description': 'Cartman dresses up as the Tooth Fairy to steal Butters\' tooth from underneath his pillow. Cartman gets $4 for this tooth, feeding the drive for more teeth.',
+            'description': 'md5:db02e23818b4dc9cb5f0c5a7e8833a68',
         },
     }, {
         # episode
@@ -82,7 +82,7 @@ class SouthParkDeIE(SouthParkIE):
             'id': 'f5fbd823-04bc-11eb-9b1b-0e40cf2fc285',
             'ext': 'mp4',
             'title': 'South Park',
-            'description': 'Randy comes to terms with his role in the COVID-19 outbreak as the on-going pandemic presents continued challenges to the citizens of South Park.',
+            'description': 'md5:ae0d875eff169dcbed16b21531857ac1',
         },
     }, {
         # clip
@@ -91,7 +91,7 @@ class SouthParkDeIE(SouthParkIE):
             'id': 'e99d45ea-ed00-11e0-aca6-0026b9414f30',
             'ext': 'mp4',
             'title': 'Zahnfee Cartman',
-            'description': 'Cartman verkleidet sich als Zahnfee, um Butters unter dem Kissen liegenden Zahn zu stehlen. Cartman bekommt 4$ für diesen Zahn, was das Streben nach mehr Zähnen nährt'
+            'description': 'md5:b917eec991d388811d911fd1377671ac'
         },
     }, {
         # episode
@@ -99,15 +99,15 @@ class SouthParkDeIE(SouthParkIE):
         'info_dict': {
             'id': '607115f3-496f-40c3-8647-2b0bcff486c0',
             'ext': 'mp4',
-            'title': 'South Park | Pink Eye | E 0107 | HDSS0107X deu | Version: 634312 | Comedy Central S1',
+            'title': 'md5:0d2ce7daf98eb9504c7a3276697ad666',
         },
     }]
 
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)
         config = self._download_json(
-            f'http://media.mtvnservices.com/pmt/e1/access/index.html?uri={uri}&configtype=edge&ref={url}', video_id)
-        return self._remove_template_parameter(config.get('feedWithQueryParams'))
+            'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge&ref=%s' % (uri, url), video_id)
+        return self._remove_template_parameter(config['feedWithQueryParams'])
 
     def _get_feed_query(self, uri):
         return
