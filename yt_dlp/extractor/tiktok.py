@@ -221,13 +221,14 @@ class TikTokIE(InfoExtractor):
             }))
 
         for bitrate in video_info.get('bit_rate', []):
-            formats.extend(extract_addr(bitrate['play_addr'], {
-                'format_id': bitrate.get('gear_name'),
-                'format_note': 'Playback video',
-                'tbr': try_get(bitrate, lambda x: x['bit_rate'] / 1000),
-                'vcodec': 'h265' if traverse_obj(
-                    bitrate, 'is_bytevc1', 'is_h265') else 'h264',
-            }))
+            if bitrate.get('play_addr'):
+                formats.extend(extract_addr(bitrate['play_addr'], {
+                    'format_id': bitrate.get('gear_name'),
+                    'format_note': 'Playback video',
+                    'tbr': try_get(bitrate, lambda x: x['bit_rate'] / 1000),
+                    'vcodec': 'h265' if traverse_obj(
+                        bitrate, 'is_bytevc1', 'is_h265') else 'h264',
+                }))
 
         self._remove_duplicate_formats(formats)
         self._sort_formats(formats)
