@@ -32,7 +32,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         chapters, sponsor_chapters = self._mark_chapters_to_remove(
-            info.get('chapters', []), info.get('sponsorblock_chapters', []))
+            info.get('chapters') or [], info.get('sponsorblock_chapters') or [])
         if not chapters and not sponsor_chapters:
             return [], info
 
