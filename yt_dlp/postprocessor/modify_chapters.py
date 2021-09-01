@@ -51,8 +51,9 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 self.to_screen(f'Skipping {self.pp_key()} since the video appears to be already cut')
                 return [], info
             if not info.get('__real_download'):
-                self.report_error('Cannot cut video since the real and expected durations mismatch. '
-                                  'Different chapters may have already been removed')
+                raise PostProcessingError('Cannot cut video since the real and expected durations mismatch. '
+                                          'Different chapters may have already been removed')
+                return [], info
             else:
                 self.write_debug('Expected and actual durations mismatch')
 
