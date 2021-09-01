@@ -2977,7 +2977,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         subtitles, base_url, lang_code,
-                        traverse_obj(caption_track, ('name', 'simpleText')),
+                        traverse_obj(caption_track, ('name', 'simpleText'), ('name', 'runs', ..., 'text'), get_all=False),
                         {})
                     continue
                 automatic_captions = {}
