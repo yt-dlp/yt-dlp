@@ -14,9 +14,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
     }
     CATEGORIES = {
         'sponsor': 'Sponsor',
-        'intro': 'Intro',
-        'outro': 'Outro',
-        'selfpromo': 'Self-Promotion',
+        'intro': 'Intermission/Intro Animation',
+        'outro': 'Endcards/Credits',
+        'selfpromo': 'Unpaid/Self Promotion',
         'interaction': 'Interaction Reminder',
         'preview': 'Preview/Recap',
         'music_offtopic': 'Non-Music Section'
