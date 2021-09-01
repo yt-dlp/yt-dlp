@@ -373,6 +373,7 @@ class TestDemocracynowSubtitles(BaseTestSubtitles):
         self.assertEqual(md5(subtitles['en']), 'acaca989e24a9e45a6719c9b3d60815c')
 
 
+@is_download_test
 class TestPBSSubtitles(BaseTestSubtitles):
     url = 'https://www.pbs.org/video/how-fantasy-reflects-our-world-picecq/'
     IE = PBSIE
@@ -381,9 +382,7 @@ class TestPBSSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(len(subtitles.keys()), 1)
-        self.assertIn('en', subtitles)
-        self.assertTrue(len(subtitles['en']) > 20000)
+        self.assertEqual(set(subtitles.keys()), set(['en']))
 
     def test_subtitles_dfxp_format(self):
         self.DL.params['writesubtitles'] = True
