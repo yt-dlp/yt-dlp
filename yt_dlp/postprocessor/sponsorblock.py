@@ -57,7 +57,13 @@ class SponsorBlockPP(FFmpegPostProcessor):
 
         def to_chapter(s):
             (start, end), cat = s['segment'], s['category']
-            return {'start_time': start, 'end_time': end, 'categories': [(cat, start, end)]}
+            return {
+                'start_time': start,
+                'end_time': end,
+                'category': cat,
+                'title': self.CATEGORIES[cat],
+                'categories': [(cat, start, end)]
+            }
 
         sponsor_chapters = [to_chapter(s) for s in duration_match]
         if not sponsor_chapters:

@@ -91,11 +91,9 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 self.to_screen('SponsorBlock information is unavailable')
                 warn_no_chapter_to_remove = False
             for c in sponsor_chapters:
-                for cat, _, _ in c['categories']:
-                    if cat in self._remove_sponsor_segments:
-                        c['remove'] = True
-                        warn_no_chapter_to_remove = False
-                        break
+                if c['category'] in self._remove_sponsor_segments:
+                    c['remove'] = True
+                    warn_no_chapter_to_remove = False
             if warn_no_chapter_to_remove:
                 self.to_screen('There are no matching SponsorBlock chapters')
 
