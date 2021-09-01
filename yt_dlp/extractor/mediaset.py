@@ -59,6 +59,22 @@ class MediasetIE(ThePlatformBaseIE):
             'uploader_id': 'C5',
         },
     }, {
+        'url': 'https://www.mediasetplay.mediaset.it/video/cameracafe5/episodio-69-pezzo-di-luna_F303843101017801',
+        'md5': 'd1650ac9ff944f185556126a736df148',
+        'info_dict': {
+            'id': 'F303843101017801',
+            'ext': 'mp4',
+            'title': 'Episodio 69 - Pezzo di luna',
+            'description': '',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 263.008,
+            'upload_date': '20200902',
+            'series': 'Camera Café 5',
+            'timestamp': 1599064700,
+            'uploader': 'Italia 1',
+            'uploader_id': 'I1',
+        },
+    }, {
         # clip
         'url': 'https://www.mediasetplay.mediaset.it/video/gogglebox/un-grande-classico-della-commedia-sexy_FAFU000000661680',
         'only_matching': True,
@@ -132,7 +148,7 @@ class MediasetIE(ThePlatformBaseIE):
         formats = []
         subtitles = {}
         first_e = None
-        asset_type = 'HD,browser,geoIT|SD,browser,geoIT|geoNo:HD,browser,geoIT|geoNo:SD,browser,geoIT|geoNo'
+        asset_type = 'HD,browser,geoIT|SD,browser,geoIT|geoNo:HD,browser,geoIT|geoNo:SD,browser,geoIT|geoNo|HD|SD'
         # TODO: fixup ISM+none manifest URLs
         for f in ('MPEG4', 'MPEG-DASH+none', 'M3U+none'):
             try:
