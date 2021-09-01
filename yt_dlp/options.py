@@ -30,6 +30,7 @@ from .postprocessor import (
     FFmpegVideoRemuxerPP,
     SponsorBlockPP,
 )
+from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
 
 
 def _hide_login_info(opts):
@@ -1404,9 +1405,11 @@ def parseOpts(overrideArguments=None):
             'The syntax and available categories are the same as for --sponsorblock-mark'))
     sponsorblock.add_option(
         '--sponsorblock-chapter-title', metavar='TEMPLATE',
-        default='[SponsorBlock]: {}', dest='sponsorblock_chapter_title',
-        help='A title template for SponsorBlock chapters created by --sponsorblock-mark. '
-             '{} in the title will expand to SponsorBlock categories. Defaults to %default')
+        default=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, dest='sponsorblock_chapter_title',
+        help=(
+            'The title template for SponsorBlock chapters created by --sponsorblock-mark. '
+            'The same syntax as the output template is used, but only available fields are '
+            'start_time, end_time, category, categories, name, category_names. Defaults to "%default"'))
     sponsorblock.add_option(
         '--no-sponsorblock', default=False,
         action='store_true', dest='no_sponsorblock',

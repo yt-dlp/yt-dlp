@@ -306,6 +306,7 @@ def _real_main(argv=None):
     opts.forceprint = opts.forceprint or []
     for tmpl in opts.forceprint or []:
         validate_outtmpl(tmpl, 'print template')
+    validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'

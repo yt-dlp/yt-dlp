@@ -11,18 +11,20 @@ from .ffmpeg import (
 from .sponsorblock import SponsorBlockPP
 from ..utils import (
     float_or_none,
+    orderedSet,
     PostProcessingError,
     prepend_extension,
     traverse_obj,
 )
 
 
-TINY_CHAPTER_SEC = 1
+_TINY_SPONSOR_OVERLAP_DURATION = 1
+DEFAULT_SPONSORBLOCK_CHAPTER_TITLE = '[SponsorBlock]: %(category_names)l'
 
 
 class ModifyChaptersPP(FFmpegPostProcessor):
     def __init__(self, downloader, remove_chapters_patterns=None, remove_sponsor_segments=None,
-                 sponsorblock_chapter_title='[SponsorBlock]: {}', force_keyframes=False):
+                 sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, force_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._remove_chapters_patterns = set(remove_chapters_patterns or [])
         self._remove_sponsor_segments = set(remove_sponsor_segments or [])
@@ -155,13 +157,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             return c['end_time'] - c['start_time']
 
         def original_uncut_chapter(c):
-            return 'was_cut' not in c and 'categories' not in c
-
-        def sponsor_categories(c):
-            assert 'categories' in c
-            # Return categories for overlapping sponsor chapter in order
-            # in which they are encountered. OrderedDict removes duplicates preserving the order.
-            return OrderedDict((cat, None) for cat, _, _ in c['categories']).keys()
+            return '_was_cut' not in c and '_categories' not in c
 
         def append_chapter(c):
             assert 'remove' not in c
@@ -177,17 +173,14 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 new_chapters.append(c)
                 return
             old_c = new_chapters[-1]
-            # Merge with the previous if the chapter is tiny
-            # or if both are sponsor chapters with identical categories.
+            # Merge with the previous if the chapter is tiny.
             # Only tiny chapters resulting from a cut can be skipped.
             # Chapters that were already tiny in the original list will be preserved.
-            if (not original_uncut_chapter(c) and length < TINY_CHAPTER_SEC) or (
-                    'categories' in old_c and 'categories' in c
-                    and sponsor_categories(old_c) == sponsor_categories(c)):
+            if not original_uncut_chapter(c) and length < _TINY_SPONSOR_OVERLAP_DURATION:
                 old_c['end_time'] = c['end_time']
             # Previous tiny chapter was appended for the sake of preventing an empty chapter list.
             # Replace it with the current one.
-            elif not original_uncut_chapter(old_c) and chapter_length(old_c) < TINY_CHAPTER_SEC:
+            elif not original_uncut_chapter(old_c) and chapter_length(old_c) < _TINY_SPONSOR_OVERLAP_DURATION:
                 c['start_time'] = old_c['start_time']
                 new_chapters[-1] = c
             else:
@@ -224,11 +217,11 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 # start later than the remaining chapters from the queue.
                 elif cur_chapter['end_time'] < c['end_time']:
                     c['start_time'] = cur_chapter['end_time']
-                    c['was_cut'] = True
+                    c['_was_cut'] = True
                     heapq.heappush(chapters, (c['start_time'], i, c))
             # (sponsor/normal, cut).
             elif 'remove' in c:
-                cur_chapter['was_cut'] = True
+                cur_chapter['_was_cut'] = True
                 # Chop the end of the current chapter if the cut is not contained within it.
                 # Chopping the end doesn't break start_time sorting, no PQ push is necessary.
                 if cur_chapter['end_time'] <= c['end_time']:
@@ -238,16 +231,16 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     continue
                 # Current chapter contains the cut within it. If the current chapter is
                 # a sponsor chapter, check whether the categories before and after the cut differ.
-                if 'categories' in cur_chapter:
-                    after_c = dict(cur_chapter, start_time=c['end_time'], categories=[])
+                if '_categories' in cur_chapter:
+                    after_c = dict(cur_chapter, start_time=c['end_time'], _categories=[])
                     cur_cats = []
-                    for cat_start_end in cur_chapter['categories']:
+                    for cat_start_end in cur_chapter['_categories']:
                         if cat_start_end[1] < c['start_time']:
                             cur_cats.append(cat_start_end)
                         if cat_start_end[2] > c['end_time']:
-                            after_c['categories'].append(cat_start_end)
-                    cur_chapter['categories'] = cur_cats
-                    if cur_chapter['categories'] != after_c['categories']:
+                            after_c['_categories'].append(cat_start_end)
+                    cur_chapter['_categories'] = cur_cats
+                    if cur_chapter['_categories'] != after_c['_categories']:
                         # Categories before and after the cut differ: push the after part to PQ.
                         heapq.heappush(chapters, (after_c['start_time'], cur_i, after_c))
                         cur_chapter['end_time'] = c['start_time']
@@ -260,16 +253,16 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 cur_chapter.setdefault('cut_idx', append_cut(c))
             # (sponsor, normal): if a normal chapter is not completely overlapped,
             # chop the beginning of it and push it to PQ.
-            elif 'categories' in cur_chapter and 'categories' not in c:
+            elif '_categories' in cur_chapter and '_categories' not in c:
                 if cur_chapter['end_time'] < c['end_time']:
                     c['start_time'] = cur_chapter['end_time']
-                    c['was_cut'] = True
+                    c['_was_cut'] = True
                     heapq.heappush(chapters, (c['start_time'], i, c))
             # (normal, sponsor) and (sponsor, sponsor)
             else:
-                assert 'categories' in c
-                cur_chapter['was_cut'] = True
-                c['was_cut'] = True
+                assert '_categories' in c
+                cur_chapter['_was_cut'] = True
+                c['_was_cut'] = True
                 # Push the part after the sponsor to PQ.
                 if cur_chapter['end_time'] > c['end_time']:
                     # deepcopy to make categories in after_c and cur_chapter/c refer to different lists.
@@ -281,8 +274,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     heapq.heappush(chapters, (after_cur['start_time'], cur_i, after_cur))
                     c['end_time'] = cur_chapter['end_time']
                 # (sponsor, sponsor): merge categories in the overlap.
-                if 'categories' in cur_chapter:
-                    c['categories'] = cur_chapter['categories'] + c['categories']
+                if '_categories' in cur_chapter:
+                    c['_categories'] = cur_chapter['_categories'] + c['_categories']
                 # Inherit the cuts that the current chapter has accumulated within it.
                 if 'cut_idx' in cur_chapter:
                     c['cut_idx'] = cur_chapter['cut_idx']
@@ -291,12 +284,26 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 cur_i, cur_chapter = i, c
         (append_chapter if 'remove' not in cur_chapter else append_cut)(cur_chapter)
 
-        for c in new_chapters:
-            c.pop('was_cut', None)
-            if 'categories' in c:
-                cats = '/'.join(map(SponsorBlockPP.CATEGORIES.__getitem__, sponsor_categories(c)))
-                c['title'] = self._sponsorblock_chapter_title.format(cats)
-                del c['categories']
+        i = -1
+        for c in new_chapters.copy():
+            i += 1
+            c.pop('_was_cut', None)
+            cats = c.pop('_categories', None)
+            if cats:
+                category = min(cats, key=lambda c: c[2] - c[1])[0]
+                cats = orderedSet(x[0] for x in cats)
+                c.update({
+                    'category': category,
+                    'categories': cats,
+                    'name': SponsorBlockPP.CATEGORIES[category],
+                    'category_names': [SponsorBlockPP.CATEGORIES[c] for c in cats]
+                })
+                outtmpl, tmpl_dict = self._downloader.prepare_outtmpl(self._sponsorblock_chapter_title, c)
+                c['title'] = self._downloader.escape_outtmpl(outtmpl) % tmpl_dict
+            if i > 0 and c['title'] == new_chapters[i - 1]['title']:
+                new_chapters[i - 1]['end_time'] = c['end_time']
+                new_chapters.pop(i)
+                i -= 1
 
         return new_chapters, cuts
 
