@@ -59,7 +59,6 @@ from ..utils import (
     unsmuggle_url,
     update_url_query,
     url_or_none,
-    urlencode_postdata,
     urljoin,
     variadic,
 )
@@ -2624,7 +2623,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': itag,
                 'format_note': ', '.join(filter(None, (
-                    audio_track.get('displayName'),
+                    '%s%s' % (audio_track.get('displayName') or '',
+                              ' (default)' if audio_track.get('audioIsDefault') else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', '')))),
                 'fps': int_or_none(fmt.get('fps')),
                 'height': height,
@@ -2633,6 +2633,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
                 'language': audio_track.get('id', '').split('.')[0],
+                'language_preference': 1 if audio_track.get('audioIsDefault') else -1,
             }
             mime_mobj = re.match(
                 r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
@@ -2818,7 +2819,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
-        self._sort_formats(formats, ('quality', 'height', 'fps', 'source'))
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'source', 'codec:vp9.2', 'lang'))
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:
@@ -2976,7 +2977,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         subtitles, base_url, lang_code,
-                        traverse_obj(caption_track, ('name', 'simpleText')),
+                        traverse_obj(caption_track, ('name', 'simpleText'), ('name', 'runs', ..., 'text'), get_all=False),
                         {})
                     continue
                 automatic_captions = {}
@@ -3167,40 +3168,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             needs_auth=info['age_limit'] >= 18,
             is_unlisted=None if is_private is None else is_unlisted)
 
-        # get xsrf for annotations or comments
-        get_annotations = self.get_param('writeannotations', False)
-        get_comments = self.get_param('getcomments', False)
-        if get_annotations or get_comments:
-            xsrf_token = None
-            if master_ytcfg:
-                xsrf_token = try_get(master_ytcfg, lambda x: x['XSRF_TOKEN'], compat_str)
-            if not xsrf_token:
-                xsrf_token = self._search_regex(
-                    r'([\'"])XSRF_TOKEN\1\s*:\s*([\'"])(?P<xsrf_token>(?:(?!\2).)+)\2',
-                    webpage, 'xsrf token', group='xsrf_token', fatal=False)
-
-        # annotations
-        if get_annotations:
-            invideo_url = get_first(
-                player_responses,
-                ('annotations', 0, 'playerAnnotationsUrlsRenderer', 'invideoUrl'),
-                expected_type=str)
-            if xsrf_token and invideo_url:
-                xsrf_field_name = None
-                if master_ytcfg:
-                    xsrf_field_name = try_get(master_ytcfg, lambda x: x['XSRF_FIELD_NAME'], compat_str)
-                if not xsrf_field_name:
-                    xsrf_field_name = self._search_regex(
-                        r'([\'"])XSRF_FIELD_NAME\1\s*:\s*([\'"])(?P<xsrf_field_name>\w+)\2',
-                        webpage, 'xsrf field name',
-                        group='xsrf_field_name', default='session_token')
-                info['annotations'] = self._download_webpage(
-                    self._proto_relative_url(invideo_url),
-                    video_id, note='Downloading annotations',
-                    errnote='Unable to download video annotations', fatal=False,
-                    data=urlencode_postdata({xsrf_field_name: xsrf_token}))
-
-        if get_comments:
+        if self.get_param('getcomments', False):
             info['__post_extractor'] = lambda: self._extract_comments(master_ytcfg, video_id, contents, webpage)
 
         self.mark_watched(video_id, player_responses)

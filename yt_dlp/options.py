@@ -28,7 +28,9 @@ from .postprocessor import (
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoRemuxerPP,
+    SponsorBlockPP,
 )
+from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
 
 
 def _hide_login_info(opts):
@@ -411,7 +413,7 @@ def parseOpts(overrideArguments=None):
             'Python style regular expression matching can be done using "~=", '
             'and multiple filters can be checked with "&". '
             'Use a "\\" to escape "&" or quotes if needed. Eg: --match-filter '
-            r'"!is_live & like_count>?100 & description~=\'(?i)\bcats \& dogs\b\'" '
+            '"!is_live & like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
             'matches only videos that are not live, has a like count more than 100 '
             '(or the like field is not available), and also has a description '
             'that contains the phrase "cats & dogs" (ignoring case)'))
@@ -548,7 +550,7 @@ def parseOpts(overrideArguments=None):
             'Use with "-S ext" to strictly prefer free containers irrespective of quality'))
     video_format.add_option(
         '--no-prefer-free-formats',
-        action='store_true', dest='prefer_free_formats', default=False,
+        action='store_false', dest='prefer_free_formats', default=False,
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
@@ -742,12 +744,13 @@ def parseOpts(overrideArguments=None):
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': '|'.join(list_external_downloaders()),
+            'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(list_external_downloaders()),
             'default_key': 'default',
             'process': compat_shlex_split
         }, help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '
+            'For ffmpeg, arguments can be passed to different positions using the same syntax as --postprocessor-args. '
             'You can use this option multiple times to give different arguments to different downloaders '
             '(Alias: --external-downloader-args)'))
 
@@ -1069,11 +1072,11 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--write-annotations',
         action='store_true', dest='writeannotations', default=False,
-        help='Write video annotations to a .annotations.xml file')
+        help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '--no-write-annotations',
         action='store_false', dest='writeannotations',
-        help='Do not write video annotations (default)')
+        help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '--write-playlist-metafiles',
         action='store_true', dest='allow_playlist_files', default=None,
@@ -1217,10 +1220,10 @@ def parseOpts(overrideArguments=None):
             'Give these arguments to the postprocessors. '
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
             'to give the argument to the specified postprocessor/executable. Supported PP are: '
-            'Merger, ExtractAudio, SplitChapters, Metadata, EmbedSubtitle, EmbedThumbnail, '
-            'SubtitlesConvertor, ThumbnailsConvertor, VideoRemuxer, VideoConvertor, '
-            'SponSkrub, FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
-            'The supported executables are: AtomicParsley, FFmpeg, FFprobe, and SponSkrub. '
+            'Merger, ModifyChapters, SplitChapters, ExtractAudio, VideoRemuxer, VideoConvertor, '
+            'Metadata, EmbedSubtitle, EmbedThumbnail, SubtitlesConvertor, ThumbnailsConvertor, '
+            'FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
+            'The supported executables are: AtomicParsley, FFmpeg and FFprobe. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
             '"_i"/"_o" can be appended to the prefix optionally followed by a number to pass the argument '
@@ -1262,11 +1265,19 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--embed-metadata', '--add-metadata',
         action='store_true', dest='addmetadata', default=False,
-        help='Embed metadata including chapter markers (if supported by the format) to the video file (Alias: --add-metadata)')
+        help='Embed metadata to the video file. Also adds chapters to file unless --no-add-chapters is used (Alias: --add-metadata)')
     postproc.add_option(
         '--no-embed-metadata', '--no-add-metadata',
         action='store_false', dest='addmetadata',
-        help='Do not write metadata (default)  (Alias: --no-add-metadata)')
+        help='Do not add metadata to file (default) (Alias: --no-add-metadata)')
+    postproc.add_option(
+        '--embed-chapters', '--add-chapters',
+        action='store_true', dest='addchapters', default=None,
+        help='Add chapter markers to the video file (Alias: --add-chapters)')
+    postproc.add_option(
+        '--no-embed-chapters', '--no-add-chapters',
+        action='store_false', dest='addchapters',
+        help='Do not add chapter markers (default) (Alias: --no-add-chapters)')
     postproc.add_option(
         '--metadata-from-title',
         metavar='FORMAT', dest='metafromtitle',
@@ -1353,41 +1364,90 @@ def parseOpts(overrideArguments=None):
         '--no-split-chapters', '--no-split-tracks',
         dest='split_chapters', action='store_false',
         help='Do not split video based on chapters (default)')
+    postproc.add_option(
+        '--remove-chapters',
+        metavar='REGEX', dest='remove_chapters', action='append',
+        help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
+    postproc.add_option(
+        '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
+        help='Do not remove any chapters from the file (default)')
+    postproc.add_option(
+        '--force-keyframes-at-cuts',
+        action='store_true', dest='force_keyframes_at_cuts', default=False,
+        help=(
+            'Force keyframes around the chapters before removing/splitting them. '
+            'Requires a reencode and thus is very slow, but the resulting video '
+            'may have fewer artifacts around the cuts'))
+    postproc.add_option(
+        '--no-force-keyframes-at-cuts',
+        action='store_false', dest='force_keyframes_at_cuts',
+        help='Do not force keyframes around the chapters when cutting/splitting (default)')
 
-    sponskrub = optparse.OptionGroup(parser, 'SponSkrub (SponsorBlock) Options', description=(
-        'SponSkrub (https://github.com/yt-dlp/SponSkrub) is a utility to mark/remove sponsor segments '
-        'from downloaded YouTube videos using SponsorBlock API (https://sponsor.ajay.app)'))
-    sponskrub.add_option(
+    sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
+        'Make chapter entries for, or remove various segments (sponsor, introductions, etc.) '
+        'from downloaded YouTube videos using the SponsorBlock API (https://sponsor.ajay.app)'))
+    sponsorblock.add_option(
+        '--sponsorblock-mark', metavar='CATS',
+        dest='sponsorblock_mark', default=set(), action='callback', type='str',
+        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
+        help=(
+            'SponsorBlock categories to create chapters for, separated by commas. '
+            'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
+            'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories for description of the categories. '
+            'Eg: --sponsorblock-query all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
+    sponsorblock.add_option(
+        '--sponsorblock-remove', metavar='CATS',
+        dest='sponsorblock_remove', default=set(), action='callback', type='str',
+        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
+        help=(
+            'SponsorBlock categories to be removed from the video file, separated by commas. '
+            'If a category is present in both mark and remove, remove takes precedence. '
+            'The syntax and available categories are the same as for --sponsorblock-mark'))
+    sponsorblock.add_option(
+        '--sponsorblock-chapter-title', metavar='TEMPLATE',
+        default=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, dest='sponsorblock_chapter_title',
+        help=(
+            'The title template for SponsorBlock chapters created by --sponsorblock-mark. '
+            'The same syntax as the output template is used, but the only available fields are '
+            'start_time, end_time, category, categories, name, category_names. Defaults to "%default"'))
+    sponsorblock.add_option(
+        '--no-sponsorblock', default=False,
+        action='store_true', dest='no_sponsorblock',
+        help='Disable both --sponsorblock-mark and --sponsorblock-remove')
+    sponsorblock.add_option(
+        '--sponsorblock-api', metavar='URL',
+        default='https://sponsor.ajay.app', dest='sponsorblock_api',
+        help='SponsorBlock API location, defaults to %default')
+
+    sponsorblock.add_option(
         '--sponskrub',
         action='store_true', dest='sponskrub', default=None,
-        help=(
-            'Use sponskrub to mark sponsored sections. '
-            'This is enabled by default if the sponskrub binary exists (Youtube only)'))
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--no-sponskrub',
         action='store_false', dest='sponskrub',
-        help='Do not use sponskrub')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--sponskrub-cut', default=False,
         action='store_true', dest='sponskrub_cut',
-        help='Cut out the sponsor sections instead of simply marking them')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--no-sponskrub-cut',
         action='store_false', dest='sponskrub_cut',
-        help='Simply mark the sponsor sections, not cut them out (default)')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--sponskrub-force', default=False,
         action='store_true', dest='sponskrub_force',
-        help='Run sponskrub even if the video was already downloaded')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--no-sponskrub-force',
         action='store_true', dest='sponskrub_force',
-        help='Do not cut out the sponsor sections if the video was already downloaded (default)')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--sponskrub-location', metavar='PATH',
         dest='sponskrub_path', default='',
-        help='Location of the sponskrub binary; either the path to the binary or its containing directory')
-    sponskrub.add_option(
+        help=optparse.SUPPRESS_HELP)
+    sponsorblock.add_option(
         '--sponskrub-args', dest='sponskrub_args', metavar='ARGS',
         help=optparse.SUPPRESS_HELP)
 
@@ -1456,7 +1516,7 @@ def parseOpts(overrideArguments=None):
     parser.add_option_group(subtitles)
     parser.add_option_group(authentication)
     parser.add_option_group(postproc)
-    parser.add_option_group(sponskrub)
+    parser.add_option_group(sponsorblock)
     parser.add_option_group(extractor)
 
     if overrideArguments is not None:
