@@ -1,7 +1,6 @@
 import copy
 import heapq
 import os
-from collections import OrderedDict
 
 from .common import PostProcessor
 from .ffmpeg import (
