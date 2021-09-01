@@ -836,7 +836,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      when cutting/splitting (default)
 
 ## SponsorBlock Options:
-Make chapter entries for or remove various segments (sponsor,
+Make chapter entries for, or remove various segments (sponsor,
     introductions, etc.) from downloaded YouTube videos using the
     [SponsorBlock API](https://sponsor.ajay.app)
 
@@ -847,7 +847,7 @@ Make chapter entries for or remove various segments (sponsor,
                                      music_offtopic. You can prefix the category
                                      with a "-" to exempt it. See 
                                      https://wiki.sponsor.ajay.app/index.php/Segment_Categories
-                                     for description of the categories Eg:
+                                     for description of the categories. Eg:
                                      --sponsorblock-query all,-preview
     --sponsorblock-remove CATS       SponsorBlock categories to be removed from
                                      the video file, separated by commas. If a
@@ -859,7 +859,7 @@ Make chapter entries for or remove various segments (sponsor,
                                      The title template for SponsorBlock
                                      chapters created by --sponsorblock-mark.
                                      The same syntax as the output template is
-                                     used, but only available fields are
+                                     used, but the only available fields are
                                      start_time, end_time, category, categories,
                                      name, category_names. Defaults to
                                      "[SponsorBlock]: %(category_names)l"

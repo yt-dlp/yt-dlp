@@ -1223,7 +1223,7 @@ def parseOpts(overrideArguments=None):
             'Merger, ModifyChapters, SplitChapters, ExtractAudio, VideoRemuxer, VideoConvertor, '
             'Metadata, EmbedSubtitle, EmbedThumbnail, SubtitlesConvertor, ThumbnailsConvertor, '
             'FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
-            'The supported executables are: AtomicParsley, FFmpeg and FFprobe.'
+            'The supported executables are: AtomicParsley, FFmpeg and FFprobe. '
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
             '"_i"/"_o" can be appended to the prefix optionally followed by a number to pass the argument '
@@ -1384,7 +1384,7 @@ def parseOpts(overrideArguments=None):
         help='Do not force keyframes around the chapters when cutting/splitting (default)')
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
-        'Make chapter entries for or remove various segments (sponsor, introductions, etc.) '
+        'Make chapter entries for, or remove various segments (sponsor, introductions, etc.) '
         'from downloaded YouTube videos using the SponsorBlock API (https://sponsor.ajay.app)'))
     sponsorblock.add_option(
         '--sponsorblock-mark', metavar='CATS',
@@ -1393,7 +1393,7 @@ def parseOpts(overrideArguments=None):
         help=(
             'SponsorBlock categories to create chapters for, separated by commas. '
             'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
-            'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories for description of the categories '
+            'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories for description of the categories. '
             'Eg: --sponsorblock-query all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
         '--sponsorblock-remove', metavar='CATS',
@@ -1408,7 +1408,7 @@ def parseOpts(overrideArguments=None):
         default=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, dest='sponsorblock_chapter_title',
         help=(
             'The title template for SponsorBlock chapters created by --sponsorblock-mark. '
-            'The same syntax as the output template is used, but only available fields are '
+            'The same syntax as the output template is used, but the only available fields are '
             'start_time, end_time, category, categories, name, category_names. Defaults to "%default"'))
     sponsorblock.add_option(
         '--no-sponsorblock', default=False,
