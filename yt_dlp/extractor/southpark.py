@@ -99,7 +99,7 @@ class SouthParkDeIE(SouthParkIE):
         'info_dict': {
             'id': '607115f3-496f-40c3-8647-2b0bcff486c0',
             'ext': 'mp4',
-            'title': 'md5:0d2ce7daf98eb9504c7a3276697ad666',
+            'title': 'md5:South Park | Pink Eye | E 0107 | HDSS0107X deu | Version: 634312 | Comedy Central S1',
         },
     }]
 
