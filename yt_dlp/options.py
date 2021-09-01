@@ -1220,9 +1220,9 @@ def parseOpts(overrideArguments=None):
             'Give these arguments to the postprocessors. '
             'Specify the postprocessor/executable name and the arguments separated by a colon ":" '
             'to give the argument to the specified postprocessor/executable. Supported PP are: '
-            'Merger, ExtractAudio, SplitChapters, Metadata, EmbedSubtitle, EmbedThumbnail, '
-            'SubtitlesConvertor, ThumbnailsConvertor, VideoRemuxer, VideoConvertor, '
-            'ModifyChapters, FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
+            'Merger, ModifyChapters, SplitChapters, ExtractAudio, VideoRemuxer, VideoConvertor, '
+            'Metadata, EmbedSubtitle, EmbedThumbnail, SubtitlesConvertor, ThumbnailsConvertor, '
+            'FixupStretched, FixupM4a, FixupM3u8, FixupTimestamp and FixupDuration. '
             'The supported executables are: AtomicParsley, FFmpeg and FFprobe.'
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
@@ -1370,13 +1370,13 @@ def parseOpts(overrideArguments=None):
         help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
-        help='Do not remove any chapters from the file (default)')
+        help='Do not remove any normal chapters from the file (default)')
     postproc.add_option(
         '--force-keyframes-at-cuts',
         action='store_true', dest='force_keyframes_at_cuts', default=False,
         help=(
             'Force keyframes around the chapters before removing/splitting them. '
-            'Requires re-encoding and thus very slow, but the resulting video '
+            'Requires a reencode and thus is very slow, but the resulting video '
             'may have fewer artifacts around the cuts'))
     postproc.add_option(
         '--no-force-keyframes-at-cuts',
@@ -1385,15 +1385,15 @@ def parseOpts(overrideArguments=None):
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
         'Make chapter entries for or remove various segments (sponsor, introductions, etc.) '
-        'from downloaded YouTube videos using SponsorBlock API (https://sponsor.ajay.app)'))
+        'from downloaded YouTube videos using the SponsorBlock API (https://sponsor.ajay.app)'))
     sponsorblock.add_option(
         '--sponsorblock-mark', metavar='CATS',
         dest='sponsorblock_mark', default=set(), action='callback', type='str',
         callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
         help=(
             'SponsorBlock categories to create chapters for, separated by commas. '
-            'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories. '
             'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
+            'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories for description of the categories '
             'Eg: --sponsorblock-query all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
         '--sponsorblock-remove', metavar='CATS',

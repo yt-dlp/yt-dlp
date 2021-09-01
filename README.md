@@ -39,7 +39,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Subtitle Options](#subtitle-options)
     * [Authentication Options](#authentication-options)
     * [Post-processing Options](#post-processing-options)
-    * [SponSkrub (SponsorBlock) Options](#sponskrub-sponsorblock-options)
+    * [SponsorBlock Options](#sponsorblock-options)
     * [Extractor Options](#extractor-options)
 * [CONFIGURATION](#configuration)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
@@ -62,7 +62,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 # NEW FEATURES
 The major new features from the latest release of [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc) are:
 
-* **[SponSkrub Integration](#sponskrub-sponsorblock-options)**: You can use [SponSkrub](https://github.com/yt-dlp/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
+* **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection than what is possible by simply using `--format` ([examples](#format-selection-examples))
 
@@ -186,7 +186,6 @@ On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https:
 
 While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly recommended
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging seperate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. Licence [depends on the build](https://www.ffmpeg.org/legal.html)
-* [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the [sponskrub options](#sponskrub-sponsorblock-options). Licenced under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licenced under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
 * [**pycryptodome**](https://github.com/Legrandin/pycryptodome) - For decrypting various data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licenced under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
@@ -195,6 +194,7 @@ While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](http://rtmpdump.mplayerhq.hu)
 * [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
 * [**phantomjs**](https://github.com/ariya/phantomjs) - Used in extractors where javascript needs to be run. Licenced under [BSD3](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD)
+* [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the now **deprecated** [sponskrub options](#sponskrub-options). Licenced under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
 * Any external downloader that you want to use with `--downloader`
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
@@ -736,24 +736,23 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      and the arguments separated by a colon ":"
                                      to give the argument to the specified
                                      postprocessor/executable. Supported PP are:
-                                     Merger, ExtractAudio, SplitChapters,
+                                     Merger, ModifyChapters, SplitChapters,
+                                     ExtractAudio, VideoRemuxer, VideoConvertor,
                                      Metadata, EmbedSubtitle, EmbedThumbnail,
                                      SubtitlesConvertor, ThumbnailsConvertor,
-                                     VideoRemuxer, VideoConvertor, SponSkrub,
                                      FixupStretched, FixupM4a, FixupM3u8,
                                      FixupTimestamp and FixupDuration. The
                                      supported executables are: AtomicParsley,
-                                     FFmpeg, FFprobe, and SponSkrub. You can
-                                     also specify "PP+EXE:ARGS" to give the
-                                     arguments to the specified executable only
-                                     when being used by the specified
-                                     postprocessor. Additionally, for
-                                     ffmpeg/ffprobe, "_i"/"_o" can be appended
-                                     to the prefix optionally followed by a
-                                     number to pass the argument before the
-                                     specified input/output file. Eg: --ppa
-                                     "Merger+ffmpeg_i1:-v quiet". You can use
-                                     this option multiple times to give
+                                     FFmpeg and FFprobe.You can also specify
+                                     "PP+EXE:ARGS" to give the arguments to the
+                                     specified executable only when being used
+                                     by the specified postprocessor.
+                                     Additionally, for ffmpeg/ffprobe, "_i"/"_o"
+                                     can be appended to the prefix optionally
+                                     followed by a number to pass the argument
+                                     before the specified input/output file. Eg:
+                                     --ppa "Merger+ffmpeg_i1:-v quiet". You can
+                                     use this option multiple times to give
                                      different arguments to different
                                      postprocessors. (Alias: --ppa)
     -k, --keep-video                 Keep the intermediate video file on disk
@@ -767,11 +766,15 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-embed-subs                  Do not embed subtitles (default)
     --embed-thumbnail                Embed thumbnail in the video as cover art
     --no-embed-thumbnail             Do not embed thumbnail (default)
-    --embed-metadata                 Embed metadata including chapter markers
-                                     (if supported by the format) to the video
-                                     file (Alias: --add-metadata)
-    --no-embed-metadata              Do not write metadata (default)
+    --embed-metadata                 Embed metadata to the video file. Also adds
+                                     chapters to file unless --no-add-chapters
+                                     is used (Alias: --add-metadata)
+    --no-embed-metadata              Do not add metadata to file (default)
                                      (Alias: --no-add-metadata)
+    --embed-chapters                 Add chapter markers to the video file
+                                     (Alias: --add-chapters)
+    --no-embed-chapters              Do not add chapter markers (default)
+                                     (Alias: --no-add-chapters)
     --parse-metadata FROM:TO         Parse additional metadata like title/artist
                                      from other fields; see "MODIFYING METADATA"
                                      for details
@@ -819,27 +822,51 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      files. See "OUTPUT TEMPLATE" for details
     --no-split-chapters              Do not split video based on chapters
                                      (default)
+    --remove-chapters REGEX          Remove chapters whose title matches the
+                                     given regular expression. This option can
+                                     be used multiple times
+    --no-remove-chapters             Do not remove any normal chapters from the
+                                     file (default)
+    --force-keyframes-at-cuts        Force keyframes around the chapters before
+                                     removing/splitting them. Requires a
+                                     reencode and thus is very slow, but the
+                                     resulting video may have fewer artifacts
+                                     around the cuts
+    --no-force-keyframes-at-cuts     Do not force keyframes around the chapters
+                                     when cutting/splitting (default)
 
-## SponSkrub (SponsorBlock) Options:
-[SponSkrub](https://github.com/yt-dlp/SponSkrub) is a utility to
-    mark/remove sponsor segments from downloaded YouTube videos using
+## SponsorBlock Options:
+Make chapter entries for or remove various segments (sponsor,
+    introductions, etc.) from downloaded YouTube videos using the
     [SponsorBlock API](https://sponsor.ajay.app)
 
-    --sponskrub                      Use sponskrub to mark sponsored sections.
-                                     This is enabled by default if the sponskrub
-                                     binary exists (Youtube only)
-    --no-sponskrub                   Do not use sponskrub
-    --sponskrub-cut                  Cut out the sponsor sections instead of
-                                     simply marking them
-    --no-sponskrub-cut               Simply mark the sponsor sections, not cut
-                                     them out (default)
-    --sponskrub-force                Run sponskrub even if the video was already
-                                     downloaded
-    --no-sponskrub-force             Do not cut out the sponsor sections if the
-                                     video was already downloaded (default)
-    --sponskrub-location PATH        Location of the sponskrub binary; either
-                                     the path to the binary or its containing
-                                     directory
+    --sponsorblock-mark CATS         SponsorBlock categories to create chapters
+                                     for, separated by commas. Available
+                                     categories are all, sponsor, intro, outro,
+                                     selfpromo, interaction, preview,
+                                     music_offtopic. You can prefix the category
+                                     with a "-" to exempt it. See 
+                                     https://wiki.sponsor.ajay.app/index.php/Segment_Categories
+                                     for description of the categories Eg:
+                                     --sponsorblock-query all,-preview
+    --sponsorblock-remove CATS       SponsorBlock categories to be removed from
+                                     the video file, separated by commas. If a
+                                     category is present in both mark and
+                                     remove, remove takes precedence. The syntax
+                                     and available categories are the same as
+                                     for --sponsorblock-mark
+    --sponsorblock-chapter-title TEMPLATE
+                                     The title template for SponsorBlock
+                                     chapters created by --sponsorblock-mark.
+                                     The same syntax as the output template is
+                                     used, but only available fields are
+                                     start_time, end_time, category, categories,
+                                     name, category_names. Defaults to
+                                     "[SponsorBlock]: %(category_names)l"
+    --no-sponsorblock                Disable both --sponsorblock-mark and
+                                     --sponsorblock-remove
+    --sponsorblock-api URL           SponsorBlock API location, defaults to
+                                     https://sponsor.ajay.app
 
 ## Extractor Options:
     --extractor-retries RETRIES      Number of retries for known extractor
@@ -1049,6 +1076,15 @@ Available only when used in `--print`:
 
  - `urls` (string): The URLs of all requested formats, one in each line
  - `filename` (string): Name of the video file. Note that the actual filename may be different due to post-processing. Use `--exec echo` to get the name after all postprocessing is complete
+ 
+Available only in `--sponsorblock-chapter-title`:
+
+ - `start_time` (numeric): Start time of the chapter in seconds
+ - `end_time` (numeric): End time of the chapter in seconds
+ - `categories` (list): The SponsorBlock categories the chapter belongs to
+ - `category` (string): The smallest SponsorBlock category the chapter belongs to
+ - `category_names` (list): Friendly names of the categories
+ - `name` (string): Friendly name of the smallest category
 
 Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
@@ -1494,14 +1530,14 @@ These are aliases that are no longer documented for various reasons
     --yes-overwrites                 --force-overwrites
 
 #### Sponskrub Options
-Support for [SponSkrub](https://github.com/yt-dlp/SponSkrub) has been deprecated in favor of `--sponsorblock`
+Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been deprecated in favor of `--sponsorblock`
 
-    --sponskrub                      --sponsorblock --add-chapters
+    --sponskrub                      --sponsorblock-mark all
     --no-sponskrub                   --no-sponsorblock
-    --sponskrub-cut                  --remove-sponsor-segments all
-    --no-sponskrub-cut               --remove-sponsor-segments -all
-    --sponskrub-force                --force-remove-chapters
-    --no-sponskrub-force             --no-force-remove-chapters
+    --sponskrub-cut                  --sponsorblock-remove all
+    --no-sponskrub-cut               --sponsorblock-remove -all
+    --sponskrub-force                Not applicable
+    --no-sponskrub-force             Not applicable
     --sponskrub-location             Not applicable
     --sponskrub-args                 Not applicable
 
