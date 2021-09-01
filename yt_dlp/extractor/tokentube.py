@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class TokentubeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tokentube\.net/(?:view)?/?\??[lv]=?/?(?P<id>\d+)(?:/.*)?'
+    _VALID_URL = r'https?://(?:www\.)?tokentube\.net/(?:view\?[vl]=|[vl]/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://tokentube.net/l/3236632011/Praise-A-Thon-Pastori-Chrisin-ja-Pastori-Bennyn-kanssa-27-8-2021',
         'info_dict': {
@@ -54,24 +54,21 @@ class TokentubeIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        formats = []
 
         title = self._html_search_regex(r'<h1\s*class=["\']title-text["\']>(.+?)</h1>', webpage, 'title')
 
         data_json = self._html_search_regex(r'({["\']html5["\'].+?}}}+)', webpage, 'data json')
         data_json = self._parse_json(js_to_json(data_json), video_id, fatal=False)
 
-        sources = data_json.get('sources')
-        if not sources:
-            sources = self._html_search_regex(r'updateSrc\(([^\)]+)\)', webpage, 'sources')
-            sources = self._parse_json(js_to_json(sources), video_id)
+        sources = data_json.get('sources') or self._parse_json(
+            self._html_search_regex(r'updateSrc\(([^\)]+)\)', webpage, 'sources'),
+            video_id, transform_source=js_to_json)
 
-        for format in sources:
-            formats.append({
-                'url': format.get('src'),
-                'format_id': format.get('label'),
-                'height': format.get('res'),
-            })
+        formats = [{
+            'url': format.get('src'),
+            'format_id': format.get('label'),
+            'height': format.get('res'),
+        } for format in sources]
 
         view_count = parse_count(self._html_search_regex(
             r'<p\s*class=["\']views_counter["\']>\s*([\d\.,]+)\s*<span>views?</span></p>',
