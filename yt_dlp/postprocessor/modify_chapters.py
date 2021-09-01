@@ -46,11 +46,13 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
         if abs(real_duration - info['duration']) > 1:
             if abs(real_duration - info['chapters'][-1]['end_time']) < 1:
-                self.to_screen('Already cut')
+                self.to_screen(f'Skipping {self.pp_key()} since the video appears to be already cut')
                 return [], info
             if not info.get('__real_download'):
-                self.report_error('Real and expected durations mismatch, probably the video '
-                                  'was already cut. Refusing to cut the second time')
+                self.report_error('Cannot cut video since the real and expected durations mismatch. '
+                                  'Different chapters may have already been removed')
+            else:
+                self.write_debug('Expected and actual durations mismatch')
 
         concat_opts = self._make_concat_opts(cuts, real_duration)
 
