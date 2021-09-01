@@ -232,7 +232,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--default-search',
         dest='default_search', metavar='PREFIX',
-        help='Use this prefix for unqualified URLs. For example "gvsearch2:" downloads two videos from google videos for youtube-dl "large apple". Use the value "auto" to let youtube-dl guess ("auto_warning" to emit a warning when guessing). "error" just throws an error. The default value "fixup_error" repairs broken URLs, but emits an error if this is not possible instead of searching')
+        help='Use this prefix for unqualified URLs. For example "gvsearch2:" downloads two videos from google videos for the search term "large apple". Use the value "auto" to let yt-dlp guess ("auto_warning" to emit a warning when guessing). "error" just throws an error. The default value "fixup_error" repairs broken URLs, but emits an error if this is not possible instead of searching')
     general.add_option(
         '--ignore-config', '--no-config',
         action='store_true',
@@ -1135,7 +1135,7 @@ def parseOpts(overrideArguments=None):
         help='Do not load cookies from browser (default)')
     filesystem.add_option(
         '--cache-dir', dest='cachedir', default=None, metavar='DIR',
-        help='Location in the filesystem where youtube-dl can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/youtube-dl or ~/.cache/youtube-dl')
+        help='Location in the filesystem where youtube-dl can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/yt-dlp or ~/.cache/yt-dlp')
     filesystem.add_option(
         '--no-cache-dir', action='store_false', dest='cachedir',
         help='Disable filesystem caching')

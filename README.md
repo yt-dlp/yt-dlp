@@ -78,7 +78,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
     * Partial workaround for throttling issue
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
     * `255kbps` audio is extracted from youtube music if premium cookies are given
-    * Youtube music Albums, channels etc can be downloaded
+    * Youtube music Albums, channels etc can be downloaded ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723))
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[:PROFILE]`
 
@@ -88,9 +88,9 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ
+* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ, BannedVideo, bilibili categories, Epicon, filmmodu, GabTV, HungamaAlbum, ManotoTV, Niconico search, Patreon User, peloton, ProjectVeritas, radiko, StarTV, tiktok user, Tokentube, voicy, TV2HuSeries
 
-* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds
+* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds, SAML Verizon login, Hungama, afreecatv, aljazeera, ATV, bitchute, camtube, CDA, eroprofile, facebook, HearThisAtIE, iwara, kakao, Motherless, Nova, peertube, pornhub, reddit, tiktok, TV2, TV2Hu, tv5mondeplus, VH1, Viafree, XHamster
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -256,9 +256,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      extractor
     --default-search PREFIX          Use this prefix for unqualified URLs. For
                                      example "gvsearch2:" downloads two videos
-                                     from google videos for youtube-dl "large
-                                     apple". Use the value "auto" to let
-                                     youtube-dl guess ("auto_warning" to emit a
+                                     from google videos for the search term
+                                     "large apple". Use the value "auto" to let
+                                     yt-dlp guess ("auto_warning" to emit a
                                      warning when guessing). "error" just throws
                                      an error. The default value "fixup_error"
                                      repairs broken URLs, but emits an error if
@@ -325,10 +325,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      specify range: "--playlist-items
                                      1-3,7,10-13", it will download the videos
                                      at index 1, 2, 3, 7, 10, 11, 12 and 13
-    --match-title REGEX              Download only matching titles (regex or
-                                     caseless sub-string)
-    --reject-title REGEX             Skip download for matching titles (regex or
-                                     caseless sub-string)
     --max-downloads NUMBER           Abort after downloading NUMBER files
     --min-filesize SIZE              Do not download any videos smaller than
                                      SIZE (e.g. 50k or 44.6m)
@@ -343,10 +339,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --dateafter DATE                 Download only videos uploaded on or after
                                      this date. The date formats accepted is the
                                      same as --date
-    --min-views COUNT                Do not download any videos with less than
-                                     COUNT views
-    --max-views COUNT                Do not download any videos with more than
-                                     COUNT views
     --match-filter FILTER            Generic video filter. Any field (see
                                      "OUTPUT TEMPLATE") can be compared with a
                                      number or a string using the operators
@@ -511,9 +503,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --write-info-json                Write video metadata to a .info.json file
                                      (this may contain personal information)
     --no-write-info-json             Do not write video metadata (default)
-    --write-annotations              Write video annotations to a
-                                     .annotations.xml file
-    --no-write-annotations           Do not write video annotations (default)
     --write-playlist-metafiles       Write playlist metadata in addition to the
                                      video metadata when using --write-info-json,
                                      --write-description etc. (default)
@@ -552,8 +541,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --cache-dir DIR                  Location in the filesystem where youtube-dl
                                      can store some downloaded information (such
                                      as client ids and signatures) permanently.
-                                     By default $XDG_CACHE_HOME/youtube-dl or
-                                     ~/.cache/youtube-dl
+                                     By default $XDG_CACHE_HOME/yt-dlp or
+                                     ~/.cache/yt-dlp
     --no-cache-dir                   Disable filesystem caching
     --rm-cache-dir                   Delete all filesystem cache files
 
@@ -751,7 +740,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      FixupStretched, FixupM4a, FixupM3u8,
                                      FixupTimestamp and FixupDuration. The
                                      supported executables are: AtomicParsley,
-                                     FFmpeg and FFprobe.You can also specify
+                                     FFmpeg and FFprobe. You can also specify
                                      "PP+EXE:ARGS" to give the arguments to the
                                      specified executable only when being used
                                      by the specified postprocessor.
@@ -833,8 +822,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --remove-chapters REGEX          Remove chapters whose title matches the
                                      given regular expression. This option can
                                      be used multiple times
-    --no-remove-chapters             Do not remove any normal chapters from the
-                                     file (default)
+    --no-remove-chapters             Do not remove any chapters from the file
+                                     (default)
     --force-keyframes-at-cuts        Force keyframes around the chapters before
                                      removing/splitting them. Requires a
                                      reencode and thus is very slow, but the
@@ -1247,9 +1236,11 @@ The available fields are:
  - `br`: Equivalent to using `tbr,vbr,abr`
  - `asr`: Audio sample rate in Hz
 
-Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
+All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
-The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `lang,quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. Note that the extractors may override this default order, but they cannot override the user-provided order.
+The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `lang,quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. The extractors may override this default order, but they cannot override the user-provided order.
+
+Note that the default has `codec:vp9.2`; i.e. `av1` is not prefered
 
 If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all respects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
 
@@ -1502,7 +1493,6 @@ While these options still work, their use is not recommended since there are oth
     --hls-prefer-ffmpeg              --downloader "m3u8:ffmpeg"
     --list-formats-old               --compat-options list-formats (Alias: --no-list-formats-as-table)
     --list-formats-as-table          --compat-options -list-formats [Default] (Alias: --no-list-formats-old)
-    --sponskrub-args ARGS            --ppa "sponskrub:ARGS"
     --youtube-skip-dash-manifest     --extractor-args "youtube:skip=dash" (Alias: --no-youtube-include-dash-manifest)
     --youtube-skip-hls-manifest      --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
     --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
