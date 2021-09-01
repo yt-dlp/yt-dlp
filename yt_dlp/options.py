@@ -1370,7 +1370,7 @@ def parseOpts(overrideArguments=None):
         help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
-        help='Do not remove any normal chapters from the file (default)')
+        help='Do not remove any chapters from the file (default)')
     postproc.add_option(
         '--force-keyframes-at-cuts',
         action='store_true', dest='force_keyframes_at_cuts', default=False,
