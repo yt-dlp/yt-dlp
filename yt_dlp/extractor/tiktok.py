@@ -73,6 +73,7 @@ class TikTokIE(InfoExtractor):
     }]
     _APP_VERSION = '20.9.3'
     _MANIFEST_APP_VERSION = '291'
+    QUALITIES = ('360p', '540p', '720p')
 
     def _extract_aweme(self, props_data, webpage, url):
         video_info = try_get(
@@ -183,7 +184,7 @@ class TikTokIE(InfoExtractor):
                 'format_id': format_id,
                 'vcodec': 'h265' if codec == 'bytevc1' else codec,
                 'tbr': int_or_none(bitrate, scale=1000) or None,
-                'quality': qualities(['540p', '720p'])(res)
+                'quality': qualities(self.QUALITIES)(res)
             }
 
         def extract_addr(addr, add_meta={}):
