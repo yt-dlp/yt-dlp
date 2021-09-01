@@ -102,11 +102,10 @@ class RedditRIE(InfoExtractor):
 
         video_id = self._match_id(url)
 
+        self._set_cookie('reddit.com', '_options', '%7B%22pref_quarantine_optin%22%3A%20true%7D')
+
         data = self._download_json(
-            url + '/.json', video_id,
-            headers={
-                'Cookie': '_options=%7B%22pref_quarantine_optin%22%3A%20true%7D'
-            })[0]['data']['children'][0]['data']
+            url + '/.json', video_id)[0]['data']['children'][0]['data']
 
         video_url = data['url']
 
