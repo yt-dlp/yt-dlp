@@ -614,6 +614,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # and just "user_syncid||" for primary channel. We only want the channel_syncid
                 return sync_ids[0]
 
+    @property
+    def is_authenticated(self):
+        return bool(self._generate_sapisidhash_header())
+
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
             return {}
@@ -2545,7 +2549,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 yield pr
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if client.endswith('_agegate') and self._is_unplayable(pr) and self._generate_sapisidhash_header():
+            if client.endswith('_agegate') and self._is_unplayable(pr) and self.is_authenticated:
                 append_client(client.replace('_agegate', '_creator'))
             elif self._is_agegated(pr):
                 append_client(f'{client}_agegate')
