@@ -170,37 +170,40 @@ class TikTokIE(InfoExtractor):
             headers={
                 'User-Agent': f'com.ss.android.ugc.trill/{self._MANIFEST_APP_VERSION} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
             }, query=query)['aweme_detail']
-
         video_info = aweme_detail['video']
-        formats = []
 
         def parse_url_key(url_key):
             format_id, codec, res, bitrate = self._search_regex(
                 r'v[^_]+_(?P<id>(?P<codec>[^_]+)_(?P<res>\d+p)_(?P<bitrate>\d+))', url_key,
                 'url key', default=(None, None, None, None), group=('id', 'codec', 'res', 'bitrate'))
             if not format_id:
-                return {}
+                return {}, None
             return {
                 'format_id': format_id,
                 'vcodec': 'h265' if codec == 'bytevc1' else codec,
                 'tbr': int_or_none(bitrate, scale=1000) or None,
-                'quality': qualities(self.QUALITIES)(res)
-            }
+                'quality': qualities(self.QUALITIES)(res),
+            }, res
+
+        known_resolutions = {}
 
         def extract_addr(addr, add_meta={}):
-            addr_formats = []
-            for url in addr['url_list']:
-                addr_formats.append({
-                    'url': url,
-                    'filesize': int_or_none(addr.get('data_size')),
-                    'ext': 'mp4',
-                    'acodec': 'aac',
-                    **add_meta,
-                    **parse_url_key(addr.get('url_key', ''))
-                })
-            return addr_formats
+            parsed_meta, res = parse_url_key(addr.get('url_key', ''))
+            if res:
+                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height'))
+                known_resolutions[res].setdefault('width', add_meta.get('width'))
+                parsed_meta.update(known_resolutions.get(res, {}))
+                add_meta.setdefault('height', int_or_none(res[:-1]))
+            return [{
+                'url': url,
+                'filesize': int_or_none(addr.get('data_size')),
+                'ext': 'mp4',
+                'acodec': 'aac',
+                **add_meta, **parsed_meta
+            } for url in addr.get('url_list') or []]
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
+        formats = []
         if video_info.get('play_addr'):
             formats.extend(extract_addr(video_info['play_addr'], {
                 'format_id': 'play_addr',
@@ -210,22 +213,6 @@ class TikTokIE(InfoExtractor):
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
             }))
-        if video_info.get('play_addr_h264'):
-            formats.extend(extract_addr(video_info['play_addr_h264'], {
-                'format_id': 'play_addr_h264',
-                'format_note': 'Direct video',
-                'vcodec': 'h264',
-                'width': video_info.get('width'),
-                'height': video_info.get('height')
-            }))
-        if video_info.get('play_addr_bytevc1'):
-            formats.extend(extract_addr(video_info['play_addr_bytevc1'], {
-                'format_id': 'play_addr_bytevc1',
-                'format_note': 'Direct video',
-                'vcodec': 'h265',
-                'width': video_info.get('width'),
-                'height': video_info.get('height')
-            }))
         if video_info.get('download_addr'):
             formats.extend(extract_addr(video_info['download_addr'], {
                 'format_id': 'download_addr',
@@ -233,7 +220,19 @@ class TikTokIE(InfoExtractor):
                 'vcodec': 'h264',
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
-                'preference': -2 if video_info.get('has_watermark') else -1,
+                'source_preference': -2 if video_info.get('has_watermark') else -1,
+            }))
+        if video_info.get('play_addr_h264'):
+            formats.extend(extract_addr(video_info['play_addr_h264'], {
+                'format_id': 'play_addr_h264',
+                'format_note': 'Direct video',
+                'vcodec': 'h264',
+            }))
+        if video_info.get('play_addr_bytevc1'):
+            formats.extend(extract_addr(video_info['play_addr_bytevc1'], {
+                'format_id': 'play_addr_bytevc1',
+                'format_note': 'Direct video',
+                'vcodec': 'h265',
             }))
 
         for bitrate in video_info.get('bit_rate', []):
@@ -247,7 +246,7 @@ class TikTokIE(InfoExtractor):
                 }))
 
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
+        self._sort_formats(formats, ('quality', 'source', 'codec', 'size', 'br'))
 
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
