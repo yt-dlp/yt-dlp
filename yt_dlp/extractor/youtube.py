@@ -2552,7 +2552,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield pr
 
         last_error = None
-        tried_iframe_api = False
+        tried_iframe_fallback = False
         player_url = None
         while clients:
             client = clients.pop()
@@ -2561,17 +2561,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
-
-            # TODO: proper cli arg
-            # player_js=require,no_require
-            player_js_opt = self._configuration_arg('player_js')
-            require_js_player = 'require' in player_js_opt or self._get_ytcfg_default_opt('REQUIRE_JS_PLAYER', client)
-            if 'no_require' in player_js_opt:
+            require_js_player = self._get_ytcfg_default_opt('REQUIRE_JS_PLAYER', client)
+            if 'player' in self._configuration_arg('player_skip'):
                 require_js_player = False
 
-            if not player_url and not tried_iframe_api and require_js_player:
+            if not player_url and not tried_iframe_fallback and require_js_player:
                 player_url = self._download_player_url(video_id)
-                tried_iframe_api = True
+                tried_iframe_fallback = True
 
             try:
                 pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
