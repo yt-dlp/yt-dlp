@@ -8,7 +8,7 @@ from ..compat import compat_urllib_parse_unquote
 
 class MediaKlikkIE(InfoExtractor):
     # Named regular expression group: (?P<name>...) used for referencing match as 'id'
-    _VALID_URL = r'''https?:\/\/(?:www\.)?(?:mediaklikk|m4sport|hirado)\.hu\/.*?videok?\/(?:(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/)?(?P<id>[^/#?_]+)'''
+    _VALID_URL = r'''https?:\/\/(?:www\.)?(?:mediaklikk|m4sport|hirado|petofilive)\.hu\/.*?videok?\/(?:(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/)?(?P<id>[^/#?_]+)'''
 
     _TESTS = [{
         'url': 'https://mediaklikk.hu/adal2020/video/2020/03/07/a-dal-donto/',
@@ -26,8 +26,17 @@ class MediaKlikkIE(InfoExtractor):
             'title': 'Gyémánt Liga, Párizs',
             'ext': 'mp4',
             'upload_date': '20210830',
-            'series': 'Videó/M4SPORT/Sportközvetítések',
             'thumbnail': 'http://m4sport.hu/wp-content/uploads/sites/4/2021/08/vlcsnap-2021-08-30-18h21m20s10-1024x576.jpg'
+        }
+    }, {
+        # m4sport with *video/ url and no date
+        'url': 'https://m4sport.hu/bl-video/real-madrid-chelsea-1-1/',
+        'info_dict': {
+            'id': '4492099',
+            'title': 'Real Madrid - Chelsea 1-1',
+            'ext': 'mp4',
+            'upload_date': '20210830',
+            'thumbnail': 'http://m4sport.hu/wp-content/uploads/sites/4/2021/04/Sequence-01.Still001-1024x576.png'
         }
     }, {
         # hirado
@@ -37,6 +46,16 @@ class MediaKlikkIE(InfoExtractor):
             'title': 'Feltételeket szabott a főváros',
             'ext': 'mp4',
             'thumbnail': 'http://hirado.hu/wp-content/uploads/sites/4/2021/09/vlcsnap-2021-09-01-20h20m37s165.jpg'
+        }
+    }, {
+        # petofilive
+        'url': 'https://petofilive.hu/video/2021/06/07/tha-shudras-az-akusztikban/',
+        'info_dict': {
+            'id': '4571948',
+            'title': 'Tha Shudras az Akusztikban',
+            'ext': 'mp4',
+            'upload_date': '20210607',
+            'thumbnail': 'http://petofilive.hu/wp-content/uploads/sites/4/2021/06/vlcsnap-2021-06-07-22h14m23s915-1024x576.jpg'
         }
     }
     ]
@@ -52,7 +71,6 @@ class MediaKlikkIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         upload_date = unified_strdate(
             f'%s-%s-%s' % (mobj.group('year'), mobj.group('month'), mobj.group('day')))
-
         player_data['video'] = player_data.pop('token')
         player_page = self._download_webpage('https://player.mediaklikk.hu/playernew/player.php', video_id, query=player_data)
         playlist_url = 'https:' + compat_urllib_parse_unquote(
@@ -70,7 +88,6 @@ class MediaKlikkIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'upload_date': upload_date,
-            'series': player_data.get('series'),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': player_data.get('bgImage') or self._og_search_thumbnail(webpage)
         }
