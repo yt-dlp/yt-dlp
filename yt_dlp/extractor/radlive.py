@@ -40,6 +40,9 @@ class RadLiveIE(InfoExtractor):
             'channel': None,
             'channel_id': '',
             'channel_url': None,
+            'episode': 'E01: Bad Jokes 1',
+            'episode_number': 1,
+            'episode_id': '336',
         },
     }]
 
@@ -118,6 +121,9 @@ class RadLiveSeasonIE(RadLiveIE):
             'season': 'Bad Jokes - Season 1',
             'season_number': 1,
             'season_id': '31',
+            'episode': 'E01: Bad Jokes 1',
+            'episode_number': 1,
+            'episode_id': '336',
         }
     }]
 
