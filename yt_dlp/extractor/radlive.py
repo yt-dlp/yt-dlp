@@ -47,10 +47,7 @@ class RadLiveIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        m = re.fullmatch(self._VALID_URL, url)
-
-        video_id = m.group('id')
-        content_type = m.group('content_type')
+        content_type, video_id = re.fullmatch(self._VALID_URL, url).groups()
 
         webpage = self._download_webpage(url, video_id)
 
