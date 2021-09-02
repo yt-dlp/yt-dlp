@@ -59,7 +59,6 @@ from ..utils import (
     unsmuggle_url,
     update_url_query,
     url_or_none,
-    urlencode_postdata,
     urljoin,
     variadic,
 )
@@ -2659,7 +2658,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': itag,
                 'format_note': ', '.join(filter(None, (
-                    audio_track.get('displayName'),
+                    '%s%s' % (audio_track.get('displayName') or '',
+                              ' (default)' if audio_track.get('audioIsDefault') else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', '')))),
                 'fps': int_or_none(fmt.get('fps')),
                 'height': height,
@@ -2668,6 +2668,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
                 'language': audio_track.get('id', '').split('.')[0],
+                'language_preference': 1 if audio_track.get('audioIsDefault') else -1,
             }
             mime_mobj = re.match(
                 r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
@@ -2865,7 +2866,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
-        self._sort_formats(formats, ('quality', 'height', 'fps', 'source'))
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'source', 'codec:vp9.2', 'lang'))
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:
@@ -3023,7 +3024,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     process_language(
                         subtitles, base_url, lang_code,
-                        traverse_obj(caption_track, ('name', 'simpleText')),
+                        traverse_obj(caption_track, ('name', 'simpleText'), ('name', 'runs', ..., 'text'), get_all=False),
                         {})
                     continue
                 automatic_captions = {}

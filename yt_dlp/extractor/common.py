@@ -1502,7 +1502,7 @@ class InfoExtractor(object):
         default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
                    'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
                    'proto', 'ext', 'hasaud', 'source', 'format_id')  # These must not be aliases
-        ytdl_default = ('hasaud', 'quality', 'tbr', 'filesize', 'vbr',
+        ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
                         'height', 'width', 'proto', 'vext', 'abr', 'aext',
                         'fps', 'fs_approx', 'source', 'format_id')
 
@@ -1526,7 +1526,7 @@ class InfoExtractor(object):
             'ie_pref': {'priority': True, 'type': 'extractor'},
             'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'lang': {'priority': True, 'convert': 'ignore', 'field': 'language_preference'},
+            'lang': {'convert': 'ignore', 'field': 'language_preference'},
             'quality': {'convert': 'float_none', 'default': -1},
             'filesize': {'convert': 'bytes'},
             'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
@@ -2584,8 +2584,8 @@ class InfoExtractor(object):
             return ms_info
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
-        formats = []
-        subtitles = {}
+        formats, subtitles = [], {}
+        stream_numbers = {'audio': 0, 'video': 0}
         for period in mpd_doc.findall(_add_ns('Period')):
             period_duration = parse_duration(period.get('duration')) or mpd_duration
             period_ms_info = extract_multisegment_info(period, {
@@ -2647,8 +2647,10 @@ class InfoExtractor(object):
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
+                            'manifest_stream_number': stream_numbers[content_type]
                         }
                         f.update(parse_codecs(codecs))
+                        stream_numbers[content_type] += 1
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),

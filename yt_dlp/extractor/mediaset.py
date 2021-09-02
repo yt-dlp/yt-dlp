@@ -44,7 +44,7 @@ class MediasetIE(ThePlatformBaseIE):
         },
     }, {
         'url': 'https://www.mediasetplay.mediaset.it/video/matrix/puntata-del-25-maggio_F309013801000501',
-        'md5': '288532f0ad18307705b01e581304cd7b',
+        'md5': '1276f966ac423d16ba255ce867de073e',
         'info_dict': {
             'id': 'F309013801000501',
             'ext': 'mp4',
@@ -57,6 +57,38 @@ class MediasetIE(ThePlatformBaseIE):
             'timestamp': 1599172492,
             'uploader': 'Canale 5',
             'uploader_id': 'C5',
+        },
+    }, {
+        'url': 'https://www.mediasetplay.mediaset.it/video/cameracafe5/episodio-69-pezzo-di-luna_F303843101017801',
+        'md5': 'd1650ac9ff944f185556126a736df148',
+        'info_dict': {
+            'id': 'F303843101017801',
+            'ext': 'mp4',
+            'title': 'Episodio 69 - Pezzo di luna',
+            'description': '',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 263.008,
+            'upload_date': '20200902',
+            'series': 'Camera Café 5',
+            'timestamp': 1599064700,
+            'uploader': 'Italia 1',
+            'uploader_id': 'I1',
+        },
+    }, {
+        'url': 'https://www.mediasetplay.mediaset.it/video/cameracafe5/episodio-51-tu-chi-sei_F303843107000601',
+        'md5': '567e9ad375b7a27a0e370650f572a1e3',
+        'info_dict': {
+            'id': 'F303843107000601',
+            'ext': 'mp4',
+            'title': 'Episodio 51 - Tu chi sei?',
+            'description': '',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 367.021,
+            'upload_date': '20200902',
+            'series': 'Camera Café 5',
+            'timestamp': 1599069817,
+            'uploader': 'Italia 1',
+            'uploader_id': 'I1',
         },
     }, {
         # clip
@@ -132,7 +164,7 @@ class MediasetIE(ThePlatformBaseIE):
         formats = []
         subtitles = {}
         first_e = None
-        asset_type = 'HD,browser,geoIT|SD,browser,geoIT|geoNo:HD,browser,geoIT|geoNo:SD,browser,geoIT|geoNo'
+        asset_type = 'geoNo:HD,browser,geoIT|geoNo:HD,geoIT|geoNo:SD,browser,geoIT|geoNo:SD,geoIT|geoNo|HD|SD'
         # TODO: fixup ISM+none manifest URLs
         for f in ('MPEG4', 'MPEG-DASH+none', 'M3U+none'):
             try:
