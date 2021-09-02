@@ -29,7 +29,6 @@ from ..compat import (
 from ..jsinterp import JSInterpreter
 from ..utils import (
     bytes_to_intlist,
-    bug_reports_message,
     clean_html,
     datetime_from_str,
     dict_get,
