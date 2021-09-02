@@ -6,12 +6,6 @@ from ..utils import ExtractorError, str_or_none, traverse_obj, unified_strdate
 from ..compat import compat_str
 
 
-# the real service name of this extractor is "17live",
-#   but identifiers cannot start with numbers.
-# class name of this extractor is taken from official pronounciation in Japanese,
-#   so it will be replaced as: "1"="ichi", "7"="nana", "live"=as-is .
-# for reference, with the same rule, class name based on chinese should be "YiQiLive"
-# (ref. https://ltl-taiwan.com/chinese-numbers/ )
 class IchinanaLiveIE(InfoExtractor):
     IE_NAME = '17live'
     _VALID_URL = r'https?://(?:www\.)?17\.live/(?:[^/]+/)*(?:live|profile/r)/(?P<id>\d+)'
@@ -45,11 +39,6 @@ class IchinanaLiveIE(InfoExtractor):
 
         uploader = traverse_obj(
             view_data, ('userInfo', 'displayName'), ('userInfo', 'openID'))
-        like_count = view_data.get('receivedLikeCount')
-        view_count = view_data.get('viewerCount')
-        thumbnail = view_data.get('coverPhoto')
-        description = view_data.get('caption')
-        upload_date = unified_strdate(str_or_none(view_data.get('beginTime')))
 
         video_urls = view_data.get('rtmpUrls')
         if not video_urls:
@@ -79,7 +68,7 @@ class IchinanaLiveIE(InfoExtractor):
                 'acodec': 'aac',
             })
 
-        self._sort_formats(formats)
+        self._sort_formats(formats, field_preference=('preference', ))
 
         return {
             'id': video_id,
@@ -88,11 +77,11 @@ class IchinanaLiveIE(InfoExtractor):
             'is_live': True,
             'uploader': uploader,
             'uploader_id': video_id,
-            'like_count': like_count,
-            'view_count': view_count,
-            'thumbnail': thumbnail,
-            'description': description,
-            'upload_date': upload_date,
+            'like_count': view_data.get('receivedLikeCount'),
+            'view_count': view_data.get('viewerCount'),
+            'thumbnail': view_data.get('coverPhoto'),
+            'description': view_data.get('caption'),
+            'upload_date': unified_strdate(str_or_none(view_data.get('beginTime'))),
         }
 
 
@@ -119,13 +108,6 @@ class IchinanaLiveClipIE(InfoExtractor):
         view_data = self._download_json(
             'https://api-dsa.17app.co/api/v1/clips/%s' % video_id, video_id,
             headers={'Referer': url})
-
-        like_count = view_data.get('likeCount')
-        view_count = view_data.get('viewCount')
-        thumbnail = view_data.get('imageURL')
-        duration = view_data.get('duration')
-        description = view_data.get('caption')
-        upload_date = unified_strdate(str_or_none(view_data.get('createdAt')))
 
         uploader = traverse_obj(
             view_data, ('userInfo', 'displayName'), ('userInfo', 'name'))
@@ -160,7 +142,7 @@ class IchinanaLiveClipIE(InfoExtractor):
                 'http_headers': {'Referer': url},
             })
 
-        self._sort_formats(formats)
+        self._sort_formats(formats, field_preference=('preference', ))
 
         return {
             'id': video_id,
@@ -168,10 +150,10 @@ class IchinanaLiveClipIE(InfoExtractor):
             'formats': formats,
             'uploader': uploader,
             'uploader_id': uploader_id,
-            'like_count': like_count,
-            'view_count': view_count,
-            'thumbnail': thumbnail,
-            'duration': duration,
-            'description': description,
-            'upload_date': upload_date,
+            'like_count': view_data.get('likeCount'),
+            'view_count': view_data.get('viewCount'),
+            'thumbnail': view_data.get('imageURL'),
+            'duration': view_data.get('duration'),
+            'description': view_data.get('caption'),
+            'upload_date': unified_strdate(str_or_none(view_data.get('createdAt'))),
         }
