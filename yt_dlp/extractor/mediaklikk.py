@@ -1,22 +1,30 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from yt_dlp.utils import str_or_none, unified_strdate
+from yt_dlp.utils import (
+    str_or_none,
+    unified_strdate
+)
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
 
 
 class MediaKlikkIE(InfoExtractor):
     # Named regular expression group: (?P<name>...) used for referencing match as 'id'
-    _VALID_URL = r'''https?:\/\/(?:www\.)?(?:mediaklikk|m4sport|hirado|petofilive)\.hu\/.*?videok?\/(?:(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/)?(?P<id>[^/#?_]+)'''
+    _VALID_URL = r'''https?:\/\/(?:www\.)?
+                        (?:mediaklikk|m4sport|hirado|petofilive)\.hu\/.*?videok?\/
+                        (?:(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/(?P<day>[0-9]{1,2})/)?
+                        (?P<id>[^/#?_]+)'''
 
     _TESTS = [{
-        'url': 'https://mediaklikk.hu/adal2020/video/2020/03/07/a-dal-donto/',
+        # mediaklikk. date in html.
+        'url': 'https://mediaklikk.hu/video/hazajaro-delnyugat-bacska-a-duna-menten-palankatol-doroszloig/',
         'info_dict': {
-            'id': 'kiberma-2020-04-30-i-adas',
+            'id': '4754129',
+            'title': 'Hazajáró, DÉLNYUGAT-BÁCSKA – A Duna mentén Palánkától Doroszlóig',
             'ext': 'mp4',
-            'title': 'KiberMa, 2020.04.30-i adás | MédiaKlikk',
-            # no thumbnail extractable
+            'upload_date': '20210901',
+            'thumbnail': 'http://mediaklikk.hu/wp-content/uploads/sites/4/2014/02/hazajarouj_JO.jpg'
         }
     }, {
         # m4sport
@@ -35,7 +43,6 @@ class MediaKlikkIE(InfoExtractor):
             'id': '4492099',
             'title': 'Real Madrid - Chelsea 1-1',
             'ext': 'mp4',
-            'upload_date': '20210830',
             'thumbnail': 'http://m4sport.hu/wp-content/uploads/sites/4/2021/04/Sequence-01.Still001-1024x576.png'
         }
     }, {
@@ -63,14 +70,22 @@ class MediaKlikkIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
+
         player_data_str = self._html_search_regex(
             r"mtva_player_manager\.player\(document.getElementById\(.*\),\s?(\{.*\}).*\);", webpage, 'player data')
         player_data = self._parse_json(player_data_str, video_id, compat_urllib_parse_unquote)
         video_id = str_or_none(player_data.get('contentId')) or video_id
 
+        title = player_data.get('title') or self._og_search_title(webpage, fatal=False) or \
+                self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
+
         mobj = self._match_valid_url(url)
         upload_date = unified_strdate(
             f'%s-%s-%s' % (mobj.group('year'), mobj.group('month'), mobj.group('day')))
+        if not upload_date:
+            upload_date = unified_strdate(self._html_search_regex(
+                r'<p+\b[^>]+\bclass="article_date">([^<]+)\.<', webpage, 'upload date', default='').replace('.', '-'))
+
         player_data['video'] = player_data.pop('token')
         player_page = self._download_webpage('https://player.mediaklikk.hu/playernew/player.php', video_id, query=player_data)
         playlist_url = 'https:' + compat_urllib_parse_unquote(
@@ -82,12 +97,10 @@ class MediaKlikkIE(InfoExtractor):
 
         return {
             '_type': 'video',
-            'title': player_data.get('title') or self._og_search_title(webpage),
-            'ext': 'mp4',
-            'display_id': display_id,
             'id': video_id,
+            'title': title,
+            'display_id': display_id,
             'formats': formats,
             'upload_date': upload_date,
-            'description': self._og_search_description(webpage, default=None),
             'thumbnail': player_data.get('bgImage') or self._og_search_thumbnail(webpage)
         }
