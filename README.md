@@ -151,7 +151,7 @@ yt-dlp is not platform specific. So it should work on your Unix box, on Windows 
 
 You can install yt-dlp using one of the following methods:
 * Download the binary from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest) (recommended method)
-* With Homebrew, `brew install yt-dlp/taps/yt-dlp`
+* With Homebrew, `brew install yt-dlp`
 * Use [PyPI package](https://pypi.org/project/yt-dlp): `python3 -m pip install --upgrade yt-dlp`
 * Use pip+git: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
 * Install master branch: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp`
@@ -178,13 +178,13 @@ sudo chmod a+rx /usr/local/bin/yt-dlp
 macOS or Linux users that are using Homebrew (formerly known as Linuxbrew for Linux users) can also install it by:
 
 ```
-brew install yt-dlp/taps/yt-dlp
+brew install yt-dlp
 ```
 
 ### UPDATE
 You can use `yt-dlp -U` to update if you are using the provided release.
 If you are using `pip`, simply re-run the same command that was used to install the program.
-If you have installed using Homebrew, run `brew upgrade yt-dlp/taps/yt-dlp`
+If you have installed using Homebrew, run `brew upgrade yt-dlp`
 
 ### DEPENDENCIES
 Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
