@@ -108,23 +108,10 @@ class RadLiveSeasonIE(RadLiveIE):
         'url': 'https://rad.live/content/season/08a290f7-c9ef-4e22-9105-c255995a2e75',
         'md5': '40b2175f347592125d93e9a344080125',
         'info_dict': {
-            'id': 'bbcf66ec-0d02-4ca0-8dc0-4213eb2429bf',
-            'ext': 'mp4',
-            'title': 'E01: Bad Jokes 1',
-            'description': 'Bad Jokes - Champions, Adam Pally, Super Troopers, Team Edge and 2Hype',
-            'release_timestamp': None,
-            'channel': None,
-            'channel_id': '',
-            'channel_url': None,
-            'url': 'https://lsp.littlstar.com/channels/WHISTLE/BAD_JOKES/SEASON_1/BAD_JOKES_101/1080p.m3u8',
-            'series': 'Bad Jokes',
-            'season': 'Bad Jokes - Season 1',
-            'season_number': 1,
-            'season_id': '31',
-            'episode': 'E01: Bad Jokes 1',
-            'episode_number': 1,
-            'episode_id': '336',
-        }
+            'id': '08a290f7-c9ef-4e22-9105-c255995a2e75',
+            'title': 'Bad Jokes - Season 1',
+        },
+        'playlist_mincount': 5,
     }]
 
     @classmethod
@@ -162,16 +149,10 @@ class RadLiveChannelIE(RadLiveIE):
         'url': 'https://rad.live/content/channel/5c4d8df4-6fa0-413c-81e3-873479b49274',
         'md5': '625156a08b7f2b0b849f234e664457ac',
         'info_dict': {
-            'id': 'bcc4efa9-b89d-4571-a3e8-331479ca3e2c',
-            'ext': 'mp4',
-            'title': 'Clash of the Creators',
-            'description': "Clash of the Youtube's most famous influencers / creators.",
-            'release_timestamp': None,
-            'channel': 'Whistle Sports',
-            'channel_id': '5c4d8df4-6fa0-413c-81e3-873479b49274',
-            'channel_url': 'https://rad.live/content/channel/5c4d8df4-6fa0-413c-81e3-873479b49274',
-            'url': 'https://lsp.littlstar.com/channels/WHISTLE/CLASH_OF_CREATORS/SEASON_1/CLASH_OF_CREATORS_101/1080p.m3u8',
+            'id': '5c4d8df4-6fa0-413c-81e3-873479b49274',
+            'title': 'Whistle Sports',
         },
+        'playlist_mincount': 7,
     }]
 
     @classmethod
