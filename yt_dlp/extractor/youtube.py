@@ -818,15 +818,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 try:
                     self._extract_and_report_alerts(response, expected=False, only_once=True)
                 except ExtractorError as e:
-                    err_str = error_to_compat_str(e)
                     # YouTube servers may return errors we want to retry on in a 200 OK response
                     # See: https://github.com/yt-dlp/yt-dlp/issues/839
-                    if 'unknown error' in err_str.lower():
-                        last_error = remove_end(err_str, bug_reports_message())
+                    if 'unknown error' in e.msg.lower():
+                        last_error = e.msg
                         continue
                     if fatal:
                         raise
-                    self.report_warning(err_str)
+                    self.report_warning(error_to_compat_str(e))
                     return
                 if not check_get_keys or dict_get(response, check_get_keys):
                     break
