@@ -1114,6 +1114,7 @@ from .radiobremen import RadioBremenIE
 from .radiofrance import RadioFranceIE
 from .radlive import (
     RadLiveIE,
+    RadLiveChannelIE,
     RadLiveSeasonIE,
 )
 from .rai import (

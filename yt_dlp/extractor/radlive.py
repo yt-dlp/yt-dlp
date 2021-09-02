@@ -1,7 +1,10 @@
 import json
 import re
+import textwrap
+import urllib.request
 from datetime import datetime
 
+from ..utils import ExtractorError
 from .common import InfoExtractor
 
 
@@ -23,6 +26,7 @@ class RadLiveIE(InfoExtractor):
             'id': 'bbcf66ec-0d02-4ca0-8dc0-4213eb2429bf',
             'ext': 'mp4',
             'title': 'E01: Bad Jokes 1',
+            'description': 'Bad Jokes - Champions, Adam Pally, Super Troopers, Team Edge and 2Hype',
         },
     }]
 
@@ -36,6 +40,9 @@ class RadLiveIE(InfoExtractor):
             r'<script[^>]*type=([\'"])application/json\1[^>]*>(?P<json>{.+?})</script>',
             webpage, 'video info', group='json'))['props']['pageProps']['initialContentData']
         info = _info[content_type]
+
+        if not info:
+            raise ExtractorError('Unable to extract video info')
 
         formats = self._extract_m3u8_formats(info['assets']['videos'][0]['url'], video_id)
         self._sort_formats(formats)
@@ -89,8 +96,8 @@ class RadLiveSeasonIE(RadLiveIE):
         return False if RadLiveIE.suitable(url) else super(RadLiveSeasonIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        season_id = self._match_id(url)
+        webpage = self._download_webpage(url, season_id)
 
         _info = json.loads(self._search_regex(
             r'<script[^>]*type=([\'"])application/json\1[^>]*>(?P<json>{.+?})</script>',
@@ -109,4 +116,266 @@ class RadLiveSeasonIE(RadLiveIE):
                 'ie_key': RadLiveIE.ie_key(),
             })
 
-        return self.playlist_result(entries, video_id, info['title'])
+        return self.playlist_result(entries, season_id, info['title'])
+
+
+class RadLiveChannelIE(RadLiveIE):
+    IE_NAME = 'radlive:channel'
+    _VALID_URL = r'https?://(?:www\.)?rad\.live/content/channel/(?P<id>[a-f0-9-]+)'
+    _TESTS = [{
+        'url': 'https://rad.live/content/channel/5c4d8df4-6fa0-413c-81e3-873479b49274',
+        'only_matching': True,
+    }]
+
+    @classmethod
+    def suitable(cls, url):
+        return False if RadLiveIE.suitable(url) else super(RadLiveChannelIE, cls).suitable(url)
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+
+        req = urllib.request.Request('https://content.mhq.12core.net/graphql', data=json.dumps({
+            'query': textwrap.dedent(
+                """
+                query WebChannelListing ($lrn: ID!) {
+                  channel (id:$lrn) {
+                  ...Channel
+
+                    metadata {
+                      ...Metadata
+                    }
+
+                    presentation {
+                      ...Presentation
+                    }
+
+                    miniseries {
+                      ...Miniseries
+                      metadata {
+                        ...Metadata
+                      }
+
+                      presentation {
+                        ...Presentation
+                      }
+                      episodes {
+                        ...Episode
+                      }
+                    }
+
+                    series {
+                      ...Series
+                      metadata {
+                        ...Metadata
+                      }
+
+                      presentation {
+                        ...Presentation
+                      }
+                      seasons {
+                        ...Season
+                      }
+                    }
+
+                    features {
+                      ...Feature
+                      metadata {
+                        ...Metadata
+                      }
+
+                      presentation {
+                        ...Presentation
+                      }
+                    }
+
+                    streams {
+                      ...Stream
+                      metadata {
+                        ...Metadata
+                      }
+
+                      presentation {
+                        ...Presentation
+                      }
+                    }
+
+                    playlists {
+                      ...Playlists
+                      metadata {
+                        ...Metadata
+                      }
+
+                      presentation {
+                        ...Presentation
+                      }
+                    }
+                  }
+                }
+
+                fragment Playlists on Playlist {
+                  ...Playlist
+                  items {
+                    __typename
+                  }
+                }
+
+
+                fragment Channel on Channel {
+                  name
+                  id
+                  lrn
+                  acl
+                  summary
+                  short_summary
+                  assets
+                  structured_data
+                }
+
+
+                fragment Miniseries on Miniseries {
+                  id
+                  lrn
+                  title
+                  acl
+                  summary
+                  short_summary
+                  assets
+                  structured_data
+                }
+
+
+                fragment Feature on Feature {
+                  id
+                  lrn
+                  title
+                  acl
+                  assets
+                  summary
+                  short_summary
+                  structured_data
+                  associated_channels {
+                      lrn
+                  }
+                }
+
+
+                fragment Series on Serie {
+                  id
+                  lrn
+                  title
+                  acl
+                  summary
+                  summary_short
+                  assets
+                  structured_data
+                  associated_channels {
+                    lrn
+                  }
+                }
+
+
+                fragment Season on Season {
+                  id
+                  lrn
+                  title
+                  acl
+                  number
+                  summary
+                  short_summary
+                  assets
+                  structured_data
+                }
+
+
+                fragment Episode on Episode {
+                  id
+                  lrn
+                  title
+                  acl
+                  assets
+                  number
+                  summary
+                  short_summary
+                  structured_data
+                  associated_miniseries {
+                    lrn
+                  }
+                  associated_season {
+                    lrn
+                    associated_series {
+                      lrn
+                    }
+                  }
+                }
+
+
+                fragment Stream on Stream {
+                  id
+                  lrn
+                  title
+                  short_title
+                  summary
+                  short_summary
+                  acl
+                  type
+                  assets
+                  structured_data
+                }
+
+
+                fragment Playlist on Playlist {
+                  id
+                  lrn
+                  title
+                  short_title
+                  short_summary
+                  summary
+                  acl
+                  assets
+                  associated_channels {
+                    lrn
+                  }
+                }
+
+
+                fragment Metadata on Metadata {
+                    name
+                    lrn
+                    marketing_body_text
+                    marketing_header_text
+                }
+
+
+                fragment Presentation on Presentation {
+                    avails_open_date
+                    avails_close_date
+                    lrn
+                    note
+                    condition
+                    is_released
+                    is_opened
+                    is_closed
+                    restrictions {
+                      enabled
+                      lrn
+                    }
+                }
+                """
+            ),
+            'variables': {
+                'lrn': f'lrn:12core:media:content:channel:{channel_id}',
+            },
+        }).encode('utf-8'))
+        req.add_header('Content-Type', 'application/json')
+        data = json.loads(urllib.request.urlopen(req).read())
+
+        entries = []
+        for feature in data['data']['channel']['features']:
+            for video in feature['assets']['videos']:
+                entries.append({
+                    '_type': 'url_transparent',
+                    'url': feature['structured_data']['url'],
+                    'ie_key': RadLiveIE.ie_key(),
+                })
+
+        return self.playlist_result(entries, channel_id, data['data']['channel']['name'])
