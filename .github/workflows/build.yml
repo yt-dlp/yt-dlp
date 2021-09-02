@@ -95,6 +95,8 @@ jobs:
       run: |
         git clone git@github.com:yt-dlp/homebrew-taps taps/
         python3 devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ steps.bump_version.outputs.ytdlp_version }}"
+        git -C taps/ config user.name github-actions
+        git -C taps/ config user.email github-actions@example.com
         git -C taps/ commit -am 'yt-dlp: ${{ steps.bump_version.outputs.ytdlp_version }}'
         git -C taps/ push
 
