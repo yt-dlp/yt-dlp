@@ -2477,7 +2477,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
         sts = None
-        if requires_js_player:
+        if require_js_player:
             sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
         headers = self.generate_api_headers(
             player_ytcfg, identity_token, syncid,
@@ -2586,6 +2586,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif self._is_agegated(pr):
                 append_client(f'{client}_agegate')
 
+        yield player_url
         if last_error:
             if not yielded_pr:
                 raise last_error
