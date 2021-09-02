@@ -10,10 +10,21 @@ class IchinanaLiveIE(InfoExtractor):
     IE_NAME = '17live'
     _VALID_URL = r'https?://(?:www\.)?17\.live/(?:[^/]+/)*(?:live|profile/r)/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://17.live/live/580309',
-        'only_matching': True,
+        'url': 'https://17.live/live/3773096',
+        'info_dict': {
+            'id': '3773096',
+            'title': '萠珈☕🤡🍫moka',
+            'is_live': True,
+            'uploader': '萠珈☕🤡🍫moka',
+            'uploader_id': '3773096',
+            'like_count': 366,
+            'view_count': 18121,
+            'timestamp': 1630569012,
+        },
+        'skip': 'running as of writing, but may be ended as of testing',
     }, {
-        'url': 'https://17.live/ja/live/580309',
+        'note': 'nothing except language differs',
+        'url': 'https://17.live/ja/live/3773096',
         'only_matching': True,
     }]
 
@@ -70,6 +81,7 @@ class IchinanaLiveIE(InfoExtractor):
 
         self._sort_formats(formats, field_preference=('preference', ))
 
+        print(view_data.get('beginTime'))
         return {
             'id': video_id,
             'title': uploader or video_id,
@@ -81,7 +93,7 @@ class IchinanaLiveIE(InfoExtractor):
             'view_count': view_data.get('viewerCount'),
             'thumbnail': view_data.get('coverPhoto'),
             'description': view_data.get('caption'),
-            'upload_date': unified_strdate(str_or_none(view_data.get('beginTime'))),
+            'timestamp': view_data.get('beginTime'),
         }
 
 
