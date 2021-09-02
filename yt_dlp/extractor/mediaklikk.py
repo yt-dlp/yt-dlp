@@ -66,13 +66,13 @@ class MediaKlikkIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = display_id = self._match_id(url)
+        display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
         player_data_str = self._html_search_regex(
             r'mtva_player_manager\.player\(document.getElementById\(.*\),\s?(\{.*\}).*\);', webpage, 'player data')
-        player_data = self._parse_json(player_data_str, video_id, compat_urllib_parse_unquote)
-        video_id = str_or_none(player_data.get('contentId')) or video_id
+        player_data = self._parse_json(player_data_str, display_id, compat_urllib_parse_unquote)
+        video_id = str_or_none(player_data.get('contentId')) or display_id
 
         title = player_data.get('title') or self._og_search_title(webpage, fatal=False) or \
             self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
