@@ -2559,7 +2559,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
             require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
-            if 'playerjs' in self._configuration_arg('player_skip'):
+            if 'js' in self._configuration_arg('player_skip'):
                 require_js_player = False
                 player_url = None
 
