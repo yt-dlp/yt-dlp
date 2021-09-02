@@ -81,7 +81,6 @@ class IchinanaLiveIE(InfoExtractor):
 
         self._sort_formats(formats, field_preference=('preference', ))
 
-        print(view_data.get('beginTime'))
         return {
             'id': video_id,
             'title': uploader or video_id,
