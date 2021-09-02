@@ -11,7 +11,7 @@ from ..compat import compat_urllib_parse_unquote
 
 class MediaKlikkIE(InfoExtractor):
     # Named regular expression group: (?P<name>...) used for referencing match as 'id'
-    _VALID_URL = r'''https?:\/\/(?:www\.)?
+    _VALID_URL = r'''(?x)^https?:\/\/(?:www\.)?
                         (?:mediaklikk|m4sport|hirado|petofilive)\.hu\/.*?videok?\/
                         (?:(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/(?P<day>[0-9]{1,2})/)?
                         (?P<id>[^/#?_]+)'''
@@ -77,11 +77,11 @@ class MediaKlikkIE(InfoExtractor):
         video_id = str_or_none(player_data.get('contentId')) or video_id
 
         title = player_data.get('title') or self._og_search_title(webpage, fatal=False) or \
-                self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
+            self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
 
         mobj = self._match_valid_url(url)
         upload_date = unified_strdate(
-            f'%s-%s-%s' % (mobj.group('year'), mobj.group('month'), mobj.group('day')))
+            '%s-%s-%s' % (mobj.group('year'), mobj.group('month'), mobj.group('day')))
         if not upload_date:
             upload_date = unified_strdate(self._html_search_regex(
                 r'<p+\b[^>]+\bclass="article_date">([^<]+)\.<', webpage, 'upload date', default='').replace('.', '-'))
@@ -89,8 +89,8 @@ class MediaKlikkIE(InfoExtractor):
         player_data['video'] = player_data.pop('token')
         player_page = self._download_webpage('https://player.mediaklikk.hu/playernew/player.php', video_id, query=player_data)
         playlist_url = 'https:' + compat_urllib_parse_unquote(
-            self._html_search_regex(r'\"file\": \"(\\/\\/.*playlist\.m3u8)\",', player_page, 'playlist_url')).replace('\\/', '/')
-        
+            self._html_search_regex(r'\"file\":\s*\"(\\?/\\?/.*playlist\.m3u8)\"', player_page, 'playlist_url')).replace('\\/', '/')
+
         formats = self._extract_wowza_formats(
             playlist_url, video_id, skip_protocols=['f4m', 'smil', 'dash'])
         self._sort_formats(formats)
