@@ -1,7 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from yt_dlp.utils import (
+from ..utils import (
     str_or_none,
     unified_strdate
 )
