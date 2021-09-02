@@ -497,10 +497,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _get_innertube_host(self, client='web'):
         return INNERTUBE_CLIENTS[client]['INNERTUBE_HOST']
 
-    # TODO
-    def _get_ytcfg_default_opt(self, key, client='web'):
-        return INNERTUBE_CLIENTS[client][key]
-
     def _ytcfg_get_safe(self, ytcfg, getter, expected_type=None, default_client='web'):
         # try_get but with fallback to default ytcfg client values when present
         _func = lambda y: try_get(y, getter, expected_type)
@@ -2560,9 +2556,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
 
             player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
-            require_js_player = self._get_ytcfg_default_opt('REQUIRE_JS_PLAYER', client)
-            if 'player' in self._configuration_arg('player_skip'):
+            require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
+            if 'playerjs' in self._configuration_arg('player_skip'):
                 require_js_player = False
+                player_url = None
 
             if not player_url and not tried_iframe_fallback and require_js_player:
                 player_url = self._download_player_url(video_id)
