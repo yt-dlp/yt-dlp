@@ -10,7 +10,6 @@ from ..compat import compat_urllib_parse_unquote
 
 
 class MediaKlikkIE(InfoExtractor):
-    # Named regular expression group: (?P<name>...) used for referencing match as 'id'
     _VALID_URL = r'''(?x)^https?:\/\/(?:www\.)?
                         (?:mediaklikk|m4sport|hirado|petofilive)\.hu\/.*?videok?\/
                         (?:(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/(?P<day>[0-9]{1,2})/)?
