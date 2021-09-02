@@ -116,6 +116,7 @@ INNERTUBE_CLIENTS = {
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
+        'REQUIRE_JS_PLAYER': False
     },
     'android_embedded': {
         'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
@@ -125,7 +126,8 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '16.20',
             },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 55
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
+        'REQUIRE_JS_PLAYER': False
     },
     'android_music': {
         'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
@@ -137,6 +139,7 @@ INNERTUBE_CLIENTS = {
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
+        'REQUIRE_JS_PLAYER': False
     },
     'android_creator': {
         'INNERTUBE_CONTEXT': {
@@ -145,7 +148,8 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '21.24.100',
             },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 14
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
+        'REQUIRE_JS_PLAYER': False
     },
     # ios has HLS live streams
     # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680
@@ -157,7 +161,8 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '16.20',
             }
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 5
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
+        'REQUIRE_JS_PLAYER': False
     },
     'ios_embedded': {
         'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
@@ -167,7 +172,8 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '16.20',
             },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 66
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
+        'REQUIRE_JS_PLAYER': False
     },
     'ios_music': {
         'INNERTUBE_API_KEY': 'AIzaSyDK3iBpDP9nHVTk2qL73FLJICfOC3c51Og',
@@ -178,7 +184,8 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '4.32',
             },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 26
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
+        'REQUIRE_JS_PLAYER': False
     },
     'ios_creator': {
         'INNERTUBE_CONTEXT': {
@@ -187,7 +194,8 @@ INNERTUBE_CLIENTS = {
                 'clientVersion': '21.24.100',
             },
         },
-        'INNERTUBE_CONTEXT_CLIENT_NAME': 15
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
+        'REQUIRE_JS_PLAYER': False
     },
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
@@ -214,6 +222,7 @@ def build_innertube_clients():
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
         ytcfg.setdefault('INNERTUBE_API_KEY', 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8')
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
+        ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
         ytcfg['priority'] = 10 * priority(client.split('_', 1)[0])
 
@@ -1852,12 +1861,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._code_cache = {}
         self._player_cache = {}
 
-    def _extract_player_url(self, ytcfg=None, webpage=None):
-        player_url = try_get(ytcfg, (lambda x: x['PLAYER_JS_URL']), str)
-        if not player_url and webpage:
-            player_url = self._search_regex(
-                r'"(?:PLAYER_JS_URL|jsUrl)"\s*:\s*"([^"]+)"',
-                webpage, 'player URL', fatal=False)
+    def _extract_player_url(self, *ytcfgs, webpage=None):
+        for ytcfg in ytcfgs:
+            player_url = traverse_obj(
+                ytcfg, 'PLAYER_JS_URL', ('WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
+                get_all=False, expected_type=compat_str)
+            if player_url:
+                break
         if not player_url:
             return None
         if player_url.startswith('//'):
@@ -1866,6 +1876,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_url = compat_urlparse.urljoin(
                 'https://www.youtube.com', player_url)
         return player_url
+
+    def _download_player_url(self, video_id, fatal=False):
+        res = self._download_webpage(
+            'https://www.youtube.com/iframe_api',
+            note='Downloading iframe API JS', video_id=video_id, fatal=fatal)
+        if res:
+            player_version = self._search_regex(
+                r'player\\?/([0-9a-fA-F]{8})\\?/', res, 'player version', fatal=fatal)
+            if player_version:
+                return f'https://www.youtube.com/s/player/{player_version}/player_ias.vflset/en_US/base.js'
 
     def _signature_cache_id(self, example_sig):
         """ Return a string representation of a signature """
@@ -2452,11 +2472,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
+    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr, require_js_player):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
-        sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
+        sts = None
+        if requires_js_player:
+            sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False)
         headers = self.generate_api_headers(
             player_ytcfg, identity_token, syncid,
             default_client=client, session_index=session_index)
@@ -2501,7 +2523,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = self._download_webpage(url, video_id, fatal=False, note=f'Downloading {client} config')
         return self.extract_ytcfg(video_id, webpage) or {}
 
-    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, player_url, identity_token):
+    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, identity_token):
         initial_pr = None
         if webpage:
             initial_pr = self._extract_yt_initial_variable(
@@ -2527,15 +2549,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield pr
 
         last_error = None
+        tried_iframe_fallback = False
+        player_url = None
         while clients:
             client = clients.pop()
             player_ytcfg = master_ytcfg if client == 'web' else {}
             if 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
 
+            player_url = player_url or self._extract_player_url(master_ytcfg, player_ytcfg, webpage=webpage)
+            require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
+            if 'playerjs' in self._configuration_arg('player_skip'):
+                require_js_player = False
+                player_url = None
+
+            if not player_url and not tried_iframe_fallback and require_js_player:
+                player_url = self._download_player_url(video_id)
+                tried_iframe_fallback = True
+
             try:
                 pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr)
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr, require_js_player)
             except ExtractorError as e:
                 if last_error:
                     self.report_warning(last_error)
@@ -2702,17 +2736,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
-        webpage = self._download_webpage(
-            webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
+        webpage = None
+        if 'webpage' not in self._configuration_arg('player_skip'):
+            webpage = self._download_webpage(
+                webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
 
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
-        player_url = self._extract_player_url(master_ytcfg, webpage)
         identity_token = self._extract_identity_token(webpage, video_id)
 
         player_responses = list(self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, master_ytcfg, player_url, identity_token))
+            video_id, webpage, master_ytcfg, identity_token))
 
+        player_url = player_responses.pop(-1)
         get_first = lambda obj, keys, **kwargs: traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
         playability_statuses = traverse_obj(
