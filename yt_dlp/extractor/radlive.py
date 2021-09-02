@@ -38,7 +38,7 @@ class RadLiveIE(InfoExtractor):
             'description': 'Bad Jokes - Champions, Adam Pally, Super Troopers, Team Edge and 2Hype',
             'release_timestamp': None,
             'channel': None,
-            'channel_id': '',
+            'channel_id': None,
             'channel_url': None,
             'episode': 'E01: Bad Jokes 1',
             'episode_number': 1,
@@ -72,7 +72,7 @@ class RadLiveIE(InfoExtractor):
                 release_date = None
 
         channel = next(iter(_info.get('channels', [])), {})
-        channel_id = channel.get('lrn', '').split(':')[-1]
+        channel_id = channel.get('lrn', '').split(':')[-1] or None
 
         result = {
             'id': video_id,
