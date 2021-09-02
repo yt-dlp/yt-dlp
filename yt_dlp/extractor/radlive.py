@@ -25,7 +25,6 @@ class RadLiveIE(InfoExtractor):
             'channel': 'Proximity',
             'channel_id': '9ce6dd01-70a4-4d59-afb6-d01f807cd009',
             'channel_url': 'https://rad.live/content/channel/9ce6dd01-70a4-4d59-afb6-d01f807cd009',
-
         }
     }, {
         'url': 'https://rad.live/content/episode/bbcf66ec-0d02-4ca0-8dc0-4213eb2429bf',
@@ -42,7 +41,6 @@ class RadLiveIE(InfoExtractor):
             'channel_id': '',
             'channel_url': None,
         },
-
     }]
 
     def _real_extract(self, url):
