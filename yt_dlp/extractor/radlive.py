@@ -18,6 +18,14 @@ class RadLiveIE(InfoExtractor):
             'id': 'dc5acfbc-761b-4bec-9564-df999905116a',
             'ext': 'mp4',
             'title': 'Deathpact - Digital Mirage 2 [Full Set]',
+            'language': 'en',
+            'thumbnail': 'https://static.12core.net/cb65ae077a079c68380e38f387fbc438.png',
+            'description': '',
+            'release_timestamp': 1600185600.0,
+            'channel': 'Proximity',
+            'channel_id': '9ce6dd01-70a4-4d59-afb6-d01f807cd009',
+            'channel_url': 'https://rad.live/content/channel/9ce6dd01-70a4-4d59-afb6-d01f807cd009',
+
         }
     }, {
         'url': 'https://rad.live/content/episode/bbcf66ec-0d02-4ca0-8dc0-4213eb2429bf',
@@ -26,15 +34,24 @@ class RadLiveIE(InfoExtractor):
             'id': 'bbcf66ec-0d02-4ca0-8dc0-4213eb2429bf',
             'ext': 'mp4',
             'title': 'E01: Bad Jokes 1',
+            'language': 'en',
+            'thumbnail': 'https://lsp.littlstar.com/channels/WHISTLE/BAD_JOKES/SEASON_1/BAD_JOKES_101/poster.jpg',
             'description': 'Bad Jokes - Champions, Adam Pally, Super Troopers, Team Edge and 2Hype',
+            'release_timestamp': None,
+            'channel': None,
+            'channel_id': '',
+            'channel_url': None,
         },
+
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        m = re.fullmatch(self._VALID_URL, url)
 
-        content_type = re.fullmatch(self._VALID_URL, url).group('content_type')
+        video_id = m.group('id')
+        content_type = m.group('content_type')
+
+        webpage = self._download_webpage(url, video_id)
 
         _info = json.loads(self._search_regex(
             r'<script[^>]*type=([\'"])application/json\1[^>]*>(?P<json>{.+?})</script>',
@@ -57,7 +74,7 @@ class RadLiveIE(InfoExtractor):
                 release_date = None
 
         channel = next(iter(_info.get('channels', [])), {})
-        channel_id = channel.get('lrn', '').split(':')[-1],
+        channel_id = channel.get('lrn', '').split(':')[-1]
 
         result = {
             'id': video_id,
@@ -88,7 +105,22 @@ class RadLiveSeasonIE(RadLiveIE):
     _VALID_URL = r'https?://(?:www\.)?rad\.live/content/season/(?P<id>[a-f0-9-]+)'
     _TESTS = [{
         'url': 'https://rad.live/content/season/08a290f7-c9ef-4e22-9105-c255995a2e75',
-        'only_matching': True,
+        'md5': '40b2175f347592125d93e9a344080125',
+        'info_dict': {
+            'id': 'bbcf66ec-0d02-4ca0-8dc0-4213eb2429bf',
+            'ext': 'mp4',
+            'title': 'E01: Bad Jokes 1',
+            'description': 'Bad Jokes - Champions, Adam Pally, Super Troopers, Team Edge and 2Hype',
+            'release_timestamp': None,
+            'channel': None,
+            'channel_id': '',
+            'channel_url': None,
+            'url': 'https://lsp.littlstar.com/channels/WHISTLE/BAD_JOKES/SEASON_1/BAD_JOKES_101/1080p.m3u8',
+            'series': 'Bad Jokes',
+            'season': 'Bad Jokes - Season 1',
+            'season_number': 1,
+            'season_id': '31',
+        }
     }]
 
     @classmethod
@@ -124,7 +156,18 @@ class RadLiveChannelIE(RadLiveIE):
     _VALID_URL = r'https?://(?:www\.)?rad\.live/content/channel/(?P<id>[a-f0-9-]+)'
     _TESTS = [{
         'url': 'https://rad.live/content/channel/5c4d8df4-6fa0-413c-81e3-873479b49274',
-        'only_matching': True,
+        'md5': '625156a08b7f2b0b849f234e664457ac',
+        'info_dict': {
+            'id': 'bcc4efa9-b89d-4571-a3e8-331479ca3e2c',
+            'ext': 'mp4',
+            'title': 'Clash of the Creators',
+            'description': "Clash of the Youtube's most famous influencers / creators.",
+            'release_timestamp': None,
+            'channel': 'Whistle Sports',
+            'channel_id': '5c4d8df4-6fa0-413c-81e3-873479b49274',
+            'channel_url': 'https://rad.live/content/channel/5c4d8df4-6fa0-413c-81e3-873479b49274',
+            'url': 'https://lsp.littlstar.com/channels/WHISTLE/CLASH_OF_CREATORS/SEASON_1/CLASH_OF_CREATORS_101/1080p.m3u8',
+        },
     }]
 
     @classmethod
