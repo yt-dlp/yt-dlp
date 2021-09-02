@@ -63,8 +63,7 @@ class MediaKlikkIE(InfoExtractor):
             'upload_date': '20210607',
             'thumbnail': 'http://petofilive.hu/wp-content/uploads/sites/4/2021/06/vlcsnap-2021-06-07-22h14m23s915-1024x576.jpg'
         }
-    }
-    ]
+    }]
 
     def _real_extract(self, url):
         video_id = display_id = self._match_id(url)
