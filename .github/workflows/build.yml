@@ -17,6 +17,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -28,6 +30,29 @@ jobs:
       run: python devscripts/update-version.py
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
+      id: version
+    - name: make issuetemplates
+      run: make issuetemplates
+    - name: commit version update
+      run: |
+        git config --global user.email "none@example.com"
+        git config --global user.name "yt-dlp"
+        git pull
+        git add -u
+        git commit -m "[version] update :ci skip all"
+        git checkout master
+        git pull
+        git merge release
+        git push origin master
+    - name: get changelog
+      id: get_changelog
+      run: |
+        changelog=$(cat Changelog.md | grep -oPz '(?s)### ${{ steps.bump_version.outputs.ytdlp_version }}.*?\n\n\n')
+        echo "changelog<<EOF" >> $GITHUB_ENV
+        echo "$changelog" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+    - name: print changelog
+      run: echo "${{ steps.get_changelog.outputs.changelog }}"
     - name: Run Make
       run: make all tar
     - name: Create Release
@@ -40,7 +65,7 @@ jobs:
         release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
         body: |
           Changelog:
-          PLACEHOLDER
+          ${{ env.changelog }}
         draft: false
         prerelease: false
     - name: Upload yt-dlp Unix binary
