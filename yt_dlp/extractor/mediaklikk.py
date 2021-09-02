@@ -71,7 +71,7 @@ class MediaKlikkIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         player_data_str = self._html_search_regex(
-            r"mtva_player_manager\.player\(document.getElementById\(.*\),\s?(\{.*\}).*\);", webpage, 'player data')
+            r'mtva_player_manager\.player\(document.getElementById\(.*\),\s?(\{.*\}).*\);', webpage, 'player data')
         player_data = self._parse_json(player_data_str, video_id, compat_urllib_parse_unquote)
         video_id = str_or_none(player_data.get('contentId')) or video_id
 
