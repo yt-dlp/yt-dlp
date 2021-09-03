@@ -1211,7 +1211,8 @@ class YoutubeDL(object):
         else:
             self.report_error('no suitable InfoExtractor for URL %s' % url)
 
-    def __handle_extraction_exceptions(func, handle_all_errors=True):
+    def __handle_extraction_exceptions(func):
+
         def wrapper(self, *args, **kwargs):
             try:
                 return func(self, *args, **kwargs)
@@ -1228,10 +1229,10 @@ class YoutubeDL(object):
                 self.to_stderr('\r')
                 self.report_warning('The download speed is below throttle limit. Re-extracting data')
                 return wrapper(self, *args, **kwargs)
-            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
+            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached, LazyList.IndexError):
                 raise
             except Exception as e:
-                if handle_all_errors and self.params.get('ignoreerrors', False):
+                if self.params.get('ignoreerrors', False):
                     self.report_error(error_to_compat_str(e), tb=encode_compat_str(traceback.format_exc()))
                 else:
                     raise
@@ -1436,14 +1437,18 @@ class YoutubeDL(object):
         msg = (
             'Downloading %d videos' if not isinstance(ie_entries, list)
             else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
-        if not isinstance(ie_entries, (list, PagedList)):
-            ie_entries = LazyList(ie_entries)
 
-        def get_entry(i):
-            return YoutubeDL.__handle_extraction_exceptions(
-                lambda self, i: ie_entries[i - 1],
-                False
-            )(self, i)
+        if isinstance(ie_entries, list):
+            def get_entry(i):
+                return ie_entries[i - 1]
+        else:
+            if not isinstance(ie_entries, PagedList):
+                ie_entries = LazyList(ie_entries)
+
+            def get_entry(i):
+                return YoutubeDL.__handle_extraction_exceptions(
+                    lambda self, i: ie_entries[i - 1]
+                )(self, i)
 
         entries = []
         for i in playlistitems or itertools.count(playliststart):
