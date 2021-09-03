@@ -11,10 +11,11 @@ class SovietsClosetBaseIE(InfoExtractor):
     MEDIADELIVERY_REFERER = {'Referer': 'https://iframe.mediadelivery.net/'}
 
     def parse_nuxt_jsonp(self, nuxt_jsonp_url, video_id, name):
-        NUXT_JSONP_RE = r'__NUXT_JSONP__\(.*?\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.*?)\)'
         nuxt_jsonp = self._download_webpage(nuxt_jsonp_url, video_id, note=f'Downloading {name} __NUXT_JSONP__')
-
-        js, arg_keys, arg_vals = self._search_regex(NUXT_JSONP_RE, nuxt_jsonp, '__NUXT_JSONP__', group=['js', 'arg_keys', 'arg_vals'])
+        js, arg_keys, arg_vals = self._search_regex(
+            r'__NUXT_JSONP__\(.*?\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.*?)\)',
+            nuxt_jsonp, '__NUXT_JSONP__', group=['js', 'arg_keys', 'arg_vals']
+        )
 
         arg_keys = arg_keys.split(',')
         arg_vals = arg_vals.split(',')
