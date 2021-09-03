@@ -26,10 +26,10 @@ class SovietsClosetBaseIE(InfoExtractor):
 
         return self._parse_json(js_to_json(js, args), video_id)['data'][0]
 
-    def video_meta(self, video_id, stream_date, game_name, catgory_name, episode_number):
+    def video_meta(self, video_id, stream_date, game_name, category_name, episode_number):
         title = f'SovietWomble {stream_date} - {game_name}'
-        if catgory_name != 'Misc':
-            title += f' - {catgory_name}'
+        if category_name != 'Misc':
+            title += f' - {category_name}'
         title += f' #{episode_number}'
 
         stream_date_parsed = datetime.datetime.strptime(f'{stream_date} GMT', '%Y-%m-%d %H:%M %Z')
@@ -54,7 +54,7 @@ class SovietsClosetBaseIE(InfoExtractor):
             'was_live': True,
             'availability': 'public',
             'series': game_name,
-            'season': catgory_name,
+            'season': category_name,
             'episode_number': episode_number,
         }
 
