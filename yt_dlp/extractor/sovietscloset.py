@@ -211,7 +211,7 @@ class SovietsClosetPlaylistIE(SovietsClosetExtractor):
                             playlist_title += ' - ' + category['name']
                         for stream in category['streams']:
                             entries.append({
-                                **self.url_result(f'https://sovietscloset.com/video/{stream['id']}', ie=SovietsClosetIE.ie_key()),
+                                **self.url_result(f'https://sovietscloset.com/video/{stream["id"]}', ie=SovietsClosetIE.ie_key()),
                                 **self.video_meta(stream['id'], stream['date'], game['name'], category['name'], len(entries) + 1),
                             })
         return self.playlist_result(entries, playlist_id, playlist_title)
