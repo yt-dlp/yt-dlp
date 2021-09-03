@@ -27,32 +27,26 @@ jobs:
       run: sudo apt-get -y install zip pandoc man
     - name: Bump version
       id: bump_version
-      run: python devscripts/update-version.py
+      run: |
+        python devscripts/update-version.py
+        make issuetemplates
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
-      id: version
-    - name: make issuetemplates
-      run: make issuetemplates
-    - name: commit version update
+    - name: Update master
       run: |
-        git config --global user.email "none@example.com"
-        git config --global user.name "yt-dlp"
-        git pull
+        git config --global user.email "${{ github.event.pusher.email }}"
+        git config --global user.name "${{ github.event.pusher.name }}"
         git add -u
-        git commit -m "[version] update :ci skip all"
-        git checkout master
-        git pull
-        git merge release
-        git push origin master
-    - name: get changelog
+        git commit -m "[version] update" -m ":ci skip all"
+        git pull --rebase origin ${{ github.event.repository.master_branch }}
+        git push origin ${{ github.event.ref }}:${{ github.event.repository.master_branch }}
+    - name: Get Changelog
       id: get_changelog
       run: |
-        changelog=$(cat Changelog.md | grep -oPz '(?s)### ${{ steps.bump_version.outputs.ytdlp_version }}.*?\n\n\n')
+        changelog=$(cat Changelog.md | grep -oPz '(?s)(?<=### ${{ steps.bump_version.outputs.ytdlp_version }}\n{2}).+?(?=\n{2,3}###)')
         echo "changelog<<EOF" >> $GITHUB_ENV
         echo "$changelog" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-    - name: print changelog
-      run: echo "${{ steps.get_changelog.outputs.changelog }}"
     - name: Run Make
       run: make all tar
     - name: Create Release
