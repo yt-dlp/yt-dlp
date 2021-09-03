@@ -1531,8 +1531,8 @@ class YoutubeDL(object):
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
             playlist_index, entry = entry_tuple
-            if 'playlist-index' in self.params.get('compat_options', []):
-                playlist_index = playlistitems[i - 1] if playlistitems else i
+            if 'playlist-index' in self.params.get('compat_opts', []):
+                playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
             self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes
