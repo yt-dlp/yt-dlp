@@ -223,7 +223,7 @@ class FragmentFD(FileDownloader):
 
     def _start_frag_download(self, ctx, info_dict):
         resume_len = ctx['complete_frags_downloaded_bytes']
-        total_frags = ctx['total_frags']
+        total_frags = ctx.get('total_frags', 0)
         # This dict stores the download progress, it's updated by the progress
         # hook
         state = {
@@ -329,9 +329,9 @@ class FragmentFD(FileDownloader):
             'fragment_index': 0,
         })
 
-    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None):
+    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, ignore_lethal_error=False):
         fragment_retries = self.params.get('fragment_retries', 0)
-        is_fatal = (lambda idx: idx == 0) if self.params.get('skip_unavailable_fragments', True) else (lambda _: True)
+        is_fatal = (lambda idx: idx == 0) if self.params.get('skip_unavailable_fragments', True) or ignore_lethal_error else (lambda _: True)
         if not pack_func:
             pack_func = lambda frag_content, _: frag_content
 
@@ -390,7 +390,7 @@ class FragmentFD(FileDownloader):
 
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
-                if not is_fatal(frag_index - 1):
+                if not is_fatal(frag_index - 1) or ignore_lethal_error:
                     self.report_skip_fragment(frag_index)
                     return True
                 else:

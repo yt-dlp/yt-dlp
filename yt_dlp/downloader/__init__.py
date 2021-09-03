@@ -29,6 +29,7 @@ from .mhtml import MhtmlFD
 from .niconico import NiconicoDmcFD
 from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
+from .youtube_dl_from_start import YoutubeDlFromStartDashFD
 from .external import (
     get_external_downloader,
     FFmpegFD,
@@ -49,6 +50,7 @@ PROTOCOL_MAP = {
     'websocket_frag': WebSocketFragmentFD,
     'youtube_live_chat': YoutubeLiveChatFD,
     'youtube_live_chat_replay': YoutubeLiveChatFD,
+    'youtube_dl_from_start_dash': YoutubeDlFromStartDashFD,
 }
 
 
@@ -59,6 +61,7 @@ def shorten_protocol_name(proto, simplify=False):
         'http_dash_segments': 'dash',
         'niconico_dmc': 'dmc',
         'websocket_frag': 'WSfrag',
+        'youtube_dl_from_start_dash': 'YTLstartD',
     }
     if simplify:
         short_protocol_names.update({
@@ -68,6 +71,7 @@ def shorten_protocol_name(proto, simplify=False):
             'rtmp_ffmpeg': 'rtmp',
             'm3u8_frag_urls': 'm3u8',
             'dash_frag_urls': 'dash',
+            'youtube_dl_from_start_dash': 'dash',
         })
     return short_protocol_names.get(proto, proto)
 

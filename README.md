@@ -1438,6 +1438,7 @@ The following extractors use this feature:
     * `player_client`: Clients to extract video data from. The main clients are `web`, `android`, `ios`, `mweb`. These also have `_music`, `_embedded`, `_agegate`, and `_creator` variants (Eg: `web_embedded`) (`mweb` has only `_agegate`). By default, `android,web` is used, but the agegate and creator variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can also use `all` to use all the clients
     * `player_skip`: `configs` - skip any requests for client configs and use defaults
     * `include_live_dash`: Include live dash formats (These formats don't download properly)
+    * `download_live_from_start`: Download live from the beginning. Implicitly enables `include_live_dash` (experimental)
     * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side).
     * `max_comments`: Maximum amount of comments to download (default all).
     * `max_comment_depth`: Maximum depth for nested comments. YouTube supports depths 1 or 2 (default).

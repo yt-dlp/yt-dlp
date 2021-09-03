@@ -2656,9 +2656,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         skip_manifests = self._configuration_arg('skip')
         get_dash = (
-            (not is_live or self._configuration_arg('include_live_dash'))
+            (not is_live or self._configuration_arg('include_live_dash') or self._configuration_arg('download_live_from_start'))
             and 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True))
-        get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
+        get_hls = (
+            not self._configuration_arg('download_live_from_start')
+            and 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True))
 
         def guess_quality(f):
             for val, qdict in ((f.get('format_id'), itag_qualities), (f.get('height'), res_qualities)):
@@ -2816,6 +2818,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['source_preference'] = -10
                 # TODO: this method is not reliable
                 f['format_note'] = format_field(f, 'format_note', '%s ') + '(maybe throttled)'
+            if is_live and self._configuration_arg('download_live_from_start'):
+                # override protocols with dl-from-start one
+                protocol = f['protocol']
+                if 'dash' in protocol:
+                    f['protocol'] = 'youtube_dl_from_start_dash'
+                else:
+                    # give an excessively negative priority to prevent from being choosen
+                    f['quality'] = -1000
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
