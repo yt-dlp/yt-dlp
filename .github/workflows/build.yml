@@ -33,6 +33,7 @@ jobs:
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Update master
+      id: push_update
       run: |
         git config --global user.email "${{ github.event.pusher.email }}"
         git config --global user.name "${{ github.event.pusher.name }}"
@@ -40,6 +41,7 @@ jobs:
         git commit -m "[version] update" -m ":ci skip all"
         git pull --rebase origin ${{ github.event.repository.master_branch }}
         git push origin ${{ github.event.ref }}:${{ github.event.repository.master_branch }}
+        echo ::set-output name=head_sha::$(git rev-parse HEAD)
     - name: Get Changelog
       id: get_changelog
       run: |
@@ -57,6 +59,7 @@ jobs:
       with:
         tag_name: ${{ steps.bump_version.outputs.ytdlp_version }}
         release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
+        commitish: ${{ steps.push_update.outputs.head_sha }}
         body: |
           Changelog:
           ${{ env.changelog }}
