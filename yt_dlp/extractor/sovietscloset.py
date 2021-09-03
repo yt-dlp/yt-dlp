@@ -1,10 +1,12 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import datetime
-
-from ..utils import js_to_json
 from .common import InfoExtractor
+from ..utils import (
+    js_to_json,
+    unified_strdate,
+    unified_timestamp
+)
 
 
 class SovietsClosetBaseIE(InfoExtractor):
@@ -33,9 +35,8 @@ class SovietsClosetBaseIE(InfoExtractor):
             title += f' - {category_name}'
         title += f' #{episode_number}'
 
-        stream_date_parsed = datetime.datetime.strptime(f'{stream_date} GMT', '%Y-%m-%d %H:%M %Z')
-        upload_date = stream_date_parsed.strftime('%Y%m%d')
-        timestamp = int(stream_date_parsed.timestamp())
+        upload_date = unified_strdate(stream_date)
+        timestamp = unified_timestamp(stream_date)
 
         return {
             'id': video_id,
