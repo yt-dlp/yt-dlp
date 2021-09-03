@@ -34,7 +34,7 @@ class SovietsClosetBaseIE(InfoExtractor):
         title += f' #{episode_number}'
 
         stream_date_parsed = datetime.datetime.strptime(f'{stream_date} GMT', '%Y-%m-%d %H:%M %Z')
-        stream_date_yyyymmdd = stream_date_parsed.strftime('%Y%m%d')
+        upload_date = stream_date_parsed.strftime('%Y%m%d')
         timestamp = int(stream_date_parsed.timestamp())
 
         return {
@@ -44,9 +44,9 @@ class SovietsClosetBaseIE(InfoExtractor):
             'uploader': 'SovietWomble',
             'creator': 'SovietWomble',
             'release_timestamp': timestamp,
-            'release_date': stream_date_yyyymmdd,
+            'release_date': upload_date,
             'timestamp': timestamp,
-            'upload_date': stream_date_yyyymmdd,
+            'upload_date': upload_date,
             'uploader_id': 'SovietWomble',
             'uploader_url': 'https://www.twitch.tv/SovietWomble',
             'channel': 'SovietWomble',
@@ -73,9 +73,9 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'thumbnail': r're:^https?://.*\.b-cdn\.net/2f0cfbf4-3588-43a9-a7d6-7c9ea3755e67/thumbnail\.jpg$',
                 'uploader': 'SovietWomble',
                 'creator': 'SovietWomble',
-                'release_timestamp': 1492084380,
+                'release_timestamp': 1492091580,
                 'release_date': '20170413',
-                'timestamp': 1492084380,
+                'timestamp': 1492091580,
                 'upload_date': '20170413',
                 'uploader_id': 'SovietWomble',
                 'uploader_url': 'https://www.twitch.tv/SovietWomble',
@@ -100,9 +100,9 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'thumbnail': r're:^https?://.*\.b-cdn\.net/c0e5e76f-3a93-40b4-bf01-12343c2eec5d/thumbnail\.jpg$',
                 'uploader': 'SovietWomble',
                 'creator': 'SovietWomble',
-                'release_timestamp': 1461150000,
+                'release_timestamp': 1461157200,
                 'release_date': '20160420',
-                'timestamp': 1461150000,
+                'timestamp': 1461157200,
                 'upload_date': '20160420',
                 'uploader_id': 'SovietWomble',
                 'uploader_url': 'https://www.twitch.tv/SovietWomble',
