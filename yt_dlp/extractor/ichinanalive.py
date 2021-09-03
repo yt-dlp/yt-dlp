@@ -39,7 +39,7 @@ class IchinanaLiveIE(InfoExtractor):
         # this endpoint sometimes return code 420, which is not defined
         enter = self._download_json(
             'https://api-dsa.17app.co/api/v1/lives/%s/enter' % video_id, video_id,
-            headers={'Referer': url}, fatal=False, expected_status=lambda x: True,
+            headers={'Referer': url}, fatal=False, expected_status=420,
             data=b'\0')
         if enter and enter.get('message') == 'ended':
             raise ExtractorError('This live has ended.', expected=True)
