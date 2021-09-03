@@ -1105,7 +1105,7 @@ def parseOpts(overrideArguments=None):
             'The comments are fetched even without this option if the extraction is known to be quick (Alias: --get-comments)'))
     filesystem.add_option(
         '--no-write-comments', '--no-get-comments',
-        action='store_true', dest='getcomments', default=False,
+        action='store_false', dest='getcomments',
         help='Do not retrieve video comments unless the extraction is known to be quick (Alias: --no-get-comments)')
     filesystem.add_option(
         '--load-info-json', '--load-info',
