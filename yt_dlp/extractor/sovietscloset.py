@@ -7,7 +7,7 @@ from ..utils import js_to_json
 from .common import InfoExtractor
 
 
-class SovietsClosetExtractor(InfoExtractor):
+class SovietsClosetBaseIE(InfoExtractor):
     MEDIADELIVERY_REFERER = {'Referer': 'https://iframe.mediadelivery.net/'}
 
     def parse_nuxt_jsonp(self, nuxt_jsonp_url, video_id, name):
@@ -59,7 +59,7 @@ class SovietsClosetExtractor(InfoExtractor):
         }
 
 
-class SovietsClosetIE(SovietsClosetExtractor):
+class SovietsClosetIE(SovietsClosetBaseIE):
     _VALID_URL = r'https?://(?:www\.)?sovietscloset\.com/video/(?P<id>[0-9]+)/?'
     _TESTS = [
         {
@@ -152,7 +152,7 @@ class SovietsClosetIE(SovietsClosetExtractor):
         }
 
 
-class SovietsClosetPlaylistIE(SovietsClosetExtractor):
+class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
     _VALID_URL = r'https?://(?:www\.)?sovietscloset\.com/(?!video)(?P<id>.*)'
     _TESTS = [
 
