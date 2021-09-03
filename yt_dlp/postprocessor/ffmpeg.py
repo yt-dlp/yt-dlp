@@ -15,6 +15,7 @@ from ..utils import (
     dfxp2srt,
     encodeArgument,
     encodeFilename,
+    float_or_none,
     get_exe_version,
     is_outdated_version,
     ISO639Utils,
@@ -232,6 +233,23 @@ class FFmpegPostProcessor(PostProcessor):
             (i for i, stream in enumerate(streams) if traverse_obj(stream, keys, casesense=False) == value),
             None)
         return num, len(streams)
+
+    def _get_real_video_duration(self, info, fatal=True):
+        try:
+            if '_real_duration' not in info:
+                info['_real_duration'] = float_or_none(
+                    traverse_obj(self.get_metadata_object(info['filepath']), ('format', 'duration')))
+            if not info['_real_duration']:
+                raise PostProcessingError('ffprobe returned empty duration')
+        except PostProcessingError as e:
+            if fatal:
+                raise PostProcessingError(f'Unable to determine video duration; {e}')
+        return info.setdefault('_real_duration', None)
+
+    def _duration_mismatch(self, d1, d2):
+        if not d1 or not d2:
+            return None
+        return abs(d1 - d2) > 1
 
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts, **kwargs):
         return self.real_run_ffmpeg(
@@ -528,6 +546,10 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             return [], information
 
         filename = information['filepath']
+        if self._duration_mismatch(
+                self._get_real_video_duration(information, False), information['duration']):
+            self.to_screen(f'Skipping {self.pp_key()} since the real and expected durations mismatch')
+            return [], information
 
         ext = information['ext']
         sub_langs, sub_names, sub_filenames = [], [], []
