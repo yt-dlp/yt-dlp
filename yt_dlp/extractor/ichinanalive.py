@@ -62,24 +62,24 @@ class IchinanaLiveIE(InfoExtractor):
                 continue
             if not value.startswith('http'):
                 continue
-            preference = 0.0
+            quality = -1
             if 'web' in name:
-                preference -= 0.25
+                quality -= 1
             if 'High' in name:
-                preference += 1.0
+                quality += 4
             if 'Low' in name:
-                preference -= 0.5
+                quality -= 2
             formats.append({
                 'format_id': name,
                 'url': value,
-                'preference': preference,
+                'quality': quality,
                 'http_headers': {'Referer': url},
                 'ext': 'flv',
                 'vcodec': 'h264',
                 'acodec': 'aac',
             })
 
-        self._sort_formats(formats, field_preference=('preference', ))
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
