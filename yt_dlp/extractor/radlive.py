@@ -117,6 +117,7 @@ class RadLiveSeasonIE(RadLiveIE):
 
         entries = [{
             '_type': 'url_transparent',
+            'id': episode['structured_data']['url'].split('/')[-1],
             'url': episode['structured_data']['url'],
             'series': try_get(content_info, lambda x: x['series']['title']),
             'season': video_info['title'],
