@@ -16,12 +16,9 @@ class SovietsClosetBaseIE(InfoExtractor):
         nuxt_jsonp = self._download_webpage(nuxt_jsonp_url, video_id, note=f'Downloading {name} __NUXT_JSONP__')
         js, arg_keys, arg_vals = self._search_regex(
             r'__NUXT_JSONP__\(.*?\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.*?)\)',
-            nuxt_jsonp, '__NUXT_JSONP__', group=['js', 'arg_keys', 'arg_vals']
-        )
+            nuxt_jsonp, '__NUXT_JSONP__', group=['js', 'arg_keys', 'arg_vals'])
 
-        arg_keys = arg_keys.split(',')
-        arg_vals = arg_vals.split(',')
-        args = {key: val for key, val in zip(arg_keys, arg_vals)}
+        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
 
         for key, val in args.items():
             if val in ('undefined', 'void 0'):
@@ -131,8 +128,6 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         m3u8_formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.MEDIADELIVERY_REFERER)
         self._sort_formats(m3u8_formats)
 
-        # TODO duration
-
         return {
             'url': m3u8_url,
             'formats': m3u8_formats,
@@ -202,18 +197,14 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
             game_slug = playlist_id.lower()
             category_slug = 'misc'
 
-        entries = list()
-        playlist_title = None
-        for game in sovietscloset:
-            if game['slug'].lower() == game_slug:
-                playlist_title = game['name']
-                for category in game['subcategories']:
-                    if category['slug'].lower() == category_slug:
-                        if category_slug != 'misc':
-                            playlist_title += ' - ' + category['name']
-                        for stream in category['streams']:
-                            entries.append({
-                                **self.url_result(f'https://sovietscloset.com/video/{stream["id"]}', ie=SovietsClosetIE.ie_key()),
-                                **self.video_meta(stream['id'], stream['date'], game['name'], category['name'], len(entries) + 1),
-                            })
+        game = next(game for game in sovietscloset if game['slug'].lower() == game_slug)
+        category = next(cat for cat in game['subcategories'] if cat['slug'].lower() == category_slug)
+        playlist_title = game.get('name') or game_slug
+        if category_slug != 'misc':
+            playlist_title += f' - {category.get("name") or category_slug}'
+        entries = [{
+            **self.url_result(f'https://sovietscloset.com/video/{stream["id"]}', ie=SovietsClosetIE.ie_key()),
+            **self.video_meta(stream['id'], stream['date'], game['name'], category['name'], i + 1),
+        } for i, stream in enumerate(category['streams'])]
+
         return self.playlist_result(entries, playlist_id, playlist_title)
