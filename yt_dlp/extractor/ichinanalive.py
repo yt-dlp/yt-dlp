@@ -36,7 +36,6 @@ class IchinanaLiveIE(InfoExtractor):
         video_id = self._match_id(url)
         url = 'https://17.live/live/%s' % video_id
 
-        # this endpoint sometimes return code 420, which is not defined
         enter = self._download_json(
             'https://api-dsa.17app.co/api/v1/lives/%s/enter' % video_id, video_id,
             headers={'Referer': url}, fatal=False, expected_status=420,
@@ -55,8 +54,6 @@ class IchinanaLiveIE(InfoExtractor):
         if not video_urls:
             raise ExtractorError('unable to extract live URL information')
         formats = []
-        # it used to select an item with .provider == 5,
-        # but js code seems to select the first element
         for (name, value) in video_urls[0].items():
             if not isinstance(value, compat_str):
                 continue
