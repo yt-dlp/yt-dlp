@@ -119,8 +119,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
     def _extract_bunnycdn_iframe(self, video_id, bunnycdn_id):
         iframe = self._download_webpage(
             f'https://iframe.mediadelivery.net/embed/5105/{bunnycdn_id}',
-            video_id, note='Downloading BunnyCDN iframe', headers=self.MEDIADELIVERY_REFERER
-        )
+            video_id, note='Downloading BunnyCDN iframe', headers=self.MEDIADELIVERY_REFERER)
 
         m3u8_url = self._search_regex(r'(https?://.*?\.m3u8)', iframe, 'm3u8 url')
         thumbnail_url = self._search_regex(r'(https?://.*?thumbnail\.jpg)', iframe, 'thumbnail url')
