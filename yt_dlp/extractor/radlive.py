@@ -64,7 +64,7 @@ class RadLiveIE(InfoExtractor):
 
         data = info.get('structured_data', {})
 
-        release_date = data.get('releasedEvent', {}).get('startDate')
+        release_date = traverse_obj(data, ('releasedEvent', 'startDate'))
         if release_date:
             try:
                 release_date = datetime.strptime(release_date, '%Y-%m-%dT%H:%M:%S.%f%z').timestamp()
@@ -136,7 +136,7 @@ class RadLiveSeasonIE(RadLiveIE):
                 'ie_key': RadLiveIE.ie_key(),
             })
 
-        return self.playlist_result(entries, season_id, info['title'])
+        return self.playlist_result(entries, season_id, info.get('title'))
 
 
 class RadLiveChannelIE(RadLiveIE):
@@ -403,4 +403,4 @@ class RadLiveChannelIE(RadLiveIE):
                     'ie_key': RadLiveIE.ie_key(),
                 })
 
-        return self.playlist_result(entries, channel_id, data['data']['channel']['name'])
+        return self.playlist_result(entries, channel_id, traverse_obj(data, ('data', 'channel', 'name'))
