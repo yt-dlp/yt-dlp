@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     js_to_json,
-    unified_strdate,
     unified_timestamp
 )
 
@@ -27,12 +26,11 @@ class SovietsClosetBaseIE(InfoExtractor):
         return self._parse_json(js_to_json(js, args), video_id)['data'][0]
 
     def video_meta(self, video_id, stream_date, game_name, category_name, episode_number):
-        title = f'SovietWomble {stream_date} - {game_name}'
+        title = game_name
         if category_name != 'Misc':
             title += f' - {category_name}'
         title += f' #{episode_number}'
 
-        upload_date = unified_strdate(stream_date)
         timestamp = unified_timestamp(stream_date)
 
         return {
@@ -42,14 +40,9 @@ class SovietsClosetBaseIE(InfoExtractor):
             'uploader': 'SovietWomble',
             'creator': 'SovietWomble',
             'release_timestamp': timestamp,
-            'release_date': upload_date,
             'timestamp': timestamp,
-            'upload_date': upload_date,
             'uploader_id': 'SovietWomble',
             'uploader_url': 'https://www.twitch.tv/SovietWomble',
-            'channel': 'SovietWomble',
-            'channel_id': 'SovietWomble',
-            'channel_url': 'https://www.twitch.tv/SovietWomble',
             'was_live': True,
             'availability': 'public',
             'series': game_name,
@@ -67,7 +60,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
             'info_dict': {
                 'id': '1337',
                 'ext': 'mp4',
-                'title': 'SovietWomble 2017-04-13 13:53 - The Witcher #13',
+                'title': 'The Witcher #13',
                 'thumbnail': r're:^https?://.*\.b-cdn\.net/2f0cfbf4-3588-43a9-a7d6-7c9ea3755e67/thumbnail\.jpg$',
                 'uploader': 'SovietWomble',
                 'creator': 'SovietWomble',
@@ -77,9 +70,6 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'upload_date': '20170413',
                 'uploader_id': 'SovietWomble',
                 'uploader_url': 'https://www.twitch.tv/SovietWomble',
-                'channel': 'SovietWomble',
-                'channel_id': 'SovietWomble',
-                'channel_url': 'https://www.twitch.tv/SovietWomble',
                 'was_live': True,
                 'availability': 'public',
                 'series': 'The Witcher',
@@ -93,7 +83,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
             'info_dict': {
                 'id': '1105',
                 'ext': 'mp4',
-                'title': 'SovietWomble 2016-04-20 13:00 - Arma 3 - Zeus Games #3',
+                'title': 'Arma 3 - Zeus Games #3',
                 'uploader': 'SovietWomble',
                 'thumbnail': r're:^https?://.*\.b-cdn\.net/c0e5e76f-3a93-40b4-bf01-12343c2eec5d/thumbnail\.jpg$',
                 'uploader': 'SovietWomble',
@@ -104,9 +94,6 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'upload_date': '20160420',
                 'uploader_id': 'SovietWomble',
                 'uploader_url': 'https://www.twitch.tv/SovietWomble',
-                'channel': 'SovietWomble',
-                'channel_id': 'SovietWomble',
-                'channel_url': 'https://www.twitch.tv/SovietWomble',
                 'was_live': True,
                 'availability': 'public',
                 'series': 'Arma 3',
