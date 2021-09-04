@@ -136,7 +136,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
 
 
 class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?sovietscloset\.com/(?!video)(?P<id>.*)'
+    _VALID_URL = r'https?://(?:www\.)?sovietscloset\.com/(?!video)(?P<id>[^#?]+)'
     _TESTS = [
 
         {
