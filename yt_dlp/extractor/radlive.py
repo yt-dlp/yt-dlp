@@ -1,10 +1,7 @@
 import json
 import re
-import textwrap
-import urllib.request
-from datetime import datetime
 
-from ..utils import ExtractorError
+from ..utils import ExtractorError, traverse_obj, try_get, unified_timestamp
 from .common import InfoExtractor
 
 
@@ -51,35 +48,29 @@ class RadLiveIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        _info = json.loads(self._search_regex(
+        content_info = json.loads(self._search_regex(
             r'<script[^>]*type=([\'"])application/json\1[^>]*>(?P<json>{.+?})</script>',
             webpage, 'video info', group='json'))['props']['pageProps']['initialContentData']
-        info = _info[content_type]
+        video_info = content_info[content_type]
 
-        if not info:
-            raise ExtractorError('Unable to extract video info')
+        if not video_info:
+            raise ExtractorError('Unable to extract video info, make sure the URL is valid')
 
-        formats = self._extract_m3u8_formats(info['assets']['videos'][0]['url'], video_id)
+        formats = self._extract_m3u8_formats(video_info['assets']['videos'][0]['url'], video_id)
         self._sort_formats(formats)
 
-        data = info.get('structured_data', {})
+        data = video_info.get('structured_data', {})
 
-        release_date = traverse_obj(data, ('releasedEvent', 'startDate'))
-        if release_date:
-            try:
-                release_date = datetime.strptime(release_date, '%Y-%m-%dT%H:%M:%S.%f%z').timestamp()
-            except ValueError:
-                release_date = None
-
-        channel = next(iter(_info.get('channels', [])), {})
+        release_date = unified_timestamp(traverse_obj(data, ('releasedEvent', 'startDate')))
+        channel = next(iter(content_info.get('channels', [])), {})
         channel_id = channel.get('lrn', '').split(':')[-1] or None
 
         result = {
             'id': video_id,
-            'title': info['title'],
+            'title': video_info['title'],
             'formats': formats,
-            'language': data.get('potentialAction', {}).get('target', {}).get('inLanguage'),
-            'thumbnail': data.get('image', {}).get('contentUrl'),
+            'language': traverse_obj(data, ('potentialAction', 'target', 'inLanguage')),
+            'thumbnail': traverse_obj(data, ('image', 'contentUrl')),
             'description': data.get('description'),
             'release_timestamp': release_date,
             'channel': channel.get('name'),
@@ -90,9 +81,9 @@ class RadLiveIE(InfoExtractor):
         if content_type == 'episode':
             result.update({
                 # TODO: Get season number when downloading single episode
-                'episode': info.get('title'),
-                'episode_number': info.get('number'),
-                'episode_id': info.get('id'),
+                'episode': video_info.get('title'),
+                'episode_number': video_info.get('number'),
+                'episode_id': video_info.get('id'),
             })
 
         return result
@@ -119,24 +110,22 @@ class RadLiveSeasonIE(RadLiveIE):
         season_id = self._match_id(url)
         webpage = self._download_webpage(url, season_id)
 
-        _info = json.loads(self._search_regex(
+        content_info = json.loads(self._search_regex(
             r'<script[^>]*type=([\'"])application/json\1[^>]*>(?P<json>{.+?})</script>',
             webpage, 'video info', group='json'))['props']['pageProps']['initialContentData']
-        info = _info['season']
+        video_info = content_info['season']
 
-        entries = []
-        for episode in info['episodes']:
-            entries.append({
-                '_type': 'url_transparent',
-                'url': episode['structured_data']['url'],
-                'series': next(iter(_info.get('series', [])), {}).get('title'),
-                'season': info['title'],
-                'season_number': info.get('number'),
-                'season_id': info.get('id'),
-                'ie_key': RadLiveIE.ie_key(),
-            })
+        entries = [{
+            '_type': 'url_transparent',
+            'url': episode['structured_data']['url'],
+            'series': try_get(content_info, lambda x: x['series']['title']),
+            'season': video_info['title'],
+            'season_number': video_info.get('number'),
+            'season_id': video_info.get('id'),
+            'ie_key': RadLiveIE.ie_key(),
+        } for episode in video_info['episodes']]
 
-        return self.playlist_result(entries, season_id, info.get('title'))
+        return self.playlist_result(entries, season_id, video_info.get('title'))
 
 
 class RadLiveChannelIE(RadLiveIE):
@@ -159,242 +148,240 @@ class RadLiveChannelIE(RadLiveIE):
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
-        req = urllib.request.Request('https://content.mhq.12core.net/graphql', data=json.dumps({
-            'query': textwrap.dedent(
-                """
-                query WebChannelListing ($lrn: ID!) {
-                  channel (id:$lrn) {
-                  ...Channel
+        data = self._download_json('https://content.mhq.12core.net/graphql', channel_id, data=json.dumps({
+            'query': """
+query WebChannelListing ($lrn: ID!) {
+  channel (id:$lrn) {
+  ...Channel
 
-                    metadata {
-                      ...Metadata
-                    }
+    metadata {
+      ...Metadata
+    }
 
-                    presentation {
-                      ...Presentation
-                    }
+    presentation {
+      ...Presentation
+    }
 
-                    miniseries {
-                      ...Miniseries
-                      metadata {
-                        ...Metadata
-                      }
+    miniseries {
+      ...Miniseries
+      metadata {
+        ...Metadata
+      }
 
-                      presentation {
-                        ...Presentation
-                      }
-                      episodes {
-                        ...Episode
-                      }
-                    }
+      presentation {
+        ...Presentation
+      }
+      episodes {
+        ...Episode
+      }
+    }
 
-                    series {
-                      ...Series
-                      metadata {
-                        ...Metadata
-                      }
+    series {
+      ...Series
+      metadata {
+        ...Metadata
+      }
 
-                      presentation {
-                        ...Presentation
-                      }
-                      seasons {
-                        ...Season
-                      }
-                    }
+      presentation {
+        ...Presentation
+      }
+      seasons {
+        ...Season
+      }
+    }
 
-                    features {
-                      ...Feature
-                      metadata {
-                        ...Metadata
-                      }
+    features {
+      ...Feature
+      metadata {
+        ...Metadata
+      }
 
-                      presentation {
-                        ...Presentation
-                      }
-                    }
+      presentation {
+        ...Presentation
+      }
+    }
 
-                    streams {
-                      ...Stream
-                      metadata {
-                        ...Metadata
-                      }
+    streams {
+      ...Stream
+      metadata {
+        ...Metadata
+      }
 
-                      presentation {
-                        ...Presentation
-                      }
-                    }
+      presentation {
+        ...Presentation
+      }
+    }
 
-                    playlists {
-                      ...Playlists
-                      metadata {
-                        ...Metadata
-                      }
+    playlists {
+      ...Playlists
+      metadata {
+        ...Metadata
+      }
 
-                      presentation {
-                        ...Presentation
-                      }
-                    }
-                  }
-                }
+      presentation {
+        ...Presentation
+      }
+    }
+  }
+}
 
-                fragment Playlists on Playlist {
-                  ...Playlist
-                  items {
-                    __typename
-                  }
-                }
-
-
-                fragment Channel on Channel {
-                  name
-                  id
-                  lrn
-                  acl
-                  summary
-                  short_summary
-                  assets
-                  structured_data
-                }
+fragment Playlists on Playlist {
+  ...Playlist
+  items {
+    __typename
+  }
+}
 
 
-                fragment Miniseries on Miniseries {
-                  id
-                  lrn
-                  title
-                  acl
-                  summary
-                  short_summary
-                  assets
-                  structured_data
-                }
+fragment Channel on Channel {
+  name
+  id
+  lrn
+  acl
+  summary
+  short_summary
+  assets
+  structured_data
+}
 
 
-                fragment Feature on Feature {
-                  id
-                  lrn
-                  title
-                  acl
-                  assets
-                  summary
-                  short_summary
-                  structured_data
-                  associated_channels {
-                      lrn
-                  }
-                }
+fragment Miniseries on Miniseries {
+  id
+  lrn
+  title
+  acl
+  summary
+  short_summary
+  assets
+  structured_data
+}
 
 
-                fragment Series on Serie {
-                  id
-                  lrn
-                  title
-                  acl
-                  summary
-                  summary_short
-                  assets
-                  structured_data
-                  associated_channels {
-                    lrn
-                  }
-                }
+fragment Feature on Feature {
+  id
+  lrn
+  title
+  acl
+  assets
+  summary
+  short_summary
+  structured_data
+  associated_channels {
+      lrn
+  }
+}
 
 
-                fragment Season on Season {
-                  id
-                  lrn
-                  title
-                  acl
-                  number
-                  summary
-                  short_summary
-                  assets
-                  structured_data
-                }
+fragment Series on Serie {
+  id
+  lrn
+  title
+  acl
+  summary
+  summary_short
+  assets
+  structured_data
+  associated_channels {
+    lrn
+  }
+}
 
 
-                fragment Episode on Episode {
-                  id
-                  lrn
-                  title
-                  acl
-                  assets
-                  number
-                  summary
-                  short_summary
-                  structured_data
-                  associated_miniseries {
-                    lrn
-                  }
-                  associated_season {
-                    lrn
-                    associated_series {
-                      lrn
-                    }
-                  }
-                }
+fragment Season on Season {
+  id
+  lrn
+  title
+  acl
+  number
+  summary
+  short_summary
+  assets
+  structured_data
+}
 
 
-                fragment Stream on Stream {
-                  id
-                  lrn
-                  title
-                  short_title
-                  summary
-                  short_summary
-                  acl
-                  type
-                  assets
-                  structured_data
-                }
+fragment Episode on Episode {
+  id
+  lrn
+  title
+  acl
+  assets
+  number
+  summary
+  short_summary
+  structured_data
+  associated_miniseries {
+    lrn
+  }
+  associated_season {
+    lrn
+    associated_series {
+      lrn
+    }
+  }
+}
 
 
-                fragment Playlist on Playlist {
-                  id
-                  lrn
-                  title
-                  short_title
-                  short_summary
-                  summary
-                  acl
-                  assets
-                  associated_channels {
-                    lrn
-                  }
-                }
+fragment Stream on Stream {
+  id
+  lrn
+  title
+  short_title
+  summary
+  short_summary
+  acl
+  type
+  assets
+  structured_data
+}
 
 
-                fragment Metadata on Metadata {
-                    name
-                    lrn
-                    marketing_body_text
-                    marketing_header_text
-                }
+fragment Playlist on Playlist {
+  id
+  lrn
+  title
+  short_title
+  short_summary
+  summary
+  acl
+  assets
+  associated_channels {
+    lrn
+  }
+}
 
 
-                fragment Presentation on Presentation {
-                    avails_open_date
-                    avails_close_date
-                    lrn
-                    note
-                    condition
-                    is_released
-                    is_opened
-                    is_closed
-                    restrictions {
-                      enabled
-                      lrn
-                    }
-                }
-                """
-            ),
+fragment Metadata on Metadata {
+    name
+    lrn
+    marketing_body_text
+    marketing_header_text
+}
+
+
+fragment Presentation on Presentation {
+    avails_open_date
+    avails_close_date
+    lrn
+    note
+    condition
+    is_released
+    is_opened
+    is_closed
+    restrictions {
+      enabled
+      lrn
+    }
+}
+""",
             'variables': {
                 'lrn': f'lrn:12core:media:content:channel:{channel_id}',
             },
-        }).encode('utf-8'))
-        req.add_header('Content-Type', 'application/json')
-        data = json.loads(urllib.request.urlopen(req).read())
+        }).encode('utf-8'), headers={'Content-Type': 'application/json'})
 
         entries = []
+        if not data['data']['channel']:
+            raise ExtractorError('Unable to extract video info, make sure the URL is valid')
         for feature in data['data']['channel']['features']:
             for video in feature['assets']['videos']:
                 entries.append({
@@ -403,4 +390,4 @@ class RadLiveChannelIE(RadLiveIE):
                     'ie_key': RadLiveIE.ie_key(),
                 })
 
-        return self.playlist_result(entries, channel_id, traverse_obj(data, ('data', 'channel', 'name'))
+        return self.playlist_result(entries, channel_id, traverse_obj(data, ('data', 'channel', 'name')))
