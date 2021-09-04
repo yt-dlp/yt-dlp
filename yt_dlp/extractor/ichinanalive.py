@@ -128,20 +128,20 @@ class IchinanaLiveClipIE(InfoExtractor):
             formats.append({
                 'id': 'video',
                 'url': view_data['videoURL'],
-                'preference': -1,
+                'quality': -1,
             })
         if view_data.get('transcodeURL'):
             formats.append({
                 'id': 'transcode',
                 'url': view_data['transcodeURL'],
-                'preference': -1,
+                'quality': -1,
             })
         if view_data.get('srcVideoURL'):
             # highest quality
             formats.append({
                 'id': 'srcVideo',
                 'url': view_data['srcVideoURL'],
-                'preference': 1,
+                'quality': 1,
             })
 
         for fmt in formats:
@@ -153,7 +153,7 @@ class IchinanaLiveClipIE(InfoExtractor):
                 'http_headers': {'Referer': url},
             })
 
-        self._sort_formats(formats, field_preference=('preference', ))
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
