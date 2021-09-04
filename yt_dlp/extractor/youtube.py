@@ -48,6 +48,7 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     qualities,
+    remove_end,
     remove_start,
     smuggle_url,
     str_or_none,
@@ -720,7 +721,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 if message:
                     yield alert_type, message
 
-    def _report_alerts(self, alerts, expected=True, fatal=True):
+    def _report_alerts(self, alerts, expected=True, fatal=True, only_once=False):
         errors = []
         warnings = []
         for alert_type, alert_message in alerts:
@@ -730,7 +731,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 warnings.append([alert_type, alert_message])
 
         for alert_type, alert_message in (warnings + errors[:-1]):
-            self.report_warning('YouTube said: %s - %s' % (alert_type, alert_message))
+            self.report_warning('YouTube said: %s - %s' % (alert_type, alert_message), only_once=only_once)
         if errors:
             raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
 
@@ -779,7 +780,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         while count < retries:
             count += 1
             if last_error:
-                self.report_warning('%s. Retrying ...' % last_error)
+                self.report_warning('%s. Retrying ...' % remove_end(last_error, '.'))
             try:
                 response = self._call_api(
                     ep=ep, fatal=True, headers=headers,
@@ -814,8 +815,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             else:
                 # Youtube may send alerts if there was an issue with the continuation page
                 try:
-                    self._extract_and_report_alerts(response, expected=False)
+                    self._extract_and_report_alerts(response, expected=False, only_once=True)
                 except ExtractorError as e:
+                    # YouTube servers may return errors we want to retry on in a 200 OK response
+                    # See: https://github.com/yt-dlp/yt-dlp/issues/839
+                    if 'unknown error' in e.msg.lower():
+                        last_error = e.msg
+                        continue
                     if fatal:
                         raise
                     self.report_warning(error_to_compat_str(e))
@@ -4285,7 +4291,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
         if 'no-youtube-unavailable-videos' not in compat_opts:
             data = self._reload_with_unavailable_videos(item_id, data, webpage) or data
-        self._extract_and_report_alerts(data)
+        self._extract_and_report_alerts(data, only_once=True)
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
         if tabs:
