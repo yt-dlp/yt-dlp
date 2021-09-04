@@ -4387,6 +4387,8 @@ def js_to_json(code, vars={}):
         v = m.group(0)
         if v in ('true', 'false', 'null'):
             return v
+        elif v in ('undefined', 'void 0'):
+            return 'null'
         elif v.startswith('/*') or v.startswith('//') or v.startswith('!') or v == ',':
             return ""
 
@@ -4413,7 +4415,7 @@ def js_to_json(code, vars={}):
         "(?:[^"\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^"\\]*"|
         '(?:[^'\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^'\\]*'|
         {comment}|,(?={skip}[\]}}])|
-        (?:(?<![0-9])[eE]|[a-df-zA-DF-Z_])[.a-zA-Z_0-9]*|
+        void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
         \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{skip}:)?|
         [0-9]+(?={skip}:)|
         !+
