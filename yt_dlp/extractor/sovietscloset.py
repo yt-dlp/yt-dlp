@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     js_to_json,
+    try_get,
     unified_timestamp
 )
 
@@ -25,11 +26,12 @@ class SovietsClosetBaseIE(InfoExtractor):
 
         return self._parse_json(js_to_json(js, args), video_id)['data'][0]
 
-    def video_meta(self, video_id, stream_date, game_name, category_name, episode_number):
+    def video_meta(self, video_id, game_name, category_name, episode_number, stream_date):
         title = game_name
-        if category_name != 'Misc':
+        if category_name and category_name != 'Misc':
             title += f' - {category_name}'
-        title += f' #{episode_number}'
+        if episode_number:
+            title += f' #{episode_number}'
 
         timestamp = unified_timestamp(stream_date)
 
@@ -115,7 +117,6 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         self._sort_formats(m3u8_formats)
 
         return {
-            'url': m3u8_url,
             'formats': m3u8_formats,
             'thumbnail': thumbnail_url,
         }
@@ -130,7 +131,10 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         stream = self.parse_nuxt_jsonp(f'{static_assets_base}/video/{video_id}/payload.js', video_id, 'video')['stream']
 
         return {
-            **self.video_meta(video_id, stream['date'], stream['game']['name'], stream['subcategory']['name'], stream['number']),
+            **self.video_meta(
+                video_id=video_id, game_name=stream['game']['name'],
+                category_name=try_get(stream, lambda x: x['subcategory']['name'], str),
+                episode_number=stream.get('number'), stream_date=stream.get('date')),
             **self._extract_bunnycdn_iframe(video_id, stream['bunnyId']),
         }
 
@@ -190,7 +194,9 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
             playlist_title += f' - {category.get("name") or category_slug}'
         entries = [{
             **self.url_result(f'https://sovietscloset.com/video/{stream["id"]}', ie=SovietsClosetIE.ie_key()),
-            **self.video_meta(stream['id'], stream['date'], game['name'], category['name'], i + 1),
+            **self.video_meta(
+                video_id=stream['id'], game_name=game['name'], category_name=category.get('name'),
+                episode_number=i + 1, stream_date=stream.get('date')),
         } for i, stream in enumerate(category['streams'])]
 
         return self.playlist_result(entries, playlist_id, playlist_title)
