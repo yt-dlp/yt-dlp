@@ -4,7 +4,6 @@ import re
 from time import sleep
 
 from .dash import DashSegmentsFD
-from ..downloader import get_suitable_downloader
 from ..extractor.youtube import YoutubeIE
 
 from ..utils import (
