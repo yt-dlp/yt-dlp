@@ -23,6 +23,8 @@ from ..utils import (
     int_or_none,
     KNOWN_EXTENSIONS,
     mimetype2ext,
+    network_exceptions,
+    remove_end,
     parse_qs,
     str_or_none,
     try_get,
@@ -662,7 +664,7 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudIE):
             'entries': self._entries(base_url, playlist_id),
         }
 
-    def _entries(self, base_url, playlist_id):
+    def _entries(self, url, playlist_id):
         # Per the SoundCloud documentation, the maximum limit for a linked partitioning query is 200.
         # https://developers.soundcloud.com/blog/offset-pagination-deprecated
         query = {
@@ -671,12 +673,25 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudIE):
             'offset': 0,
         }
 
+        retries = self.get_param('extractor_retries', 3)
 
-        next_href = base_url
         for i in itertools.count():
-            response = self._download_json(
-                next_href, playlist_id,
-                'Downloading track page %s' % (i + 1), query=query, headers=self._HEADERS)
+            attempt, last_error = -1, None
+            while attempt < retries:
+                attempt += 1
+                if last_error:
+                    self.report_warning('%s. Retrying ...' % remove_end(last_error, '.'), playlist_id)
+                try:
+                    response = self._download_json(
+                        url, playlist_id, query=query, headers=self._HEADERS,
+                        note='Downloading track page %s%s' % (i + 1, f' (retry #{attempt})' if attempt else ''))
+                    break
+                except ExtractorError as e:
+                    # Downloading page may result in intermittent 502 HTTP error
+                    # See https://github.com/yt-dlp/yt-dlp/issues/872
+                    if attempt >= retries or not isinstance(e.cause, compat_HTTPError) or e.cause.code != 502:
+                        raise
+                    last_error = str(e.cause or e.msg)
 
             def resolve_entry(*candidates):
                 for cand in candidates:
@@ -692,7 +707,7 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudIE):
             for e in response['collection'] or []:
                 yield resolve_entry(e, e.get('track'), e.get('playlist'))
 
-            next_href = response.get('next_href')
+            url = response.get('next_href')
             query.pop('offset', None)
 
 
