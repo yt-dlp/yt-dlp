@@ -23,7 +23,6 @@ from ..utils import (
     int_or_none,
     KNOWN_EXTENSIONS,
     mimetype2ext,
-    network_exceptions,
     remove_end,
     parse_qs,
     str_or_none,
@@ -709,7 +708,6 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudIE):
 
             url = response.get('next_href')
             query.pop('offset', None)
-
 
 
 class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):

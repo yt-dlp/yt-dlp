@@ -132,9 +132,9 @@ class TikTokIE(InfoExtractor):
 
 class TikTokUserIE(InfoExtractor):
     IE_NAME = 'tiktok:user'
-    _VALID_URL = r'(?!.*/video/)https?://www\.tiktok\.com/@(?P<id>[\w\._]+)'
+    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\._]+)/?(?:$|[#?])'
     _TESTS = [{
-        'url': 'https://www.tiktok.com/@corgibobaa?lang=en',
+        'url': 'https://tiktok.com/@corgibobaa?lang=en',
         'playlist_mincount': 45,
         'info_dict': {
             'id': '6935371178089399301',
@@ -196,7 +196,7 @@ class TikTokUserIE(InfoExtractor):
                         'Referer': video_url,
                     }
                 }
-            if not data_json['hasMore']:
+            if not data_json.get('hasMore'):
                 break
             cursor = data_json['cursor']
 
