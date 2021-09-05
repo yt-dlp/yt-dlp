@@ -95,7 +95,6 @@ class MediaKlikkIE(InfoExtractor):
         self._sort_formats(formats)
 
         return {
-            '_type': 'video',
             'id': video_id,
             'title': title,
             'display_id': display_id,
