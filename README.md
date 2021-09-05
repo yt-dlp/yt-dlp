@@ -1436,7 +1436,10 @@ The following extractors use this feature:
 * **youtube**
     * `skip`: `hls` or `dash` (or both) to skip download of the respective manifests
     * `player_client`: Clients to extract video data from. The main clients are `web`, `android`, `ios`, `mweb`. These also have `_music`, `_embedded`, `_agegate`, and `_creator` variants (Eg: `web_embedded`) (`mweb` has only `_agegate`). By default, `android,web` is used, but the agegate and creator variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can also use `all` to use all the clients
-    * `player_skip`: `configs` - skip any requests for client configs and use defaults
+    * `player_skip`:
+        - `configs` - skip any requests for client configs and use defaults
+        - `webpage` - skip request for the initial webpage
+        - `js` - skip request & usage of the js player file for all clients
     * `include_live_dash`: Include live dash formats (These formats don't download properly)
     * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side).
     * `max_comments`: Maximum amount of comments to download (default all).
