@@ -87,8 +87,8 @@ class MediaKlikkIE(InfoExtractor):
 
         player_data['video'] = player_data.pop('token')
         player_page = self._download_webpage('https://player.mediaklikk.hu/playernew/player.php', video_id, query=player_data)
-        playlist_url = 'https:' + compat_urllib_parse_unquote(
-            self._html_search_regex(r'\"file\":\s*\"(\\?/\\?/.*playlist\.m3u8)\"', player_page, 'playlist_url')).replace('\\/', '/')
+        playlist_url = self._proto_relative_url(compat_urllib_parse_unquote(
+            self._html_search_regex(r'\"file\":\s*\"(\\?/\\?/.*playlist\.m3u8)\"', player_page, 'playlist_url')).replace('\\/', '/'))
 
         formats = self._extract_wowza_formats(
             playlist_url, video_id, skip_protocols=['f4m', 'smil', 'dash'])
