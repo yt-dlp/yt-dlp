@@ -18,22 +18,40 @@ class DashSegmentsFD(FragmentFD):
         if info_dict.get('is_live'):
             self.report_error('Live DASH videos are not supported')
 
-        fragment_base_url = info_dict.get('fragment_base_url')
-        fragments = info_dict['fragments'][:1] if self.params.get(
-            'test', False) else info_dict['fragments']
-
         real_downloader = get_suitable_downloader(
             info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
+        is_live, fragment_count = self._calculate_fragment_count(info_dict)
         ctx = {
             'filename': filename,
-            'total_frags': len(fragments),
+            'is_live': is_live,
+            'total_frags': fragment_count,
         }
 
         if real_downloader:
             self._prepare_external_frag_download(ctx)
         else:
             self._prepare_and_start_frag_download(ctx, info_dict)
+
+        fragments_to_download = self._get_fragments(info_dict, ctx)
+
+        if real_downloader:
+            self.to_screen(
+                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
+            info_copy = info_dict.copy()
+            info_copy['fragments'] = fragments_to_download
+            fd = real_downloader(self.ydl, self.params)
+            return fd.real_download(filename, info_copy)
+
+        return self.download_and_append_fragments(ctx, fragments_to_download, info_dict)
+
+    def _calculate_fragment_count(self, info_dict):
+        return False, (1 if self.params.get('test', False) else len(info_dict['fragments']))
+
+    def _get_fragments(self, info_dict, ctx):
+        fragment_base_url = info_dict.get('fragment_base_url')
+        fragments = info_dict['fragments'][:1] if self.params.get(
+            'test', False) else info_dict['fragments']
 
         fragments_to_download = []
         frag_index = 0
@@ -52,12 +70,4 @@ class DashSegmentsFD(FragmentFD):
                 'url': fragment_url,
             })
 
-        if real_downloader:
-            self.to_screen(
-                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
-            info_copy = info_dict.copy()
-            info_copy['fragments'] = fragments_to_download
-            fd = real_downloader(self.ydl, self.params)
-            return fd.real_download(filename, info_copy)
-
-        return self.download_and_append_fragments(ctx, fragments_to_download, info_dict)
+        return fragments_to_download

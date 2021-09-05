@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import re
 from time import sleep
 
-from .fragment import FragmentFD
+from .dash import DashSegmentsFD
 from ..downloader import get_suitable_downloader
 from ..extractor.youtube import YoutubeIE
 
@@ -13,7 +13,7 @@ from ..utils import (
 )
 
 
-class YoutubeDlFromStartDashFD(FragmentFD):
+class YoutubeDlFromStartDashFD(DashSegmentsFD):
     """
     Download YouTube live from the start, to the end. For DASH formats.
     This currently does not handle downloading 2 streams at once.
@@ -62,7 +62,10 @@ class YoutubeDlFromStartDashFD(FragmentFD):
                 sleep((now_time - prev_dl) / 1e3)
             prev_dl = now_time
 
-    def real_download(self, filename, info_dict):
+    def _calculate_fragment_count(self, info_dict):
+        return True, None
+
+    def _get_fragments(self, info_dict, ctx):
         manifest_url = info_dict.get('manifest_url')
         if not manifest_url:
             self.report_error('URL for MPD manifest is not known; there is a problem in YoutubeIE code')
@@ -70,27 +73,4 @@ class YoutubeDlFromStartDashFD(FragmentFD):
         stream_number = info_dict.get('manifest_stream_number', 0)
         yie: YoutubeIE = self.ydl.get_info_extractor(YoutubeIE.ie_key())
 
-        real_downloader = get_suitable_downloader(
-            info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
-
-        ctx = {
-            'filename': filename,
-            'live': True,
-        }
-
-        if real_downloader:
-            self._prepare_external_frag_download(ctx)
-        else:
-            self._prepare_and_start_frag_download(ctx, info_dict)
-
-        fragments_to_download = self._manifest_fragments(yie, manifest_url, stream_number)
-
-        if real_downloader:
-            self.to_screen(
-                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
-            info_copy = info_dict.copy()
-            info_copy['fragments'] = fragments_to_download
-            fd = real_downloader(self.ydl, self.params)
-            return fd.real_download(filename, info_copy)
-
-        return self.download_and_append_fragments(ctx, fragments_to_download, info_dict, ignore_lethal_error=True)
+        return self._manifest_fragments(yie, manifest_url, stream_number)
