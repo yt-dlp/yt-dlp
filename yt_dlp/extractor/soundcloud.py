@@ -14,7 +14,6 @@ from ..compat import (
     compat_HTTPError,
     compat_kwargs,
     compat_str,
-    compat_urlparse,
 )
 from ..utils import (
     error_to_compat_str,
@@ -24,6 +23,7 @@ from ..utils import (
     int_or_none,
     KNOWN_EXTENSIONS,
     mimetype2ext,
+    parse_qs,
     str_or_none,
     try_get,
     unified_timestamp,
@@ -49,8 +49,7 @@ class SoundcloudEmbedIE(InfoExtractor):
             webpage)]
 
     def _real_extract(self, url):
-        query = compat_urlparse.parse_qs(
-            compat_urlparse.urlparse(url).query)
+        query = parse_qs(url)
         api_url = query['url'][0]
         secret_token = query.get('secret_token')
         if secret_token:
@@ -656,64 +655,46 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
 
 class SoundcloudPagedPlaylistBaseIE(SoundcloudIE):
     def _extract_playlist(self, base_url, playlist_id, playlist_title):
-        # Per the SoundCloud documentation, the maximum limit for a linked partitioning query is 200.
-        # https://developers.soundcloud.com/blog/offset-pagination-deprecated
-        COMMON_QUERY = {
-            'limit': 200,
-            'linked_partitioning': '1',
+        return {
+            '_type': 'playlist',
+            'id': playlist_id,
+            'title': playlist_title,
+            'entries': self._entries(base_url, playlist_id),
         }
 
-        query = COMMON_QUERY.copy()
-        query['offset'] = 0
+    def _entries(self, base_url, playlist_id):
+        # Per the SoundCloud documentation, the maximum limit for a linked partitioning query is 200.
+        # https://developers.soundcloud.com/blog/offset-pagination-deprecated
+        query = {
+            'limit': 200,
+            'linked_partitioning': '1',
+            'offset': 0,
+        }
+
 
         next_href = base_url
-
-        entries = []
         for i in itertools.count():
             response = self._download_json(
                 next_href, playlist_id,
                 'Downloading track page %s' % (i + 1), query=query, headers=self._HEADERS)
 
-            collection = response['collection']
-
-            if not isinstance(collection, list):
-                collection = []
-
-            # Empty collection may be returned, in this case we proceed
-            # straight to next_href
-
-            def resolve_entry(candidates):
+            def resolve_entry(*candidates):
                 for cand in candidates:
                     if not isinstance(cand, dict):
                         continue
                     permalink_url = url_or_none(cand.get('permalink_url'))
-                    if not permalink_url:
-                        continue
-                    return self.url_result(
-                        permalink_url,
-                        SoundcloudIE.ie_key() if SoundcloudIE.suitable(permalink_url) else None,
-                        str_or_none(cand.get('id')), cand.get('title'))
+                    if permalink_url:
+                        return self.url_result(
+                            permalink_url,
+                            SoundcloudIE.ie_key() if SoundcloudIE.suitable(permalink_url) else None,
+                            str_or_none(cand.get('id')), cand.get('title'))
 
-            for e in collection:
-                entry = resolve_entry((e, e.get('track'), e.get('playlist')))
-                if entry:
-                    entries.append(entry)
+            for e in response['collection'] or []:
+                yield resolve_entry(e, e.get('track'), e.get('playlist'))
 
             next_href = response.get('next_href')
-            if not next_href:
-                break
+            query.pop('offset', None)
 
-            next_href = response['next_href']
-            parsed_next_href = compat_urlparse.urlparse(next_href)
-            query = compat_urlparse.parse_qs(parsed_next_href.query)
-            query.update(COMMON_QUERY)
-
-        return {
-            '_type': 'playlist',
-            'id': playlist_id,
-            'title': playlist_title,
-            'entries': entries,
-        }
 
 
 class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
