@@ -803,7 +803,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     # We also want to catch all other network exceptions since errors in later pages can be troublesome
                     # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
                     if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (403, 429):
-                        last_error = error_to_compat_str(e.cause or e)
+                        last_error = error_to_compat_str(e.cause or e.msg)
                         if count < retries:
                             continue
                 if fatal:

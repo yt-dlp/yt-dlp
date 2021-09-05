@@ -123,7 +123,7 @@ def _extract_firefox_cookies(profile, logger):
     cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite')
     if cookie_database_path is None:
         raise FileNotFoundError('could not find firefox cookies database in {}'.format(search_root))
-    logger.debug('extracting from: "{}"'.format(cookie_database_path))
+    logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
     with tempfile.TemporaryDirectory(prefix='youtube_dl') as tmpdir:
         cursor = None
@@ -240,7 +240,7 @@ def _extract_chrome_cookies(browser_name, profile, logger):
     cookie_database_path = _find_most_recently_used_file(search_root, 'Cookies')
     if cookie_database_path is None:
         raise FileNotFoundError('could not find {} cookies database in "{}"'.format(browser_name, search_root))
-    logger.debug('extracting from: "{}"'.format(cookie_database_path))
+    logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
     decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], logger)
 
