@@ -2,11 +2,13 @@
 from __future__ import unicode_literals
 
 from ..utils import (
-    str_or_none,
     unified_strdate
 )
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
+from ..compat import (
+    compat_urllib_parse_unquote,
+    compat_str
+)
 
 
 class MediaKlikkIE(InfoExtractor):
@@ -72,8 +74,7 @@ class MediaKlikkIE(InfoExtractor):
         player_data_str = self._html_search_regex(
             r'mtva_player_manager\.player\(document.getElementById\(.*\),\s?(\{.*\}).*\);', webpage, 'player data')
         player_data = self._parse_json(player_data_str, display_id, compat_urllib_parse_unquote)
-        video_id = str_or_none(player_data.get('contentId')) or display_id
-
+        video_id = compat_str(player_data['contentId'])
         title = player_data.get('title') or self._og_search_title(webpage, fatal=False) or \
             self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
 
