@@ -68,7 +68,8 @@ class MediaKlikkIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        mobj = self._match_valid_url(url)
+        display_id = mobj.group('id')
         webpage = self._download_webpage(url, display_id)
 
         player_data_str = self._html_search_regex(
@@ -78,7 +79,6 @@ class MediaKlikkIE(InfoExtractor):
         title = player_data.get('title') or self._og_search_title(webpage, fatal=False) or \
             self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
 
-        mobj = self._match_valid_url(url)
         upload_date = unified_strdate(
             '%s-%s-%s' % (mobj.group('year'), mobj.group('month'), mobj.group('day')))
         if not upload_date:
