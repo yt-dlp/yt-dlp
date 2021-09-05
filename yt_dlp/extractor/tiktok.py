@@ -220,7 +220,7 @@ class TikTokIE(InfoExtractor):
                 'vcodec': 'h264',
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
-                'source_preference': -2 if video_info.get('has_watermark') else -1,  # See https://github.com/yt-dlp/yt-dlp/pull/843#discussion_r699624504
+                'source_preference': -2 if video_info.get('has_watermark') else -1,
             }))
         if video_info.get('play_addr_h264'):
             formats.extend(extract_addr(video_info['play_addr_h264'], {
