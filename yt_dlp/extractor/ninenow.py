@@ -68,10 +68,9 @@ class NineNowIE(InfoExtractor):
             raise ExtractorError('This video is DRM protected.', expected=True)
         brightcove_id = \
             try_get(
-                common_data, 
-                lambda x: x['episode']['video']['brightcoveId'] or f"ref:{x['episode']['video']['referenceId']}"
-                , compat_str
-            ) 
+                common_data,
+                lambda x: x['episode']['video']['brightcoveId'] or f"ref:{x['episode']['video']['referenceId']}", compat_str
+            )
         video_id = try_get(common_data, lambda x: x['episode']['video']['id'] or brightcove_id, compat_str)
 
         # Episode/Season data extraction
