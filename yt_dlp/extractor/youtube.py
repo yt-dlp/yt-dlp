@@ -2749,7 +2749,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._get_requested_clients(url, smuggled_data),
             video_id, webpage, master_ytcfg, identity_token))
 
-        player_url = player_responses.pop(-1)
+        player_url = player_responses.pop()
         get_first = lambda obj, keys, **kwargs: traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
         playability_statuses = traverse_obj(
