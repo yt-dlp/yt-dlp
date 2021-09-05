@@ -1862,12 +1862,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._player_cache = {}
 
     def _extract_player_url(self, *ytcfgs, webpage=None):
-        for ytcfg in ytcfgs:
-            player_url = traverse_obj(
-                ytcfg, 'PLAYER_JS_URL', ('WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
-                get_all=False, expected_type=compat_str)
-            if player_url:
-                break
+        player_url = traverse_obj(
+            ytcfgs, (..., 'PLAYER_JS_URL'), (..., 'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
+            get_all=False, expected_type=compat_str)
         if not player_url:
             return None
         if player_url.startswith('//'):
