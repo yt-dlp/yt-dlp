@@ -1866,7 +1866,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             ytcfgs, (..., 'PLAYER_JS_URL'), (..., 'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
             get_all=False, expected_type=compat_str)
         if not player_url:
-            return None
+            return
         if player_url.startswith('//'):
             player_url = 'https:' + player_url
         elif not re.match(r'https?://', player_url):
