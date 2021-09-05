@@ -39,7 +39,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Subtitle Options](#subtitle-options)
     * [Authentication Options](#authentication-options)
     * [Post-processing Options](#post-processing-options)
-    * [SponSkrub (SponsorBlock) Options](#sponskrub-sponsorblock-options)
+    * [SponsorBlock Options](#sponsorblock-options)
     * [Extractor Options](#extractor-options)
 * [CONFIGURATION](#configuration)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
@@ -62,7 +62,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 # NEW FEATURES
 The major new features from the latest release of [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc) are:
 
-* **[SponSkrub Integration](#sponskrub-sponsorblock-options)**: You can use [SponSkrub](https://github.com/yt-dlp/SponSkrub) to mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
+* **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection than what is possible by simply using `--format` ([examples](#format-selection-examples))
 
@@ -78,7 +78,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
     * Partial workaround for throttling issue
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
     * `255kbps` audio is extracted from youtube music if premium cookies are given
-    * Youtube music Albums, channels etc can be downloaded
+    * Youtube music Albums, channels etc can be downloaded ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723))
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[:PROFILE]`
 
@@ -88,9 +88,9 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ
+* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ, BannedVideo, bilibili categories, Epicon, filmmodu, GabTV, HungamaAlbum, ManotoTV, Niconico search, Patreon User, peloton, ProjectVeritas, radiko, StarTV, tiktok user, Tokentube, voicy, TV2HuSeries
 
-* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds
+* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds, SAML Verizon login, Hungama, afreecatv, aljazeera, ATV, bitchute, camtube, CDA, eroprofile, facebook, HearThisAtIE, iwara, kakao, Motherless, Nova, peertube, pornhub, reddit, tiktok, TV2, TV2Hu, tv5mondeplus, VH1, Viafree, XHamster
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -194,7 +194,6 @@ On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https:
 
 While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly recommended
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging seperate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. Licence [depends on the build](https://www.ffmpeg.org/legal.html)
-* [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the [sponskrub options](#sponskrub-sponsorblock-options). Licenced under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licenced under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
 * [**pycryptodome**](https://github.com/Legrandin/pycryptodome) - For decrypting various data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licenced under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
@@ -203,6 +202,7 @@ While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](http://rtmpdump.mplayerhq.hu)
 * [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp` streams. ffmpeg will be used as a fallback. Licenced under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
 * [**phantomjs**](https://github.com/ariya/phantomjs) - Used in extractors where javascript needs to be run. Licenced under [BSD3](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD)
+* [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the now **deprecated** [sponskrub options](#sponskrub-options). Licenced under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
 * Any external downloader that you want to use with `--downloader`
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
@@ -256,9 +256,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      extractor
     --default-search PREFIX          Use this prefix for unqualified URLs. For
                                      example "gvsearch2:" downloads two videos
-                                     from google videos for youtube-dl "large
-                                     apple". Use the value "auto" to let
-                                     youtube-dl guess ("auto_warning" to emit a
+                                     from google videos for the search term
+                                     "large apple". Use the value "auto" to let
+                                     yt-dlp guess ("auto_warning" to emit a
                                      warning when guessing). "error" just throws
                                      an error. The default value "fixup_error"
                                      repairs broken URLs, but emits an error if
@@ -325,10 +325,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      specify range: "--playlist-items
                                      1-3,7,10-13", it will download the videos
                                      at index 1, 2, 3, 7, 10, 11, 12 and 13
-    --match-title REGEX              Download only matching titles (regex or
-                                     caseless sub-string)
-    --reject-title REGEX             Skip download for matching titles (regex or
-                                     caseless sub-string)
     --max-downloads NUMBER           Abort after downloading NUMBER files
     --min-filesize SIZE              Do not download any videos smaller than
                                      SIZE (e.g. 50k or 44.6m)
@@ -343,10 +339,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --dateafter DATE                 Download only videos uploaded on or after
                                      this date. The date formats accepted is the
                                      same as --date
-    --min-views COUNT                Do not download any videos with less than
-                                     COUNT views
-    --max-views COUNT                Do not download any videos with more than
-                                     COUNT views
     --match-filter FILTER            Generic video filter. Any field (see
                                      "OUTPUT TEMPLATE") can be compared with a
                                      number or a string using the operators
@@ -511,9 +503,6 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --write-info-json                Write video metadata to a .info.json file
                                      (this may contain personal information)
     --no-write-info-json             Do not write video metadata (default)
-    --write-annotations              Write video annotations to a
-                                     .annotations.xml file
-    --no-write-annotations           Do not write video annotations (default)
     --write-playlist-metafiles       Write playlist metadata in addition to the
                                      video metadata when using --write-info-json,
                                      --write-description etc. (default)
@@ -552,8 +541,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --cache-dir DIR                  Location in the filesystem where youtube-dl
                                      can store some downloaded information (such
                                      as client ids and signatures) permanently.
-                                     By default $XDG_CACHE_HOME/youtube-dl or
-                                     ~/.cache/youtube-dl
+                                     By default $XDG_CACHE_HOME/yt-dlp or
+                                     ~/.cache/yt-dlp
     --no-cache-dir                   Disable filesystem caching
     --rm-cache-dir                   Delete all filesystem cache files
 
@@ -744,24 +733,23 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      and the arguments separated by a colon ":"
                                      to give the argument to the specified
                                      postprocessor/executable. Supported PP are:
-                                     Merger, ExtractAudio, SplitChapters,
+                                     Merger, ModifyChapters, SplitChapters,
+                                     ExtractAudio, VideoRemuxer, VideoConvertor,
                                      Metadata, EmbedSubtitle, EmbedThumbnail,
                                      SubtitlesConvertor, ThumbnailsConvertor,
-                                     VideoRemuxer, VideoConvertor, SponSkrub,
                                      FixupStretched, FixupM4a, FixupM3u8,
                                      FixupTimestamp and FixupDuration. The
                                      supported executables are: AtomicParsley,
-                                     FFmpeg, FFprobe, and SponSkrub. You can
-                                     also specify "PP+EXE:ARGS" to give the
-                                     arguments to the specified executable only
-                                     when being used by the specified
-                                     postprocessor. Additionally, for
-                                     ffmpeg/ffprobe, "_i"/"_o" can be appended
-                                     to the prefix optionally followed by a
-                                     number to pass the argument before the
-                                     specified input/output file. Eg: --ppa
-                                     "Merger+ffmpeg_i1:-v quiet". You can use
-                                     this option multiple times to give
+                                     FFmpeg and FFprobe. You can also specify
+                                     "PP+EXE:ARGS" to give the arguments to the
+                                     specified executable only when being used
+                                     by the specified postprocessor.
+                                     Additionally, for ffmpeg/ffprobe, "_i"/"_o"
+                                     can be appended to the prefix optionally
+                                     followed by a number to pass the argument
+                                     before the specified input/output file. Eg:
+                                     --ppa "Merger+ffmpeg_i1:-v quiet". You can
+                                     use this option multiple times to give
                                      different arguments to different
                                      postprocessors. (Alias: --ppa)
     -k, --keep-video                 Keep the intermediate video file on disk
@@ -775,11 +763,15 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-embed-subs                  Do not embed subtitles (default)
     --embed-thumbnail                Embed thumbnail in the video as cover art
     --no-embed-thumbnail             Do not embed thumbnail (default)
-    --embed-metadata                 Embed metadata including chapter markers
-                                     (if supported by the format) to the video
-                                     file (Alias: --add-metadata)
-    --no-embed-metadata              Do not write metadata (default)
+    --embed-metadata                 Embed metadata to the video file. Also adds
+                                     chapters to file unless --no-add-chapters
+                                     is used (Alias: --add-metadata)
+    --no-embed-metadata              Do not add metadata to file (default)
                                      (Alias: --no-add-metadata)
+    --embed-chapters                 Add chapter markers to the video file
+                                     (Alias: --add-chapters)
+    --no-embed-chapters              Do not add chapter markers (default)
+                                     (Alias: --no-add-chapters)
     --parse-metadata FROM:TO         Parse additional metadata like title/artist
                                      from other fields; see "MODIFYING METADATA"
                                      for details
@@ -827,27 +819,51 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      files. See "OUTPUT TEMPLATE" for details
     --no-split-chapters              Do not split video based on chapters
                                      (default)
+    --remove-chapters REGEX          Remove chapters whose title matches the
+                                     given regular expression. This option can
+                                     be used multiple times
+    --no-remove-chapters             Do not remove any chapters from the file
+                                     (default)
+    --force-keyframes-at-cuts        Force keyframes around the chapters before
+                                     removing/splitting them. Requires a
+                                     reencode and thus is very slow, but the
+                                     resulting video may have fewer artifacts
+                                     around the cuts
+    --no-force-keyframes-at-cuts     Do not force keyframes around the chapters
+                                     when cutting/splitting (default)
 
-## SponSkrub (SponsorBlock) Options:
-[SponSkrub](https://github.com/yt-dlp/SponSkrub) is a utility to
-    mark/remove sponsor segments from downloaded YouTube videos using
+## SponsorBlock Options:
+Make chapter entries for, or remove various segments (sponsor,
+    introductions, etc.) from downloaded YouTube videos using the
     [SponsorBlock API](https://sponsor.ajay.app)
 
-    --sponskrub                      Use sponskrub to mark sponsored sections.
-                                     This is enabled by default if the sponskrub
-                                     binary exists (Youtube only)
-    --no-sponskrub                   Do not use sponskrub
-    --sponskrub-cut                  Cut out the sponsor sections instead of
-                                     simply marking them
-    --no-sponskrub-cut               Simply mark the sponsor sections, not cut
-                                     them out (default)
-    --sponskrub-force                Run sponskrub even if the video was already
-                                     downloaded
-    --no-sponskrub-force             Do not cut out the sponsor sections if the
-                                     video was already downloaded (default)
-    --sponskrub-location PATH        Location of the sponskrub binary; either
-                                     the path to the binary or its containing
-                                     directory
+    --sponsorblock-mark CATS         SponsorBlock categories to create chapters
+                                     for, separated by commas. Available
+                                     categories are all, sponsor, intro, outro,
+                                     selfpromo, interaction, preview,
+                                     music_offtopic. You can prefix the category
+                                     with a "-" to exempt it. See 
+                                     https://wiki.sponsor.ajay.app/index.php/Segment_Categories
+                                     for description of the categories. Eg:
+                                     --sponsorblock-query all,-preview
+    --sponsorblock-remove CATS       SponsorBlock categories to be removed from
+                                     the video file, separated by commas. If a
+                                     category is present in both mark and
+                                     remove, remove takes precedence. The syntax
+                                     and available categories are the same as
+                                     for --sponsorblock-mark
+    --sponsorblock-chapter-title TEMPLATE
+                                     The title template for SponsorBlock
+                                     chapters created by --sponsorblock-mark.
+                                     The same syntax as the output template is
+                                     used, but the only available fields are
+                                     start_time, end_time, category, categories,
+                                     name, category_names. Defaults to
+                                     "[SponsorBlock]: %(category_names)l"
+    --no-sponsorblock                Disable both --sponsorblock-mark and
+                                     --sponsorblock-remove
+    --sponsorblock-api URL           SponsorBlock API location, defaults to
+                                     https://sponsor.ajay.app
 
 ## Extractor Options:
     --extractor-retries RETRIES      Number of retries for known extractor
@@ -950,7 +966,7 @@ To summarize, the general syntax for a field is:
 %(name[.keys][addition][>strf][|default])[flags][width][.precision][length]type
 ```
 
-Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation`, `infojson`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
+Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
 
 The available fields are:
 
@@ -1057,6 +1073,15 @@ Available only when used in `--print`:
 
  - `urls` (string): The URLs of all requested formats, one in each line
  - `filename` (string): Name of the video file. Note that the actual filename may be different due to post-processing. Use `--exec echo` to get the name after all postprocessing is complete
+ 
+Available only in `--sponsorblock-chapter-title`:
+
+ - `start_time` (numeric): Start time of the chapter in seconds
+ - `end_time` (numeric): End time of the chapter in seconds
+ - `categories` (list): The SponsorBlock categories the chapter belongs to
+ - `category` (string): The smallest SponsorBlock category the chapter belongs to
+ - `category_names` (list): Friendly names of the categories
+ - `name` (string): Friendly name of the smallest category
 
 Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
@@ -1211,9 +1236,11 @@ The available fields are:
  - `br`: Equivalent to using `tbr,vbr,abr`
  - `asr`: Audio sample rate in Hz
 
-Note that any other **numerical** field made available by the extractor can also be used. All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
+All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
-The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `lang,quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. Note that the extractors may override this default order, but they cannot override the user-provided order.
+The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `lang,quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. The extractors may override this default order, but they cannot override the user-provided order.
+
+Note that the default has `codec:vp9.2`; i.e. `av1` is not prefered
 
 If your format selector is `worst`, the last item is selected after sorting. This means it will select the format that is worst in all respects. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps`.
 
@@ -1466,7 +1493,6 @@ While these options still work, their use is not recommended since there are oth
     --hls-prefer-ffmpeg              --downloader "m3u8:ffmpeg"
     --list-formats-old               --compat-options list-formats (Alias: --no-list-formats-as-table)
     --list-formats-as-table          --compat-options -list-formats [Default] (Alias: --no-list-formats-old)
-    --sponskrub-args ARGS            --ppa "sponskrub:ARGS"
     --youtube-skip-dash-manifest     --extractor-args "youtube:skip=dash" (Alias: --no-youtube-include-dash-manifest)
     --youtube-skip-hls-manifest      --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
     --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
@@ -1500,6 +1526,18 @@ These are aliases that are no longer documented for various reasons
     --trim-file-names LENGTH         --trim-filenames LENGTH
     --write-srt                      --write-subs
     --yes-overwrites                 --force-overwrites
+
+#### Sponskrub Options
+Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been deprecated in favor of `--sponsorblock`
+
+    --sponskrub                      --sponsorblock-mark all
+    --no-sponskrub                   --no-sponsorblock
+    --sponskrub-cut                  --sponsorblock-remove all
+    --no-sponskrub-cut               --sponsorblock-remove -all
+    --sponskrub-force                Not applicable
+    --no-sponskrub-force             Not applicable
+    --sponskrub-location             Not applicable
+    --sponskrub-args                 Not applicable
 
 #### No longer supported
 These options may no longer work as intended

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-from __future__ import unicode_literals
+f'You are using an unsupported version of Python. Only Python versions 3.6 and above are supported by yt-dlp'  # noqa: F541
 
 __license__ = 'Public Domain'
 
@@ -12,7 +12,6 @@ import os
 import random
 import re
 import sys
-
 
 from .options import (
     parseOpts,
@@ -307,6 +306,7 @@ def _real_main(argv=None):
     opts.forceprint = opts.forceprint or []
     for tmpl in opts.forceprint or []:
         validate_outtmpl(tmpl, 'print template')
+    validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'
@@ -353,15 +353,34 @@ def _real_main(argv=None):
     if opts.getcomments and not printing_json:
         opts.writeinfojson = True
 
+    if opts.no_sponsorblock:
+        opts.sponsorblock_mark = set()
+        opts.sponsorblock_remove = set()
+    sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
+
+    if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
+        opts.addchapters = True
+    opts.remove_chapters = opts.remove_chapters or []
+
     def report_conflict(arg1, arg2):
         warnings.append('%s is ignored since %s was given' % (arg2, arg1))
+
+    if (opts.remove_chapters or sponsorblock_query) and opts.sponskrub is not False:
+        if opts.sponskrub:
+            if opts.remove_chapters:
+                report_conflict('--remove-chapters', '--sponskrub')
+            if opts.sponsorblock_mark:
+                report_conflict('--sponsorblock-mark', '--sponskrub')
+            if opts.sponsorblock_remove:
+                report_conflict('--sponsorblock-remove', '--sponskrub')
+        opts.sponskrub = False
+    if opts.sponskrub_cut and opts.split_chapters and opts.sponskrub is not False:
+        report_conflict('--split-chapter', '--sponskrub-cut')
+        opts.sponskrub_cut = False
 
     if opts.remuxvideo and opts.recodevideo:
         report_conflict('--recode-video', '--remux-video')
         opts.remuxvideo = False
-    if opts.sponskrub_cut and opts.split_chapters and opts.sponskrub is not False:
-        report_conflict('--split-chapter', '--sponskrub-cut')
-        opts.sponskrub_cut = False
 
     if opts.allow_unplayable_formats:
         if opts.extractaudio:
@@ -388,12 +407,26 @@ def _real_main(argv=None):
         if opts.fixup and opts.fixup.lower() not in ('never', 'ignore'):
             report_conflict('--allow-unplayable-formats', '--fixup')
         opts.fixup = 'never'
+        if opts.remove_chapters:
+            report_conflict('--allow-unplayable-formats', '--remove-chapters')
+            opts.remove_chapters = []
+        if opts.sponsorblock_remove:
+            report_conflict('--allow-unplayable-formats', '--sponsorblock-remove')
+            opts.sponsorblock_remove = set()
         if opts.sponskrub:
             report_conflict('--allow-unplayable-formats', '--sponskrub')
         opts.sponskrub = False
 
     # PostProcessors
     postprocessors = []
+    if sponsorblock_query:
+        postprocessors.append({
+            'key': 'SponsorBlock',
+            'categories': sponsorblock_query,
+            'api': opts.sponsorblock_api,
+            # Run this immediately after extraction is complete
+            'when': 'pre_process'
+        })
     if opts.parse_metadata:
         postprocessors.append({
             'key': 'MetadataParser',
@@ -439,16 +472,7 @@ def _real_main(argv=None):
             'key': 'FFmpegVideoConvertor',
             'preferedformat': opts.recodevideo,
         })
-    # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
-    # FFmpegExtractAudioPP as containers before conversion may not support
-    # metadata (3gp, webm, etc.)
-    # And this post-processor should be placed before other metadata
-    # manipulating post-processors (FFmpegEmbedSubtitle) to prevent loss of
-    # extra metadata. By default ffmpeg preserves metadata applicable for both
-    # source and target containers. From this point the container won't change,
-    # so metadata can be added here.
-    if opts.addmetadata:
-        postprocessors.append({'key': 'FFmpegMetadata'})
+    # If ModifyChapters is going to remove chapters, subtitles must already be in the container.
     if opts.embedsubtitles:
         already_have_subtitle = opts.writesubtitles and 'no-keep-subs' not in compat_opts
         postprocessors.append({
@@ -462,6 +486,33 @@ def _real_main(argv=None):
     # this was the old behaviour if only --all-sub was given.
     if opts.allsubtitles and not opts.writeautomaticsub:
         opts.writesubtitles = True
+    # ModifyChapters must run before FFmpegMetadataPP
+    remove_chapters_patterns = []
+    for regex in opts.remove_chapters:
+        try:
+            remove_chapters_patterns.append(re.compile(regex))
+        except re.error as err:
+            parser.error(f'invalid --remove-chapters regex {regex!r} - {err}')
+    if opts.remove_chapters or sponsorblock_query:
+        postprocessors.append({
+            'key': 'ModifyChapters',
+            'remove_chapters_patterns': remove_chapters_patterns,
+            'remove_sponsor_segments': opts.sponsorblock_remove,
+            'sponsorblock_chapter_title': opts.sponsorblock_chapter_title,
+            'force_keyframes': opts.force_keyframes_at_cuts
+        })
+    # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
+    # FFmpegExtractAudioPP as containers before conversion may not support
+    # metadata (3gp, webm, etc.)
+    # By default ffmpeg preserves metadata applicable for both
+    # source and target containers. From this point the container won't change,
+    # so metadata can be added here.
+    if opts.addmetadata or opts.addchapters:
+        postprocessors.append({
+            'key': 'FFmpegMetadata',
+            'add_chapters': opts.addchapters,
+            'add_metadata': opts.addmetadata,
+        })
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
     # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
@@ -485,7 +536,10 @@ def _real_main(argv=None):
         if not already_have_thumbnail:
             opts.writethumbnail = True
     if opts.split_chapters:
-        postprocessors.append({'key': 'FFmpegSplitChapters'})
+        postprocessors.append({
+            'key': 'FFmpegSplitChapters',
+            'force_keyframes': opts.force_keyframes_at_cuts,
+        })
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})

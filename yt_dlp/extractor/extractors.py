@@ -547,6 +547,10 @@ from .hungama import (
     HungamaAlbumPlaylistIE,
 )
 from .hypem import HypemIE
+from .ichinanalive import (
+    IchinanaLiveIE,
+    IchinanaLiveClipIE,
+)
 from .ign import (
     IGNIE,
     IGNVideoIE,
@@ -1278,6 +1282,10 @@ from .southpark import (
     SouthParkEsIE,
     SouthParkNlIE
 )
+from .sovietscloset import (
+    SovietsClosetIE,
+    SovietsClosetPlaylistIE
+)
 from .spankbang import (
     SpankBangIE,
     SpankBangPlaylistIE,
@@ -1409,6 +1417,10 @@ from .tnaflix import (
 from .toggle import (
     ToggleIE,
     MeWatchIE,
+)
+from .tokentube import (
+    TokentubeIE,
+    TokentubeChannelIE
 )
 from .tonline import TOnlineIE
 from .toongoggles import ToonGogglesIE

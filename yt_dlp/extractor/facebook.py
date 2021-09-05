@@ -479,7 +479,7 @@ class FacebookIE(InfoExtractor):
             for f in formats:
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
 
-            self._sort_formats(formats)
+            self._sort_formats(formats, ('res', 'quality'))
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -687,13 +687,14 @@ class FacebookIE(InfoExtractor):
                 for src_type in ('src', 'src_no_ratelimit'):
                     src = f[0].get('%s_%s' % (quality, src_type))
                     if src:
-                        preference = -10 if format_id == 'progressive' else 0
+                        preference = -10 if format_id == 'progressive' else -1
                         if quality == 'hd':
                             preference += 5
                         formats.append({
                             'format_id': '%s_%s_%s' % (format_id, quality, src_type),
                             'url': src,
                             'quality': preference,
+                            'height': 720 if quality == 'hd' else None
                         })
             extract_dash_manifest(f[0], formats)
             subtitles_src = f[0].get('subtitles_src')
