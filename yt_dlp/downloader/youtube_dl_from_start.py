@@ -57,8 +57,9 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
             known_idx = last_seq
 
             now_time = time_millis()
-            if (now_time - prev_dl) < fetch_span:
-                sleep((now_time - prev_dl) / 1e3)
+            elapsed = now_time - prev_dl
+            if 0 < elapsed and elapsed < fetch_span:
+                sleep((fetch_span - elapsed) / 1e3)
             prev_dl = now_time
 
     def _calculate_fragment_count(self, info_dict):
