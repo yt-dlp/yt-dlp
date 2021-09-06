@@ -184,7 +184,7 @@ class ZenYandexIE(InfoExtractor):
         self._sort_formats(formats)
         return {
             'id': id,
-            'title': try_get(data_json, lambda x: x['og']['title']) or try_get(data_json, lambda x: x['publication']['content']['preview']['title']),
+            'title': try_get(data_json, (lambda x: x['og']['title'], lambda x: x['publication']['content']['preview']['title'])),
             'uploader': data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
             'description': try_get(data_json, lambda x: x['og']['description']),
             'thumbnail': try_get(data_json, lambda x: x['og']['imageUrl']),
