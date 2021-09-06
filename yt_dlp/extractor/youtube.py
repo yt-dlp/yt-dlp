@@ -2528,6 +2528,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         original_clients = clients
         clients = clients[::-1]
         prs = []
+
         def append_client(client_name):
             if client_name in INNERTUBE_CLIENTS and client_name not in original_clients:
                 clients.append(client_name)
