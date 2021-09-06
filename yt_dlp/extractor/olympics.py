@@ -37,8 +37,12 @@ class OlympicsReplayIE(InfoExtractor):
         for t_dict in data_json['included']:
             if t_dict.get('type') == 'Stream':
                 stream_data = t_dict['attributes']
-        m3u8_url = self._download_json(f'https://meteringtok.ovpobs.tv/api/playback-sessions?alias={stream_data["alias"]}&stream={stream_data["stream"]}&type=vod',
-                                       id, headers=headers)['data']['attributes']['url']
+        m3u8_url = self._download_json(
+            'https://meteringtok.ovpobs.tv/api/playback-sessions', id, headers=headers, query={
+                'alias': stream_data['alias'],
+                'stream': stream_data['stream'],
+                'type': 'vod'
+            })['data']['attributes']['url']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, id)
         self._sort_formats(formats)
 
