@@ -4,8 +4,9 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
-    url_or_none,
-    try_get)
+    try_get,
+    url_or_none
+)
 
 import json
 
@@ -33,15 +34,16 @@ class GoToStageIE(InfoExtractor):
             'https://api.gotostage.com/contents?ids=%s' % video_id,
             video_id,
             note='Downloading video metadata',
-            errnote='Unable to download video metadata')
+            errnote='Unable to download video metadata')[0]
 
         registration_data = {
-            'product': try_get(metadata, lambda x: x[0]['product'], compat_str),
-            'resourceType': try_get(metadata, lambda x: x[0]['contentType'], compat_str),
-            'productReferenceKey': try_get(metadata, lambda x: x[0]['productRefKey'], compat_str),
+            'product': metadata['product'],
+            'resourceType': metadata['contentType'],
+            'productReferenceKey': metadata['productRefKey'],
             'firstName': 'foo',
             'lastName': 'bar',
-            'email': 'foobar@example.com'}
+            'email': 'foobar@example.com'
+        }
 
         registration_response = self._download_json(
             'https://api-registrations.logmeininc.com/registrations',
@@ -55,16 +57,17 @@ class GoToStageIE(InfoExtractor):
         content_response = self._download_json(
             'https://api.gotostage.com/contents/%s/asset' % video_id,
             video_id,
-            headers={'x-registrantkey': try_get(registration_response, lambda x: x['registrationKey'], compat_str)},
+            headers={'x-registrantkey': registration_response['registrationKey']},
             note='Get download url',
             errnote='Unable to get download url')
 
         return {
             'id': video_id,
-            'title': try_get(metadata, lambda x: x[0]['title'], compat_str),
+            'title': try_get(metadata, lambda x: x['title'], compat_str),
             'url': try_get(content_response, lambda x: x['cdnLocation'], compat_str),
             'ext': 'mp4',
-            'thumbnail': url_or_none(try_get(metadata, lambda x: x[0]['thumbnail']['location'])),
-            'duration': try_get(metadata, lambda x: x[0]['duration'], float),
-            'categories': [try_get(metadata, lambda x: x[0]['category'], compat_str)],
-            'is_live': False}
+            'thumbnail': url_or_none(try_get(metadata, lambda x: x['thumbnail']['location'])),
+            'duration': try_get(metadata, lambda x: x['duration'], float),
+            'categories': [try_get(metadata, lambda x: x['category'], compat_str)],
+            'is_live': False
+        }
