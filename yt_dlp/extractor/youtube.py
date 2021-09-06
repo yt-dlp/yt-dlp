@@ -2527,7 +2527,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         original_clients = clients
         clients = clients[::-1]
-
+        prs = []
         def append_client(client_name):
             if client_name in INNERTUBE_CLIENTS and client_name not in original_clients:
                 clients.append(client_name)
@@ -2536,12 +2536,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # extraction of some data. So we return the initial_pr with formats
         # stripped out even if not requested by the user
         # See: https://github.com/yt-dlp/yt-dlp/issues/501
-        yielded_pr = False
         if initial_pr:
             pr = dict(initial_pr)
             pr['streamingData'] = None
-            yielded_pr = True
-            yield pr
+            prs.append(pr)
 
         last_error = None
         tried_iframe_fallback = False
@@ -2572,8 +2570,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             if pr:
-                yielded_pr = True
-                yield pr
+                prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
             if client.endswith('_agegate') and self._is_unplayable(pr) and self._generate_sapisidhash_header():
@@ -2581,11 +2578,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif self._is_agegated(pr):
                 append_client(f'{client}_agegate')
 
-        yield player_url
         if last_error:
-            if not yielded_pr:
+            if not len(prs):
                 raise last_error
             self.report_warning(last_error)
+        return prs, player_url
 
     def _extract_formats(self, streaming_data, video_id, player_url, is_live):
         itags, stream_ids = [], []
@@ -2740,11 +2737,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
         identity_token = self._extract_identity_token(webpage, video_id)
 
-        player_responses = list(self._extract_player_responses(
+        player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, master_ytcfg, identity_token))
+            video_id, webpage, master_ytcfg, identity_token)
 
-        player_url = player_responses.pop()
         get_first = lambda obj, keys, **kwargs: traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
         playability_statuses = traverse_obj(
