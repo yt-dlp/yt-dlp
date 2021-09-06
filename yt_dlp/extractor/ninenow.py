@@ -64,26 +64,26 @@ class NineNowIE(InfoExtractor):
             raise ExtractorError('Unable to find video data')
 
         # Video Data extraction
-        if try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
-            raise ExtractorError('This video is DRM protected.', expected=True)
-        brightcove_id = \
-            try_get(
-                common_data,
-                lambda x: x['episode']['video']['brightcoveId'] or f"ref:{x['episode']['video']['referenceId']}", compat_str
-            )
+        if not self.get_param('allow_unplayable_formats') and try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
+            self.report_drm(display_id)
+        brightcove_id = try_get(
+            common_data,
+            lambda x: x['episode']['video']['brightcoveId'] or f"ref:{x['episode']['video']['referenceId']}",
+            compat_str)
         video_id = try_get(common_data, lambda x: x['episode']['video']['id'] or brightcove_id, compat_str)
 
-        # Episode/Season data extraction
         title = try_get(common_data, lambda x: x['episode']['name'], compat_str)
         season_number = try_get(common_data, lambda x: x['season']['seasonNumber'], int)
         episode_number = try_get(common_data, lambda x: x['episode']['episodeNumber'], int)
         timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], compat_str) or None)
-        upload_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], compat_str) or None)
-        thumbnails = [{
-            'id': thumbnail_id,
-            'url': thumbnail_url,
-            'width': int_or_none(thumbnail_id[1:]),
-        } for thumbnail_id, thumbnail_url in try_get(common_data, lambda x: x['episode']['image']['sizes'], dict).items()]
+        release_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], compat_str) or None)
+        thumbnails_data = try_get(common_data, lambda x: x['episode']['image']['sizes'], dict).items()
+        if thumbnails_data:
+            thumbnails = [{
+                'id': thumbnail_id,
+                'url': thumbnail_url,
+                'width': int_or_none(thumbnail_id[1:]),
+            } for thumbnail_id, thumbnail_url in thumbnails_data]
 
         return {
             '_type': 'url_transparent',
@@ -99,5 +99,5 @@ class NineNowIE(InfoExtractor):
             'season_number': season_number,
             'episode_number': episode_number,
             'timestamp': timestamp,
-            'upload_date': upload_date,
+            'release_date': release_date,
         }
