@@ -1,5 +1,4 @@
 import json
-import re
 
 from ..utils import ExtractorError, traverse_obj, try_get, unified_timestamp
 from .common import InfoExtractor
@@ -44,7 +43,7 @@ class RadLiveIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        content_type, video_id = re.fullmatch(self._VALID_URL, url).groups()
+        content_type, video_id = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(url, video_id)
 
