@@ -6,8 +6,7 @@ from ..compat import compat_str
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    traverse_obj,
-    urljoin
+    traverse_obj
 )
 
 
@@ -69,28 +68,12 @@ class NZHeraldIE(InfoExtractor):
     BRIGHTCOVE_PLAYER_ID = 'default'
     FUSION_REACT_JS = 'https://www.nzherald.co.nz/pf/dist/engine/react.js'
 
-    def _extract_bc_details(self, webpage, video_id):
-        react_js_url = self._html_search_regex(
-            r'<script\b[^>]+id=\"fusion-engine-react-script\"[^>]+src=\"([^\"]+)', webpage, 'Fusion react.js',
-            fatal=False)
-        react_js = self._download_webpage(
-            urljoin('https://www.nzherald.co.nz', react_js_url) or self.FUSION_REACT_JS,
-            video_id, note='Downloading Fusion react.js', fatal=False)
-        bc_account_id = bc_player_id = None
-        if react_js:
-            bc_account_id = self._search_regex(
-                r'(?:BC_ACCOUNT_ID)\s*:\s*\"([\d]+)', react_js, 'brightcove account id', fatal=False)
-            bc_player_id = self._search_regex(
-                r'(?:BC_PLAYER_ID)\s*:\s*\"([^\"]+)', react_js, 'brightcove player id', fatal=False)
-        return bc_account_id or self.BRIGHTCOVE_ACCOUNT_ID, bc_player_id or self.BRIGHTCOVE_PLAYER_ID
-
     def _extract_bc_embed(self, webpage):
         """The initial webpage may include the brightcove player embed url"""
         bc_url = BrightcoveNewIE._extract_url(self, webpage)
-        if not bc_url:
-            return self._search_regex(
+        return bc_url or self._search_regex(
                 r'(?:embedUrl)\"\s*:\s*\"(?P<embed_url>(%s)[^\"]+)' % BrightcoveNewIE._VALID_URL,
-                webpage, 'embed url', default=None)
+                webpage, 'embed url', default=None, group='embed_url')
 
     def _real_extract(self, url):
         article_id = self._match_id(url)
@@ -108,6 +91,6 @@ class NZHeraldIE(InfoExtractor):
 
             if not bc_video_id:
                 raise ExtractorError('Failed to extract brightcove video id')
-            bc_url = self.BRIGHTCOVE_URL_TEMPLATE % (*self._extract_bc_details(webpage, bc_video_id), bc_video_id)
+            bc_url = self.BRIGHTCOVE_URL_TEMPLATE % (self.BRIGHTCOVE_ACCOUNT_ID, self.BRIGHTCOVE_PLAYER_ID, bc_video_id)
 
         return self.url_result(bc_url, 'BrightcoveNew')
