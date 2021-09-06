@@ -806,7 +806,7 @@ class BiliIntlIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        type, season_id, id = re.match(self._VALID_URL, url).groups()
+        type, season_id, id = self._match_valid_url(url).groups()
         api_url = f'https://api.bili{type}/intl/gateway'
         data_json = self._download_json(f'{api_url}/web/view/ogv_collection?season_id={season_id}', id)['data']
         for episode in data_json.get('episodes', []):
@@ -889,5 +889,5 @@ class BiliIntlSeriesIE(InfoExtractor):
             yield self.url_result(video_url, ie=BiliIntlIE.ie_key(), video_id=video_id)
 
     def _real_extract(self, url):
-        type, id = re.match(self._VALID_URL, url).groups()
+        type, id = self._match_valid_url(url).groups()
         return self.playlist_result(self._entries(id, type), playlist_id=id)
