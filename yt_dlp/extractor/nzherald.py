@@ -63,10 +63,7 @@ class NZHeraldIE(InfoExtractor):
         }
     ]
 
-    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
-    BRIGHTCOVE_ACCOUNT_ID = '1308227299001'
-    BRIGHTCOVE_PLAYER_ID = 'default'
-    FUSION_REACT_JS = 'https://www.nzherald.co.nz/pf/dist/engine/react.js'
+    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/1308227299001/S1BXZn8t_default/index.html?videoId=%s'
 
     def _extract_bc_embed(self, webpage):
         """The initial webpage may include the brightcove player embed url"""
@@ -91,6 +88,6 @@ class NZHeraldIE(InfoExtractor):
 
             if not bc_video_id:
                 raise ExtractorError('Failed to extract brightcove video id')
-            bc_url = self.BRIGHTCOVE_URL_TEMPLATE % (self.BRIGHTCOVE_ACCOUNT_ID, self.BRIGHTCOVE_PLAYER_ID, bc_video_id)
+            bc_url = self.BRIGHTCOVE_URL_TEMPLATE % bc_video_id
 
         return self.url_result(bc_url, 'BrightcoveNew')
