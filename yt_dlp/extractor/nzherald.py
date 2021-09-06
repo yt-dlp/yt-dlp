@@ -13,7 +13,7 @@ from ..utils import (
 
 class NZHeraldIE(InfoExtractor):
     IE_NAME = 'nzherald'
-    _VALID_URL = r'https?://(?:www\.)nzherald\.co\.nz/[\w\/-]+\/(?P<id>[A-Z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?nzherald\.co\.nz/[\w\/-]+\/(?P<id>[A-Z0-9]+)'
     _TESTS = [
         {
             'url': 'https://www.nzherald.co.nz/nz/weather-heavy-rain-gales-across-nz-most-days-this-week/PTG7QWY4E2225YHZ5NAIRBTYTQ/',
@@ -59,7 +59,7 @@ class NZHeraldIE(InfoExtractor):
             'url': 'https://nzherald.co.nz/the-country/video/focus-nzs-first-mass-covid-19-vaccination-event/N5I7IL3BRFLZSD33TLDLYJDGK4/',
             'only_matching': True
         }, {
-            'url': 'https://www.nzherald.co.nz/the-vision-is-clear/news/tvic-damian-roper-planting-trees-an-addiction/AN2AAEPNRK5VLISDWQAJZB6ATQ/',
+            'url': 'https://www.nzherald.co.nz/the-vision-is-clear/news/tvic-damian-roper-planting-trees-an-addiction/AN2AAEPNRK5VLISDWQAJZB6ATQ',
             'only_matching': True
         }
     ]
