@@ -957,6 +957,7 @@ from .nytimes import (
     NYTimesCookingIE,
 )
 from .nuvid import NuvidIE
+from .nzherald import NZHeraldIE
 from .nzz import NZZIE
 from .odatv import OdaTVIE
 from .odnoklassniki import OdnoklassnikiIE
