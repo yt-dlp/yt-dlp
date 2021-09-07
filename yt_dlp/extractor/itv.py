@@ -52,7 +52,7 @@ class ITVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _call_api(self, video_id, playlist_url, headers, platform_tag, featureset):
+    def _call_api(self, video_id, playlist_url, headers, platform_tag, featureset, fatal=True):
         return self._download_json(
             playlist_url, video_id, data=json.dumps({
                 'user': {
@@ -80,7 +80,7 @@ class ITVIE(InfoExtractor):
                     },
                     'platformTag': platform_tag
                 }
-            }).encode(), headers=headers)
+            }).encode(), headers=headers, fatal=fatal)
 
     def _get_subtitles(self, video_id, variants, ios_playlist_url, headers, *args, **kwargs):
         subtitles = {}
@@ -94,7 +94,8 @@ class ITVIE(InfoExtractor):
                     featureset_subs = featureset
                     break
         if platform_tag_subs or featureset_subs:
-            subs_playlist = self._call_api(video_id, ios_playlist_url, headers, platform_tag_subs, featureset_subs)
+            subs_playlist = self._call_api(
+                video_id, ios_playlist_url, headers, platform_tag_subs, featureset_subs, fatal=False)
             subs = try_get(subs_playlist, lambda x: x['Playlist']['Video']['Subtitles'], list) or []
             for sub in subs:
                 if not isinstance(sub, dict):
