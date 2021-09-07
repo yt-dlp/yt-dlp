@@ -81,13 +81,17 @@ class NZHeraldIE(InfoExtractor):
             fusion_metadata = self._parse_json(
                 self._search_regex(r'Fusion\.globalContent\s*=\s*({.+?})\s*;', webpage, 'fusion metadata'), article_id)
 
+            video_metadata = fusion_metadata.get('video')
             bc_video_id = traverse_obj(
-                fusion_metadata.get('video') or fusion_metadata,
+                 video_metadata or fusion_metadata,  # fusion metadata is the video metadata for video-only pages
                 'brightcoveId', ('content_elements', ..., 'referent', 'id'),
                 get_all=False, expected_type=compat_str)
 
             if not bc_video_id:
-                raise ExtractorError('Failed to extract brightcove video id')
+                if isinstance(video_metadata, dict) and len(video_metadata) == 0:
+                    raise ExtractorError('This article does not have a video.', expected=True)
+                else:
+                    raise ExtractorError('Failed to extract brightcove video id')
             bc_url = self.BRIGHTCOVE_URL_TEMPLATE % bc_video_id
 
         return self.url_result(bc_url, 'BrightcoveNew')
