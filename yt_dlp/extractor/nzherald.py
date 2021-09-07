@@ -83,7 +83,7 @@ class NZHeraldIE(InfoExtractor):
 
             video_metadata = fusion_metadata.get('video')
             bc_video_id = traverse_obj(
-                 video_metadata or fusion_metadata,  # fusion metadata is the video metadata for video-only pages
+                video_metadata or fusion_metadata,  # fusion metadata is the video metadata for video-only pages
                 'brightcoveId', ('content_elements', ..., 'referent', 'id'),
                 get_all=False, expected_type=compat_str)
 
