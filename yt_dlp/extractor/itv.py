@@ -120,10 +120,9 @@ class ITVIE(InfoExtractor):
                 href = ios_base_url + href
             ext = determine_ext(href)
             if ext == 'm3u8':
-                hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
+                formats.extend(self._extract_m3u8_formats(
                     href, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False)
-                formats.extend(hls_formats)
+                    m3u8_id='hls', fatal=False))
             else:
                 formats.append({
                     'url': href,
