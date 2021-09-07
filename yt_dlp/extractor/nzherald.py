@@ -2,8 +2,9 @@
 from __future__ import unicode_literals
 
 from .brightcove import BrightcoveNewIE
-from ..compat import compat_str
 from .common import InfoExtractor
+
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     traverse_obj
