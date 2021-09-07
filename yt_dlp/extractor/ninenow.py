@@ -8,6 +8,7 @@ from ..utils import (
     int_or_none,
     float_or_none,
     smuggle_url,
+    str_or_none,
     unified_timestamp,
     unified_strdate,
     try_get,
@@ -67,7 +68,7 @@ class NineNowIE(InfoExtractor):
         if not self.get_param('allow_unplayable_formats') and try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
             self.report_drm(display_id)
         brightcove_id = try_get(
-            common_data, lambda x: x['episode']['video']['brightcoveId'], compat_str) or f'ref:%s' % common_data['episode']['video']['referenceId']
+            common_data, lambda x: x['episode']['video']['brightcoveId'], compat_str) or 'ref:%s' % common_data['episode']['video']['referenceId']
         video_id = str_or_none(try_get(common_data, lambda x: x['episode']['video']['id'])) or brightcove_id
 
         title = try_get(common_data, lambda x: x['episode']['name'], compat_str)
