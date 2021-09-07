@@ -70,9 +70,7 @@ class ITVIE(InfoExtractor):
                     featureset_video = featureset
                     break
         if not platform_tag_video or not featureset_video:
-            raise ExtractorError(
-                '[%s] %s: %s' % (self.IE_NAME, video_id, 'No downloads available'),
-                expected=True)
+            raise ExtractorError('No downloads available', expected=True, video_id=video_id)
 
         ios_playlist_url = params.get('data-video-playlist') or params['data-video-id']
         hmac = params['data-video-hmac']
@@ -142,7 +140,7 @@ class ITVIE(InfoExtractor):
                     featureset_subs = featureset
                     break
         if not platform_tag_subs or not featureset_subs:
-            self.report_warning('%s: %s' % (video_id, 'No subtitles available'))
+            self.report_warning('No subtitles available', video_id)
         else:
             subs_playlist = self._download_json(
                 ios_playlist_url, video_id, data=json.dumps({
