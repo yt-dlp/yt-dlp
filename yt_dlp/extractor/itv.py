@@ -110,7 +110,7 @@ class ITVIE(InfoExtractor):
             }).encode(), headers=headers)
         video_data = try_get(ios_playlist, lambda x: x['Playlist']['Video'], dict) or {}
         ios_base_url = video_data.get('Base')
-
+        hls_subs = {}
         formats = []
         for media_file in (video_data.get('MediaFiles') or []):
             href = media_file.get('Href')
@@ -120,9 +120,10 @@ class ITVIE(InfoExtractor):
                 href = ios_base_url + href
             ext = determine_ext(href)
             if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
+                hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
                     href, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False))
+                    m3u8_id='hls', fatal=False)
+                formats.extend(hls_formats)
             else:
                 formats.append({
                     'url': href,
@@ -181,7 +182,7 @@ class ITVIE(InfoExtractor):
                     'url': href,
                     'ext': determine_ext(href, 'vtt'),
                 })
-
+        subtitles = self._merge_subtitles(subtitles, hls_subs)
         info = self._search_json_ld(webpage, video_id, default={})
         if not info:
             json_ld = self._parse_json(self._search_regex(
