@@ -52,6 +52,13 @@ class ITVIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _generate_api_headers(self, hmac):
+        return merge_dicts({
+            'Accept': 'application/vnd.itv.vod.playlist.v2+json',
+            'Content-Type': 'application/json',
+            'hmac': hmac.upper(),
+        }, self.geo_verification_headers())
+
     def _call_api(self, video_id, playlist_url, headers, platform_tag, featureset, fatal=True):
         return self._download_json(
             playlist_url, video_id, data=json.dumps({
@@ -127,14 +134,10 @@ class ITVIE(InfoExtractor):
             raise ExtractorError('No downloads available', expected=True, video_id=video_id)
 
         ios_playlist_url = params.get('data-video-playlist') or params['data-video-id']
-        hmac = params['data-video-hmac']
-        headers = self.geo_verification_headers()
-        headers.update({
-            'Accept': 'application/vnd.itv.vod.playlist.v2+json',
-            'Content-Type': 'application/json',
-            'hmac': hmac.upper(),
-        })
-        ios_playlist = self._call_api(video_id, ios_playlist_url, headers, platform_tag_video, featureset_video)
+        headers = self._generate_api_headers(params['data-video-hmac'])
+        ios_playlist = self._call_api(
+            video_id, ios_playlist_url, headers, platform_tag_video, featureset_video)
+
         video_data = try_get(ios_playlist, lambda x: x['Playlist']['Video'], dict) or {}
         ios_base_url = video_data.get('Base')
         formats = []
