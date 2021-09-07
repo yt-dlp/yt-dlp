@@ -65,7 +65,7 @@ class NZHeraldIE(InfoExtractor):
 
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/1308227299001/S1BXZn8t_default/index.html?videoId=%s'
 
-    def _extract_bc_embed(self, webpage):
+    def _extract_bc_embed_url(self, webpage):
         """The initial webpage may include the brightcove player embed url"""
         bc_url = BrightcoveNewIE._extract_url(self, webpage)
         return bc_url or self._search_regex(
@@ -75,7 +75,7 @@ class NZHeraldIE(InfoExtractor):
     def _real_extract(self, url):
         article_id = self._match_id(url)
         webpage = self._download_webpage(url, article_id)
-        bc_url = self._extract_bc_embed(webpage)
+        bc_url = self._extract_bc_embed_url(webpage)
 
         if not bc_url:
             fusion_metadata = self._parse_json(
