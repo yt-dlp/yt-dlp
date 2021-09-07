@@ -67,23 +67,20 @@ class NineNowIE(InfoExtractor):
         if not self.get_param('allow_unplayable_formats') and try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
             self.report_drm(display_id)
         brightcove_id = try_get(
-            common_data,
-            lambda x: x['episode']['video']['brightcoveId'] or f"ref:{x['episode']['video']['referenceId']}",
-            compat_str)
-        video_id = try_get(common_data, lambda x: x['episode']['video']['id'] or brightcove_id, compat_str)
+            common_data, lambda x: x['episode']['video']['brightcoveId'], compat_str) or f'ref:%s' % common_data['episode']['video']['referenceId']
+        video_id = str_or_none(try_get(common_data, lambda x: x['episode']['video']['id'])) or brightcove_id
 
         title = try_get(common_data, lambda x: x['episode']['name'], compat_str)
         season_number = try_get(common_data, lambda x: x['season']['seasonNumber'], int)
         episode_number = try_get(common_data, lambda x: x['episode']['episodeNumber'], int)
         timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], compat_str))
         release_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], compat_str))
-        thumbnails_data = try_get(common_data, lambda x: x['episode']['image']['sizes'], dict).items()
-        if thumbnails_data:
-            thumbnails = [{
-                'id': thumbnail_id,
-                'url': thumbnail_url,
-                'width': int_or_none(thumbnail_id[1:]),
-            } for thumbnail_id, thumbnail_url in thumbnails_data]
+        thumbnails_data = try_get(common_data, lambda x: x['episode']['image']['sizes'], dict) or {}
+        thumbnails = [{
+            'id': thumbnail_id,
+            'url': thumbnail_url,
+            'width': int_or_none(thumbnail_id[1:]),
+        } for thumbnail_id, thumbnail_url in thumbnails_data.items()]
 
         return {
             '_type': 'url_transparent',
