@@ -177,10 +177,7 @@ class ITVIE(InfoExtractor):
                 href = url_or_none(sub.get('Href'))
                 if not href:
                     continue
-                subtitles.setdefault('en', []).append({
-                    'url': href,
-                    'ext': determine_ext(href, 'vtt'),
-                })
+                subtitles.setdefault('en', []).append({'url': href})
         subtitles = self._merge_subtitles(subtitles, hls_subs)
         info = self._search_json_ld(webpage, video_id, default={})
         if not info:
