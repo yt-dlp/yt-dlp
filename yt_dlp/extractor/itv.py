@@ -139,9 +139,7 @@ class ITVIE(InfoExtractor):
                     platform_tag_subs = platform_tag
                     featureset_subs = featureset
                     break
-        if not platform_tag_subs or not featureset_subs:
-            self.report_warning('No subtitles available', video_id)
-        else:
+        if platform_tag_subs or featureset_subs:
             subs_playlist = self._download_json(
                 ios_playlist_url, video_id, data=json.dumps({
                     'user': {
