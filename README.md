@@ -919,7 +919,7 @@ For example, with the following configuration file yt-dlp will always extract th
 
 Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
 
-You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of user and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
+You can use `--ignore-config` or `--no-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` or `--no-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of user and system configurations. Additionally, (for backward compatibility) if `--ignore-config` or `--no-config` is found inside the system configuration file, the user configuration is not loaded.
 
 ### Authentication with `.netrc` file
 

@@ -1547,9 +1547,9 @@ def parseOpts(overrideArguments=None):
                     configs['custom'] = []
                 else:
                     paths['custom'] = location
-            if '--ignore-config' in configs['command-line']:
+            if '--ignore-config' in configs['command-line'] or '--no-config' in configs['command-line']:
                 return
-            if '--ignore-config' in configs['custom']:
+            if '--ignore-config' in configs['custom'] or '--no-config' in configs['custom']:
                 return
 
             def read_options(path, user=False):
@@ -1567,7 +1567,7 @@ def parseOpts(overrideArguments=None):
                 return [], None
 
             configs['portable'], paths['portable'] = read_options(get_executable_path())
-            if '--ignore-config' in configs['portable']:
+            if '--ignore-config' in configs['portable'] or '--no-config' in configs['portable']:
                 return
 
             def get_home_path():
@@ -1575,15 +1575,15 @@ def parseOpts(overrideArguments=None):
                 return expand_path(opts.paths.get('home', '')).strip()
 
             configs['home'], paths['home'] = read_options(get_home_path())
-            if '--ignore-config' in configs['home']:
+            if '--ignore-config' in configs['home'] or '--no-config' in configs['home']:
                 return
 
             configs['system'], paths['system'] = read_options('/etc')
-            if '--ignore-config' in configs['system']:
+            if '--ignore-config' in configs['system'] or '--no-config' in configs['system']:
                 return
 
             configs['user'], paths['user'] = read_options('', True)
-            if '--ignore-config' in configs['user']:
+            if '--ignore-config' in configs['user'] or '--no-config' in configs['user']:
                 configs['system'], paths['system'] = [], None
 
         get_configs()
