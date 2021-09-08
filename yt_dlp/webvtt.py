@@ -90,7 +90,7 @@ class ParseError(Exception):
 
 
 _REGEX_TS = re.compile(r'''(?x)
-    (?:([0-9]{2,}):)?
+    (?:([0-9]{1,}):)?
     ([0-9]{2}):
     ([0-9]{2})\.
     ([0-9]{3})?
@@ -172,6 +172,7 @@ class Magic(HeaderBlock):
     _REGEX_TSMAP = re.compile(r'X-TIMESTAMP-MAP=')
     _REGEX_TSMAP_LOCAL = re.compile(r'LOCAL:')
     _REGEX_TSMAP_MPEGTS = re.compile(r'MPEGTS:([0-9]+)')
+    _REGEX_TSMAP_SEP = re.compile(r'[ \t]*,[ \t]*')
 
     @classmethod
     def __parse_tsmap(cls, parser):
@@ -194,7 +195,7 @@ class Magic(HeaderBlock):
                         raise ParseError(parser)
                 else:
                     raise ParseError(parser)
-            if parser.consume(','):
+            if parser.consume(cls._REGEX_TSMAP_SEP):
                 continue
             if parser.consume(_REGEX_NL):
                 break
