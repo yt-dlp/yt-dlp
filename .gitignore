@@ -2,7 +2,7 @@
 *.conf
 *.spec
 cookies
-cookies.txt
+*cookies.txt
 
 # Downloaded
 *.srt

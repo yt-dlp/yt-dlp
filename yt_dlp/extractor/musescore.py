@@ -7,26 +7,26 @@ from .common import InfoExtractor
 class MuseScoreIE(InfoExtractor):
     _VALID_URL = r'(?:https?://)(?:www\.)?musescore\.com/(?:user/\d+|[^/]+)(?:/scores)?/(?P<id>[^#&?]+)'
     _TESTS = [{
-        'url': 'https://musescore.com/minh_cuteee/scores/6555384',
+        'url': 'https://musescore.com/user/73797/scores/142975',
         'info_dict': {
-            'id': '6555384',
+            'id': '142975',
             'ext': 'mp3',
-            'title': 'Waltz No. 2 (The Second Waltz) by Dmitri Shostakovich for Piano',
-            'description': 'md5:4632f2a04d34311292c3fd89211c5d7c',
+            'title': 'WA Mozart Marche Turque (Turkish March fingered)',
+            'description': 'md5:7ede08230e4eaabd67a4a98bb54d07be',
             'thumbnail': r're:(?:https?://)(?:www\.)?musescore\.com/.*\.png[^$]+',
-            'uploader': 'Minh_Cuteee',
-            'creator': 'Dmaitri Shostakovich',
+            'uploader': 'PapyPiano',
+            'creator': 'Wolfgang Amadeus Mozart',
         }
     }, {
-        'url': 'https://musescore.com/user/12461571/scores/3291706',
+        'url': 'https://musescore.com/user/36164500/scores/6837638',
         'info_dict': {
-            'id': '3291706',
+            'id': '6837638',
             'ext': 'mp3',
-            'title': 'River Flows In You',
-            'description': 'md5:148c03afb5b1d237bca46458e225f4fd',
+            'title': 'Sweet Child O\' Mine  – Guns N\' Roses sweet child',
+            'description': 'md5:4dca71191c14abc312a0a4192492eace',
             'thumbnail': r're:(?:https?://)(?:www\.)?musescore\.com/.*\.png[^$]+',
-            'uploader': 'emmy langevin',
-            'creator': 'YIRUMA',
+            'uploader': 'roxbelviolin',
+            'creator': 'Guns N´Roses Arr. Roxbel Violin',
         }
     }, {
         'url': 'https://musescore.com/classicman/fur-elise',
@@ -39,6 +39,9 @@ class MuseScoreIE(InfoExtractor):
             'uploader': 'ClassicMan',
             'creator': 'Ludwig van Beethoven (1770–1827)',
         }
+    }, {
+        'url': 'https://musescore.com/minh_cuteee/scores/6555384',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
