@@ -354,7 +354,7 @@ class TikTokUserIE(TikTokBaseIE):
         'skip': 'Cookies (not necessarily logged in) are needed.'
     }]
 
-    def _entries(self, webpage, user_id, username):
+    def _entries(self, webpage, user_id, username):  # TODO: Fix?
         secuid = self._search_regex(r'\"secUid\":\"(?P<secUid>[^\"]+)', webpage, username)
         verifyfp_cookie = self._get_cookies('https://www.tiktok.com').get('s_v_web_id')
         if not verifyfp_cookie:
