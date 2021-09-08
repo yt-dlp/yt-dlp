@@ -337,7 +337,7 @@ class TikTokIE(TikTokBaseIE):
 
 class TikTokUserIE(TikTokBaseIE):
     IE_NAME = 'tiktok:user'
-    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)(?!/video)'
+    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://tiktok.com/@corgibobaa?lang=en',
         'playlist_mincount': 45,
