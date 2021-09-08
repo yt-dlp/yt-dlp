@@ -777,43 +777,14 @@ class BiliBiliPlayerIE(InfoExtractor):
             ie=BiliBiliIE.ie_key(), video_id=video_id)
 
 
-class BiliIntlIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?bili(?P<type>bili\.tv|intl.com)/(?:[a-z]{2}/)?play/(?P<season_id>\d+)/(?P<id>\d+)'
-    _TESTS = [{
-        'url': 'https://www.bilibili.tv/en/play/34613/341736',
-        'info_dict': {
-            'id': '341736',
-            'ext': 'mp4',
-            'title': 'The First Night',
-            'thumbnail': 'https://i0.hdslb.com/bfs/intl/management/91e30e5521235d9b163339a26a0b030ebda54310.png',
-            'episode_number': 2,
-        },
-        'params': {
-            'format': 'bv',
-        },
-    }, {
-        'url': 'https://www.biliintl.com/en/play/34613/341736',
-        'info_dict': {
-            'id': '341736',
-            'ext': 'mp4',
-            'title': 'The First Night',
-            'thumbnail': 'https://i0.hdslb.com/bfs/intl/management/91e30e5521235d9b163339a26a0b030ebda54310.png',
-            'episode_number': 2,
-        },
-        'params': {
-            'format': 'bv',
-        },
-    }]
+class BiliIntlBaseIE(InfoExtractor):
+    _API_URL = 'https://api.bili{}/intl/gateway'
 
-    def _real_extract(self, url):
-        type, season_id, id = self._match_valid_url(url).groups()
-        api_url = f'https://api.bili{type}/intl/gateway'
-        data_json = self._download_json(f'{api_url}/web/view/ogv_collection?season_id={season_id}', id)['data']
-        for episode in data_json.get('episodes', []):
-            if str(episode.get('ep_id')) == id:
-                episode_data = episode
-                break
-        video_json = self._download_json(f'{api_url}/web/playurl?ep_id={id}&platform=web', id)['data']
+    def _call_api(self, endpoint, id):
+        return self._download_json(self._API_URL + endpoint, id)['data']
+
+    def _extract_formats_and_subtitles(self, ep_id):
+        video_json = self._call_api(f'/web/playurl?ep_id={ep_id}&platform=web', ep_id)
         if not video_json:
             self.raise_login_required(method='cookies')
         video_json = video_json['playurl']
@@ -843,7 +814,7 @@ class BiliIntlIE(InfoExtractor):
                     'vcodec': 'none',
                     'filesize': aud.get('size'),
                 })
-        sub_json = self._download_json(f'{api_url}/m/subtitle?ep_id={id}&platform=web', id)['data']
+        sub_json = self._call_api(f'/m/subtitle?ep_id={ep_id}&platform=web', ep_id)
         subtitles = {}
         for sub in sub_json.get('subtitles', []):
             sub_url = sub.get('url')
@@ -852,11 +823,13 @@ class BiliIntlIE(InfoExtractor):
             subtitles.setdefault(sub.get('key', 'en'), []).append({
                 'url': sub_url,
             })
-
         self._sort_formats(formats)
+        return formats, subtitles
 
+    def _extract_ep_info(self, episode_data, ep_id):
+        formats, subtitles = self._extract_formats_and_subtitles(ep_id)
         return {
-            'id': id,
+            'id': ep_id,
             'title': episode_data['long_title'] or episode_data.get('title'),
             'thumbnail': episode_data.get('cover'),
             'episode_number': str_to_int(episode_data.get('title')),
@@ -865,13 +838,56 @@ class BiliIntlIE(InfoExtractor):
         }
 
 
-class BiliIntlSeriesIE(InfoExtractor):
+class BiliIntlIE(BiliIntlBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bili(?P<type>bili\.tv|intl.com)/(?:[a-z]{2}/)?play/(?P<season_id>\d+)/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.bilibili.tv/en/play/34613/341736',
+        'info_dict': {
+            'id': '341736',
+            'ext': 'mp4',
+            'title': 'The First Night',
+            'thumbnail': 'https://i0.hdslb.com/bfs/intl/management/91e30e5521235d9b163339a26a0b030ebda54310.png',
+            'episode_number': 2,
+        },
+        'params': {
+            'format': 'bv',
+        },
+    }, {
+        'url': 'https://www.biliintl.com/en/play/34613/341736',
+        'info_dict': {
+            'id': '341736',
+            'ext': 'mp4',
+            'title': 'The First Night',
+            'thumbnail': 'https://i0.hdslb.com/bfs/intl/management/91e30e5521235d9b163339a26a0b030ebda54310.png',
+            'episode_number': 2,
+        },
+        'params': {
+            'format': 'bv',
+        },
+    }]
+
+    def _real_extract(self, url):
+        type, season_id, id = self._match_valid_url(url).groups()
+        self._API_URL = self._API_URL.format(type)
+        data_json = self._call_api(f'/web/view/ogv_collection?season_id={season_id}', id)
+        for episode in data_json.get('episodes', []):
+            if str(episode.get('ep_id')) == id:
+                episode_data = episode
+                break
+        return self._extract_ep_info(episode_data, id)
+
+
+class BiliIntlSeriesIE(BiliIntlBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bili(?P<type>bili\.tv|intl.com)/(?:[a-z]{2}/)?play/(?P<id>\d+)$'
     _TESTS = [{
-        'url': 'https://www.bilibili.tv/en/play/1005144',
-        'playlist_mincount': 220,
+        'url': 'https://www.bilibili.tv/en/play/34613',
+        'playlist_mincount': 15,
         'info_dict': {
-            'id': '1005144',
+            'id': '34613',
+        },
+        'params': {
+            'skip_download': True,
+            'format': 'bv',
         },
     }, {
         'url': 'https://www.biliintl.com/en/play/34613',
@@ -879,14 +895,18 @@ class BiliIntlSeriesIE(InfoExtractor):
         'info_dict': {
             'id': '34613',
         },
+        'params': {
+            'skip_download': True,
+            'format': 'bv',
+        },
     }]
 
     def _entries(self, id, type):
-        data_json = self._download_json(f'https://api.bili{type}/intl/gateway/web/view/ogv_collection?season_id={id}', id)['data']
+        self._API_URL = self._API_URL.format(type)
+        data_json = self._call_api(f'/web/view/ogv_collection?season_id={id}', id)
         for episode in data_json.get('episodes', []):
-            video_id = episode.get('ep_id')
-            video_url = f'https://www.bili{type}/en/play/{id}/{video_id}'
-            yield self.url_result(video_url, ie=BiliIntlIE.ie_key(), video_id=video_id)
+            episode_id = str(episode.get('ep_id'))
+            yield self._extract_ep_info(episode, episode_id)
 
     def _real_extract(self, url):
         type, id = self._match_valid_url(url).groups()
