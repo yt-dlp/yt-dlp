@@ -344,14 +344,12 @@ class TikTokUserIE(TikTokBaseIE):
         'info_dict': {
             'id': '6935371178089399301',
         },
-        'skip': 'Cookies (not necessarily logged in) are needed.'
     }, {
         'url': 'https://www.tiktok.com/@meme',
         'playlist_mincount': 593,
         'info_dict': {
             'id': '79005827461758976',
         },
-        'skip': 'Cookies (not necessarily logged in) are needed.'
     }]
 
     def _entries(self, webpage, user_id, username):  # TODO: Fix?
@@ -398,9 +396,7 @@ class TikTokUserIE(TikTokBaseIE):
     def _real_extract(self, url):
         user_id = self._match_id(url)
         webpage = self._download_webpage(url, user_id, headers={
-            'User-Agent': 'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)'
+            'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
         })
-        own_id = self._search_regex(r'\"id\":\"(?P<userid>\d+)', webpage, user_id, default=None)
-        if not own_id:
-            raise ExtractorError('Cookies (not necessarily logged in) are needed.', expected=True)
+        own_id = self._html_search_regex(r'snssdk1180://user/profile/(\d+)', webpage, 'user ID')
         return self.playlist_result(self._entries_api(webpage, own_id, user_id), user_id)
