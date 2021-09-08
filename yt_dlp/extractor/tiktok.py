@@ -16,6 +16,7 @@ from ..utils import (
     qualities,
 )
 
+
 class TikTokBaseIE(InfoExtractor):
     _APP_VERSION = '20.9.3'
     _MANIFEST_APP_VERSION = '291'
@@ -196,6 +197,7 @@ class TikTokBaseIE(InfoExtractor):
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000)
         }
 
+
 class TikTokIE(TikTokBaseIE):
     _VALID_URL = r'https?://www\.tiktok\.com/@[\w\.-]+/video/(?P<id>\d+)'
 
@@ -303,7 +305,7 @@ class TikTokIE(TikTokBaseIE):
 
     def _extract_aweme_app(self, aweme_id):
         aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
-            note='Downloading video details', errnote='Unable to download video details')['aweme_detail']
+                                      note='Downloading video details', errnote='Unable to download video details')['aweme_detail']
         return self._parse_aweme_video(aweme_detail)
 
     def _real_extract(self, url):
@@ -370,10 +372,6 @@ class TikTokUserIE(TikTokBaseIE):
             cursor = data_json['cursor']
 
     def _entries_api(self, webpage, user_id, username):
-        #_APP_VERSION = '2.0.8'
-        #_MANIFEST_APP_VERSION = '208'
-        _APP_VERSION = '20.9.3'
-        _MANIFEST_APP_VERSION = '291'
         query = {
             'user_id': user_id,
             'count': 12,
