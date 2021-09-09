@@ -5,6 +5,7 @@ import itertools
 import random
 import string
 import time
+import json
 
 from .common import InfoExtractor
 from ..utils import (
@@ -372,7 +373,7 @@ class TikTokUserIE(TikTokBaseIE):
     def _entries_api(self, webpage, user_id, username):
         query = {
             'user_id': user_id,
-            'count': 12,
+            'count': 21,
             # 'cursor': 0,
             'max_cursor': 0,
             'min_cursor': 0,
@@ -380,9 +381,19 @@ class TikTokUserIE(TikTokBaseIE):
             'device_id': ''.join(random.choice(string.digits) for i in range(19)),
         }
 
+        max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            post_list = self._call_api('aweme/post', query, username,
-                                       note='Downloading user video list page %d' % page, errnote='Unable to download user video list')
+            for retries in range(max_retries + 1):
+                try:
+                    post_list = self._call_api('aweme/post', query, username,
+                                               note='Downloading user video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
+                                               errnote='Unable to download user video list')
+                except ExtractorError as e:
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
+                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                        continue
+                    raise
+                break
             for video in post_list.get('aweme_list', []):
                 yield {
                     **self._parse_aweme_video(video),
