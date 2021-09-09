@@ -438,6 +438,7 @@ from .flickr import FlickrIE
 from .folketinget import FolketingetIE
 from .footyroom import FootyRoomIE
 from .formula1 import Formula1IE
+from .fourchannel import FourChannelIE
 from .fourtube import (
     FourTubeIE,
     PornTubeIE,
