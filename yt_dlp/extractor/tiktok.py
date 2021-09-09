@@ -101,6 +101,7 @@ class TikTokBaseIE(InfoExtractor):
                 'filesize': int_or_none(addr.get('data_size')),
                 'ext': 'mp4',
                 'acodec': 'aac',
+                'source_preference': -2 if 'aweme/v1' in url else -1,  # Downloads from API might get blocked
                 **add_meta, **parsed_meta
             } for url in addr.get('url_list') or []]
 
@@ -122,7 +123,7 @@ class TikTokBaseIE(InfoExtractor):
                 'vcodec': 'h264',
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
-                'source_preference': -2 if video_info.get('has_watermark') else -1,
+                'preference': -2 if video_info.get('has_watermark') else -1,
             }))
         if video_info.get('play_addr_h264'):
             formats.extend(extract_addr(video_info['play_addr_h264'], {
@@ -148,7 +149,7 @@ class TikTokBaseIE(InfoExtractor):
                 }))
 
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats, ('quality', 'source', 'codec', 'size', 'br'))
+        self._sort_formats(formats, ('quality', 'ie_pref', 'codec', 'size', 'br'))
 
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
