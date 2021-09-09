@@ -383,7 +383,7 @@ class TikTokUserIE(TikTokBaseIE):
 
         max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            for retries in range(max_retries + 1):
+            for retries in itertools.count():
                 try:
                     post_list = self._call_api('aweme/post', query, username,
                                                note='Downloading user video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
