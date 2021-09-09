@@ -45,6 +45,22 @@ class ITVIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
+        'url': 'https://www.itv.com/hub/the-jonathan-ross-show/2a1166a0209',
+        'info_dict': {
+            'id': '2a1166a0209',
+            'ext': 'mp4',
+            'title': 'The Jonathan Ross Show - Series 17 - Episode 8',
+            'description': 'md5:3023dcdd375db1bc9967186cdb3f1399',
+            'series': 'The Jonathan Ross Show',
+            'episode_number': 8,
+            'season_number': 17,
+            'thumbnail': r're:https?://hubimages\.itv\.com/episode/2_1873_0002'
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+    }, {
         # unavailable via data-playlist-url
         'url': 'https://www.itv.com/hub/through-the-keyhole/2a2271a0033',
         'only_matching': True,
@@ -123,7 +139,7 @@ class ITVIE(InfoExtractor):
         variants = self._parse_json(
             try_get(params, lambda x: x['data-video-variants'], str) or '{}',
             video_id, fatal=False)
-            platform_tag_video, featureset_video = next(
+        platform_tag_video, featureset_video = next(
             ((platform_tag, featureset)
              for platform_tag, featuresets in variants.items() for featureset in featuresets
              if try_get(featureset, lambda x: x[:2]) == ['hls', 'aes']),
