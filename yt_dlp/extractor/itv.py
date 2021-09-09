@@ -3,9 +3,12 @@ from __future__ import unicode_literals
 
 import json
 
+from ..compat import compat_str
+
 from .common import InfoExtractor
 from .brightcove import BrightcoveNewIE
 from ..utils import (
+    base_url,
     clean_html,
     determine_ext,
     extract_attributes,
@@ -17,6 +20,8 @@ from ..utils import (
     smuggle_url,
     try_get,
     url_or_none,
+    url_basename,
+    urljoin,
 )
 
 
@@ -32,7 +37,8 @@ class ITVIE(InfoExtractor):
             'description': 'md5:4d7159af53ebd5b36e8b3ec82a41fdb4',
             'series': 'Plebs',
             'season_number': 1,
-            'episode_number': 1
+            'episode_number': 1,
+            'thumbnail': 're:https?://hubimages\.itv\.com/episode/2_1873_0002'
         },
         'params': {
             # m3u8 download
@@ -170,6 +176,25 @@ class ITVIE(InfoExtractor):
                         info = self._json_ld(item, video_id, fatal=False) or {}
                         break
 
+        thumbnails = []
+        thumbnail_url = try_get(params, lambda x: x['data-video-posterframe'], compat_str)
+        if thumbnail_url:
+            thumbnails.extend([{
+                'url':  thumbnail_url.format(width=1920, height=1080,  quality=100, blur=0, bg='false'),
+                'width': 1920,
+                'height': 1080,
+            }, {
+                'url': urljoin(base_url(thumbnail_url), url_basename(thumbnail_url)),
+                'preference': -2
+            }])
+
+        thumbnail_url = self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None)
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+            })
+        self._remove_duplicate_formats(thumbnails)
+
         return merge_dicts({
             'id': video_id,
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
@@ -177,6 +202,7 @@ class ITVIE(InfoExtractor):
             'subtitles': self.extract_subtitles(video_id, variants, ios_playlist_url, headers),
             'duration': parse_duration(video_data.get('Duration')),
             'description': clean_html(get_element_by_class('episode-info__synopsis', webpage)),
+            'thumbnails': thumbnails
         }, info)
 
 
