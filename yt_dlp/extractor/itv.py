@@ -123,15 +123,11 @@ class ITVIE(InfoExtractor):
         variants = self._parse_json(
             try_get(params, lambda x: x['data-video-variants'], str) or '{}',
             video_id, fatal=False)
-        platform_tag_video = None
-        featureset_video = None
-        for platform_tag, featuresets in variants.items():
-            for featureset in featuresets:
-                if (isinstance(featureset, list) and len(featureset) >= 2
-                        and featureset[0] == 'hls' and featureset[1] == 'aes'):
-                    platform_tag_video = platform_tag
-                    featureset_video = featureset
-                    break
+            platform_tag_video, featureset_video = next(
+            ((platform_tag, featureset)
+             for platform_tag, featuresets in variants.items() for featureset in featuresets
+             if try_get(featureset, lambda x: x[:2]) == ['hls', 'aes']),
+            (None, None))
         if not platform_tag_video or not featureset_video:
             raise ExtractorError('No downloads available', expected=True, video_id=video_id)
 
