@@ -2,7 +2,10 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import clean_html
+from ..utils import (
+    clean_html,
+    try_get,
+)
 
 
 class FourChannelIE(InfoExtractor):
@@ -25,7 +28,9 @@ class FourChannelIE(InfoExtractor):
 
     def _entries(self, board, id):
         thread_json = self._download_json(f'https://a.4cdn.org/{board}/thread/{id}.json', id)
-        for post in thread_json.get('posts', []):
+        posts = thread_json.get('posts', [])
+        thread_subject = try_get(posts, lambda x: x[0]['sub'])
+        for post in posts:
             post_id = post.get('tim')
             ext = post.get('ext', '')
             if post_id:
@@ -40,7 +45,8 @@ class FourChannelIE(InfoExtractor):
                     'uploader': post.get('name'),
                     'description': clean_html(post.get('com')),
                     'series': board,
-                    'season': id,
+                    'season_id': id,
+                    'season': thread_subject,
                 }
 
     def _real_extract(self, url):
