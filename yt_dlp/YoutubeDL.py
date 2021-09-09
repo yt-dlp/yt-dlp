@@ -1166,7 +1166,7 @@ class YoutubeDL(object):
         for key, value in extra_info.items():
             info_dict.setdefault(key, value)
 
-    def extract_info(self, url, download=True, ie_key=None, extra_info={},
+    def extract_info(self, url, download=True, ie_key=None, extra_info=None,
                      process=True, force_generic_extractor=False):
         """
         Return a list with a dictionary for each video extracted.
@@ -1182,6 +1182,9 @@ class YoutubeDL(object):
             must be True for download to work.
         force_generic_extractor -- force using the generic extractor
         """
+
+        if extra_info is None:
+            extra_info = {}
 
         if not ie_key and force_generic_extractor:
             ie_key = 'Generic'
@@ -1208,7 +1211,8 @@ class YoutubeDL(object):
         else:
             self.report_error('no suitable InfoExtractor for URL %s' % url)
 
-    def __handle_extraction_exceptions(func, handle_all_errors=True):
+    def __handle_extraction_exceptions(func):
+
         def wrapper(self, *args, **kwargs):
             try:
                 return func(self, *args, **kwargs)
@@ -1225,10 +1229,10 @@ class YoutubeDL(object):
                 self.to_stderr('\r')
                 self.report_warning('The download speed is below throttle limit. Re-extracting data')
                 return wrapper(self, *args, **kwargs)
-            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
+            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached, LazyList.IndexError):
                 raise
             except Exception as e:
-                if handle_all_errors and self.params.get('ignoreerrors', False):
+                if self.params.get('ignoreerrors', False):
                     self.report_error(error_to_compat_str(e), tb=encode_compat_str(traceback.format_exc()))
                 else:
                     raise
@@ -1287,10 +1291,14 @@ class YoutubeDL(object):
             if ((extract_flat == 'in_playlist' and 'playlist' in extra_info)
                     or extract_flat is True):
                 info_copy = ie_result.copy()
-                self.add_extra_info(info_copy, extra_info)
                 ie = try_get(ie_result.get('ie_key'), self.get_info_extractor)
+                if not ie_result.get('id'):
+                    info_copy['id'] = ie.get_temp_id(ie_result['url'])
                 self.add_default_extra_info(info_copy, ie, ie_result['url'])
+                self.add_extra_info(info_copy, extra_info)
                 self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
+                if self.params.get('force_write_download_archive', False):
+                    self.record_download_archive(info_copy)
                 return ie_result
 
         if result_type == 'video':
@@ -1433,14 +1441,18 @@ class YoutubeDL(object):
         msg = (
             'Downloading %d videos' if not isinstance(ie_entries, list)
             else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
-        if not isinstance(ie_entries, (list, PagedList)):
-            ie_entries = LazyList(ie_entries)
 
-        def get_entry(i):
-            return YoutubeDL.__handle_extraction_exceptions(
-                lambda self, i: ie_entries[i - 1],
-                False
-            )(self, i)
+        if isinstance(ie_entries, list):
+            def get_entry(i):
+                return ie_entries[i - 1]
+        else:
+            if not isinstance(ie_entries, PagedList):
+                ie_entries = LazyList(ie_entries)
+
+            def get_entry(i):
+                return YoutubeDL.__handle_extraction_exceptions(
+                    lambda self, i: ie_entries[i - 1]
+                )(self, i)
 
         entries = []
         for i in playlistitems or itertools.count(playliststart):
@@ -1531,8 +1543,8 @@ class YoutubeDL(object):
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
             playlist_index, entry = entry_tuple
-            if 'playlist-index' in self.params.get('compat_options', []):
-                playlist_index = playlistitems[i - 1] if playlistitems else i
+            if 'playlist-index' in self.params.get('compat_opts', []):
+                playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
             self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes

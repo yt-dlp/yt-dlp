@@ -188,7 +188,6 @@ from .camdemy import (
     CamdemyFolderIE
 )
 from .cammodels import CamModelsIE
-from .camtube import CamTubeIE
 from .camwithher import CamWithHerIE
 from .canalplus import CanalplusIE
 from .canalc2 import Canalc2IE
@@ -512,6 +511,7 @@ from .googlepodcasts import (
 )
 from .googlesearch import GoogleSearchIE
 from .goshgay import GoshgayIE
+from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
 from .groupon import GrouponIE
 from .hbo import HBOIE
@@ -548,6 +548,10 @@ from .hungama import (
     HungamaAlbumPlaylistIE,
 )
 from .hypem import HypemIE
+from .ichinanalive import (
+    IchinanaLiveIE,
+    IchinanaLiveClipIE,
+)
 from .ign import (
     IGNIE,
     IGNVideoIE,
@@ -722,6 +726,7 @@ from .massengeschmacktv import MassengeschmackTVIE
 from .matchtv import MatchTVIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
+from .mediaklikk import MediaKlikkIE
 from .mediaset import MediasetIE
 from .mediasite import (
     MediasiteIE,
@@ -952,10 +957,12 @@ from .nytimes import (
     NYTimesCookingIE,
 )
 from .nuvid import NuvidIE
+from .nzherald import NZHeraldIE
 from .nzz import NZZIE
 from .odatv import OdaTVIE
 from .odnoklassniki import OdnoklassnikiIE
 from .oktoberfesttv import OktoberfestTVIE
+from .olympics import OlympicsReplayIE
 from .ondemandkorea import OnDemandKoreaIE
 from .onet import (
     OnetIE,
@@ -1007,10 +1014,17 @@ from .paramountplus import (
 )
 from .parliamentliveuk import ParliamentLiveUKIE
 from .parlview import ParlviewIE
-from .patreon import PatreonIE
+from .patreon import (
+    PatreonIE,
+    PatreonUserIE
+)
 from .pbs import PBSIE
 from .pearvideo import PearVideoIE
 from .peertube import PeerTubeIE
+from .peloton import (
+    PelotonIE,
+    PelotonLiveIE
+)
 from .people import PeopleIE
 from .performgroup import PerformGroupIE
 from .periscope import (
@@ -1272,6 +1286,10 @@ from .southpark import (
     SouthParkEsIE,
     SouthParkNlIE
 )
+from .sovietscloset import (
+    SovietsClosetIE,
+    SovietsClosetPlaylistIE
+)
 from .spankbang import (
     SpankBangIE,
     SpankBangPlaylistIE,
@@ -1307,6 +1325,7 @@ from .srgssr import (
 )
 from .srmediathek import SRMediathekIE
 from .stanfordoc import StanfordOpenClassroomIE
+from .startv import StarTVIE
 from .steam import SteamIE
 from .storyfire import (
     StoryFireIE,
@@ -1403,6 +1422,10 @@ from .toggle import (
     ToggleIE,
     MeWatchIE,
 )
+from .tokentube import (
+    TokentubeIE,
+    TokentubeChannelIE
+)
 from .tonline import TOnlineIE
 from .toongoggles import ToonGogglesIE
 from .toutv import TouTvIE
@@ -1440,7 +1463,10 @@ from .tv2dk import (
     TV2DKIE,
     TV2DKBornholmPlayIE,
 )
-from .tv2hu import TV2HuIE
+from .tv2hu import (
+    TV2HuIE,
+    TV2HuSeriesIE,
+)
 from .tv4 import TV4IE
 from .tv5mondeplus import TV5MondePlusIE
 from .tv5unis import (
@@ -1741,7 +1767,11 @@ from .yandexmusic import (
     YandexMusicArtistTracksIE,
     YandexMusicArtistAlbumsIE,
 )
-from .yandexvideo import YandexVideoIE
+from .yandexvideo import (
+    YandexVideoIE,
+    ZenYandexIE,
+    ZenYandexChannelIE,
+)
 from .yapfiles import YapFilesIE
 from .yesjapan import YesJapanIE
 from .yinyuetai import YinYueTaiIE

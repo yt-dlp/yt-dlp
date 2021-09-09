@@ -44,7 +44,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         # Remove the templates, like &device={device}
         return re.sub(r'&[^=]*?={.*?}(?=(&|$))', '', url)
 
-    def _get_feed_url(self, uri):
+    def _get_feed_url(self, uri, url=None):
         return self._FEED_URL
 
     def _get_thumbnail_url(self, uri, itemdoc):
@@ -229,9 +229,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
             data['lang'] = self._LANG
         return data
 
-    def _get_videos_info(self, uri, use_hls=True):
+    def _get_videos_info(self, uri, use_hls=True, url=None):
         video_id = self._id_from_uri(uri)
-        feed_url = self._get_feed_url(uri)
+        feed_url = self._get_feed_url(uri, url)
         info_url = update_url_query(feed_url, self._get_feed_query(uri))
         return self._get_videos_info_from_url(info_url, video_id, use_hls)
 
@@ -323,7 +323,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         title = url_basename(url)
         webpage = self._download_webpage(url, title)
         mgid = self._extract_mgid(webpage)
-        videos_info = self._get_videos_info(mgid)
+        videos_info = self._get_videos_info(mgid, url=url)
         return videos_info
 
 
@@ -352,7 +352,7 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
         if mobj:
             return mobj.group('url')
 
-    def _get_feed_url(self, uri):
+    def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)
         config = self._download_json(
             'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge' % uri, video_id)

@@ -127,9 +127,9 @@ class MotherlessIE(InfoExtractor):
 
         comment_count = webpage.count('class="media-comment-contents"')
         uploader_id = self._html_search_regex(
-            r'"thumb-member-username">\s+<a href="/m/([^"]+)"',
-            webpage, 'uploader_id')
-
+            (r'"media-meta-member">\s+<a href="/m/([^"]+)"',
+             r'<span\b[^>]+\bclass="username">([^<]+)</span>'),
+            webpage, 'uploader_id', fatal=False)
         categories = self._html_search_meta('keywords', webpage, default=None)
         if categories:
             categories = [cat.strip() for cat in categories.split(',')]
@@ -169,7 +169,18 @@ class MotherlessGroupIE(InfoExtractor):
             'description': 'Sex can be funny. Wide smiles,laugh, games, fun of '
                            'any kind!'
         },
-        'playlist_mincount': 9,
+        'playlist_mincount': 0,
+        'expected_warnings': [
+            'This group has no videos.',
+        ]
+    }, {
+        'url': 'https://motherless.com/g/beautiful_cock',
+        'info_dict': {
+            'id': 'beautiful_cock',
+            'title': 'Beautiful Cock',
+            'description': 'Group for lovely cocks yours, mine, a friends anything human',
+        },
+        'playlist_mincount': 2500,
     }]
 
     @classmethod
@@ -209,11 +220,18 @@ class MotherlessGroupIE(InfoExtractor):
         description = self._html_search_meta(
             'description', webpage, fatal=False)
         page_count = self._int(self._search_regex(
-            r'(\d+)</(?:a|span)><(?:a|span)[^>]+>\s*NEXT',
-            webpage, 'page_count'), 'page_count')
+            r'(\d+)</(?:a|span)><(?:a|span)[^>]+rel="next">',
+            webpage, 'page_count', default=0), 'page_count')
+        if not page_count:
+            message = self._search_regex(
+                r'class="error-page"[^>]*>\s*<p[^>]*>\s*(?P<error_msg>[^<]+)(?<=\S)\s*',
+                webpage, 'error_msg', default=None) or 'This group has no videos.'
+            self.report_warning(message, group_id)
         PAGE_SIZE = 80
 
         def _get_page(idx):
+            if not page_count:
+                return
             webpage = self._download_webpage(
                 page_url, group_id, query={'page': idx + 1},
                 note='Downloading page %d/%d' % (idx + 1, page_count)

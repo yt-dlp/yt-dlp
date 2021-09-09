@@ -1,6 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import itertools
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -142,3 +145,88 @@ class YandexVideoIE(InfoExtractor):
             'release_year': int_or_none(content.get('release_year')),
             'formats': formats,
         }
+
+
+class ZenYandexIE(InfoExtractor):
+    _VALID_URL = r'https?://zen\.yandex\.ru/media/(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-(?P<id>[a-z0-9-]+)'
+    _TESTS = [{
+        'url': 'https://zen.yandex.ru/media/popmech/izverjenie-vulkana-iz-spichek-zreliscnyi-opyt-6002240ff8b1af50bb2da5e3',
+        'info_dict': {
+            'id': '6002240ff8b1af50bb2da5e3',
+            'ext': 'mp4',
+            'title': 'Извержение вулкана из спичек: зрелищный опыт',
+            'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
+            'thumbnail': 'https://avatars.mds.yandex.net/get-zen-pub-og/3558619/pub_6002240ff8b1af50bb2da5e3_600bad814d953e4132a30b5e/orig',
+            'uploader': 'Популярная механика',
+        },
+    }, {
+        'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
+        'info_dict': {
+            'id': '60c7c443da18892ebfe85ed7',
+            'ext': 'mp4',
+            'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
+            'description': 'md5:8684912f6086f298f8078d4af0e8a600',
+            'thumbnail': 'https://avatars.mds.yandex.net/get-zen-pub-og/4410519/pub_60c7c443da18892ebfe85ed7_60c7c48e060a163121f42cc3/orig',
+            'uploader': 'AcademeG DailyStream'
+        },
+    }, {
+        'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/novyi-samsung-fold-3-moskvich-barahlit-612f93b7f8d48e7e945792a2?from=channel&rid=2286618386.482.1630817595976.42360',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        webpage = self._download_webpage(url, id)
+        data_json = self._parse_json(self._search_regex(r'w\._data\s?=\s?({.+?});', webpage, 'metadata'), id)
+        stream_json = try_get(data_json, lambda x: x['publication']['content']['gifContent'], dict)
+        stream_url = stream_json.get('stream') or try_get(stream_json, lambda x: x['streams']['url'])
+        formats = self._extract_m3u8_formats(stream_url, id)
+        self._sort_formats(formats)
+        return {
+            'id': id,
+            'title': try_get(data_json, (lambda x: x['og']['title'], lambda x: x['publication']['content']['preview']['title'])),
+            'uploader': data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
+            'description': try_get(data_json, lambda x: x['og']['description']),
+            'thumbnail': try_get(data_json, lambda x: x['og']['imageUrl']),
+            'formats': formats,
+        }
+
+
+class ZenYandexChannelIE(InfoExtractor):
+    _VALID_URL = r'https?://zen\.yandex\.ru/(?!media)(?:id/)?(?P<id>[a-z0-9-_]+)'
+    _TESTS = [{
+        'url': 'https://zen.yandex.ru/tok_media',
+        'info_dict': {
+            'id': 'tok_media',
+        },
+        'playlist_mincount': 169,
+    }, {
+        'url': 'https://zen.yandex.ru/id/606fd806cc13cb3c58c05cf5',
+        'info_dict': {
+            'id': '606fd806cc13cb3c58c05cf5',
+        },
+        'playlist_mincount': 657,
+    }]
+
+    def _entries(self, id, url):
+        webpage = self._download_webpage(url, id)
+        data_json = self._parse_json(re.findall(r'var\s?data\s?=\s?({.+?})\s?;', webpage)[-1], id)
+        for key in data_json.keys():
+            if key.startswith('__serverState__'):
+                data_json = data_json[key]
+        items = list(try_get(data_json, lambda x: x['feed']['items'], dict).values())
+        more = try_get(data_json, lambda x: x['links']['more']) or None
+        for page in itertools.count(1):
+            for item in items:
+                video_id = item.get('publication_id') or item.get('publicationId')
+                video_url = item.get('link')
+                yield self.url_result(video_url, ie=ZenYandexIE.ie_key(), video_id=video_id.split(':')[-1])
+            if not more:
+                break
+            data_json = self._download_json(more, id, note='Downloading Page %d' % page)
+            items = data_json.get('items', [])
+            more = try_get(data_json, lambda x: x['more']['link']) or None
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        return self.playlist_result(self._entries(id, url), playlist_id=id)

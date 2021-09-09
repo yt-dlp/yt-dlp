@@ -19,6 +19,115 @@
 -->
 
 
+### 2021.09.02
+
+* **Native SponsorBlock** implementation by [nihil-admirari](https://github.com/nihil-admirari), [pukkandan](https://github.com/pukkandan)
+    * `--sponsorblock-remove CATS` removes specified chapters from file
+    * `--sponsorblock-mark CATS` marks the specified sponsor sections as chapters
+    * `--sponsorblock-chapter-title TMPL` to specify sponsor chapter template
+    * `--sponsorblock-api URL` to use a different API
+    * No re-encoding is done unless `--force-keyframes-at-cuts` is used
+    * The fetched sponsor sections are written to the infojson
+    * Deprecates: `--sponskrub`, `--no-sponskrub`, `--sponskrub-cut`, `--no-sponskrub-cut`, `--sponskrub-force`, `--no-sponskrub-force`, `--sponskrub-location`, `--sponskrub-args`
+* Split `--embed-chapters` from `--embed-metadata` (it still implies the former by default)
+* Add option `--remove-chapters` to remove arbitrary chapters by [nihil-admirari](https://github.com/nihil-admirari), [pukkandan](https://github.com/pukkandan)
+* Add option `--force-keyframes-at-cuts` for more accurate cuts when removing and splitting chapters by [nihil-admirari](https://github.com/nihil-admirari)
+* Let `--match-filter` reject entries early
+    * Makes redundant: `--match-title`, `--reject-title`, `--min-views`, `--max-views`
+* [lazy_extractor] Improvements (It now passes all tests)
+    * Bugfix for when plugin directory doesn't exist by [kidonng](https://github.com/kidonng)
+    * Create instance only after pre-checking archive
+    * Import actual class if an attribute is accessed
+    * Fix `suitable` and add flake8 test
+* [downloader/ffmpeg] Experimental support for DASH manifests (including live)
+    * Your ffmpeg must have [this patch](https://github.com/FFmpeg/FFmpeg/commit/3249c757aed678780e22e99a1a49f4672851bca9) applied for YouTube DASH to work
+* [downloader/ffmpeg] Allow passing custom arguments before `-i`
+
+* [BannedVideo] Add extractor by [smege1001](https://github.com/smege1001), [blackjack4494](https://github.com/blackjack4494), [pukkandan](https://github.com/pukkandan)
+* [bilibili] Add category extractor by [animelover1984](https://github.com/animelover1984)
+* [Epicon] Add extractors by [Ashish0804](https://github.com/Ashish0804)
+* [filmmodu] Add extractor by [mzbaulhaque](https://github.com/mzbaulhaque)
+* [GabTV] Add extractor by [Ashish0804](https://github.com/Ashish0804)
+* [Hungama] Fix `HungamaSongIE` and add `HungamaAlbumPlaylistIE` by [Ashish0804](https://github.com/Ashish0804)
+* [ManotoTV] Add new extractors by [tandy1000](https://github.com/tandy1000)
+* [Niconico] Add Search extractors by [animelover1984](https://github.com/animelover1984), [pukkandan](https://github.com/pukkandan)
+* [Patreon] Add `PatreonUserIE` by [zenerdi0de](https://github.com/zenerdi0de)
+* [peloton] Add extractor by [IONECarter](https://github.com/IONECarter), [capntrips](https://github.com/capntrips), [pukkandan](https://github.com/pukkandan)
+* [ProjectVeritas] Add extractor by [Ashish0804](https://github.com/Ashish0804)
+* [radiko] Add extractors by [nao20010128nao](https://github.com/nao20010128nao)
+* [StarTV] Add extractor for `startv.com.tr` by [mrfade](https://github.com/mrfade), [coletdjnz](https://github.com/coletdjnz)
+* [tiktok] Add `TikTokUserIE` by [Ashish0804](https://github.com/Ashish0804), [pukkandan](https://github.com/pukkandan)
+* [Tokentube] Add extractor by [u-spec-png](https://github.com/u-spec-png)
+* [TV2Hu] Fix `TV2HuIE` and add `TV2HuSeriesIE` by [Ashish0804](https://github.com/Ashish0804)
+* [voicy] Add extractor by [nao20010128nao](https://github.com/nao20010128nao)
+
+* [adobepass] Fix Verizon SAML login by [nyuszika7h](https://github.com/nyuszika7h), [ParadoxGBB](https://github.com/ParadoxGBB)
+* [afreecatv] Fix adult VODs by [wlritchi](https://github.com/wlritchi)
+* [afreecatv] Tolerate failure to parse date string by [wlritchi](https://github.com/wlritchi)
+* [aljazeera] Fix extractor by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [ATV.at] Fix extractor for ATV.at by [NeroBurner](https://github.com/NeroBurner), [coletdjnz](https://github.com/coletdjnz)
+* [bitchute] Fix test by [mahanstreamer](https://github.com/mahanstreamer)
+* [camtube] Remove obsolete extractor by [alerikaisattera](https://github.com/alerikaisattera)
+* [CDA] Add more formats by [u-spec-png](https://github.com/u-spec-png)
+* [eroprofile] Fix page skipping in albums by [jhwgh1968](https://github.com/jhwgh1968)
+* [facebook] Fix format sorting
+* [facebook] Fix metadata extraction by [kikuyan](https://github.com/kikuyan)
+* [facebook] Update onion URL by [Derkades](https://github.com/Derkades)
+* [HearThisAtIE] Fix extractor by [Ashish0804](https://github.com/Ashish0804)
+* [instagram] Add referrer to prevent throttling by [u-spec-png](https://github.com/u-spec-png), [kikuyan](https://github.com/kikuyan)
+* [iwara.tv] Extract more metadata by [BunnyHelp](https://github.com/BunnyHelp)
+* [iwara] Add thumbnail by [i6t](https://github.com/i6t)
+* [kakao] Fix extractor
+* [mediaset] Fix extraction for some videos by [nyuszika7h](https://github.com/nyuszika7h)
+* [Motherless] Fix extractor by [coletdjnz](https://github.com/coletdjnz)
+* [Nova] fix extractor by [std-move](https://github.com/std-move)
+* [ParamountPlus] Fix geo verification by [shirt](https://github.com/shirt-dev)
+* [peertube] handle new video URL format by [Chocobozzz](https://github.com/Chocobozzz)
+* [pornhub] Separate and fix playlist extractor by [mzbaulhaque](https://github.com/mzbaulhaque)
+* [reddit] Fix for quarantined subreddits by [ouwou](https://github.com/ouwou)
+* [ShemarooMe] Fix extractor by [Ashish0804](https://github.com/Ashish0804)
+* [soundcloud] Refetch `client_id` on 403
+* [tiktok] Fix metadata extraction
+* [TV2] Fix extractor by [Ashish0804](https://github.com/Ashish0804)
+* [tv5mondeplus] Fix extractor by [korli](https://github.com/korli)
+* [VH1,TVLand] Fix extractors by [Sipherdrakon](https://github.com/Sipherdrakon)
+* [Viafree] Fix extractor and extract subtitles by [coletdjnz](https://github.com/coletdjnz)
+* [XHamster] Extract `uploader_id` by [octotherp](https://github.com/octotherp)
+* [youtube] Add `shorts` to `_VALID_URL`
+* [youtube] Add av01 itags to known formats list by [blackjack4494](https://github.com/blackjack4494)
+* [youtube] Extract error messages from HTTPError response by [coletdjnz](https://github.com/coletdjnz)
+* [youtube] Fix subtitle names
+* [youtube] Prefer audio stream that YouTube considers default
+* [youtube] Remove annotations and deprecate `--write-annotations` by [coletdjnz](https://github.com/coletdjnz)
+* [Zee5] Fix extractor and add subtitles by [Ashish0804](https://github.com/Ashish0804)
+
+* [aria2c] Obey `--rate-limit`
+* [EmbedSubtitle] Continue even if some files are missing
+* [extractor] Better error message for DRM
+* [extractor] Common function `_match_valid_url`
+* [extractor] Show video id in error messages if possible
+* [FormatSort] Remove priority of `lang`
+* [options] Add `_set_from_options_callback`
+* [SubtitleConvertor] Fix bug during subtitle conversion
+* [utils] Add `parse_qs`
+* [webvtt] Fix timestamp overflow adjustment by [fstirlitz](https://github.com/fstirlitz)
+* Bugfix for `--replace-in-metadata`
+* Don't try to merge with final extension
+* Fix `--force-overwrites` when using `-k`
+* Fix `--no-prefer-free-formats` by [CeruleanSky](https://github.com/CeruleanSky)
+* Fix `-F` for extractors that directly return url
+* Fix `-J` when there are failed videos
+* Fix `extra_info` being reused across runs
+* Fix `playlist_index` not obeying `playlist_start` and add tests
+* Fix resuming of single formats when using `--no-part`
+* Revert erroneous use of the `Content-Length` header by [fstirlitz](https://github.com/fstirlitz)
+* Use `os.replace` where applicable by; paulwrubel
+* [build] Add homebrew taps `yt-dlp/taps/yt-dlp` by [nao20010128nao](https://github.com/nao20010128nao)
+* [build] Fix bug in making `yt-dlp.tar.gz`
+* [docs] Fix some typos by [pukkandan](https://github.com/pukkandan), [zootedb0t](https://github.com/zootedb0t)
+* [cleanup] Replace improper use of tab in trovo by [glenn-slayden](https://github.com/glenn-slayden)
+
+
 ### 2021.08.10
 
 * Add option `--replace-in-metadata`

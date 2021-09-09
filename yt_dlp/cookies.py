@@ -123,7 +123,7 @@ def _extract_firefox_cookies(profile, logger):
     cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite')
     if cookie_database_path is None:
         raise FileNotFoundError('could not find firefox cookies database in {}'.format(search_root))
-    logger.debug('extracting from: "{}"'.format(cookie_database_path))
+    logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
     with tempfile.TemporaryDirectory(prefix='youtube_dl') as tmpdir:
         cursor = None
@@ -240,7 +240,7 @@ def _extract_chrome_cookies(browser_name, profile, logger):
     cookie_database_path = _find_most_recently_used_file(search_root, 'Cookies')
     if cookie_database_path is None:
         raise FileNotFoundError('could not find {} cookies database in "{}"'.format(browser_name, search_root))
-    logger.debug('extracting from: "{}"'.format(cookie_database_path))
+    logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
     decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], logger)
 
@@ -559,7 +559,7 @@ def _parse_safari_cookies_record(data, jar, logger):
         p.skip_to(value_offset)
         value = p.read_cstring()
     except UnicodeDecodeError:
-        logger.warning('failed to parse cookie because UTF-8 decoding failed')
+        logger.warning('failed to parse cookie because UTF-8 decoding failed', only_once=True)
         return record_size
 
     p.skip_to(record_size, 'space at the end of the record')
@@ -655,7 +655,7 @@ def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
     try:
         return intlist_to_bytes(plaintext[:-padding_length]).decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?')
+        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
 
 
@@ -664,13 +664,13 @@ def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
     try:
         plaintext = cipher.decrypt_and_verify(ciphertext, authentication_tag)
     except ValueError:
-        logger.warning('failed to decrypt cookie because the MAC check failed. Possibly the key is wrong?')
+        logger.warning('failed to decrypt cookie because the MAC check failed. Possibly the key is wrong?', only_once=True)
         return None
 
     try:
         return plaintext.decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?')
+        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
 
 
@@ -698,7 +698,7 @@ def _decrypt_windows_dpapi(ciphertext, logger):
         ctypes.byref(blob_out)  # pDataOut
     )
     if not ret:
-        logger.warning('failed to decrypt with DPAPI')
+        logger.warning('failed to decrypt with DPAPI', only_once=True)
         return None
 
     result = ctypes.string_at(blob_out.pbData, blob_out.cbData)
