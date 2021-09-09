@@ -13,7 +13,6 @@ from ..utils import (
     determine_ext,
     extract_attributes,
     ExtractorError,
-    get_domain,
     get_element_by_class,
     JSON_LD_RE,
     merge_dicts,
@@ -129,8 +128,6 @@ class ITVIE(InfoExtractor):
                 href = url_or_none(sub.get('Href'))
                 if not href:
                     continue
-                # subtitles on cloudfront CDN's give 403 (possibly signature-related)
-                href = href.replace(get_domain(href), 'itvpnpsubtitles.content.itv.com')
                 subtitles.setdefault('en', []).append({'url': href})
         return subtitles
 
