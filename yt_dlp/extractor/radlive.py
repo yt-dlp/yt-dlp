@@ -154,23 +154,8 @@ query WebChannelListing ($lrn: ID!) {
   channel (id:$lrn) {
   ...Channel
 
-    metadata {
-      ...Metadata
-    }
-
-    presentation {
-      ...Presentation
-    }
-
     miniseries {
       ...Miniseries
-      metadata {
-        ...Metadata
-      }
-
-      presentation {
-        ...Presentation
-      }
       episodes {
         ...Episode
       }
@@ -178,13 +163,6 @@ query WebChannelListing ($lrn: ID!) {
 
     series {
       ...Series
-      metadata {
-        ...Metadata
-      }
-
-      presentation {
-        ...Presentation
-      }
       seasons {
         ...Season
       }
@@ -192,24 +170,10 @@ query WebChannelListing ($lrn: ID!) {
 
     features {
       ...Feature
-      metadata {
-        ...Metadata
-      }
-
-      presentation {
-        ...Presentation
-      }
     }
 
     streams {
       ...Stream
-      metadata {
-        ...Metadata
-      }
-
-      presentation {
-        ...Presentation
-      }
     }
 
     playlists {
@@ -227,151 +191,52 @@ query WebChannelListing ($lrn: ID!) {
 
 fragment Playlists on Playlist {
   ...Playlist
-  items {
-    __typename
-  }
 }
-
 
 fragment Channel on Channel {
   name
-  id
-  lrn
-  acl
-  summary
-  short_summary
-  assets
-  structured_data
 }
-
 
 fragment Miniseries on Miniseries {
   id
-  lrn
-  title
-  acl
-  summary
-  short_summary
-  assets
-  structured_data
 }
 
 
 fragment Feature on Feature {
-  id
-  lrn
-  title
-  acl
-  assets
-  summary
-  short_summary
   structured_data
-  associated_channels {
-      lrn
-  }
 }
 
 
 fragment Series on Serie {
   id
-  lrn
-  title
-  acl
-  summary
-  summary_short
-  assets
-  structured_data
-  associated_channels {
-    lrn
-  }
 }
 
 
 fragment Season on Season {
   id
-  lrn
-  title
-  acl
-  number
-  summary
-  short_summary
-  assets
-  structured_data
 }
 
 
 fragment Episode on Episode {
   id
-  lrn
-  title
-  acl
-  assets
-  number
-  summary
-  short_summary
-  structured_data
-  associated_miniseries {
-    lrn
-  }
-  associated_season {
-    lrn
-    associated_series {
-      lrn
-    }
-  }
 }
 
 
 fragment Stream on Stream {
   id
-  lrn
-  title
-  short_title
-  summary
-  short_summary
-  acl
-  type
-  assets
-  structured_data
 }
 
 
 fragment Playlist on Playlist {
   id
-  lrn
-  title
-  short_title
-  short_summary
-  summary
-  acl
-  assets
-  associated_channels {
-    lrn
-  }
 }
-
 
 fragment Metadata on Metadata {
     name
-    lrn
-    marketing_body_text
-    marketing_header_text
 }
 
-
 fragment Presentation on Presentation {
-    avails_open_date
-    avails_close_date
     lrn
-    note
-    condition
-    is_released
-    is_opened
-    is_closed
-    restrictions {
-      enabled
-      lrn
-    }
 }
 """,
             'variables': {
