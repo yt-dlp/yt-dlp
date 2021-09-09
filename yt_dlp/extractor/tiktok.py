@@ -409,5 +409,5 @@ class TikTokUserIE(TikTokBaseIE):
         webpage = self._download_webpage(url, user_id, headers={
             'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
         })
-        own_id = self._html_search_regex(r'snssdk1180://user/profile/(\d+)', webpage, 'user ID')
+        own_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID')
         return self.playlist_result(self._entries_api(webpage, own_id, user_id), user_id)
