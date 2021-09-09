@@ -97,15 +97,11 @@ class ITVIE(InfoExtractor):
 
     def _get_subtitles(self, video_id, variants, ios_playlist_url, headers, *args, **kwargs):
         subtitles = {}
-        platform_tag_subs = None
-        featureset_subs = None
-        for platform_tag, featuresets in variants.items():
-            for featureset in featuresets:
-                if (isinstance(featureset, list) and len(featureset) >= 3
-                        and featureset[2] == 'outband-webvtt'):
-                    platform_tag_subs = platform_tag
-                    featureset_subs = featureset
-                    break
+        platform_tag_subs, featureset_subs = next(
+            ((platform_tag, featureset)
+             for platform_tag, featuresets in variants.items() for featureset in featuresets
+             if try_get(featureset, lambda x: x[2]) == 'outband-webvtt'),
+            (None, None))
         if platform_tag_subs or featureset_subs:
             subs_playlist = self._call_api(
                 video_id, ios_playlist_url, headers, platform_tag_subs, featureset_subs, fatal=False)
