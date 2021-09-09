@@ -3,10 +3,10 @@ from __future__ import unicode_literals
 
 import json
 
-from ..compat import compat_str
-
 from .common import InfoExtractor
 from .brightcove import BrightcoveNewIE
+
+from ..compat import compat_str
 from ..utils import (
     base_url,
     clean_html,
@@ -137,7 +137,7 @@ class ITVIE(InfoExtractor):
         params = extract_attributes(self._search_regex(
             r'(?s)(<[^>]+id="video"[^>]*>)', webpage, 'params'))
         variants = self._parse_json(
-            try_get(params, lambda x: x['data-video-variants'], str) or '{}',
+            try_get(params, lambda x: x['data-video-variants'], compat_str) or '{}',
             video_id, fatal=False)
         platform_tag_video, featureset_video = next(
             ((platform_tag, featureset)
