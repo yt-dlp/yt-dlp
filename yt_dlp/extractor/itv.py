@@ -38,7 +38,7 @@ class ITVIE(InfoExtractor):
             'series': 'Plebs',
             'season_number': 1,
             'episode_number': 1,
-            'thumbnail': 're:https?://hubimages\.itv\.com/episode/2_1873_0002'
+            'thumbnail': r're:https?://hubimages\.itv\.com/episode/2_1873_0002'
         },
         'params': {
             # m3u8 download
@@ -180,7 +180,7 @@ class ITVIE(InfoExtractor):
         thumbnail_url = try_get(params, lambda x: x['data-video-posterframe'], compat_str)
         if thumbnail_url:
             thumbnails.extend([{
-                'url':  thumbnail_url.format(width=1920, height=1080,  quality=100, blur=0, bg='false'),
+                'url': thumbnail_url.format(width=1920, height=1080, quality=100, blur=0, bg='false'),
                 'width': 1920,
                 'height': 1080,
             }, {
