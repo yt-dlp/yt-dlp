@@ -778,43 +778,13 @@ class BiliBiliPlayerIE(InfoExtractor):
 
 
 class BiliIntlBaseIE(InfoExtractor):
-    _API_URL = 'https://api.bili{}/intl/gateway'
+    _API_URL = 'https://api.bili{}/intl/gateway{}'
 
-    def _call_api(self, endpoint, id):
-        return self._download_json(self._API_URL + endpoint, id)['data']
+    def _call_api(self, type, endpoint, id):
+        return self._download_json(self._API_URL.format(type, endpoint), id)['data']
 
-    def _extract_formats_and_subtitles(self, ep_id):
-        video_json = self._call_api(f'/web/playurl?ep_id={ep_id}&platform=web', ep_id)
-        if not video_json:
-            self.raise_login_required(method='cookies')
-        video_json = video_json['playurl']
-        formats = []
-        for vid in video_json.get('video', []):
-            video_res = vid['video_resource']
-            video_info = vid['stream_info']
-            if video_res.get('url'):
-                formats.append({
-                    'url': video_res['url'],
-                    'ext': 'mp4',
-                    'format_note': video_info.get('desc_words'),
-                    'width': video_res.get('width'),
-                    'height': video_res.get('height'),
-                    'vbr': video_res.get('bandwidth'),
-                    'acodec': 'none',
-                    'vcodec': video_res.get('codecs'),
-                    'filesize': video_res.get('size'),
-                })
-        for aud in video_json.get('audio_resource', []):
-            if aud.get('url'):
-                formats.append({
-                    'url': aud['url'],
-                    'ext': 'mp4',
-                    'abr': aud.get('bandwidth'),
-                    'acodec': aud.get('codecs'),
-                    'vcodec': 'none',
-                    'filesize': aud.get('size'),
-                })
-        sub_json = self._call_api(f'/m/subtitle?ep_id={ep_id}&platform=web', ep_id)
+    def _get_subtitles(self, type, ep_id):
+        sub_json = self._call_api(type, f'/m/subtitle?ep_id={ep_id}&platform=web', ep_id)
         subtitles = {}
         for sub in sub_json.get('subtitles', []):
             sub_url = sub.get('url')
@@ -823,11 +793,48 @@ class BiliIntlBaseIE(InfoExtractor):
             subtitles.setdefault(sub.get('key', 'en'), []).append({
                 'url': sub_url,
             })
-        self._sort_formats(formats)
-        return formats, subtitles
+        return subtitles
 
-    def _extract_ep_info(self, episode_data, ep_id):
-        formats, subtitles = self._extract_formats_and_subtitles(ep_id)
+    def _get_formats(self, type, ep_id):
+        video_json = self._call_api(type, f'/web/playurl?ep_id={ep_id}&platform=web', ep_id)
+        if not video_json:
+            self.raise_login_required(method='cookies')
+        video_json = video_json['playurl']
+        formats = []
+        for vid in video_json.get('video', []):
+            video_res = vid.get('video_resource')
+            video_info = vid.get('stream_info')
+            if not video_res.get('url'):
+                continue
+            formats.append({
+                'url': video_res['url'],
+                'ext': 'mp4',
+                'format_note': video_info.get('desc_words'),
+                'width': video_res.get('width'),
+                'height': video_res.get('height'),
+                'vbr': video_res.get('bandwidth'),
+                'acodec': 'none',
+                'vcodec': video_res.get('codecs'),
+                'filesize': video_res.get('size'),
+            })
+        for aud in video_json.get('audio_resource', []):
+            if not aud.get('url'):
+                continue
+            formats.append({
+                'url': aud['url'],
+                'ext': 'mp4',
+                'abr': aud.get('bandwidth'),
+                'acodec': aud.get('codecs'),
+                'vcodec': 'none',
+                'filesize': aud.get('size'),
+            })
+
+        self._sort_formats(formats)
+        return formats
+
+    def _extract_ep_info(self, type, episode_data, ep_id):
+        formats = self._get_formats(type, ep_id)
+        subtitles = self._get_subtitles(type, ep_id)
         return {
             'id': ep_id,
             'title': episode_data['long_title'] or episode_data.get('title'),
@@ -835,6 +842,7 @@ class BiliIntlBaseIE(InfoExtractor):
             'episode_number': str_to_int(episode_data.get('title')),
             'formats': formats,
             'subtitles': subtitles,
+            'extractor_key': BiliIntlIE.ie_key(),
         }
 
 
@@ -868,13 +876,11 @@ class BiliIntlIE(BiliIntlBaseIE):
 
     def _real_extract(self, url):
         type, season_id, id = self._match_valid_url(url).groups()
-        self._API_URL = self._API_URL.format(type)
-        data_json = self._call_api(f'/web/view/ogv_collection?season_id={season_id}', id)
-        for episode in data_json.get('episodes', []):
-            if str(episode.get('ep_id')) == id:
-                episode_data = episode
-                break
-        return self._extract_ep_info(episode_data, id)
+        data_json = self._call_api(type, f'/web/view/ogv_collection?season_id={season_id}', id)
+        episode_data = next(
+            episode for episode in data_json.get('episodes', [])
+            if str(episode.get('ep_id')) == id)
+        return self._extract_ep_info(type, episode_data, id)
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
@@ -902,11 +908,10 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
     }]
 
     def _entries(self, id, type):
-        self._API_URL = self._API_URL.format(type)
-        data_json = self._call_api(f'/web/view/ogv_collection?season_id={id}', id)
+        data_json = self._call_api(type, f'/web/view/ogv_collection?season_id={id}', id)
         for episode in data_json.get('episodes', []):
             episode_id = str(episode.get('ep_id'))
-            yield self._extract_ep_info(episode, episode_id)
+            yield self._extract_ep_info(type, episode, episode_id)
 
     def _real_extract(self, url):
         type, id = self._match_valid_url(url).groups()
