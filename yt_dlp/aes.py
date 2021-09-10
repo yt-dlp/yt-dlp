@@ -88,6 +88,10 @@ def aes_cbc_encrypt(data, key, iv):
     return encrypted_data
 
 
+def aes_gcm_decrypt_and_verify(data, key, authentication_tag, nonce):
+    raise NotImplementedError
+
+
 def key_expansion(data):
     """
     Generate key schedule
@@ -358,4 +362,4 @@ def inc(data):
     return data
 
 
-__all__ = ['aes_encrypt', 'key_expansion', 'aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_decrypt_text']
+__all__ = ['aes_encrypt', 'key_expansion', 'aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify', 'aes_decrypt_text']

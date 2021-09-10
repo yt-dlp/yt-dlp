@@ -5,7 +5,7 @@ import io
 import binascii
 
 from ..downloader import get_suitable_downloader
-from .fragment import FragmentFD, can_decrypt_frag
+from .fragment import FragmentFD
 from .external import FFmpegFD
 
 from ..compat import (
@@ -29,7 +29,7 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False, with_crypto=can_decrypt_frag):
+    def can_download(manifest, info_dict, allow_unplayable_formats=False, with_crypto=True):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 

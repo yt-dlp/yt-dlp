@@ -7,7 +7,7 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yt_dlp.aes import aes_decrypt, aes_encrypt, aes_cbc_decrypt, aes_cbc_encrypt, aes_decrypt_text
+from yt_dlp.aes import aes_decrypt, aes_encrypt, aes_cbc_decrypt, aes_cbc_encrypt, aes_gcm_decrypt_and_verify, aes_decrypt_text
 from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
 import base64
 
@@ -39,6 +39,14 @@ class TestAES(unittest.TestCase):
         self.assertEqual(
             encrypted,
             b"\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd")
+
+    def test_gcm_decrypt(self):
+        data = bytes_to_intlist(
+            b"u\x96\x14\x97o\x87Te#\x1a\x11\xf23K\xfe\xe1\xd1L\xfa\x0e\xc1\x8e*\x08"
+        )
+        authentication_tag = bytes_to_intlist(b"\x11\x99B-\xf6\t\x06e\x0f\xe6\xf4\xd0`\x9f\x99\xe0")
+        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(data, self.key, authentication_tag, self.iv))
+        self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_decrypt_text(self):
         password = intlist_to_bytes(self.key).decode('utf-8')

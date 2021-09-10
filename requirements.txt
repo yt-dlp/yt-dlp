@@ -1,3 +1,2 @@
 mutagen
-pycryptodome
 websockets
