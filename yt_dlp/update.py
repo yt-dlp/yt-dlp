@@ -138,12 +138,7 @@ def run_update(ydl):
         if not urlh:
             return None
         hash_data = ydl._opener.open(urlh).read().decode('utf-8')
-        if hash_data.startswith('version:'):
-            # Old colon-separated hash file
-            return dict(ln.split(':') for ln in hash_data.splitlines()).get(filename)
-        else:
-            # GNU-style hash file
-            return dict(ln.split()[::-1] for ln in hash_data.splitlines()).get(filename)
+        return dict(ln.split()[::-1] for ln in hash_data.splitlines()).get(filename)
 
     if not os.access(filename, os.W_OK):
         return report_error('no write permissions on %s' % filename, expected=True)

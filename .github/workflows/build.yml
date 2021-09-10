@@ -205,12 +205,10 @@ jobs:
         SHA256_WINDOWS: ${{ needs.build_windows.outputs.sha256_windows }}
         SHA256_WINDOWS32: ${{ needs.build_windows32.outputs.sha256_windows32 }}
         SHA256_UNIX: ${{ needs.build_unix.outputs.sha256_unix }}
-        YTDLP_VERSION: ${{ needs.build_unix.outputs.ytdlp_version }}
       run: |
-        echo "version:${{ env.YTDLP_VERSION }}" >> SHA2-256SUMS
-        echo "yt-dlp.exe:${{ env.SHA256_WINDOWS }}" >> SHA2-256SUMS
-        echo "yt-dlp_x86.exe:${{ env.SHA256_WINDOWS32 }}" >> SHA2-256SUMS
-        echo "yt-dlp:${{ env.SHA256_UNIX }}" >> SHA2-256SUMS
+        echo "${{ env.SHA256_WINDOWS }}  yt-dlp.exe" >> SHA2-256SUMS
+        echo "${{ env.SHA256_WINDOWS32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
+        echo "${{ env.SHA256_UNIX }}  yt-dlp" >> SHA2-256SUMS
     - name: Upload 256SUMS file
       id: upload-sums
       uses: actions/upload-release-asset@v1
