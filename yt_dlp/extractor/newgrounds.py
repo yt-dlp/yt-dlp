@@ -213,7 +213,7 @@ class NewgroundsPlaylistIE(InfoExtractor):
                 continue
             entries.append(
                 self.url_result(
-                    'https://www.newgrounds.com/%s' % path,
+                    f'https://www.newgrounds.com/{path}',
                     ie=NewgroundsIE.ie_key(), video_id=media_id))
 
         return self.playlist_result(entries, playlist_id, title)
@@ -254,13 +254,11 @@ class NewgroundsUserIE(InfoExtractor):
         sequence = posts_info.get('sequence', [])
         for year in sequence:
             posts = try_get(posts_info, lambda x: x['years'][f'{year}']['items'])
-            if not posts:
-                continue
             for post in posts:
-                for path, media_id in re.findall(
-                        r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
-                        post):
-                    yield self.url_result(f'https://www.newgrounds.com/{path}', NewgroundsIE.ie_key(), media_id)
+                path, media_id = re.search(
+                    r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
+                    post).groups()
+                yield self.url_result(f'https://www.newgrounds.com/{path}', NewgroundsIE.ie_key(), media_id)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
