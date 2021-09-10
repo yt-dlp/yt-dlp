@@ -650,14 +650,19 @@ def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
 
 def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
     try:
-        plaintext = aes_gcm_decrypt_and_verify(ciphertext, key, authentication_tag, nonce)
+        plaintext = aes_gcm_decrypt_and_verify(
+            bytes_to_intlist(ciphertext),
+            bytes_to_intlist(key),
+            bytes_to_intlist(authentication_tag),
+            bytes_to_intlist(nonce)
+        )
     except ValueError:
         logger.warning('failed to decrypt cookie because the MAC check failed. Possibly the key is wrong?',
                        only_once=True)
         return None
 
     try:
-        return plaintext.decode('utf-8')
+        return intlist_to_bytes(plaintext).decode('utf-8')
     except UnicodeDecodeError:
         logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?',
                        only_once=True)

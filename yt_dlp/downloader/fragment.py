@@ -18,9 +18,11 @@ from ..compat import (
     compat_struct_pack,
 )
 from ..utils import (
+    bytes_to_intlist,
     DownloadError,
     error_to_compat_str,
     encodeFilename,
+    intlist_to_bytes,
     sanitize_open,
     sanitized_Request,
 )
@@ -381,7 +383,11 @@ class FragmentFD(FileDownloader):
             # not what it decrypts to.
             if self.params.get('test', False):
                 return frag_content
-            return aes_cbc_decrypt(frag_content, decrypt_info['KEY'], iv)
+            return intlist_to_bytes(aes_cbc_decrypt(
+                bytes_to_intlist(frag_content),
+                bytes_to_intlist(decrypt_info['KEY']),
+                bytes_to_intlist(iv)
+            ))
 
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
