@@ -255,9 +255,9 @@ class NewgroundsUserIE(InfoExtractor):
         for year in sequence:
             posts = try_get(posts_info, lambda x: x['years'][f'{year}']['items'])
             for post in posts:
-                path, media_id = re.search(
+                path, media_id = self._search_regex(
                     r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
-                    post).groups()
+                    post, 'url', group=(1, 2))
                 yield self.url_result(f'https://www.newgrounds.com/{path}', NewgroundsIE.ie_key(), media_id)
 
     def _real_extract(self, url):
