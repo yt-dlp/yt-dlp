@@ -21,9 +21,21 @@ class FourChannelIE(InfoExtractor):
         # This is a stickied post so this should last forever hopefully.
         'url': 'https://boards.4channel.org/k/thread/23385784',
         'info_dict': {
-            'id': '1',
+            'id': '23385784',
         },
-        'playlist_mincount': 20000,
+        'playlist_mincount': 1,
+        'playlist': [{
+            'info_dict': {
+                'id': '1414437205094',
+                'ext': 'png',
+                'title': 'A_Magical_Place',
+                'uploader': 'Anonymous',
+                'description': 'md5:9234e27e940d717103273fce8018512e',
+                'series': 'k',
+                'season_id': '23385784',
+                'season': None,
+            },
+        }]
     }]
 
     def _entries(self, board, id):
