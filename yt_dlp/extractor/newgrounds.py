@@ -220,7 +220,7 @@ class NewgroundsPlaylistIE(InfoExtractor):
 
 
 class NewgroundsUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<id>[^\.]+)\.newgrounds\.com/(movies|audio)'
+    _VALID_URL = r'https?://(?P<id>[^\.]+)\.newgrounds\.com/(?:movies|audio)/?(?:[#?]|$)'
     IE_NAME = 'Newgrounds:user'
     _PAGE_SIZE = 30
     _TESTS = [{
