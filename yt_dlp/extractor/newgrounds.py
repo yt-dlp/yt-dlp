@@ -253,7 +253,7 @@ class NewgroundsUserIE(InfoExtractor):
             })
         sequence = posts_info.get('sequence', [])
         for year in sequence:
-            posts = try_get(posts_info, lambda x: x['years'][f'{year}']['items'])
+            posts = try_get(posts_info, lambda x: x['years'][str(year)]['items'])
             for post in posts:
                 path, media_id = self._search_regex(
                     r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
