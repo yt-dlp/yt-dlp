@@ -748,6 +748,7 @@ def _is_path(value):
 
 
 def _parse_browser_specification(browser_name, profile=None):
+    browser_name = browser_name.lower()
     if browser_name not in SUPPORTED_BROWSERS:
         raise ValueError(f'unsupported browser: "{browser_name}"')
     if profile is not None and _is_path(profile):
