@@ -197,7 +197,7 @@ class NewgroundsPlaylistIE(InfoExtractor):
         webpage = self._download_webpage(url, playlist_id)
 
         title = self._search_regex(
-            r'<title>([^>]+)</title>', webpage, 'title', default=None)
+            r'<title>(.+?)</title>', webpage, 'title', default=None)
 
         # cut left menu
         webpage = self._search_regex(
@@ -247,7 +247,7 @@ class NewgroundsUserIE(InfoExtractor):
         page += 1
         posts_info = self._download_json(
             f'{url}/page/{page}', channel_id,
-            note=f'Downloading page {page}', errnote=f'Failed to downloading page {page}', headers={
+            note=f'Downloading page {page}', headers={
                 'Accept': 'application/json, text/javascript, */*; q = 0.01',
                 'X-Requested-With': 'XMLHttpRequest',
             })
