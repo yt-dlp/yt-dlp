@@ -802,8 +802,8 @@ class BiliIntlBaseIE(InfoExtractor):
         video_json = video_json['playurl']
         formats = []
         for vid in video_json.get('video', []):
-            video_res = vid.get('video_resource')
-            video_info = vid.get('stream_info')
+            video_res = vid.get('video_resource') or {}
+            video_info = vid.get('stream_info') or {}
             if not video_res.get('url'):
                 continue
             formats.append({
@@ -833,15 +833,13 @@ class BiliIntlBaseIE(InfoExtractor):
         return formats
 
     def _extract_ep_info(self, type, episode_data, ep_id):
-        formats = self._get_formats(type, ep_id)
-        subtitles = self._get_subtitles(type, ep_id)
         return {
             'id': ep_id,
-            'title': episode_data['long_title'] or episode_data.get('title'),
+            'title': episode_data.get('long_title') or episode_data['title'],
             'thumbnail': episode_data.get('cover'),
             'episode_number': str_to_int(episode_data.get('title')),
-            'formats': formats,
-            'subtitles': subtitles,
+            'formats': self._get_formats(type, ep_id),
+            'subtitles': self.extract_subtitles(type, ep_id),
             'extractor_key': BiliIntlIE.ie_key(),
         }
 
