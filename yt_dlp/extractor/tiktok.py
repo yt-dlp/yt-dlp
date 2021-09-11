@@ -352,12 +352,12 @@ class TikTokUserIE(TikTokBaseIE):
         },
     }]
 
-    def _entries(self, webpage, user_id, username):  # TODO: Fix?
+    def _entries(self, webpage, user_id, username):
         secuid = self._search_regex(r'\"secUid\":\"(?P<secUid>[^\"]+)', webpage, username)
         verifyfp_cookie = self._get_cookies('https://www.tiktok.com').get('s_v_web_id')
         if not verifyfp_cookie:
             raise ExtractorError('Improper cookies (missing s_v_web_id).', expected=True)
-        api_url = f'https://m.tiktok.com/api/post/item_list/?aid=1988&cookie_enabled=true&count=30&verifyFp={verifyfp_cookie.value}&secUid={secuid}&cursor='
+        api_url = f'https://m.tiktok.com/api/post/item_list/?aid=1988&cookie_enabled=true&count=30&verifyFp={verifyfp_cookie.value}&secUid={secuid}&cursor='  # TODO: Fix by adding _signature
         cursor = '0'
         for page in itertools.count():
             data_json = self._download_json(api_url + cursor, username, note='Downloading Page %d' % page)
