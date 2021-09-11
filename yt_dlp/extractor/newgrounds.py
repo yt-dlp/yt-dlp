@@ -169,8 +169,8 @@ class NewgroundsIE(InfoExtractor):
 
 
 class NewgroundsPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?newgrounds\.com/(?:collection|[^/]+/search/[^/]+)/(?P<id>[^/?#&]+)'
     IE_NAME = 'Newgrounds:playlist'
+    _VALID_URL = r'https?://(?:www\.)?newgrounds\.com/(?:collection|[^/]+/search/[^/]+)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.newgrounds.com/collection/cats',
         'info_dict': {
@@ -219,9 +219,8 @@ class NewgroundsPlaylistIE(InfoExtractor):
 
 
 class NewgroundsUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<id>[^\.]+)\.newgrounds\.com/(?:movies|audio)/?(?:[#?]|$)'
     IE_NAME = 'Newgrounds:user'
-    _PAGE_SIZE = 30
+    _VALID_URL = r'https?://(?P<id>[^\.]+)\.newgrounds\.com/(?:movies|audio)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://burn7.newgrounds.com/audio',
         'info_dict': {
@@ -241,6 +240,7 @@ class NewgroundsUserIE(InfoExtractor):
         },
         'playlist_mincount': 10,
     }]
+    _PAGE_SIZE = 30
 
     def _fetch_page(self, channel_id, url, page):
         page += 1
