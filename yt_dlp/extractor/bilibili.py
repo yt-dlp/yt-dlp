@@ -839,7 +839,7 @@ class BiliIntlBaseIE(InfoExtractor):
             'thumbnail': episode_data.get('cover'),
             'episode_number': str_to_int(episode_data.get('title')),
             'formats': self._get_formats(type, ep_id),
-            'subtitles': self.extract_subtitles(type, ep_id),
+            'subtitles': self._get_subtitles(type, ep_id),
             'extractor_key': BiliIntlIE.ie_key(),
         }
 
