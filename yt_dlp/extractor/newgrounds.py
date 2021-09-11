@@ -10,7 +10,6 @@ from ..utils import (
     int_or_none,
     parse_count,
     parse_duration,
-    parse_filesize,
     unified_timestamp,
     OnDemandPagedList,
     try_get,
@@ -140,9 +139,10 @@ class NewgroundsIE(InfoExtractor):
             r'(?s)<dt>\s*Views\s*</dt>\s*<dd>([\d\.,]+)</dd>', webpage,
             'view count', default=None))
 
-        filesize = parse_filesize(self._html_search_regex(
+        filesize = int_or_none(self._html_search_regex(
             r'"filesize"\s*:\s*["\']?([\d]+)["\']?,', webpage, 'filesize',
             default=None))
+        print(filesize)
 
         video_type_description = self._html_search_regex(
             r'"description"\s*:\s*["\']?([^"\']+)["\']?,', webpage, 'filesize',
