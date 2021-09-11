@@ -8,6 +8,17 @@ from .utils import bytes_to_intlist, intlist_to_bytes
 BLOCK_SIZE_BYTES = 16
 
 
+class _Counter(object):
+
+    def __init__(self, iv):
+        self.__value = iv
+
+    def next_value(self):
+        temp = self.__value
+        self.__value = inc(self.__value)
+        return temp
+
+
 def aes_ctr_decrypt(data, key, counter):
     """
     Decrypt with aes in counter mode
@@ -32,6 +43,10 @@ def aes_ctr_decrypt(data, key, counter):
     decrypted_data = decrypted_data[:len(data)]
 
     return decrypted_data
+
+
+def aes_ctr_encrypt(data, key, counter):
+    raise NotImplementedError
 
 
 def aes_cbc_decrypt(data, key, iv):
@@ -88,8 +103,46 @@ def aes_cbc_encrypt(data, key, iv):
     return encrypted_data
 
 
-def aes_gcm_decrypt_and_verify(data, key, authentication_tag, nonce):
-    raise NotImplementedError
+def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
+    """
+    Decrypt with aes in GBM mode and checks authenticity using tag
+
+    @param {int[]} data        cipher
+    @param {int[]} key         16-Byte cipher key
+    @param {int[]} tag         authentication tag
+    @param {int[]} nonce       IV (recommended 12-Byte)
+    @returns {int[]}           decrypted data
+    """
+
+    # TODO: support: for 24/32-byte keys
+
+    # XXX: check aes, gcm param
+
+    hash_subkey = aes_encrypt([0] * BLOCK_SIZE_BYTES, key_expansion(key))
+
+    if len(nonce) == 12:
+        j0 = nonce + [0, 0, 0, 1]
+    else:
+        fill = (16 - (len(nonce) % 16)) % 16 + 8
+        ghash_in = nonce + [0] * fill + bytes_to_intlist((8 * len(nonce)).to_bytes(8, 'big'))
+        j0 = ghash(hash_subkey, ghash_in)
+
+    nonce_ctr = j0[:12]
+    iv_ctr = inc(j0)
+
+    decrypted_data = aes_ctr_decrypt(data, key, _Counter(iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr))))
+    update_len = len(data) // 16 * 16
+    s_tag = ghash(
+        hash_subkey,
+        data +
+        [0] * (16 - len(data) + update_len) +  # pad
+        bytes_to_intlist((0).to_bytes(8, 'big') + ((len(data) * 8).to_bytes(8, 'big')))  # length of associated data and data
+    )
+
+    if tag != aes_ctr_encrypt(s_tag, key, _Counter(j0)):
+        raise ValueError("MAC check failed")
+
+    return decrypted_data
 
 
 def key_expansion(data):
@@ -193,15 +246,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     nonce = data[:NONCE_LENGTH_BYTES]
     cipher = data[NONCE_LENGTH_BYTES:]
 
-    class Counter(object):
-        __value = nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES)
-
-        def next_value(self):
-            temp = self.__value
-            self.__value = inc(self.__value)
-            return temp
-
-    decrypted_data = aes_ctr_decrypt(cipher, key, Counter())
+    decrypted_data = aes_ctr_decrypt(cipher, key, _Counter(nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES)))
     plaintext = intlist_to_bytes(decrypted_data)
 
     return plaintext
@@ -360,6 +405,51 @@ def inc(data):
             data[i] = data[i] + 1
             break
     return data
+
+
+def product(x, y):
+    # TODO:
+    # Algorithm 1: product(X, Y)
+    #
+    # Input: blocks X, Y.
+    #
+    # Output:
+    # block prod(X, Y).
+    #
+    # Steps:
+    # 1. Let x_0x_1...x_127 denote the sequence of bits in X.
+    # 2. Let Z_0 = [0] * 16 and V_0 = Y.
+    # 3. For i = 0 to 127, calculate blocks Z_{i+1} and V_{i+1} as follows:
+    #    if x_i == 0: Z_{i+1} = Z_i;
+    #    if x_i == 1: Z_{i+1} = Zi ⊕ Vi.
+    #    if LSB_1(Vi) == 0: V_{i+1} = Vi >> 1;
+    #    if LSB_1(Vi) == 1: V_{i+1} = (V_i >> 1) ⊕ R.
+    # 4.Return Z_128.
+
+    raise NotImplementedError
+
+
+def ghash(subkey, data):
+    # TODO:
+    # Algorithm 2:  GHASHH (X)
+    #
+    # Prerequisites:
+    # block H, the hash subkey.
+    #
+    # Input:
+    # bit string X such that len(X) = 128 * m for some positive integer m.
+    #
+    # Output:
+    # block GHASHH (X).
+    #
+    # Steps:
+    # 1. Let X_1, X_2, ... , X_{m-1}, X_m denote the unique sequence of blocks
+    #    such that X = X_1 || X_2 || ... || X_{m-1} || X_m.
+    # 2. Let Y_0 be the “zero block,” [0] * 16.
+    # 3. For i = 1, ..., m, let Y_i = product(xor((Y_{i-1}, X_i)), H).
+    # 4. Return Y_m
+
+    raise NotImplementedError
 
 
 __all__ = ['aes_encrypt', 'key_expansion', 'aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify', 'aes_decrypt_text']

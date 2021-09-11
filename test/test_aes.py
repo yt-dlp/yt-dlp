@@ -40,12 +40,12 @@ class TestAES(unittest.TestCase):
             encrypted,
             b"\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd")
 
+    # @unittest.skipIf(True, 'Not Implemented')
     def test_gcm_decrypt(self):
-        data = bytes_to_intlist(
-            b"u\x96\x14\x97o\x87Te#\x1a\x11\xf23K\xfe\xe1\xd1L\xfa\x0e\xc1\x8e*\x08"
-        )
-        authentication_tag = bytes_to_intlist(b"\x11\x99B-\xf6\t\x06e\x0f\xe6\xf4\xd0`\x9f\x99\xe0")
-        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(data, self.key, authentication_tag, self.iv))
+        data = bytes_to_intlist(b"\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f.\x08\xb4T\xe4/\x17\xbd")
+        authentication_tag = bytes_to_intlist(b"\xe8&I\x80rI\x07\x9d}YWuU@:e")
+
+        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(data, self.key, authentication_tag, self.iv[:12]))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_decrypt_text(self):
