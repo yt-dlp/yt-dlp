@@ -142,7 +142,6 @@ class NewgroundsIE(InfoExtractor):
         filesize = int_or_none(self._html_search_regex(
             r'"filesize"\s*:\s*["\']?([\d]+)["\']?,', webpage, 'filesize',
             default=None))
-        print(filesize)
 
         video_type_description = self._html_search_regex(
             r'"description"\s*:\s*["\']?([^"\']+)["\']?,', webpage, 'filesize',
