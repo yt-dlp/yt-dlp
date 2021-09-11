@@ -2750,7 +2750,7 @@ class YoutubeDL(object):
                     _protocols = set(determine_protocol(f) for f in requested_formats)
                     if len(_protocols) == 1:  # All requested formats have same protocol
                         info_dict['protocol'] = _protocols.pop()
-                    directly_mergable = FFmpegFD.can_merge_formats(info_dict)
+                    directly_mergable = FFmpegFD.can_merge_formats(info_dict, self.params)
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif (directly_mergable and get_suitable_downloader(
