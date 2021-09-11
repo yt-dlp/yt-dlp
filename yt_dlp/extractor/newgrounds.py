@@ -151,7 +151,7 @@ class NewgroundsIE(InfoExtractor):
         if len(formats) == 1:
             formats[0]['filesize'] = filesize
 
-        if 'Audio File' == video_type_description:
+        if video_type_description == 'Audio File':
             formats[0]['vcodec'] = 'none'
         self._check_formats(formats, media_id)
         self._sort_formats(formats)
