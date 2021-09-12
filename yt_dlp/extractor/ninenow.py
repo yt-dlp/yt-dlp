@@ -44,7 +44,6 @@ class NineNowIE(InfoExtractor):
     }, {
         # episode of series
         'url': 'https://www.9now.com.au/lego-masters/season-3/episode-3',
-        'md5': 'c7f3c76fda46af4052dd7aa8dcf505d2',
         'info_dict': {
             'id': '6249614030001',
             'title': 'Episode 3',
@@ -57,6 +56,9 @@ class NineNowIE(InfoExtractor):
             'upload_date': '20210421',
         },
         'expected_warnings': ['Ignoring subtitle tracks'],
+        "params":{
+            "skip_download": True,
+        }
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId=%s'
 
