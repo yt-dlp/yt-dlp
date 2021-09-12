@@ -126,8 +126,6 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     @returns {int[]}           decrypted data
     """
 
-    # TODO: support: for 24/32-byte keys
-
     # XXX: check aes, gcm param
 
     if AES:
