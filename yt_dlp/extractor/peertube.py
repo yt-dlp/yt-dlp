@@ -1306,14 +1306,29 @@ class PeerTubePlaylistIE(InfoExtractor):
         'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
         'info_dict': {
             'id': '3af94cba-95e8-4b74-b37a-807ab6d82526',
+            'description': 'playlist',
+            'timestamp': 1611171863,
+            'title': 'playlist',
         },
         'playlist_mincount': 6,
     }, {
         'url': 'https://peertube.tux.ovh/w/p/wkyqcQBnsvFxtUB2pkYc1e',
         'info_dict': {
             'id': 'wkyqcQBnsvFxtUB2pkYc1e',
+            'description': 'Cette liste de vidéos contient uniquement les jeux qui peuvent être terminés en une seule vidéo.',
+            'title': 'Let\'s Play',
+            'timestamp': 1604147331,
         },
         'playlist_mincount': 6,
+    }, {
+        'url': 'https://peertube.debian.social/w/p/hFdJoTuyhNJVa1cDWd1d12',
+        'info_dict': {
+            'id': 'hFdJoTuyhNJVa1cDWd1d12',
+            'description': 'Diversas palestras do Richard Stallman no Brasil.',
+            'title': 'Richard Stallman no Brasil',
+            'timestamp': 1599676222,
+        },
+        'playlist_mincount': 9,
     }]
     _PAGE_SIZE = 30
 
