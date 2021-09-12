@@ -939,20 +939,20 @@ class PeerTubeIE(InfoExtractor):
             'uploader': 'Drew DeVault',
         }
     }, {
-        'url': 'https://peertube.tamanoir.foucry.net/videos/watch/0b04f13d-1e18-4f1d-814e-4979aa7c9c44',
+        'url': 'https://peertube.debian.social/videos/watch/0b04f13d-1e18-4f1d-814e-4979aa7c9c44',
         'only_matching': True,
     }, {
         # nsfw
-        'url': 'https://tube.22decembre.eu/videos/watch/9bb88cd3-9959-46d9-9ab9-33d2bb704c39',
+        'url': 'https://vod.ksite.de/videos/watch/9bb88cd3-9959-46d9-9ab9-33d2bb704c39',
         'only_matching': True,
     }, {
-        'url': 'https://tube.22decembre.eu/videos/embed/fed67262-6edb-4d1c-833b-daa9085c71d7',
+        'url': 'https://vod.ksite.de/videos/embed/fed67262-6edb-4d1c-833b-daa9085c71d7',
         'only_matching': True,
     }, {
-        'url': 'https://tube.openalgeria.org/api/v1/videos/c1875674-97d0-4c94-a058-3f7e64c962e8',
+        'url': 'https://peertube.tv/api/v1/videos/c1875674-97d0-4c94-a058-3f7e64c962e8',
         'only_matching': True,
     }, {
-        'url': 'peertube:video.blender.org:b37a5b9f-e6b5-415c-b700-04a5cd6ec205',
+        'url': 'peertube:framatube.org:b37a5b9f-e6b5-415c-b700-04a5cd6ec205',
         'only_matching': True,
     }]
 
@@ -1149,7 +1149,6 @@ class PeerTubePlaylistIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         host = mobj.group('host')
         playlist_id = mobj.group('id')
-        print(self._VALID_URL)
 
         playlist_info = self._call_api(host, playlist_id, '', note='Downloading playlist information', fatal=False)
 
