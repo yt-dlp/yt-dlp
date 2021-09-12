@@ -147,12 +147,13 @@ if compat_pycrypto_AES:
         return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
 else:
     from .aes import aes_cbc_decrypt, aes_gcm_decrypt_and_verify
-    from .utils import bytes_to_intlist, intlist_to_bytes
 
     def compat_aes_cbc_decrypt(data, key, iv):
+        from .utils import bytes_to_intlist, intlist_to_bytes
         return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
 
     def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
+        from .utils import bytes_to_intlist, intlist_to_bytes
         return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
 
 #  Deprecated
