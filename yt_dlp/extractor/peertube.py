@@ -1113,7 +1113,7 @@ class PeerTubePlaylistIE(InfoExtractor):
                     )
                     (?P<id>%s)
                     ''' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
-    _API_BASE = 'https://%s/api/v1/video-playlists/%s/%s'
+    _API_BASE = 'https://%s/api/v1/video-playlists/%s%s'
     _TESTS = [{
         'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
         'info_dict': {
@@ -1129,15 +1129,15 @@ class PeerTubePlaylistIE(InfoExtractor):
     }]
     _PAGE_SIZE = 30
 
-    def _call_api(self, host, playlist_uuid, path, note=None, errnote=None, fatal=True):
+    def _call_api(self, host, uuid, path, note=None, errnote=None, fatal=True):
         return self._download_json(
-            self._API_BASE % (host, playlist_uuid, path), playlist_uuid,
+            self._API_BASE % (host, uuid, path), uuid,
             note=note, errnote=errnote, fatal=fatal)
 
     def _fetch_page(self, host, uuid, page):
         page += 1
         video_data = self._call_api(
-            host, uuid, f'videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}',
+            host, uuid, f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}',
             note=f'Downloading page {page}').get('data', [])
         for video in video_data:
             shortUUID = try_get(video, lambda x: x['video']['shortUUID'])
@@ -1151,7 +1151,19 @@ class PeerTubePlaylistIE(InfoExtractor):
         host = mobj.group('host') or mobj.group('host_2')
         playlist_id = mobj.group('id')
 
+        playlist_info = self._call_api(host, playlist_id, '', note='Downloading playlist information')
+
+        playlist_title = playlist_info.get('displayName')
+        playlist_description = playlist_info.get('description')
+        playlist_timestamp = unified_timestamp(playlist_info.get('createdAt'))
+        channel = try_get(playlist_info, lambda x: x['ownerAccount']['name'])
+        channel_id = try_get(playlist_info, lambda x: x['ownerAccount']['id'])
+        thumbnail = playlist_info.get('thumbnailPath')
+        thumbnail = f'https://{host}{thumbnail}'
+
         entries = OnDemandPagedList(functools.partial(
             self._fetch_page, host, playlist_id), self._PAGE_SIZE)
 
-        return self.playlist_result(entries, playlist_id)
+        return self.playlist_result(
+            entries, playlist_id, playlist_title, playlist_description,
+            timestamp=playlist_timestamp, channel=channel, channel_id=channel_id, thumbnail=thumbnail)
