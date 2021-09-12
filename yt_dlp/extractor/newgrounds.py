@@ -196,7 +196,7 @@ class NewgroundsPlaylistIE(InfoExtractor):
         webpage = self._download_webpage(url, playlist_id)
 
         title = self._search_regex(
-            r'<title>(.+?)</title>', webpage, 'title', default=None)
+            r'<title>([^>]+)</title>', webpage, 'title', default=None)
 
         # cut left menu
         webpage = self._search_regex(
