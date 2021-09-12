@@ -8,24 +8,13 @@ from .utils import bytes_to_intlist, intlist_to_bytes
 BLOCK_SIZE_BYTES = 16
 
 
-class _Counter(object):
-
-    def __init__(self, iv):
-        self.__value = iv
-
-    def next_value(self):
-        temp = self.__value
-        self.__value = inc(self.__value)
-        return temp
-
-
 def aes_ctr_decrypt(data, key, counter):
     """
     Decrypt with aes in counter mode
 
     @param {int[]} data        cipher
     @param {int[]} key         16/24/32-Byte cipher key
-    @param {instance} counter  Instance whose next_value function (@returns {int[]}  16-Byte block)
+    @param {instance} counter  generator (@yields {int[]}  16-Byte block)
                                returns the next counter block
     @returns {int[]}           decrypted data
     """
@@ -34,7 +23,7 @@ def aes_ctr_decrypt(data, key, counter):
 
     decrypted_data = []
     for i in range(block_count):
-        counter_block = counter.next_value()
+        counter_block = next(counter)
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
         block += [0] * (BLOCK_SIZE_BYTES - len(block))
 
@@ -123,14 +112,14 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     if len(nonce) == 12:
         j0 = nonce + [0, 0, 0, 1]
     else:
-        fill = (16 - (len(nonce) % 16)) % 16 + 8
+        fill = (BLOCK_SIZE_BYTES - (len(nonce) % BLOCK_SIZE_BYTES)) % BLOCK_SIZE_BYTES + 8
         ghash_in = nonce + [0] * fill + bytes_to_intlist((8 * len(nonce)).to_bytes(8, 'big'))
         j0 = ghash(hash_subkey, ghash_in)
 
     nonce_ctr = j0[:12]
     iv_ctr = inc(j0)
 
-    decrypted_data = aes_ctr_decrypt(data, key, _Counter(iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr))))
+    decrypted_data = aes_ctr_decrypt(data, key, genvector(iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr))))
     pad_len = len(data) // 16 * 16
     s_tag = ghash(
         hash_subkey,
@@ -140,7 +129,7 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
                          ((len(data) * 8).to_bytes(8, 'big')))  # length of data
     )
 
-    if tag != aes_ctr_encrypt(s_tag, key, _Counter(j0)):
+    if tag != aes_ctr_encrypt(s_tag, key, genvector(j0)):
         raise ValueError("Mismatching authentication tag")
 
     return decrypted_data
@@ -247,7 +236,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     nonce = data[:NONCE_LENGTH_BYTES]
     cipher = data[NONCE_LENGTH_BYTES:]
 
-    decrypted_data = aes_ctr_decrypt(cipher, key, _Counter(nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES)))
+    decrypted_data = aes_ctr_decrypt(cipher, key, genvector(nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES)))
     plaintext = intlist_to_bytes(decrypted_data)
 
     return plaintext
@@ -328,6 +317,12 @@ RIJNDAEL_LOG_TABLE = (0x00, 0x00, 0x19, 0x01, 0x32, 0x02, 0x1a, 0xc6, 0x4b, 0xc7
                       0x67, 0x4a, 0xed, 0xde, 0xc5, 0x31, 0xfe, 0x18, 0x0d, 0x63, 0x8c, 0x80, 0xc0, 0xf7, 0x70, 0x07)
 
 
+def genvector(iv):
+    while True:
+        yield iv
+        iv = inc(iv)
+
+
 def sub_bytes(data):
     return [SBOX[x] for x in data]
 
@@ -397,6 +392,20 @@ def shift_rows_inv(data):
     return data_shifted
 
 
+def shift_block(data):
+    data_shifted = []
+
+    bit = 0
+    for n in data:
+        if bit:
+            n |= 0x100
+        bit = n & 1
+        n >>= 1
+        data_shifted.append(n)
+
+    return data_shifted
+
+
 def inc(data):
     data = data[:]  # copy
     for i in range(len(data) - 1, -1, -1):
@@ -409,29 +418,13 @@ def inc(data):
 
 
 def block_product(block_x, block_y):
-    # TODO:
-    # Algorithm 1: block_product(X, Y)
-    #
-    # Input: blocks X, Y.
-    #
-    # Output:
-    # block block_product(X, Y).
-    #
-    # Steps:
-    # 1. Let x_0x_1...x_127 denote the sequence of bits in X.
-    # 2. Let Z_0 = [0] * 16 and V_0 = Y.
-    # 3. For i = 0 to 127, calculate blocks Z_{i+1} and V_{i+1} as follows:
-    #    if x_i == 0: Z_{i+1} = Z_i;
-    #    if x_i == 1: Z_{i+1} = xor(Z_i, V_i).
-    #    if LSB_1(Vi) == 0: V_{i+1} = Vi >> 1;
-    #    if LSB_1(Vi) == 1: V_{i+1} = xor(V_i >> 1, R).
-    # 4.Return Z_128.
+    # NIST SP 800-38D, Algorithm 1
 
     if len(block_x) != BLOCK_SIZE_BYTES or len(block_y) != BLOCK_SIZE_BYTES:
         raise ValueError("Length of blocks need to be %d bytes" % BLOCK_SIZE_BYTES)
 
-    block_r = [225] + [0] * (BLOCK_SIZE_BYTES - 1)
-    block_v = block_y
+    block_r = [0xE1] + [0] * (BLOCK_SIZE_BYTES - 1)
+    block_v = block_y[:]
     block_z = [0] * BLOCK_SIZE_BYTES
 
     for i in block_x:
@@ -440,9 +433,7 @@ def block_product(block_x, block_y):
                 block_z = xor(block_z, block_v)
 
             do_xor = block_v[-1] & 1
-            block_v = bytes_to_intlist(
-                (int.from_bytes(intlist_to_bytes(block_v), 'big') >> 1).to_bytes(BLOCK_SIZE_BYTES, 'big')
-            )
+            block_v = shift_block(block_v)
             if do_xor:
                 block_v = xor(block_v, block_r)
 
@@ -450,24 +441,7 @@ def block_product(block_x, block_y):
 
 
 def ghash(subkey, data):
-    # TODO:
-    # Algorithm 2:  GHASHH (X)
-    #
-    # Prerequisites:
-    # block H, the hash subkey.
-    #
-    # Input:
-    # bit string X such that len(X) = 16 * m for some positive integer m.
-    #
-    # Output:
-    # block GHASHH (X).
-    #
-    # Steps:
-    # 1. Let X_1, X_2, ... , X_{m-1}, X_m denote the unique sequence of blocks
-    #    such that X = X_1 || X_2 || ... || X_{m-1} || X_m.
-    # 2. Let Y_0 be the “zero block,” [0] * 16.
-    # 3. For i = 1, ..., m, let Y_i = block_product(xor((Y_{i-1}, X_i)), H).
-    # 4. Return Y_m
+    # NIST SP 800-38D, Algorithm 2
 
     if len(data) % BLOCK_SIZE_BYTES:
         raise ValueError("Length of data should be %d bytes" % BLOCK_SIZE_BYTES)
