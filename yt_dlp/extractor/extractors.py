@@ -867,6 +867,7 @@ from .neteasemusic import (
 from .newgrounds import (
     NewgroundsIE,
     NewgroundsPlaylistIE,
+    NewgroundsUserIE,
 )
 from .newstube import NewstubeIE
 from .nextmedia import (
