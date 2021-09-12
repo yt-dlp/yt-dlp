@@ -1113,7 +1113,7 @@ class PeerTubePlaylistIE(InfoExtractor):
                     )
                     (?P<id>%s)
                     ''' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
-    _API_BASE = 'https://%s/api/v1/video-playlists/%s/videos'
+    _API_BASE = 'https://%s/api/v1/video-playlists/%s/%s'
     _TESTS = [{
         'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
         'info_dict': {
@@ -1127,16 +1127,18 @@ class PeerTubePlaylistIE(InfoExtractor):
         },
         'playlist_mincount': 6,
     }]
-    _PAGE_SIZE = 100
+    _PAGE_SIZE = 30
 
-    def _call_api(self, host, playlist_uuid, note=None, errnote=None, fatal=True):
+    def _call_api(self, host, playlist_uuid, path, note=None, errnote=None, fatal=True):
         return self._download_json(
-            self._API_BASE % (host, playlist_uuid), playlist_uuid,
+            self._API_BASE % (host, playlist_uuid, path), playlist_uuid,
             note=note, errnote=errnote, fatal=fatal)
 
     def _fetch_page(self, host, uuid, page):
         page += 1
-        video_data = self._call_api(host, uuid, f'Downloading {page} page').get('data', [])
+        video_data = self._call_api(
+            host, uuid, f'videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}',
+            note=f'Downloading page {page}').get('data', [])
         for video in video_data:
             shortUUID = try_get(video, lambda x: x['video']['shortUUID'])
             video_title = try_get(video, lambda x: x['video']['name'])
