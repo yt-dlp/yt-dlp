@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-from .compat import compat_b64decode
 from .utils import bytes_to_intlist, intlist_to_bytes
 
 BLOCK_SIZE_BYTES = 16
@@ -233,6 +232,8 @@ def aes_decrypt_text(data, password, key_size_bytes):
     @param {int} key_size_bytes          Possible values: 16 for 128-Bit, 24 for 192-Bit or 32 for 256-Bit
     @returns {str}                       Decrypted data
     """
+    from .compat import compat_b64decode
+
     NONCE_LENGTH_BYTES = 8
 
     data = bytes_to_intlist(compat_b64decode(data))
