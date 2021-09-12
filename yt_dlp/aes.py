@@ -2,8 +2,6 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-from .utils import bytes_to_intlist, intlist_to_bytes
-
 BLOCK_SIZE_BYTES = 16
 
 
@@ -113,6 +111,8 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     # TODO: support: for 24/32-byte keys
 
     # XXX: check aes, gcm param
+
+    from .utils import bytes_to_intlist
 
     hash_subkey = aes_encrypt([0] * BLOCK_SIZE_BYTES, key_expansion(key))
 
@@ -233,6 +233,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     @returns {str}                       Decrypted data
     """
     from .compat import compat_b64decode
+    from .utils import bytes_to_intlist, intlist_to_bytes
 
     NONCE_LENGTH_BYTES = 8
 
