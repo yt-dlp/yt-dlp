@@ -1106,7 +1106,12 @@ class PeerTubeIE(InfoExtractor):
 
 class PeerTubePlaylistIE(InfoExtractor):
     IE_NAME = 'PeerTube:Playlist'
-    _VALID_URL = r'(?x)https?://(?P<host_2>%s)/w/p/(?P<id>%s)' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
+    _VALID_URL = r'''(?x)
+                    (?:
+                        https?://(?P<host>%s)/w/p/
+                    )
+                    (?P<id>%s)
+                    ''' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
     _API_BASE = 'https://%s/api/v1/video-playlists/%s%s'
     _TESTS = [{
         'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
@@ -1142,8 +1147,9 @@ class PeerTubePlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        host = mobj.group('host') or mobj.group('host_2')
+        host = mobj.group('host')
         playlist_id = mobj.group('id')
+        print(self._VALID_URL)
 
         playlist_info = self._call_api(host, playlist_id, '', note='Downloading playlist information', fatal=False)
 
