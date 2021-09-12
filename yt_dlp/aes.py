@@ -131,16 +131,17 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     iv_ctr = inc(j0)
 
     decrypted_data = aes_ctr_decrypt(data, key, _Counter(iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr))))
-    update_len = len(data) // 16 * 16
+    pad_len = len(data) // 16 * 16
     s_tag = ghash(
         hash_subkey,
         data +
-        [0] * (16 - len(data) + update_len) +  # pad
-        bytes_to_intlist((0).to_bytes(8, 'big') + ((len(data) * 8).to_bytes(8, 'big')))  # length of associated data and data
+        [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len) +        # pad
+        bytes_to_intlist((0 * 8).to_bytes(8, 'big') +           # length of associated data
+                         ((len(data) * 8).to_bytes(8, 'big')))  # length of data
     )
 
     if tag != aes_ctr_encrypt(s_tag, key, _Counter(j0)):
-        raise ValueError("MAC check failed")
+        raise ValueError("Mismatching authentication tag")
 
     return decrypted_data
 
@@ -407,26 +408,45 @@ def inc(data):
     return data
 
 
-def product(x, y):
+def block_product(block_x, block_y):
     # TODO:
-    # Algorithm 1: product(X, Y)
+    # Algorithm 1: block_product(X, Y)
     #
     # Input: blocks X, Y.
     #
     # Output:
-    # block prod(X, Y).
+    # block block_product(X, Y).
     #
     # Steps:
     # 1. Let x_0x_1...x_127 denote the sequence of bits in X.
     # 2. Let Z_0 = [0] * 16 and V_0 = Y.
     # 3. For i = 0 to 127, calculate blocks Z_{i+1} and V_{i+1} as follows:
     #    if x_i == 0: Z_{i+1} = Z_i;
-    #    if x_i == 1: Z_{i+1} = Zi ⊕ Vi.
+    #    if x_i == 1: Z_{i+1} = xor(Z_i, V_i).
     #    if LSB_1(Vi) == 0: V_{i+1} = Vi >> 1;
-    #    if LSB_1(Vi) == 1: V_{i+1} = (V_i >> 1) ⊕ R.
+    #    if LSB_1(Vi) == 1: V_{i+1} = xor(V_i >> 1, R).
     # 4.Return Z_128.
 
-    raise NotImplementedError
+    if len(block_x) != BLOCK_SIZE_BYTES or len(block_y) != BLOCK_SIZE_BYTES:
+        raise ValueError("Length of blocks need to be %d bytes" % BLOCK_SIZE_BYTES)
+
+    block_r = [225] + [0] * (BLOCK_SIZE_BYTES - 1)
+    block_v = block_y
+    block_z = [0] * BLOCK_SIZE_BYTES
+
+    for i in block_x:
+        for bit in range(7, -1, -1):
+            if i & (1 << bit):
+                block_z = xor(block_z, block_v)
+
+            do_xor = block_v[-1] & 1
+            block_v = bytes_to_intlist(
+                (int.from_bytes(intlist_to_bytes(block_v), 'big') >> 1).to_bytes(BLOCK_SIZE_BYTES, 'big')
+            )
+            if do_xor:
+                block_v = xor(block_v, block_r)
+
+    return block_z
 
 
 def ghash(subkey, data):
@@ -437,7 +457,7 @@ def ghash(subkey, data):
     # block H, the hash subkey.
     #
     # Input:
-    # bit string X such that len(X) = 128 * m for some positive integer m.
+    # bit string X such that len(X) = 16 * m for some positive integer m.
     #
     # Output:
     # block GHASHH (X).
@@ -446,10 +466,18 @@ def ghash(subkey, data):
     # 1. Let X_1, X_2, ... , X_{m-1}, X_m denote the unique sequence of blocks
     #    such that X = X_1 || X_2 || ... || X_{m-1} || X_m.
     # 2. Let Y_0 be the “zero block,” [0] * 16.
-    # 3. For i = 1, ..., m, let Y_i = product(xor((Y_{i-1}, X_i)), H).
+    # 3. For i = 1, ..., m, let Y_i = block_product(xor((Y_{i-1}, X_i)), H).
     # 4. Return Y_m
 
-    raise NotImplementedError
+    if len(data) % BLOCK_SIZE_BYTES:
+        raise ValueError("Length of data should be %d bytes" % BLOCK_SIZE_BYTES)
+
+    last_y = [0] * BLOCK_SIZE_BYTES
+    for i in range(0, len(data), BLOCK_SIZE_BYTES):
+        block = data[i:i+BLOCK_SIZE_BYTES]
+        last_y = block_product(xor(last_y, block), subkey)
+
+    return last_y
 
 
 __all__ = ['aes_encrypt', 'key_expansion', 'aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify', 'aes_decrypt_text']
