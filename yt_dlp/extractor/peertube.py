@@ -1008,7 +1008,7 @@ class PeerTubeIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         host = mobj.group('host') or mobj.group('host_2')
         video_id = mobj.group('id')
-        
+
         video = self._call_api(
             host, video_id, '', note='Downloading video JSON')
 
