@@ -1151,7 +1151,7 @@ class PeerTubePlaylistIE(InfoExtractor):
         host = mobj.group('host') or mobj.group('host_2')
         playlist_id = mobj.group('id')
 
-        playlist_info = self._call_api(host, playlist_id, '', note='Downloading playlist information')
+        playlist_info = self._call_api(host, playlist_id, '', note='Downloading playlist information', fatal=False)
 
         playlist_title = playlist_info.get('displayName')
         playlist_description = playlist_info.get('description')
