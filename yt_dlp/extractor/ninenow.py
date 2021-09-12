@@ -56,8 +56,8 @@ class NineNowIE(InfoExtractor):
             'upload_date': '20210421',
         },
         'expected_warnings': ['Ignoring subtitle tracks'],
-        "params":{
-            "skip_download": True,
+        'params':{
+            'skip_download': True,
         }
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId=%s'
@@ -89,7 +89,6 @@ class NineNowIE(InfoExtractor):
         else:
             raise ExtractorError('Unable to find video data')
 
-        # Video Data extraction
         if not self.get_param('allow_unplayable_formats') and try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
             self.report_drm(display_id)
         brightcove_id = try_get(
