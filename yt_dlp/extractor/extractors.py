@@ -1751,7 +1751,6 @@ from .ximalaya import (
 )
 from .xminus import XMinusIE
 from .xnxx import XNXXIE
-from .xstream import XstreamIE
 from .xtube import XTubeUserIE, XTubeIE
 from .xuite import XuiteIE
 from .xvideos import XVideosIE
