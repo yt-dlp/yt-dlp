@@ -2,6 +2,9 @@ from __future__ import unicode_literals
 
 from math import ceil
 
+from .compat import compat_b64decode
+from .utils import bytes_to_intlist, intlist_to_bytes
+
 BLOCK_SIZE_BYTES = 16
 
 
@@ -232,8 +235,6 @@ def aes_decrypt_text(data, password, key_size_bytes):
     @param {int} key_size_bytes          Possible values: 16 for 128-Bit, 24 for 192-Bit or 32 for 256-Bit
     @returns {str}                       Decrypted data
     """
-    from .compat import compat_b64decode
-    from .utils import bytes_to_intlist, intlist_to_bytes
 
     NONCE_LENGTH_BYTES = 8
 
@@ -358,7 +359,7 @@ def xor(data1, data2):
 
 
 def rijndael_mul(a, b):
-    if(a == 0 or b == 0):
+    if a == 0 or b == 0:
         return 0
     return RIJNDAEL_EXP_TABLE[(RIJNDAEL_LOG_TABLE[a] + RIJNDAEL_LOG_TABLE[b]) % 0xFF]
 
