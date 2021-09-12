@@ -100,7 +100,9 @@ class TikTokBaseIE(InfoExtractor):
                 'ext': 'mp4',
                 'acodec': 'aac',
                 'source_preference': -2 if 'aweme/v1' in url else -1,  # Downloads from API might get blocked
-                **add_meta, **parsed_meta
+                **add_meta, **parsed_meta,
+                'format_note': ' '.join(filter(None, (
+                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else '')))
             } for url in addr.get('url_list') or []]
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
@@ -147,7 +149,7 @@ class TikTokBaseIE(InfoExtractor):
                 }))
 
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats, ('quality', 'ie_pref', 'codec', 'size', 'br'))
+        self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
