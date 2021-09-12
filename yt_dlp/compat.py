@@ -222,6 +222,7 @@ __all__ = [
     'compat_Pattern',
     'compat_Struct',
     'compat_aes_cbc_decrypt',
+    'compat_aes_gcm_decrypt_and_verify',
     'compat_asyncio_run',
     'compat_b64decode',
     'compat_basestring',

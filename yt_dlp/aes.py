@@ -464,4 +464,5 @@ def ghash(subkey, data):
     return last_y
 
 
-__all__ = ['aes_encrypt', 'key_expansion', 'aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify', 'aes_decrypt_text']
+__all__ = ['aes_encrypt', 'key_expansion', 'aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify',
+           'aes_decrypt_text']
