@@ -20,6 +20,28 @@ class NineNowIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?9now\.com\.au/(?:[^/]+/){2}(?P<id>[^/?#]+)'
     _GEO_COUNTRIES = ['AU']
     _TESTS = [{
+        # clip
+        'url': 'https://www.9now.com.au/afl-footy-show/2016/clip-ciql02091000g0hp5oktrnytc',
+        'md5': '17cf47d63ec9323e562c9957a968b565',
+        'info_dict': {
+            'id': '16801',
+            'ext': 'mp4',
+            'title': 'St. Kilda\'s Joey Montagna on the potential for a player\'s strike',
+            'description': 'Is a boycott of the NAB Cup "on the table"?',
+            'uploader_id': '4460760524001',
+            'upload_date': '20160713',
+            'timestamp': 1468421266,
+        },
+        'skip': 'Only available in Australia',
+    }, {
+        # episode
+        'url': 'https://www.9now.com.au/afl-footy-show/2016/episode-19',
+        'only_matching': True,
+    }, {
+        # DRM protected
+        'url': 'https://www.9now.com.au/andrew-marrs-history-of-the-world/season-1/episode-1',
+        'only_matching': True,
+    }, {
         # episode of series
         'url': 'https://www.9now.com.au/lego-masters/season-3/episode-3',
         'md5': '62feeb8d534697c2c1bee11b27bf020d',
