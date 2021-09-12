@@ -4,11 +4,14 @@ from math import ceil
 
 try:
     from Crypto.Cipher import AES
+    crypto_name = 'pycryptodome'
 except ImportError:
     try:
         from Cryptodome.Cipher import AES
+        crypto_name = 'pycryptodomex'
     except ImportError:
         AES = None
+        crypto_name = None
 
 from .compat import compat_b64decode
 from .utils import bytes_to_intlist, intlist_to_bytes
@@ -146,8 +149,8 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
     pad_len = len(data) // 16 * 16
     pad = [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len)
-    length = bytes_to_intlist((0 * 8).to_bytes(8, 'big') +
-                              ((len(data) * 8).to_bytes(8, 'big')))  # length of associated data and data
+    # length of associated data and data
+    length = bytes_to_intlist((0 * 8).to_bytes(8, 'big') + ((len(data) * 8).to_bytes(8, 'big')))
     s_tag = ghash(hash_subkey, data + pad + length)
 
     if tag != aes_ctr_encrypt(s_tag, key, j0):

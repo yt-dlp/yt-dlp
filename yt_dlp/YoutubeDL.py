@@ -29,6 +29,7 @@ import random
 from string import ascii_letters
 from zipimport import zipimporter
 
+from .aes import crypto_name
 from .compat import (
     compat_basestring,
     compat_get_terminal_size,
@@ -3297,7 +3298,7 @@ class YoutubeDL(object):
         from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
 
         lib_str = ', '.join(sorted(filter(None, (
-            compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
+            crypto_name and crypto_name,
             has_websockets and 'websockets',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',
