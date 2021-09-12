@@ -636,7 +636,7 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
 
 
 def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
-    plaintext = aes_cbc_decrypt(ciphertext, key, initialization_vector)
+    plaintext = aes_cbc_decrypt(*map(bytes_to_intlist, (ciphertext, key, initialization_vector)))
     padding_length = plaintext[-1]
     try:
         return intlist_to_bytes(plaintext[:-padding_length]).decode('utf-8')
