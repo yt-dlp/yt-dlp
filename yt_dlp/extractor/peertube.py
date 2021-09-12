@@ -1106,13 +1106,7 @@ class PeerTubeIE(InfoExtractor):
 
 class PeerTubePlaylistIE(InfoExtractor):
     IE_NAME = 'PeerTube:Playlist'
-    _VALID_URL = r'''(?x)
-                    (?:
-                        peertube:(?P<host>[^:]+):|
-                        https?://(?P<host_2>%s)/w/p/
-                    )
-                    (?P<id>%s)
-                    ''' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
+    _VALID_URL = r'(?x)https?://(?P<host_2>%s)/w/p/(?P<id>%s)' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
     _API_BASE = 'https://%s/api/v1/video-playlists/%s%s'
     _TESTS = [{
         'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
