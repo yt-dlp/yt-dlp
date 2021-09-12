@@ -21,83 +21,48 @@ from ..utils import (
 class PeerTubeIE(InfoExtractor):
     _INSTANCES_RE = r'''(?:
                             # Taken from https://instances.joinpeertube.org/instances
-                            0ch\.in|
                             40two\.tube|
-                            91video\.online|
-                            FIGHTFORINFO\.com|
                             a\.metube\.ch|
                             advtv\.ml|
                             algorithmic\.tv|
                             alimulama\.com|
-                            alttube\.fr|
-                            aperi\.tube|
                             arcana\.fun|
                             archive\.vidicon\.org|
-                            argos\.aquilenet\.fr|
-                            armstube\.com|
                             artefac-paris\.tv|
-                            artitube\.artifaille\.fr|
                             auf1\.eu|
-                            balafon\.video|
                             battlepenguin\.video|
                             beertube\.epgn\.ch|
                             befree\.nohost\.me|
-                            betamax\.video|
                             bideoak\.argia\.eus|
                             birkeundnymphe\.de|
-                            bistule\.nohost\.me|
                             bitcointv\.com|
-                            canard\.tube|
                             cattube\.org|
-                            choob\.h\.etbus\.ch|
-                            cinema\.yunohost\.support|
                             clap\.nerv-project\.eu|
                             climatejustice\.video|
                             comf\.tube|
-                            conf\.tube|
                             conspiracydistillery\.com|
                             darkvapor\.nohost\.me|
                             daschauher\.aksel\.rocks|
-                            dev\.videos\.lecygnenoir\.info|
-                            devtube\.dev-wiki\.de|
-                            dialup\.express|
                             digitalcourage\.video|
-                            diode\.zone|
-                            diytelevision\.com|
-                            docker\.videos\.lecygnenoir\.info|
                             dreiecksnebel\.alex-detsch\.de|
                             eduvid\.org|
                             evangelisch\.video|
-                            evertron\.tv|
                             exo\.tube|
-                            exode\.me|
                             fair\.tube|
-                            fanvid\.stopthatimp\.net|
                             fediverse\.tv|
-                            fightforinfo\.com|
                             film\.k-prod\.fr|
-                            film\.node9\.org|
                             flim\.txmn\.tk|
-                            fontube\.fr|
                             fotogramas\.politicaconciencia\.org|
-                            framatube\.org|
                             ftsi\.ru|
                             gary\.vger\.cloud|
-                            gouttedeau\.space|
                             graeber\.video|
                             greatview\.video|
                             grypstube\.uni-greifswald\.de|
                             highvoltage\.tv|
-                            hitchtube\.fr|
-                            hkvideo\.live|
-                            hostyour\.tv|
                             hpstube\.fr|
                             htp\.live|
                             hyperreal\.tube|
-                            indymotion\.fr|
-                            irrsinn\.video|
                             juggling\.digital|
-                            justporn\.cc|
                             kino\.kompot\.si|
                             kino\.schuerz\.at|
                             kinowolnosc\.pl|
@@ -111,39 +76,29 @@ class PeerTubeIE(InfoExtractor):
                             lexx\.impa\.me|
                             libertynode\.tv|
                             libra\.syntazia\.org|
-                            libre\.tube|
-                            libre\.video|
                             libremedia\.video|
-                            libretube\.net|
                             live\.libratoi\.org|
                             live\.nanao\.moe|
                             live\.toobnix\.org|
                             livegram\.net|
                             lolitube\.freedomchan\.moe|
-                            lostpod\.space|
                             lucarne\.balsamine\.be|
                             maindreieck-tv\.de|
                             mani\.tube|
                             manicphase\.me|
-                            media\.assassinate-you\.net|
                             media\.gzevd\.de|
                             media\.inno3\.cricket|
                             media\.kaitaia\.life|
                             media\.krashboyz\.org|
                             media\.over-world\.org|
-                            media\.privacyinternational\.org|
                             media\.skewed\.de|
                             media\.undeadnetwork\.de|
-                            media\.zat\.im|
-                            medias\.libox\.fr|
                             medias\.pingbase\.net|
-                            megatube\.lilomoino\.fr|
                             melsungen\.peertube-host\.de|
                             mirametube\.fr|
                             mojotube\.net|
                             monplaisirtube\.ddns\.net|
                             mountaintown\.video|
-                            mplayer\.demouliere\.eu|
                             my\.bunny\.cafe|
                             myfreetube\.de|
                             mytube\.kn-cloud\.de|
@@ -151,41 +106,22 @@ class PeerTubeIE(InfoExtractor):
                             myworkoutarenapeertube\.cf|
                             nanawel-peertube\.dyndns\.org|
                             nastub\.cz|
-                            nordenmedia\.com|
-                            nrop\.cant\.at|
-                            nuage\.acostey\.fr|
                             offenes\.tv|
-                            open\.tube|
                             orgdup\.media|
                             ovaltube\.codinglab\.ch|
                             p2ptv\.ru|
                             p\.eertu\.be|
                             p\.lu|
-                            pe\.ertu\.be|
                             peer\.azurs\.fr|
-                            peer\.hostux\.social|
-                            peer\.mathdacloud\.ovh|
-                            peer\.philoxweb\.be|
-                            peer\.suiri\.us|
-                            peer\.tube|
                             peertube1\.zeteo\.me|
-                            peertube2\.cpy\.re|
-                            peertube3\.cpy\.re|
                             peertube\.020\.pl|
                             peertube\.0x5e\.eu|
-                            peertube\.1312\.media|
                             peertube\.alpharius\.io|
-                            peertube\.alter-nativ-voll\.de|
                             peertube\.am-networks\.fr|
-                            peertube\.amicale\.net|
-                            peertube\.anarchmusicall\.net|
                             peertube\.anduin\.net|
-                            peertube\.anon-kenkai\.com|
                             peertube\.anzui\.dev|
                             peertube\.arbleizez\.bzh|
                             peertube\.art3mis\.de|
-                            peertube\.artica\.center|
-                            peertube\.asrun\.eu|
                             peertube\.atilla\.org|
                             peertube\.atsuchan\.page|
                             peertube\.aukfood\.net|
@@ -194,257 +130,144 @@ class PeerTubeIE(InfoExtractor):
                             peertube\.beeldengeluid\.nl|
                             peertube\.be|
                             peertube\.bgzashtita\.es|
-                            peertube\.bilange\.ca|
                             peertube\.bitsandlinux\.com|
                             peertube\.biz|
                             peertube\.boba\.best|
-                            peertube\.boneheadmedia\.com|
                             peertube\.br0\.fr|
                             peertube\.bridaahost\.ynh\.fr|
                             peertube\.bubbletea\.dev|
                             peertube\.bubuit\.net|
                             peertube\.cabaal\.net|
                             peertube\.cats-home\.net|
-                            peertube\.cat|
-                            peertube\.chantierlibre\.org|
                             peertube\.chemnitz\.freifunk\.net|
                             peertube\.chevro\.fr|
                             peertube\.chrisspiegl\.com|
                             peertube\.chtisurel\.net|
-                            peertube\.ch|
                             peertube\.cipherbliss\.com|
                             peertube\.cloud\.sans\.pub|
-                            peertube\.co\.uk|
                             peertube\.cpge-brizeux\.fr|
-                            peertube\.cpy\.re|
                             peertube\.ctseuro\.com|
                             peertube\.cuatrolibertades\.org|
-                            peertube\.cyber-tribal\.com|
                             peertube\.cybercirujas\.club|
                             peertube\.cythin\.com|
-                            peertube\.datagueule\.tv|
-                            peertube\.david\.durieux\.family|
                             peertube\.davigge\.com|
                             peertube\.dc\.pini\.fr|
-                            peertube\.ddns\.net|
                             peertube\.debian\.social|
                             peertube\.demonix\.fr|
                             peertube\.designersethiques\.org|
                             peertube\.desmu\.fr|
                             peertube\.devloprog\.org|
                             peertube\.devol\.it|
-                            peertube\.devosi\.org|
-                            peertube\.donnadieu\.fr|
-                            peertube\.dsmouse\.net|
                             peertube\.dtmf\.ca|
-                            peertube\.dynlinux\.io|
                             peertube\.ecologie\.bzh|
-                            peertube\.eric\.ovh|
-                            peertube\.ethernia\.net|
                             peertube\.eu\.org|
                             peertube\.european-pirates\.eu|
                             peertube\.euskarabildua\.eus|
-                            peertube\.f-si\.org|
-                            peertube\.fedi\.quebec|
-                            peertube\.fedilab\.app|
-                            peertube\.fediverse\.ru|
                             peertube\.fenarinarsa\.com|
-                            peertube\.ffs2play\.fr|
-                            peertube\.floss-marketing-school\.com|
                             peertube\.fomin\.site|
                             peertube\.forsud\.be|
-                            peertube\.foxfam\.club|
                             peertube\.francoispelletier\.org|
-                            peertube\.freeforge\.eu|
                             peertube\.freenet\.ru|
                             peertube\.freetalklive\.com|
-                            peertube\.fr|
                             peertube\.functional\.cafe|
-                            peertube\.gaialabs\.ch|
                             peertube\.gardeludwig\.fr|
                             peertube\.gargantia\.fr|
-                            peertube\.gcaillaut\.fr|
                             peertube\.gcfamily\.fr|
-                            peertube\.gegeweb\.eu|
                             peertube\.genma\.fr|
                             peertube\.get-racing\.de|
                             peertube\.gidikroon\.eu|
-                            peertube\.gnumeria\.eu\.org|
                             peertube\.gruezishop\.ch|
                             peertube\.habets\.house|
                             peertube\.hackerfraternity\.org|
-                            peertube\.harmoniescreatives\.com|
-                            peertube\.hatthieves\.es|
-                            peertube\.heberge\.fr|
-                            peertube\.heraut\.eu|
                             peertube\.ichigo\.everydayimshuflin\.com|
-                            peertube\.icu|
                             peertube\.ignifi\.me|
                             peertube\.inapurna\.org|
                             peertube\.informaction\.info|
                             peertube\.interhop\.org|
-                            peertube\.iriseden\.eu|
                             peertube\.iselfhost\.com|
                             peertube\.it|
-                            peertube\.jackbot\.fr|
                             peertube\.jensdiemer\.de|
                             peertube\.joffreyverd\.fr|
-                            peertube\.kajalinifi\.de|
                             peertube\.kalua\.im|
                             peertube\.kathryl\.fr|
                             peertube\.keazilla\.net|
-                            peertube\.kerenon\.com|
                             peertube\.klaewyss\.fr|
                             peertube\.kodcast\.com|
-                            peertube\.koehn\.com|
-                            peertube\.kosebamse\.com|
                             peertube\.kx\.studio|
-                            peertube\.laas\.fr|
-                            peertube\.lagob\.fr|
                             peertube\.lagvoid\.com|
                             peertube\.lavallee\.tech|
                             peertube\.le5emeaxe\.fr|
-                            peertube\.leboulaire\.ovh|
                             peertube\.lestutosdeprocessus\.fr|
-                            peertube\.librelabucm\.org|
-                            peertube\.librelois\.fr|
                             peertube\.librenet\.co\.za|
-                            peertube\.linuxrocks\.online|
-                            peertube\.live|
-                            peertube\.livingutopia\.org|
                             peertube\.logilab\.fr|
-                            peertube\.lol|
                             peertube\.louisematic\.site|
                             peertube\.luckow\.org|
                             peertube\.luga\.at|
                             peertube\.lyceeconnecte\.fr|
-                            peertube\.mablr\.org|
-                            peertube\.makotoworkshop\.org|
-                            peertube\.malbert\.xyz|
                             peertube\.manalejandro\.com|
                             peertube\.marud\.fr|
-                            peertube\.mastodon\.host|
-                            peertube\.mathieufamily\.ovh|
                             peertube\.mattone\.net|
                             peertube\.maxweiss\.io|
-                            peertube\.mazzonetto\.eu|
-                            peertube\.mckillop\.org|
-                            peertube\.metalbanana\.net|
-                            peertube\.metawurst\.space|
-                            peertube\.me|
-                            peertube\.mofgao\.space|
                             peertube\.monlycee\.net|
-                            peertube\.montecsys\.fr|
-                            peertube\.musicstudio\.pro|
                             peertube\.mxinfo\.fr|
-                            peertube\.mygaia\.org|
                             peertube\.myrasp\.eu|
-                            peertube\.nayya\.org|
                             peertube\.nebelcloud\.de|
                             peertube\.netzbegruenung\.de|
                             peertube\.newsocial\.tech|
                             peertube\.nicolastissot\.fr|
-                            peertube\.nogafa\.org|
-                            peertube\.nomagic\.uk|
-                            peertube\.normandie-libre\.fr|
                             peertube\.nz|
                             peertube\.offerman\.com|
-                            peertube\.oiseauroch\.fr|
                             peertube\.opencloud\.lu|
-                            peertube\.openstreetmap\.fr|
                             peertube\.orthus\.link|
-                            peertube\.osureplayviewer\.xyz|
-                            peertube\.parleur\.net|
                             peertube\.patapouf\.xyz|
-                            peertube\.pcservice46\.fr|
                             peertube\.pi2\.dev|
                             peertube\.plataformess\.org|
                             peertube\.pl|
                             peertube\.portaesgnos\.org|
-                            peertube\.public\.cat|
-                            peertube\.qtg\.fr|
                             peertube\.r2\.enst\.fr|
                             peertube\.r5c3\.fr|
-                            peertube\.rachetjay\.fr|
                             peertube\.radres\.xyz|
-                            peertube\.rainbowswingers\.net|
                             peertube\.red|
-                            peertube\.ricostrongxxx\.com|
                             peertube\.robonomics\.network|
-                            peertube\.roflcopter\.fr|
                             peertube\.rtnkv\.cloud|
                             peertube\.runfox\.tk|
-                            peertube\.s2s\.video|
                             peertube\.satoshishop\.de|
-                            peertube\.schaeferit\.de|
                             peertube\.scic-tetris\.org|
                             peertube\.securitymadein\.lu|
                             peertube\.semweb\.pro|
-                            peertube\.servebeer\.com|
-                            peertube\.serveur\.slv-valbonne\.fr|
-                            peertube\.simounet\.net|
-                            peertube\.sl-network\.fr|
-                            peertube\.slat\.org|
-                            peertube\.snargol\.com|
                             peertube\.social\.my-wan\.de|
-                            peertube\.social|
-                            peertube\.solidev\.net|
                             peertube\.soykaf\.org|
                             peertube\.stefofficiel\.me|
-                            peertube\.stemy\.me|
-                            peertube\.stephenson\.cc|
                             peertube\.stream|
                             peertube\.su|
-                            peertube\.swarm\.solvingmaz\.es|
                             peertube\.swrs\.net|
                             peertube\.takeko\.cyou|
-                            peertube\.tamanoir\.foucry\.net|
                             peertube\.tangentfox\.com|
                             peertube\.taxinachtegel\.de|
-                            peertube\.teleassist\.fr|
-                            peertube\.the-penguin\.de|
                             peertube\.thenewoil\.xyz|
                             peertube\.ti-fr\.com|
                             peertube\.tiennot\.net|
-                            peertube\.togart\.de|
-                            peertube\.touhoppai\.moe|
-                            peertube\.travelpandas\.eu|
                             peertube\.troback\.com|
-                            peertube\.tronic-studio\.com|
                             peertube\.tspu\.edu\.ru|
                             peertube\.tux\.ovh|
                             peertube\.tv|
                             peertube\.tweb\.tv|
                             peertube\.ucy\.de|
-                            peertube\.umeahackerspace\.se|
                             peertube\.underworld\.fr|
-                            peertube\.uno|
                             peertube\.us\.to|
-                            peertube\.varney\.fr|
                             peertube\.ventresmous\.fr|
-                            peertube\.video|
                             peertube\.vlaki\.cz|
                             peertube\.w\.utnw\.de|
-                            peertube\.walkingmountains\.fr|
-                            peertube\.we-keys\.fr|
                             peertube\.westring\.digital|
-                            peertube\.xtenz\.xyz|
                             peertube\.xwiki\.com|
-                            peertube\.zapashcanon\.fr|
-                            peertube\.zergy\.net|
-                            peertube\.zeteo\.me|
                             peertube\.zoz-serv\.org|
-                            peervideo\.club|
                             peervideo\.ru|
-                            peerwatch\.xyz|
                             periscope\.numenaute\.org|
                             perron-tube\.de|
                             petitlutinartube\.fr|
                             phijkchu\.com|
                             pierre\.tube|
                             piraten\.space|
-                            pire\.artisanlogiciel\.net|
-                            play\.jergefelt\.se|
                             play\.rosano\.ca|
                             player\.ojamajo\.moe|
                             plextube\.nl|
@@ -453,19 +276,11 @@ class PeerTubeIE(InfoExtractor):
                             pocketnetpeertube4\.nohost\.me|
                             pocketnetpeertube5\.nohost\.me|
                             pocketnetpeertube6\.nohost\.me|
-                            pony\.tube|
                             pt\.24-7\.ro|
-                            pt\.765racing\.com|
                             pt\.apathy\.top|
                             pt\.diaspodon\.fr|
                             pt\.fedi\.tech|
-                            pt\.forty-two\.nl|
-                            pt\.kamp\.site|
-                            pt\.kircheneuenburg\.de|
-                            pt\.laurentkruger\.fr|
                             pt\.maciej\.website|
-                            pt\.pube\.tk|
-                            pt\.tux\.tf|
                             ptb\.lunarviews\.net|
                             ptmir1\.inter21\.net|
                             ptmir2\.inter21\.net|
@@ -473,33 +288,21 @@ class PeerTubeIE(InfoExtractor):
                             ptmir4\.inter21\.net|
                             ptmir5\.inter21\.net|
                             ptube\.horsentiers\.fr|
-                            ptube\.rousset\.nom\.fr|
                             ptube\.xmanifesto\.club|
-                            pytu\.be|
-                            quaziinc\.com|
                             queermotion\.org|
-                            raptube\.antipub\.org|
                             re-wizja\.re-medium\.com|
-                            refuznik\.video|
                             regarder\.sans\.pub|
-                            repro\.video|
                             ruraletv\.ovh|
                             s1\.gegenstimme\.tv|
                             s2\.veezee\.tube|
-                            scitech\.video|
                             sdmtube\.fr|
                             sender-fm\.veezee\.tube|
                             serv1\.wiki-tube\.de|
                             serv3\.wiki-tube\.de|
-                            share\.tube|
                             sickstream\.net|
-                            sikke\.fi|
-                            skeptikon\.fr|
                             sleepy\.tube|
                             sovran\.video|
-                            spacepub\.space|
                             spectra\.video|
-                            stoptrackingus\.tv|
                             stream\.elven\.pw|
                             stream\.k-prod\.fr|
                             stream\.shahab\.nohost\.me|
@@ -511,13 +314,9 @@ class PeerTubeIE(InfoExtractor):
                             the\.jokertv\.eu|
                             theater\.ethernia\.net|
                             thecool\.tube|
-                            thickrips\.cloud|
-                            thinkerview\.video|
                             tilvids\.com|
                             toob\.bub\.org|
-                            toobnix\.org|
                             tpaw\.video|
-                            troll\.tv|
                             truetube\.media|
                             tuba\.lhub\.pl|
                             tube-aix-marseille\.beta\.education\.fr|
@@ -547,19 +346,13 @@ class PeerTubeIE(InfoExtractor):
                             tube-toulouse\.beta\.education\.fr|
                             tube-versailles\.beta\.education\.fr|
                             tube1\.it\.tuwien\.ac\.at|
-                            tube2\.nemsia\.org|
-                            tube\.22decembre\.eu|
-                            tube\.4aem\.com|
                             tube\.abolivier\.bzh|
                             tube\.ac-amiens\.fr|
-                            tube\.ac-lyon\.fr|
                             tube\.aerztefueraufklaerung\.de|
                             tube\.alexx\.ml|
                             tube\.amic37\.fr|
-                            tube\.anjara\.eu|
                             tube\.anufrij\.de|
                             tube\.apolut\.net|
-                            tube\.aquilenet\.fr|
                             tube\.arkhalabs\.io|
                             tube\.arthack\.nz|
                             tube\.as211696\.net|
@@ -568,111 +361,62 @@ class PeerTubeIE(InfoExtractor):
                             tube\.azkware\.net|
                             tube\.bachaner\.fr|
                             tube\.bmesh\.org|
-                            tube\.bootlicker\.party|
                             tube\.borked\.host|
-                            tube\.bruniau\.net|
                             tube\.bstly\.de|
-                            tube\.calculate\.social|
                             tube\.chaoszone\.tv|
                             tube\.chatelet\.ovh|
                             tube\.cloud-libre\.eu|
                             tube\.cms\.garden|
-                            tube\.conferences-gesticulees\.net|
                             tube\.cowfee\.moe|
-                            tube\.crapaud-fou\.org|
                             tube\.cryptography\.dog|
-                            tube\.cyano\.at|
-                            tube\.danq\.me|
-                            tube\.darfweb\.eu|
                             tube\.darknight-coffee\.org|
                             tube\.dev\.lhub\.pl|
                             tube\.distrilab\.fr|
-                            tube\.dodsorf\.as|
-                            tube\.dragonpsi\.xyz|
                             tube\.dsocialize\.net|
                             tube\.ebin\.club|
-                            tube\.egf\.mn|
-                            tube\.eskuero\.me|
-                            tube\.extinctionrebellion\.fr|
-                            tube\.fab-l3\.org|
-                            tube\.fabrigli\.fr|
                             tube\.fdn\.fr|
-                            tube\.fede\.re|
                             tube\.florimond\.eu|
                             tube\.foxarmy\.ml|
                             tube\.foxden\.party|
                             tube\.frischesicht\.de|
                             tube\.futuretic\.fr|
                             tube\.gnous\.eu|
-                            tube\.govital\.net|
                             tube\.grap\.coop|
                             tube\.graz\.social|
                             tube\.grin\.hu|
-                            tube\.h3z\.jp|
                             tube\.hackerscop\.org|
-                            tube\.hoga\.fr|
-                            tube\.homecomputing\.fr|
                             tube\.hordearii\.fr|
-                            tube\.ipfixe\.info|
                             tube\.jeena\.net|
                             tube\.kai-stuht\.com|
-                            tube\.kalah-france\.org|
-                            tube\.kampftoast\.de|
-                            tube\.kdy\.ch|
-                            tube\.kher\.nl|
-                            tube\.kicou\.info|
                             tube\.kockatoo\.org|
                             tube\.kotur\.org|
-                            tube\.ksl-bmx\.de|
                             tube\.lacaveatonton\.ovh|
                             tube\.linkse\.media|
                             tube\.lokad\.com|
-                            tube\.lou\.lt|
                             tube\.lucie-philou\.com|
-                            tube\.maiti\.info|
                             tube\.melonbread\.xyz|
-                            tube\.metadocs\.cc|
                             tube\.mfraters\.net|
-                            tube\.midov\.pl|
-                            tube\.mochi\.academy|
                             tube\.motuhake\.xyz|
                             tube\.mrbesen\.de|
                             tube\.nah\.re|
                             tube\.nchoco\.net|
-                            tube\.nemsia\.org|
-                            tube\.netzspielplatz\.de|
                             tube\.novg\.net|
                             tube\.nox-rhea\.org|
                             tube\.nuagelibre\.fr|
-                            tube\.nx-pod\.de|
                             tube\.nx12\.net|
                             tube\.octaplex\.net|
                             tube\.odat\.xyz|
                             tube\.oisux\.org|
-                            tube\.open-plug\.eu|
-                            tube\.openalgeria\.org|
                             tube\.opportunis\.me|
                             tube\.org\.il|
                             tube\.ortion\.xyz|
                             tube\.others\.social|
-                            tube\.otter\.sh|
-                            tube\.ouahpiti\.info|
-                            tube\.p2p\.legal|
-                            tube\.pasa\.tf|
-                            tube\.pawelko\.net|
-                            tube\.pericoloso\.ovh|
                             tube\.picasoft\.net|
-                            tube\.piweb\.be|
-                            tube\.plaf\.fr|
                             tube\.plomlompom\.com|
-                            tube\.plus200\.com|
                             tube\.pmj\.rocks|
-                            tube\.port0\.xyz|
                             tube\.portes-imaginaire\.org|
-                            tube\.postblue\.info|
                             tube\.pyngu\.com|
                             tube\.rebellion\.global|
-                            tube\.rfc1149\.net|
                             tube\.rhythms-of-resistance\.org|
                             tube\.rita\.moe|
                             tube\.rsi\.cnr\.it|
@@ -686,36 +430,24 @@ class PeerTubeIE(InfoExtractor):
                             tube\.skrep\.in|
                             tube\.sp-codes\.de|
                             tube\.sp4ke\.com|
-                            tube\.stanisic\.nl|
-                            tube\.stbr\.io|
                             tube\.superseriousbusiness\.org|
-                            tube\.svnet\.fr|
                             tube\.systest\.eu|
-                            tube\.taker\.fr|
                             tube\.tappret\.fr|
                             tube\.tardis\.world|
-                            tube\.tchncs\.de|
-                            tube\.thechangebook\.org|
-                            tube\.theocevaer\.fr|
                             tube\.toontoet\.nl|
                             tube\.tpshd\.de|
-                            tube\.traydent\.info|
                             tube\.troopers\.agency|
                             tube\.tylerdavis\.xyz|
                             tube\.undernet\.uy|
-                            tube\.unmondemeilleur\.eu|
-                            tube\.valinor\.fr|
                             tube\.vigilian-consulting\.nl|
                             tube\.vraphim\.com|
                             tube\.wehost\.lgbt|
                             tube\.wien\.rocks|
                             tube\.wolfe\.casa|
-                            tube\.worldofhauru\.xyz|
                             tube\.xd0\.de|
                             tube\.xy-space\.de|
                             tube\.yapbreak\.fr|
                             tubedu\.org|
-                            tubee\.fr|
                             tubes\.jodh\.us|
                             tuktube\.com|
                             turkum\.me|
@@ -727,11 +459,9 @@ class PeerTubeIE(InfoExtractor):
                             tv\.adn\.life|
                             tv\.atmx\.ca|
                             tv\.bitma\.st|
-                            tv\.datamol\.org|
                             tv\.generallyrubbish\.net\.au|
                             tv\.lumbung\.space|
                             tv\.mattchristiansenmedia\.com|
-                            tv\.mooh\.fr|
                             tv\.netwhood\.online|
                             tv\.neue\.city|
                             tv\.piejacker\.net|
@@ -740,25 +470,17 @@ class PeerTubeIE(InfoExtractor):
                             tvox\.ru|
                             twctube\.twc-zone\.eu|
                             unfilter\.tube|
-                            us\.tv|
                             v\.basspistol\.org|
-                            v\.bearvideo\.win|
                             v\.kisombrella\.top|
-                            v\.kretschmann\.social|
                             v\.lastorder\.xyz|
-                            v\.lesterpig\.com|
                             v\.lor\.sh|
-                            v\.mbius\.io|
-                            v\.mom-gay\.faith|
                             v\.phreedom\.club|
                             v\.sil\.sh|
                             v\.szy\.io|
                             v\.xxxapex\.com|
-                            vault\.mle\.party|
                             veezee\.tube|
                             vid\.dascoyote\.xyz|
                             vid\.garwood\.io|
-                            vid\.lelux\.fi|
                             vid\.ncrypt\.at|
                             vid\.pravdastalina\.info|
                             vid\.qorg11\.net|
@@ -766,49 +488,30 @@ class PeerTubeIE(InfoExtractor):
                             vid\.samtripoli\.com|
                             vid\.werefox\.dev|
                             vid\.wildeboer\.net|
-                            vid\.y-y\.li|
-                            vidcommons\.org|
                             video-cave-v2\.de|
                             video\.076\.ne\.jp|
-                            video\.1000i100\.fr|
                             video\.1146\.nohost\.me|
-                            video\.alternanet\.fr|
                             video\.altertek\.org|
-                            video\.amic37\.fr|
                             video\.anartist\.org|
-                            video\.anormallostpod\.ovh|
-                            video\.antirep\.net|
-                            video\.antopie\.org|
                             video\.apps\.thedoodleproject\.net|
-                            video\.arbitrarion\.com|
                             video\.artist\.cx|
                             video\.asgardius\.company|
                             video\.balsillie\.net|
                             video\.bards\.online|
                             video\.binarydad\.com|
                             video\.blast-info\.fr|
-                            video\.blender\.org|
-                            video\.blueline\.mg|
-                            video\.bruitbruit\.com|
-                            video\.cabane-libre\.org|
                             video\.catgirl\.biz|
                             video\.cigliola\.com|
                             video\.cm-en-transition\.fr|
                             video\.cnt\.social|
                             video\.coales\.co|
                             video\.codingfield\.com|
-                            video\.colibris-outilslibres\.org|
                             video\.comptoir\.net|
                             video\.comune\.trento\.it|
-                            video\.coop\.tools|
                             video\.cpn\.so|
                             video\.csc49\.fr|
                             video\.cybre\.town|
-                            video\.datsemultimedia\.com|
-                            video\.deadsuperhero\.com|
                             video\.demokratischer-sommer\.de|
-                            video\.devinberg\.com|
-                            video\.die-partei\.social|
                             video\.discord-insoumis\.fr|
                             video\.dolphincastle\.com|
                             video\.dresden\.network|
@@ -818,219 +521,125 @@ class PeerTubeIE(InfoExtractor):
                             video\.eradicatinglove\.xyz|
                             video\.ethantheenigma\.me|
                             video\.exodus-privacy\.eu\.org|
-                            video\.farci\.org|
                             video\.fbxl\.net|
-                            video\.fdlibre\.eu|
                             video\.fhtagn\.org|
-                            video\.fitchfamily\.org|
-                            video\.freeradical\.zone|
-                            video\.g3l\.org|
                             video\.greenmycity\.eu|
-                            video\.gresille\.org|
-                            video\.grosskopfgames\.de|
                             video\.guerredeclasse\.fr|
                             video\.gyt\.is|
                             video\.hackers\.town|
-                            video\.halle-leaks\.de|
                             video\.hardlimit\.com|
-                            video\.heromuster\.com|
                             video\.hooli\.co|
-                            video\.ifuncle\.kr|
                             video\.igem\.org|
                             video\.internet-czas-dzialac\.pl|
-                            video\.iphodase\.fr|
-                            video\.irem\.univ-paris-diderot\.fr|
                             video\.islameye\.com|
-                            video\.ivel\.fr|
                             video\.kicik\.fr|
                             video\.kuba-orlik\.name|
                             video\.kyushojitsu\.ca|
-                            video\.lacaveatonton\.ovh|
-                            video\.latavernedejohnjohn\.fr|
                             video\.lavolte\.net|
-                            video\.lemediatv\.fr|
-                            video\.lequerrec\.eu|
                             video\.lespoesiesdheloise\.fr|
                             video\.liberta\.vip|
                             video\.liege\.bike|
                             video\.linc\.systems|
                             video\.linux\.it|
                             video\.linuxtrent\.it|
-                            video\.livecchi\.cloud|
                             video\.lokal\.social|
                             video\.lono\.space|
-                            video\.lqdn\.fr|
                             video\.lunasqu\.ee|
                             video\.lundi\.am|
-                            video\.lw1\.at|
-                            video\.mantlepro\.com|
                             video\.marcorennmaus\.de|
                             video\.mass-trespass\.uk|
-                            video\.migennes\.net|
-                            video\.monarch-pass\.net|
-                            video\.monsieur-a\.fr|
-                            video\.monsieurbidouille\.fr|
-                            video\.mstddntfdn\.online|
                             video\.mugoreve\.fr|
                             video\.mundodesconocido\.com|
                             video\.mycrowd\.ca|
-                            video\.nesven\.eu|
-                            video\.netsyms\.com|
                             video\.nogafam\.es|
-                            video\.obermui\.de|
                             video\.odayacres\.farm|
-                            video\.oh14\.de|
-                            video\.okaris\.de|
-                            video\.omniatv\.com|
                             video\.ozgurkon\.org|
                             video\.p1ng0ut\.social|
                             video\.p3x\.de|
-                            video\.passageenseine\.fr|
                             video\.pcf\.fr|
-                            video\.ploud\.fr|
-                            video\.ploud\.jp|
                             video\.pony\.gallery|
                             video\.potate\.space|
                             video\.pourpenser\.pro|
                             video\.progressiv\.dev|
-                            video\.qoto\.org|
-                            video\.rastapuls\.com|
                             video\.resolutions\.it|
                             video\.rw501\.de|
-                            video\.samedi\.pm|
                             video\.screamer\.wiki|
                             video\.sdm-tools\.net|
-                            video\.selea\.se|
                             video\.sftblw\.moe|
                             video\.shitposter\.club|
                             video\.skyn3t\.in|
                             video\.soi\.ch|
                             video\.stuartbrand\.co\.uk|
-                            video\.subak\.ovh|
-                            video\.taboulisme\.com|
-                            video\.tedomum\.net|
-                            video\.thedwyers\.co|
                             video\.thinkof\.name|
                             video\.toot\.pt|
                             video\.triplea\.fr|
                             video\.turbo\.chat|
-                            video\.typica\.us|
-                            video\.up\.edu\.ph|
                             video\.vaku\.org\.ua|
-                            video\.valme\.io|
                             video\.veloma\.org|
                             video\.violoncello\.ch|
-                            video\.vny\.fr|
                             video\.wilkie\.how|
-                            video\.writeas\.org|
                             video\.wsf2021\.info|
-                            video\.yukari\.moe|
-                            videobit\.cc|
-                            videomensoif\.ynh\.fr|
-                            videonaute\.fr|
                             videorelay\.co|
-                            videos-libr\.es|
                             videos-passages\.huma-num\.fr|
                             videos\.3d-wolf\.com|
-                            videos\.adhocmusic\.com|
                             videos\.ahp-numerique\.fr|
                             videos\.alexandrebadalo\.pt|
-                            videos\.alolise\.org|
                             videos\.archigny\.net|
                             videos\.benjaminbrady\.ie|
-                            videos\.benpro\.fr|
                             videos\.buceoluegoexisto\.com|
-                            videos\.bugs\.social|
                             videos\.capas\.se|
                             videos\.casually\.cat|
-                            videos\.cemea\.org|
-                            videos\.cloudfrancois\.fr|
                             videos\.cloudron\.io|
                             videos\.coletivos\.org|
                             videos\.danksquad\.org|
-                            videos\.darckoune\.moe|
                             videos\.denshi\.live|
-                            videos\.dinofly\.com|
-                            videos\.domainepublic\.net|
-                            videos\.elbinario\.net|
-                            videos\.festivalparminous\.org|
                             videos\.fromouter\.space|
                             videos\.fsci\.in|
-                            videos\.funkwhale\.audio|
                             videos\.globenet\.org|
-                            videos\.hack2g2\.fr|
                             videos\.hauspie\.fr|
                             videos\.hush\.is|
-                            videos\.iut-orsay\.fr|
                             videos\.john-livingston\.fr|
                             videos\.jordanwarne\.xyz|
-                            videos\.judrey\.eu|
-                            videos\.koumoul\.com|
-                            videos\.koweb\.fr|
                             videos\.lavoixdessansvoix\.org|
-                            videos\.lescommuns\.org|
                             videos\.leslionsfloorball\.fr|
                             videos\.lucero\.top|
                             videos\.martyn\.berlin|
                             videos\.mastodont\.cat|
-                            videos\.mleduc\.xyz|
                             videos\.monstro1\.com|
                             videos\.npo\.city|
-                            videos\.numericoop\.fr|
-                            videos\.numerique-en-commun\.fr|
                             videos\.optoutpod\.com|
-                            videos\.pair2jeux\.tube|
                             videos\.petch\.rocks|
-                            videos\.pofilo\.fr|
-                            videos\.pueseso\.club|
                             videos\.pzelawski\.xyz|
                             videos\.rampin\.org|
                             videos\.scanlines\.xyz|
                             videos\.shmalls\.pw|
                             videos\.sibear\.fr|
-                            videos\.side-ways\.net|
-                            videos\.squat\.net|
                             videos\.stadtfabrikanten\.org|
                             videos\.tankernn\.eu|
-                            videos\.tcit\.fr|
                             videos\.testimonia\.org|
                             videos\.thisishowidontdisappear\.com|
                             videos\.traumaheilung\.net|
                             videos\.trom\.tf|
-                            videos\.ubuntu-paris\.org|
-                            videos\.wakapo\.com|
                             videos\.wakkerewereld\.nu|
                             videos\.weblib\.re|
                             videos\.yesil\.club|
-                            videosdulib\.re|
-                            videotape\.me|
                             vids\.roshless\.me|
                             vids\.tekdmn\.me|
                             vidz\.dou\.bet|
-                            vis\.ion\.ovh|
-                            visionon\.tv|
-                            vloggers\.social|
-                            voca\.tube|
-                            vod\.ksite\.de|
                             vod\.lumikko\.dev|
-                            vod\.mochi\.academy|
                             vs\.uniter\.network|
                             vulgarisation-informatique\.fr|
-                            watch\.44con\.com|
                             watch\.breadtube\.tv|
                             watch\.deranalyst\.ch|
                             watch\.ignorance\.eu|
                             watch\.krazy\.party|
                             watch\.libertaria\.space|
                             watch\.rt4mn\.org|
-                            watch\.snoot\.tube|
                             watch\.softinio\.com|
                             watch\.tubelab\.video|
-                            watching\.cypherpunk\.observer|
                             web-fellow\.de|
                             webtv\.vandoeuvre\.net|
                             wechill\.space|
-                            widemus\.de|
                             wikileaks\.video|
                             wiwi\.video|
                             worldofvids\.com|
@@ -1038,14 +647,407 @@ class PeerTubeIE(InfoExtractor):
                             www4\.mir\.inter21\.net|
                             www\.birkeundnymphe\.de|
                             www\.captain-german\.com|
-                            www\.hkvideo\.live|
-                            www\.videos-libr\.es|
                             www\.wiki-tube\.de|
-                            www\.yiny\.org|
                             xxivproduction\.video|
                             xxx\.noho\.st|
+
+                            # from youtube-dl
+                            peertube\.rainbowswingers\.net|
+                            tube\.stanisic\.nl|
+                            peer\.suiri\.us|
+                            medias\.libox\.fr|
+                            videomensoif\.ynh\.fr|
+                            peertube\.travelpandas\.eu|
+                            peertube\.rachetjay\.fr|
+                            peertube\.montecsys\.fr|
+                            tube\.eskuero\.me|
+                            peer\.tube|
+                            peertube\.umeahackerspace\.se|
+                            tube\.nx-pod\.de|
+                            video\.monsieurbidouille\.fr|
+                            tube\.openalgeria\.org|
+                            vid\.lelux\.fi|
+                            video\.anormallostpod\.ovh|
+                            tube\.crapaud-fou\.org|
+                            peertube\.stemy\.me|
+                            lostpod\.space|
+                            exode\.me|
+                            peertube\.snargol\.com|
+                            vis\.ion\.ovh|
+                            videosdulib\.re|
+                            v\.mbius\.io|
+                            videos\.judrey\.eu|
+                            peertube\.osureplayviewer\.xyz|
+                            peertube\.mathieufamily\.ovh|
+                            www\.videos-libr\.es|
+                            fightforinfo\.com|
+                            peertube\.fediverse\.ru|
+                            peertube\.oiseauroch\.fr|
+                            video\.nesven\.eu|
+                            v\.bearvideo\.win|
+                            video\.qoto\.org|
+                            justporn\.cc|
+                            video\.vny\.fr|
+                            peervideo\.club|
+                            tube\.taker\.fr|
+                            peertube\.chantierlibre\.org|
+                            tube\.ipfixe\.info|
+                            tube\.kicou\.info|
+                            tube\.dodsorf\.as|
+                            videobit\.cc|
+                            video\.yukari\.moe|
+                            videos\.elbinario\.net|
+                            hkvideo\.live|
+                            pt\.tux\.tf|
+                            www\.hkvideo\.live|
+                            FIGHTFORINFO\.com|
+                            pt\.765racing\.com|
+                            peertube\.gnumeria\.eu\.org|
+                            nordenmedia\.com|
+                            peertube\.co\.uk|
+                            tube\.darfweb\.eu|
+                            tube\.kalah-france\.org|
+                            0ch\.in|
+                            vod\.mochi\.academy|
+                            film\.node9\.org|
+                            peertube\.hatthieves\.es|
+                            video\.fitchfamily\.org|
+                            peertube\.ddns\.net|
+                            video\.ifuncle\.kr|
+                            video\.fdlibre\.eu|
+                            tube\.22decembre\.eu|
+                            peertube\.harmoniescreatives\.com|
+                            tube\.fabrigli\.fr|
+                            video\.thedwyers\.co|
+                            video\.bruitbruit\.com|
+                            peertube\.foxfam\.club|
+                            peer\.philoxweb\.be|
+                            videos\.bugs\.social|
+                            peertube\.malbert\.xyz|
+                            peertube\.bilange\.ca|
+                            libretube\.net|
+                            diytelevision\.com|
+                            peertube\.fedilab\.app|
+                            libre\.video|
+                            video\.mstddntfdn\.online|
+                            us\.tv|
+                            peertube\.sl-network\.fr|
+                            peertube\.dynlinux\.io|
+                            peertube\.david\.durieux\.family|
+                            peertube\.linuxrocks\.online|
+                            peerwatch\.xyz|
+                            v\.kretschmann\.social|
+                            tube\.otter\.sh|
                             yt\.is\.nota\.live|
-                            yunopeertube\.myddns\.me
+                            tube\.dragonpsi\.xyz|
+                            peertube\.boneheadmedia\.com|
+                            videos\.funkwhale\.audio|
+                            watch\.44con\.com|
+                            peertube\.gcaillaut\.fr|
+                            peertube\.icu|
+                            pony\.tube|
+                            spacepub\.space|
+                            tube\.stbr\.io|
+                            v\.mom-gay\.faith|
+                            tube\.port0\.xyz|
+                            peertube\.simounet\.net|
+                            play\.jergefelt\.se|
+                            peertube\.zeteo\.me|
+                            tube\.danq\.me|
+                            peertube\.kerenon\.com|
+                            tube\.fab-l3\.org|
+                            tube\.calculate\.social|
+                            peertube\.mckillop\.org|
+                            tube\.netzspielplatz\.de|
+                            vod\.ksite\.de|
+                            peertube\.laas\.fr|
+                            tube\.govital\.net|
+                            peertube\.stephenson\.cc|
+                            bistule\.nohost\.me|
+                            peertube\.kajalinifi\.de|
+                            video\.ploud\.jp|
+                            video\.omniatv\.com|
+                            peertube\.ffs2play\.fr|
+                            peertube\.leboulaire\.ovh|
+                            peertube\.tronic-studio\.com|
+                            peertube\.public\.cat|
+                            peertube\.metalbanana\.net|
+                            video\.1000i100\.fr|
+                            peertube\.alter-nativ-voll\.de|
+                            tube\.pasa\.tf|
+                            tube\.worldofhauru\.xyz|
+                            pt\.kamp\.site|
+                            peertube\.teleassist\.fr|
+                            videos\.mleduc\.xyz|
+                            conf\.tube|
+                            media\.privacyinternational\.org|
+                            pt\.forty-two\.nl|
+                            video\.halle-leaks\.de|
+                            video\.grosskopfgames\.de|
+                            peertube\.schaeferit\.de|
+                            peertube\.jackbot\.fr|
+                            tube\.extinctionrebellion\.fr|
+                            peertube\.f-si\.org|
+                            video\.subak\.ovh|
+                            videos\.koweb\.fr|
+                            peertube\.zergy\.net|
+                            peertube\.roflcopter\.fr|
+                            peertube\.floss-marketing-school\.com|
+                            vloggers\.social|
+                            peertube\.iriseden\.eu|
+                            videos\.ubuntu-paris\.org|
+                            peertube\.mastodon\.host|
+                            armstube\.com|
+                            peertube\.s2s\.video|
+                            peertube\.lol|
+                            tube\.open-plug\.eu|
+                            open\.tube|
+                            peertube\.ch|
+                            peertube\.normandie-libre\.fr|
+                            peertube\.slat\.org|
+                            video\.lacaveatonton\.ovh|
+                            peertube\.uno|
+                            peertube\.servebeer\.com|
+                            peertube\.fedi\.quebec|
+                            tube\.h3z\.jp|
+                            tube\.plus200\.com|
+                            peertube\.eric\.ovh|
+                            tube\.metadocs\.cc|
+                            tube\.unmondemeilleur\.eu|
+                            gouttedeau\.space|
+                            video\.antirep\.net|
+                            nrop\.cant\.at|
+                            tube\.ksl-bmx\.de|
+                            tube\.plaf\.fr|
+                            tube\.tchncs\.de|
+                            video\.devinberg\.com|
+                            hitchtube\.fr|
+                            peertube\.kosebamse\.com|
+                            yunopeertube\.myddns\.me|
+                            peertube\.varney\.fr|
+                            peertube\.anon-kenkai\.com|
+                            tube\.maiti\.info|
+                            tubee\.fr|
+                            videos\.dinofly\.com|
+                            toobnix\.org|
+                            videotape\.me|
+                            voca\.tube|
+                            video\.heromuster\.com|
+                            video\.lemediatv\.fr|
+                            video\.up\.edu\.ph|
+                            balafon\.video|
+                            video\.ivel\.fr|
+                            thickrips\.cloud|
+                            pt\.laurentkruger\.fr|
+                            video\.monarch-pass\.net|
+                            peertube\.artica\.center|
+                            video\.alternanet\.fr|
+                            indymotion\.fr|
+                            fanvid\.stopthatimp\.net|
+                            video\.farci\.org|
+                            v\.lesterpig\.com|
+                            video\.okaris\.de|
+                            tube\.pawelko\.net|
+                            peertube\.mablr\.org|
+                            tube\.fede\.re|
+                            pytu\.be|
+                            evertron\.tv|
+                            devtube\.dev-wiki\.de|
+                            raptube\.antipub\.org|
+                            video\.selea\.se|
+                            peertube\.mygaia\.org|
+                            video\.oh14\.de|
+                            peertube\.livingutopia\.org|
+                            peertube\.the-penguin\.de|
+                            tube\.thechangebook\.org|
+                            tube\.anjara\.eu|
+                            pt\.pube\.tk|
+                            video\.samedi\.pm|
+                            mplayer\.demouliere\.eu|
+                            widemus\.de|
+                            peertube\.me|
+                            peertube\.zapashcanon\.fr|
+                            video\.latavernedejohnjohn\.fr|
+                            peertube\.pcservice46\.fr|
+                            peertube\.mazzonetto\.eu|
+                            video\.irem\.univ-paris-diderot\.fr|
+                            video\.livecchi\.cloud|
+                            alttube\.fr|
+                            video\.coop\.tools|
+                            video\.cabane-libre\.org|
+                            peertube\.openstreetmap\.fr|
+                            videos\.alolise\.org|
+                            irrsinn\.video|
+                            video\.antopie\.org|
+                            scitech\.video|
+                            tube2\.nemsia\.org|
+                            video\.amic37\.fr|
+                            peertube\.freeforge\.eu|
+                            video\.arbitrarion\.com|
+                            video\.datsemultimedia\.com|
+                            stoptrackingus\.tv|
+                            peertube\.ricostrongxxx\.com|
+                            docker\.videos\.lecygnenoir\.info|
+                            peertube\.togart\.de|
+                            tube\.postblue\.info|
+                            videos\.domainepublic\.net|
+                            peertube\.cyber-tribal\.com|
+                            video\.gresille\.org|
+                            peertube\.dsmouse\.net|
+                            cinema\.yunohost\.support|
+                            tube\.theocevaer\.fr|
+                            repro\.video|
+                            tube\.4aem\.com|
+                            quaziinc\.com|
+                            peertube\.metawurst\.space|
+                            videos\.wakapo\.com|
+                            video\.ploud\.fr|
+                            video\.freeradical\.zone|
+                            tube\.valinor\.fr|
+                            refuznik\.video|
+                            pt\.kircheneuenburg\.de|
+                            peertube\.asrun\.eu|
+                            peertube\.lagob\.fr|
+                            videos\.side-ways\.net|
+                            91video\.online|
+                            video\.valme\.io|
+                            video\.taboulisme\.com|
+                            videos-libr\.es|
+                            tv\.mooh\.fr|
+                            nuage\.acostey\.fr|
+                            video\.monsieur-a\.fr|
+                            peertube\.librelois\.fr|
+                            videos\.pair2jeux\.tube|
+                            videos\.pueseso\.club|
+                            peer\.mathdacloud\.ovh|
+                            media\.assassinate-you\.net|
+                            vidcommons\.org|
+                            ptube\.rousset\.nom\.fr|
+                            tube\.cyano\.at|
+                            videos\.squat\.net|
+                            video\.iphodase\.fr|
+                            peertube\.makotoworkshop\.org|
+                            peertube\.serveur\.slv-valbonne\.fr|
+                            vault\.mle\.party|
+                            hostyour\.tv|
+                            videos\.hack2g2\.fr|
+                            libre\.tube|
+                            pire\.artisanlogiciel\.net|
+                            videos\.numerique-en-commun\.fr|
+                            video\.netsyms\.com|
+                            video\.die-partei\.social|
+                            video\.writeas\.org|
+                            peertube\.swarm\.solvingmaz\.es|
+                            tube\.pericoloso\.ovh|
+                            watching\.cypherpunk\.observer|
+                            videos\.adhocmusic\.com|
+                            tube\.rfc1149\.net|
+                            peertube\.librelabucm\.org|
+                            videos\.numericoop\.fr|
+                            peertube\.koehn\.com|
+                            peertube\.anarchmusicall\.net|
+                            tube\.kampftoast\.de|
+                            vid\.y-y\.li|
+                            peertube\.xtenz\.xyz|
+                            diode\.zone|
+                            tube\.egf\.mn|
+                            peertube\.nomagic\.uk|
+                            visionon\.tv|
+                            videos\.koumoul\.com|
+                            video\.rastapuls\.com|
+                            video\.mantlepro\.com|
+                            video\.deadsuperhero\.com|
+                            peertube\.musicstudio\.pro|
+                            peertube\.we-keys\.fr|
+                            artitube\.artifaille\.fr|
+                            peertube\.ethernia\.net|
+                            tube\.midov\.pl|
+                            peertube\.fr|
+                            watch\.snoot\.tube|
+                            peertube\.donnadieu\.fr|
+                            argos\.aquilenet\.fr|
+                            tube\.nemsia\.org|
+                            tube\.bruniau\.net|
+                            videos\.darckoune\.moe|
+                            tube\.traydent\.info|
+                            dev\.videos\.lecygnenoir\.info|
+                            peertube\.nayya\.org|
+                            peertube\.live|
+                            peertube\.mofgao\.space|
+                            video\.lequerrec\.eu|
+                            peertube\.amicale\.net|
+                            aperi\.tube|
+                            tube\.ac-lyon\.fr|
+                            video\.lw1\.at|
+                            www\.yiny\.org|
+                            videos\.pofilo\.fr|
+                            tube\.lou\.lt|
+                            choob\.h\.etbus\.ch|
+                            tube\.hoga\.fr|
+                            peertube\.heberge\.fr|
+                            video\.obermui\.de|
+                            videos\.cloudfrancois\.fr|
+                            betamax\.video|
+                            video\.typica\.us|
+                            tube\.piweb\.be|
+                            video\.blender\.org|
+                            peertube\.cat|
+                            tube\.kdy\.ch|
+                            pe\.ertu\.be|
+                            peertube\.social|
+                            videos\.lescommuns\.org|
+                            tv\.datamol\.org|
+                            videonaute\.fr|
+                            dialup\.express|
+                            peertube\.nogafa\.org|
+                            megatube\.lilomoino\.fr|
+                            peertube\.tamanoir\.foucry\.net|
+                            peertube\.devosi\.org|
+                            peertube\.1312\.media|
+                            tube\.bootlicker\.party|
+                            skeptikon\.fr|
+                            video\.blueline\.mg|
+                            tube\.homecomputing\.fr|
+                            tube\.ouahpiti\.info|
+                            video\.tedomum\.net|
+                            video\.g3l\.org|
+                            fontube\.fr|
+                            peertube\.gaialabs\.ch|
+                            tube\.kher\.nl|
+                            peertube\.qtg\.fr|
+                            video\.migennes\.net|
+                            tube\.p2p\.legal|
+                            troll\.tv|
+                            videos\.iut-orsay\.fr|
+                            peertube\.solidev\.net|
+                            videos\.cemea\.org|
+                            video\.passageenseine\.fr|
+                            videos\.festivalparminous\.org|
+                            peertube\.touhoppai\.moe|
+                            sikke\.fi|
+                            peer\.hostux\.social|
+                            share\.tube|
+                            peertube\.walkingmountains\.fr|
+                            videos\.benpro\.fr|
+                            peertube\.parleur\.net|
+                            peertube\.heraut\.eu|
+                            tube\.aquilenet\.fr|
+                            peertube\.gegeweb\.eu|
+                            framatube\.org|
+                            thinkerview\.video|
+                            tube\.conferences-gesticulees\.net|
+                            peertube\.datagueule\.tv|
+                            video\.lqdn\.fr|
+                            tube\.mochi\.academy|
+                            media\.zat\.im|
+                            video\.colibris-outilslibres\.org|
+                            tube\.svnet\.fr|
+                            peertube\.video|
+                            peertube2\.cpy\.re|
+                            peertube3\.cpy\.re|
+                            videos\.tcit\.fr|
+                            peertube\.cpy\.re|
+                            canard\.tube
                         )'''
     _UUID_RE = r'[\da-zA-Z]{22}|[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
     _API_BASE = 'https://%s/api/v1/videos/%s/%s'

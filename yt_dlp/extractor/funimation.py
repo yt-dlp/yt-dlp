@@ -302,12 +302,20 @@ class FunimationShowIE(FunimationIE):
         },
     }]
 
+    def _real_initialize(self):
+        region = self._get_cookies('https://www.funimation.com').get('region')
+        self._region = region.value if region else try_get(
+            self._download_json(
+                'https://geo-service.prd.funimationsvc.com/geo/v1/region/check', None, fatal=False,
+                note='Checking geo-location', errnote='Unable to fetch geo-location information'),
+            lambda x: x['region']) or 'US'
+
     def _real_extract(self, url):
         base_url, locale, display_id = self._match_valid_url(url).groups()
 
         show_info = self._download_json(
-            'https://title-api.prd.funimationsvc.com/v2/shows/%s?region=US&deviceType=web&locale=%s'
-            % (display_id, locale or 'en'), display_id)
+            'https://title-api.prd.funimationsvc.com/v2/shows/%s?region=%s&deviceType=web&locale=%s'
+            % (display_id, self._region, locale or 'en'), display_id)
         items = self._download_json(
             'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
             % show_info.get('id'), display_id).get('items')
