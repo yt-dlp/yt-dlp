@@ -40,8 +40,7 @@ from .compat import (
     compat_tokenize_tokenize,
     compat_urllib_error,
     compat_urllib_request,
-    compat_urllib_request_DataHandler,
-    compat_pycrypto_AES,
+    compat_urllib_request_DataHandler
 )
 from .cookies import load_cookies
 from .utils import (

@@ -2,6 +2,14 @@ from __future__ import unicode_literals
 
 from math import ceil
 
+try:
+    from Crypto.Cipher import AES
+except ImportError:
+    try:
+        from Cryptodome.Cipher import AES
+    except ImportError:
+        AES = None
+
 from .compat import compat_b64decode
 from .utils import bytes_to_intlist, intlist_to_bytes
 
@@ -55,6 +63,10 @@ def aes_cbc_decrypt(data, key, iv):
     @param {int[]} iv          16-Byte IV
     @returns {int[]}           decrypted data
     """
+    if AES:
+        data, key, iv = map(intlist_to_bytes, (data, key, iv))
+        return bytes_to_intlist(AES.new(key, AES.MODE_CBC, iv).decrypt(data))
+
     expanded_key = key_expansion(key)
     block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
 
@@ -115,7 +127,9 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
 
     # XXX: check aes, gcm param
 
-    from .utils import bytes_to_intlist
+    if AES:
+        data, key, tag, nonce = map(intlist_to_bytes, (data, key, tag, nonce))
+        return bytes_to_intlist(AES.new(key, AES.MODE_GCM, nonce).decrypt_and_verify(data, tag))
 
     hash_subkey = aes_encrypt([0] * BLOCK_SIZE_BYTES, key_expansion(key))
 
@@ -131,13 +145,10 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
 
     decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
     pad_len = len(data) // 16 * 16
-    s_tag = ghash(
-        hash_subkey,
-        data +
-        [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len) +        # pad
-        bytes_to_intlist((0 * 8).to_bytes(8, 'big') +           # length of associated data
-                         ((len(data) * 8).to_bytes(8, 'big')))  # length of data
-    )
+    pad = [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len)
+    length = bytes_to_intlist((0 * 8).to_bytes(8, 'big') +
+                              ((len(data) * 8).to_bytes(8, 'big')))  # length of associated data and data
+    s_tag = ghash(hash_subkey, data + pad + length)
 
     if tag != aes_ctr_encrypt(s_tag, key, j0):
         raise ValueError("Mismatching authentication tag")
