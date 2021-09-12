@@ -75,8 +75,8 @@ class NineNowIE(InfoExtractor):
         title = try_get(common_data, lambda x: x['episode']['name'], compat_str)
         season_number = try_get(common_data, lambda x: x['season']['seasonNumber'], int)
         episode_number = try_get(common_data, lambda x: x['episode']['episodeNumber'], int)
-        timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], compat_str) or None)
-        release_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], compat_str) or None)
+        timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], compat_str))
+        release_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], compat_str))
         thumbnails_data = try_get(common_data, lambda x: x['episode']['image']['sizes'], dict).items()
         if thumbnails_data:
             thumbnails = [{
