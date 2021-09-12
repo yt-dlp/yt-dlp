@@ -123,7 +123,7 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         ghash_in = nonce + [0] * fill + bytes_to_intlist((8 * len(nonce)).to_bytes(8, 'big'))
         j0 = ghash(hash_subkey, ghash_in)
 
-    nonce_ctr = j0[:12]
+    # nonce_ctr = j0[:12]
     iv_ctr = inc(j0)
 
     decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
@@ -457,7 +457,7 @@ def ghash(subkey, data):
 
     last_y = [0] * BLOCK_SIZE_BYTES
     for i in range(0, len(data), BLOCK_SIZE_BYTES):
-        block = data[i:i+BLOCK_SIZE_BYTES]
+        block = data[i:i + BLOCK_SIZE_BYTES]
         last_y = block_product(xor(last_y, block), subkey)
 
     return last_y

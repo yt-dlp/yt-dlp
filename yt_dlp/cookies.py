@@ -17,7 +17,6 @@ from .compat import (
 )
 from .utils import (
     bug_reports_message,
-    bytes_to_intlist,
     expand_path,
     intlist_to_bytes,
     process_communicate_or_kill,
