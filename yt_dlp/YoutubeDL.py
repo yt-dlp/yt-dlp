@@ -41,6 +41,7 @@ from .compat import (
     compat_urllib_error,
     compat_urllib_request,
     compat_urllib_request_DataHandler,
+    compat_pycrypto_AES,
 )
 from .cookies import load_cookies
 from .utils import (
@@ -3297,6 +3298,7 @@ class YoutubeDL(object):
         from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
 
         lib_str = ', '.join(sorted(filter(None, (
+            compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
             has_websockets and 'websockets',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',

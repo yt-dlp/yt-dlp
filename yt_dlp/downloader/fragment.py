@@ -10,19 +10,17 @@ try:
 except ImportError:
     can_threaded_download = False
 
-from ..aes import aes_cbc_decrypt
 from .common import FileDownloader
 from .http import HttpFD
 from ..compat import (
+    compat_aes_cbc_decrypt,
     compat_urllib_error,
     compat_struct_pack,
 )
 from ..utils import (
-    bytes_to_intlist,
     DownloadError,
     error_to_compat_str,
     encodeFilename,
-    intlist_to_bytes,
     sanitize_open,
     sanitized_Request,
 )
@@ -383,11 +381,7 @@ class FragmentFD(FileDownloader):
             # not what it decrypts to.
             if self.params.get('test', False):
                 return frag_content
-            return intlist_to_bytes(aes_cbc_decrypt(
-                bytes_to_intlist(frag_content),
-                bytes_to_intlist(decrypt_info['KEY']),
-                bytes_to_intlist(iv)
-            ))
+            return compat_aes_cbc_decrypt(frag_content, decrypt_info['KEY'], iv)
 
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
