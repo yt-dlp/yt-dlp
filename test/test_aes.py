@@ -7,7 +7,16 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yt_dlp.aes import aes_decrypt, aes_encrypt, aes_cbc_decrypt, aes_cbc_encrypt, aes_gcm_decrypt_and_verify, aes_decrypt_text
+from yt_dlp.aes import (
+    aes_decrypt,
+    aes_encrypt,
+    aes_cbc_decrypt,
+    aes_cbc_encrypt,
+    aes_ctr_decrypt,
+    aes_ctr_encrypt,
+    aes_gcm_decrypt_and_verify,
+    aes_decrypt_text,
+)
 from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
 import base64
 
@@ -40,7 +49,21 @@ class TestAES(unittest.TestCase):
             encrypted,
             b"\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd")
 
-    # @unittest.skipIf(True, 'Not Implemented')
+    def test_ctr_decrypt(self):
+        data = bytes_to_intlist(
+            b"\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08"
+        )
+        decrypted = intlist_to_bytes(aes_ctr_decrypt(data, self.key, self.iv))
+        self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
+
+    def test_ctr_encrypt(self):
+        data = bytes_to_intlist(self.secret_msg)
+        encrypted = intlist_to_bytes(aes_ctr_encrypt(data, self.key, self.iv))
+        self.assertEqual(
+            encrypted,
+            b"\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08"
+        )
+
     def test_gcm_decrypt(self):
         data = bytes_to_intlist(b"\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f.\x08\xb4T\xe4/\x17\xbd")
         authentication_tag = bytes_to_intlist(b"\xe8&I\x80rI\x07\x9d}YWuU@:e")

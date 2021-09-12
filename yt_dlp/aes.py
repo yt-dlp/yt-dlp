@@ -8,34 +8,42 @@ from .utils import bytes_to_intlist, intlist_to_bytes
 BLOCK_SIZE_BYTES = 16
 
 
-def aes_ctr_decrypt(data, key, counter):
+def aes_ctr_decrypt(data, key, iv):
     """
     Decrypt with aes in counter mode
 
     @param {int[]} data        cipher
     @param {int[]} key         16/24/32-Byte cipher key
-    @param {instance} counter  generator (@yields {int[]}  16-Byte block)
-                               returns the next counter block
+    @param {int[]} iv          16-Byte initialization vector
     @returns {int[]}           decrypted data
+    """
+    return aes_ctr_encrypt(data, key, iv)
+
+
+def aes_ctr_encrypt(data, key, iv):
+    """
+    Encrypt with aes in counter mode
+
+    @param {int[]} data        cleartext
+    @param {int[]} key         16/24/32-Byte cipher key
+    @param {int[]} iv          16-Byte initialization vector
+    @returns {int[]}           encrypted data
     """
     expanded_key = key_expansion(key)
     block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    counter = itervector(iv)
 
-    decrypted_data = []
+    encrypted_data = []
     for i in range(block_count):
         counter_block = next(counter)
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
         block += [0] * (BLOCK_SIZE_BYTES - len(block))
 
         cipher_counter_block = aes_encrypt(counter_block, expanded_key)
-        decrypted_data += xor(block, cipher_counter_block)
-    decrypted_data = decrypted_data[:len(data)]
+        encrypted_data += xor(block, cipher_counter_block)
+    encrypted_data = encrypted_data[:len(data)]
 
-    return decrypted_data
-
-
-def aes_ctr_encrypt(data, key, counter):
-    raise NotImplementedError
+    return encrypted_data
 
 
 def aes_cbc_decrypt(data, key, iv):
@@ -119,7 +127,7 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     nonce_ctr = j0[:12]
     iv_ctr = inc(j0)
 
-    decrypted_data = aes_ctr_decrypt(data, key, genvector(iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr))))
+    decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
     pad_len = len(data) // 16 * 16
     s_tag = ghash(
         hash_subkey,
@@ -129,7 +137,7 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
                          ((len(data) * 8).to_bytes(8, 'big')))  # length of data
     )
 
-    if tag != aes_ctr_encrypt(s_tag, key, genvector(j0)):
+    if tag != aes_ctr_encrypt(s_tag, key, j0):
         raise ValueError("Mismatching authentication tag")
 
     return decrypted_data
@@ -236,7 +244,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     nonce = data[:NONCE_LENGTH_BYTES]
     cipher = data[NONCE_LENGTH_BYTES:]
 
-    decrypted_data = aes_ctr_decrypt(cipher, key, genvector(nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES)))
+    decrypted_data = aes_ctr_decrypt(cipher, key, nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
     plaintext = intlist_to_bytes(decrypted_data)
 
     return plaintext
@@ -317,7 +325,7 @@ RIJNDAEL_LOG_TABLE = (0x00, 0x00, 0x19, 0x01, 0x32, 0x02, 0x1a, 0xc6, 0x4b, 0xc7
                       0x67, 0x4a, 0xed, 0xde, 0xc5, 0x31, 0xfe, 0x18, 0x0d, 0x63, 0x8c, 0x80, 0xc0, 0xf7, 0x70, 0x07)
 
 
-def genvector(iv):
+def itervector(iv):
     while True:
         yield iv
         iv = inc(iv)
