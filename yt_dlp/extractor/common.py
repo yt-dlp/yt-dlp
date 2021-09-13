@@ -1166,8 +1166,12 @@ class InfoExtractor(object):
 
         if self.get_param('usenetrc', False):
             try:
-                home = os.environ.get('HOME')
-                netrc_file = None if home is None else os.path.join(home, ".netrc")
+                try:
+                    netrc_file = os.path.join(os.environ.get('HOME'), ".netrc")
+                    if not os.path.exists(netrc_file):
+                        netrc_file = None
+                except TypeError:
+                    netrc_file = None
                 info = netrc.netrc(file=netrc_file).authenticators(netrc_machine)
                 if info is not None:
                     username = info[0]
