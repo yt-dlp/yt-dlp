@@ -93,9 +93,12 @@ class HiDiveIE(InfoExtractor):
                 m3u8_url = url_or_none(bitrates.get('hls'))
                 if not m3u8_url:
                     continue
-                formats.extend(self._extract_m3u8_formats(
+                frmt = self._extract_m3u8_formats(
                     m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='%s-%s-%s-%s-hls' % (version, audio, extra, caption), fatal=False))
+                    m3u8_id='%s-%s-%s-%s' % (version, audio, extra, caption), fatal=False)
+                for f in frmt:
+                    f['language'] = audio
+                formats.extend(frmt)
                 cc_files = rendition.get('ccFiles')
                 if not isinstance(cc_files, list):
                     continue
