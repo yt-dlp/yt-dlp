@@ -204,7 +204,6 @@ compat_xml_parse_error = etree.ParseError
 
 __all__ = [
     'compat_AES',
-    'compat_crypto_name',
     'compat_HTMLParseError',
     'compat_HTMLParser',
     'compat_HTTPError',
@@ -219,6 +218,7 @@ __all__ = [
     'compat_cookiejar_Cookie',
     'compat_cookies',
     'compat_cookies_SimpleCookie',
+    'compat_crypto_name',
     'compat_ctypes_WINFUNCTYPE',
     'compat_etree_Element',
     'compat_etree_fromstring',

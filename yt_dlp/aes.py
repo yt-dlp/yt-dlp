@@ -206,7 +206,7 @@ def fb_aes_encrypt(data, expanded_key):
     return data
 
 
-def fb_aes_decrypt_text(data, password, key_size_bytes):
+def aes_decrypt_text(data, password, key_size_bytes):
     """
     Decrypt text
     - The first 8 Bytes of decoded 'data' are the 8 high Bytes of the counter
@@ -524,4 +524,6 @@ def ghash(subkey, data):
 
 # FIXME: add fb_* to all
 
-__all__ = ['aes_encrypt', 'key_expansion', 'fb_aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify',
+
+__all__ = ['aes_cbc_encrypt', 'aes_cbc_decrypt', 'aes_ctr_encrypt', 'aes_ctr_decrypt', 'aes_decrypt',
+           'aes_decrypt_text', 'aes_encrypt', 'aes_gcm_decrypt_and_verify', 'key_expansion', 'fb_aes_ctr_decrypt']
