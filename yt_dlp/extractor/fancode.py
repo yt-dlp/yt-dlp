@@ -173,7 +173,7 @@ class FancodeLiveIE(FancodeVodIE):
 
         match_info = try_get(info_json, lambda x: x['data']['match'])
 
-        if match_info.get('status') != "LIVE":
+        if match_info.get('streamingStatus') != "STARTED":
             raise ExtractorError('The stream can\'t be accessed', expected=True)
         self._check_login_required(match_info.get('isUserEntitled'), True)  # all live streams are premium only
 
