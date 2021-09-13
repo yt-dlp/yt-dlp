@@ -1352,10 +1352,7 @@ class PeerTubePlaylistIE(InfoExtractor):
                 video_id=shortUUID, video_title=video_title)
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        host = mobj.group('host')
-        playlist_id = mobj.group('id')
-
+        host, playlist_id = self._match_valid_url(url).group('host', 'id')
         playlist_info = self._call_api(host, playlist_id, '', note='Downloading playlist information', fatal=False)
 
         playlist_title = playlist_info.get('displayName')
