@@ -630,9 +630,6 @@ class RaiPlayRadioBaseIE(InfoExtractor):
                 entry['thumbnail'] = urljoin(url, attrs['data-image'])
             yield entry
 
-    def get_playlist(self, *args, **kwargs):
-        return list(self.get_playlist_iter(*args, **kwargs))
-
 
 class RaiPlayRadioIE(RaiPlayRadioBaseIE):
     _VALID_URL = r'%s/audio/.+?-(?P<id>%s)\.html' % (
@@ -642,8 +639,7 @@ class RaiPlayRadioIE(RaiPlayRadioBaseIE):
         'info_dict': {
             'id': '36b099ff-4123-4443-9bf9-38e43ef5e025',
             'ext': 'mp3',
-            'title': 'Dal "Chiaro di luna" al  "Clair de lune", '
-                     'prima parte con Giovanni Bietti',
+            'title': 'Dal "Chiaro di luna" al  "Clair de lune", prima parte con Giovanni Bietti',
             'thumbnail': r're:^https?://.*\.jpg$',
             'language': 'it',
         }
@@ -652,9 +648,7 @@ class RaiPlayRadioIE(RaiPlayRadioBaseIE):
     def _real_extract(self, url):
         audio_id = self._match_id(url)
         list_url = url.replace('.html', '-list.html')
-        for entry in self.get_playlist_iter(list_url, audio_id):
-            if entry['id'] == audio_id:
-                return entry
+        return next(entry for entry in self.get_playlist_iter(list_url, audio_id) if entry['id'] == audio_id)
 
 
 class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
@@ -684,15 +678,13 @@ class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
             r'data-player-href="(.+?)"', playlist_webpage, 'href')
         list_url = urljoin(url, player_href)
 
-        entries = self.get_playlist(list_url, playlist_id)
-        for index, entry in enumerate(entries, start=1):
+        for index, entry in enumerate(self.get_playlist_iter(list_url, playlist_id), start=1):
             entry.update({
                 'track': entry['title'],
                 'track_number': index,
                 'artist': playlist_creator,
+                'album': playlist_title
             })
-            if playlist_title:
-                entry['album'] = playlist_title
 
         return self.playlist_result(
             entries, playlist_id, playlist_title, playlist_description)
