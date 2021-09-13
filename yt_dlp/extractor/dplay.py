@@ -392,7 +392,7 @@ class ScienceChannelIE(DiscoveryPlusIE):
 
 
 class DIYNetworkIE(DiscoveryPlusIE):
-    _VALID_URL = r'https?://(?:www\.|watch\.)?diynetwork\.com/video' + DPlayIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:watch\.)?diynetwork\.com/video' + DPlayIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://watch.diynetwork.com/video/pool-kings-diy-network/bringing-beach-life-to-texas',
         'info_dict': {
