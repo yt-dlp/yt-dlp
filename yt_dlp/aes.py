@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-from .compat import compat_AES, compat_b64decode, compat_pad, compat_unpad
+from .compat import compat_AES, compat_b64decode, compat_pad
 from .utils import bytes_to_intlist, intlist_to_bytes
 
 BLOCK_SIZE_BYTES = 16
