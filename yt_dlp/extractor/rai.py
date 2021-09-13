@@ -678,7 +678,8 @@ class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
             r'data-player-href="(.+?)"', playlist_webpage, 'href')
         list_url = urljoin(url, player_href)
 
-        for index, entry in enumerate(self.get_playlist_iter(list_url, playlist_id), start=1):
+        entries = list(self.get_playlist_iter(list_url, playlist_id))
+        for index, entry in enumerate(entries, start=1):
             entry.update({
                 'track': entry['title'],
                 'track_number': index,
