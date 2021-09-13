@@ -25,6 +25,17 @@ import urllib
 import xml.etree.ElementTree as etree
 from subprocess import DEVNULL
 
+try:
+    from Crypto.Cipher import AES as compat_AES
+    compat_crypto_name = 'pycryptodome'
+except ImportError:
+    try:
+        from Cryptodome.Cipher import AES as compat_AES
+        compat_crypto_name = 'pycryptodomex'
+    except ImportError:
+        compat_AES = None
+        compat_crypto_name = None
+
 
 # HTMLParseError has been deprecated in Python 3.3 and removed in
 # Python 3.5. Introducing dummy exception for Python >3.5 for compatible
@@ -189,6 +200,8 @@ compat_xml_parse_error = etree.ParseError
 # Set public objects
 
 __all__ = [
+    'compat_AES',
+    'compat_crypto_name',
     'compat_HTMLParseError',
     'compat_HTMLParser',
     'compat_HTTPError',

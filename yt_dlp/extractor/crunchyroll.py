@@ -278,8 +278,8 @@ class CrunchyrollIE(CrunchyrollBaseIE, VRVIE):
         return super(CrunchyrollBaseIE, self)._download_webpage(request, *args, **kwargs)
 
     def _decrypt_subtitles(self, data, iv, id):
-        data = bytes_to_intlist(compat_b64decode(data))
-        iv = bytes_to_intlist(compat_b64decode(iv))
+        data = compat_b64decode(data)
+        iv = compat_b64decode(iv)
         id = int(id)
 
         def obfuscate_key_aux(count, modulo, start):
@@ -297,13 +297,13 @@ class CrunchyrollIE(CrunchyrollBaseIE, VRVIE):
             num3 = key ^ num1
             num4 = num3 ^ (num3 >> 3) ^ num2
             prefix = intlist_to_bytes(obfuscate_key_aux(20, 97, (1, 2)))
-            shaHash = bytes_to_intlist(sha1(prefix + str(num4).encode('ascii')).digest())
+            sha_hash = sha1(prefix + str(num4).encode('ascii')).digest()
             # Extend 160 Bit hash to 256 Bit
-            return shaHash + [0] * 12
+            return sha_hash + b'\x00' * 12
 
         key = obfuscate_key(id)
 
-        decrypted_data = intlist_to_bytes(aes_cbc_decrypt(data, key, iv))
+        decrypted_data = aes_cbc_decrypt(data, key, iv)
         return zlib.decompress(decrypted_data)
 
     def _convert_subtitles_to_srt(self, sub_root):

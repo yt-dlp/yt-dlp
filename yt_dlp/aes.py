@@ -2,39 +2,36 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-from .compat import compat_b64decode
+from .compat import compat_b64decode, compat_AES
 from .utils import bytes_to_intlist, intlist_to_bytes
-
-
-# These cannot be in compat.py due to cyclic import issues
-try:
-    from Cryptodome.Cipher import AES as compat_pycrypto_AES
-except ImportError:
-    try:
-        from Crypto.Cipher import AES as compat_pycrypto_AES
-    except ImportError:
-        compat_pycrypto_AES = None
-
-
-if compat_pycrypto_AES:
-    def compat_aes_cbc_decrypt(data, key, iv):
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
-
-    # XXX: Unused?
-    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
-else:
-    def compat_aes_cbc_decrypt(data, key, iv):
-        return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
-
-    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
-        return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
-
 
 BLOCK_SIZE_BYTES = 16
 
 
-def aes_ctr_decrypt(data, key, iv):
+def fallback(fb_func, args_conv=None, kwargs_conv=None, ret_conv=None):
+    def decorator(func):
+        if compat_AES:
+            return func
+
+        def wrapper(*args, **kwargs):
+            result = fb_func(*args_conv(args) if args_conv else args,
+                             **kwargs_conv(kwargs) if kwargs_conv else kwargs)
+            return ret_conv(result) if ret_conv else result
+        return wrapper
+    return decorator
+
+
+def convert_all_args_to_intlist(arguments):
+    return map(bytes_to_intlist, arguments)
+
+
+def convert_decrypt_text_args(arguments):
+    data, password, key_size_bytes = arguments
+    # TODO: implement decrypt text argument conversion
+    raise NotImplementedError
+
+
+def fb_aes_ctr_decrypt(data, key, iv):
     """
     Decrypt with aes in counter mode
 
@@ -43,10 +40,10 @@ def aes_ctr_decrypt(data, key, iv):
     @param {int[]} iv          16-Byte initialization vector
     @returns {int[]}           decrypted data
     """
-    return aes_ctr_encrypt(data, key, iv)
+    return fb_aes_ctr_encrypt(data, key, iv)
 
 
-def aes_ctr_encrypt(data, key, iv):
+def fb_aes_ctr_encrypt(data, key, iv):
     """
     Encrypt with aes in counter mode
 
@@ -57,7 +54,7 @@ def aes_ctr_encrypt(data, key, iv):
     """
     expanded_key = key_expansion(key)
     block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
-    counter = itervector(iv)
+    counter = iter_vector(iv)
 
     encrypted_data = []
     for i in range(block_count):
@@ -65,14 +62,14 @@ def aes_ctr_encrypt(data, key, iv):
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
         block += [0] * (BLOCK_SIZE_BYTES - len(block))
 
-        cipher_counter_block = aes_encrypt(counter_block, expanded_key)
+        cipher_counter_block = fb_aes_encrypt(counter_block, expanded_key)
         encrypted_data += xor(block, cipher_counter_block)
     encrypted_data = encrypted_data[:len(data)]
 
     return encrypted_data
 
 
-def aes_cbc_decrypt(data, key, iv):
+def fb_aes_cbc_decrypt(data, key, iv):
     """
     Decrypt with aes in CBC mode
 
@@ -81,6 +78,7 @@ def aes_cbc_decrypt(data, key, iv):
     @param {int[]} iv          16-Byte IV
     @returns {int[]}           decrypted data
     """
+
     expanded_key = key_expansion(key)
     block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
 
@@ -90,7 +88,7 @@ def aes_cbc_decrypt(data, key, iv):
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
         block += [0] * (BLOCK_SIZE_BYTES - len(block))
 
-        decrypted_block = aes_decrypt(block, expanded_key)
+        decrypted_block = fb_aes_decrypt(block, expanded_key)
         decrypted_data += xor(decrypted_block, previous_cipher_block)
         previous_cipher_block = block
     decrypted_data = decrypted_data[:len(data)]
@@ -98,7 +96,7 @@ def aes_cbc_decrypt(data, key, iv):
     return decrypted_data
 
 
-def aes_cbc_encrypt(data, key, iv):
+def fb_aes_cbc_encrypt(data, key, iv):
     """
     Encrypt with aes in CBC mode. Using PKCS#7 padding
 
@@ -118,7 +116,7 @@ def aes_cbc_encrypt(data, key, iv):
         block += [remaining_length] * remaining_length
         mixed_block = xor(block, previous_cipher_block)
 
-        encrypted_block = aes_encrypt(mixed_block, expanded_key)
+        encrypted_block = fb_aes_encrypt(mixed_block, expanded_key)
         encrypted_data += encrypted_block
 
         previous_cipher_block = encrypted_block
@@ -126,7 +124,7 @@ def aes_cbc_encrypt(data, key, iv):
     return encrypted_data
 
 
-def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
+def fb_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     """
     Decrypt with aes in GBM mode and checks authenticity using tag
 
@@ -137,11 +135,9 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     @returns {int[]}           decrypted data
     """
 
-    # TODO: support: for 24/32-byte keys
-
     # XXX: check aes, gcm param
 
-    hash_subkey = aes_encrypt([0] * BLOCK_SIZE_BYTES, key_expansion(key))
+    hash_subkey = fb_aes_encrypt([0] * BLOCK_SIZE_BYTES, key_expansion(key))
 
     if len(nonce) == 12:
         j0 = nonce + [0, 0, 0, 1]
@@ -150,9 +146,10 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         ghash_in = nonce + [0] * fill + bytes_to_intlist((8 * len(nonce)).to_bytes(8, 'big'))
         j0 = ghash(hash_subkey, ghash_in)
 
+    # nonce_ctr = j0[:12]
     iv_ctr = inc(j0)
 
-    decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
+    decrypted_data = fb_aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
     pad_len = len(data) // 16 * 16
     s_tag = ghash(
         hash_subkey,
@@ -162,69 +159,13 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
                            + ((len(data) * 8).to_bytes(8, 'big')))  # length of data
     )
 
-    if tag != aes_ctr_encrypt(s_tag, key, j0):
+    if tag != fb_aes_ctr_encrypt(s_tag, key, j0):
         raise ValueError("Mismatching authentication tag")
 
     return decrypted_data
 
 
-def key_expansion(data):
-    """
-    Generate key schedule
-
-    @param {int[]} data  16/24/32-Byte cipher key
-    @returns {int[]}     176/208/240-Byte expanded key
-    """
-    data = data[:]  # copy
-    rcon_iteration = 1
-    key_size_bytes = len(data)
-    expanded_key_size_bytes = (key_size_bytes // 4 + 7) * BLOCK_SIZE_BYTES
-
-    while len(data) < expanded_key_size_bytes:
-        temp = data[-4:]
-        temp = key_schedule_core(temp, rcon_iteration)
-        rcon_iteration += 1
-        data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
-
-        for _ in range(3):
-            temp = data[-4:]
-            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
-
-        if key_size_bytes == 32:
-            temp = data[-4:]
-            temp = sub_bytes(temp)
-            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
-
-        for _ in range(3 if key_size_bytes == 32 else 2 if key_size_bytes == 24 else 0):
-            temp = data[-4:]
-            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
-    data = data[:expanded_key_size_bytes]
-
-    return data
-
-
-def aes_encrypt(data, expanded_key):
-    """
-    Encrypt one block with aes
-
-    @param {int[]} data          16-Byte state
-    @param {int[]} expanded_key  176/208/240-Byte expanded key
-    @returns {int[]}             16-Byte cipher
-    """
-    rounds = len(expanded_key) // BLOCK_SIZE_BYTES - 1
-
-    data = xor(data, expanded_key[:BLOCK_SIZE_BYTES])
-    for i in range(1, rounds + 1):
-        data = sub_bytes(data)
-        data = shift_rows(data)
-        if i != rounds:
-            data = mix_columns(data)
-        data = xor(data, expanded_key[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES])
-
-    return data
-
-
-def aes_decrypt(data, expanded_key):
+def fb_aes_decrypt(data, expanded_key):
     """
     Decrypt one block with aes
 
@@ -245,7 +186,28 @@ def aes_decrypt(data, expanded_key):
     return data
 
 
-def aes_decrypt_text(data, password, key_size_bytes):
+def fb_aes_encrypt(data, expanded_key):
+    """
+    Encrypt one block with aes
+
+    @param {int[]} data          16-Byte state
+    @param {int[]} expanded_key  176/208/240-Byte expanded key
+    @returns {int[]}             16-Byte cipher
+    """
+    rounds = len(expanded_key) // BLOCK_SIZE_BYTES - 1
+
+    data = xor(data, expanded_key[:BLOCK_SIZE_BYTES])
+    for i in range(1, rounds + 1):
+        data = sub_bytes(data)
+        data = shift_rows(data)
+        if i != rounds:
+            data = mix_columns(data)
+        data = xor(data, expanded_key[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES])
+
+    return data
+
+
+def fb_aes_decrypt_text(data, password, key_size_bytes):
     """
     Decrypt text
     - The first 8 Bytes of decoded 'data' are the 8 high Bytes of the counter
@@ -264,15 +226,60 @@ def aes_decrypt_text(data, password, key_size_bytes):
     password = bytes_to_intlist(password.encode('utf-8'))
 
     key = password[:key_size_bytes] + [0] * (key_size_bytes - len(password))
-    key = aes_encrypt(key[:BLOCK_SIZE_BYTES], key_expansion(key)) * (key_size_bytes // BLOCK_SIZE_BYTES)
+    key = fb_aes_encrypt(key[:BLOCK_SIZE_BYTES], key_expansion(key)) * (key_size_bytes // BLOCK_SIZE_BYTES)
 
     nonce = data[:NONCE_LENGTH_BYTES]
     cipher = data[NONCE_LENGTH_BYTES:]
 
-    decrypted_data = aes_ctr_decrypt(cipher, key, nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
+    decrypted_data = fb_aes_ctr_decrypt(cipher, key, nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
     plaintext = intlist_to_bytes(decrypted_data)
 
     return plaintext
+
+
+# TODO: add tests for these functions
+
+@fallback(fb_aes_ctr_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+def aes_ctr_decrypt(data, key, iv):
+    return compat_AES.new(key, compat_AES.MODE_CTR, iv).decrypt(data)
+
+
+@fallback(fb_aes_ctr_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+def aes_ctr_encrypt(data, key, iv):
+    return compat_AES.new(key, compat_AES.MODE_CTR, iv).decrypt(data)
+
+
+@fallback(fb_aes_cbc_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+def aes_cbc_decrypt(data, key, iv):
+    return compat_AES.new(key, compat_AES.MODE_CBC, iv).decrypt(data)
+
+
+@fallback(fb_aes_cbc_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+def aes_cbc_encrypt(data, key, iv):
+    return compat_AES.new(key, compat_AES.MODE_CBC, iv).encrypt(data)
+
+
+@fallback(fb_aes_gcm_decrypt_and_verify, convert_all_args_to_intlist, None, intlist_to_bytes)
+def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
+    return compat_AES.new(key, compat_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
+
+
+@fallback(fb_aes_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+def aes_decrypt(data, key):
+    # XXX: i'm not sure
+    return compat_AES.new(key, compat_AES.MODE_ECB).decrypt(data)
+
+
+@fallback(fb_aes_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+def aes_encrypt(data, key):
+    # XXX: i'm not sure
+    return compat_AES.new(key, compat_AES.MODE_ECB).encrypt(data)
+
+
+@fallback(fb_aes_decrypt_text, convert_decrypt_text_args, None, None)
+def aes_decrypt_text(data, password, key_size_bytes):
+    # XXX: i'm not sure
+    return compat_AES.new(password, compat_AES.MODE_ECB, segment_size=key_size_bytes).encrypt(data)
 
 
 RCON = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
@@ -350,7 +357,42 @@ RIJNDAEL_LOG_TABLE = (0x00, 0x00, 0x19, 0x01, 0x32, 0x02, 0x1a, 0xc6, 0x4b, 0xc7
                       0x67, 0x4a, 0xed, 0xde, 0xc5, 0x31, 0xfe, 0x18, 0x0d, 0x63, 0x8c, 0x80, 0xc0, 0xf7, 0x70, 0x07)
 
 
-def itervector(iv):
+def key_expansion(data):
+    """
+    Generate key schedule
+
+    @param {int[]} data  16/24/32-Byte cipher key
+    @returns {int[]}     176/208/240-Byte expanded key
+    """
+    data = data[:]  # copy
+    rcon_iteration = 1
+    key_size_bytes = len(data)
+    expanded_key_size_bytes = (key_size_bytes // 4 + 7) * BLOCK_SIZE_BYTES
+
+    while len(data) < expanded_key_size_bytes:
+        temp = data[-4:]
+        temp = key_schedule_core(temp, rcon_iteration)
+        rcon_iteration += 1
+        data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
+
+        for _ in range(3):
+            temp = data[-4:]
+            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
+
+        if key_size_bytes == 32:
+            temp = data[-4:]
+            temp = sub_bytes(temp)
+            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
+
+        for _ in range(3 if key_size_bytes == 32 else 2 if key_size_bytes == 24 else 0):
+            temp = data[-4:]
+            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
+    data = data[:expanded_key_size_bytes]
+
+    return data
+
+
+def iter_vector(iv):
     while True:
         yield iv
         iv = inc(iv)
@@ -381,7 +423,7 @@ def xor(data1, data2):
 
 
 def rijndael_mul(a, b):
-    if(a == 0 or b == 0):
+    if a == 0 or b == 0:
         return 0
     return RIJNDAEL_EXP_TABLE[(RIJNDAEL_LOG_TABLE[a] + RIJNDAEL_LOG_TABLE[b]) % 0xFF]
 
@@ -486,15 +528,7 @@ def ghash(subkey, data):
 
     return last_y
 
+# FIXME: add fb_* to all
 
-__all__ = [
-    'aes_encrypt',
-    'key_expansion',
-    'aes_ctr_decrypt',
-    'aes_cbc_decrypt',
-    'aes_gcm_decrypt_and_verify',
-    'aes_decrypt_text',
-    'compat_aes_cbc_decrypt',
-    'compat_aes_gcm_decrypt_and_verify',
-    'compat_pycrypto_AES',
-]
+__all__ = ['aes_encrypt', 'key_expansion', 'fb_aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify',
+           'aes_decrypt_text']

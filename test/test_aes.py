@@ -8,14 +8,14 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from yt_dlp.aes import (
-    aes_decrypt,
-    aes_encrypt,
-    aes_cbc_decrypt,
-    aes_cbc_encrypt,
-    aes_ctr_decrypt,
-    aes_ctr_encrypt,
-    aes_gcm_decrypt_and_verify,
-    aes_decrypt_text,
+    _aes_decrypt,
+    _aes_encrypt,
+    _aes_cbc_decrypt,
+    _aes_cbc_encrypt,
+    _aes_ctr_decrypt,
+    _aes_ctr_encrypt,
+    _aes_gcm_decrypt_and_verify,
+    _aes_decrypt_text,
 )
 from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
 import base64
@@ -31,20 +31,20 @@ class TestAES(unittest.TestCase):
     def test_encrypt(self):
         msg = b'message'
         key = list(range(16))
-        encrypted = aes_encrypt(bytes_to_intlist(msg), key)
-        decrypted = intlist_to_bytes(aes_decrypt(encrypted, key))
+        encrypted = _aes_encrypt(bytes_to_intlist(msg), key)
+        decrypted = intlist_to_bytes(_aes_decrypt(encrypted, key))
         self.assertEqual(decrypted, msg)
 
     def test_cbc_decrypt(self):
         data = bytes_to_intlist(
             b"\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd"
         )
-        decrypted = intlist_to_bytes(aes_cbc_decrypt(data, self.key, self.iv))
+        decrypted = intlist_to_bytes(_aes_cbc_decrypt(data, self.key, self.iv))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_cbc_encrypt(self):
         data = bytes_to_intlist(self.secret_msg)
-        encrypted = intlist_to_bytes(aes_cbc_encrypt(data, self.key, self.iv))
+        encrypted = intlist_to_bytes(_aes_cbc_encrypt(data, self.key, self.iv))
         self.assertEqual(
             encrypted,
             b"\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd")
@@ -53,12 +53,12 @@ class TestAES(unittest.TestCase):
         data = bytes_to_intlist(
             b"\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08"
         )
-        decrypted = intlist_to_bytes(aes_ctr_decrypt(data, self.key, self.iv))
+        decrypted = intlist_to_bytes(_aes_ctr_decrypt(data, self.key, self.iv))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_ctr_encrypt(self):
         data = bytes_to_intlist(self.secret_msg)
-        encrypted = intlist_to_bytes(aes_ctr_encrypt(data, self.key, self.iv))
+        encrypted = intlist_to_bytes(_aes_ctr_encrypt(data, self.key, self.iv))
         self.assertEqual(
             encrypted,
             b"\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08"
@@ -68,7 +68,7 @@ class TestAES(unittest.TestCase):
         data = bytes_to_intlist(b"\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f.\x08\xb4T\xe4/\x17\xbd")
         authentication_tag = bytes_to_intlist(b"\xe8&I\x80rI\x07\x9d}YWuU@:e")
 
-        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(data, self.key, authentication_tag, self.iv[:12]))
+        decrypted = intlist_to_bytes(_aes_gcm_decrypt_and_verify(data, self.key, authentication_tag, self.iv[:12]))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_decrypt_text(self):
@@ -77,7 +77,7 @@ class TestAES(unittest.TestCase):
             intlist_to_bytes(self.iv[:8])
             + b'\x17\x15\x93\xab\x8d\x80V\xcdV\xe0\t\xcdo\xc2\xa5\xd8ksM\r\xe27N\xae'
         ).decode('utf-8')
-        decrypted = (aes_decrypt_text(encrypted, password, 16))
+        decrypted = (_aes_decrypt_text(encrypted, password, 16))
         self.assertEqual(decrypted, self.secret_msg)
 
         password = intlist_to_bytes(self.key).decode('utf-8')
@@ -85,7 +85,7 @@ class TestAES(unittest.TestCase):
             intlist_to_bytes(self.iv[:8])
             + b'\x0b\xe6\xa4\xd9z\x0e\xb8\xb9\xd0\xd4i_\x85\x1d\x99\x98_\xe5\x80\xe7.\xbf\xa5\x83'
         ).decode('utf-8')
-        decrypted = (aes_decrypt_text(encrypted, password, 32))
+        decrypted = (_aes_decrypt_text(encrypted, password, 32))
         self.assertEqual(decrypted, self.secret_msg)
 
 

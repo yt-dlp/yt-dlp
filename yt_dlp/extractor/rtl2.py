@@ -142,11 +142,7 @@ class RTL2YouIE(RTL2YouBaseIE):
             self._BACKWERK_BASE_URL + 'stream/video/' + video_id, video_id)
 
         data, iv = compat_b64decode(stream_data['streamUrl']).decode().split(':')
-        stream_url = intlist_to_bytes(aes_cbc_decrypt(
-            bytes_to_intlist(compat_b64decode(data)),
-            bytes_to_intlist(self._AES_KEY),
-            bytes_to_intlist(compat_b64decode(iv))
-        ))
+        stream_url = aes_cbc_decrypt(compat_b64decode(data), self._AES_KEY, compat_b64decode(iv))
         if b'rtl2_you_video_not_found' in stream_url:
             raise ExtractorError('video not found', expected=True)
 
