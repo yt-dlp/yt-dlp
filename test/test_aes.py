@@ -7,7 +7,6 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yt_dlp.compat import compat_AES
 from yt_dlp.aes import (
     _aes_decrypt,
     _aes_encrypt,
@@ -23,8 +22,11 @@ from yt_dlp.aes import (
     aes_ctr_decrypt,
     aes_ctr_encrypt,
     aes_gcm_decrypt_and_verify,
-    aes_decrypt_text
+    aes_decrypt_text,
+    key_expansion,
+    BLOCK_SIZE_BYTES
 )
+from yt_dlp.compat import compat_AES
 from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
 import base64
 
@@ -37,15 +39,15 @@ class TestAES(unittest.TestCase):
         self.secret_msg = b'Secret message goes here'
 
     def test_encrypt(self):
-        msg = b'message'
         key = list(range(16))
-        fb_encrypted = _aes_encrypt(bytes_to_intlist(msg), key)
-        fb_decrypted = intlist_to_bytes(_aes_decrypt(fb_encrypted, key))
-        self.assertEqual(fb_decrypted, msg)
+        fb_encrypted = _aes_encrypt(bytes_to_intlist(self.secret_msg), key_expansion(key))
+        fb_decrypted = intlist_to_bytes(_aes_decrypt(fb_encrypted, key_expansion(key)))
+        self.assertEqual(fb_decrypted, self.secret_msg[:BLOCK_SIZE_BYTES])
         if compat_AES:
-            encrypted = aes_encrypt(msg, intlist_to_bytes(key))
+            encrypted = aes_encrypt(self.secret_msg, intlist_to_bytes(key))
             decrypted = aes_decrypt(encrypted, intlist_to_bytes(key))
-            self.assertEqual(decrypted, msg)
+            self.assertEqual(encrypted, intlist_to_bytes(fb_encrypted))
+            self.assertEqual(decrypted, self.secret_msg[:BLOCK_SIZE_BYTES])
 
     def test_cbc_decrypt(self):
         data = bytes_to_intlist(

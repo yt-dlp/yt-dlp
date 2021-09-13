@@ -25,10 +25,9 @@ def convert_all_args_to_intlist(arguments):
     return map(bytes_to_intlist, arguments)
 
 
-def convert_decrypt_text_args(arguments):
-    data, password, key_size_bytes = arguments
-    # TODO: implement decrypt text argument conversion
-    raise NotImplementedError
+def convert_expanded_key_args(arguments):
+    data, key = arguments
+    return [bytes_to_intlist(data), key_expansion(bytes_to_intlist(key))]
 
 
 def fb_aes_ctr_decrypt(data, key, iv):
@@ -221,20 +220,18 @@ def fb_aes_decrypt_text(data, password, key_size_bytes):
     @returns {str}                       Decrypted data
     """
 
-    # XXX: fails due to aes_encrypt
-
     NONCE_LENGTH_BYTES = 8
 
     data = compat_b64decode(data)
-    password = bytes_to_intlist(password.encode('utf-8'))
+    password = password.encode('utf-8')
 
-    key = intlist_to_bytes(key_expansion(password[:key_size_bytes])) + b'\00' * (key_size_bytes - len(password))
+    key = password[:key_size_bytes] + b'\x00' * (key_size_bytes - len(password))
     key = aes_encrypt(key[:BLOCK_SIZE_BYTES], key) * (key_size_bytes // BLOCK_SIZE_BYTES)
 
     nonce = data[:NONCE_LENGTH_BYTES]
     cipher = data[NONCE_LENGTH_BYTES:]
 
-    decrypted_data = aes_ctr_decrypt(cipher, intlist_to_bytes(key), nonce + b'\00' * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
+    decrypted_data = aes_ctr_decrypt(cipher, key, nonce + b'\00' * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
     plaintext = intlist_to_bytes(decrypted_data)
 
     return plaintext
@@ -267,21 +264,16 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     return compat_AES.new(key, compat_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
 
 
-@fallback(fb_aes_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+@fallback(fb_aes_decrypt, convert_expanded_key_args, None, intlist_to_bytes)
 def aes_decrypt(data, key):
-    return compat_unpad(compat_AES.new(key, compat_AES.MODE_ECB).decrypt(data), BLOCK_SIZE_BYTES)
+    return compat_AES.new(key, compat_AES.MODE_ECB).decrypt(data[:BLOCK_SIZE_BYTES])
 
 
-@fallback(fb_aes_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+@fallback(fb_aes_encrypt, convert_expanded_key_args, None, intlist_to_bytes)
 def aes_encrypt(data, key):
-    # XXX: i'm not sure
-    return compat_AES.new(key, compat_AES.MODE_ECB).encrypt(data)
+    return compat_AES.new(key, compat_AES.MODE_ECB).encrypt(data[:BLOCK_SIZE_BYTES])
 
-
-@fallback(fb_aes_decrypt_text, convert_decrypt_text_args, None, None)
-def aes_decrypt_text(data, password, key_size_bytes):
-    # XXX: i'm not sure
-    return compat_AES.new(password, compat_AES.MODE_ECB, segment_size=key_size_bytes).encrypt(data)
+# TODO: find out whether it is possible to make `aes_decrypt_text` as fallback and use external function
 
 
 RCON = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
@@ -533,4 +525,3 @@ def ghash(subkey, data):
 # FIXME: add fb_* to all
 
 __all__ = ['aes_encrypt', 'key_expansion', 'fb_aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify',
-           'aes_decrypt_text']

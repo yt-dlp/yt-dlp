@@ -267,8 +267,7 @@ class AnvatoIE(InfoExtractor):
         server_time = self._server_time(access_key, video_id)
         input_data = '%d~%s~%s' % (server_time, md5_text(video_data_url), md5_text(server_time))
 
-        auth_secret = intlist_to_bytes(aes_encrypt(
-            bytes_to_intlist(input_data[:64]), bytes_to_intlist(self._AUTH_KEY)))
+        auth_secret = intlist_to_bytes(aes_encrypt(input_data[:64], self._AUTH_KEY))
 
         video_data_url += '&X-Anvato-Adst-Auth=' + base64.b64encode(auth_secret).decode('ascii')
         anvrid = md5_text(time.time() * 1000 * random.random())[:30]
