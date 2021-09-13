@@ -59,11 +59,12 @@ class HiDiveIE(InfoExtractor):
         title, key = mobj.group('title', 'key')
         video_id = '%s/%s' % (title, key)
         webpage = self._download_webpage(url, video_id, fatal=False)
-        data_videos = re.findall(r'data-video=\"([^\"]+)\"', webpage)
+        data_videos = re.findall(r'data-video=\"([^\"]+)\"\s?data-captions=\"([^\"]+)\"', webpage)
         formats = []
         subtitles = {}
         for data_video in data_videos:
-            _, _, _, version, audio, caption, _ = data_video.split('_')
+            _, _, _, version, audio, _, extra = data_video[0].split('_')
+            caption = data_video[1]
 
             settings = self._download_json(
                 'https://www.hidive.com/play/settings', video_id,
@@ -74,6 +75,7 @@ class HiDiveIE(InfoExtractor):
                     'Version': version,
                     'Audio': audio,
                     'Captions': caption,
+                    'Extra': extra,
                 }))
 
             restriction = settings.get('restrictionReason')
@@ -93,7 +95,7 @@ class HiDiveIE(InfoExtractor):
                     continue
                 formats.extend(self._extract_m3u8_formats(
                     m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='%s-%s-%s-hls' % (version, audio, caption), fatal=False))
+                    m3u8_id='%s-%s-%s-%s-hls' % (version, audio, extra, caption), fatal=False))
                 cc_files = rendition.get('ccFiles')
                 if not isinstance(cc_files, list):
                     continue
