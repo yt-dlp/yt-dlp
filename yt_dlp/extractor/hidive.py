@@ -4,10 +4,10 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
+    try_get,
     url_or_none,
     urlencode_postdata,
 )
@@ -87,10 +87,7 @@ class HiDiveIE(InfoExtractor):
                     '%s said: %s' % (self.IE_NAME, restriction), expected=True)
 
             for rendition_id, rendition in settings['renditions'].items():
-                bitrates = rendition.get('bitrates')
-                if not isinstance(bitrates, dict):
-                    continue
-                m3u8_url = url_or_none(bitrates.get('hls'))
+                m3u8_url = url_or_none(try_get(rendition, lambda x: x['bitrates']['hls']))
                 if not m3u8_url:
                     continue
                 frmt = self._extract_m3u8_formats(
@@ -99,21 +96,13 @@ class HiDiveIE(InfoExtractor):
                 for f in frmt:
                     f['language'] = audio
                 formats.extend(frmt)
-                cc_files = rendition.get('ccFiles')
-                if not isinstance(cc_files, list):
-                    continue
-                for cc_file in cc_files:
-                    if not isinstance(cc_file, list) or len(cc_file) < 3:
-                        continue
-                    # Use this in future when the subtitle code can handle taking the name into account.
-                    # cc_lang = cc_file[0]
-                    cc_name = cc_file[1].replace(' ', '-').lower()
-                    cc_url = url_or_none(cc_file[2])
-                    if not isinstance(cc_name, compat_str) or not cc_url:
-                        continue
-                    subtitles.setdefault(cc_name, []).append({
-                        'url': cc_url,
-                    })
+
+                for cc_file in rendition.get('ccFiles', []):
+                    cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
+                    # name is used since we cant distinguish subs with same language code
+                    cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
+                    if cc_url and cc_lang:
+                        subtitles.setdefault(cc_lang, []).append({'url': cc_url})
         self._sort_formats(formats)
 
         season_number = int_or_none(self._search_regex(
