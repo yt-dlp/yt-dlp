@@ -27,14 +27,17 @@ from subprocess import DEVNULL
 
 try:
     from Crypto.Cipher import AES as compat_AES
+    from Crypto.Util.Padding import pad as compat_pad, unpad as compat_unpad
     compat_crypto_name = 'pycryptodome'
 except ImportError:
     try:
         from Cryptodome.Cipher import AES as compat_AES
+        from Cryptodome.Util.Padding import pad as compat_pad, unpad as compat_unpad
         compat_crypto_name = 'pycryptodomex'
     except ImportError:
         compat_AES = None
         compat_crypto_name = None
+        compat_pad = None
 
 
 # HTMLParseError has been deprecated in Python 3.3 and removed in
@@ -235,6 +238,7 @@ __all__ = [
     'compat_numeric_types',
     'compat_ord',
     'compat_os_name',
+    'compat_pad',
     'compat_parse_qs',
     'compat_print',
     'compat_realpath',
@@ -247,6 +251,7 @@ __all__ = [
     'compat_struct_unpack',
     'compat_subprocess_get_DEVNULL',
     'compat_tokenize_tokenize',
+    'compat_unpad',
     'compat_urllib_error',
     'compat_urllib_parse',
     'compat_urllib_parse_quote',

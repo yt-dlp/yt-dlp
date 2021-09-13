@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-from .compat import compat_b64decode, compat_AES
+from .compat import compat_AES, compat_b64decode, compat_pad, compat_unpad
 from .utils import bytes_to_intlist, intlist_to_bytes
 
 BLOCK_SIZE_BYTES = 16
@@ -150,7 +150,7 @@ def fb_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     iv_ctr = inc(j0)
 
     decrypted_data = fb_aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
-    pad_len = len(data) // 16 * 16
+    pad_len = len(data) // BLOCK_SIZE_BYTES * BLOCK_SIZE_BYTES
     s_tag = ghash(
         hash_subkey,
         data
@@ -220,18 +220,21 @@ def fb_aes_decrypt_text(data, password, key_size_bytes):
     @param {int} key_size_bytes          Possible values: 16 for 128-Bit, 24 for 192-Bit or 32 for 256-Bit
     @returns {str}                       Decrypted data
     """
+
+    # XXX: fails due to aes_encrypt
+
     NONCE_LENGTH_BYTES = 8
 
-    data = bytes_to_intlist(compat_b64decode(data))
+    data = compat_b64decode(data)
     password = bytes_to_intlist(password.encode('utf-8'))
 
-    key = password[:key_size_bytes] + [0] * (key_size_bytes - len(password))
-    key = fb_aes_encrypt(key[:BLOCK_SIZE_BYTES], key_expansion(key)) * (key_size_bytes // BLOCK_SIZE_BYTES)
+    key = intlist_to_bytes(key_expansion(password[:key_size_bytes])) + b'\00' * (key_size_bytes - len(password))
+    key = aes_encrypt(key[:BLOCK_SIZE_BYTES], key) * (key_size_bytes // BLOCK_SIZE_BYTES)
 
     nonce = data[:NONCE_LENGTH_BYTES]
     cipher = data[NONCE_LENGTH_BYTES:]
 
-    decrypted_data = fb_aes_ctr_decrypt(cipher, key, nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
+    decrypted_data = aes_ctr_decrypt(cipher, intlist_to_bytes(key), nonce + b'\00' * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
     plaintext = intlist_to_bytes(decrypted_data)
 
     return plaintext
@@ -241,12 +244,12 @@ def fb_aes_decrypt_text(data, password, key_size_bytes):
 
 @fallback(fb_aes_ctr_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
 def aes_ctr_decrypt(data, key, iv):
-    return compat_AES.new(key, compat_AES.MODE_CTR, iv).decrypt(data)
+    return compat_AES.new(key, compat_AES.MODE_CTR, initial_value=iv, nonce=b'').decrypt(data)
 
 
 @fallback(fb_aes_ctr_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
 def aes_ctr_encrypt(data, key, iv):
-    return compat_AES.new(key, compat_AES.MODE_CTR, iv).decrypt(data)
+    return compat_AES.new(key, compat_AES.MODE_CTR, initial_value=iv, nonce=b'').decrypt(data)
 
 
 @fallback(fb_aes_cbc_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
@@ -256,7 +259,7 @@ def aes_cbc_decrypt(data, key, iv):
 
 @fallback(fb_aes_cbc_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
 def aes_cbc_encrypt(data, key, iv):
-    return compat_AES.new(key, compat_AES.MODE_CBC, iv).encrypt(data)
+    return compat_AES.new(key, compat_AES.MODE_CBC, iv).encrypt(compat_pad(data, BLOCK_SIZE_BYTES))
 
 
 @fallback(fb_aes_gcm_decrypt_and_verify, convert_all_args_to_intlist, None, intlist_to_bytes)
@@ -266,8 +269,7 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
 
 @fallback(fb_aes_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
 def aes_decrypt(data, key):
-    # XXX: i'm not sure
-    return compat_AES.new(key, compat_AES.MODE_ECB).decrypt(data)
+    return compat_unpad(compat_AES.new(key, compat_AES.MODE_ECB).decrypt(data), BLOCK_SIZE_BYTES)
 
 
 @fallback(fb_aes_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
