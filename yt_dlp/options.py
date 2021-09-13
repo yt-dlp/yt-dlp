@@ -235,7 +235,7 @@ def parseOpts(overrideArguments=None):
         help='Use this prefix for unqualified URLs. For example "gvsearch2:" downloads two videos from google videos for the search term "large apple". Use the value "auto" to let yt-dlp guess ("auto_warning" to emit a warning when guessing). "error" just throws an error. The default value "fixup_error" repairs broken URLs, but emits an error if this is not possible instead of searching')
     general.add_option(
         '--ignore-config', '--no-config',
-        action='store_true',
+        action='store_true', dest='ignoreconfig',
         help=(
             'Disable loading any configuration files except the one provided by --config-location. '
             'When given inside a configuration file, no further configuration files are loaded. '
@@ -1536,57 +1536,47 @@ def parseOpts(overrideArguments=None):
             'command-line': compat_conf(sys.argv[1:]),
             'custom': [], 'home': [], 'portable': [], 'user': [], 'system': []}
         paths = {'command-line': False}
-        opts, args = parser.parse_args(configs['command-line'])
+
+        def read_options(name, path, user=False):
+            ''' loads config files and returns ignoreconfig '''
+            # Multiple package names can be given here
+            # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
+            # the configuration file of any of these three packages
+            for package in ('yt-dlp',):
+                if user:
+                    config, current_path = _readUserConf(package, default=None)
+                else:
+                    current_path = os.path.join(path, '%s.conf' % package)
+                    config = _readOptions(current_path, default=None)
+                if config is not None:
+                    configs[name], paths[name] = config, current_path
+                    return parser.parse_args(config)[0].ignoreconfig
+            return False
 
         def get_configs():
-            if '--config-location' in configs['command-line']:
+            opts, _ = parser.parse_args(configs['command-line'])
+            if opts.config_location is not None:
                 location = compat_expanduser(opts.config_location)
                 if os.path.isdir(location):
                     location = os.path.join(location, 'yt-dlp.conf')
                 if not os.path.exists(location):
                     parser.error('config-location %s does not exist.' % location)
-                configs['custom'] = _readOptions(location, default=None)
-                if configs['custom'] is None:
-                    configs['custom'] = []
-                else:
-                    paths['custom'] = location
-            if '--ignore-config' in configs['command-line']:
+                config = _readOptions(location, default=None)
+                if config:
+                    configs['custom'], paths['config'] = config, location
+
+            if opts.ignoreconfig:
                 return
-            if '--ignore-config' in configs['custom']:
+            if parser.parse_args(configs['custom'])[0].ignoreconfig:
                 return
-
-            def read_options(path, user=False):
-                # Multiple package names can be given here
-                # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
-                # the configuration file of any of these three packages
-                for package in ('yt-dlp',):
-                    if user:
-                        config, current_path = _readUserConf(package, default=None)
-                    else:
-                        current_path = os.path.join(path, '%s.conf' % package)
-                        config = _readOptions(current_path, default=None)
-                    if config is not None:
-                        return config, current_path
-                return [], None
-
-            configs['portable'], paths['portable'] = read_options(get_executable_path())
-            if '--ignore-config' in configs['portable']:
+            if read_options('portable', get_executable_path()):
                 return
-
-            def get_home_path():
-                opts = parser.parse_args(configs['portable'] + configs['custom'] + configs['command-line'])[0]
-                return expand_path(opts.paths.get('home', '')).strip()
-
-            configs['home'], paths['home'] = read_options(get_home_path())
-            if '--ignore-config' in configs['home']:
+            opts, _ = parser.parse_args(configs['portable'] + configs['custom'] + configs['command-line'])
+            if read_options('home', expand_path(opts.paths.get('home', '')).strip()):
                 return
-
-            configs['system'], paths['system'] = read_options('/etc')
-            if '--ignore-config' in configs['system']:
+            if read_options('system', '/etc'):
                 return
-
-            configs['user'], paths['user'] = read_options('', True)
-            if '--ignore-config' in configs['user']:
+            if read_options('user', None, user=True):
                 configs['system'], paths['system'] = [], None
 
         get_configs()
@@ -1595,10 +1585,9 @@ def parseOpts(overrideArguments=None):
         if opts.verbose:
             for label in ('System', 'User', 'Portable', 'Home', 'Custom', 'Command-line'):
                 key = label.lower()
-                if paths.get(key) is None:
-                    continue
-                if paths[key]:
-                    write_string('[debug] %s config file: %s\n' % (label, paths[key]))
-                write_string('[debug] %s config: %s\n' % (label, repr(_hide_login_info(configs[key]))))
+                if paths.get(key):
+                    write_string(f'[debug] {label} config file: {paths[key]}\n')
+                if paths.get(key) is not None:
+                    write_string(f'[debug] {label} config: {_hide_login_info(configs[key])!r}\n')
 
     return parser, opts, args
