@@ -63,7 +63,7 @@ class HiDiveIE(InfoExtractor):
         formats = []
         subtitles = {}
         for data_video in data_videos:
-            _, _, _, version, audio, caption, extra = data_video.split('_')
+            _, _, _, version, audio, caption, _ = data_video.split('_')
 
             settings = self._download_json(
                 'https://www.hidive.com/play/settings', video_id,
