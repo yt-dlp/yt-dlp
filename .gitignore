@@ -2,7 +2,7 @@
 *.conf
 *.spec
 cookies
-cookies.txt
+*cookies.txt
 
 # Downloaded
 *.srt
@@ -42,7 +42,7 @@ cookies.txt
 *.description
 
 # Allow config/media files in testdata
-!test/testdata/**
+!test/**
 
 # Python
 *.pyc

@@ -147,6 +147,8 @@ from .bilibili import (
     BilibiliAudioAlbumIE,
     BiliBiliPlayerIE,
     BilibiliChannelIE,
+    BiliIntlIE,
+    BiliIntlSeriesIE,
 )
 from .biobiochiletv import BioBioChileTVIE
 from .bitchute import (
@@ -802,6 +804,7 @@ from .mtv import (
     MTVItaliaProgrammaIE,
 )
 from .muenchentv import MuenchenTVIE
+from .musescore import MuseScoreIE
 from .mwave import MwaveIE, MwaveMeetGreetIE
 from .mxplayer import (
     MxplayerIE,
@@ -864,6 +867,7 @@ from .neteasemusic import (
 from .newgrounds import (
     NewgroundsIE,
     NewgroundsPlaylistIE,
+    NewgroundsUserIE,
 )
 from .newstube import NewstubeIE
 from .nextmedia import (
@@ -1020,7 +1024,10 @@ from .patreon import (
 )
 from .pbs import PBSIE
 from .pearvideo import PearVideoIE
-from .peertube import PeerTubeIE
+from .peertube import (
+    PeerTubeIE,
+    PeerTubePlaylistIE,
+)
 from .peloton import (
     PelotonIE,
     PelotonLiveIE

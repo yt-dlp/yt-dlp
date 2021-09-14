@@ -1128,7 +1128,7 @@ def parseOpts(overrideArguments=None):
             'You can specify the user profile name or directory using '
             '"BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH". '
             'If no profile is given, the most recently accessed one is used'.format(
-                '|'.join(sorted(SUPPORTED_BROWSERS)))))
+                ', '.join(sorted(SUPPORTED_BROWSERS)))))
     filesystem.add_option(
         '--no-cookies-from-browser',
         action='store_const', const=None, dest='cookiesfrombrowser',
