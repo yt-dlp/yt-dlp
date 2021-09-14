@@ -8,9 +8,7 @@ from ..compat import (
     compat_ord,
 )
 from ..utils import (
-    bytes_to_intlist,
     ExtractorError,
-    intlist_to_bytes,
     unified_strdate,
 )
 

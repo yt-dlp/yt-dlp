@@ -20,7 +20,6 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
-    bytes_to_intlist,
     extract_attributes,
     float_or_none,
     intlist_to_bytes,

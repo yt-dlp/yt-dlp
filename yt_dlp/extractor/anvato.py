@@ -12,7 +12,6 @@ from .common import InfoExtractor
 from ..aes import aes_encrypt
 from ..compat import compat_str
 from ..utils import (
-    bytes_to_intlist,
     determine_ext,
     intlist_to_bytes,
     int_or_none,

@@ -11,9 +11,7 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
-    bytes_to_intlist,
     ExtractorError,
-    intlist_to_bytes,
     int_or_none,
     strip_or_none,
 )
