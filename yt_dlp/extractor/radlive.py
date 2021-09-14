@@ -152,91 +152,35 @@ class RadLiveChannelIE(RadLiveIE):
             'query': """
 query WebChannelListing ($lrn: ID!) {
   channel (id:$lrn) {
-  ...Channel
-
+    name
     miniseries {
-      ...Miniseries
+      id
       episodes {
-        ...Episode
+        id
       }
     }
-
     series {
-      ...Series
+      id
       seasons {
-        ...Season
+        id
       }
     }
-
     features {
-      ...Feature
+      structured_data
     }
-
     streams {
-      ...Stream
+      id
     }
-
     playlists {
-      ...Playlists
+      id
       metadata {
-        ...Metadata
+        name
       }
-
       presentation {
-        ...Presentation
+        lrn
       }
     }
   }
-}
-
-fragment Playlists on Playlist {
-  ...Playlist
-}
-
-fragment Channel on Channel {
-  name
-}
-
-fragment Miniseries on Miniseries {
-  id
-}
-
-
-fragment Feature on Feature {
-  structured_data
-}
-
-
-fragment Series on Serie {
-  id
-}
-
-
-fragment Season on Season {
-  id
-}
-
-
-fragment Episode on Episode {
-  id
-}
-
-
-fragment Stream on Stream {
-  id
-}
-
-
-fragment Playlist on Playlist {
-  id
-}
-
-fragment Metadata on Metadata {
-    name
-}
-
-fragment Presentation on Presentation {
-    lrn
 }
 """,
             'variables': {
