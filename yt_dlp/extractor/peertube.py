@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import functools
 import re
 
 from .common import InfoExtractor
@@ -13,6 +14,7 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
     urljoin,
+    OnDemandPagedList,
 )
 
 
@@ -1070,9 +1072,9 @@ class PeerTubeIE(InfoExtractor):
             'uploader': 'Framasoft',
             'uploader_id': '3',
             'uploader_url': 'https://framatube.org/accounts/framasoft',
-            'channel': 'Les vidéos de Framasoft',
-            'channel_id': '2',
-            'channel_url': 'https://framatube.org/video-channels/bf54d359-cfad-4935-9d45-9d6be93f63e8',
+            'channel': 'A propos de PeerTube',
+            'channel_id': '2215',
+            'channel_url': 'https://framatube.org/video-channels/joinpeertube',
             'language': 'en',
             'license': 'Attribution - Share Alike',
             'duration': 113,
@@ -1128,20 +1130,20 @@ class PeerTubeIE(InfoExtractor):
             'uploader': 'Drew DeVault',
         }
     }, {
-        'url': 'https://peertube.tamanoir.foucry.net/videos/watch/0b04f13d-1e18-4f1d-814e-4979aa7c9c44',
+        'url': 'https://peertube.debian.social/videos/watch/0b04f13d-1e18-4f1d-814e-4979aa7c9c44',
         'only_matching': True,
     }, {
         # nsfw
-        'url': 'https://tube.22decembre.eu/videos/watch/9bb88cd3-9959-46d9-9ab9-33d2bb704c39',
+        'url': 'https://vod.ksite.de/videos/watch/9bb88cd3-9959-46d9-9ab9-33d2bb704c39',
         'only_matching': True,
     }, {
-        'url': 'https://tube.22decembre.eu/videos/embed/fed67262-6edb-4d1c-833b-daa9085c71d7',
+        'url': 'https://vod.ksite.de/videos/embed/fed67262-6edb-4d1c-833b-daa9085c71d7',
         'only_matching': True,
     }, {
-        'url': 'https://tube.openalgeria.org/api/v1/videos/c1875674-97d0-4c94-a058-3f7e64c962e8',
+        'url': 'https://peertube.tv/api/v1/videos/c1875674-97d0-4c94-a058-3f7e64c962e8',
         'only_matching': True,
     }, {
-        'url': 'peertube:video.blender.org:b37a5b9f-e6b5-415c-b700-04a5cd6ec205',
+        'url': 'peertube:framatube.org:b37a5b9f-e6b5-415c-b700-04a5cd6ec205',
         'only_matching': True,
     }]
 
@@ -1291,3 +1293,79 @@ class PeerTubeIE(InfoExtractor):
             'subtitles': subtitles,
             'webpage_url': webpage_url,
         }
+
+
+class PeerTubePlaylistIE(InfoExtractor):
+    IE_NAME = 'PeerTube:Playlist'
+    _VALID_URL = r'''(?x)
+                    (?:
+                        https?://(?P<host>%s)/w/p/
+                    )
+                    (?P<id>%s)
+                    ''' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
+    _API_BASE = 'https://%s/api/v1/video-playlists/%s%s'
+    _TESTS = [{
+        'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
+        'info_dict': {
+            'id': '3af94cba-95e8-4b74-b37a-807ab6d82526',
+            'description': 'playlist',
+            'timestamp': 1611171863,
+            'title': 'playlist',
+        },
+        'playlist_mincount': 6,
+    }, {
+        'url': 'https://peertube.tux.ovh/w/p/wkyqcQBnsvFxtUB2pkYc1e',
+        'info_dict': {
+            'id': 'wkyqcQBnsvFxtUB2pkYc1e',
+            'description': 'Cette liste de vidéos contient uniquement les jeux qui peuvent être terminés en une seule vidéo.',
+            'title': 'Let\'s Play',
+            'timestamp': 1604147331,
+        },
+        'playlist_mincount': 6,
+    }, {
+        'url': 'https://peertube.debian.social/w/p/hFdJoTuyhNJVa1cDWd1d12',
+        'info_dict': {
+            'id': 'hFdJoTuyhNJVa1cDWd1d12',
+            'description': 'Diversas palestras do Richard Stallman no Brasil.',
+            'title': 'Richard Stallman no Brasil',
+            'timestamp': 1599676222,
+        },
+        'playlist_mincount': 9,
+    }]
+    _PAGE_SIZE = 30
+
+    def _call_api(self, host, uuid, path, note=None, errnote=None, fatal=True):
+        return self._download_json(
+            self._API_BASE % (host, uuid, path), uuid,
+            note=note, errnote=errnote, fatal=fatal)
+
+    def _fetch_page(self, host, uuid, page):
+        page += 1
+        video_data = self._call_api(
+            host, uuid, f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}',
+            note=f'Downloading page {page}').get('data', [])
+        for video in video_data:
+            shortUUID = try_get(video, lambda x: x['video']['shortUUID'])
+            video_title = try_get(video, lambda x: x['video']['name'])
+            yield self.url_result(
+                f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
+                video_id=shortUUID, video_title=video_title)
+
+    def _real_extract(self, url):
+        host, playlist_id = self._match_valid_url(url).group('host', 'id')
+        playlist_info = self._call_api(host, playlist_id, '', note='Downloading playlist information', fatal=False)
+
+        playlist_title = playlist_info.get('displayName')
+        playlist_description = playlist_info.get('description')
+        playlist_timestamp = unified_timestamp(playlist_info.get('createdAt'))
+        channel = try_get(playlist_info, lambda x: x['ownerAccount']['name'])
+        channel_id = try_get(playlist_info, lambda x: x['ownerAccount']['id'])
+        thumbnail = playlist_info.get('thumbnailPath')
+        thumbnail = f'https://{host}{thumbnail}'
+
+        entries = OnDemandPagedList(functools.partial(
+            self._fetch_page, host, playlist_id), self._PAGE_SIZE)
+
+        return self.playlist_result(
+            entries, playlist_id, playlist_title, playlist_description,
+            timestamp=playlist_timestamp, channel=channel, channel_id=channel_id, thumbnail=thumbnail)
