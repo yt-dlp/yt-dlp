@@ -43,7 +43,6 @@ cookies.txt
 
 # Allow config/media files in testdata
 !test/testdata/**
-!test/*
 
 # Python
 *.pyc
