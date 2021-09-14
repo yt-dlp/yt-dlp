@@ -286,6 +286,9 @@ class VrtNUIE(GigyaBaseIE):
                 'targetEnv': 'jssdk',
             }))
 
+        if auth_info.get('errorDetails'):
+            raise ExtractorError('Unable to login: VrtNU said: ' + auth_info.get('errorDetails'), expected=True)
+
         # Sometimes authentication fails for no good reason, retry
         login_attempt = 1
         while login_attempt <= 3:
