@@ -38,6 +38,7 @@ except ImportError:
         compat_AES = None
         compat_crypto_name = None
         compat_pad = None
+        compat_unpad = None
 
 
 # HTMLParseError has been deprecated in Python 3.3 and removed in
