@@ -116,19 +116,19 @@ def parseOpts(overrideArguments=None):
 
         return ''.join(opts)
 
-    def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=','):
+    def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = getattr(parser.values, option.dest) if append else []
-        value = [value] if delim is None else value.split(delim)
+        value = [process(value)] if delim is None else list(map(process, value.split(delim)))
         setattr(
             parser.values, option.dest,
             current + value if append is True else value + current)
 
     def _set_from_options_callback(
-            option, opt_str, value, parser,
-            delim=',', allowed_values=None, process=str.lower, aliases={}):
+            option, opt_str, value, parser, delim=',', allowed_values=None, aliases={},
+            process=lambda x: x.lower().strip()):
         current = getattr(parser.values, option.dest)
-        values = [process(value)] if delim is None else process(value).split(delim)[::-1]
+        values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:
             actual_val = val = values.pop()
             if val == 'all':
@@ -275,8 +275,7 @@ def parseOpts(overrideArguments=None):
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
                 'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
-            },
-            'aliases': {
+            }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
                 'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
             }
