@@ -12,7 +12,7 @@ class StreamanityIE(InfoExtractor):
             'id': '9DFPTnuYi8f2',
             'ext': 'mp4',
             'title': 'Bitcoin vs The Lighting Network',
-            'thumbnail': 're:https://res\.cloudinary\.com/.+\.png',
+            'thumbnail': r're:https://res\.cloudinary\.com/.+\.png',
             'description': '',
             'uploader': 'Tom Bombadil (Freddy78)',
         }
@@ -22,7 +22,7 @@ class StreamanityIE(InfoExtractor):
             'id': 'JktOUjSlfzTD',
             'ext': 'mp4',
             'title': 'Share data when you see it',
-            'thumbnail': 're:https://res\.cloudinary\.com/.+\.png',
+            'thumbnail': r're:https://res\.cloudinary\.com/.+\.png',
             'description': 'Reposting as data should be public and stored on blockchain',
             'uploader': 'digitalcurrencydaily',
         }
