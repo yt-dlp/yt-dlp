@@ -1173,7 +1173,7 @@ class InfoExtractor(object):
                     netrc_file = os.path.join(location, ".netrc") if location is not None else None
                     if netrc_file is None or not os.path.exists(netrc_file):
                         netrc_file = None
-                # if file is None looks for it in %HOMEDRIVE%\%HOMEPROFILE%
+                # if file is None looks for it in %USERPROFILE% if set otherwise in %HOMEDRIVE%\%HOMEPATH%
                 info = netrc.netrc(file=netrc_file).authenticators(netrc_machine)
                 if info is not None:
                     username = info[0]
