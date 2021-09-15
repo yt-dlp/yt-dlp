@@ -141,15 +141,7 @@ class RadLiveChannelIE(RadLiveIE):
         'playlist_mincount': 7,
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        return False if RadLiveIE.suitable(url) else super(RadLiveChannelIE, cls).suitable(url)
-
-    def _real_extract(self, url):
-        channel_id = self._match_id(url)
-
-        data = self._download_json('https://content.mhq.12core.net/graphql', channel_id, data=json.dumps({
-            'query': """
+    _QUERY = '''
 query WebChannelListing ($lrn: ID!) {
   channel (id:$lrn) {
     name
@@ -157,20 +149,29 @@ query WebChannelListing ($lrn: ID!) {
       structured_data
     }
   }
-}
-""",
-            'variables': {
-                'lrn': f'lrn:12core:media:content:channel:{channel_id}',
-            },
-        }).encode('utf-8'), headers={'Content-Type': 'application/json'})
+}'''
 
-        if not data['data']['channel']:
+    @classmethod
+    def suitable(cls, url):
+        return False if RadLiveIE.suitable(url) else super(RadLiveChannelIE, cls).suitable(url)
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+
+        graphql = self._download_json('https://content.mhq.12core.net/graphql', channel_id,
+            headers={'Content-Type': 'application/json'}, data=json.dumps({
+                'query': self._QUERY,
+                'variables': {'lrn': f'lrn:12core:media:content:channel:{channel_id}'}
+            }).encode('utf-8'))
+
+        data = traverse_obj(graphql, ('data', 'channel'))
+        if not data:
             raise ExtractorError('Unable to extract video info, make sure the URL is valid')
 
         entries = [{
             '_type': 'url_transparent',
             'url': feature['structured_data']['url'],
             'ie_key': RadLiveIE.ie_key(),
-        } for feature in data['data']['channel']['features']]
+        } for feature in data['features']]
 
-        return self.playlist_result(entries, channel_id, traverse_obj(data, ('data', 'channel', 'name')))
+        return self.playlist_result(entries, channel_id, data.get('name'))
