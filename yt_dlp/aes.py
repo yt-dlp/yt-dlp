@@ -33,6 +33,7 @@ else:
 
 BLOCK_SIZE_BYTES = 16
 
+
 def aes_ctr_decrypt(data, key, iv):
     """
     Decrypt with aes in counter mode
@@ -149,17 +150,16 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         ghash_in = nonce + [0] * fill + bytes_to_intlist((8 * len(nonce)).to_bytes(8, 'big'))
         j0 = ghash(hash_subkey, ghash_in)
 
-    nonce_ctr = j0[:12]
     iv_ctr = inc(j0)
 
     decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
     pad_len = len(data) // 16 * 16
     s_tag = ghash(
         hash_subkey,
-        data +
-        [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len) +        # pad
-        bytes_to_intlist((0 * 8).to_bytes(8, 'big') +           # length of associated data
-                         ((len(data) * 8).to_bytes(8, 'big')))  # length of data
+        data
+        + [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len)        # pad
+        + bytes_to_intlist((0 * 8).to_bytes(8, 'big')           # length of associated data
+                           + ((len(data) * 8).to_bytes(8, 'big')))  # length of data
     )
 
     if tag != aes_ctr_encrypt(s_tag, key, j0):
@@ -481,7 +481,7 @@ def ghash(subkey, data):
 
     last_y = [0] * BLOCK_SIZE_BYTES
     for i in range(0, len(data), BLOCK_SIZE_BYTES):
-        block = data[i:i+BLOCK_SIZE_BYTES]
+        block = data[i : i + BLOCK_SIZE_BYTES]  # noqa: E203
         last_y = block_product(xor(last_y, block), subkey)
 
     return last_y
