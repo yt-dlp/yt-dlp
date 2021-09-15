@@ -3,6 +3,7 @@
 *.spec
 cookies
 *cookies.txt
+.netrc
 
 # Downloaded
 *.srt

@@ -575,6 +575,7 @@ def _real_main(argv=None):
 
     ydl_opts = {
         'usenetrc': opts.usenetrc,
+        'netrc_location': opts.netrc_location,
         'username': opts.username,
         'password': opts.password,
         'twofactor': opts.twofactor,

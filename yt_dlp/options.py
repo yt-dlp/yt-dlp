@@ -479,6 +479,10 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='usenetrc', default=False,
         help='Use .netrc authentication data')
     authentication.add_option(
+        '--netrc-location',
+        dest='netrc_location', metavar='PATH',
+        help='Location of .netrc authentication data; either the path or its containing directory. Defaults to ~/.netrc')
+    authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
         help='Video password (vimeo, youku)')
