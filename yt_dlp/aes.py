@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-from .compat import compat_AES, compat_b64decode, compat_pad
+from .compat import compat_b64decode, compat_crypto_pad, compat_crypto_AES
 from .utils import bytes_to_intlist, intlist_to_bytes
 
 BLOCK_SIZE_BYTES = 16
@@ -10,7 +10,7 @@ BLOCK_SIZE_BYTES = 16
 
 def fallback(fb_func, args_conv=None, kwargs_conv=None, ret_conv=None):
     def decorator(func):
-        if compat_AES:
+        if compat_crypto_AES:
             return func
 
         def wrapper(*args, **kwargs):
@@ -241,37 +241,37 @@ def aes_decrypt_text(data, password, key_size_bytes):
 
 @fallback(fb_aes_ctr_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
 def aes_ctr_decrypt(data, key, iv):
-    return compat_AES.new(key, compat_AES.MODE_CTR, initial_value=iv, nonce=b'').decrypt(data)
+    return compat_crypto_AES.new(key, compat_crypto_AES.MODE_CTR, initial_value=iv, nonce=b'').decrypt(data)
 
 
 @fallback(fb_aes_ctr_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
 def aes_ctr_encrypt(data, key, iv):
-    return compat_AES.new(key, compat_AES.MODE_CTR, initial_value=iv, nonce=b'').decrypt(data)
+    return compat_crypto_AES.new(key, compat_crypto_AES.MODE_CTR, initial_value=iv, nonce=b'').decrypt(data)
 
 
 @fallback(fb_aes_cbc_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
 def aes_cbc_decrypt(data, key, iv):
-    return compat_AES.new(key, compat_AES.MODE_CBC, iv).decrypt(data)
+    return compat_crypto_AES.new(key, compat_crypto_AES.MODE_CBC, iv).decrypt(data)
 
 
 @fallback(fb_aes_cbc_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
 def aes_cbc_encrypt(data, key, iv):
-    return compat_AES.new(key, compat_AES.MODE_CBC, iv).encrypt(compat_pad(data, BLOCK_SIZE_BYTES))
+    return compat_crypto_AES.new(key, compat_crypto_AES.MODE_CBC, iv).encrypt(compat_crypto_pad(data, BLOCK_SIZE_BYTES))
 
 
 @fallback(fb_aes_gcm_decrypt_and_verify, convert_all_args_to_intlist, None, intlist_to_bytes)
 def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
-    return compat_AES.new(key, compat_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
+    return compat_crypto_AES.new(key, compat_crypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
 
 
 @fallback(fb_aes_decrypt, convert_expanded_key_args, None, intlist_to_bytes)
 def aes_decrypt(data, key):
-    return compat_AES.new(key, compat_AES.MODE_ECB).decrypt(data[:BLOCK_SIZE_BYTES])
+    return compat_crypto_AES.new(key, compat_crypto_AES.MODE_ECB).decrypt(data[:BLOCK_SIZE_BYTES])
 
 
 @fallback(fb_aes_encrypt, convert_expanded_key_args, None, intlist_to_bytes)
 def aes_encrypt(data, key):
-    return compat_AES.new(key, compat_AES.MODE_ECB).encrypt(data[:BLOCK_SIZE_BYTES])
+    return compat_crypto_AES.new(key, compat_crypto_AES.MODE_ECB).encrypt(data[:BLOCK_SIZE_BYTES])
 
 # TODO: find out whether it is possible to make `aes_decrypt_text` as fallback and use external function
 
@@ -522,8 +522,8 @@ def ghash(subkey, data):
 
     return last_y
 
-# FIXME: add fb_* to all
-
 
 __all__ = ['aes_cbc_encrypt', 'aes_cbc_decrypt', 'aes_ctr_encrypt', 'aes_ctr_decrypt', 'aes_decrypt',
-           'aes_decrypt_text', 'aes_encrypt', 'aes_gcm_decrypt_and_verify', 'key_expansion', 'fb_aes_ctr_decrypt']
+           'aes_decrypt_text', 'aes_encrypt', 'aes_gcm_decrypt_and_verify', 'fb_aes_cbc_encrypt', 'fb_aes_cbc_decrypt',
+           'fb_aes_ctr_encrypt', 'fb_aes_ctr_decrypt', 'fb_aes_decrypt', 'fb_aes_encrypt',
+           'fb_aes_gcm_decrypt_and_verify', 'key_expansion']

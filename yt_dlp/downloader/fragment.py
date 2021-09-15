@@ -13,7 +13,6 @@ except ImportError:
 from ..aes import aes_cbc_decrypt
 from .common import FileDownloader
 from .http import HttpFD
-from ..aes import compat_aes_cbc_decrypt
 from ..compat import (
     compat_urllib_error,
     compat_struct_pack,

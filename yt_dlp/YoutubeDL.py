@@ -30,7 +30,7 @@ from string import ascii_letters
 from zipimport import zipimporter
 
 from .compat import (
-    compat_AES,
+    compat_crypto_AES,
     compat_basestring,
     compat_crypto_name,
     compat_get_terminal_size,
@@ -3299,7 +3299,7 @@ class YoutubeDL(object):
         from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
 
         lib_str = ', '.join(sorted(filter(None, (
-            compat_AES and compat_crypto_name,
+            compat_crypto_AES and compat_crypto_name,
             has_websockets and 'websockets',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',

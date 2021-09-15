@@ -96,6 +96,7 @@ class IviIE(InfoExtractor):
         for site in (353, 183):
             content_data = (data % site).encode()
             if site == 353:
+                # TODO: move to `comapt`
                 try:
                     from Cryptodome.Cipher import Blowfish
                     from Cryptodome.Hash import CMAC
