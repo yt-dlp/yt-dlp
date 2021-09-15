@@ -20,30 +20,20 @@ class StreamanityIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-#       Download JSON that contains video information
-        video_info = self._download_json('https://app.streamanity.com/api/video/{}'.format(video_id), video_id)
-
-#       All relevant & useful information
-        uploader = video_info['data']['video']['author_name']
-        description = video_info['data']['video']['description']
-        play_id = video_info['data']['video']['play_id']
-        title = video_info['data']['video']['title']
-        token = video_info['data']['video']['token']
-        thumbnail = video_info['data']['video']['thumb']
-
-        actual_master_playlist_url = 'https://stream.mux.com/{}.m3u8?token={}'.format(play_id, token)
+        video_info = self._download_json(
+            f'https://app.streamanity.com/api/video/{video_id}', video_id)['data']['video']
 
         formats = self._extract_m3u8_formats(
-            actual_master_playlist_url, video_id, ext='mp4',
-            m3u8_id='hls', live=False)
+            f'https://stream.mux.com/{video_id}.m3u8?token={video_info["token"]}',
+            video_id, ext='mp4',m3u8_id='hls', live=False)
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'uploader': uploader,
+            'title': video_info['title'],
+            'description': video_info.get('description'),
+            'uploader': video_info.get('author_name'),
             'is_live': False,
-            'thumbnail': thumbnail,
+            'thumbnail': video_info.get('thumbnail'),
             'formats': formats,
         }
