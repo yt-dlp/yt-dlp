@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 
-from ..utils import int_or_none
-
 
 class MediaiteIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mediaite.com/(?:tv|sports|politics|podcasts|opinion)/[\w-]+/'
@@ -19,7 +17,6 @@ class MediaiteIE(InfoExtractor):
             'duration': 55,
             'timestamp': 1631630185,
             'upload_date': '20210914',
-            'filesize': 790208
         },
         'params': {'skip_download': True}
     }, {
@@ -33,7 +30,6 @@ class MediaiteIE(InfoExtractor):
             'duration': 258,
             'timestamp': 1631618057,
             'upload_date': '20210914',
-            'filesize': 34511073
         },
         'params': {'skip_download': True}
     }, {
@@ -47,7 +43,6 @@ class MediaiteIE(InfoExtractor):
             'duration': 39,
             'timestamp': 1631536476,
             'upload_date': '20210913',
-            'filesize': 2071224
         },
         'params': {'skip_download': True}
     }, {
@@ -61,7 +56,6 @@ class MediaiteIE(InfoExtractor):
             'duration': 83,
             'timestamp': 1631311188,
             'upload_date': '20210910',
-            'filesize': 3715800
         },
         'params': {'skip_download': True}
     }, {
@@ -75,7 +69,6 @@ class MediaiteIE(InfoExtractor):
             'duration': 52,
             'timestamp': 1631553328,
             'upload_date': '20210913',
-            'filesize': 10468713
         },
         'params': {'skip_download': True}
     }]
@@ -84,34 +77,4 @@ class MediaiteIE(InfoExtractor):
         webpage = self._download_webpage(url, None)
         id = self._search_regex(r'data-video-id\s?=\s?\"([^\"]+)\"', webpage, 'id')
         data_json = self._download_json(f'https://cdn.jwplayer.com/v2/media/{id}', id)
-        video_json = data_json['playlist'][0]
-        formats = []
-        for source in video_json.get('sources', []):
-            if source.get('type') == 'application/vnd.apple.mpegurl':
-                formats.extend(self._extract_m3u8_formats(source.get('file'), id, fatal=False))
-            elif source.get('type') == 'video/mp4':
-                formats.append({
-                    'url': source.get('file'),
-                    'height': source.get('height'),
-                    'width': source.get('width'),
-                    'filesize': source.get('filesize'),
-                    'tbr': source.get('bitrate') / 1000,
-                    'fps': source.get('framerate'),
-                })
-            elif source.get('type') == 'audio/mp4':
-                formats.append({
-                    'url': source.get('file'),
-                    'filesize': source.get('filesize'),
-                    'tbr': source.get('bitrate') / 1000,
-                    'vcodec': 'none',
-                })
-        self._sort_formats(formats)
-        return {
-            'id': id,
-            'title': data_json.get('title'),
-            'description': data_json.get('description'),
-            'thumbnail': video_json.get('image'),
-            'duration': video_json.get('duration'),
-            'timestamp': int_or_none(video_json.get('pubdate')),
-            'formats': formats,
-        }
+        return self._parse_jwplayer_data(data_json)
