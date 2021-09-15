@@ -8,6 +8,7 @@ from ..utils import (
     unified_timestamp,
 )
 
+
 class CGTNIE(InfoExtractor):
     _VALID_URL = r'https?://news\.cgtn\.com/news/[0-9]{4}-[0-9]{2}-[0-9]{2}/[a-zA-Z0-9-]+-(?P<id>[a-zA-Z0-9-]+)/index\.html'
     _TESTS = [
@@ -49,7 +50,6 @@ class CGTNIE(InfoExtractor):
         category = self._html_search_regex(r'<span class="section">\s*(.+?)\s*</span>', webpage, 'category', fatal=False)
         datetime_str = self._html_search_regex(r'<span class="date">\s*(.+?)\s*</span>', webpage, 'datetime_str', fatal=False)
         author = self._html_search_regex(r'<div class="news-author-name">\s*(.+?)\s*</div>', webpage, 'author', default=None, fatal=False)
-        
         timestamp = None
         if datetime_str:
             formatted_datetime_str = datetime.datetime.strptime(datetime_str, '%H:%M, %d-%b-%Y').strftime('%Y/%m/%d %H:%M')
