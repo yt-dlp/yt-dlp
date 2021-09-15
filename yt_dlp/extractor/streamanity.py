@@ -36,6 +36,7 @@ class StreamanityIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             actual_master_playlist_url, video_id, ext='mp4',
             m3u8_id='hls', live=False)
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
