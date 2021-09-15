@@ -131,10 +131,10 @@ except AttributeError:
 
 
 try:
-    from Crypto.Cipher import AES as compat_pycrypto_AES
+    from Cryptodome.Cipher import AES as compat_pycrypto_AES
 except ImportError:
     try:
-        from Cryptodome.Cipher import AES as compat_pycrypto_AES
+        from Crypto.Cipher import AES as compat_pycrypto_AES
     except ImportError:
         compat_pycrypto_AES = None
 

@@ -97,13 +97,13 @@ class IviIE(InfoExtractor):
             content_data = (data % site).encode()
             if site == 353:
                 try:
-                    from Crypto.Cipher import Blowfish
-                    from Crypto.Hash import CMAC
+                    from Cryptodome.Cipher import Blowfish
+                    from Cryptodome.Hash import CMAC
                     pycryptodome_found = True
                 except ImportError:
                     try:
-                        from Cryptodome.Cipher import Blowfish
-                        from Cryptodome.Hash import CMAC
+                        from Crypto.Cipher import Blowfish
+                        from Crypto.Hash import CMAC
                         pycryptodome_found = True
                     except ImportError:
                         pycryptodome_found = False
