@@ -44,8 +44,8 @@ class TestAES(unittest.TestCase):
         fb_decrypted = intlist_to_bytes(fb_aes_decrypt(fb_encrypted, key_expansion(key)))
         self.assertEqual(fb_decrypted, self.secret_msg[:BLOCK_SIZE_BYTES])
         if compat_crypto_AES:
-            encrypted = aes_encrypt(self.secret_msg, intlist_to_bytes(key))
-            decrypted = aes_decrypt(encrypted, intlist_to_bytes(key))
+            encrypted = aes_encrypt(bytes_to_intlist(self.secret_msg), key)
+            decrypted = intlist_to_bytes(aes_decrypt(encrypted, intlist_to_bytes(key)))
             self.assertEqual(encrypted, intlist_to_bytes(fb_encrypted))
             self.assertEqual(decrypted, self.secret_msg[:BLOCK_SIZE_BYTES])
 
@@ -56,7 +56,7 @@ class TestAES(unittest.TestCase):
         fb_decrypted = intlist_to_bytes(fb_aes_cbc_decrypt(data, self.key, self.iv))
         self.assertEqual(fb_decrypted.rstrip(b'\x08'), self.secret_msg)
         if compat_crypto_AES:
-            decrypted = aes_cbc_decrypt(*map(intlist_to_bytes, (data, self.key, self.iv)))
+            decrypted = intlist_to_bytes(aes_cbc_decrypt(*map(intlist_to_bytes, (data, self.key, self.iv))))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_cbc_encrypt(self):
@@ -67,7 +67,7 @@ class TestAES(unittest.TestCase):
             b"\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd"
         )
         if compat_crypto_AES:
-            encrypted = aes_cbc_encrypt(*map(intlist_to_bytes, (data, self.key, self.iv)))
+            encrypted = intlist_to_bytes(aes_cbc_encrypt(data, self.key, self.iv))
             self.assertEqual(
                 encrypted,
                 b"\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd")
@@ -79,7 +79,7 @@ class TestAES(unittest.TestCase):
         fb_decrypted = intlist_to_bytes(fb_aes_ctr_decrypt(data, self.key, self.iv))
         self.assertEqual(fb_decrypted.rstrip(b'\x08'), self.secret_msg)
         if compat_crypto_AES:
-            decrypted = aes_ctr_decrypt(*map(intlist_to_bytes, (data, self.key, self.iv)))
+            decrypted = intlist_to_bytes(aes_ctr_decrypt(data, self.key, self.iv))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_ctr_encrypt(self):
@@ -90,7 +90,7 @@ class TestAES(unittest.TestCase):
             b"\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08"
         )
         if compat_crypto_AES:
-            encrypted = aes_ctr_encrypt(*map(intlist_to_bytes, (data, self.key, self.iv)))
+            encrypted = intlist_to_bytes(aes_ctr_encrypt(data, self.key, self.iv))
             self.assertEqual(
                 encrypted,
                 b"\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08"
@@ -103,11 +103,12 @@ class TestAES(unittest.TestCase):
         fb_decrypted = intlist_to_bytes(fb_aes_gcm_decrypt_and_verify(data, self.key, authentication_tag, self.iv[:12]))
         self.assertEqual(fb_decrypted.rstrip(b'\x08'), self.secret_msg)
         if compat_crypto_AES:
-            decrypted = aes_gcm_decrypt_and_verify(*map(intlist_to_bytes, (data,
-                                                                           self.key,
-                                                                           authentication_tag,
-                                                                           self.iv[:12]))
-                                                   )
+            decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
+                data,
+                self.key,
+                authentication_tag,
+                self.iv[:12]
+            ))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_decrypt_text(self):

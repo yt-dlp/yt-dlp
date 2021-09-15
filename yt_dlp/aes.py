@@ -225,13 +225,13 @@ def aes_decrypt_text(data, password, key_size_bytes):
     data = compat_b64decode(data)
     password = password.encode('utf-8')
 
-    key = password[:key_size_bytes] + b'\x00' * (key_size_bytes - len(password))
-    key = aes_encrypt(key[:BLOCK_SIZE_BYTES], key) * (key_size_bytes // BLOCK_SIZE_BYTES)
+    key = password[:key_size_bytes] + [0] * (key_size_bytes - len(password))
+    key = aes_encrypt(key[:BLOCK_SIZE_BYTES], key_expansion(key)) * (key_size_bytes // BLOCK_SIZE_BYTES)
 
     nonce = data[:NONCE_LENGTH_BYTES]
     cipher = data[NONCE_LENGTH_BYTES:]
 
-    decrypted_data = aes_ctr_decrypt(cipher, key, nonce + b'\00' * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
+    decrypted_data = aes_ctr_decrypt(cipher, key, nonce + [0] * (BLOCK_SIZE_BYTES - NONCE_LENGTH_BYTES))
     plaintext = intlist_to_bytes(decrypted_data)
 
     return plaintext

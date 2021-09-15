@@ -16,6 +16,7 @@ from .compat import (
 )
 from .utils import (
     bug_reports_message,
+    bytes_to_intlist,
     expand_path,
     intlist_to_bytes,
     process_communicate_or_kill,
@@ -635,7 +636,7 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
 
 
 def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
-    plaintext = aes_cbc_decrypt(ciphertext, key, initialization_vector)
+    plaintext = aes_cbc_decrypt(*map(bytes_to_intlist, (ciphertext, key, initialization_vector)))
     padding_length = plaintext[-1]
     try:
         return intlist_to_bytes(plaintext[:-padding_length]).decode('utf-8')
@@ -647,14 +648,14 @@ def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
 
 def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
     try:
-        plaintext = aes_gcm_decrypt_and_verify(ciphertext, key, authentication_tag, nonce)
+        plaintext = aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (ciphertext, key, authentication_tag, nonce)))
     except ValueError:
         logger.warning('failed to decrypt cookie because the MAC check failed. Possibly the key is wrong?',
                        only_once=True)
         return None
 
     try:
-        return plaintext.decode('utf-8')
+        return intlist_to_bytes(plaintext).decode('utf-8')
     except UnicodeDecodeError:
         logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?',
                        only_once=True)

@@ -71,10 +71,10 @@ class ShemarooMeIE(InfoExtractor):
         data_json = self._download_json('https://www.shemaroome.com/users/user_all_lists', video_id, data=data.encode())
         if not data_json.get('status'):
             raise ExtractorError('Premium videos cannot be downloaded yet.', expected=True)
-        url_data = compat_b64decode(data_json['new_play_url'])
-        key = compat_b64decode(data_json['key'])
-        iv = b'\x00' * 16
-        m3u8_url = aes_cbc_decrypt(url_data, key, iv)
+        url_data = bytes_to_intlist(compat_b64decode(data_json['new_play_url']))
+        key = bytes_to_intlist(compat_b64decode(data_json['key']))
+        iv = [0] * 16
+        m3u8_url = intlist_to_bytes(aes_cbc_decrypt(url_data, key, iv))
         m3u8_url = m3u8_url[:-compat_ord((m3u8_url[-1]))].decode('ascii')
         formats = self._extract_m3u8_formats(m3u8_url, video_id, fatal=False, headers={'stream_key': data_json['stream_key']})
         self._sort_formats(formats)
