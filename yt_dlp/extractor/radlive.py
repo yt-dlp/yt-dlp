@@ -153,32 +153,8 @@ class RadLiveChannelIE(RadLiveIE):
 query WebChannelListing ($lrn: ID!) {
   channel (id:$lrn) {
     name
-    miniseries {
-      id
-      episodes {
-        id
-      }
-    }
-    series {
-      id
-      seasons {
-        id
-      }
-    }
     features {
       structured_data
-    }
-    streams {
-      id
-    }
-    playlists {
-      id
-      metadata {
-        name
-      }
-      presentation {
-        lrn
-      }
     }
   }
 }
