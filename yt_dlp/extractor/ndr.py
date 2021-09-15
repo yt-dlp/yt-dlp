@@ -22,7 +22,7 @@ class NDRBaseIE(InfoExtractor):
         return self._extract_embed(webpage, display_id, id)
 
 
-class NDRIE(InfoExtractor):
+class NDRIE(NDRBaseIE):
     IE_NAME = 'ndr'
     IE_DESC = 'NDR.de - Norddeutscher Rundfunk'
     _VALID_URL = r'https?://(?:www\.)?(?:daserste\.)?ndr\.de/(?:[^/]+/)*(?P<display_id>[^/?#]+),(?P<id>[\da-z]+)\.html'
@@ -41,17 +41,7 @@ class NDRIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.ndr.de/sport/fussball/Rostocks-Matchwinner-Froede-Ein-Hansa-Debuet-wie-im-Maerchen,hansa10312.html',
-        'info_dict': {
-            'id': 'hansa10312',
-            'ext': 'mp4',
-            'title': 'Hansa Rostock jubelt dank Neuzugang Fröde',
-            'thumbnail': 'https://www.ndr.de/sport/froede104_v-contentxl.jpg',
-            'description': 'md5:334c3e583f02e0b42d31a2f02bd6188f',
-            'series': 'Sportclub',
-            'channel': 'NDR Fernsehen',
-            'upload_date': '20210912',
-            'duration': 221,
-        },
+        'only_matching': True
     }, {
         'url': 'https://www.ndr.de/nachrichten/niedersachsen/kommunalwahl_niedersachsen_2021/Grosse-Parteien-zufrieden-mit-Ergebnissen-der-Kommunalwahl,kommunalwahl1296.html',
         'info_dict': {
@@ -92,13 +82,8 @@ class NDRIE(InfoExtractor):
         'expected_warnings': ['unable to extract json url'],
     }]
 
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        display_id = next(group for group in mobj.groups() if group)
-        id = mobj.group('id')
-        webpage = self._download_webpage(url, display_id)
+    def _extract_embed(self, webpage, display_id, id):
         formats = []
-
         base_url = 'https://www.ndr.de'
         json_url = self._search_regex(r'<iframe[^>]+src=\"([^\"]+)_theme-ndrde[^\.]*\.html\"', webpage,
                                       'json url', fatal=False)
