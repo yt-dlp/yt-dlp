@@ -29,6 +29,7 @@ import random
 from string import ascii_letters
 from zipimport import zipimporter
 
+from .aes import compat_pycrypto_AES
 from .compat import (
     compat_basestring,
     compat_get_terminal_size,
@@ -41,7 +42,6 @@ from .compat import (
     compat_urllib_error,
     compat_urllib_request,
     compat_urllib_request_DataHandler,
-    compat_pycrypto_AES,
 )
 from .cookies import load_cookies
 from .utils import (

@@ -5,8 +5,33 @@ from math import ceil
 from .compat import compat_b64decode
 from .utils import bytes_to_intlist, intlist_to_bytes
 
-BLOCK_SIZE_BYTES = 16
 
+# These cannot be in compat.py due to cyclic import issues
+try:
+    from Cryptodome.Cipher import AES as compat_pycrypto_AES
+except ImportError:
+    try:
+        from Crypto.Cipher import AES as compat_pycrypto_AES
+    except ImportError:
+        compat_pycrypto_AES = None
+
+
+if compat_pycrypto_AES:
+    def compat_aes_cbc_decrypt(data, key, iv):
+        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
+
+    # XXX: Unused?
+    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
+        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
+else:
+    def compat_aes_cbc_decrypt(data, key, iv):
+        return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
+
+    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
+        return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
+
+
+BLOCK_SIZE_BYTES = 16
 
 def aes_ctr_decrypt(data, key, iv):
     """
@@ -462,4 +487,14 @@ def ghash(subkey, data):
     return last_y
 
 
-__all__ = ['aes_encrypt', 'key_expansion', 'aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify', 'aes_decrypt_text']
+__all__ = [
+    'aes_encrypt',
+    'key_expansion',
+    'aes_ctr_decrypt',
+    'aes_cbc_decrypt',
+    'aes_gcm_decrypt_and_verify',
+    'aes_decrypt_text',
+    'compat_aes_cbc_decrypt',
+    'compat_aes_gcm_decrypt_and_verify',
+    'compat_pycrypto_AES',
+]

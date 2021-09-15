@@ -7,8 +7,8 @@ import sys
 import time
 
 from .common import FileDownloader
+from ..aes import compat_aes_cbc_decrypt
 from ..compat import (
-    compat_aes_cbc_decrypt,
     compat_setenv,
     compat_str,
 )

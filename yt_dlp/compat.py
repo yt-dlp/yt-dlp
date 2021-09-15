@@ -130,31 +130,6 @@ except AttributeError:
     asyncio.run = compat_asyncio_run
 
 
-try:
-    from Cryptodome.Cipher import AES as compat_pycrypto_AES
-except ImportError:
-    try:
-        from Crypto.Cipher import AES as compat_pycrypto_AES
-    except ImportError:
-        compat_pycrypto_AES = None
-
-
-if compat_pycrypto_AES:
-    def compat_aes_cbc_decrypt(data, key, iv):
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
-
-    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
-else:
-    from .aes import aes_cbc_decrypt
-    from .utils import bytes_to_intlist, intlist_to_bytes
-
-    def compat_aes_cbc_decrypt(data, key, iv):
-        return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
-
-    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
-        return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, tag, nonce))))
-
 #  Deprecated
 
 compat_basestring = str
@@ -220,7 +195,6 @@ __all__ = [
     'compat_Match',
     'compat_Pattern',
     'compat_Struct',
-    'compat_aes_cbc_decrypt',
     'compat_asyncio_run',
     'compat_b64decode',
     'compat_basestring',
@@ -250,7 +224,6 @@ __all__ = [
     'compat_os_name',
     'compat_parse_qs',
     'compat_print',
-    'compat_pycrypto_AES',
     'compat_realpath',
     'compat_setenv',
     'compat_shlex_quote',
