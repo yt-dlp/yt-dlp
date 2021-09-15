@@ -2,19 +2,34 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-try:
-    from Crypto.Cipher import AES
-    crypto_name = 'pycryptodome'
-except ImportError:
-    try:
-        from Cryptodome.Cipher import AES
-        crypto_name = 'pycryptodomex'
-    except ImportError:
-        AES = None
-        crypto_name = None
-
 from .compat import compat_b64decode
 from .utils import bytes_to_intlist, intlist_to_bytes
+
+
+# These cannot be in compat.py due to cyclic import issues
+try:
+    from Cryptodome.Cipher import AES as compat_pycrypto_AES
+except ImportError:
+    try:
+        from Crypto.Cipher import AES as compat_pycrypto_AES
+    except ImportError:
+        compat_pycrypto_AES = None
+
+
+if compat_pycrypto_AES:
+    def compat_aes_cbc_decrypt(data, key, iv):
+        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
+
+    # XXX: Unused?
+    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
+        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
+else:
+    def compat_aes_cbc_decrypt(data, key, iv):
+        return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
+
+    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
+        return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
+
 
 BLOCK_SIZE_BYTES = 16
 
@@ -66,10 +81,6 @@ def aes_cbc_decrypt(data, key, iv):
     @param {int[]} iv          16-Byte IV
     @returns {int[]}           decrypted data
     """
-    if AES:
-        data, key, iv = map(intlist_to_bytes, (data, key, iv))
-        return bytes_to_intlist(AES.new(key, AES.MODE_CBC, iv).decrypt(data))
-
     expanded_key = key_expansion(key)
     block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
 
@@ -126,11 +137,9 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     @returns {int[]}           decrypted data
     """
 
-    # XXX: check aes, gcm param
+    # TODO: support: for 24/32-byte keys
 
-    if AES:
-        data, key, tag, nonce = map(intlist_to_bytes, (data, key, tag, nonce))
-        return bytes_to_intlist(AES.new(key, AES.MODE_GCM, nonce).decrypt_and_verify(data, tag))
+    # XXX: check aes, gcm param
 
     hash_subkey = aes_encrypt([0] * BLOCK_SIZE_BYTES, key_expansion(key))
 
@@ -141,15 +150,17 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         ghash_in = nonce + [0] * fill + bytes_to_intlist((8 * len(nonce)).to_bytes(8, 'big'))
         j0 = ghash(hash_subkey, ghash_in)
 
-    # nonce_ctr = j0[:12]
     iv_ctr = inc(j0)
 
     decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
     pad_len = len(data) // 16 * 16
-    pad = [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len)
-    # length of associated data and data
-    length = bytes_to_intlist((0 * 8).to_bytes(8, 'big') + ((len(data) * 8).to_bytes(8, 'big')))
-    s_tag = ghash(hash_subkey, data + pad + length)
+    s_tag = ghash(
+        hash_subkey,
+        data
+        + [0] * (BLOCK_SIZE_BYTES - len(data) + pad_len)        # pad
+        + bytes_to_intlist((0 * 8).to_bytes(8, 'big')           # length of associated data
+                           + ((len(data) * 8).to_bytes(8, 'big')))  # length of data
+    )
 
     if tag != aes_ctr_encrypt(s_tag, key, j0):
         raise ValueError("Mismatching authentication tag")
@@ -247,7 +258,6 @@ def aes_decrypt_text(data, password, key_size_bytes):
     @param {int} key_size_bytes          Possible values: 16 for 128-Bit, 24 for 192-Bit or 32 for 256-Bit
     @returns {str}                       Decrypted data
     """
-
     NONCE_LENGTH_BYTES = 8
 
     data = bytes_to_intlist(compat_b64decode(data))
@@ -371,7 +381,7 @@ def xor(data1, data2):
 
 
 def rijndael_mul(a, b):
-    if a == 0 or b == 0:
+    if(a == 0 or b == 0):
         return 0
     return RIJNDAEL_EXP_TABLE[(RIJNDAEL_LOG_TABLE[a] + RIJNDAEL_LOG_TABLE[b]) % 0xFF]
 
@@ -471,11 +481,20 @@ def ghash(subkey, data):
 
     last_y = [0] * BLOCK_SIZE_BYTES
     for i in range(0, len(data), BLOCK_SIZE_BYTES):
-        block = data[i:i + BLOCK_SIZE_BYTES]
+        block = data[i : i + BLOCK_SIZE_BYTES]  # noqa: E203
         last_y = block_product(xor(last_y, block), subkey)
 
     return last_y
 
 
-__all__ = ['aes_encrypt', 'key_expansion', 'aes_ctr_decrypt', 'aes_cbc_decrypt', 'aes_gcm_decrypt_and_verify',
-           'aes_decrypt_text']
+__all__ = [
+    'aes_encrypt',
+    'key_expansion',
+    'aes_ctr_decrypt',
+    'aes_cbc_decrypt',
+    'aes_gcm_decrypt_and_verify',
+    'aes_decrypt_text',
+    'compat_aes_cbc_decrypt',
+    'compat_aes_gcm_decrypt_and_verify',
+    'compat_pycrypto_AES',
+]
