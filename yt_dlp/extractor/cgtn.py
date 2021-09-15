@@ -29,7 +29,7 @@ class CGTNIE(InfoExtractor):
                 'id': '10REvJCewCY',
                 'ext': 'mp4',
                 'title': 'China, Indonesia vow to further deepen maritime cooperation',
-                'thumbnail': r're:^https?://.*\.jpg$',
+                'thumbnail': r're:^https?://.*\.png$',
                 'description': 'China and Indonesia vowed to upgrade their cooperation into the maritime sector and also for political security, economy, and cultural and people-to-people exchanges.',
                 'author': 'CGTN',
                 'category': 'China',
@@ -43,10 +43,10 @@ class CGTNIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex(r'<div class="news-title">(.+?)</div>', webpage, 'title')
+        title = self._og_search_title(webpage)
         download_url = self._html_search_regex(r'data-video ="(?P<url>.+m3u8)"', webpage, 'download_url')
-        thumbnail = self._html_search_regex(r'<div class="cg-player-container J_player_container" .*? data-poster="(?P<thumbnail>.+jpg)" (.*?)>', webpage, 'thumbnail', fatal=False)
-        description = self._html_search_meta(('og:description', 'twitter:description', ), webpage, fatal=False)
+        thumbnail = self._og_search_thumbnail(webpage)
+        description = self._og_search_description(webpage, default=None)
         category = self._html_search_regex(r'<span class="section">\s*(.+?)\s*</span>', webpage, 'category', fatal=False)
         datetime_str = self._html_search_regex(r'<span class="date">\s*(.+?)\s*</span>', webpage, 'datetime_str', fatal=False)
         author = self._html_search_regex(r'<div class="news-author-name">\s*(.+?)\s*</div>', webpage, 'author', default=None, fatal=False)
