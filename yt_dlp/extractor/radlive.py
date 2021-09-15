@@ -158,8 +158,10 @@ query WebChannelListing ($lrn: ID!) {
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
-        graphql = self._download_json('https://content.mhq.12core.net/graphql', channel_id,
-            headers={'Content-Type': 'application/json'}, data=json.dumps({
+        graphql = self._download_json(
+            'https://content.mhq.12core.net/graphql', channel_id,
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps({
                 'query': self._QUERY,
                 'variables': {'lrn': f'lrn:12core:media:content:channel:{channel_id}'}
             }).encode('utf-8'))
