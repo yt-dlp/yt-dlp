@@ -6,17 +6,26 @@ from .common import InfoExtractor
 
 class StreamanityIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?streamanity\.com/video/(?P<id>[A-Za-z0-9]+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://streamanity.com/video/9DFPTnuYi8f2',
         'info_dict': {
             'id': '9DFPTnuYi8f2',
             'ext': 'mp4',
             'title': 'Bitcoin vs The Lighting Network',
-            'thumbnail': 'https://res.cloudinary.com/streamanity-next/image/upload/v1631475198/thumb/523908e0-e85b-4555-9050-78a8378835f1.png',
+            'thumbnail': 're:https://res\.cloudinary\.com/.+\.png',
             'description': '',
             'uploader': 'Tom Bombadil (Freddy78)',
         }
-    }
+    }, {
+        'url': 'https://streamanity.com/video/JktOUjSlfzTD',
+        'info_dict': {
+            'id': 'JktOUjSlfzTD',
+            'ext': 'mp4',
+            'title': 'Share data when you see it',
+            'thumbnail': 're:https://res\.cloudinary\.com/.+\.png',
+            'description': 'Reposting as data should be public and stored on blockchain',
+            'uploader': 'digitalcurrencydaily',
+        }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
