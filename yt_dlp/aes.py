@@ -10,24 +10,24 @@ BLOCK_SIZE_BYTES = 16
 
 def fallback(fb_func, args_conv=None, kwargs_conv=None, ret_conv=None):
     def decorator(func):
-        if compat_crypto_AES:
-            return func
+        if not compat_crypto_AES:
+            return fb_func
 
         def wrapper(*args, **kwargs):
-            result = fb_func(*args_conv(args) if args_conv else args,
-                             **kwargs_conv(kwargs) if kwargs_conv else kwargs)
+            result = func(*args_conv(args) if args_conv else args,
+                          **kwargs_conv(kwargs) if kwargs_conv else kwargs)
             return ret_conv(result) if ret_conv else result
         return wrapper
     return decorator
 
 
-def convert_all_args_to_intlist(arguments):
-    return map(bytes_to_intlist, arguments)
+def convert_all_args_to_bytes(arguments):
+    return map(intlist_to_bytes, arguments)
 
 
 def convert_expanded_key_args(arguments):
     data, key = arguments
-    return [bytes_to_intlist(data), key_expansion(bytes_to_intlist(key))]
+    return [intlist_to_bytes(data), intlist_to_bytes(key)]
 
 
 def fb_aes_ctr_decrypt(data, key, iv):
@@ -222,11 +222,12 @@ def aes_decrypt_text(data, password, key_size_bytes):
 
     NONCE_LENGTH_BYTES = 8
 
-    data = compat_b64decode(data)
-    password = password.encode('utf-8')
+    data = bytes_to_intlist(compat_b64decode(data))
+    password = bytes_to_intlist(password.encode('utf-8'))
 
     key = password[:key_size_bytes] + [0] * (key_size_bytes - len(password))
-    key = aes_encrypt(key[:BLOCK_SIZE_BYTES], key_expansion(key)) * (key_size_bytes // BLOCK_SIZE_BYTES)
+    # FIXME: fb_functions expect expanded key
+    key = fb_aes_encrypt(key[:BLOCK_SIZE_BYTES], key_expansion(key)) * (key_size_bytes // BLOCK_SIZE_BYTES)
 
     nonce = data[:NONCE_LENGTH_BYTES]
     cipher = data[NONCE_LENGTH_BYTES:]
@@ -237,29 +238,27 @@ def aes_decrypt_text(data, password, key_size_bytes):
     return plaintext
 
 
-# TODO: add tests for these functions
-
-@fallback(fb_aes_ctr_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+@fallback(fb_aes_ctr_decrypt, convert_all_args_to_bytes, None, intlist_to_bytes)
 def aes_ctr_decrypt(data, key, iv):
     return compat_crypto_AES.new(key, compat_crypto_AES.MODE_CTR, initial_value=iv, nonce=b'').decrypt(data)
 
 
-@fallback(fb_aes_ctr_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+@fallback(fb_aes_ctr_encrypt, convert_all_args_to_bytes, None, intlist_to_bytes)
 def aes_ctr_encrypt(data, key, iv):
     return compat_crypto_AES.new(key, compat_crypto_AES.MODE_CTR, initial_value=iv, nonce=b'').decrypt(data)
 
 
-@fallback(fb_aes_cbc_decrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+@fallback(fb_aes_cbc_decrypt, convert_all_args_to_bytes, None, intlist_to_bytes)
 def aes_cbc_decrypt(data, key, iv):
     return compat_crypto_AES.new(key, compat_crypto_AES.MODE_CBC, iv).decrypt(data)
 
 
-@fallback(fb_aes_cbc_encrypt, convert_all_args_to_intlist, None, intlist_to_bytes)
+@fallback(fb_aes_cbc_encrypt, convert_all_args_to_bytes, None, intlist_to_bytes)
 def aes_cbc_encrypt(data, key, iv):
     return compat_crypto_AES.new(key, compat_crypto_AES.MODE_CBC, iv).encrypt(compat_crypto_pad(data, BLOCK_SIZE_BYTES))
 
 
-@fallback(fb_aes_gcm_decrypt_and_verify, convert_all_args_to_intlist, None, intlist_to_bytes)
+@fallback(fb_aes_gcm_decrypt_and_verify, convert_all_args_to_bytes, None, intlist_to_bytes)
 def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     return compat_crypto_AES.new(key, compat_crypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
 
@@ -523,7 +522,21 @@ def ghash(subkey, data):
     return last_y
 
 
-__all__ = ['aes_cbc_encrypt', 'aes_cbc_decrypt', 'aes_ctr_encrypt', 'aes_ctr_decrypt', 'aes_decrypt',
-           'aes_decrypt_text', 'aes_encrypt', 'aes_gcm_decrypt_and_verify', 'fb_aes_cbc_encrypt', 'fb_aes_cbc_decrypt',
-           'fb_aes_ctr_encrypt', 'fb_aes_ctr_decrypt', 'fb_aes_decrypt', 'fb_aes_encrypt',
-           'fb_aes_gcm_decrypt_and_verify', 'key_expansion']
+__all__ = [
+    'aes_cbc_encrypt',
+    'aes_cbc_decrypt',
+    'aes_ctr_encrypt',
+    'aes_ctr_decrypt',
+    'aes_decrypt',
+    'aes_decrypt_text',
+    'aes_encrypt',
+    'aes_gcm_decrypt_and_verify',
+    'fb_aes_cbc_encrypt',
+    'fb_aes_cbc_decrypt',
+    'fb_aes_ctr_encrypt',
+    'fb_aes_ctr_decrypt',
+    'fb_aes_decrypt',
+    'fb_aes_encrypt',
+    'fb_aes_gcm_decrypt_and_verify',
+    'key_expansion'
+]
