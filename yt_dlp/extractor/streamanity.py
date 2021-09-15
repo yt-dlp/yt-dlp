@@ -25,7 +25,8 @@ class StreamanityIE(InfoExtractor):
             'thumbnail': 're:https://res\.cloudinary\.com/.+\.png',
             'description': 'Reposting as data should be public and stored on blockchain',
             'uploader': 'digitalcurrencydaily',
-        }]
+        }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
