@@ -25,7 +25,7 @@ class StreamanityIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(
             f'https://stream.mux.com/{video_id}.m3u8?token={video_info["token"]}',
-            video_id, ext='mp4',m3u8_id='hls', live=False)
+            video_id, ext='mp4', m3u8_id='hls')
         self._sort_formats(formats)
 
         return {
