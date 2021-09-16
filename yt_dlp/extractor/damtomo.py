@@ -69,10 +69,11 @@ class DamtomoVideoIE(DamtomoBaseIE):
         'url': 'https://www.clubdam.com/app/damtomo/karaokeMovie/StreamingDkm.do?karaokeMovieId=2414316',
         'info_dict': {
             'id': '2414316',
+            'title': 'Get Wild',
             'uploader': 'Ｋドロン',
             'uploader_id': 'ODk5NTQwMzQ',
-            'song_title': 'Get Wild',
-            'song_artist': 'TM NETWORK(TMN)',
+            'track': 'Get Wild',
+            'artist': 'TM NETWORK(TMN)',
             'upload_date': '20201226',
         }
     }]
@@ -88,28 +89,28 @@ class DamtomoRecordIE(DamtomoBaseIE):
         'url': 'https://www.clubdam.com/app/damtomo/karaokePost/StreamingKrk.do?karaokeContributeId=27376862',
         'info_dict': {
             'id': '27376862',
-            'title': 'イカSUMMER [良音]-ORANGE RANGE-ＮＡＮＡ',
+            'title': 'イカSUMMER [良音]',
             'description': None,
             'uploader': 'ＮＡＮＡ',
             'uploader_id': 'MzAyMDExNTY',
             'upload_date': '20210721',
             'view_count': 4,
             'like_count': 1,
-            'song_title': 'イカSUMMER [良音]',
-            'song_artist': 'ORANGE RANGE',
+            'track': 'イカSUMMER [良音]',
+            'artist': 'ORANGE RANGE',
         }
     }, {
         'url': 'https://www.clubdam.com/app/damtomo/karaokePost/StreamingKrk.do?karaokeContributeId=27489418',
         'info_dict': {
             'id': '27489418',
-            'title': '心みだれて〜say it with flowers〜(生音)-小林明子-箱の「中の人」',
+            'title': '心みだれて〜say it with flowers〜(生音)',
             'uploader_id': 'NjI1MjI2MjU',
             'description': 'やっぱりキーを下げて正解だった感じ。リベンジ成功ということで。',
             'uploader': '箱の「中の人」',
             'upload_date': '20210815',
             'view_count': 5,
             'like_count': 3,
-            'song_title': '心みだれて〜say it with flowers〜(生音)',
-            'song_artist': '小林明子',
+            'track': '心みだれて〜say it with flowers〜(生音)',
+            'artist': '小林明子',
         }
     }]
