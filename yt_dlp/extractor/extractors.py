@@ -208,8 +208,7 @@ from .cbc import (
     CBCIE,
     CBCPlayerIE,
     CBCWatchVideoIE,
-    CBCWatchIE,
-    CBCOlympicsIE,
+    CBCGemIE,
 )
 from .cbs import CBSIE
 from .cbslocal import (

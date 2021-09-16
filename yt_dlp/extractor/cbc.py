@@ -209,6 +209,11 @@ class CBCPlayerIE(InfoExtractor):
         }
 
 
+# TODO:
+# This class is currently unused. I've left it in because I haven't worked out
+# logged-in access to CBC Gem, and SOME of the code here might still be good
+# for that.
+#  - @makeworld-the-better-one
 class CBCWatchBaseIE(InfoExtractor):
     _device_id = None
     _device_token = None
@@ -358,6 +363,7 @@ class CBCWatchBaseIE(InfoExtractor):
             xpath_text(channel, 'description'))
 
 
+# TODO: remove class
 class CBCWatchVideoIE(CBCWatchBaseIE):
     IE_NAME = 'cbc.ca:watch:video'
     _VALID_URL = r'https?://api-cbc\.cloud\.clearleap\.com/cloffice/client/web/play/?\?.*?\bcontentId=(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
@@ -398,40 +404,57 @@ class CBCWatchVideoIE(CBCWatchBaseIE):
         return info
 
 
-class CBCWatchIE(CBCWatchBaseIE):
-    IE_NAME = 'cbc.ca:watch'
-    _VALID_URL = r'https?://(?:gem|watch)\.cbc\.ca/(?:[^/]+/)+(?P<id>[0-9a-f-]+)'
+# TODO: playlists
+class CBCGemIE(InfoExtractor):
+    IE_NAME = 'cbcgem'
+    IE_DESC = "CBC Gem"
+    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>[0-9a-z-]+/[0-9a-z-]+)'
     _TESTS = [{
         # geo-restricted to Canada, bypassable
-        'url': 'http://watch.cbc.ca/doc-zone/season-6/customer-disservice/38e815a-009e3ab12e4',
+        'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
+        'md5': 'TODO',
         'info_dict': {
-            'id': '9673749a-5e77-484c-8b62-a1092a6b5168',
+            'id': 'schitts-creek/s06e01',
             'ext': 'mp4',
-            'title': 'Customer (Dis)Service',
-            'description': 'md5:8bdd6913a0fe03d4b2a17ebe169c7c87',
-            'upload_date': '20160219',
-            'timestamp': 1455840000,
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-            'format': 'bestvideo',
+            'title': 'Smoke Signals',
+            'description': 'md5:929868d20021c924020641769eb3e7f1',
+            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/episode/perso/cbc_schitts_creek_season_06e01_thumbnail_v01.jpg?im=Resize=(Size)',
+            'duration': 1314,
+            'categories': ['comedy'],
+            'series': 'Schitt\'s Creek',
+            'season': 'Season 6',
+            'season_number': 6,
+            'episode': 'Smoke Signals',
+            'episode_number': 1,
         },
     }, {
         # geo-restricted to Canada, bypassable
-        'url': 'http://watch.cbc.ca/arthur/all/1ed4b385-cd84-49cf-95f0-80f004680057',
-        'info_dict': {
-            'id': '1ed4b385-cd84-49cf-95f0-80f004680057',
-            'title': 'Arthur',
-            'description': 'Arthur, the sweetest 8-year-old aardvark, and his pals solve all kinds of problems with humour, kindness and teamwork.',
-        },
-        'playlist_mincount': 30,
-    }, {
-        'url': 'https://gem.cbc.ca/media/this-hour-has-22-minutes/season-26/episode-20/38e815a-0108c6c6a42',
-        'only_matching': True,
+        # TODO playlist test here
     }]
+    _API_BASE_URL = 'https://services.radio-canada.ca/ott/cbc-api/v2/assets/'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        rss = self._call_api('web/browse/' + video_id, video_id)
-        return self._parse_rss_feed(rss)
+        video_info = self._download_json(self._API_BASE_URL + video_id, video_id)
+        m3u8_url = self._download_json(video_info['playSession']['url'], video_id)['url']
+        formats = self._extract_m3u8_formats_and_subtitles(
+            m3u8_url, video_id)[0]
+        from pprint import pprint
+        pprint(formats)
+        self._sort_formats(formats)
+        return {
+            'id': video_id,
+            'title': video_info['title'],
+            'description': video_info.get('description'),
+            'thumbnail': video_info.get('image'),
+            'series': video_info.get('series'),
+            'season_number': video_info.get('season'),
+            'season': f"Season {video_info.get('season')}",
+            'episode_number': video_info.get('episode'),
+            'episode': video_info.get('title'),
+            'duration': video_info.get('duration'),
+            'categories': [video_info.get('category')],
+            'formats': formats,
+        }
+
+# TODO: live videos
