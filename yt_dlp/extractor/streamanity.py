@@ -46,6 +46,6 @@ class StreamanityIE(InfoExtractor):
             'description': video_info.get('description'),
             'uploader': video_info.get('author_name'),
             'is_live': False,
-            'thumbnail': video_info.get('thumbnail'),
+            'thumbnail': video_info.get('thumb'),
             'formats': formats,
         }
