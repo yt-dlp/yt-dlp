@@ -412,7 +412,7 @@ class CBCGemIE(InfoExtractor):
     _TESTS = [{
         # geo-restricted to Canada, bypassable
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
-        'md5': 'TODO',
+        'md5': '93dbb31c74a8e45b378cf13bd3f6f11e',
         'info_dict': {
             'id': 'schitts-creek/s06e01',
             'ext': 'mp4',
@@ -427,6 +427,7 @@ class CBCGemIE(InfoExtractor):
             'episode': 'Smoke Signals',
             'episode_number': 1,
         },
+        'params': {'format': 'bv',},
     }, {
         # geo-restricted to Canada, bypassable
         # TODO playlist test here
@@ -439,9 +440,23 @@ class CBCGemIE(InfoExtractor):
         m3u8_url = self._download_json(video_info['playSession']['url'], video_id)['url']
         formats = self._extract_m3u8_formats_and_subtitles(
             m3u8_url, video_id)[0]
-        from pprint import pprint
-        pprint(formats)
+        self._remove_duplicate_formats(formats)
         self._sort_formats(formats)
+
+        # Post-process format list
+        for i, format in enumerate(formats):
+            # Make IDs easier to use. Only applies to audio IDs.
+            format['format_id'] = format['format_id'].lower().replace(
+                '(', '').replace(')', '')
+            # Remove the needless 'audio-' prefix from format IDs, making for
+            # easier selection on the CLI.
+            if format['format_id'].startswith('audio-'):
+                format['format_id'] = format['format_id'][6:]
+            # Put described audio at the beginning of the list, so that it
+            # isn't chosen by default, as most people won't want it.
+            if 'descriptive' in format['format_id'].lower():
+                formats.insert(0, formats.pop(i))
+
         return {
             'id': video_id,
             'title': video_info['title'],
