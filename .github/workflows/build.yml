@@ -87,9 +87,15 @@ jobs:
     - name: Get SHA2-256SUMS for yt-dlp
       id: sha256_file
       run: echo "::set-output name=sha256_unix::$(sha256sum yt-dlp | awk '{print $1}')"
+    - name: Get SHA2-256SUMS for yt-dlp.tar.gz
+      id: sha256_tar
+      run: echo "::set-output name=sha256_tar::$(sha256sum yt-dlp.tar.gz | awk '{print $1}')"
     - name: Get SHA2-512SUMS for yt-dlp
       id: sha512_file
       run: echo "::set-output name=sha512_unix::$(sha512sum yt-dlp | awk '{print $1}')"
+    - name: Get SHA2-512SUMS for yt-dlp.tar.gz
+      id: sha512_tar
+      run: echo "::set-output name=sha512_tar::$(sha512sum yt-dlp.tar.gz | awk '{print $1}')"
     - name: Install dependencies for pypi
       env:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
@@ -205,10 +211,12 @@ jobs:
         SHA256_WINDOWS: ${{ needs.build_windows.outputs.sha256_windows }}
         SHA256_WINDOWS32: ${{ needs.build_windows32.outputs.sha256_windows32 }}
         SHA256_UNIX: ${{ needs.build_unix.outputs.sha256_unix }}
+        SHA256_TAR: ${{ needs.build_unix.outputs.sha256_tar }}
       run: |
         echo "${{ env.SHA256_WINDOWS }}  yt-dlp.exe" >> SHA2-256SUMS
         echo "${{ env.SHA256_WINDOWS32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
         echo "${{ env.SHA256_UNIX }}  yt-dlp" >> SHA2-256SUMS
+        echo "${{ env.SHA256_TAR }}  yt-dlp.tar.gz" >> SHA2-256SUMS
     - name: Upload 256SUMS file
       id: upload-sums
       uses: actions/upload-release-asset@v1
@@ -224,10 +232,12 @@ jobs:
         SHA512_WINDOWS: ${{ needs.build_windows.outputs.sha512_windows }}
         SHA512_WINDOWS32: ${{ needs.build_windows32.outputs.sha512_windows32 }}
         SHA512_UNIX: ${{ needs.build_unix.outputs.sha512_unix }}
+        SHA512_TAR: ${{ needs.build_unix.outputs.sha512_tar }}
       run: |
         echo "${{ env.SHA512_WINDOWS }}  yt-dlp.exe" >> SHA2-512SUMS
         echo "${{ env.SHA512_WINDOWS32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
         echo "${{ env.SHA512_UNIX }}  yt-dlp" >> SHA2-512SUMS
+        echo "${{ env.SHA512_TAR }}  yt-dlp.tar.gz" >> SHA2-512SUMS
     - name: Upload 512SUMS file
       id: upload-512sums
       uses: actions/upload-release-asset@v1
