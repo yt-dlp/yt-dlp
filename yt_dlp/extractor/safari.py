@@ -194,7 +194,7 @@ class SafariApiIE(SafariBaseIE):
             url, '%s/%s' % (mobj.group('course_id'), mobj.group('part')),
             'Downloading part JSON')
         webUrl = part['web_url']
-        webUrl = webUrl.replace('library/view','videos')
+        webUrl = webUrl.replace('library/view', 'videos')
         naturalKeys = part['natural_key']
         webUrl = webUrl[:webUrl.rfind('/') + 1] + naturalKeys[0] + '-' + naturalKeys[1][:-5]
         return self.url_result(webUrl, SafariIE.ie_key())
