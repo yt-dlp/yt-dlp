@@ -72,8 +72,9 @@ class SoundcloudIE(InfoExtractor):
                             (?!stations/track)
                             (?P<uploader>[\w\d-]+)/
                             (?!(?:tracks|albums|sets(?:/.+?)?|reposts|likes|spotlight)/?(?:$|[?#]))
-                            (?P<title>[\w\d-]+)/?
-                            (?P<token>[^?]+?)?(?:[?].*)?$)
+                            (?P<title>[\w\d-]+)
+                            (?:/(?P<token>(?!(?:albums|sets|recommended))[^?]+?))?
+                            (?:[?].*)?$)
                        |(?:api(?:-v2)?\.soundcloud\.com/tracks/(?P<track_id>\d+)
                           (?:/?\?secret_token=(?P<secret_token>[^&]+))?)
                     )
@@ -820,6 +821,58 @@ class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
         return self._extract_playlist(
             self._API_V2_BASE + 'stations/%s/tracks' % track['id'],
             track_id, 'Track station: %s' % track['title'])
+
+
+class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?soundcloud\.com/(?P<uploader>[\w\d-]+)/(?P<title>[:\w\d-]+)/(?P<relation>albums|sets|recommended)'
+    IE_NAME = 'soundcloud:related'
+    _TESTS = [{
+        'url': 'https://soundcloud.com/wajang/sexapil-pingers-5/recommended',
+        'info_dict': {
+            'id': '1084577272',
+            'title': 'Sexapil - Pingers 5 (Recommended)',
+        },
+        'playlist_mincount': 50,
+    }, {
+        'url': 'https://soundcloud.com/wajang/sexapil-pingers-5/albums',
+        'info_dict': {
+            'id': '1084577272',
+            'title': 'Sexapil - Pingers 5 (Albums)',
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://soundcloud.com/wajang/sexapil-pingers-5/sets',
+        'info_dict': {
+            'id': '1084577272',
+            'title': 'Sexapil - Pingers 5 (Sets)',
+        },
+        'playlist_mincount': 4,
+    }]
+
+    _BASE_URL_MAP = {
+        'albums': 'tracks/%s/albums',
+        'sets': 'tracks/%s/playlists_without_albums',
+        'recommended': 'tracks/%s/related',
+    }
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        full_title = '%s/%s' % mobj.group('uploader', 'title')
+
+        track = self._download_json(
+            self._resolv_url(self._BASE_URL + full_title),
+            full_title, 'Downloading track info', headers=self._HEADERS)
+
+        if 'errors' in track:
+            msgs = (compat_str(err['error_message']) for err in track['errors'])
+            raise ExtractorError('unable to download video webpage: %s' % ','.join(msgs))
+
+        relation = mobj.group('relation')
+
+        return self._extract_playlist(
+            self._API_V2_BASE + self._BASE_URL_MAP[relation] % track['id'],
+            str_or_none(track.get('id')),
+            '%s (%s)' % (track['title'], relation.capitalize()))
 
 
 class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
