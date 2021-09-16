@@ -25,7 +25,6 @@ class GloboIE(InfoExtractor):
     _NETRC_MACHINE = 'globo'
     _TESTS = [{
         'url': 'http://g1.globo.com/carros/autoesporte/videos/t/exclusivos-do-g1/v/mercedes-benz-gla-passa-por-teste-de-colisao-na-europa/3607726/',
-        'md5': 'a0e8cbde65ce5f74ff87616490b10262',
         'info_dict': {
             'id': '3607726',
             'ext': 'mp4',
@@ -34,9 +33,11 @@ class GloboIE(InfoExtractor):
             'uploader': 'G1',
             'uploader_id': '2015',
         },
+        'params': {
+            'skip_download': True,
+        },
     }, {
         'url': 'http://globoplay.globo.com/v/4581987/',
-        'md5': 'd526b94379de9dc1e38fb318ce89e13a',
         'info_dict': {
             'id': '4581987',
             'ext': 'mp4',
@@ -44,6 +45,9 @@ class GloboIE(InfoExtractor):
             'duration': 137.973,
             'uploader': 'Rede Globo',
             'uploader_id': '196',
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         'url': 'http://canalbrasil.globo.com/programas/sangue-latino/videos/3928201.html',
@@ -116,8 +120,7 @@ class GloboIE(InfoExtractor):
         signed_url = '%s?h=%s&k=html5&a=%s' % (resource_url, signed_hash, 'F' if video.get('subscriber_only') else 'A')
 
         formats.extend(self._extract_m3u8_formats(
-                       signed_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                       m3u8_id='hls', fatal=False))
+            signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
         self._sort_formats(formats)
 
         subtitles = {}
@@ -126,12 +129,14 @@ class GloboIE(InfoExtractor):
                 subtitles.setdefault(resource.get('language') or 'por', []).append({
                     'url': resource.get('url'),
                 })
-        for sub_lang, sub_url in try_get(security, lambda x: x['source']['subtitles'], expected_type=dict).items():
+        subs = try_get(security, lambda x: x['source']['subtitles'], expected_type=dict) or {}
+        for sub_lang, sub_url in subs.items():
             if sub_url:
                 subtitles.setdefault(sub_lang or 'por', []).append({
                     'url': sub_url,
                 })
-        for sub_lang, sub_url in try_get(security, lambda x: x['source']['subtitles_webvtt'], expected_type=dict).items():
+        subs = try_get(security, lambda x: x['source']['subtitles_webvtt'], expected_type=dict) or {}
+        for sub_lang, sub_url in subs.items():
             if sub_url:
                 subtitles.setdefault(sub_lang or 'por', []).append({
                     'url': sub_url,
