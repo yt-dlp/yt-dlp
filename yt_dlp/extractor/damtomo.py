@@ -34,7 +34,7 @@ class DamtomoBaseIE(InfoExtractor):
         stream_tree = self._download_xml(
             self._DKML_XML_URL % video_id, video_id, note='Requesting stream information', encoding='sjis',
             # doing this has no problem since there is no character outside ASCII,
-            # and never likely happen in the future
+            # and never likely to happen in the future
             transform_source=lambda x: re.sub(r'\s*encoding="[^"]+?"', '', x))
         m3u8_url = try_get(stream_tree, lambda x: x.find(
             './/d:streamingUrl', {'d': self._DKML_XML_NS}).text.strip(), compat_str)
