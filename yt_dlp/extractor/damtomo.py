@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, clean_html, int_or_none, try_get
+from ..utils import ExtractorError, clean_html, int_or_none, try_get, unified_strdate
 from ..compat import compat_str
 
 
@@ -27,7 +27,7 @@ class DamtomoBaseIE(InfoExtractor):
 
         # since videos do not have title, give the name of song instead
         data_dict['user_name'] = re.sub(r'\s*さん\s*$', '', data_dict['user_name'])
-        title = data_dict['song_title']
+        title = data_dict.get('song_title')
 
         stream_tree = self._download_xml(
             self._DKML_XML_URL % video_id, video_id, note='Requesting stream information', encoding='sjis',
@@ -38,22 +38,21 @@ class DamtomoBaseIE(InfoExtractor):
             './/d:streamingUrl', {'d': self._DKML_XML_NS}).text.strip(), compat_str)
         if not m3u8_url:
             raise ExtractorError('Failed to obtain m3u8 URL')
+        formats = self._extract_m3u8_formats(
+            m3u8_url, video_id, ext='mp4')
 
         return {
             'id': video_id,
             'title': title,
             'uploader_id': uploader_id,
             'description': description,
-            'uploader': data_dict['user_name'],
-            'upload_date': try_get(data_dict, lambda x: self._search_regex(r'(\d\d\d\d/\d\d/\d\d)', x['date'], 'upload_date', default=None).replace('/', ''), compat_str),
+            'uploader': data_dict.get('user_name'),
+            'upload_date': unified_strdate(self._search_regex(r'(\d\d\d\d/\d\d/\d\d)', data_dict.get('date'), 'upload_date', default=None)),
             'view_count': int_or_none(self._search_regex(r'(\d+)', data_dict['audience'], 'view_count', default=None)),
             'like_count': int_or_none(self._search_regex(r'(\d+)', data_dict['nice'], 'like_count', default=None)),
             'track': title,
-            'artist': data_dict['song_artist'],
-
-            'url': m3u8_url,
-            'ext': 'mp4',
-            'protocol': 'm3u8_native',
+            'artist': data_dict.get('song_artist'),
+            'formats': formats,
         }
 
 
