@@ -8,6 +8,7 @@ class StreamanityIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?streamanity\.com/video/(?P<id>[A-Za-z0-9]+)'
     _TESTS = [{
         'url': 'https://streamanity.com/video/9DFPTnuYi8f2',
+        'md5': '6ab171e8d4a02ad5dcbff6bea44cf5a1',
         'info_dict': {
             'id': '9DFPTnuYi8f2',
             'ext': 'mp4',
@@ -18,6 +19,7 @@ class StreamanityIE(InfoExtractor):
         }
     }, {
         'url': 'https://streamanity.com/video/JktOUjSlfzTD',
+        'md5': '31f131e28abd3377c38be586a59532dc',
         'info_dict': {
             'id': 'JktOUjSlfzTD',
             'ext': 'mp4',
