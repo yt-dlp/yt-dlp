@@ -18,14 +18,12 @@ class DamtomoBaseIE(InfoExtractor):
         if '<h2>予期せぬエラーが発生しました。</h2>' in webpage:
             raise ExtractorError('There is an error on server-side. Try again later.', expected=True)
 
-        # NOTE: there are excessive amount of spaces and line breaks, so ignore spaces around these part
         description = self._search_regex(r'(?m)<div id="public_comment">\s*<p>\s*([^<]*?)\s*</p>', webpage, 'description', default=None)
         uploader_id = self._search_regex(r'<a href="https://www\.clubdam\.com/app/damtomo/member/info/Profile\.do\?damtomoId=([^"]+)"', webpage, 'uploader_id', default=None)
 
-        # cleaner way to extract information in HTML
-        # example content: https://gist.github.com/nao20010128nao/1d419cc9ca3177be134094addf28ab51
-        data_dict = {g.group(2): clean_html(g.group(3)) for g in re.finditer(r'(?s)<(p|div)\s+class="([^" ]+?)">(.+?)</\1>', webpage)}
-        data_dict = {k: re.sub(r'\s+', ' ', v) for k, v in data_dict.items() if v}
+        data_dict = {
+            mobj.group('class'): re.sub(r'\s+', ' ', clean_html(mobj.group('value')))
+            for mobj in re.finditer(r'(?s)<(p|div)\s+class="(?P<class>[^" ]+?)">(?P<value>.+?)</\1>', webpage)}
 
         # since videos do not have title, give the name of song instead
         data_dict['user_name'] = re.sub(r'\s*さん\s*$', '', data_dict['user_name'])
