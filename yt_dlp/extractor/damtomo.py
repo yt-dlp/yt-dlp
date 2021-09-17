@@ -40,6 +40,7 @@ class DamtomoBaseIE(InfoExtractor):
             raise ExtractorError('Failed to obtain m3u8 URL')
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, ext='mp4')
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
