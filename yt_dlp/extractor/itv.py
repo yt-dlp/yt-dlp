@@ -113,11 +113,16 @@ class ITVIE(InfoExtractor):
 
     def _get_subtitles(self, video_id, variants, ios_playlist_url, headers, *args, **kwargs):
         subtitles = {}
-        platform_tag_subs, featureset_subs = next(
-            ((platform_tag, featureset)
-             for platform_tag, featuresets in variants.items() for featureset in featuresets
-             if try_get(featureset, lambda x: x[2]) == 'outband-webvtt'),
-            (None, None))
+        platform_tag_subs = None
+        featureset_subs = None
+        # Prefer last matching featureset
+        # See: https://github.com/yt-dlp/yt-dlp/issues/986
+        for platform_tag, featuresets in variants.items():
+            for featureset in featuresets:
+                if 'outband-webvtt' in (featureset or []):
+                    platform_tag_subs = platform_tag
+                    featureset_subs = featureset
+                    break
         if platform_tag_subs or featureset_subs:
             subs_playlist = self._call_api(
                 video_id, ios_playlist_url, headers, platform_tag_subs, featureset_subs, fatal=False)
@@ -139,11 +144,16 @@ class ITVIE(InfoExtractor):
         variants = self._parse_json(
             try_get(params, lambda x: x['data-video-variants'], compat_str) or '{}',
             video_id, fatal=False)
-        platform_tag_video, featureset_video = next(
-            ((platform_tag, featureset)
-             for platform_tag, featuresets in variants.items() for featureset in featuresets
-             if try_get(featureset, lambda x: x[:2]) == ['hls', 'aes']),
-            (None, None))
+        platform_tag_video = None
+        featureset_video = None
+        # Prefer last matching featureset
+        # See: https://github.com/yt-dlp/yt-dlp/issues/986
+        for platform_tag, featuresets in variants.items():
+            for featureset in featuresets:
+                if all(f in (featureset or []) for f in ['hls', 'aes']):
+                    platform_tag_video = platform_tag
+                    featureset_video = featureset
+                    break
         if not platform_tag_video or not featureset_video:
             raise ExtractorError('No downloads available', expected=True, video_id=video_id)
 
