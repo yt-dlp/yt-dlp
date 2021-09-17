@@ -14,6 +14,8 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       sha256_unix: ${{ steps.sha256_file.outputs.sha256_unix }}
       sha512_unix: ${{ steps.sha512_file.outputs.sha512_unix }}
+      sha256_unix: ${{ steps.sha256_tar.outputs.sha256_unix }}
+      sha512_unix: ${{ steps.sha512_tar.outputs.sha512_unix }}
 
     steps:
     - uses: actions/checkout@v2
