@@ -12,10 +12,10 @@ jobs:
     outputs:
       ytdlp_version: ${{ steps.bump_version.outputs.ytdlp_version }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
-      sha256_unix: ${{ steps.sha256_file.outputs.sha256_unix }}
-      sha512_unix: ${{ steps.sha512_file.outputs.sha512_unix }}
-      sha256_unix: ${{ steps.sha256_tar.outputs.sha256_unix }}
-      sha512_unix: ${{ steps.sha512_tar.outputs.sha512_unix }}
+      sha256_bin: ${{ steps.sha256_bin.outputs.sha256_bin }}
+      sha512_bin: ${{ steps.sha512_bin.outputs.sha512_bin }}
+      sha256_tar: ${{ steps.sha256_tar.outputs.sha256_tar }}
+      sha512_tar: ${{ steps.sha512_tar.outputs.sha512_tar }}
 
     steps:
     - uses: actions/checkout@v2
@@ -87,14 +87,14 @@ jobs:
         asset_name: yt-dlp.tar.gz
         asset_content_type: application/gzip
     - name: Get SHA2-256SUMS for yt-dlp
-      id: sha256_file
-      run: echo "::set-output name=sha256_unix::$(sha256sum yt-dlp | awk '{print $1}')"
+      id: sha256_bin
+      run: echo "::set-output name=sha256_bin::$(sha256sum yt-dlp | awk '{print $1}')"
     - name: Get SHA2-256SUMS for yt-dlp.tar.gz
       id: sha256_tar
       run: echo "::set-output name=sha256_tar::$(sha256sum yt-dlp.tar.gz | awk '{print $1}')"
     - name: Get SHA2-512SUMS for yt-dlp
-      id: sha512_file
-      run: echo "::set-output name=sha512_unix::$(sha512sum yt-dlp | awk '{print $1}')"
+      id: sha512_bin
+      run: echo "::set-output name=sha512_bin::$(sha512sum yt-dlp | awk '{print $1}')"
     - name: Get SHA2-512SUMS for yt-dlp.tar.gz
       id: sha512_tar
       run: echo "::set-output name=sha512_tar::$(sha512sum yt-dlp.tar.gz | awk '{print $1}')"
@@ -120,8 +120,8 @@ jobs:
     needs: build_unix
 
     outputs:
-      sha256_windows: ${{ steps.sha256_file_win.outputs.sha256_windows }}
-      sha512_windows: ${{ steps.sha512_file_win.outputs.sha512_windows }}
+      sha256_win: ${{ steps.sha256_win.outputs.sha256_win }}
+      sha512_win: ${{ steps.sha512_win.outputs.sha512_win }}
 
     steps:
     - uses: actions/checkout@v2
@@ -153,19 +153,19 @@ jobs:
         asset_name: yt-dlp.exe
         asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for yt-dlp.exe
-      id: sha256_file_win
-      run: echo "::set-output name=sha256_windows::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA256).Hash.ToLower())"
+      id: sha256_win
+      run: echo "::set-output name=sha256_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA256).Hash.ToLower())"
     - name: Get SHA2-512SUMS for yt-dlp.exe
-      id: sha512_file_win
-      run: echo "::set-output name=sha512_windows::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
+      id: sha512_win
+      run: echo "::set-output name=sha512_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
 
   build_windows32:
     runs-on: windows-latest
     needs: [build_unix, build_windows]
 
     outputs:
-      sha256_windows32: ${{ steps.sha256_file_win32.outputs.sha256_windows32 }}
-      sha512_windows32: ${{ steps.sha512_file_win32.outputs.sha512_windows32 }}
+      sha256_win32: ${{ steps.sha256_win32.outputs.sha256_win32 }}
+      sha512_win32: ${{ steps.sha512_win32.outputs.sha512_win32 }}
 
     steps:
     - uses: actions/checkout@v2
@@ -197,11 +197,11 @@ jobs:
         asset_name: yt-dlp_x86.exe
         asset_content_type: application/vnd.microsoft.portable-executable
     - name: Get SHA2-256SUMS for yt-dlp_x86.exe
-      id: sha256_file_win32
-      run: echo "::set-output name=sha256_windows32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA256).Hash.ToLower())"
+      id: sha256_win32
+      run: echo "::set-output name=sha256_win32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA256).Hash.ToLower())"
     - name: Get SHA2-512SUMS for yt-dlp_x86.exe
-      id: sha512_file_win32
-      run: echo "::set-output name=sha512_windows32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA512).Hash.ToLower())"
+      id: sha512_win32
+      run: echo "::set-output name=sha512_win32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA512).Hash.ToLower())"
 
   finish:
     runs-on: ubuntu-latest
@@ -210,14 +210,14 @@ jobs:
     steps:
     - name: Make SHA2-256SUMS file
       env:
-        SHA256_WINDOWS: ${{ needs.build_windows.outputs.sha256_windows }}
-        SHA256_WINDOWS32: ${{ needs.build_windows32.outputs.sha256_windows32 }}
-        SHA256_UNIX: ${{ needs.build_unix.outputs.sha256_unix }}
+        SHA256_WIN: ${{ needs.build_windows.outputs.sha256_win }}
+        SHA256_WIN32: ${{ needs.build_windows32.outputs.sha256_win32 }}
+        SHA256_BIN: ${{ needs.build_unix.outputs.sha256_bin }}
         SHA256_TAR: ${{ needs.build_unix.outputs.sha256_tar }}
       run: |
-        echo "${{ env.SHA256_WINDOWS }}  yt-dlp.exe" >> SHA2-256SUMS
-        echo "${{ env.SHA256_WINDOWS32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
-        echo "${{ env.SHA256_UNIX }}  yt-dlp" >> SHA2-256SUMS
+        echo "${{ env.SHA256_WIN }}  yt-dlp.exe" >> SHA2-256SUMS
+        echo "${{ env.SHA256_WIN32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
+        echo "${{ env.SHA256_BIN }}  yt-dlp" >> SHA2-256SUMS
         echo "${{ env.SHA256_TAR }}  yt-dlp.tar.gz" >> SHA2-256SUMS
     - name: Upload 256SUMS file
       id: upload-sums
@@ -231,14 +231,14 @@ jobs:
         asset_content_type: text/plain
     - name: Make SHA2-512SUMS file
       env:
-        SHA512_WINDOWS: ${{ needs.build_windows.outputs.sha512_windows }}
-        SHA512_WINDOWS32: ${{ needs.build_windows32.outputs.sha512_windows32 }}
-        SHA512_UNIX: ${{ needs.build_unix.outputs.sha512_unix }}
+        SHA512_WIN: ${{ needs.build_windows.outputs.sha512_win }}
+        SHA512_WIN32: ${{ needs.build_windows32.outputs.sha512_win32 }}
+        SHA512_BIN: ${{ needs.build_unix.outputs.sha512_bin }}
         SHA512_TAR: ${{ needs.build_unix.outputs.sha512_tar }}
       run: |
-        echo "${{ env.SHA512_WINDOWS }}  yt-dlp.exe" >> SHA2-512SUMS
-        echo "${{ env.SHA512_WINDOWS32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
-        echo "${{ env.SHA512_UNIX }}  yt-dlp" >> SHA2-512SUMS
+        echo "${{ env.SHA512_WIN }}  yt-dlp.exe" >> SHA2-512SUMS
+        echo "${{ env.SHA512_WIN32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
+        echo "${{ env.SHA512_BIN }}  yt-dlp" >> SHA2-512SUMS
         echo "${{ env.SHA512_TAR }}  yt-dlp.tar.gz" >> SHA2-512SUMS
     - name: Upload 512SUMS file
       id: upload-512sums
