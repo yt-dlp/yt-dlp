@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import re
-from xml.sax.saxutils import escape
 
 from .common import InfoExtractor
 from ..compat import (
@@ -209,7 +208,7 @@ class CBCGemIE(InfoExtractor):
             'episode_number': 1,
             'episode_id': 'schitts-creek/s06e01',
         },
-        'params': {'format': 'bv',}, # No format has audio and video combined
+        'params': {'format': 'bv'},  # No format has audio and video combined
         'skip': 'Geo-restricted to Canada',
     }, {
         # geo-restricted to Canada, bypassable
@@ -231,9 +230,9 @@ class CBCGemIE(InfoExtractor):
             'duration': 1309,
             'categories': ['comedy'],
         },
-        'params': {'format': 'bv',}, # No format has audio and video combined
+        'params': {'format': 'bv'},  # No format has audio and video combined
         'skip': 'Geo-restricted to Canada',
-    },{
+    }, {
         # geo-restricted to Canada, bypassable
         # TV show playlist, all public videos at time of coding (2021-09)
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06',
@@ -262,7 +261,7 @@ class CBCGemIE(InfoExtractor):
             show = playlist_match.group(1)
             show_info = self._download_json(self._API_SHOW + show, season_id)
             season = int(playlist_match.group(2))
-            season_info = list_get(show_info['seasons'], season-1)
+            season_info = list_get(show_info['seasons'], season - 1)
 
             if season_info is None:
                 raise ExtractorError(f"Couldn't find season {season} of {show}")
@@ -287,7 +286,7 @@ class CBCGemIE(InfoExtractor):
                     'duration': episode.get('duration'),
                     'categories': [episode.get('category')],
                 })
-            
+
             thumbnail = None
             tn_uri = season_info.get('image')
             # the-national was observed to use a "data:image/png;base64"
@@ -330,7 +329,7 @@ class CBCGemIE(InfoExtractor):
             )
 
         m3u8_url = m3u8_info.get('url')
-        
+
         # Sometimes the m3u8 URL is a not available, and errorCode is 35.
         # This might only happen with member content. But just retrying seems
         # to work fine.
@@ -351,7 +350,7 @@ class CBCGemIE(InfoExtractor):
         for i, format in enumerate(formats):
             if format.get('vcodec') == 'none':
                 # Audio-only
-                
+
                 # Only AAC audio is used
                 if format.get('ext') is None:
                     format['ext'] = 'm4a'
@@ -410,7 +409,7 @@ class CBCGemLiveIE(InfoExtractor):
 
         if video_info is None:
             raise ExtractorError("Couldn't find video metadata, maybe this livestream is now offline")
-        
+
         tags = video_info.get('keywords')
         if tags is not None:
             tags = tags.split(', ')
