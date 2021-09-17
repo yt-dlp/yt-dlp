@@ -116,19 +116,19 @@ def parseOpts(overrideArguments=None):
 
         return ''.join(opts)
 
-    def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=','):
+    def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = getattr(parser.values, option.dest) if append else []
-        value = [value] if delim is None else value.split(delim)
+        value = [process(value)] if delim is None else list(map(process, value.split(delim)))
         setattr(
             parser.values, option.dest,
             current + value if append is True else value + current)
 
     def _set_from_options_callback(
-            option, opt_str, value, parser,
-            delim=',', allowed_values=None, process=str.lower, aliases={}):
+            option, opt_str, value, parser, delim=',', allowed_values=None, aliases={},
+            process=lambda x: x.lower().strip()):
         current = getattr(parser.values, option.dest)
-        values = [process(value)] if delim is None else process(value).split(delim)[::-1]
+        values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:
             actual_val = val = values.pop()
             if val == 'all':
@@ -232,7 +232,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--default-search',
         dest='default_search', metavar='PREFIX',
-        help='Use this prefix for unqualified URLs. For example "gvsearch2:" downloads two videos from google videos for youtube-dl "large apple". Use the value "auto" to let youtube-dl guess ("auto_warning" to emit a warning when guessing). "error" just throws an error. The default value "fixup_error" repairs broken URLs, but emits an error if this is not possible instead of searching')
+        help='Use this prefix for unqualified URLs. For example "gvsearch2:" downloads two videos from google videos for the search term "large apple". Use the value "auto" to let yt-dlp guess ("auto_warning" to emit a warning when guessing). "error" just throws an error. The default value "fixup_error" repairs broken URLs, but emits an error if this is not possible instead of searching')
     general.add_option(
         '--ignore-config', '--no-config',
         action='store_true',
@@ -275,8 +275,7 @@ def parseOpts(overrideArguments=None):
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
                 'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
-            },
-            'aliases': {
+            }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
                 'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
             }
@@ -479,6 +478,10 @@ def parseOpts(overrideArguments=None):
         '-n', '--netrc',
         action='store_true', dest='usenetrc', default=False,
         help='Use .netrc authentication data')
+    authentication.add_option(
+        '--netrc-location',
+        dest='netrc_location', metavar='PATH',
+        help='Location of .netrc authentication data; either the path or its containing directory. Defaults to ~/.netrc')
     authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
@@ -1105,7 +1108,7 @@ def parseOpts(overrideArguments=None):
             'The comments are fetched even without this option if the extraction is known to be quick (Alias: --get-comments)'))
     filesystem.add_option(
         '--no-write-comments', '--no-get-comments',
-        action='store_true', dest='getcomments', default=False,
+        action='store_false', dest='getcomments',
         help='Do not retrieve video comments unless the extraction is known to be quick (Alias: --no-get-comments)')
     filesystem.add_option(
         '--load-info-json', '--load-info',
@@ -1128,14 +1131,14 @@ def parseOpts(overrideArguments=None):
             'You can specify the user profile name or directory using '
             '"BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH". '
             'If no profile is given, the most recently accessed one is used'.format(
-                '|'.join(sorted(SUPPORTED_BROWSERS)))))
+                ', '.join(sorted(SUPPORTED_BROWSERS)))))
     filesystem.add_option(
         '--no-cookies-from-browser',
         action='store_const', const=None, dest='cookiesfrombrowser',
         help='Do not load cookies from browser (default)')
     filesystem.add_option(
         '--cache-dir', dest='cachedir', default=None, metavar='DIR',
-        help='Location in the filesystem where youtube-dl can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/youtube-dl or ~/.cache/youtube-dl')
+        help='Location in the filesystem where youtube-dl can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/yt-dlp or ~/.cache/yt-dlp')
     filesystem.add_option(
         '--no-cache-dir', action='store_false', dest='cachedir',
         help='Disable filesystem caching')
@@ -1394,7 +1397,7 @@ def parseOpts(overrideArguments=None):
             'SponsorBlock categories to create chapters for, separated by commas. '
             'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
             'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories for description of the categories. '
-            'Eg: --sponsorblock-query all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
+            'Eg: --sponsorblock-mark all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
         '--sponsorblock-remove', metavar='CATS',
         dest='sponsorblock_remove', default=set(), action='callback', type='str',
@@ -1421,7 +1424,7 @@ def parseOpts(overrideArguments=None):
 
     sponsorblock.add_option(
         '--sponskrub',
-        action='store_true', dest='sponskrub', default=None,
+        action='store_true', dest='sponskrub', default=False,
         help=optparse.SUPPRESS_HELP)
     sponsorblock.add_option(
         '--no-sponskrub',

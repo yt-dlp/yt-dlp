@@ -1740,6 +1740,7 @@ DATE_FORMATS = (
     '%b %dth %Y %I:%M',
     '%Y %m %d',
     '%Y-%m-%d',
+    '%Y.%m.%d.',
     '%Y/%m/%d',
     '%Y/%m/%d %H:%M',
     '%Y/%m/%d %H:%M:%S',
@@ -2408,7 +2409,7 @@ class ExtractorError(YoutubeDLError):
         if sys.exc_info()[0] in network_exceptions:
             expected = True
 
-        self.msg = msg
+        self.msg = str(msg)
         self.traceback = tb
         self.expected = expected
         self.cause = cause
@@ -2419,7 +2420,7 @@ class ExtractorError(YoutubeDLError):
         super(ExtractorError, self).__init__(''.join((
             format_field(ie, template='[%s] '),
             format_field(video_id, template='%s: '),
-            msg,
+            self.msg,
             format_field(cause, template=' (caused by %r)'),
             '' if expected else bug_reports_message())))
 
@@ -3972,6 +3973,9 @@ class LazyList(collections.abc.Sequence):
     ''' Lazy immutable list from an iterable
     Note that slices of a LazyList are lists and not LazyList'''
 
+    class IndexError(IndexError):
+        pass
+
     def __init__(self, iterable):
         self.__iterable = iter(iterable)
         self.__cache = []
@@ -4015,22 +4019,28 @@ class LazyList(collections.abc.Sequence):
                 or (stop is None and step > 0)):
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
-            return self.__exhaust()[idx]
-
+            self.__exhaust()
+            try:
+                return self.__cache[idx]
+            except IndexError as e:
+                raise self.IndexError(e) from e
         n = max(start or 0, stop or 0) - len(self.__cache) + 1
         if n > 0:
             self.__cache.extend(itertools.islice(self.__iterable, n))
-        return self.__cache[idx]
+        try:
+            return self.__cache[idx]
+        except IndexError as e:
+            raise self.IndexError(e) from e
 
     def __bool__(self):
         try:
             self[-1] if self.__reversed else self[0]
-        except IndexError:
+        except self.IndexError:
             return False
         return True
 
     def __len__(self):
-        self.exhaust()
+        self.__exhaust()
         return len(self.__cache)
 
     def reverse(self):
@@ -4378,6 +4388,8 @@ def js_to_json(code, vars={}):
         v = m.group(0)
         if v in ('true', 'false', 'null'):
             return v
+        elif v in ('undefined', 'void 0'):
+            return 'null'
         elif v.startswith('/*') or v.startswith('//') or v.startswith('!') or v == ',':
             return ""
 
@@ -4404,7 +4416,7 @@ def js_to_json(code, vars={}):
         "(?:[^"\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^"\\]*"|
         '(?:[^'\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^'\\]*'|
         {comment}|,(?={skip}[\]}}])|
-        (?:(?<![0-9])[eE]|[a-df-zA-DF-Z_])[.a-zA-Z_0-9]*|
+        void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
         \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{skip}:)?|
         [0-9]+(?={skip}:)|
         !+

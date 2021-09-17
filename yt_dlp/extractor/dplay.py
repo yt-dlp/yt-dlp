@@ -389,3 +389,23 @@ class ScienceChannelIE(DiscoveryPlusIE):
 
     _PRODUCT = 'sci'
     _API_URL = 'us1-prod-direct.sciencechannel.com'
+
+
+class DIYNetworkIE(DiscoveryPlusIE):
+    _VALID_URL = r'https?://(?:watch\.)?diynetwork\.com/video' + DPlayIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.diynetwork.com/video/pool-kings-diy-network/bringing-beach-life-to-texas',
+        'info_dict': {
+            'id': '2309730',
+            'display_id': 'pool-kings-diy-network/bringing-beach-life-to-texas',
+            'ext': 'mp4',
+            'title': 'Bringing Beach Life to Texas',
+            'description': 'The Pool Kings give a family a day at the beach in their own backyard.',
+            'season_number': 10,
+            'episode_number': 2,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'diy'
+    _API_URL = 'us1-prod-direct.watch.diynetwork.com'

@@ -84,19 +84,6 @@ jobs:
         rm -rf dist/*
         python setup.py sdist bdist_wheel
         twine upload dist/*
-    - name: Install SSH private key
-      if: ${{ secrets.BREW_TOKEN }}
-      uses: webfactory/ssh-agent@v0.5.3
-      with:
-          ssh-private-key: ${{ secrets.BREW_TOKEN }}
-    - name: Update Homebrew Formulae
-      # can't use secrets.GITHUB_TOKEN because it's outside yt-dlp repository
-      if: ${{ secrets.BREW_TOKEN }}
-      run: |
-        git clone git@github.com:yt-dlp/homebrew-taps taps/
-        python3 devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ steps.bump_version.outputs.ytdlp_version }}"
-        git -C taps/ commit -am 'yt-dlp: ${{ steps.bump_version.outputs.ytdlp_version }}'
-        git -C taps/ push
 
   build_windows:
     runs-on: windows-latest

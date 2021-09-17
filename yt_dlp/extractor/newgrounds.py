@@ -1,5 +1,7 @@
+# coding: utf-8
 from __future__ import unicode_literals
 
+import functools
 import re
 
 from .common import InfoExtractor
@@ -8,8 +10,9 @@ from ..utils import (
     int_or_none,
     parse_count,
     parse_duration,
-    parse_filesize,
     unified_timestamp,
+    OnDemandPagedList,
+    try_get,
 )
 
 
@@ -88,10 +91,10 @@ class NewgroundsIE(InfoExtractor):
         webpage = self._download_webpage(url, media_id)
 
         title = self._html_search_regex(
-            r'<title>([^>]+)</title>', webpage, 'title')
+            r'<title>(.+?)</title>', webpage, 'title')
 
         media_url_string = self._search_regex(
-            r'"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None, fatal=False)
+            r'"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
 
         if media_url_string:
             media_url = self._parse_json(media_url_string, media_id)
@@ -128,20 +131,26 @@ class NewgroundsIE(InfoExtractor):
             (r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+</dd>\s*<dd>[^<]+)',
              r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+)'), webpage, 'timestamp',
             default=None))
-        duration = parse_duration(self._search_regex(
-            r'(?s)<dd>\s*Song\s*</dd>\s*<dd>.+?</dd>\s*<dd>([^<]+)', webpage,
+        duration = parse_duration(self._html_search_regex(
+            r'"duration"\s*:\s*["\']?([\d]+)["\']?,', webpage,
             'duration', default=None))
 
-        view_count = parse_count(self._html_search_regex(r'(?s)<dt>\s*Views\s*</dt>\s*<dd>([\d\.,]+)</dd>', webpage,
-                                                         'view_count', fatal=False, default=None))
+        view_count = parse_count(self._html_search_regex(
+            r'(?s)<dt>\s*Views\s*</dt>\s*<dd>([\d\.,]+)</dd>', webpage,
+            'view count', default=None))
 
-        filesize_approx = parse_filesize(self._html_search_regex(
-            r'(?s)<dd>\s*Song\s*</dd>\s*<dd>(.+?)</dd>', webpage, 'filesize',
+        filesize = int_or_none(self._html_search_regex(
+            r'"filesize"\s*:\s*["\']?([\d]+)["\']?,', webpage, 'filesize',
             default=None))
-        if len(formats) == 1:
-            formats[0]['filesize_approx'] = filesize_approx
 
-        if '<dd>Song' in webpage:
+        video_type_description = self._html_search_regex(
+            r'"description"\s*:\s*["\']?([^"\']+)["\']?,', webpage, 'filesize',
+            default=None)
+
+        if len(formats) == 1:
+            formats[0]['filesize'] = filesize
+
+        if video_type_description == 'Audio File':
             formats[0]['vcodec'] = 'none'
         self._check_formats(formats, media_id)
         self._sort_formats(formats)
@@ -160,6 +169,7 @@ class NewgroundsIE(InfoExtractor):
 
 
 class NewgroundsPlaylistIE(InfoExtractor):
+    IE_NAME = 'Newgrounds:playlist'
     _VALID_URL = r'https?://(?:www\.)?newgrounds\.com/(?:collection|[^/]+/search/[^/]+)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.newgrounds.com/collection/cats',
@@ -202,7 +212,57 @@ class NewgroundsPlaylistIE(InfoExtractor):
                 continue
             entries.append(
                 self.url_result(
-                    'https://www.newgrounds.com/%s' % path,
+                    f'https://www.newgrounds.com/{path}',
                     ie=NewgroundsIE.ie_key(), video_id=media_id))
 
         return self.playlist_result(entries, playlist_id, title)
+
+
+class NewgroundsUserIE(InfoExtractor):
+    IE_NAME = 'Newgrounds:user'
+    _VALID_URL = r'https?://(?P<id>[^\.]+)\.newgrounds\.com/(?:movies|audio)/?(?:[#?]|$)'
+    _TESTS = [{
+        'url': 'https://burn7.newgrounds.com/audio',
+        'info_dict': {
+            'id': 'burn7',
+        },
+        'playlist_mincount': 150,
+    }, {
+        'url': 'https://burn7.newgrounds.com/movies',
+        'info_dict': {
+            'id': 'burn7',
+        },
+        'playlist_mincount': 2,
+    }, {
+        'url': 'https://brian-beaton.newgrounds.com/movies',
+        'info_dict': {
+            'id': 'brian-beaton',
+        },
+        'playlist_mincount': 10,
+    }]
+    _PAGE_SIZE = 30
+
+    def _fetch_page(self, channel_id, url, page):
+        page += 1
+        posts_info = self._download_json(
+            f'{url}/page/{page}', channel_id,
+            note=f'Downloading page {page}', headers={
+                'Accept': 'application/json, text/javascript, */*; q = 0.01',
+                'X-Requested-With': 'XMLHttpRequest',
+            })
+        sequence = posts_info.get('sequence', [])
+        for year in sequence:
+            posts = try_get(posts_info, lambda x: x['years'][str(year)]['items'])
+            for post in posts:
+                path, media_id = self._search_regex(
+                    r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
+                    post, 'url', group=(1, 2))
+                yield self.url_result(f'https://www.newgrounds.com/{path}', NewgroundsIE.ie_key(), media_id)
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+
+        entries = OnDemandPagedList(functools.partial(
+            self._fetch_page, channel_id, url), self._PAGE_SIZE)
+
+        return self.playlist_result(entries, channel_id)

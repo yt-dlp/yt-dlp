@@ -56,9 +56,7 @@ class SouthParkEsIE(SouthParkIE):
 
 class SouthParkDeIE(SouthParkIE):
     IE_NAME = 'southpark.de'
-    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:(en/(videoclip|collections|episodes))|(videoclip|collections|folgen))/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
-    # _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
-
+    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:(en/(videoclip|collections|episodes|video-clips))|(videoclip|collections|folgen))/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
     _TESTS = [{
         'url': 'https://www.southpark.de/videoclip/rsribv/south-park-rueckzug-zum-gummibonbon-wald',
         'only_matching': True,
@@ -68,6 +66,41 @@ class SouthParkDeIE(SouthParkIE):
     }, {
         'url': 'https://www.southpark.de/collections/zzno5a/south-park-good-eats/7q26gp',
         'only_matching': True,
+    }, {
+        # clip
+        'url': 'https://www.southpark.de/en/video-clips/ct46op/south-park-tooth-fairy-cartman',
+        'info_dict': {
+            'id': 'e99d45ea-ed00-11e0-aca6-0026b9414f30',
+            'ext': 'mp4',
+            'title': 'Tooth Fairy Cartman',
+            'description': 'md5:db02e23818b4dc9cb5f0c5a7e8833a68',
+        },
+    }, {
+        # episode
+        'url': 'https://www.southpark.de/en/episodes/yy0vjs/south-park-the-pandemic-special-season-24-ep-1',
+        'info_dict': {
+            'id': 'f5fbd823-04bc-11eb-9b1b-0e40cf2fc285',
+            'ext': 'mp4',
+            'title': 'South Park',
+            'description': 'md5:ae0d875eff169dcbed16b21531857ac1',
+        },
+    }, {
+        # clip
+        'url': 'https://www.southpark.de/videoclip/ct46op/south-park-zahnfee-cartman',
+        'info_dict': {
+            'id': 'e99d45ea-ed00-11e0-aca6-0026b9414f30',
+            'ext': 'mp4',
+            'title': 'Zahnfee Cartman',
+            'description': 'md5:b917eec991d388811d911fd1377671ac'
+        },
+    }, {
+        # episode
+        'url': 'https://www.southpark.de/folgen/242csn/south-park-her-mit-dem-hirn-staffel-1-ep-7',
+        'info_dict': {
+            'id': '607115f3-496f-40c3-8647-2b0bcff486c0',
+            'ext': 'mp4',
+            'title': 'md5:South Park | Pink Eye | E 0107 | HDSS0107X deu | Version: 634312 | Comedy Central S1',
+        },
     }]
 
     def _get_feed_url(self, uri, url=None):
@@ -75,6 +108,9 @@ class SouthParkDeIE(SouthParkIE):
         config = self._download_json(
             'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge&ref=%s' % (uri, url), video_id)
         return self._remove_template_parameter(config['feedWithQueryParams'])
+
+    def _get_feed_query(self, uri):
+        return
 
 
 class SouthParkNlIE(SouthParkIE):

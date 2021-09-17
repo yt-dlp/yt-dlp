@@ -357,7 +357,7 @@ class FFmpegFD(ExternalFD):
         pass
 
     @classmethod
-    def can_merge_formats(cls, info_dict, params={}):
+    def can_merge_formats(cls, info_dict, params):
         return (
             info_dict.get('requested_formats')
             and info_dict.get('protocol')

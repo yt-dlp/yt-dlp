@@ -9,11 +9,9 @@ from .ffmpeg import (
 )
 from .sponsorblock import SponsorBlockPP
 from ..utils import (
-    float_or_none,
     orderedSet,
     PostProcessingError,
     prepend_extension,
-    traverse_obj,
 )
 
 
@@ -37,7 +35,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         if not chapters and not sponsor_chapters:
             return [], info
 
-        real_duration = self._get_real_video_duration(info['filepath'])
+        real_duration = self._get_real_video_duration(info)
         if not chapters:
             chapters = [{'start_time': 0, 'end_time': real_duration, 'title': info['title']}]
 
@@ -45,8 +43,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         if not cuts:
             return [], info
 
-        if abs(real_duration - info['duration']) > 1:
-            if abs(real_duration - info['chapters'][-1]['end_time']) < 1:
+        if self._duration_mismatch(real_duration, info.get('duration')):
+            if not self._duration_mismatch(real_duration, info['chapters'][-1]['end_time']):
                 self.to_screen(f'Skipping {self.pp_key()} since the video appears to be already cut')
                 return [], info
             if not info.get('__real_download'):
@@ -72,6 +70,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             os.replace(out_file, in_file)
             files_to_remove.append(uncut_file)
 
+        info['_real_duration'] = info['chapters'][-1]['end_time']
         return files_to_remove, info
 
     def _mark_chapters_to_remove(self, chapters, sponsor_chapters):
@@ -100,13 +99,6 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 self.to_screen('There are no matching SponsorBlock chapters')
 
         return chapters, sponsor_chapters
-
-    def _get_real_video_duration(self, filename):
-        duration = float_or_none(
-            traverse_obj(self.get_metadata_object(filename), ('format', 'duration')))
-        if duration is None:
-            raise PostProcessingError('ffprobe returned empty duration')
-        return duration
 
     def _get_supported_subs(self, info):
         for sub in (info.get('requested_subtitles') or {}).values():
@@ -311,7 +303,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         in_file = filename
         out_file = prepend_extension(in_file, 'temp')
         if force_keyframes:
-            in_file = self.force_keyframes(in_file, (t for r in ranges_to_cut for t in r))
+            in_file = self.force_keyframes(in_file, (t for c in ranges_to_cut for t in (c['start_time'], c['end_time'])))
         self.to_screen(f'Removing chapters from {filename}')
         self.concat_files([in_file] * len(concat_opts), out_file, concat_opts)
         if in_file != filename:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-from __future__ import unicode_literals
+f'You are using an unsupported version of Python. Only Python versions 3.6 and above are supported by yt-dlp'  # noqa: F541
 
 __license__ = 'Public Domain'
 
@@ -248,7 +248,7 @@ def _real_main(argv=None):
     if opts.cookiesfrombrowser is not None:
         opts.cookiesfrombrowser = [
             part.strip() or None for part in opts.cookiesfrombrowser.split(':', 1)]
-        if opts.cookiesfrombrowser[0] not in SUPPORTED_BROWSERS:
+        if opts.cookiesfrombrowser[0].lower() not in SUPPORTED_BROWSERS:
             parser.error('unsupported browser specified for cookies')
 
     if opts.date is not None:
@@ -575,6 +575,7 @@ def _real_main(argv=None):
 
     ydl_opts = {
         'usenetrc': opts.usenetrc,
+        'netrc_location': opts.netrc_location,
         'username': opts.username,
         'password': opts.password,
         'twofactor': opts.twofactor,
