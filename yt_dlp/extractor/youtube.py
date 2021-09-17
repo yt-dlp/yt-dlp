@@ -588,6 +588,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @staticmethod
     def _extract_session_index(*data):
+        """
+        Index of current account in account list.
+        See: https://github.com/yt-dlp/yt-dlp/pull/519
+        """
         for ytcfg in data:
             session_index = int_or_none(try_get(ytcfg, lambda x: x['SESSION_INDEX']))
             if session_index is not None:
@@ -644,7 +648,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=default_client)),
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, default_client),
             'Origin': origin,
-            # Auth related headers
             'X-Youtube-Identity-Token': identity_token or self._extract_identity_token(ytcfg),
             'X-Goog-PageId': account_syncid or self._extract_account_syncid(ytcfg),
             'X-Goog-Visitor-Id': visitor_data or try_get(
