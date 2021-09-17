@@ -142,7 +142,7 @@ class SpankBangIE(InfoExtractor):
         uploader = self._html_search_regex(
             r'</use></svg> (.*) <svg class="i_svg i_angle-right">', webpage, 'uploader_id', default=None)
         uploader_id = self._html_search_regex(
-            r'<a href="/profile/(.*)" class="ul">', webpage, 'uploader', default=None)
+            r'<a[^>]+href="/profile/([^"]+)"', webpage, 'uploader_id', default=None)
         duration = parse_duration(self._search_regex(
             r'<div[^>]+\bclass=["\']right_side[^>]+>\s*<span>([^<]+)',
             webpage, 'duration', default=None))
