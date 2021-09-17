@@ -193,11 +193,12 @@ class SafariApiIE(SafariBaseIE):
         part = self._download_json(
             url, '%s/%s' % (mobj.group('course_id'), mobj.group('part')),
             'Downloading part JSON')
-        webUrl = part['web_url']
-        webUrl = webUrl.replace('library/view', 'videos')
-        naturalKeys = part['natural_key']
-        webUrl = webUrl[:webUrl.rfind('/') + 1] + naturalKeys[0] + '-' + naturalKeys[1][:-5]
-        return self.url_result(webUrl, SafariIE.ie_key())
+        web_url = part['web_url']
+        if 'library/view' in web_url:
+            web_url = web_url.replace('library/view', 'videos')
+            natural_keys = part['natural_key']
+            web_url = f'{web_url.rsplit("/")[0]}/{natural_keys[0]}-{natural_keys[1][:-5]}'
+        return self.url_result(web_url, SafariIE.ie_key())
 
 
 class SafariCourseIE(SafariBaseIE):
