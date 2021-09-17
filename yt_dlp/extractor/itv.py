@@ -123,7 +123,7 @@ class ITVIE(InfoExtractor):
                     platform_tag_subs = platform_tag
                     featureset_subs = featureset
                     break
-        if platform_tag_subs or featureset_subs:
+        if platform_tag_subs and featureset_subs:
             subs_playlist = self._call_api(
                 video_id, ios_playlist_url, headers, platform_tag_subs, featureset_subs, fatal=False)
             subs = try_get(subs_playlist, lambda x: x['Playlist']['Video']['Subtitles'], list) or []
