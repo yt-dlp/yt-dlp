@@ -113,8 +113,6 @@ class ITVIE(InfoExtractor):
 
     def _get_subtitles(self, video_id, variants, ios_playlist_url, headers, *args, **kwargs):
         subtitles = {}
-        platform_tag_subs = None
-        featureset_subs = None
         # Prefer last matching featureset
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_subs, featureset_subs = next(
@@ -144,8 +142,6 @@ class ITVIE(InfoExtractor):
         variants = self._parse_json(
             try_get(params, lambda x: x['data-video-variants'], compat_str) or '{}',
             video_id, fatal=False)
-        platform_tag_video = None
-        featureset_video = None
         # Prefer last matching featureset
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_video, featureset_video = next(
