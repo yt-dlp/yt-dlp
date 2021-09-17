@@ -261,7 +261,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
-        help='Mark videos watched (YouTube only)')
+        help='Mark videos watched (even with --simulate). Currently only supported for YouTube')
     general.add_option(
         '--no-mark-watched',
         action='store_false', dest='mark_watched',
@@ -768,7 +768,7 @@ def parseOpts(overrideArguments=None):
         dest='encoding', metavar='ENCODING',
         help='Force the specified encoding (experimental)')
     workarounds.add_option(
-        '--no-check-certificate',
+        '--no-check-certificates',
         action='store_true', dest='no_check_certificate', default=False,
         help='Suppress HTTPS certificate validation')
     workarounds.add_option(

@@ -454,13 +454,12 @@ class YoutubeDL(object):
 
     _NUMERIC_FIELDS = set((
         'width', 'height', 'tbr', 'abr', 'asr', 'vbr', 'fps', 'filesize', 'filesize_approx',
-        'timestamp', 'upload_year', 'upload_month', 'upload_day',
+        'timestamp', 'release_timestamp',
         'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count',
         'average_rating', 'comment_count', 'age_limit',
         'start_time', 'end_time',
         'chapter_number', 'season_number', 'episode_number',
         'track_number', 'disc_number', 'release_year',
-        'playlist_index',
     ))
 
     params = None
@@ -579,8 +578,8 @@ class YoutubeDL(object):
 
         self._setup_opener()
 
-        """Preload the archive, if any is specified"""
         def preload_download_archive(fn):
+            """Preload the archive, if any is specified"""
             if fn is None:
                 return False
             self.write_debug('Loading archive file %r\n' % fn)
@@ -934,10 +933,11 @@ class YoutubeDL(object):
         if info_dict.get('resolution') is None:
             info_dict['resolution'] = self.format_resolution(info_dict, default=None)
 
-        # For fields playlist_index and autonumber convert all occurrences
+        # For fields playlist_index, playlist_autonumber and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
         field_size_compat_map = {
             'playlist_index': len(str(info_dict.get('_last_playlist_index') or '')),
+            'playlist_autonumber': len(str(info_dict.get('n_entries') or '')),
             'autonumber': self.params.get('autonumber_size') or 5,
         }
 

@@ -77,7 +77,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
     * Most (but not all) age-gated content can be downloaded without cookies
     * Partial workaround for throttling issue
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
-    * `255kbps` audio is extracted from youtube music if premium cookies are given
+    * `255kbps` audio is extracted (if available) from youtube music when premium cookies are given
     * Youtube music Albums, channels etc can be downloaded ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723))
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[:PROFILE]`
@@ -150,7 +150,7 @@ For ease of use, a few more compat options are available:
 yt-dlp is not platform specific. So it should work on your Unix box, on Windows or on macOS
 
 You can install yt-dlp using one of the following methods:
-* Download the binary from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest) (recommended method)
+* Download the binary from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest)
 * With Homebrew, `brew install yt-dlp/taps/yt-dlp`
 * Use [PyPI package](https://pypi.org/project/yt-dlp): `python3 -m pip install --upgrade yt-dlp`
 * Use pip+git: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
@@ -195,7 +195,7 @@ On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https:
 While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly recommended
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging seperate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. Licence [depends on the build](https://www.ffmpeg.org/legal.html)
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licenced under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
-* [**pycryptodome**](https://github.com/Legrandin/pycryptodome) - For decrypting various data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
+* [**pycryptodome**](https://github.com/Legrandin/pycryptodome) - For decrypting AES-128 HLS streams and various other data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licenced under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
 * [**keyring**](https://github.com/jaraco/keyring) - For decrypting cookies of chromium-based browsers on Linux. Licenced under [MIT](https://github.com/jaraco/keyring/blob/main/LICENSE)
 * [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen is not present. Licenced under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
@@ -1002,9 +1002,10 @@ The available fields are:
  - `uploader` (string): Full name of the video uploader
  - `license` (string): License name the video is licensed under
  - `creator` (string): The creator of the video
- - `release_date` (string): The date (YYYYMMDD) when the video was released
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
  - `upload_date` (string): Video upload date (YYYYMMDD)
+ - `release_date` (string): The date (YYYYMMDD) when the video was released
+ - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
  - `uploader_id` (string): Nickname or id of the video uploader
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
@@ -1046,8 +1047,10 @@ The available fields are:
  - `extractor_key` (string): Key name of the extractor
  - `epoch` (numeric): Unix epoch when creating the file
  - `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`
+ - `n_entries` (numeric): Total number of extracted items in the playlist
  - `playlist` (string): Name or id of the playlist that contains the video
- - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according to the total length of the playlist
+ - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according the final index
+ - `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
  - `playlist_id` (string): Playlist identifier
  - `playlist_title` (string): Playlist title
  - `playlist_uploader` (string): Full name of the playlist uploader
@@ -1266,7 +1269,7 @@ The available fields are:
 
 All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
-The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `lang,quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. The extractors may override this default order, but they cannot override the user-provided order.
+The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--format-sort-force`. Apart from these, the default order used is: `lang,quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. The extractors may override this default order, but they cannot override the user-provided order.
 
 Note that the default has `codec:vp9.2`; i.e. `av1` is not prefered
 

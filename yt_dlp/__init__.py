@@ -513,6 +513,7 @@ def _real_main(argv=None):
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
         })
+    # Note: Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
     # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29

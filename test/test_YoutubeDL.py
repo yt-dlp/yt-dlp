@@ -653,6 +653,7 @@ class TestYoutubeDL(unittest.TestCase):
         'timestamp': 1618488000,
         'duration': 100000,
         'playlist_index': 1,
+        'playlist_autonumber': 2,
         '_last_playlist_index': 100,
         'n_entries': 10,
         'formats': [{'id': 'id1'}, {'id': 'id2'}, {'id': 'id3'}]
@@ -690,6 +691,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
         test('%(resolution)s', '1080p')
         test('%(playlist_index)s', '001')
+        test('%(playlist_autonumber)s', '02')
         test('%(autonumber)s', '00001')
         test('%(autonumber+2)03d', '005', autonumber_start=3)
         test('%(autonumber)s', '001', autonumber_size=3)

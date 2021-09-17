@@ -406,6 +406,10 @@ class InfoExtractor(object):
     _real_extract() methods and define a _VALID_URL regexp.
     Probably, they should also be added to the list of extractors.
 
+    Subclasses may also override suitable() if necessary, but ensure the function
+    signature is preserved and that this function imports everything it needs
+    (except other extractors), so that lazy_extractors works correctly
+
     _GEO_BYPASS attribute may be set to False in order to disable
     geo restriction bypass mechanisms for a particular extractor.
     Though it won't disable explicit geo restriction bypass based on
@@ -421,7 +425,7 @@ class InfoExtractor(object):
     will be used by geo restriction bypass mechanism similarly
     to _GEO_COUNTRIES.
 
-    Finally, the _WORKING attribute should be set to False for broken IEs
+    The _WORKING attribute should be set to False for broken IEs
     in order to warn the users and skip the tests.
     """
 
