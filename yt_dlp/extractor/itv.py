@@ -113,12 +113,15 @@ class ITVIE(InfoExtractor):
 
     def _get_subtitles(self, video_id, variants, ios_playlist_url, headers, *args, **kwargs):
         subtitles = {}
+        # Prefer last matching featureset
+        # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_subs, featureset_subs = next(
             ((platform_tag, featureset)
-             for platform_tag, featuresets in variants.items() for featureset in featuresets
+             for platform_tag, featuresets in reversed(variants.items()) for featureset in featuresets
              if try_get(featureset, lambda x: x[2]) == 'outband-webvtt'),
             (None, None))
-        if platform_tag_subs or featureset_subs:
+
+        if platform_tag_subs and featureset_subs:
             subs_playlist = self._call_api(
                 video_id, ios_playlist_url, headers, platform_tag_subs, featureset_subs, fatal=False)
             subs = try_get(subs_playlist, lambda x: x['Playlist']['Video']['Subtitles'], list) or []
@@ -139,9 +142,11 @@ class ITVIE(InfoExtractor):
         variants = self._parse_json(
             try_get(params, lambda x: x['data-video-variants'], compat_str) or '{}',
             video_id, fatal=False)
+        # Prefer last matching featureset
+        # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_video, featureset_video = next(
             ((platform_tag, featureset)
-             for platform_tag, featuresets in variants.items() for featureset in featuresets
+             for platform_tag, featuresets in reversed(variants.items()) for featureset in featuresets
              if try_get(featureset, lambda x: x[:2]) == ['hls', 'aes']),
             (None, None))
         if not platform_tag_video or not featureset_video:
