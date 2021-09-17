@@ -13,6 +13,7 @@ from yt_dlp.aes import aes_cbc_decrypt
 from yt_dlp.compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
+    compat_pycrypto_AES
 )
 from yt_dlp.utils import (
     bug_reports_message,
@@ -31,12 +32,6 @@ except ImportError:
     # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
     SQLITE_AVAILABLE = False
 
-
-try:
-    from Crypto.Cipher import AES
-    CRYPTO_AVAILABLE = True
-except ImportError:
-    CRYPTO_AVAILABLE = False
 
 try:
     import keyring
@@ -400,7 +395,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
             if self._v10_key is None:
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
                 return None
-            elif not CRYPTO_AVAILABLE:
+            elif not compat_pycrypto_AES:
                 self._logger.warning('cannot decrypt cookie as the `pycryptodome` module is not installed. '
                                      'Please install by running `python3 -m pip install pycryptodome`',
                                      only_once=True)
@@ -660,7 +655,7 @@ def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
 
 
 def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
-    cipher = AES.new(key, AES.MODE_GCM, nonce)
+    cipher = compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce)
     try:
         plaintext = cipher.decrypt_and_verify(ciphertext, authentication_tag)
     except ValueError:

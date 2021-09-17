@@ -148,6 +148,15 @@ else:
     compat_expanduser = os.path.expanduser
 
 
+try:
+    from Cryptodome.Cipher import AES as compat_pycrypto_AES
+except ImportError:
+    try:
+        from Crypto.Cipher import AES as compat_pycrypto_AES
+    except ImportError:
+        compat_pycrypto_AES = None
+
+
 #  Deprecated
 
 compat_basestring = str
@@ -241,6 +250,7 @@ __all__ = [
     'compat_os_name',
     'compat_parse_qs',
     'compat_print',
+    'compat_pycrypto_AES',
     'compat_realpath',
     'compat_setenv',
     'compat_shlex_quote',

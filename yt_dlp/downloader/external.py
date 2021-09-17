@@ -6,13 +6,8 @@ import subprocess
 import sys
 import time
 
-try:
-    from Crypto.Cipher import AES
-    can_decrypt_frag = True
-except ImportError:
-    can_decrypt_frag = False
-
 from .common import FileDownloader
+from ..aes import aes_cbc_decrypt_bytes
 from ..compat import (
     compat_setenv,
     compat_str,
@@ -164,8 +159,7 @@ class ExternalFD(FileDownloader):
                         decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
                             self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
                         encrypted_data = src.read()
-                        decrypted_data = AES.new(
-                            decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(encrypted_data)
+                        decrypted_data = aes_cbc_decrypt_bytes(encrypted_data, decrypt_info['KEY'], iv)
                         dest.write(decrypted_data)
                     else:
                         fragment_data = src.read()
