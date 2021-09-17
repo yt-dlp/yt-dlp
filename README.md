@@ -952,14 +952,14 @@ The `-o` option is used to indicate a template for the output file names while `
 
 The simplest usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is _not_ recommended and could break some post-processing).
 
-It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
+It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
 1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. Eg: `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
 1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. Eg: `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
 1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
 1. **Default**: A default value can be specified for when the field is empty using a `|` seperator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `j`, `l`, `q` can be used for converting to **j**son, a comma seperated **l**ist and a string **q**uoted for the terminal respectively
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q` can be used for converting to **B**ytes, **j**son, a comma seperated **l**ist and a string **q**uoted for the terminal respectively
 
 To summarize, the general syntax for a field is:
 ```
