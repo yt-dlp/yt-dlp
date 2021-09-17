@@ -37,19 +37,6 @@ class CBCIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to Canada',
     }, {
-        # with clipId, feed available via tpfeed.cbc.ca and feed.theplatform.com
-        'url': 'http://www.cbc.ca/22minutes/videos/22-minutes-update/22-minutes-update-episode-4',
-        'md5': '162adfa070274b144f4fdc3c3b8207db',
-        'info_dict': {
-            'id': '2414435309',
-            'ext': 'mp4',
-            'title': '22 Minutes Update: What Not To Wear Quebec',
-            'description': "This week's latest Canadian top political story is What Not To Wear Quebec.",
-            'upload_date': '20131025',
-            'uploader': 'CBCC-NEW',
-            'timestamp': 1382717907,
-        },
-    }, {
         # with clipId, feed only available via tpfeed.cbc.ca
         'url': 'http://www.cbc.ca/archives/entry/1978-robin-williams-freestyles-on-90-minutes-live',
         'md5': '0274a90b51a9b4971fe005c63f592f12',
@@ -223,6 +210,7 @@ class CBCGemIE(InfoExtractor):
             'episode_id': 'schitts-creek/s06e01',
         },
         'params': {'format': 'bv',}, # No format has audio and video combined
+        'skip': 'Geo-restricted to Canada',
     }, {
         # geo-restricted to Canada, bypassable
         # This video requires an account in the browser, but works fine in yt-dlp
@@ -244,9 +232,10 @@ class CBCGemIE(InfoExtractor):
             'categories': ['comedy'],
         },
         'params': {'format': 'bv',}, # No format has audio and video combined
+        'skip': 'Geo-restricted to Canada',
     },{
         # geo-restricted to Canada, bypassable
-        # TV show playlist, all public videos at time of coding, 2021-09)
+        # TV show playlist, all public videos at time of coding (2021-09)
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06',
         'playlist_count': 16,
         'info_dict': {
@@ -254,6 +243,7 @@ class CBCGemIE(InfoExtractor):
             'title': 'Season 6',
             'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
         },
+        'skip': 'Geo-restricted to Canada',
     }]
     _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/'
     _API_VIDEO = _API_BASE + 'assets/'
@@ -300,10 +290,10 @@ class CBCGemIE(InfoExtractor):
             
             thumbnail = None
             tn_uri = season_info.get('image')
+            # the-national was observed to use a "data:image/png;base64"
+            # URI for their 'image' value. The image was 1x1, and is
+            # probably just a placeholder, so it is ignored.
             if tn_uri is not None and not tn_uri.startswith('data:'):
-                # the-national was observed to use a "data:image/png;base64"
-                # URI for their 'image' value. The image was 1x1, and is
-                # probably just a placeholder, so it is ignored.
                 thumbnail = tn_uri
 
             return {
@@ -326,21 +316,35 @@ class CBCGemIE(InfoExtractor):
 
         video_id = url_id
         video_info = self._download_json(self._API_VIDEO + video_id, video_id)
-        # Sometimes the m3u8 URL is a not available and there is an error in
-        # the JSON instead. This might only happen with member content. But
-        # just retrying seems to work fine.
-        m3u8_url = None
+        m3u8_info = self._download_json(video_info['playSession']['url'], video_id)
+
+        if m3u8_info.get('errorCode') == 1:
+            # errorCode 1 means geo-blocked
+            self.raise_geo_restricted(countries=['CA'])
+        elif m3u8_info.get('errorCode') not in [35, 0, None]:
+            # 35 means media unavailable, which is handled below. 0 means no
+            # error. None is there just in case. Any other errorCode can't be
+            # handled as we don't know what it is.
+            raise ExtractorError(
+                f"Unknown errorCode {m3u8_info.get('errorCode')}, with message: {m3u8_info.get('message')}"
+            )
+
+        m3u8_url = m3u8_info.get('url')
+        
+        # Sometimes the m3u8 URL is a not available, and errorCode is 35.
+        # This might only happen with member content. But just retrying seems
+        # to work fine.
         i = 0
         while m3u8_url is None:
             if i == 15:
                 # Didn't work after 15 tries, give up
                 raise ExtractorError("Couldn't retrieve m3u8 URL")
             m3u8_url = self._download_json(
-                video_info['playSession']['url'], video_id)['url']
+                video_info['playSession']['url'], video_id).get('url')
             i += 1
 
         formats = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url, video_id)[0]
+            m3u8_url, video_id, m3u8_id='hls')[0]
         self._remove_duplicate_formats(formats)
 
         # Post-process format list
@@ -352,15 +356,13 @@ class CBCGemIE(InfoExtractor):
                 if format.get('ext') is None:
                     format['ext'] = 'm4a'
                 if format.get('acodec') is None:
-                    format['acodec'] = 'aac'
+                    format['acodec'] = 'mp4a.40.2'
 
                 # Make IDs easier to use
                 format['format_id'] = format['format_id'].lower().replace(
                     '(', '').replace(')', '')
-                # Remove the needless 'audio-' prefix from format IDs, making for
-                # easier selection on the CLI.
-                if format['format_id'].startswith('audio-'):
-                    format['format_id'] = format['format_id'][6:]
+                # Remove the needless '-audio-' part of audio format IDs
+                format['format_id'] = format['format_id'].replace('-audio-', '-')
 
                 # Put described audio at the beginning of the list, so that it
                 # isn't chosen by default, as most people won't want it.
@@ -387,4 +389,40 @@ class CBCGemIE(InfoExtractor):
             'timestamp': video_info.get('availableDate'),
         }
 
-# TODO: live videos
+
+class CBCGemLiveIE(InfoExtractor):
+    IE_NAME = 'gem.cbc.ca:live'
+    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>[0-9]{12})'
+    # No tests because the URLs and content change all the time
+
+    # It's unclear where the chars at the end come from, but they appear to be
+    # constant. Might need updating in the future.
+    _API = 'https://tpfeed.cbc.ca/f/ExhSPC/t_t3UKJR6MAT'
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        live_info = self._download_json(self._API, video_id)['entries']
+
+        video_info = None
+        for stream in live_info:
+            if stream.get('guid') == video_id:
+                video_info = stream
+
+        if video_info is None:
+            raise ExtractorError("Couldn't find video metadata, maybe this livestream is now offline")
+        
+        tags = video_info.get('keywords')
+        if tags is not None:
+            tags = tags.split(', ')
+
+        return {
+            '_type': 'url_transparent',
+            'ie_key': 'ThePlatform',
+            'url': video_info['content'][0]['url'],
+            'id': video_id,
+            'title': video_info.get('title'),
+            'description': video_info.get('description'),
+            'tags': tags,
+            'thumbnail': video_info.get('cbc$staticImage'),
+            'is_live': True,
+        }

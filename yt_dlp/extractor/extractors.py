@@ -207,8 +207,8 @@ from .cartoonnetwork import CartoonNetworkIE
 from .cbc import (
     CBCIE,
     CBCPlayerIE,
-    CBCWatchVideoIE,
     CBCGemIE,
+    CBCGemLiveIE
 )
 from .cbs import CBSIE
 from .cbslocal import (
