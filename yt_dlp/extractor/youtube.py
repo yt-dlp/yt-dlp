@@ -2481,8 +2481,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
         sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False) if player_url else None
         headers = self.generate_api_headers(
-            player_ytcfg, syncid, session_index,
-            identity_token=identity_token, default_client=client)
+            player_ytcfg, syncid, session_index, default_client=client)
 
         yt_query = {'videoId': video_id}
         yt_query.update(self._generate_player_context(sts))
