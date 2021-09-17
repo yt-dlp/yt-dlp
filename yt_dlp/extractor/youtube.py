@@ -2478,8 +2478,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
         sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False) if player_url else None
-        headers = self.generate_api_headers(
-            player_ytcfg, syncid, session_index, default_client=client)
+        headers = self.generate_api_headers(player_ytcfg, syncid, session_index, default_client=client)
 
         yt_query = {'videoId': video_id}
         yt_query.update(self._generate_player_context(sts))
@@ -4049,8 +4048,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     def _extract_mix_playlist(self, playlist, playlist_id, data, webpage):
         first_id = last_id = None
         ytcfg = self.extract_ytcfg(playlist_id, webpage)
-        headers = self.generate_api_headers(
-            ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data))
+        headers = self.generate_api_headers(ytcfg, self._extract_account_syncid(ytcfg, data))
         for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
             if not videos:
@@ -4166,7 +4164,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
         ytcfg = self.extract_ytcfg(item_id, webpage)
         headers = self.generate_api_headers(
-            ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
+            ytcfg, self._extract_account_syncid(ytcfg, data),
             visitor_data=try_get(
                 self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
         query = {
