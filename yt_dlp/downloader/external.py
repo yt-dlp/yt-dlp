@@ -8,7 +8,6 @@ import time
 
 from ..aes import aes_cbc_decrypt
 from .common import FileDownloader
-from ..aes import compat_aes_cbc_decrypt
 from ..compat import (
     compat_setenv,
     compat_str,

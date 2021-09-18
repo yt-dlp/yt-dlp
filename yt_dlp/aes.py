@@ -5,32 +5,6 @@ from math import ceil
 from .compat import compat_b64decode
 from .utils import bytes_to_intlist, intlist_to_bytes
 
-
-# These cannot be in compat.py due to cyclic import issues
-try:
-    from Cryptodome.Cipher import AES as compat_pycrypto_AES
-except ImportError:
-    try:
-        from Crypto.Cipher import AES as compat_pycrypto_AES
-    except ImportError:
-        compat_pycrypto_AES = None
-
-
-if compat_pycrypto_AES:
-    def compat_aes_cbc_decrypt(data, key, iv):
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
-
-    # XXX: Unused?
-    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
-else:
-    def compat_aes_cbc_decrypt(data, key, iv):
-        return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
-
-    def compat_aes_gcm_decrypt_and_verify(data, key, tag, nonce):
-        return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
-
-
 BLOCK_SIZE_BYTES = 16
 
 
@@ -57,7 +31,7 @@ def aes_ctr_encrypt(data, key, iv):
     """
     expanded_key = key_expansion(key)
     block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
-    counter = itervector(iv)
+    counter = iter_vector(iv)
 
     encrypted_data = []
     for i in range(block_count):
@@ -137,8 +111,6 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     @returns {int[]}           decrypted data
     """
 
-    # TODO: support: for 24/32-byte keys
-
     # XXX: check aes, gcm param
 
     hash_subkey = aes_encrypt([0] * BLOCK_SIZE_BYTES, key_expansion(key))
@@ -150,6 +122,7 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         ghash_in = nonce + [0] * fill + bytes_to_intlist((8 * len(nonce)).to_bytes(8, 'big'))
         j0 = ghash(hash_subkey, ghash_in)
 
+    # nonce_ctr = j0[:12]
     iv_ctr = inc(j0)
 
     decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
@@ -166,41 +139,6 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         raise ValueError("Mismatching authentication tag")
 
     return decrypted_data
-
-
-def key_expansion(data):
-    """
-    Generate key schedule
-
-    @param {int[]} data  16/24/32-Byte cipher key
-    @returns {int[]}     176/208/240-Byte expanded key
-    """
-    data = data[:]  # copy
-    rcon_iteration = 1
-    key_size_bytes = len(data)
-    expanded_key_size_bytes = (key_size_bytes // 4 + 7) * BLOCK_SIZE_BYTES
-
-    while len(data) < expanded_key_size_bytes:
-        temp = data[-4:]
-        temp = key_schedule_core(temp, rcon_iteration)
-        rcon_iteration += 1
-        data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
-
-        for _ in range(3):
-            temp = data[-4:]
-            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
-
-        if key_size_bytes == 32:
-            temp = data[-4:]
-            temp = sub_bytes(temp)
-            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
-
-        for _ in range(3 if key_size_bytes == 32 else 2 if key_size_bytes == 24 else 0):
-            temp = data[-4:]
-            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
-    data = data[:expanded_key_size_bytes]
-
-    return data
 
 
 def aes_encrypt(data, expanded_key):
@@ -350,7 +288,42 @@ RIJNDAEL_LOG_TABLE = (0x00, 0x00, 0x19, 0x01, 0x32, 0x02, 0x1a, 0xc6, 0x4b, 0xc7
                       0x67, 0x4a, 0xed, 0xde, 0xc5, 0x31, 0xfe, 0x18, 0x0d, 0x63, 0x8c, 0x80, 0xc0, 0xf7, 0x70, 0x07)
 
 
-def itervector(iv):
+def key_expansion(data):
+    """
+    Generate key schedule
+
+    @param {int[]} data  16/24/32-Byte cipher key
+    @returns {int[]}     176/208/240-Byte expanded key
+    """
+    data = data[:]  # copy
+    rcon_iteration = 1
+    key_size_bytes = len(data)
+    expanded_key_size_bytes = (key_size_bytes // 4 + 7) * BLOCK_SIZE_BYTES
+
+    while len(data) < expanded_key_size_bytes:
+        temp = data[-4:]
+        temp = key_schedule_core(temp, rcon_iteration)
+        rcon_iteration += 1
+        data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
+
+        for _ in range(3):
+            temp = data[-4:]
+            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
+
+        if key_size_bytes == 32:
+            temp = data[-4:]
+            temp = sub_bytes(temp)
+            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
+
+        for _ in range(3 if key_size_bytes == 32 else 2 if key_size_bytes == 24 else 0):
+            temp = data[-4:]
+            data += xor(temp, data[-key_size_bytes: 4 - key_size_bytes])
+    data = data[:expanded_key_size_bytes]
+
+    return data
+
+
+def iter_vector(iv):
     while True:
         yield iv
         iv = inc(iv)
@@ -381,7 +354,7 @@ def xor(data1, data2):
 
 
 def rijndael_mul(a, b):
-    if(a == 0 or b == 0):
+    if a == 0 or b == 0:
         return 0
     return RIJNDAEL_EXP_TABLE[(RIJNDAEL_LOG_TABLE[a] + RIJNDAEL_LOG_TABLE[b]) % 0xFF]
 
@@ -494,7 +467,4 @@ __all__ = [
     'aes_cbc_decrypt',
     'aes_gcm_decrypt_and_verify',
     'aes_decrypt_text',
-    'compat_aes_cbc_decrypt',
-    'compat_aes_gcm_decrypt_and_verify',
-    'compat_pycrypto_AES',
 ]
