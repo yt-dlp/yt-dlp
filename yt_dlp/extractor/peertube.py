@@ -1343,7 +1343,7 @@ class PeerTubePlaylistIE(InfoExtractor):
         page += 1
         video_data = self._call_api(
             host, uuid, f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}',
-            note=f'Downloading page {page}').get('data', [])
+            note=f'Downloading page {page}').get('data', {})
         for video in video_data:
             shortUUID = try_get(video, lambda x: x['video']['shortUUID'])
             video_title = try_get(video, lambda x: x['video']['name'])
@@ -1369,3 +1369,61 @@ class PeerTubePlaylistIE(InfoExtractor):
         return self.playlist_result(
             entries, playlist_id, playlist_title, playlist_description,
             timestamp=playlist_timestamp, channel=channel, channel_id=channel_id, thumbnail=thumbnail)
+
+
+class PeerTubeChannelIE(InfoExtractor):
+    IE_NAME = 'PeerTube:Channel'
+    _VALID_URL = r'(?x)https?://(?P<host>%s)/(?P<type>[ac])/(?P<id>[^/]+)/(videos|video-channels)' % PeerTubeIE._INSTANCES_RE
+    _API_BASE = 'https://%s/api/v1/%s/%s%s'
+    _TESTS = [{
+        'url': 'https://peertube2.cpy.re/a/chocobozzz/videos',
+        'info_dict': {
+            'id': 'chocobozzz',
+            'timestamp': 1553874564,
+            'title': 'chocobozzz',
+        },
+        'playlist_mincount': 2,
+    }, {
+        'url': 'https://framatube.org/c/bf54d359-cfad-4935-9d45-9d6be93f63e8/videos',
+        'info_dict': {
+            'id': 'bf54d359-cfad-4935-9d45-9d6be93f63e8',
+            'timestamp': 1519917377,
+            'title': 'Les vidéos de Framasoft',
+        },
+        'playlist_mincount': 345,
+    }]
+    _PAGE_SIZE = 30
+
+    def _call_api(self, host, name, path, base, note=None, **kwargs):
+        return self._download_json(
+            self._API_BASE % (host, base, name, path), name,
+            note=note, **kwargs)
+
+    def _fetch_page(self, host, uuid, type, page):
+        page += 1
+        video_data = self._call_api(
+            host, uuid, f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
+            type, note=f'Downloading page {page}').get('data', {})
+        for video in video_data:
+            shortUUID = video.get('shortUUID')
+            video_title = video.get('name')
+            yield self.url_result(
+                f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
+                video_id=shortUUID, video_title=video_title)
+
+    def _real_extract(self, url):
+        type, host, channel_id = self._match_valid_url(url).group('type', 'host', 'id')
+        type = 'accounts' if type == 'a' else 'video-channels'
+        channel_info = self._call_api(host, channel_id, '', type, note='Downloading channel information', fatal=False)
+
+        channel_displayname = channel_info.get('displayName')
+        channel_description = channel_info.get('description')
+        channel_timestamp = unified_timestamp(channel_info.get('createdAt'))
+        channel = try_get(channel_info, lambda x: x['ownerAccount']['name'])
+
+        entries = OnDemandPagedList(functools.partial(
+            self._fetch_page, host, channel_id, type), self._PAGE_SIZE)
+
+        return self.playlist_result(
+            entries, channel_id, channel_displayname, channel_description,
+            timestamp=channel_timestamp, channel=channel, channel_id=channel_id)
