@@ -79,7 +79,6 @@ class NuvidIE(InfoExtractor):
                 'Sec-Fetch-Dest': 'video',
                 'Sec-Fetch-Mode': 'no-cors',
                 'Sec-Fetch-Site': 'same-site',
-                'Range': 'bytes=0-',
                 'DNT': '1',
             }
         }
