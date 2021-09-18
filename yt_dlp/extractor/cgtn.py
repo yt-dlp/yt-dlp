@@ -21,6 +21,9 @@ class CGTNIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'timestamp': 1615295940,
                 'upload_date': '20210309',
+            },
+            'params': {
+                'skip_download': True
             }
         },
         {
@@ -35,6 +38,9 @@ class CGTNIE(InfoExtractor):
                 'category': 'China',
                 'timestamp': 1622950200,
                 'upload_date': '20210606',
+            },
+            'params': {
+                'skip_download': False
             }
         }
     ]
