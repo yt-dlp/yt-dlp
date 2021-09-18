@@ -955,6 +955,7 @@ class YoutubeDL(object):
             (?P<fields>{field})
             (?P<maths>(?:{math_op}{math_field})*)
             (?:>(?P<strf_format>.+?))?
+            (?P<alternate>(?<!\\),[^|)]+)?
             (?:\|(?P<default>.*?))?
             $'''.format(field=FIELD_RE, math_op=MATH_OPERATORS_RE, math_field=MATH_FIELD_RE))
 
@@ -996,7 +997,7 @@ class YoutubeDL(object):
                     operator = None
             # Datetime formatting
             if mdict['strf_format']:
-                value = strftime_or_none(value, mdict['strf_format'])
+                value = strftime_or_none(value, mdict['strf_format'].replace('\\,', ','))
 
             return value
 
@@ -1012,12 +1013,16 @@ class YoutubeDL(object):
                 return f'%{outer_mobj.group(0)}'
             key = outer_mobj.group('key')
             mobj = re.match(INTERNAL_FORMAT_RE, key)
-            if mobj is None:
-                value, default, mobj = None, na, {'fields': ''}
-            else:
+            initial_field = mobj.group('fields').split('.')[-1] if mobj else ''
+            value, default = None, na
+            while mobj:
                 mobj = mobj.groupdict()
-                default = mobj['default'] if mobj['default'] is not None else na
+                default = mobj['default'] if mobj['default'] is not None else default
                 value = get_value(mobj)
+                if value is None and mobj['alternate']:
+                    mobj = re.match(INTERNAL_FORMAT_RE, mobj['alternate'][1:])
+                else:
+                    break
 
             fmt = outer_mobj.group('format')
             if fmt == 's' and value is not None and key in field_size_compat_map.keys():
@@ -1052,7 +1057,7 @@ class YoutubeDL(object):
                     # So we convert it to repr first
                     value, fmt = repr(value), str_fmt
                 if fmt[-1] in 'csr':
-                    value = sanitize(mobj['fields'].split('.')[-1], value)
+                    value = sanitize(initial_field, value)
 
             key = '%s\0%s' % (key.replace('%', '%\0'), outer_mobj.group('format'))
             TMPL_DICT[key] = value

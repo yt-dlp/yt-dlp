@@ -790,6 +790,12 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.0.id.-1+id)f', '1235.000000')
         test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
 
+        # Alternates
+        test('%(title,id)s', '1234')
+        test('%(width-100,height+20|def)d', '1100')
+        test('%(width-100,height+width|def)s', 'def')
+        test('%(timestamp-x>%H\\,%M\\,%S,timestamp>%H\\,%M\\,%S)s', '12,00,00')
+
         # Laziness
         def gen():
             yield from range(5)
