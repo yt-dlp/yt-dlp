@@ -38,8 +38,7 @@ class DamtomoBaseIE(InfoExtractor):
             './/d:streamingUrl', {'d': self._DKML_XML_NS}).text.strip(), compat_str)
         if not m3u8_url:
             raise ExtractorError('Failed to obtain m3u8 URL')
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, ext='mp4')
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4')
         self._sort_formats(formats)
 
         return {
@@ -48,7 +47,7 @@ class DamtomoBaseIE(InfoExtractor):
             'uploader_id': uploader_id,
             'description': description,
             'uploader': data_dict.get('user_name'),
-            'upload_date': unified_strdate(self._search_regex(r'(\d\d\d\d/\d\d/\d\d)', data_dict.get('date'), 'upload_date', default=None)),
+            'upload_date': unified_strdate(self._search_regex(r'(\d{4}/\d{2}/\d{2})', data_dict.get('date'), 'upload_date', default=None)),
             'view_count': int_or_none(self._search_regex(r'(\d+)', data_dict['audience'], 'view_count', default=None)),
             'like_count': int_or_none(self._search_regex(r'(\d+)', data_dict['nice'], 'like_count', default=None)),
             'track': title,
