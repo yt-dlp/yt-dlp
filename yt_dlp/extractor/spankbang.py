@@ -26,17 +26,18 @@ class SpankBangIE(InfoExtractor):
                         )
                     '''
     _TESTS = [{
-        'url': 'http://spankbang.com/3vvn/video/fantasy+solo',
-        'md5': '1cc433e1d6aa14bc376535b8679302f7',
+        'url': 'https://spankbang.com/56b3d/video/the+slut+maker+hmv',
+        'md5': '2D13903DE4ECC7895B5D55930741650A',
         'info_dict': {
-            'id': '3vvn',
+            'id': '56b3d',
             'ext': 'mp4',
-            'title': 'fantasy solo',
-            'description': 'dillion harper masturbates on a bed',
+            'title': 'The Slut Maker HMV',
+            'description': 'Girls getting converted into cock slaves.',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'uploader': 'silly2587',
-            'timestamp': 1422571989,
-            'upload_date': '20150129',
+            'uploader': 'Mindself',
+            'uploader_id': 'mindself',
+            'timestamp': 1617109572,
+            'upload_date': '20210330',
             'age_limit': 18,
         }
     }, {
@@ -134,7 +135,7 @@ class SpankBangIE(InfoExtractor):
         info = self._search_json_ld(webpage, video_id, default={})
 
         title = self._html_search_regex(
-            r'(?s)<h1[^>]*>(.+?)</h1>', webpage, 'title', default=None)
+            r'(?s)<h1[^>]+\btitle=["\']([^"]+)["\']>', webpage, 'title', default=None)
         description = self._search_regex(
             r'<div[^>]+\bclass=["\']bottom[^>]+>\s*<p>[^<]*</p>\s*<p>([^<]+)',
             webpage, 'description', default=None)
