@@ -777,6 +777,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 text = ''.join(traverse_obj(runs, (..., 'text'), expected_type=str, default=[]))
                 if text:
                     return text
+
     @staticmethod
     def parse_time_text(time_text):
         """
