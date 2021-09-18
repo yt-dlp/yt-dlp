@@ -1419,11 +1419,10 @@ class PeerTubeChannelIE(InfoExtractor):
         channel_displayname = channel_info.get('displayName')
         channel_description = channel_info.get('description')
         channel_timestamp = unified_timestamp(channel_info.get('createdAt'))
-        channel = try_get(channel_info, lambda x: x['ownerAccount']['name'])
 
         entries = OnDemandPagedList(functools.partial(
             self._fetch_page, host, channel_id, type), self._PAGE_SIZE)
 
         return self.playlist_result(
             entries, channel_id, channel_displayname, channel_description,
-            timestamp=channel_timestamp, channel=channel, channel_id=channel_id)
+            timestamp=channel_timestamp, channel=channel_displayname, channel_id=channel_id)
