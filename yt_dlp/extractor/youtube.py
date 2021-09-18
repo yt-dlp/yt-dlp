@@ -53,6 +53,7 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     str_to_int,
+    strftime_or_none,
     traverse_obj,
     try_get,
     unescapeHTML,
@@ -776,6 +777,29 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 text = ''.join(traverse_obj(runs, (..., 'text'), expected_type=str, default=[]))
                 if text:
                     return text
+    @staticmethod
+    def parse_time_text(time_text):
+        """
+        Parse the comment time text
+        time_text is in the format 'X units ago (edited)'
+        """
+        time_text_split = time_text.split(' ')
+        if len(time_text_split) >= 3:
+            try:
+                return datetime_from_str('now-%s%s' % (time_text_split[0], time_text_split[1]), precision='auto')
+            except ValueError:
+                return None
+
+    @classmethod
+    def _extract_time_text(cls, renderer, *path_list):
+        time_text = cls._get_text(renderer, *path_list) or ''
+        for start in ('Streamed ',):
+            time_text = remove_start(time_text, start)
+        time_text_dt = cls.parse_time_text(time_text)
+        timestamp = None
+        if isinstance(time_text_dt, datetime.datetime):
+            timestamp = calendar.timegm(time_text_dt.timetuple())
+        return timestamp, time_text
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
@@ -864,6 +888,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'view count', default=None))
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
+        timestamp = None
+        upload_date = None
+        if 'estpubdate' in self._configuration_arg('experimental'):
+            timestamp, _ = self._extract_time_text(renderer, 'publishedTimeText')
+            upload_date = strftime_or_none(timestamp, '%Y%m%d')
 
         return {
             '_type': 'url',
@@ -875,6 +904,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'duration': duration,
             'view_count': view_count,
             'uploader': uploader,
+            'timestamp': timestamp,
+            'upload_date': upload_date
         }
 
 
@@ -2173,19 +2204,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             (r'%s\s*%s' % (regex, self._YT_INITIAL_BOUNDARY_RE),
              regex), webpage, name, default='{}'), video_id, fatal=False)
 
-    @staticmethod
-    def parse_time_text(time_text):
-        """
-        Parse the comment time text
-        time_text is in the format 'X units ago (edited)'
-        """
-        time_text_split = time_text.split(' ')
-        if len(time_text_split) >= 3:
-            try:
-                return datetime_from_str('now-%s%s' % (time_text_split[0], time_text_split[1]), precision='auto')
-            except ValueError:
-                return None
-
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
         if not comment_id:
@@ -2194,10 +2212,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         text = self._get_text(comment_renderer, 'contentText')
 
         # note: timestamp is an estimate calculated from the current time and time_text
-        time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
-        time_text_dt = self.parse_time_text(time_text)
-        if isinstance(time_text_dt, datetime.datetime):
-            timestamp = calendar.timegm(time_text_dt.timetuple())
+        timestamp, time_text = self._extract_time_text(comment_renderer, 'publishedTimeText')
         author = self._get_text(comment_renderer, 'authorText')
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
