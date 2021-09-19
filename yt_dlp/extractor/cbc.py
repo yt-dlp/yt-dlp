@@ -34,6 +34,20 @@ class CBCIE(InfoExtractor):
             'uploader': 'CBCC-NEW',
         },
         'skip': 'Geo-restricted to Canada',
+   }, {
+        # with clipId, feed available via tpfeed.cbc.ca and feed.theplatform.com
+        'url': 'http://www.cbc.ca/22minutes/videos/22-minutes-update/22-minutes-update-episode-4',
+        'md5': '162adfa070274b144f4fdc3c3b8207db',
+        'info_dict': {
+            'id': '2414435309',
+            'ext': 'mp4',
+            'title': '22 Minutes Update: What Not To Wear Quebec',
+            'description': "This week's latest Canadian top political story is What Not To Wear Quebec.",
+            'upload_date': '20131025',
+            'uploader': 'CBCC-NEW',
+            'timestamp': 1382717907,
+        },
+        'skip': 'No longer available',
     }, {
         # with clipId, feed only available via tpfeed.cbc.ca
         'url': 'http://www.cbc.ca/archives/entry/1978-robin-williams-freestyles-on-90-minutes-live',
@@ -375,7 +389,21 @@ class CBCGemIE(InfoExtractor):
 class CBCGemLiveIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:live'
     _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>[0-9]{12})'
-    # No tests because the URLs and content change all the time
+    _TEST = {
+        'url': 'https://gem.cbc.ca/live/920604739687',
+        'info_dict': {
+            'title': 'Ottawa',
+            'description': 'The live TV channel and local programming from Ottawa',
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/CBC_OTT_VMS/Live_Channel_Static_Images/Ottawa_2880x1620.jpg',
+            'is_live': True,
+            'id': 'AyqZwxRqh8EH',
+            'ext': 'mp4',
+            'timestamp': 1492106160,
+            'upload_date': '20170413',
+            'uploader': 'CBCC-NEW',
+        },
+        'skip': 'Live might have ended',
+    }
 
     # It's unclear where the chars at the end come from, but they appear to be
     # constant. Might need updating in the future.
