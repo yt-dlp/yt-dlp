@@ -34,7 +34,7 @@ class CBCIE(InfoExtractor):
             'uploader': 'CBCC-NEW',
         },
         'skip': 'Geo-restricted to Canada',
-   }, {
+    }, {
         # with clipId, feed available via tpfeed.cbc.ca and feed.theplatform.com
         'url': 'http://www.cbc.ca/22minutes/videos/22-minutes-update/22-minutes-update-episode-4',
         'md5': '162adfa070274b144f4fdc3c3b8207db',
