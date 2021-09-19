@@ -71,11 +71,4 @@ class NuvidIE(InfoExtractor):
             'thumbnail': thumbnail,
             'duration': duration,
             'age_limit': 18,
-            'http_headers': {
-                'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
-                'Sec-Fetch-Dest': 'video',
-                'Sec-Fetch-Mode': 'no-cors',
-                'Sec-Fetch-Site': 'same-site',
-                'DNT': '1',
-            }
         }
