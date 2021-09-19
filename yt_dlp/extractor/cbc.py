@@ -311,7 +311,7 @@ class CBCGemIE(InfoExtractor):
 
 class CBCGemPlaylistIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:playlist'
-    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))'
+    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))(?:[?#].*)?$'
     _TESTS = [{
         # geo-restricted to Canada, bypassable
         # TV show playlist, all public videos
