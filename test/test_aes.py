@@ -72,11 +72,8 @@ class TestAES(unittest.TestCase):
         data = b"\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f.\x08\xb4T\xe4/\x17\xbd"
         authentication_tag = b"\xe8&I\x80rI\x07\x9d}YWuU@:e"
 
-        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(bytes_to_intlist(data),
-                                                                self.key,
-                                                                bytes_to_intlist(authentication_tag),
-                                                                self.iv[:12])
-                                     )
+        decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
+            bytes_to_intlist(data), self.key, bytes_to_intlist(authentication_tag), self.iv[:12]))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
         if compat_pycrypto_AES:
             decrypted = aes_gcm_decrypt_and_verify_bytes(data,
