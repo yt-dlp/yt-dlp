@@ -1356,10 +1356,9 @@ class PeerTubePlaylistIE(InfoExtractor):
     _API_BASE = 'https://%s/api/v1/%s/%s%s'
     _PAGE_SIZE = 30
 
-    def call_api(self, host, name, path, base, note=None, **kwargs):
+    def call_api(self, host, name, path, base, **kwargs):
         return self._download_json(
-            self._API_BASE % (host, base, name, path), name,
-            note=note, **kwargs)
+            self._API_BASE % (host, base, name, path), name, **kwargs)
 
     def fetch_page(self, host, id, type, page):
         page += 1
