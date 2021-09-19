@@ -1059,6 +1059,7 @@ from .pinterest import (
     PinterestCollectionIE,
 )
 from .pladform import PladformIE
+from .planetmarathi import PlanetMarathiIE
 from .platzi import (
     PlatziIE,
     PlatziCourseIE,
