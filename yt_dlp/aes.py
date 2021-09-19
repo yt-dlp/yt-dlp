@@ -11,10 +11,18 @@ if compat_pycrypto_AES:
         """ Decrypt bytes with AES-CBC using pycryptodome """
         return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
 
+    def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
+        """ Decrypt bytes with AES-GCM using pycryptodome """
+        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce).decrypt(data, tag)
+
 else:
     def aes_cbc_decrypt_bytes(data, key, iv):
         """ Decrypt bytes with AES-CBC using native implementation since pycryptodome is unavailable """
         return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
+
+    def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
+        """ Decrypt bytes with AES-GCM using native implementation since pycryptodome is unavailable """
+        return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
 
 
 BLOCK_SIZE_BYTES = 16
