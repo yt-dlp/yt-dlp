@@ -56,8 +56,6 @@ class HlsFD(FragmentFD):
 
         def check_results():
             yield not info_dict.get('is_live')
-            is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
-            yield not (is_aes128_enc and r'#EXT-X-BYTERANGE' in manifest)
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
         return all(check_results())
