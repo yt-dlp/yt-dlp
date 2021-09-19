@@ -39,7 +39,7 @@ class TestAES(unittest.TestCase):
         self.assertEqual(decrypted, msg)
 
     def test_cbc_decrypt(self):
-        data = b"\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd"
+        data = b'\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6\x27\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd'
         decrypted = intlist_to_bytes(aes_cbc_decrypt(bytes_to_intlist(data), self.key, self.iv))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
         if compat_pycrypto_AES:
@@ -51,12 +51,10 @@ class TestAES(unittest.TestCase):
         encrypted = intlist_to_bytes(aes_cbc_encrypt(data, self.key, self.iv))
         self.assertEqual(
             encrypted,
-            b"\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd")
+            b'\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6\'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd')
 
     def test_ctr_decrypt(self):
-        data = bytes_to_intlist(
-            b"\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08"
-        )
+        data = bytes_to_intlist(b'\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08')
         decrypted = intlist_to_bytes(aes_ctr_decrypt(data, self.key, self.iv))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
@@ -65,12 +63,11 @@ class TestAES(unittest.TestCase):
         encrypted = intlist_to_bytes(aes_ctr_encrypt(data, self.key, self.iv))
         self.assertEqual(
             encrypted,
-            b"\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08"
-        )
+            b'\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08')
 
     def test_gcm_decrypt(self):
-        data = b"\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f.\x08\xb4T\xe4/\x17\xbd"
-        authentication_tag = b"\xe8&I\x80rI\x07\x9d}YWuU@:e"
+        data = b'\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f.\x08\xb4T\xe4/\x17\xbd'
+        authentication_tag = b'\xe8&I\x80rI\x07\x9d}YWuU@:e'
 
         decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
             bytes_to_intlist(data), self.key, bytes_to_intlist(authentication_tag), self.iv[:12]))
