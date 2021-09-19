@@ -100,10 +100,14 @@ class VideaIE(InfoExtractor):
 
         video_page = self._download_webpage(url, video_id)
 
-        player_url = self._search_regex(
-            r'<iframe.*?src="(/player\?[^"]+)"', video_page, 'player url')
-        player_url = urljoin(url, player_url)
-        player_page = self._download_webpage(player_url, video_id)
+        if 'videa.hu/player' in url:
+            player_url = url
+            player_page = video_page
+        else:
+            player_url = self._search_regex(
+                r'<iframe.*?src="(/player\?[^"]+)"', video_page, 'player url')
+            player_url = urljoin(url, player_url)
+            player_page = self._download_webpage(player_url, video_id)
 
         nonce = self._search_regex(
             r'_xt\s*=\s*"([^"]+)"', player_page, 'nonce')
