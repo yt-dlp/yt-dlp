@@ -1,6 +1,6 @@
 import re
 
-from .utils import get_subprocess_encoding
+from threading import Lock
 
 try:
     # curses is in standard modules, just like sqlite in cookies.py,
@@ -9,12 +9,6 @@ try:
     has_curses = True
 except ImportError:
     has_curses = False
-
-def to_bytes(value):
-    if isinstance(value, str):
-        return value.encode(get_subprocess_encoding())
-    else:
-        return value
 
 
 class MultilinePrinterBase():
@@ -57,6 +51,8 @@ class MultilinePrinter(MultilinePrinterBase):
         self.lastline = 0
         self.lastlength = 0
 
+        self.movelock = Lock()
+
     @property
     def have_fullcap(self):
         """
@@ -76,7 +72,7 @@ class MultilinePrinter(MultilinePrinterBase):
         if not cap:
             return None
         # needed to strip delays
-        return re.sub(r'\$<\d+>[/*]?', '', cap)
+        return re.sub(rb'\$<\d+>[/*]?', '', cap).decode()
 
     def _move_cursor(self, dest):
         current = max(self.lastline, self.maximum)
@@ -101,7 +97,7 @@ class MultilinePrinter(MultilinePrinterBase):
     def print_at_line(self, text, pos):
         if self.have_fullcap:
             self._move_cursor(pos)
-            self.stream.write(to_bytes(text))
+            self.stream.write(text)
         else:
             if self.maximum != 0:
                 # let user know about which line is updating the status
@@ -146,4 +142,4 @@ class BreaklineStatusPrinter(MultilinePrinterBase):
         if self.maximum != 0:
             # let user know about which line is updating the status
             text = f'{pos + 1}: ${text}'
-        self.stream.write(to_bytes(text) + b'\n')
+        self.stream.write(text + '\n')
