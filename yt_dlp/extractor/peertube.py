@@ -1297,10 +1297,15 @@ class PeerTubeIE(InfoExtractor):
 
 class PeerTubePlaylistIE(InfoExtractor):
     IE_NAME = 'PeerTube:Playlist'
+    _TYPES = {
+        'a': 'accounts',
+        'c': 'video-channels',
+        'w/p': 'video-playlists',
+    }
     _VALID_URL = r'''(?x)
-                        https?://(?P<host>%s)/(?P<type>(?:a|c|w/p))/
+                        https?://(?P<host>%s)/(?P<type>(?:%s))/
                     (?P<id>[^/]+)
-                    ''' % PeerTubeIE._INSTANCES_RE
+                    ''' % (PeerTubeIE._INSTANCES_RE, '|'.join(_TYPES.keys()))
     _TESTS = [{
         'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
         'info_dict': {
@@ -1393,10 +1398,5 @@ class PeerTubePlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         type, host, id = self._match_valid_url(url).group('type', 'host', 'id')
-        if type == 'a':
-            type = 'accounts'
-        elif type == 'c':
-            type = 'video-channels'
-        elif type == 'w/p':
-            type = 'video-playlists'
+        type = self._TYPES[type]
         return self._extract_playlist(host, type, id)
