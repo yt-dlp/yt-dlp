@@ -2712,11 +2712,17 @@ class InfoExtractor(object):
                     mime_type = representation_attrib['mimeType']
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
-                    codecs = representation_attrib.get('codecs', '')
+                    codecs = parse_codecs(representation_attrib.get('codecs', ''))
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
-                        elif codecs.split('.')[0] == 'stpp':
+                        # XXX: is this okay for mixed streams (video+audio, audio+subtitle)?
+                        # is it even possible to ever encounter them?
+                        elif codecs['vcodec'] != 'none':
+                            content_type = 'video'
+                        elif codecs['acodec'] != 'none':
+                            content_type = 'audio'
+                        elif codecs.get('tcodec', 'none') != 'none':
                             content_type = 'text'
                         elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'
@@ -2763,7 +2769,7 @@ class InfoExtractor(object):
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
                         }
-                        f.update(parse_codecs(codecs))
+                        f.update(codecs)
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
