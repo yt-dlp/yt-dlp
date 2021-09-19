@@ -9,17 +9,14 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from hashlib import pbkdf2_hmac
 
-from yt_dlp.aes import aes_cbc_decrypt
-from yt_dlp.compat import (
+from .aes import aes_cbc_decrypt_bytes, aes_gcm_decrypt_and_verify_bytes
+from .compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
-    compat_pycrypto_AES
 )
-from yt_dlp.utils import (
+from .utils import (
     bug_reports_message,
-    bytes_to_intlist,
     expand_path,
-    intlist_to_bytes,
     process_communicate_or_kill,
     YoutubeDLCookieJar,
 )
@@ -395,11 +392,6 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
             if self._v10_key is None:
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
                 return None
-            elif not compat_pycrypto_AES:
-                self._logger.warning('cannot decrypt cookie as the `pycryptodome` module is not installed. '
-                                     'Please install by running `python3 -m pip install pycryptodome`',
-                                     only_once=True)
-                return None
 
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
             #   kNonceLength
@@ -643,21 +635,18 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
 
 
 def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
-    plaintext = aes_cbc_decrypt(bytes_to_intlist(ciphertext),
-                                bytes_to_intlist(key),
-                                bytes_to_intlist(initialization_vector))
+    plaintext = aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector)
     padding_length = plaintext[-1]
     try:
-        return intlist_to_bytes(plaintext[:-padding_length]).decode('utf-8')
+        return plaintext[:-padding_length].decode('utf-8')
     except UnicodeDecodeError:
         logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
 
 
 def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
-    cipher = compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce)
     try:
-        plaintext = cipher.decrypt_and_verify(ciphertext, authentication_tag)
+        plaintext = aes_gcm_decrypt_and_verify_bytes(ciphertext, key, authentication_tag, nonce)
     except ValueError:
         logger.warning('failed to decrypt cookie because the MAC check failed. Possibly the key is wrong?', only_once=True)
         return None
