@@ -50,7 +50,10 @@ class TurnerBaseIE(AdobePassIE):
             self._AKAMAI_SPE_TOKEN_CACHE[secure_path] = token
         return video_url + '?hdnea=' + token
 
-    def _extract_cvp_info(self, data_src, video_id, path_data={}, ap_data={}, fatal=False):
+    def _extract_cvp_info(self, data_src, video_id, path_data=None, ap_data=None, fatal=False):
+        path_data = {} if path_data is None else path_data
+        ap_data = {} if ap_data is None else ap_data
+
         video_data = self._download_xml(
             data_src, video_id,
             transform_source=lambda s: fix_xml_ampersands(s).strip(),

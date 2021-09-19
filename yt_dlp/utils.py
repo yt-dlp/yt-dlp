@@ -4218,7 +4218,10 @@ def update_url_query(url, query):
         query=compat_urllib_parse_urlencode(qs, True)))
 
 
-def update_Request(req, url=None, data=None, headers={}, query={}):
+def update_Request(req, url=None, data=None, headers=None, query=None):
+    headers = {} if headers is None else headers
+    query = {} if query is None else query
+
     req_headers = req.headers.copy()
     req_headers.update(headers)
     req_data = data or req.data
@@ -4375,7 +4378,9 @@ def strip_jsonp(code):
         r'\g<callback_data>', code)
 
 
-def js_to_json(code, vars={}):
+def js_to_json(code, vars=None):
+    vars = {} if vars is None else vars
+
     # vars is a dict of var, val pairs to substitute
     COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*\n'
     SKIP_RE = r'\s*(?:{comment})?\s*'.format(comment=COMMENT_RE)

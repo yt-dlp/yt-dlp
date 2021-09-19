@@ -10,7 +10,9 @@ from ..utils import (
 
 
 class NuevoBaseIE(InfoExtractor):
-    def _extract_nuevo(self, config_url, video_id, headers={}):
+    def _extract_nuevo(self, config_url, video_id, headers=None):
+        headers = {} if headers is None else headers
+
         config = self._download_xml(
             config_url, video_id, transform_source=lambda s: s.strip(),
             headers=headers)

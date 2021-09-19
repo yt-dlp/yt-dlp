@@ -567,7 +567,8 @@ class TestYoutubeDL(unittest.TestCase):
             'webpage_url': 'http://example.com/watch?v=shenanigans',
         }
 
-        def get_info(params={}):
+        def get_info(params=None):
+            params = {} if params is None else params
             params.setdefault('simulate', True)
             ydl = YDL(params)
             ydl.report_warning = lambda *args, **kargs: None

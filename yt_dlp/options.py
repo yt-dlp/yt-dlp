@@ -125,8 +125,10 @@ def parseOpts(overrideArguments=None):
             current + value if append is True else value + current)
 
     def _set_from_options_callback(
-            option, opt_str, value, parser, delim=',', allowed_values=None, aliases={},
+            option, opt_str, value, parser, delim=',', allowed_values=None, aliases=None,
             process=lambda x: x.lower().strip()):
+        aliases = {} if aliases is None else aliases
+
         current = getattr(parser.values, option.dest)
         values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:

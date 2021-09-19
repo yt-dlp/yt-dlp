@@ -254,7 +254,9 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
     def suitable(cls, url):
         return False if RCTIPlusIE.suitable(url) else super(RCTIPlusSeriesIE, cls).suitable(url)
 
-    def _entries(self, url, display_id=None, note='Downloading entries JSON', metadata={}):
+    def _entries(self, url, display_id=None, note='Downloading entries JSON', metadata=None):
+        metadata = {} if metadata is None else metadata
+
         total_pages = 0
         try:
             total_pages = self._call_api(

@@ -29,7 +29,9 @@ class NaverBaseIE(InfoExtractor):
         formats = []
         get_list = lambda x: try_get(video_data, lambda y: y[x + 's']['list'], list) or []
 
-        def extract_formats(streams, stream_type, query={}):
+        def extract_formats(streams, stream_type, query=None):
+            query = {} if query is None else query
+
             for stream in streams:
                 stream_url = stream.get('source')
                 if not stream_url:

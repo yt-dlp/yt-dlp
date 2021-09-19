@@ -87,7 +87,9 @@ class TikTokBaseIE(InfoExtractor):
 
         known_resolutions = {}
 
-        def extract_addr(addr, add_meta={}):
+        def extract_addr(addr, add_meta=None):
+            add_meta = {} if add_meta is None else add_meta
+
             parsed_meta, res = parse_url_key(addr.get('url_key', ''))
             if res:
                 known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height'))

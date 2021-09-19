@@ -22,11 +22,15 @@ class MildomBaseIE(InfoExtractor):
     _GUEST_ID = None
     _DISPATCHER_CONFIG = None
 
-    def _call_api(self, url, video_id, query={}, note='Downloading JSON metadata', init=False):
+    def _call_api(self, url, video_id, query=None, note='Downloading JSON metadata', init=False):
+        query = {} if query is None else query
+
         url = update_url_query(url, self._common_queries(query, init=init))
         return self._download_json(url, video_id, note=note)['body']
 
-    def _common_queries(self, query={}, init=False):
+    def _common_queries(self, query=None, init=False):
+        query = {} if query is None else query
+
         dc = self._fetch_dispatcher_config()
         r = {
             'timestamp': self.iso_timestamp(),
