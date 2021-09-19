@@ -104,3 +104,20 @@ class MultilinePrinter():
                 self.lastlength = 0
             self.stream.write(text)
             self.lastline = pos
+
+    def end(self):
+        # move cursor to the end of the last line, and write line break
+        # so that other to_screen calls can precede
+        self._move_cursor(self.maximum)
+        self.stream.write(b'\n')
+
+
+class QuietMultilinePrinter():
+    def __init__(self, stream, lines):
+        self.have_fullcap = True
+
+    def print_at_line(self, text, pos):
+        pass
+
+    def end(self):
+        pass
