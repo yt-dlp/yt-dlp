@@ -481,10 +481,12 @@ def ghash(subkey, data):
 
 
 __all__ = [
-    'aes_encrypt',
-    'key_expansion',
     'aes_ctr_decrypt',
     'aes_cbc_decrypt',
-    'aes_gcm_decrypt_and_verify',
+    'aes_cbc_decrypt_bytes',
     'aes_decrypt_text',
+    'aes_encrypt',
+    'aes_gcm_decrypt_and_verify',
+    'aes_gcm_decrypt_and_verify_bytes',
+    'key_expansion'
 ]
