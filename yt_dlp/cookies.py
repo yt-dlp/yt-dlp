@@ -9,18 +9,18 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from hashlib import pbkdf2_hmac
 
-from .aes import aes_cbc_decrypt, aes_gcm_decrypt_and_verify
-from .compat import (
+from yt_dlp.aes import aes_cbc_decrypt
+from yt_dlp.compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
 )
-from .utils import (
+from yt_dlp.utils import (
     bug_reports_message,
     bytes_to_intlist,
     expand_path,
     intlist_to_bytes,
     process_communicate_or_kill,
-    YoutubeDLCookieJar
+    YoutubeDLCookieJar,
 )
 
 try:
@@ -30,6 +30,13 @@ except ImportError:
     # although sqlite3 is part of the standard library, it is possible to compile python without
     # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
     SQLITE_AVAILABLE = False
+
+
+try:
+    from Crypto.Cipher import AES
+    CRYPTO_AVAILABLE = True
+except ImportError:
+    CRYPTO_AVAILABLE = False
 
 try:
     import keyring
@@ -393,6 +400,11 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
             if self._v10_key is None:
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
                 return None
+            elif not CRYPTO_AVAILABLE:
+                self._logger.warning('cannot decrypt cookie as the `pycryptodome` module is not installed. '
+                                     'Please install by running `python3 -m pip install pycryptodome`',
+                                     only_once=True)
+                return None
 
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
             #   kNonceLength
@@ -636,29 +648,29 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
 
 
 def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
-    plaintext = aes_cbc_decrypt(*map(bytes_to_intlist, (ciphertext, key, initialization_vector)))
+    plaintext = aes_cbc_decrypt(bytes_to_intlist(ciphertext),
+                                bytes_to_intlist(key),
+                                bytes_to_intlist(initialization_vector))
     padding_length = plaintext[-1]
     try:
         return intlist_to_bytes(plaintext[:-padding_length]).decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?',
-                       only_once=True)
+        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
 
 
 def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
+    cipher = AES.new(key, AES.MODE_GCM, nonce)
     try:
-        plaintext = aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (ciphertext, key, authentication_tag, nonce)))
+        plaintext = cipher.decrypt_and_verify(ciphertext, authentication_tag)
     except ValueError:
-        logger.warning('failed to decrypt cookie because the MAC check failed. Possibly the key is wrong?',
-                       only_once=True)
+        logger.warning('failed to decrypt cookie because the MAC check failed. Possibly the key is wrong?', only_once=True)
         return None
 
     try:
-        return intlist_to_bytes(plaintext).decode('utf-8')
+        return plaintext.decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?',
-                       only_once=True)
+        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
 
 

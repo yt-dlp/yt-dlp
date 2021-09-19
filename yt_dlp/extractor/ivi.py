@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import json
 import re
+import sys
 
 from .common import InfoExtractor
 from ..utils import (
@@ -93,21 +94,20 @@ class IviIE(InfoExtractor):
             ]
         })
 
+        bundled = hasattr(sys, 'frozen')
+
         for site in (353, 183):
             content_data = (data % site).encode()
             if site == 353:
+                if bundled:
+                    continue
                 try:
                     from Cryptodome.Cipher import Blowfish
                     from Cryptodome.Hash import CMAC
-                    pycryptodome_found = True
+                    pycryptodomex_found = True
                 except ImportError:
-                    try:
-                        from Crypto.Cipher import Blowfish
-                        from Crypto.Hash import CMAC
-                        pycryptodome_found = True
-                    except ImportError:
-                        pycryptodome_found = False
-                        continue
+                    pycryptodomex_found = False
+                    continue
 
                 timestamp = (self._download_json(
                     self._LIGHT_URL, video_id,
@@ -140,8 +140,14 @@ class IviIE(InfoExtractor):
                     extractor_msg = 'Video %s does not exist'
                 elif site == 353:
                     continue
-                elif not pycryptodome_found:
-                    raise ExtractorError('pycryptodome not found. Please install', expected=True)
+                elif bundled:
+                    raise ExtractorError(
+                        'This feature does not work from bundled exe. Run yt-dlp from sources.',
+                        expected=True)
+                elif not pycryptodomex_found:
+                    raise ExtractorError(
+                        'pycryptodomex not found. Please install',
+                        expected=True)
                 elif message:
                     extractor_msg += ': ' + message
                 raise ExtractorError(extractor_msg % video_id, expected=True)

@@ -31,8 +31,6 @@ from zipimport import zipimporter
 
 from .compat import (
     compat_basestring,
-    compat_crypto_AES,
-    compat_crypto_name,
     compat_get_terminal_size,
     compat_kwargs,
     compat_numeric_types,
@@ -3294,12 +3292,13 @@ class YoutubeDL(object):
         ) or 'none'
         self._write_string('[debug] exe versions: %s\n' % exe_str)
 
+        from .downloader.fragment import can_decrypt_frag
         from .downloader.websocket import has_websockets
         from .postprocessor.embedthumbnail import has_mutagen
         from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
 
         lib_str = ', '.join(sorted(filter(None, (
-            compat_crypto_AES and compat_crypto_name,
+            can_decrypt_frag and 'pycryptodome',
             has_websockets and 'websockets',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',
