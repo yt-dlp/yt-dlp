@@ -1299,7 +1299,7 @@ class PeerTubePlaylistIE(InfoExtractor):
     IE_NAME = 'PeerTube:Playlist'
     _VALID_URL = r'''(?x)
                         https?://(?P<host>%s)/(?P<type>(?:a|c|w/p))/
-                    (?P<id>(?:%s|chocobozzz))
+                    (?P<id>[^/]+)
                     ''' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
     _TESTS = [{
         'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
