@@ -13,7 +13,6 @@ from .aes import aes_cbc_decrypt_bytes, aes_gcm_decrypt_and_verify_bytes
 from .compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
-    compat_pycrypto_AES
 )
 from .utils import (
     bug_reports_message,
@@ -392,11 +391,6 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
         if version == b'v10':
             if self._v10_key is None:
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
-                return None
-            elif not compat_pycrypto_AES:
-                self._logger.warning('cannot decrypt cookie as the `pycryptodome` module is not installed. '
-                                     'Please install by running `python3 -m pip install pycryptodome`',
-                                     only_once=True)
                 return None
 
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
