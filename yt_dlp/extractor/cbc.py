@@ -251,32 +251,30 @@ class CBCGemIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_info = self._download_json(self._API_BASE + video_id, video_id)
-        m3u8_info = self._download_json(video_info['playSession']['url'], video_id)
 
-        if m3u8_info.get('errorCode') == 1:
-            # errorCode 1 means geo-blocked
-            self.raise_geo_restricted(countries=['CA'])
-        elif m3u8_info.get('errorCode') not in [35, 0, None]:
-            # 35 means media unavailable, which is handled below. 0 means no
-            # error. None is there just in case. Any other errorCode can't be
-            # handled as we don't know what it is.
-            raise ExtractorError(
-                f'CBCGem said {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}')
-
-        m3u8_url = m3u8_info.get('url')
-
-        # Sometimes the m3u8 URL is a not available, and errorCode is 35.
-        # This might only happen with member content. But just retrying seems
-        # to work fine.
-        max_retries = self.get_param('extractor_retries', 15)
-        i = 0
-        while m3u8_url is None:
-            if i == max_retries:
+        last_error = None
+        attempt = -1
+        retries = self.get_param('extractor_retries', 15)
+        while attempt < retries:
+            attempt += 1
+            if last_error:
+                self.report_warning('%s. Retrying...' % last_error)
+            m3u8_info = self._download_json(
+                video_info['playSession']['url'], video_id,
+                note='Downloading JSON metadata%s' % f' (attempt {attempt})')
+            m3u8_url = m3u8_info.get('url')
+            if m3u8_url:
+                break
+            elif m3u8_info.get('errorCode') == 1:
+                self.raise_geo_restricted(countries=['CA'])
+            elif attempt >= retries:
                 # Didn't work after all tries, give up
                 raise ExtractorError('Couldn\'t retrieve m3u8 URL')
-            m3u8_url = self._download_json(
-                video_info['playSession']['url'], video_id).get('url')
-            i += 1
+            elif m3u8_info.get('errorCode') != 35:
+                # 35 means media unavailable, but retries work
+                # This is an unknown error code
+                last_error = f'{self.IE_NAME} said: {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}'
+                raise ExtractorError(last_error)
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
         self._remove_duplicate_formats(formats)
