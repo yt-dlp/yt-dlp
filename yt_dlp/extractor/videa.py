@@ -47,7 +47,14 @@ class VideaIE(InfoExtractor):
         },
     }, {
         'url': 'http://videa.hu/videok/origo/jarmuvek/supercars-elozes-jAHDWfWSJH5XuFhH',
-        'only_matching': True,
+        'md5': 'd57ccd8812c7fd491d33b1eab8c99975',
+        'info_dict': {
+            'id': 'jAHDWfWSJH5XuFhH',
+            'ext': 'mp4',
+            'title': 'Supercars előzés',
+            'thumbnail': r're:^https?://.*',
+            'duration': 64,
+        },
     }, {
         'url': 'http://videa.hu/player?v=8YfIAjxwWGwT8HVQ',
         'md5': '97a7af41faeaffd9f1fc864a7c7e7603',
