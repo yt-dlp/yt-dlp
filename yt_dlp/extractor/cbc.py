@@ -207,7 +207,7 @@ class CBCGemIE(InfoExtractor):
             'episode_number': 1,
             'episode_id': 'schitts-creek/s06e01',
         },
-        'params': {'format': 'bv'},  # No format has audio and video combined
+        'params': {'format': 'bv'},
         'skip': 'Geo-restricted to Canada',
     }, {
         # geo-restricted to Canada, bypassable
@@ -229,11 +229,11 @@ class CBCGemIE(InfoExtractor):
             'duration': 1309,
             'categories': ['comedy'],
         },
-        'params': {'format': 'bv'},  # No format has audio and video combined
+        'params': {'format': 'bv'},
         'skip': 'Geo-restricted to Canada',
     }, {
         # geo-restricted to Canada, bypassable
-        # TV show playlist, all public videos at time of coding (2021-09)
+        # TV show playlist, all public videos
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06',
         'playlist_count': 16,
         'info_dict': {
@@ -396,10 +396,6 @@ class CBCGemLiveIE(InfoExtractor):
                 expected=True,
             )
 
-        tags = video_info.get('keywords')
-        if tags is not None:
-            tags = tags.split(', ')
-
         return {
             '_type': 'url_transparent',
             'ie_key': 'ThePlatform',
@@ -407,7 +403,7 @@ class CBCGemLiveIE(InfoExtractor):
             'id': video_id,
             'title': video_info.get('title'),
             'description': video_info.get('description'),
-            'tags': tags,
+            'tags': try_get(video_info, lambda x: x['keywords'].split(', ')),
             'thumbnail': video_info.get('cbc$staticImage'),
             'is_live': True,
         }
