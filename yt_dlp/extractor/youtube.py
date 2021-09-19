@@ -246,7 +246,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     """Provide base functions for Youtube extractors"""
 
     _RESERVED_NAMES = (
-        r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|'
+        r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|clip|'
         r'shorts|movies|results|shared|hashtag|trending|feed|feeds|'
         r'browse|oembed|get_video_info|iframe_api|s/player|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
@@ -4725,6 +4725,16 @@ class YoutubeTruncatedURLIE(InfoExtractor):
             '"https://www.youtube.com/watch?feature=foo&v=BaW_jenozKc" '
             ' or simply  youtube-dl BaW_jenozKc  .',
             expected=True)
+
+
+class YoutubeClipIE(InfoExtractor):
+    IE_NAME = 'youtube:clip'
+    IE_DESC = False  # Do not list
+    _VALID_URL = r'https?://(?:www\.)?youtube\.com/clip/'
+
+    def _real_extract(self, url):
+        self.report_warning('YouTube clips are not currently supported. The entire video will be downloaded instead')
+        return self.url_result(url, 'Generic')
 
 
 class YoutubeTruncatedIDIE(InfoExtractor):

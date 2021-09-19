@@ -1812,6 +1812,7 @@ from .yourporn import YourPornIE
 from .yourupload import YourUploadIE
 from .youtube import (
     YoutubeIE,
+    YoutubeClipIE,
     YoutubeFavouritesIE,
     YoutubeHistoryIE,
     YoutubeTabIE,
