@@ -145,7 +145,7 @@ class VideaIE(InfoExtractor):
         sources = xpath_element(
             info, './video_sources', 'sources', fatal=True)
         hash_values = xpath_element(
-            info, './hash_values', 'hash values', fatal=True)
+            info, './hash_values', 'hash values', fatal=False)
 
         title = xpath_text(video, './title', fatal=True)
 
@@ -154,15 +154,16 @@ class VideaIE(InfoExtractor):
             source_url = source.text
             source_name = source.get('name')
             source_exp = source.get('exp')
-            if not (source_url and source_name and source_exp):
+            if not (source_url and source_name):
                 continue
-            hash_value = xpath_text(hash_values, 'hash_value_' + source_name)
-            if not hash_value:
-                continue
-            source_url = update_url_query(source_url, {
-                'md5': hash_value,
-                'expires': source_exp,
-            })
+            hash_value = None
+            if hash_values:
+                hash_value = xpath_text(hash_values, 'hash_value_' + source_name)
+            if hash_value and source_exp:
+                source_url = update_url_query(source_url, {
+                    'md5': hash_value,
+                    'expires': source_exp,
+                })
             f = parse_codecs(source.get('codecs'))
             f.update({
                 'url': self._proto_relative_url(source_url),
