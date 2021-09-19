@@ -261,8 +261,7 @@ class CBCGemIE(InfoExtractor):
             # error. None is there just in case. Any other errorCode can't be
             # handled as we don't know what it is.
             raise ExtractorError(
-                f'CBCGem said {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}'
-            )
+                f'CBCGem said {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}')
 
         m3u8_url = m3u8_info.get('url')
 
@@ -274,7 +273,7 @@ class CBCGemIE(InfoExtractor):
         while m3u8_url is None:
             if i == max_retries:
                 # Didn't work after all tries, give up
-                raise ExtractorError("Couldn't retrieve m3u8 URL")
+                raise ExtractorError('Couldn\'t retrieve m3u8 URL')
             m3u8_url = self._download_json(
                 video_info['playSession']['url'], video_id).get('url')
             i += 1
@@ -303,7 +302,7 @@ class CBCGemIE(InfoExtractor):
             'thumbnail': video_info.get('image'),
             'series': video_info.get('series'),
             'season_number': video_info.get('season'),
-            'season': f"Season {video_info.get('season')}",
+            'season': f'Season {video_info.get("season")}',
             'episode_number': video_info.get('episode'),
             'episode': video_info.get('title'),
             'episode_id': video_id,
@@ -317,7 +316,7 @@ class CBCGemIE(InfoExtractor):
 
 class CBCGemPlaylistIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:playlist'
-    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>([0-9a-z-]+)/s([0-9]+))'
+    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))'
     _TESTS = [{
         # geo-restricted to Canada, bypassable
         # TV show playlist, all public videos
@@ -335,13 +334,13 @@ class CBCGemPlaylistIE(InfoExtractor):
     def _real_extract(self, url):
         match = self._match_valid_url(url)
         season_id = match.group('id')
-        show = match.group(2)
+        show = match.group('show')
         show_info = self._download_json(self._API_BASE + show, season_id)
-        season = int(match.group(3))
+        season = int(match.group('season'))
         season_info = try_get(season - 1, lambda x: show_info['seasons'][x])
 
         if season_info is None:
-            raise ExtractorError(f"Couldn't find season {season} of {show}")
+            raise ExtractorError(f'Couldn\'t find season {season} of {show}')
 
         episodes = []
         for episode in season_info['assets']:
@@ -419,9 +418,8 @@ class CBCGemLiveIE(InfoExtractor):
 
         if video_info is None:
             raise ExtractorError(
-                "Couldn't find video metadata, maybe this livestream is now offline",
-                expected=True,
-            )
+                'Couldn\'t find video metadata, maybe this livestream is now offline',
+                expected=True)
 
         return {
             '_type': 'url_transparent',
