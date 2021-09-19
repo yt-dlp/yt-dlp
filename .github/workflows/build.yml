@@ -66,14 +66,18 @@ jobs:
       id: sha512_tar
       run: echo "::set-output name=sha512_tar::$(sha512sum yt-dlp.tar.gz | awk '{print $1}')"
     - name: Install SSH private key
-      if: ${{ secrets.BREW_TOKEN }}
+      env:
+        BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
+      if: "env.BREW_TOKEN != ''"
       uses: webfactory/ssh-agent@v0.5.3
       with:
-          ssh-private-key: ${{ secrets.BREW_TOKEN }}
+          ssh-private-key: ${{ env.BREW_TOKEN }}
     - name: Update Homebrew Formulae
-      if: ${{ secrets.BREW_TOKEN }}
+      env:
+        BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
+      if: "env.BREW_TOKEN != ''"
       run: |
-        git clone git@github.com:pukkandan/homebrew-taps taps/
+        git clone git@github.com:yt-dlp/homebrew-taps taps/
         python3 devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ steps.bump_version.outputs.ytdlp_version }}"
         git -C taps/ config user.name github-actions
         git -C taps/ config user.email github-actions@example.com
@@ -150,7 +154,7 @@ jobs:
       run: python -m pip install --upgrade pip setuptools wheel
     - name: Install Requirements
       # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-      run: pip install "https://yt-dlp.github.io/pyinstaller-builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodome websockets
+      run: pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodome websockets
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
@@ -181,7 +185,7 @@ jobs:
         files: ./dist/yt-dlp
         dest: ./dist/yt-dlp.zip
     - name: Upload yt-dlp.zip Windows onedir
-      id: upload-release-windows
+      id: upload-release-windows-zip
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -216,7 +220,7 @@ jobs:
     - name: Upgrade pip and enable wheel support
       run: python -m pip install --upgrade pip setuptools wheel
     - name: Install Requirements
-      run: pip install "https://yt-dlp.github.io/pyinstaller-builds/i686/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodome websockets
+      run: pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodome websockets
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py

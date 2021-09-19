@@ -27,7 +27,6 @@ import traceback
 import random
 
 from string import ascii_letters
-from zipimport import zipimporter
 
 from .compat import (
     compat_basestring,
