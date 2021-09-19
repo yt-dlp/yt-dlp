@@ -77,7 +77,7 @@ jobs:
         BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
       if: "env.BREW_TOKEN != ''"
       run: |
-        git clone git@github.com:yt-dlp/homebrew-taps taps/
+        git clone git@github.com:pukkandan/homebrew-taps-dev taps/
         python3 devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ steps.bump_version.outputs.ytdlp_version }}"
         git -C taps/ config user.name github-actions
         git -C taps/ config user.email github-actions@example.com
