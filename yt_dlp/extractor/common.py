@@ -2625,7 +2625,7 @@ class InfoExtractor(object):
                     if mpd_base_url and base_url.startswith('/'):
                         base_url = compat_urlparse.urljoin(mpd_base_url, base_url)
                     elif mpd_base_url and not re.match(r'^https?://', base_url):
-                        if not mpd_base_url.endswith('/') and not base_url.startswith('/'):
+                        if not mpd_base_url.endswith('/'):
                             mpd_base_url += '/'
                         base_url = mpd_base_url + base_url
                     representation_id = representation_attrib.get('id')
