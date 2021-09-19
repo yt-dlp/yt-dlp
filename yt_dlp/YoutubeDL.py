@@ -27,6 +27,7 @@ import traceback
 import random
 
 from string import ascii_letters
+from yt_dlp.downloader.dash import DashSegmentsFD
 from zipimport import zipimporter
 
 from .compat import (
@@ -2765,6 +2766,17 @@ class YoutubeDL(object):
                     elif (directly_mergable and get_suitable_downloader(
                             info_dict, self.params, to_stdout=(temp_filename == '-')) == FFmpegFD):
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
+                        success, real_download = self.dl(temp_filename, info_dict)
+                        info_dict['__real_download'] = real_download
+                    elif (len(requested_formats) > 1 and get_suitable_downloader(
+                            info_dict, self.params) == DashSegmentsFD):
+                        for f in requested_formats:
+                            f['filepath'] = fname = prepend_extension(
+                                correct_ext(temp_filename, info_dict['ext']),
+                                'f%s' % f['format_id'], info_dict['ext'])
+                            if not self._ensure_dir_exists(fname):
+                                return
+                        info_dict['url'] = requested_formats[0]['url']
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
                     else:

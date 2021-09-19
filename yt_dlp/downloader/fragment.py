@@ -121,6 +121,7 @@ class FragmentFD(FileDownloader):
             'url': frag_url,
             'http_headers': headers or info_dict.get('http_headers'),
             'request_data': request_data,
+            'ctx_id': ctx.get('ctx_id'),
         }
         success = ctx['dl'].download(fragment_filename, fragment_info_dict)
         if not success:
@@ -342,9 +343,13 @@ class FragmentFD(FileDownloader):
             ctx['progress_idx'] = idx
             return self.download_and_append_fragments(ctx, fragments, info_dict, pack_func=pack_func, finish_func=finish_func, tpe=tpe)
 
+        class FTPE(concurrent.futures.ThreadPoolExecutor):
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+
         spins = []
         for idx, ctx, fragments, info_dict in zip(itertools.count(0), args[::3], args[1::3], args[2::3]):
-            tpe = concurrent.futures.ThreadPoolExecutor(max_workers // max_progress)
+            tpe = FTPE(max_workers // max_progress)
             job = tpe.submit(thread_func, idx, ctx, fragments, info_dict, tpe)
             spins.append((tpe, job))
 

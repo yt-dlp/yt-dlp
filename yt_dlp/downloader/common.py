@@ -250,14 +250,14 @@ class FileDownloader(object):
         else:
             self._multiline = MultilinePrinter(sys.stderr, lines)
 
-    def _finish_multiline_status(self, lines):
+    def _finish_multiline_status(self):
         if self._multiline is not None:
             self._multiline.end()
 
     def _report_progress_status(self, msg, is_last_line=False, progress_line=None):
         fullmsg = '[download] ' + msg
         if progress_line is not None and self._multiline is not None:
-            self._multiline.print_at_line(msg, progress_line)
+            self._multiline.print_at_line(fullmsg, progress_line)
         elif self.params.get('progress_with_newline', False):
             self.to_screen(fullmsg)
         else:
@@ -286,7 +286,7 @@ class FileDownloader(object):
                     s['_elapsed_str'] = self.format_seconds(s['elapsed'])
                     msg_template += ' in %(_elapsed_str)s'
                 self._report_progress_status(
-                    msg_template % s, is_last_line=True)
+                    msg_template % s, progress_line=s.get('progress_idx'))
 
         if self.params.get('noprogress'):
             return

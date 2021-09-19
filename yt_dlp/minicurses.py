@@ -15,7 +15,7 @@ class MultilinePrinterBase():
     def __enter__(self):
         return self
     
-    def __exit__(self):
+    def __exit__(self, *args):
         self.end()
 
     def print_at_line(self, text, pos):
@@ -75,11 +75,11 @@ class MultilinePrinter(MultilinePrinterBase):
         return re.sub(rb'\$<\d+>[/*]?', '', cap).decode()
 
     def _move_cursor(self, dest):
-        current = max(self.lastline, self.maximum)
+        current = min(self.lastline, self.maximum)
         self.stream.write(self.CARRIAGE_RETURN)
         if current == dest:
             # current and dest are at same position, no need to move cursor
-            pass
+            return
         elif current > dest:
             # when maximum == 2,
             # 0. dest
@@ -95,32 +95,34 @@ class MultilinePrinter(MultilinePrinterBase):
         self.lastline = dest
 
     def print_at_line(self, text, pos):
-        if self.have_fullcap:
-            self._move_cursor(pos)
-            self.stream.write(text)
-        else:
-            if self.maximum != 0:
-                # let user know about which line is updating the status
-                text = f'{pos + 1}: ${text}'
-            textlen = len(text)
-            if self.lastline == pos:
-                # move cursor at the start of progress when writing to same line
-                self.stream.write(self.CARRIAGE_RETURN)
-                if self.lastlength > textlen:
-                    text += ' ' * (self.lastlength - textlen)
-                self.lastlength = textlen
+        with self.movelock:
+            if self.have_fullcap:
+                self._move_cursor(pos)
+                self.stream.write(self.ERASE_LINE)
+                self.stream.write(text)
             else:
-                # otherwise, break the line
-                self.stream.write(b'\n')
-                self.lastlength = 0
-            self.stream.write(text)
-            self.lastline = pos
+                if self.maximum != 0:
+                    # let user know about which line is updating the status
+                    text = f'{pos + 1}: ${text}'
+                textlen = len(text)
+                if self.lastline == pos:
+                    # move cursor at the start of progress when writing to same line
+                    self.stream.write(self.CARRIAGE_RETURN)
+                    if self.lastlength > textlen:
+                        text += ' ' * (self.lastlength - textlen)
+                    self.lastlength = textlen
+                else:
+                    # otherwise, break the line
+                    self.stream.write('\n')
+                    self.lastlength = 0
+                self.stream.write(text)
+                self.lastline = pos
 
     def end(self):
         # move cursor to the end of the last line, and write line break
         # so that other to_screen calls can precede
         self._move_cursor(self.maximum)
-        self.stream.write(b'\n')
+        self.stream.write('\n')
 
 
 class QuietMultilinePrinter(MultilinePrinterBase):
