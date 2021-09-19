@@ -14,7 +14,6 @@ from ..utils import (
     orderedSet,
     strip_or_none,
     ExtractorError,
-    list_get,
 )
 
 
@@ -245,23 +244,17 @@ class CBCGemIE(InfoExtractor):
         'skip': 'Geo-restricted to Canada',
     }]
     _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/'
-    _API_VIDEO = _API_BASE + 'assets/'
-    _API_SHOW = _API_BASE + 'shows/'
-    _BROWSER_BASE = 'https://gem.cbc.ca/media/'
-    # Regexes for analyzing video_id - the id group of _VALID_URL
-    _VIDEO_ID = r'[0-9a-z-]+/s[0-9]+[a-z][0-9]+'
-    _PLAYLIST_ID = r'([0-9a-z-]+)/s([0-9]+)'
 
     def _real_extract(self, url):
         url_id = self._match_id(url)
 
-        playlist_match = re.fullmatch(self._PLAYLIST_ID, url_id)
+        playlist_match = re.fullmatch(r'([0-9a-z-]+)/s([0-9]+)', url_id)
         if playlist_match:
             season_id = url_id
             show = playlist_match.group(1)
-            show_info = self._download_json(self._API_SHOW + show, season_id)
+            show_info = self._download_json(self._API_BASE + 'shows/' + show, season_id)
             season = int(playlist_match.group(2))
-            season_info = list_get(show_info['seasons'], season - 1)
+            season_info = try_get(season - 1, lambda x: show_info['seasons'][x])
 
             if season_info is None:
                 raise ExtractorError(f"Couldn't find season {season} of {show}")
@@ -271,7 +264,7 @@ class CBCGemIE(InfoExtractor):
                 episodes.append({
                     '_type': 'url_transparent',
                     'ie_key': 'CBCGem',
-                    'url': self._BROWSER_BASE + episode['id'],
+                    'url': 'https://gem.cbc.ca/media/' + episode['id'],
                     'id': episode['id'],
                     'title': episode.get('title'),
                     'description': episode.get('description'),
@@ -307,14 +300,14 @@ class CBCGemIE(InfoExtractor):
                 'season': season_info['title'],
             }
 
-        elif re.fullmatch(self._VIDEO_ID, url_id) is None:
+        elif re.fullmatch(r'[0-9a-z-]+/s[0-9]+[a-z][0-9]+', url_id) is None:
             # Not a playlist or video
             raise ExtractorError(f"Could't recognize ID '{url_id}' as a playlist or video")
 
         # It's a single video
 
         video_id = url_id
-        video_info = self._download_json(self._API_VIDEO + video_id, video_id)
+        video_info = self._download_json(self._API_BASE + 'assets/' + video_id, video_id)
         m3u8_info = self._download_json(video_info['playSession']['url'], video_id)
 
         if m3u8_info.get('errorCode') == 1:
@@ -325,7 +318,7 @@ class CBCGemIE(InfoExtractor):
             # error. None is there just in case. Any other errorCode can't be
             # handled as we don't know what it is.
             raise ExtractorError(
-                f"Unknown errorCode {m3u8_info.get('errorCode')}, with message: {m3u8_info.get('message')}"
+                f'CBCGem said {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}'
             )
 
         m3u8_url = m3u8_info.get('url')
@@ -333,25 +326,21 @@ class CBCGemIE(InfoExtractor):
         # Sometimes the m3u8 URL is a not available, and errorCode is 35.
         # This might only happen with member content. But just retrying seems
         # to work fine.
+        max_retries = self.get_param('extractor_retries', 15)
         i = 0
         while m3u8_url is None:
-            if i == 15:
-                # Didn't work after 15 tries, give up
+            if i == max_retries:
+                # Didn't work after all tries, give up
                 raise ExtractorError("Couldn't retrieve m3u8 URL")
             m3u8_url = self._download_json(
                 video_info['playSession']['url'], video_id).get('url')
             i += 1
 
-        formats = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url, video_id, m3u8_id='hls')[0]
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
         self._remove_duplicate_formats(formats)
 
-        # Post-process format list
         for i, format in enumerate(formats):
             if format.get('vcodec') == 'none':
-                # Audio-only
-
-                # Only AAC audio is used
                 if format.get('ext') is None:
                     format['ext'] = 'm4a'
                 if format.get('acodec') is None:
@@ -408,7 +397,10 @@ class CBCGemLiveIE(InfoExtractor):
                 video_info = stream
 
         if video_info is None:
-            raise ExtractorError("Couldn't find video metadata, maybe this livestream is now offline")
+            raise ExtractorError(
+                "Couldn't find video metadata, maybe this livestream is now offline",
+                expected=True,
+            )
 
         tags = video_info.get('keywords')
         if tags is not None:

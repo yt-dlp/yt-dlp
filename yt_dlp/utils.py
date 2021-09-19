@@ -3068,6 +3068,7 @@ def parse_iso8601(date_str, delimiter='T', timezone=None):
     except ValueError:
         pass
 
+
 def date_formats(day_first=True):
     return DATE_FORMATS_DAY_FIRST if day_first else DATE_FORMATS_MONTH_FIRST
 
@@ -4298,11 +4299,6 @@ def dict_get(d, key_or_keys, default=None, skip_false_values=True):
         return default
     return d.get(key_or_keys, default)
 
-def list_get(list, i):
-    try:
-        return list[i]
-    except IndexError:
-        return None
 
 def try_get(src, getter, expected_type=None):
     for get in variadic(getter):
