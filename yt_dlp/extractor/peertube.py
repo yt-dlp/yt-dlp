@@ -1295,7 +1295,30 @@ class PeerTubeIE(InfoExtractor):
         }
 
 
-class PeerTubePlaylistIE(InfoExtractor):
+class PeerTubeBaseIE(InfoExtractor):
+    _API_BASE = 'https://%s/api/v1/%s/%s%s'
+    _PAGE_SIZE = 30
+
+    def call_api(self, host, name, path, base, note=None, **kwargs):
+        return self._download_json(
+            self._API_BASE % (host, base, name, path), name,
+            note=note, **kwargs)
+
+    def fetch_page(self, host, uuid, type, page):
+        page += 1
+        video_data = self.call_api(
+            host, uuid,
+            f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
+            type, note=f'Downloading page {page}').get('data', [])
+        for video in video_data:
+            shortUUID = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
+            video_title = video.get('name') or try_get(video, lambda x: x['video']['name'])
+            yield self.url_result(
+                f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
+                video_id=shortUUID, video_title=video_title)
+
+
+class PeerTubePlaylistIE(PeerTubeBaseIE, InfoExtractor):
     IE_NAME = 'PeerTube:Playlist'
     _VALID_URL = r'''(?x)
                     (?:
@@ -1303,7 +1326,6 @@ class PeerTubePlaylistIE(InfoExtractor):
                     )
                     (?P<id>%s)
                     ''' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
-    _API_BASE = 'https://%s/api/v1/video-playlists/%s%s'
     _TESTS = [{
         'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
         'info_dict': {
@@ -1332,28 +1354,10 @@ class PeerTubePlaylistIE(InfoExtractor):
         },
         'playlist_mincount': 9,
     }]
-    _PAGE_SIZE = 30
-
-    def _call_api(self, host, uuid, path, note=None, errnote=None, fatal=True):
-        return self._download_json(
-            self._API_BASE % (host, uuid, path), uuid,
-            note=note, errnote=errnote, fatal=fatal)
-
-    def _fetch_page(self, host, uuid, page):
-        page += 1
-        video_data = self._call_api(
-            host, uuid, f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}',
-            note=f'Downloading page {page}').get('data', {})
-        for video in video_data:
-            shortUUID = try_get(video, lambda x: x['video']['shortUUID'])
-            video_title = try_get(video, lambda x: x['video']['name'])
-            yield self.url_result(
-                f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
-                video_id=shortUUID, video_title=video_title)
 
     def _real_extract(self, url):
         host, playlist_id = self._match_valid_url(url).group('host', 'id')
-        playlist_info = self._call_api(host, playlist_id, '', note='Downloading playlist information', fatal=False)
+        playlist_info = self.call_api(host, playlist_id, '', 'video-playlists', note='Downloading playlist information', fatal=False)
 
         playlist_title = playlist_info.get('displayName')
         playlist_description = playlist_info.get('description')
@@ -1364,17 +1368,16 @@ class PeerTubePlaylistIE(InfoExtractor):
         thumbnail = f'https://{host}{thumbnail}'
 
         entries = OnDemandPagedList(functools.partial(
-            self._fetch_page, host, playlist_id), self._PAGE_SIZE)
+            self.fetch_page, host, playlist_id, 'video-playlists'), self._PAGE_SIZE)
 
         return self.playlist_result(
             entries, playlist_id, playlist_title, playlist_description,
             timestamp=playlist_timestamp, channel=channel, channel_id=channel_id, thumbnail=thumbnail)
 
 
-class PeerTubeChannelIE(InfoExtractor):
+class PeerTubeChannelIE(PeerTubeBaseIE, InfoExtractor):
     IE_NAME = 'PeerTube:Channel'
     _VALID_URL = r'(?x)https?://(?P<host>%s)/(?P<type>[ac])/(?P<id>[^/]+)/(videos|video-channels)' % PeerTubeIE._INSTANCES_RE
-    _API_BASE = 'https://%s/api/v1/%s/%s%s'
     _TESTS = [{
         'url': 'https://peertube2.cpy.re/a/chocobozzz/videos',
         'info_dict': {
@@ -1392,36 +1395,18 @@ class PeerTubeChannelIE(InfoExtractor):
         },
         'playlist_mincount': 345,
     }]
-    _PAGE_SIZE = 30
-
-    def _call_api(self, host, name, path, base, note=None, **kwargs):
-        return self._download_json(
-            self._API_BASE % (host, base, name, path), name,
-            note=note, **kwargs)
-
-    def _fetch_page(self, host, uuid, type, page):
-        page += 1
-        video_data = self._call_api(
-            host, uuid, f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
-            type, note=f'Downloading page {page}').get('data', {})
-        for video in video_data:
-            shortUUID = video.get('shortUUID')
-            video_title = video.get('name')
-            yield self.url_result(
-                f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
-                video_id=shortUUID, video_title=video_title)
 
     def _real_extract(self, url):
         type, host, channel_id = self._match_valid_url(url).group('type', 'host', 'id')
         type = 'accounts' if type == 'a' else 'video-channels'
-        channel_info = self._call_api(host, channel_id, '', type, note='Downloading channel information', fatal=False)
+        channel_info = self.call_api(host, channel_id, '', type, note='Downloading channel information', fatal=False)
 
         channel_displayname = channel_info.get('displayName')
         channel_description = channel_info.get('description')
         channel_timestamp = unified_timestamp(channel_info.get('createdAt'))
 
         entries = OnDemandPagedList(functools.partial(
-            self._fetch_page, host, channel_id, type), self._PAGE_SIZE)
+            self.fetch_page, host, channel_id, type), self._PAGE_SIZE)
 
         return self.playlist_result(
             entries, channel_id, channel_displayname, channel_description,
