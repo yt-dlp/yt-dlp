@@ -53,6 +53,20 @@ jobs:
         echo "EOF" >> $GITHUB_ENV
     - name: Run Make
       run: make all tar
+    - name: Install SSH private key
+      if: ${{ secrets.BREW_TOKEN }}
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+          ssh-private-key: ${{ secrets.BREW_TOKEN }}
+    - name: Update Homebrew Formulae
+      if: ${{ secrets.BREW_TOKEN }}
+      run: |
+        git clone git@github.com:pukkandan/homebrew-taps taps/
+        python3 devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ steps.bump_version.outputs.ytdlp_version }}"
+        git -C taps/ config user.name github-actions
+        git -C taps/ config user.email github-actions@example.com
+        git -C taps/ commit -am 'yt-dlp: ${{ steps.bump_version.outputs.ytdlp_version }}'
+        git -C taps/ push
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
