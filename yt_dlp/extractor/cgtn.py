@@ -5,6 +5,7 @@ import datetime
 
 from .common import InfoExtractor
 from ..utils import (
+    try_get,
     unified_timestamp,
 )
 
@@ -25,8 +26,7 @@ class CGTNIE(InfoExtractor):
             'params': {
                 'skip_download': True
             }
-        },
-        {
+        }, {
             'url': 'https://news.cgtn.com/news/2021-06-06/China-Indonesia-vow-to-further-deepen-maritime-cooperation-10REvJCewCY/index.html',
             'info_dict': {
                 'id': '10REvJCewCY',
@@ -49,29 +49,18 @@ class CGTNIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._og_search_title(webpage)
         download_url = self._html_search_regex(r'data-video ="(?P<url>.+m3u8)"', webpage, 'download_url')
-        thumbnail = self._og_search_thumbnail(webpage)
-        description = self._og_search_description(webpage, default=None)
-        category = self._html_search_regex(r'<span class="section">\s*(.+?)\s*</span>', webpage, 'category', fatal=False)
         datetime_str = self._html_search_regex(r'<span class="date">\s*(.+?)\s*</span>', webpage, 'datetime_str', fatal=False)
-        author = self._html_search_regex(r'<div class="news-author-name">\s*(.+?)\s*</div>', webpage, 'author', default=None, fatal=False)
-        timestamp = None
-        if datetime_str:
-            formatted_datetime_str = datetime.datetime.strptime(datetime_str, '%H:%M, %d-%b-%Y').strftime('%Y/%m/%d %H:%M')
-            timestamp = unified_timestamp(formatted_datetime_str) - 8 * 3600
-
-        formats = self._extract_m3u8_formats(
-            download_url, video_id, 'mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls')
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'formats': formats,
-            'category': category,
-            'author': author,
-            'timestamp': timestamp
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage, default=None),
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'formats': self._extract_m3u8_formats(download_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls'),
+            'category': self._html_search_regex(r'<span class="section">\s*(.+?)\s*</span>',
+                                                webpage, 'category', fatal=False),
+            'author': self._html_search_regex(r'<div class="news-author-name">\s*(.+?)\s*</div>',
+                                              webpage, 'author', default=None, fatal=False),
+            'timestamp': try_get(unified_timestamp(datetime_str), lambda x: x - 8 * 3600),
         }
