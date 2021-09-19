@@ -53,6 +53,18 @@ jobs:
         echo "EOF" >> $GITHUB_ENV
     - name: Run Make
       run: make all tar
+    - name: Get SHA2-256SUMS for yt-dlp
+      id: sha256_bin
+      run: echo "::set-output name=sha256_bin::$(sha256sum yt-dlp | awk '{print $1}')"
+    - name: Get SHA2-256SUMS for yt-dlp.tar.gz
+      id: sha256_tar
+      run: echo "::set-output name=sha256_tar::$(sha256sum yt-dlp.tar.gz | awk '{print $1}')"
+    - name: Get SHA2-512SUMS for yt-dlp
+      id: sha512_bin
+      run: echo "::set-output name=sha512_bin::$(sha512sum yt-dlp | awk '{print $1}')"
+    - name: Get SHA2-512SUMS for yt-dlp.tar.gz
+      id: sha512_tar
+      run: echo "::set-output name=sha512_tar::$(sha512sum yt-dlp.tar.gz | awk '{print $1}')"
     - name: Install SSH private key
       if: ${{ secrets.BREW_TOKEN }}
       uses: webfactory/ssh-agent@v0.5.3
@@ -67,6 +79,22 @@ jobs:
         git -C taps/ config user.email github-actions@example.com
         git -C taps/ commit -am 'yt-dlp: ${{ steps.bump_version.outputs.ytdlp_version }}'
         git -C taps/ push
+    - name: Install dependencies for pypi
+      env:
+        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      if: "env.PYPI_TOKEN != ''"
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine
+    - name: Build and publish on pypi
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      if: "env.TWINE_PASSWORD != ''"
+      run: |
+        rm -rf dist/*
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -100,34 +128,6 @@ jobs:
         asset_path: ./yt-dlp.tar.gz
         asset_name: yt-dlp.tar.gz
         asset_content_type: application/gzip
-    - name: Get SHA2-256SUMS for yt-dlp
-      id: sha256_bin
-      run: echo "::set-output name=sha256_bin::$(sha256sum yt-dlp | awk '{print $1}')"
-    - name: Get SHA2-256SUMS for yt-dlp.tar.gz
-      id: sha256_tar
-      run: echo "::set-output name=sha256_tar::$(sha256sum yt-dlp.tar.gz | awk '{print $1}')"
-    - name: Get SHA2-512SUMS for yt-dlp
-      id: sha512_bin
-      run: echo "::set-output name=sha512_bin::$(sha512sum yt-dlp | awk '{print $1}')"
-    - name: Get SHA2-512SUMS for yt-dlp.tar.gz
-      id: sha512_tar
-      run: echo "::set-output name=sha512_tar::$(sha512sum yt-dlp.tar.gz | awk '{print $1}')"
-    - name: Install dependencies for pypi
-      env:
-        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-      if: "env.PYPI_TOKEN != ''"
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish on pypi
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      if: "env.TWINE_PASSWORD != ''"
-      run: |
-        rm -rf dist/*
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
 
   build_windows:
     runs-on: windows-latest
