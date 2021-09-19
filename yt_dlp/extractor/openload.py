@@ -161,8 +161,7 @@ class PhantomJSwrapper(object):
                 cookie['expire_time'] = cookie['expiry']
             self.extractor._set_cookie(**compat_kwargs(cookie))
 
-    def get(self, url, html=None, video_id=None, note=None, note2='Executing JS on webpage',
-            headers=None, jscode='saveAndExit();'):
+    def get(self, url, html=None, video_id=None, note=None, note2='Executing JS on webpage', headers=None, jscode='saveAndExit();'):
         """
         Downloads webpage (if needed) and executes JS
 

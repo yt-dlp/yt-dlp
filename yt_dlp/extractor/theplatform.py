@@ -340,9 +340,7 @@ class ThePlatformFeedIE(ThePlatformBaseIE):
         'only_matching': True,
     }]
 
-    def _extract_feed_info(
-            self, provider_id, feed_id, filter_query, video_id,
-            custom_fields=None, asset_types_query=None, account_id=None):
+    def _extract_feed_info(self, provider_id, feed_id, filter_query, video_id, custom_fields=None, asset_types_query=None, account_id=None):
         asset_types_query = {} if asset_types_query is None else asset_types_query
 
         real_url = self._URL_TEMPLATE % (self.http_scheme(), provider_id, feed_id, filter_query)

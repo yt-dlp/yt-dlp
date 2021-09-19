@@ -651,9 +651,7 @@ class InfoExtractor(object):
         else:
             return err.code in variadic(expected_status)
 
-    def _request_webpage(
-            self, url_or_request, video_id, note=None, errnote=None, fatal=True,
-            data=None, headers=None, query=None, expected_status=None):
+    def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers=None, query=None, expected_status=None):
         """
         Return the response handle.
 
@@ -719,9 +717,7 @@ class InfoExtractor(object):
                 self.report_warning(errmsg)
                 return False
 
-    def _download_webpage_handle(
-            self, url_or_request, video_id, note=None, errnote=None, fatal=True, encoding=None,
-            data=None, headers=None, query=None, expected_status=None):
+    def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True, encoding=None, data=None, headers=None, query=None, expected_status=None):
         """
         Return a tuple (page content as string, URL handle).
 
@@ -824,8 +820,9 @@ class InfoExtractor(object):
         return content
 
     def _download_webpage(
-            self, url_or_request, video_id, note=None, errnote=None, fatal=True, tries=1, timeout=5,
-            encoding=None, data=None, headers=None, query=None, expected_status=None):
+            self, url_or_request, video_id, note=None, errnote=None,
+            fatal=True, tries=1, timeout=5, encoding=None, data=None,
+            headers=None, query=None, expected_status=None):
         """
         Return the data of the page as a string.
 
@@ -883,9 +880,10 @@ class InfoExtractor(object):
             return content
 
     def _download_xml_handle(
-            self, url_or_request, video_id, note='Downloading XML', errnote='Unable to download XML',
-            transform_source=None, fatal=True, encoding=None,
-            data=None, headers=None, query=None, expected_status=None):
+            self, url_or_request, video_id, note='Downloading XML',
+            errnote='Unable to download XML', transform_source=None,
+            fatal=True, encoding=None, data=None, headers=None, query=None,
+            expected_status=None):
         """
         Return a tuple (xml as an compat_etree_Element, URL handle).
 
@@ -935,10 +933,10 @@ class InfoExtractor(object):
                 self.report_warning(errmsg + str(ve))
 
     def _download_json_handle(
-            self, url_or_request, video_id,
-            note='Downloading JSON metadata',errnote='Unable to download JSON metadata',
-            transform_source=None, fatal=True, encoding=None,
-            data=None, headers=None, query=None, expected_status=None):
+            self, url_or_request, video_id, note='Downloading JSON metadata',
+            errnote='Unable to download JSON metadata', transform_source=None,
+            fatal=True, encoding=None, data=None, headers=None, query=None,
+            expected_status=None):
         """
         Return a tuple (JSON object, URL handle).
 
@@ -959,10 +957,10 @@ class InfoExtractor(object):
             fatal=fatal), urlh
 
     def _download_json(
-            self, url_or_request, video_id,
-            note='Downloading JSON metadata', errnote='Unable to download JSON metadata',
-            transform_source=None, fatal=True, encoding=None,
-            data=None, headers=None, query=None, expected_status=None):
+            self, url_or_request, video_id, note='Downloading JSON metadata',
+            errnote='Unable to download JSON metadata', transform_source=None,
+            fatal=True, encoding=None, data=None, headers=None, query=None,
+            expected_status=None):
         """
         Return the JSON object as a dict.
 
@@ -996,9 +994,10 @@ class InfoExtractor(object):
             video_id, transform_source, fatal)
 
     def _download_socket_json_handle(
-            self, url_or_request, video_id, note='Polling socket', errnote='Unable to poll socket',
-            transform_source=None, fatal=True, encoding=None,
-            data=None, headers=None, query=None, expected_status=None):
+            self, url_or_request, video_id, note='Polling socket',
+            errnote='Unable to poll socket', transform_source=None,
+            fatal=True, encoding=None, data=None, headers=None, query=None,
+            expected_status=None):
         """
         Return a tuple (JSON object, URL handle).
 
@@ -1019,9 +1018,10 @@ class InfoExtractor(object):
             fatal=fatal), urlh
 
     def _download_socket_json(
-            self, url_or_request, video_id, note='Polling socket', errnote='Unable to poll socket',
-            transform_source=None, fatal=True, encoding=None,
-            data=None, headers=None, query=None, expected_status=None):
+            self, url_or_request, video_id, note='Polling socket',
+            errnote='Unable to poll socket', transform_source=None,
+            fatal=True, encoding=None, data=None, headers=None, query=None,
+            expected_status=None):
         """
         Return the JSON object as a dict.
 
@@ -1857,10 +1857,9 @@ class InfoExtractor(object):
         self.to_screen(msg)
         time.sleep(timeout)
 
-    def _extract_f4m_formats(
-            self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
-            transform_source=lambda s: fix_xml_ampersands(s).strip(), fatal=True, m3u8_id=None,
-            data=None, headers=None, query=None):
+    def _extract_f4m_formats(self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
+                             transform_source=lambda s: fix_xml_ampersands(s).strip(),
+                             fatal=True, m3u8_id=None, data=None, headers=None, query=None):
         headers = {} if headers is None else headers
         query = {} if query is None else query
 
@@ -2005,7 +2004,8 @@ class InfoExtractor(object):
     def _extract_m3u8_formats_and_subtitles(
             self, m3u8_url, video_id, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, note=None,
-            errnote=None, fatal=True, live=False, data=None, headers=None, query=None):
+            errnote=None, fatal=True, live=False, data=None, headers=None,
+            query=None):
         headers = {} if headers is None else headers
         query = {} if query is None else query
 
@@ -2030,7 +2030,8 @@ class InfoExtractor(object):
     def _parse_m3u8_formats_and_subtitles(
             self, m3u8_doc, m3u8_url, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, live=False, note=None,
-            errnote=None, fatal=True, data=None, headers=None, query=None, video_id=None):
+            errnote=None, fatal=True, data=None, headers=None, query=None,
+            video_id=None):
         headers = {} if headers is None else headers
         query = {} if query is None else query
 
@@ -2872,9 +2873,7 @@ class InfoExtractor(object):
             ))
         return fmts
 
-    def _extract_ism_formats_and_subtitles(
-            self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True,
-            data=None, headers=None, query=None):
+    def _extract_ism_formats_and_subtitles(self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True, data=None, headers=None, query=None):
         headers = {} if headers is None else headers
         query = {} if query is None else query
 
