@@ -1318,7 +1318,7 @@ class PeerTubeBaseIE(InfoExtractor):
                 video_id=shortUUID, video_title=video_title)
 
 
-class PeerTubePlaylistIE(PeerTubeBaseIE, InfoExtractor):
+class PeerTubePlaylistIE(PeerTubeBaseIE):
     IE_NAME = 'PeerTube:Playlist'
     _VALID_URL = r'''(?x)
                     (?:
