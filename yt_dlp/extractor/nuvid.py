@@ -34,7 +34,6 @@ class NuvidIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        formats = []
         qualities = {
             'lq': '360p',
             'hq': '720p',
