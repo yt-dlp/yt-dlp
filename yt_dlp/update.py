@@ -31,6 +31,18 @@ def rsa_verify(message, signature, key):
 '''
 
 
+def detect_variant():
+    if hasattr(sys, 'frozen') and getattr(sys, '_MEIPASS', None):
+        if sys._MEIPASS == os.path.dirname(sys.executable):
+            return 'dir'
+        return 'exe'
+    elif isinstance(globals().get('__loader__'), zipimporter):
+        return 'zip'
+    elif os.path.basename(sys.argv[0]) == '__main__.py':
+        return 'source'
+    return 'unknown'
+
+
 def update_self(to_screen, verbose, opener):
     ''' Exists for backward compatibility. Use run_update(ydl) instead '''
 
@@ -87,13 +99,14 @@ def run_update(ydl):
                 h.update(mv[:n])
         return h.hexdigest()
 
-    err = None
-    if isinstance(globals().get('__loader__'), zipimporter):
-        pass
-    elif hasattr(sys, 'frozen'):
-        pass
-    else:
-        err = 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Please use that to update'
+    ERRORS = {
+        'exe': None,
+        'zip': None,
+        'dir': 'Auto-update is not supported for unpackaged windows executable. Re-download the latest release',
+        'source': 'You cannot update when running from source code',
+        'unknown': 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Use that to update',
+    }
+    err = ERRORS.get(detect_variant(), ERRORS['unknown'])
     if err:
         return report_error(err, expected=True)
 

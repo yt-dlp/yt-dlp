@@ -142,6 +142,7 @@ from .postprocessor import (
     FFmpegPostProcessor,
     MoveFilesAfterDownloadPP,
 )
+from .update import detect_variant
 from .version import __version__
 
 if compat_os_name == 'nt':
@@ -3231,12 +3232,8 @@ class YoutubeDL(object):
                 self.get_encoding()))
         write_string(encoding_str, encoding=None)
 
-        source = (
-            '(exe)' if hasattr(sys, 'frozen')
-            else '(zip)' if isinstance(globals().get('__loader__'), zipimporter)
-            else '(source)' if os.path.basename(sys.argv[0]) == '__main__.py'
-            else '')
-        self._write_string('[debug] yt-dlp version %s %s\n' % (__version__, source))
+        source = detect_variant()
+        self._write_string('[debug] yt-dlp version %s%s\n' % (__version__, '' if source == 'unknown' else f' ({source})'))
         if _LAZY_LOADER:
             self._write_string('[debug] Lazy loading extractors enabled\n')
         if _PLUGIN_CLASSES:
