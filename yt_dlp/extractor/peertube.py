@@ -1344,6 +1344,14 @@ class PeerTubePlaylistIE(InfoExtractor):
             'title': 'Les vidéos de Framasoft',
         },
         'playlist_mincount': 345,
+    }, {
+        'url': 'https://peertube2.cpy.re/c/blender_open_movies@video.blender.org/videos',
+        'info_dict': {
+            'id': 'blender_open_movies@video.blender.org',
+            'timestamp': 1542287810,
+            'title': 'Official Blender Open Movies',
+        },
+        'playlist_mincount': 11,
     }]
     _API_BASE = 'https://%s/api/v1/%s/%s%s'
     _PAGE_SIZE = 30
