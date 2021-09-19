@@ -50,7 +50,14 @@ class VideaIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'http://videa.hu/player?v=8YfIAjxwWGwT8HVQ',
-        'only_matching': True,
+        'md5': '97a7af41faeaffd9f1fc864a7c7e7603',
+        'info_dict': {
+            'id': '8YfIAjxwWGwT8HVQ',
+            'ext': 'mp4',
+            'title': 'Az őrült kígyász 285 kígyót enged szabadon',
+            'thumbnail': r're:^https?://.*',
+            'duration': 21,
+        },
     }, {
         'url': 'http://videa.hu/player/v/8YfIAjxwWGwT8HVQ?autoplay=1',
         'only_matching': True,
