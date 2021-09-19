@@ -1295,36 +1295,11 @@ class PeerTubeIE(InfoExtractor):
         }
 
 
-class PeerTubeBaseIE(InfoExtractor):
-    _API_BASE = 'https://%s/api/v1/%s/%s%s'
-    _PAGE_SIZE = 30
-
-    def call_api(self, host, name, path, base, note=None, **kwargs):
-        return self._download_json(
-            self._API_BASE % (host, base, name, path), name,
-            note=note, **kwargs)
-
-    def fetch_page(self, host, uuid, type, page):
-        page += 1
-        video_data = self.call_api(
-            host, uuid,
-            f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
-            type, note=f'Downloading page {page}').get('data', [])
-        for video in video_data:
-            shortUUID = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
-            video_title = video.get('name') or try_get(video, lambda x: x['video']['name'])
-            yield self.url_result(
-                f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
-                video_id=shortUUID, video_title=video_title)
-
-
-class PeerTubePlaylistIE(PeerTubeBaseIE):
+class PeerTubePlaylistIE(InfoExtractor):
     IE_NAME = 'PeerTube:Playlist'
     _VALID_URL = r'''(?x)
-                    (?:
-                        https?://(?P<host>%s)/w/p/
-                    )
-                    (?P<id>%s)
+                        https?://(?P<host>%s)/(?P<type>(?:a|c|w/p))/
+                    (?P<id>(?:%s|chocobozzz))
                     ''' % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE)
     _TESTS = [{
         'url': 'https://peertube.tux.ovh/w/p/3af94cba-95e8-4b74-b37a-807ab6d82526',
@@ -1353,32 +1328,7 @@ class PeerTubePlaylistIE(PeerTubeBaseIE):
             'timestamp': 1599676222,
         },
         'playlist_mincount': 9,
-    }]
-
-    def _real_extract(self, url):
-        host, playlist_id = self._match_valid_url(url).group('host', 'id')
-        playlist_info = self.call_api(host, playlist_id, '', 'video-playlists', note='Downloading playlist information', fatal=False)
-
-        playlist_title = playlist_info.get('displayName')
-        playlist_description = playlist_info.get('description')
-        playlist_timestamp = unified_timestamp(playlist_info.get('createdAt'))
-        channel = try_get(playlist_info, lambda x: x['ownerAccount']['name'])
-        channel_id = try_get(playlist_info, lambda x: x['ownerAccount']['id'])
-        thumbnail = playlist_info.get('thumbnailPath')
-        thumbnail = f'https://{host}{thumbnail}'
-
-        entries = OnDemandPagedList(functools.partial(
-            self.fetch_page, host, playlist_id, 'video-playlists'), self._PAGE_SIZE)
-
-        return self.playlist_result(
-            entries, playlist_id, playlist_title, playlist_description,
-            timestamp=playlist_timestamp, channel=channel, channel_id=channel_id, thumbnail=thumbnail)
-
-
-class PeerTubeChannelIE(PeerTubeBaseIE, InfoExtractor):
-    IE_NAME = 'PeerTube:Channel'
-    _VALID_URL = r'(?x)https?://(?P<host>%s)/(?P<type>[ac])/(?P<id>[^/]+)/(videos|video-channels)' % PeerTubeIE._INSTANCES_RE
-    _TESTS = [{
+    }, {
         'url': 'https://peertube2.cpy.re/a/chocobozzz/videos',
         'info_dict': {
             'id': 'chocobozzz',
@@ -1395,19 +1345,51 @@ class PeerTubeChannelIE(PeerTubeBaseIE, InfoExtractor):
         },
         'playlist_mincount': 345,
     }]
+    _API_BASE = 'https://%s/api/v1/%s/%s%s'
+    _PAGE_SIZE = 30
 
-    def _real_extract(self, url):
-        type, host, channel_id = self._match_valid_url(url).group('type', 'host', 'id')
-        type = 'accounts' if type == 'a' else 'video-channels'
-        channel_info = self.call_api(host, channel_id, '', type, note='Downloading channel information', fatal=False)
+    def call_api(self, host, name, path, base, note=None, **kwargs):
+        return self._download_json(
+            self._API_BASE % (host, base, name, path), name,
+            note=note, **kwargs)
 
-        channel_displayname = channel_info.get('displayName')
-        channel_description = channel_info.get('description')
-        channel_timestamp = unified_timestamp(channel_info.get('createdAt'))
+    def fetch_page(self, host, id, type, page):
+        page += 1
+        video_data = self.call_api(
+            host, id,
+            f'/videos?sort=-createdAt&start={self._PAGE_SIZE * (page - 1)}&count={self._PAGE_SIZE}&nsfw=both',
+            type, note=f'Downloading page {page}').get('data', [])
+        for video in video_data:
+            shortUUID = video.get('shortUUID') or try_get(video, lambda x: x['video']['shortUUID'])
+            video_title = video.get('name') or try_get(video, lambda x: x['video']['name'])
+            yield self.url_result(
+                f'https://{host}/w/{shortUUID}', PeerTubeIE.ie_key(),
+                video_id=shortUUID, video_title=video_title)
+
+    def _extract_playlist(self, host, type, id):
+        info = self.call_api(host, id, '', type, note='Downloading playlist information', fatal=False)
+
+        playlist_title = info.get('displayName')
+        playlist_description = info.get('description')
+        playlist_timestamp = unified_timestamp(info.get('createdAt'))
+        channel = try_get(info, lambda x: x['ownerAccount']['name']) or info.get('displayName')
+        channel_id = try_get(info, lambda x: x['ownerAccount']['id']) or info.get('id')
+        thumbnail = info.get('thumbnailPath')
+        thumbnail = f'https://{host}{thumbnail}' if thumbnail else None
 
         entries = OnDemandPagedList(functools.partial(
-            self.fetch_page, host, channel_id, type), self._PAGE_SIZE)
+            self.fetch_page, host, id, type), self._PAGE_SIZE)
 
         return self.playlist_result(
-            entries, channel_id, channel_displayname, channel_description,
-            timestamp=channel_timestamp, channel=channel_displayname, channel_id=channel_id)
+            entries, id, playlist_title, playlist_description,
+            timestamp=playlist_timestamp, channel=channel, channel_id=channel_id, thumbnail=thumbnail)
+
+    def _real_extract(self, url):
+        type, host, id = self._match_valid_url(url).group('type', 'host', 'id')
+        if type == 'a':
+            type = 'accounts'
+        elif type == 'c':
+            type = 'video-channels'
+        elif type == 'w/p':
+            type = 'video-playlists'
+        return self._extract_playlist(host, type, id)

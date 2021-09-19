@@ -1034,7 +1034,6 @@ from .pearvideo import PearVideoIE
 from .peertube import (
     PeerTubeIE,
     PeerTubePlaylistIE,
-    PeerTubeChannelIE,
 )
 from .peloton import (
     PelotonIE,
