@@ -9,13 +9,13 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from hashlib import pbkdf2_hmac
 
-from yt_dlp.aes import aes_cbc_decrypt
-from yt_dlp.compat import (
+from .aes import aes_cbc_decrypt
+from .compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
     compat_pycrypto_AES
 )
-from yt_dlp.utils import (
+from .utils import (
     bug_reports_message,
     bytes_to_intlist,
     expand_path,
