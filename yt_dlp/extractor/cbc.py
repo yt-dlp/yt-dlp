@@ -200,7 +200,7 @@ class CBCPlayerIE(InfoExtractor):
 
 class CBCGemIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca'
-    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>[0-9a-z-]+/[0-9a-z-]+)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
     _TESTS = [{
         # geo-restricted to Canada, bypassable
         # This is a normal, public, TV show video
@@ -245,83 +245,12 @@ class CBCGemIE(InfoExtractor):
         },
         'params': {'format': 'bv'},
         'skip': 'Geo-restricted to Canada',
-    }, {
-        # geo-restricted to Canada, bypassable
-        # TV show playlist, all public videos
-        'url': 'https://gem.cbc.ca/media/schitts-creek/s06',
-        'playlist_count': 16,
-        'info_dict': {
-            'id': 'schitts-creek/s06',
-            'title': 'Season 6',
-            'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
-        },
-        'skip': 'Geo-restricted to Canada',
     }]
-    _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/'
+    _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/assets/'
 
     def _real_extract(self, url):
-        url_id = self._match_id(url)
-
-        playlist_match = re.fullmatch(r'([0-9a-z-]+)/s([0-9]+)', url_id)
-        if playlist_match:
-            season_id = url_id
-            show = playlist_match.group(1)
-            show_info = self._download_json(self._API_BASE + 'shows/' + show, season_id)
-            season = int(playlist_match.group(2))
-            season_info = try_get(season - 1, lambda x: show_info['seasons'][x])
-
-            if season_info is None:
-                raise ExtractorError(f"Couldn't find season {season} of {show}")
-
-            episodes = []
-            for episode in season_info['assets']:
-                episodes.append({
-                    '_type': 'url_transparent',
-                    'ie_key': 'CBCGem',
-                    'url': 'https://gem.cbc.ca/media/' + episode['id'],
-                    'id': episode['id'],
-                    'title': episode.get('title'),
-                    'description': episode.get('description'),
-                    'thumbnail': episode.get('image'),
-                    'series': episode.get('series'),
-                    'season_number': episode.get('season'),
-                    'season': season_info['title'],
-                    'season_id': season_info.get('id'),
-                    'episode_number': episode.get('episode'),
-                    'episode': episode.get('title'),
-                    'episode_id': episode['id'],
-                    'duration': episode.get('duration'),
-                    'categories': [episode.get('category')],
-                })
-
-            thumbnail = None
-            tn_uri = season_info.get('image')
-            # the-national was observed to use a "data:image/png;base64"
-            # URI for their 'image' value. The image was 1x1, and is
-            # probably just a placeholder, so it is ignored.
-            if tn_uri is not None and not tn_uri.startswith('data:'):
-                thumbnail = tn_uri
-
-            return {
-                '_type': 'playlist',
-                'entries': episodes,
-                'id': season_id,
-                'title': season_info['title'],
-                'description': season_info.get('description'),
-                'thumbnail': thumbnail,
-                'series': show_info.get('title'),
-                'season_number': season_info.get('season'),
-                'season': season_info['title'],
-            }
-
-        elif re.fullmatch(r'[0-9a-z-]+/s[0-9]+[a-z][0-9]+', url_id) is None:
-            # Not a playlist or video
-            raise ExtractorError(f"Could't recognize ID '{url_id}' as a playlist or video")
-
-        # It's a single video
-
-        video_id = url_id
-        video_info = self._download_json(self._API_BASE + 'assets/' + video_id, video_id)
+        video_id = self._match_id(url)
+        video_info = self._download_json(self._API_BASE + video_id, video_id)
         m3u8_info = self._download_json(video_info['playSession']['url'], video_id)
 
         if m3u8_info.get('errorCode') == 1:
@@ -383,6 +312,76 @@ class CBCGemIE(InfoExtractor):
             'formats': formats,
             'release_timestamp': video_info.get('airDate'),
             'timestamp': video_info.get('availableDate'),
+        }
+
+
+class CBCGemPlaylistIE(InfoExtractor):
+    IE_NAME = 'gem.cbc.ca:playlist'
+    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>([0-9a-z-]+)/s([0-9]+))'
+    _TESTS = [{
+        # geo-restricted to Canada, bypassable
+        # TV show playlist, all public videos
+        'url': 'https://gem.cbc.ca/media/schitts-creek/s06',
+        'playlist_count': 16,
+        'info_dict': {
+            'id': 'schitts-creek/s06',
+            'title': 'Season 6',
+            'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
+        },
+        'skip': 'Geo-restricted to Canada',
+    }]
+    _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/shows/'
+
+    def _real_extract(self, url):
+        match = self._match_valid_url(url)
+        season_id = match.group('id')
+        show = match.group(2)
+        show_info = self._download_json(self._API_BASE + show, season_id)
+        season = int(match.group(3))
+        season_info = try_get(season - 1, lambda x: show_info['seasons'][x])
+
+        if season_info is None:
+            raise ExtractorError(f"Couldn't find season {season} of {show}")
+
+        episodes = []
+        for episode in season_info['assets']:
+            episodes.append({
+                '_type': 'url_transparent',
+                'ie_key': 'CBCGem',
+                'url': 'https://gem.cbc.ca/media/' + episode['id'],
+                'id': episode['id'],
+                'title': episode.get('title'),
+                'description': episode.get('description'),
+                'thumbnail': episode.get('image'),
+                'series': episode.get('series'),
+                'season_number': episode.get('season'),
+                'season': season_info['title'],
+                'season_id': season_info.get('id'),
+                'episode_number': episode.get('episode'),
+                'episode': episode.get('title'),
+                'episode_id': episode['id'],
+                'duration': episode.get('duration'),
+                'categories': [episode.get('category')],
+            })
+
+        thumbnail = None
+        tn_uri = season_info.get('image')
+        # the-national was observed to use a "data:image/png;base64"
+        # URI for their 'image' value. The image was 1x1, and is
+        # probably just a placeholder, so it is ignored.
+        if tn_uri is not None and not tn_uri.startswith('data:'):
+            thumbnail = tn_uri
+
+        return {
+            '_type': 'playlist',
+            'entries': episodes,
+            'id': season_id,
+            'title': season_info['title'],
+            'description': season_info.get('description'),
+            'thumbnail': thumbnail,
+            'series': show_info.get('title'),
+            'season_number': season_info.get('season'),
+            'season': season_info['title'],
         }
 
 
