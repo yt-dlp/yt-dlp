@@ -47,15 +47,12 @@ class NuvidIE(InfoExtractor):
                 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
             })
 
-        sources = video_data.get('files')
-        for quality, source in sources.items():
-            if not source:
-                continue
-            formats.append({
-                'url': source,
-                'format_id': qualities.get(quality),
-                'height': int_or_none(qualities.get(quality)[:-1]),
-            })
+        formats = [{
+            'url': source,
+            'format_id': qualities.get(quality),
+            'height': int_or_none(qualities.get(quality)[:-1]),
+        } for quality, source in video_data.get('files').items() if source]
+
         self._check_formats(formats, video_id)
         self._sort_formats(formats)
 
