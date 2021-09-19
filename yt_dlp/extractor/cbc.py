@@ -346,12 +346,6 @@ class CBCGemIE(InfoExtractor):
                 if format.get('acodec') is None:
                     format['acodec'] = 'mp4a.40.2'
 
-                # Make IDs easier to use
-                format['format_id'] = format['format_id'].lower().replace(
-                    '(', '').replace(')', '')
-                # Remove the needless '-audio-' part of audio format IDs
-                format['format_id'] = format['format_id'].replace('-audio-', '-')
-
                 # Put described audio at the beginning of the list, so that it
                 # isn't chosen by default, as most people won't want it.
                 if 'descriptive' in format['format_id'].lower():
