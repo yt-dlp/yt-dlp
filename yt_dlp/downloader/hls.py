@@ -5,7 +5,7 @@ import io
 import binascii
 
 from ..downloader import get_suitable_downloader
-from .fragment import FragmentFD, can_decrypt_frag
+from .fragment import FragmentFD
 from .external import FFmpegFD
 
 from ..compat import (
@@ -29,7 +29,7 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False, with_crypto=can_decrypt_frag):
+    def can_download(manifest, info_dict, allow_unplayable_formats=False):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -57,7 +57,6 @@ class HlsFD(FragmentFD):
         def check_results():
             yield not info_dict.get('is_live')
             is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
-            yield with_crypto or not is_aes128_enc
             yield not (is_aes128_enc and r'#EXT-X-BYTERANGE' in manifest)
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
@@ -75,8 +74,6 @@ class HlsFD(FragmentFD):
             if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
                 self.report_error('pycryptodome not found. Please install')
                 return False
-            if self.can_download(s, info_dict, with_crypto=True):
-                self.report_warning('pycryptodome is needed to download this file natively')
             fd = FFmpegFD(self.ydl, self.params)
             self.report_warning(
                 '%s detected unsupported features; extraction will be delegated to %s' % (self.FD_NAME, fd.get_basename()))

@@ -695,6 +695,9 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      out, yt-dlp will ask interactively
     -2, --twofactor TWOFACTOR        Two-factor authentication code
     -n, --netrc                      Use .netrc authentication data
+    --netrc-location PATH            Location of .netrc authentication data;
+                                     either the path or its containing
+                                     directory. Defaults to ~/.netrc
     --video-password PASSWORD        Video password (vimeo, youku)
     --ap-mso MSO                     Adobe Pass multiple-system operator (TV
                                      provider) identifier, use --ap-list-mso for
@@ -897,7 +900,7 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
 
-    Note that `~` points to `C:\Users\<user name>` on windows. Also, `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined
+    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `~` points to %HOME% if present, `%USERPROFILE%` (generally `C:\Users\<user name>`) or `%HOMEDRIVE%%HOMEPATH%`.
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
 For example, with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
@@ -923,14 +926,14 @@ You can use `--ignore-config` if you want to disable all configuration files for
 
 ### Authentication with `.netrc` file
 
-You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per extractor basis. For that you will need to create a `.netrc` file in your `$HOME` and restrict permissions to read/write by only you:
+You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per extractor basis. For that you will need to create a `.netrc` file in `--netrc-location` and restrict permissions to read/write by only you:
 ```
 touch $HOME/.netrc
 chmod a-rwx,u+rw $HOME/.netrc
 ```
 After that you can add credentials for an extractor in the following format, where *extractor* is the name of the extractor in lowercase:
 ```
-machine <extractor> login <login> password <password>
+machine <extractor> login <username> password <password>
 ```
 For example:
 ```
@@ -939,10 +942,7 @@ machine twitch login my_twitch_account_name password my_twitch_password
 ```
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
-On Windows you may also need to setup the `%HOME%` environment variable manually. For example:
-```
-set HOME=%USERPROFILE%
-```
+The default location of the .netrc file is `$HOME` (`~`) in UNIX. On Windows, it is `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`) or `%HOMEDRIVE%%HOMEPATH%`
 
 # OUTPUT TEMPLATE
 
@@ -952,18 +952,19 @@ The `-o` option is used to indicate a template for the output file names while `
 
 The simplest usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is _not_ recommended and could break some post-processing).
 
-It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/2/library/stdtypes.html#string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
+It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [python string formatting operations](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
 1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. Eg: `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
 1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. Eg: `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
 1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
-1. **Default**: A default value can be specified for when the field is empty using a `|` seperator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `j`, `l`, `q` can be used for converting to **j**son, a comma seperated **l**ist and a string **q**uoted for the terminal respectively
+1. **Alternatives**: Alternate fields can be specified seperated with a `,`. Eg: `%(release_date>%Y,upload_date>%Y|Unknown)s`
+1. **Default**: A literal default value can be specified for when the field is empty using a `|` seperator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q` can be used for converting to **B**ytes, **j**son, a comma seperated **l**ist and a string **q**uoted for the terminal respectively
 
 To summarize, the general syntax for a field is:
 ```
-%(name[.keys][addition][>strf][|default])[flags][width][.precision][length]type
+%(name[.keys][addition][>strf][,alternate][|default])[flags][width][.precision][length]type
 ```
 
 Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.

@@ -147,6 +147,8 @@ from .bilibili import (
     BilibiliAudioAlbumIE,
     BiliBiliPlayerIE,
     BilibiliChannelIE,
+    BiliIntlIE,
+    BiliIntlSeriesIE,
 )
 from .biobiochiletv import BioBioChileTVIE
 from .bitchute import (
@@ -183,6 +185,7 @@ from .businessinsider import BusinessInsiderIE
 from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
+from .cam4 import CAM4IE
 from .camdemy import (
     CamdemyIE,
     CamdemyFolderIE
@@ -307,6 +310,10 @@ from .dailymotion import (
     DailymotionPlaylistIE,
     DailymotionUserIE,
 )
+from .damtomo import (
+    DamtomoRecordIE,
+    DamtomoVideoIE,
+)
 from .daum import (
     DaumIE,
     DaumClipIE,
@@ -337,7 +344,8 @@ from .dplay import (
     DPlayIE,
     DiscoveryPlusIE,
     HGTVDeIE,
-    ScienceChannelIE
+    ScienceChannelIE,
+    DIYNetworkIE
 )
 from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
@@ -726,6 +734,7 @@ from .massengeschmacktv import MassengeschmackTVIE
 from .matchtv import MatchTVIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
+from .mediaite import MediaiteIE
 from .mediaklikk import MediaKlikkIE
 from .mediaset import MediasetIE
 from .mediasite import (
@@ -802,6 +811,7 @@ from .mtv import (
     MTVItaliaProgrammaIE,
 )
 from .muenchentv import MuenchenTVIE
+from .musescore import MuseScoreIE
 from .mwave import MwaveIE, MwaveMeetGreetIE
 from .mxplayer import (
     MxplayerIE,
@@ -864,6 +874,7 @@ from .neteasemusic import (
 from .newgrounds import (
     NewgroundsIE,
     NewgroundsPlaylistIE,
+    NewgroundsUserIE,
 )
 from .newstube import NewstubeIE
 from .nextmedia import (
@@ -1020,7 +1031,10 @@ from .patreon import (
 )
 from .pbs import PBSIE
 from .pearvideo import PearVideoIE
-from .peertube import PeerTubeIE
+from .peertube import (
+    PeerTubeIE,
+    PeerTubePlaylistIE,
+)
 from .peloton import (
     PelotonIE,
     PelotonLiveIE
@@ -1115,6 +1129,11 @@ from .radiode import RadioDeIE
 from .radiojavan import RadioJavanIE
 from .radiobremen import RadioBremenIE
 from .radiofrance import RadioFranceIE
+from .radlive import (
+    RadLiveIE,
+    RadLiveChannelIE,
+    RadLiveSeasonIE,
+)
 from .rai import (
     RaiPlayIE,
     RaiPlayLiveIE,
@@ -1333,6 +1352,7 @@ from .storyfire import (
     StoryFireSeriesIE,
 )
 from .streamable import StreamableIE
+from .streamanity import StreamanityIE
 from .streamcloud import StreamcloudIE
 from .streamcz import StreamCZIE
 from .streetvoice import StreetVoiceIE

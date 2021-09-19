@@ -2,8 +2,20 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-from .compat import compat_b64decode
+from .compat import compat_b64decode, compat_pycrypto_AES
 from .utils import bytes_to_intlist, intlist_to_bytes
+
+
+if compat_pycrypto_AES:
+    def aes_cbc_decrypt_bytes(data, key, iv):
+        """ Decrypt bytes with AES-CBC using pycryptodome """
+        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
+
+else:
+    def aes_cbc_decrypt_bytes(data, key, iv):
+        """ Decrypt bytes with AES-CBC using native implementation since pycryptodome is unavailable """
+        return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
+
 
 BLOCK_SIZE_BYTES = 16
 

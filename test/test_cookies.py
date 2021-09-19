@@ -2,8 +2,8 @@ import unittest
 from datetime import datetime, timezone
 
 from yt_dlp import cookies
+from yt_dlp.compat import compat_pycrypto_AES
 from yt_dlp.cookies import (
-    CRYPTO_AVAILABLE,
     LinuxChromeCookieDecryptor,
     MacChromeCookieDecryptor,
     WindowsChromeCookieDecryptor,
@@ -53,7 +53,7 @@ class TestCookies(unittest.TestCase):
             decryptor = LinuxChromeCookieDecryptor('Chrome', YDLLogger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
-    @unittest.skipIf(not CRYPTO_AVAILABLE, 'cryptography library not available')
+    @unittest.skipIf(not compat_pycrypto_AES, 'cryptography library not available')
     def test_chrome_cookie_decryptor_windows_v10(self):
         with MonkeyPatch(cookies, {
             '_get_windows_v10_key': lambda *args, **kwargs: b'Y\xef\xad\xad\xeerp\xf0Y\xe6\x9b\x12\xc2<z\x16]\n\xbb\xb8\xcb\xd7\x9bA\xc3\x14e\x99{\xd6\xf4&'

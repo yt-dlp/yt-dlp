@@ -5,12 +5,6 @@ import time
 import json
 
 try:
-    from Crypto.Cipher import AES
-    can_decrypt_frag = True
-except ImportError:
-    can_decrypt_frag = False
-
-try:
     import concurrent.futures
     can_threaded_download = True
 except ImportError:
@@ -18,6 +12,7 @@ except ImportError:
 
 from .common import FileDownloader
 from .http import HttpFD
+from ..aes import aes_cbc_decrypt_bytes
 from ..compat import (
     compat_urllib_error,
     compat_struct_pack,
@@ -386,7 +381,7 @@ class FragmentFD(FileDownloader):
             # not what it decrypts to.
             if self.params.get('test', False):
                 return frag_content
-            return AES.new(decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(frag_content)
+            return aes_cbc_decrypt_bytes(frag_content, decrypt_info['KEY'], iv)
 
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:

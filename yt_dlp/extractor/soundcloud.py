@@ -305,7 +305,7 @@ class SoundcloudIE(InfoExtractor):
                 raise
 
     def _real_initialize(self):
-        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'fSSdm5yTnDka1g0Fz1CO5Yx6z0NbeHAj'
+        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
         self._login()
 
     _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
