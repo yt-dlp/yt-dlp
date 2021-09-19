@@ -3,6 +3,7 @@ from __future__ import division, unicode_literals
 import os
 import time
 import json
+import itertools
 
 try:
     import concurrent.futures
@@ -228,6 +229,8 @@ class FragmentFD(FileDownloader):
             'fragment_count': total_frags,
             'filename': ctx['filename'],
             'tmpfilename': ctx['tmpfilename'],
+            'max_progress': ctx.get('max_progress'),
+            'progress_idx': ctx.get('progress_idx'),
         }
 
         start = time.time()
@@ -324,7 +327,31 @@ class FragmentFD(FileDownloader):
             'fragment_index': 0,
         })
 
-    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None):
+    # ctx1, fragments1, info_dict1, ctx2, fragments2, info_dict2, ...
+    # length of arguments must be multiple of 3, or you'll see broken console
+    def download_and_append_fragments_multiple(self, *args, pack_func=None, finish_func=None):
+        max_progress = len(args) // 3
+        if max_progress == 1:
+            return self.download_and_append_fragments(args[0], args[1], args[2], pack_func=pack_func, finish_func=finish_func)
+        max_workers = self.params.get('concurrent_fragment_downloads', 1)
+        self._prepare_multiline_status(max_progress)
+        with concurrent.futures.ThreadPoolExecutor(max_workers) as tpe:
+
+            def thread_func(idx, ctx, fragments, info_dict):
+                ctx = ctx.copy()
+                ctx['max_progress'] = max_progress
+                ctx['progress_idx'] = idx
+                return self.download_and_append_fragments(ctx, fragments, info_dict, pack_func=pack_func, finish_func=finish_func, tpe=tpe)
+
+            for result in tpe.map(thread_func, itertools.count(0), args[::3], args[1::3], args[2::3]):
+                if not result:
+                    self._finish_multiline_status()
+                    return False
+
+        self._finish_multiline_status()
+        return True
+
+    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, tpe=None):
         fragment_retries = self.params.get('fragment_retries', 0)
         is_fatal = (lambda idx: idx == 0) if self.params.get('skip_unavailable_fragments', True) else (lambda _: True)
         if not pack_func:
@@ -405,7 +432,7 @@ class FragmentFD(FileDownloader):
                 return fragment, frag_content, frag_index, ctx_copy.get('fragment_filename_sanitized')
 
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
-            with concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
+            with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 for fragment, frag_content, frag_index, frag_filename in pool.map(_download_fragment, fragments):
                     ctx['fragment_filename_sanitized'] = frag_filename
                     ctx['fragment_index'] = frag_index

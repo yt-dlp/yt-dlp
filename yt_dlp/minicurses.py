@@ -16,7 +16,22 @@ def to_bytes(value):
     else:
         return value
 
-class MultilinePrinter():
+
+class MultilinePrinterBase():
+    def __enter__(self):
+        return self
+    
+    def __exit__(self):
+        self.end()
+
+    def print_at_line(self, text, pos):
+        pass
+
+    def end(self):
+        pass
+
+
+class MultilinePrinter(MultilinePrinterBase):
 
     def __init__(self, stream, lines):
         """
@@ -112,12 +127,23 @@ class MultilinePrinter():
         self.stream.write(b'\n')
 
 
-class QuietMultilinePrinter():
+class QuietMultilinePrinter(MultilinePrinterBase):
+    def __init__(self):
+        self.have_fullcap = True
+
+
+class BreaklineStatusPrinter(MultilinePrinterBase):
+
     def __init__(self, stream, lines):
+        """
+        @param stream stream to write to
+        """
+        self.stream = stream
+        self.maximum = lines
         self.have_fullcap = True
 
     def print_at_line(self, text, pos):
-        pass
-
-    def end(self):
-        pass
+        if self.maximum != 0:
+            # let user know about which line is updating the status
+            text = f'{pos + 1}: ${text}'
+        self.stream.write(to_bytes(text) + b'\n')
