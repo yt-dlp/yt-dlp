@@ -142,6 +142,8 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         ghash_in = nonce + [0] * fill + bytes_to_intlist((8 * len(nonce)).to_bytes(8, 'big'))
         j0 = ghash(hash_subkey, ghash_in)
 
+    # TODO: add nonce support to aes_ctr_decrypt
+
     # nonce_ctr = j0[:12]
     iv_ctr = inc(j0)
 
