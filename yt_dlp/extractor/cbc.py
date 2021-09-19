@@ -258,7 +258,7 @@ class CBCGemIE(InfoExtractor):
         while attempt < retries:
             attempt += 1
             if last_error:
-                self.report_warning('%s. Retrying...' % last_error)
+                self.report_warning('%s. Retrying ...' % last_error)
             m3u8_info = self._download_json(
                 video_info['playSession']['url'], video_id,
                 note='Downloading JSON metadata%s' % f' (attempt {attempt})')
@@ -267,14 +267,11 @@ class CBCGemIE(InfoExtractor):
                 break
             elif m3u8_info.get('errorCode') == 1:
                 self.raise_geo_restricted(countries=['CA'])
-            elif attempt >= retries:
-                # Didn't work after all tries, give up
-                raise ExtractorError('Couldn\'t retrieve m3u8 URL')
-            elif m3u8_info.get('errorCode') != 35:
-                # 35 means media unavailable, but retries work
-                # This is an unknown error code
+            else:
                 last_error = f'{self.IE_NAME} said: {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}'
-                raise ExtractorError(last_error)
+                # 35 means media unavailable, but retries work
+                if m3u8_info.get('errorCode') != 35 or attempt >= retries:
+                    raise ExtractorError(last_error)
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
         self._remove_duplicate_formats(formats)
