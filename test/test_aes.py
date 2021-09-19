@@ -51,7 +51,8 @@ class TestAES(unittest.TestCase):
         encrypted = intlist_to_bytes(aes_cbc_encrypt(data, self.key, self.iv))
         self.assertEqual(
             encrypted,
-            b'\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6\'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd')
+            b'\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6\'\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd'
+        )
 
     def test_ctr_decrypt(self):
         data = bytes_to_intlist(b'\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08')
@@ -63,7 +64,8 @@ class TestAES(unittest.TestCase):
         encrypted = intlist_to_bytes(aes_ctr_encrypt(data, self.key, self.iv))
         self.assertEqual(
             encrypted,
-            b'\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08')
+            b'\x03\xc7\xdd\xd4\x8e\xb3\xbc\x1a*O\xdc1\x12+8Aio\xd1z\xb5#\xaf\x08'
+        )
 
     def test_gcm_decrypt(self):
         data = b'\x159Y\xcf5eud\x90\x9c\x85&]\x14\x1d\x0f.\x08\xb4T\xe4/\x17\xbd'
@@ -74,7 +76,8 @@ class TestAES(unittest.TestCase):
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
         if compat_pycrypto_AES:
             decrypted = aes_gcm_decrypt_and_verify_bytes(
-                data, intlist_to_bytes(self.key), authentication_tag, intlist_to_bytes(self.iv[:12]))
+                data, intlist_to_bytes(self.key), authentication_tag, intlist_to_bytes(self.iv[:12])
+            )
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_decrypt_text(self):
