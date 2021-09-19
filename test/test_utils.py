@@ -115,7 +115,6 @@ from yt_dlp.utils import (
     unified_timestamp,
     unsmuggle_url,
     update_url_query,
-    uppercase_escape,
     url_basename,
     url_or_none,
     urlencode_postdata,
@@ -826,10 +825,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(strip_or_none(None), None)
         self.assertEqual(strip_or_none(42), None)
         self.assertEqual(strip_or_none([]), None)
-
-    def test_uppercase_escape(self):
-        self.assertEqual(uppercase_escape('aä'), 'aä')
-        self.assertEqual(uppercase_escape('\\U0001d550'), '𝕐')
 
     def test_lowercase_escape(self):
         self.assertEqual(lowercase_escape('aä'), 'aä')

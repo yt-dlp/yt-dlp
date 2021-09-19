@@ -124,7 +124,6 @@ from .utils import (
     platform_name,
     preferredencoding,
     prepend_extension,
-    register_socks_protocols,
     remove_terminal_sequences,
     render_table,
     replace_extension,
@@ -670,7 +669,6 @@ class YoutubeDL:
                 when=when)
 
         self._setup_opener()
-        register_socks_protocols()
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""
