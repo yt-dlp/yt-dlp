@@ -336,12 +336,14 @@ class FragmentFD(FileDownloader):
             'fragment_index': 0,
         })
 
-    # ctx1, fragments1, info_dict1, ctx2, fragments2, info_dict2, ...
-    # length of arguments must be multiple of 3, or you'll see broken console
     def download_and_append_fragments_multiple(self, *args, pack_func=None, finish_func=None):
-        max_progress = len(args) // 3
+        '''
+        @params (ctx1, fragments1, info_dict1), (ctx2, fragments2, info_dict2), ...
+                all args must be either tuple or list
+        '''
+        max_progress = len(args)
         if max_progress == 1:
-            return self.download_and_append_fragments(args[0], args[1], args[2], pack_func=pack_func, finish_func=finish_func)
+            return self.download_and_append_fragments(*args[0], pack_func=pack_func, finish_func=finish_func)
         max_workers = self.params.get('concurrent_fragment_downloads', max_progress)
         self._prepare_multiline_status(max_progress)
 
@@ -356,7 +358,8 @@ class FragmentFD(FileDownloader):
                 pass
 
         spins = []
-        for idx, ctx, fragments, info_dict in zip(itertools.count(0), args[::3], args[1::3], args[2::3]):
+        for idx, cfi in enumerate(args):
+            ctx, fragments, info_dict = cfi
             tpe = FTPE(max_workers // max_progress)
             job = tpe.submit(thread_func, idx, ctx, fragments, info_dict, tpe)
             spins.append((tpe, job))
