@@ -244,6 +244,10 @@ from .channel9 import Channel9IE
 from .charlierose import CharlieRoseIE
 from .chaturbate import ChaturbateIE
 from .chilloutzone import ChilloutzoneIE
+from .chingari import (
+    ChingariIE,
+    ChingariUserIE,
+)
 from .chirbit import (
     ChirbitIE,
     ChirbitProfileIE,
