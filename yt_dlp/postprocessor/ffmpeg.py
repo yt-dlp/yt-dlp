@@ -616,7 +616,9 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
     def _options(target_ext):
         yield from ('-map', '0', '-dn')
         if target_ext == 'm4a':
-            yield from ('-vn', '-acodec', 'copy')
+            yield from ('-vn', '-acodec', 'copy', '-movflags', '+faststart')
+        elif target_ext in ['mp4', 'mov']:
+            yield from ('-c', 'copy', '-movflags', '+faststart')
         else:
             yield from ('-c', 'copy')
 
@@ -783,7 +785,7 @@ class FFmpegFixupM4aPP(FFmpegFixupPostProcessor):
     def run(self, info):
         if info.get('container') == 'm4a_dash':
             self._fixup('Correcting container', info['filepath'], [
-                '-c', 'copy', '-map', '0', '-dn', '-f', 'mp4'])
+                '-c', 'copy', '-map', '0', '-movflags', '+faststart', '-dn', '-f', 'mp4'])
         return [], info
 
 
