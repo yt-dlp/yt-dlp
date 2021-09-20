@@ -1790,7 +1790,7 @@ class InfoExtractor(object):
 
             return tuple(self._calculate_field_preference(format, field) for field in self._order)
 
-    def _sort_formats(self, formats, field_preference=[]):
+    def _sort_formats(self, formats, field_preference=()):
         if not formats:
             return
         format_sort = self.FormatSort()  # params and to_screen are taken from the downloader
