@@ -427,6 +427,22 @@ class GenericIE(InfoExtractor):
             },
         },
         {
+            # no auto-redirect but contains target page in URL
+            'url': 'https://www.facebook.com/flx/warn/?u=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DpO8h3EaFRdo&h=TAQHsoToz&enc=AZN16h-b6o4Zq9pZkCCdOLNKMN96BbGMNtcFwHSaazus4JHT_MFYkAA-WARTX2kvsCIdlAIyHZjl6d33ILIJU7Jzwk_K3mcenAXoAzBNoZDI_Q7EXGDJnIhrGkLXo_LJ_pAa2Jzbx17UHMd3jAs--6j2zaeto5w9RTn8T_1kKg3fdC5WPX9Dbb18vzH7YFX0eSJmoa6SP114rvlkw6pkS1-T&s=1',
+            'info_dict': {
+                'id': 'pO8h3EaFRdo',
+                'ext': 'mp4',
+                'title': 'Tripeo Boiler Room x Dekmantel Festival DJ Set',
+                'description': 'md5:6294cc1af09c4049e0652b51a2df10d5',
+                'upload_date': '20150917',
+                'uploader_id': 'brtvofficial',
+                'uploader': 'Boiler Room',
+            },
+            'params': {
+                'skip_download': False,
+            },
+        },
+        {
             'url': 'http://www.hodiho.fr/2013/02/regis-plante-sa-jeep.html',
             'md5': '85b90ccc9d73b4acd9138d3af4c27f89',
             'info_dict': {
@@ -3707,6 +3723,12 @@ class GenericIE(InfoExtractor):
             embed_url = self._html_search_meta('twitter:player', webpage, default=None)
             if embed_url and embed_url != url:
                 return self.url_result(embed_url)
+
+        if not found:
+            # Facebook external link warning URL that doesn't auto-redirect
+            video_url = next(iter(re.findall(r'^https?://(?:www\.)?facebook\.com/flx/warn/\?u=([^&]+)', url)), None)
+            if video_url:
+                return self.url_result(compat_urllib_parse_unquote(video_url))
 
         if not found:
             raise UnsupportedError(url)
