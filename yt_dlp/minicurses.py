@@ -14,7 +14,7 @@ except ImportError:
 class MultilinePrinterBase():
     def __enter__(self):
         return self
-    
+
     def __exit__(self, *args):
         self.end()
 
@@ -83,13 +83,13 @@ class MultilinePrinter(MultilinePrinterBase):
         elif current > dest:
             # when maximum == 2,
             # 0. dest
-            # 1. 
+            # 1.
             # 2. current
             self.stream.write(self.UP * (current - dest))
         elif current < dest:
             # when maximum == 2,
             # 0. current
-            # 1. 
+            # 1.
             # 2. dest
             self.stream.write(self.DOWN * (dest - current))
         self.lastline = dest
