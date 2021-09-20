@@ -3,12 +3,14 @@ import re
 from threading import Lock
 
 try:
-    # curses is in standard modules, just like sqlite in cookies.py,
+    # curses is in standard modules, but like sqlite in cookies.py,
     # it is not present under some circumstances (especially when running on Windows)
     import curses
     has_curses = True
+    CURSES_ERROR = (curses.error, )
 except ImportError:
     has_curses = False
+    CURSES_ERROR = (NameError, )
 
 
 class MultilinePrinterBase():
@@ -41,7 +43,7 @@ class MultilinePrinter(MultilinePrinterBase):
             self.ERASE_LINE = self.tputs('el') or self.tputs('ce')
             self.CARRIAGE_RETURN = self.tputs('cr') or '\r'
             self._HAVE_FULLCAP = self._isatty() and self.UP and self.DOWN and self.ERASE_LINE
-        except curses.error:
+        except CURSES_ERROR:
             self.UP = self.DOWN = self.ERASE_LINE = None
             self.CARRIAGE_RETURN = '\r'
             self._HAVE_FULLCAP = False
