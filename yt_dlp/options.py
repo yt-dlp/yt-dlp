@@ -52,7 +52,8 @@ def _hide_login_info(opts):
 
 
 def parseOpts(overrideArguments=None):
-    def _readOptions(filename_bytes, default=[]):
+    def _readOptions(filename_bytes, default=None):
+        default = [] if default is None else default
         try:
             optionf = open(filename_bytes)
         except IOError:
@@ -67,7 +68,8 @@ def parseOpts(overrideArguments=None):
             optionf.close()
         return res
 
-    def _readUserConf(package_name, default=[]):
+    def _readUserConf(package_name, default=None):
+        default = [] if default is None else default
         # .config
         xdg_config_home = compat_getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
         userConfFile = os.path.join(xdg_config_home, package_name, 'config')

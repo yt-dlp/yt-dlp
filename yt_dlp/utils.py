@@ -3928,7 +3928,8 @@ def replace_extension(filename, ext, expected_real_ext=None):
         ext)
 
 
-def check_executable(exe, args=[]):
+def check_executable(exe, args=None):
+    args = [] if args is None else args
     """ Checks if the given binary is installed somewhere in PATH, and returns its name.
     args can be a list of arguments for a short output (like -version) """
     try:
@@ -3939,10 +3940,11 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def get_exe_version(exe, args=['--version'],
+def get_exe_version(exe, args=None,
                     version_re=None, unrecognized='present'):
     """ Returns the version of the specified executable,
     or False if the executable is not present """
+    args = ['--version'] if args is None else args
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
@@ -4987,7 +4989,8 @@ def cli_valueless_option(params, command_option, param, expected_value=True):
     return [command_option] if param == expected_value else []
 
 
-def cli_configuration_args(argdict, keys, default=[], use_compat=True):
+def cli_configuration_args(argdict, keys, default=None, use_compat=True):
+    default = [] if default is None else default
     if isinstance(argdict, (list, tuple)):  # for backward compatibility
         if use_compat:
             return argdict
