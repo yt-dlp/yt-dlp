@@ -204,8 +204,7 @@ class FFmpegPostProcessor(PostProcessor):
                 return mobj.group(1)
         return None
 
-    def get_metadata_object(self, path, opts=None):
-        opts = [] if opts is None else opts
+    def get_metadata_object(self, path, opts=[]):
         if self.probe_basename != 'ffprobe':
             if self.probe_available:
                 self.report_warning('Only ffprobe is supported for metadata extraction')
