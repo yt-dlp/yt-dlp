@@ -310,6 +310,9 @@ class FragmentFD(FileDownloader):
             'filename': ctx['filename'],
             'status': 'finished',
             'elapsed': elapsed,
+            'ctx_id': ctx.get('ctx_id'),
+            'max_progress': ctx.get('max_progress'),
+            'progress_idx': ctx.get('progress_idx'),
         }, info_dict)
 
     def _prepare_external_frag_download(self, ctx):
