@@ -5007,7 +5007,7 @@ def cli_configuration_args(argdict, keys, default=(), use_compat=True):
     return default
 
 
-def _configuration_args(main_key, argdict, exe, keys=None, default=[], use_compat=True):
+def _configuration_args(main_key, argdict, exe, keys=None, default=(), use_compat=True):
     main_key, exe = main_key.lower(), exe.lower()
     root_key = exe if main_key == exe else f'{main_key}+{exe}'
     keys = [f'{root_key}{k}' for k in (keys or [''])]

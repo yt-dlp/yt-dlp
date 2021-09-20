@@ -907,12 +907,15 @@ class InfoExtractor(object):
             self, url_or_request, video_id,
             note='Downloading XML', errnote='Unable to download XML',
             transform_source=None, fatal=True, encoding=None,
-            data=None, headers={}, query={}, expected_status=None):
+            data=None, headers=None, query=None, expected_status=None):
         """
         Return the xml as an compat_etree_Element.
 
         See _download_webpage docstring for arguments specification.
         """
+        headers = {} if headers is None else headers
+        query = {} if query is None else query
+
         res = self._download_xml_handle(
             url_or_request, video_id, note=note, errnote=errnote,
             transform_source=transform_source, fatal=fatal, encoding=encoding,
@@ -3201,7 +3204,7 @@ class InfoExtractor(object):
 
         return formats, subtitles
 
-    def _extract_wowza_formats(self, url, video_id, m3u8_entry_protocol='m3u8_native', skip_protocols=[]):
+    def _extract_wowza_formats(self, url, video_id, m3u8_entry_protocol='m3u8_native', skip_protocols=()):
         query = compat_urlparse.urlparse(url).query
         url = re.sub(r'/(?:manifest|playlist|jwplayer)\.(?:m3u8|f4m|mpd|smil)', '', url)
         mobj = re.search(
