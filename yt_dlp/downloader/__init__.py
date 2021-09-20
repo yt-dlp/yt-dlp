@@ -7,7 +7,8 @@ from ..utils import (
 )
 
 
-def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=None, to_stdout=False):
+def get_suitable_downloader(info_dict, params=None, default=NO_DEFAULT, protocol=None, to_stdout=False):
+    params = {} if params is None else params
     info_dict['protocol'] = determine_protocol(info_dict)
     info_copy = info_dict.copy()
     if protocol:
