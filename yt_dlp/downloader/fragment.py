@@ -221,6 +221,7 @@ class FragmentFD(FileDownloader):
     def _start_frag_download(self, ctx, info_dict):
         resume_len = ctx['complete_frags_downloaded_bytes']
         total_frags = ctx['total_frags']
+        ctx_id = ctx.get('ctx_id')
         # This dict stores the download progress, it's updated by the progress
         # hook
         state = {
@@ -242,6 +243,9 @@ class FragmentFD(FileDownloader):
 
         def frag_progress_hook(s):
             if s['status'] not in ('downloading', 'finished'):
+                return
+
+            if ctx_id is not None and s.get('ctx_id') != ctx_id:
                 return
 
             state['max_progress'] = ctx.get('max_progress')
@@ -344,6 +348,7 @@ class FragmentFD(FileDownloader):
             return self.download_and_append_fragments(ctx, fragments, info_dict, pack_func=pack_func, finish_func=finish_func, tpe=tpe)
 
         class FTPE(concurrent.futures.ThreadPoolExecutor):
+            # has to stop this or it's going to wait on the worker thread itself
             def __exit__(self, exc_type, exc_val, exc_tb):
                 pass
 
