@@ -58,8 +58,8 @@ class MultilinePrinter(MultilinePrinterBase):
     @property
     def have_fullcap(self):
         """
-            True if the TTY is allowing to control cursor,
-            allowing it to show multiline progress
+        True if the TTY is allowing to control cursor,
+        so that multiline progress works
         """
         return self._HAVE_FULLCAP
 
