@@ -789,7 +789,7 @@ class InfoExtractor(object):
             self._downloader.to_screen(dump)
         if self.get_param('write_pages', False):
             basen = '%s_%s' % (video_id, urlh.geturl())
-            trim_length = self._downloader.params.get('trim_file_name', 240)
+            trim_length = self._downloader.params.get('trim_file_name', False) or 240
             if len(basen) > trim_length:
                 h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
                 basen = basen[:240 - len(h)] + h
