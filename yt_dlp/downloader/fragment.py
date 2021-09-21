@@ -3,6 +3,7 @@ from __future__ import division, unicode_literals
 import os
 import time
 import json
+from math import ceil
 
 try:
     import concurrent.futures
@@ -358,7 +359,7 @@ class FragmentFD(FileDownloader):
 
         spins = []
         for idx, (ctx, fragments, info_dict) in enumerate(args):
-            tpe = FTPE(max_workers // max_progress)
+            tpe = FTPE(ceil(max_workers / max_progress))
             job = tpe.submit(thread_func, idx, ctx, fragments, info_dict, tpe)
             spins.append((tpe, job))
 
