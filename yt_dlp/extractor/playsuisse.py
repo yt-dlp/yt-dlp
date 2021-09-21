@@ -6,7 +6,6 @@ from .common import InfoExtractor
 
 
 class PlaySuisseIE(InfoExtractor):
-    _MEDIA_URL = 'https://4bbepzm4ef.execute-api.eu-central-1.amazonaws.com/prod/graphql'
     _VALID_URL = r'https?://(?:www\.)?playsuisse\.ch/watch/(?P<id>[0-9]+)'
     _TESTS = [
         {
@@ -43,16 +42,12 @@ class PlaySuisseIE(InfoExtractor):
 
     def _get_media_data(self, media_id):
         response = self._download_json(
-            self._MEDIA_URL,
-            media_id,
-            data=json.dumps({
+            'https://4bbepzm4ef.execute-api.eu-central-1.amazonaws.com/prod/graphql',
+            media_id, data=json.dumps({
                 'operationName': 'AssetWatch',
                 'query': self._GRAPHQL_QUERY,
-                'variables': {
-                    "assetId": media_id
-                }
-            }).encode('utf-8'),
-            headers={'Content-Type': 'application/json'})
+                'variables': {'assetId': media_id}
+            }).encode('utf-8'), headers={'Content-Type': 'application/json'})
 
         return response['data']['asset']
 
