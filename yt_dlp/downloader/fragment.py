@@ -332,7 +332,7 @@ class FragmentFD(FileDownloader):
 
         def download_fragment(fragment, ctx):
             frag_index = ctx['fragment_index'] = fragment['frag_index']
-            headers = info_dict.get('http_headers', {})
+            headers = info_dict.get('http_headers', {}).copy()
             byte_range = fragment.get('byte_range')
             if byte_range:
                 headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
