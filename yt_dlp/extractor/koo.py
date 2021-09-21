@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
-    ExtractorError,
     try_get,
 )
 
@@ -103,7 +102,7 @@ class KooIE(InfoExtractor):
         if video_m3u8_url:
             formats.extend(self._extract_m3u8_formats(video_m3u8_url, id, fatal=False, ext='mp4'))
         if not formats:
-            raise ExtractorError('No video/audio found at the provided url.', expected=True)
+            self.raise_no_formats('No video/audio found at the provided url.', expected=True)
 
         self._sort_formats(formats)
         return {
