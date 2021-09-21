@@ -332,7 +332,7 @@ class FragmentFD(FileDownloader):
 
         def download_fragment(fragment, ctx):
             frag_index = ctx['fragment_index'] = fragment['frag_index']
-            headers = info_dict.get('http_headers', {})
+            headers = info_dict.get('http_headers', {}).copy()
             byte_range = fragment.get('byte_range')
             if byte_range:
                 headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
@@ -369,13 +369,19 @@ class FragmentFD(FileDownloader):
                 return False, frag_index
             return frag_content, frag_index
 
+        _key_cache = {}
+
+        def _get_key(url):
+            if url not in _key_cache:
+                _key_cache[url] = self.ydl.urlopen(self._prepare_url(info_dict, url)).read()
+            return _key_cache[url]
+
         def decrypt_fragment(fragment, frag_content):
             decrypt_info = fragment.get('decrypt_info')
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
             iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
-            decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
-                self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
+            decrypt_info['KEY'] = decrypt_info.get('KEY') or _get_key(info_dict.get('_decryption_key_url') or decrypt_info['URI'])
             # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
             # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
             # not what it decrypts to.
