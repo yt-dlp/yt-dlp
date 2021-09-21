@@ -168,6 +168,8 @@ class HlsFD(FragmentFD):
                         'media_sequence': media_sequence,
                     })
 
+                    media_sequence += 1
+
                 elif line.startswith('#EXT-X-MAP'):
                     if format_index and discontinuity_count != format_index:
                         continue
@@ -191,6 +193,8 @@ class HlsFD(FragmentFD):
                         'byte_range': byte_range,
                         'media_sequence': media_sequence
                     })
+
+                    media_sequence += 1
 
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
@@ -230,7 +234,6 @@ class HlsFD(FragmentFD):
                 elif line.startswith('#EXT-X-DISCONTINUITY'):
                     discontinuity_count += 1
                 i += 1
-                media_sequence += 1
 
         # We only download the first fragment during the test
         if self.params.get('test', False):
