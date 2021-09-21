@@ -792,7 +792,7 @@ class InfoExtractor(object):
             trim_length = self._downloader.params.get('trim_file_name', 240)
             if len(basen) > trim_length:
                 h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
-                basen = basen[:trim_length - 35] + h
+                basen = basen[:240 - len(h)] + h
             raw_filename = basen + '.dump'
             filename = sanitize_filename(raw_filename, restricted=True)
             self.to_screen('Saving request to ' + filename)
