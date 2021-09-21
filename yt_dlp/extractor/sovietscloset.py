@@ -196,7 +196,7 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
             category_slug = 'misc'
 
         game = next(game for game in sovietscloset if game['slug'].lower() == game_slug)
-        category = next((cat for cat in game['subcategories'] if cat['slug'].lower() == category_slug),
+        category = next((cat for cat in game['subcategories'] if cat.get('slug', '').lower() == category_slug),
                         game['subcategories'][0])
         category_slug = category.get('slug', '').lower() or category_slug
         playlist_title = game.get('name') or game_slug
