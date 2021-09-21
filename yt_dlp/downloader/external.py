@@ -11,6 +11,7 @@ from ..aes import aes_cbc_decrypt_bytes
 from ..compat import (
     compat_setenv,
     compat_str,
+    compat_struct_pack,
 )
 from ..postprocessor.ffmpeg import FFmpegPostProcessor, EXT_TO_OUT_FORMATS
 from ..utils import (
@@ -155,7 +156,7 @@ class ExternalFD(FileDownloader):
                 decrypt_info = fragment.get('decrypt_info')
                 if decrypt_info:
                     if decrypt_info['METHOD'] == 'AES-128':
-                        iv = decrypt_info.get('IV')
+                        iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
                         decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
                             self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
                         encrypted_data = src.read()
