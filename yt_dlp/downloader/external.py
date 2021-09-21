@@ -142,6 +142,13 @@ class ExternalFD(FileDownloader):
                     self.report_error('Giving up after %s fragment retries' % fragment_retries)
                     return -1
 
+            _key_cache = {}
+
+            def _get_key(url):
+                if url not in _key_cache:
+                    _key_cache[url] = self.ydl.urlopen(self._prepare_url(info_dict, url)).read()
+                return _key_cache[url]
+
             dest, _ = sanitize_open(tmpfilename, 'wb')
             for frag_index, fragment in enumerate(info_dict['fragments']):
                 fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
@@ -157,8 +164,8 @@ class ExternalFD(FileDownloader):
                 if decrypt_info:
                     if decrypt_info['METHOD'] == 'AES-128':
                         iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
-                        decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
-                            self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
+                        decrypt_info['KEY'] = decrypt_info.get('KEY') or \
+                            _get_key(info_dict.get('_decryption_key_url') or decrypt_info['URI'])
                         encrypted_data = src.read()
                         decrypted_data = aes_cbc_decrypt_bytes(encrypted_data, decrypt_info['KEY'], iv)
                         dest.write(decrypted_data)
