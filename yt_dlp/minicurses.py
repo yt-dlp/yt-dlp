@@ -121,10 +121,11 @@ class MultilinePrinter(MultilinePrinterBase):
                 self.lastline = pos
 
     def end(self):
-        # move cursor to the end of the last line, and write line break
-        # so that other to_screen calls can precede
-        self._move_cursor(self.maximum)
-        self.stream.write('\n')
+        with self.movelock:
+            # move cursor to the end of the last line, and write line break
+            # so that other to_screen calls can precede
+            self._move_cursor(self.maximum)
+            self.stream.write('\n')
 
 
 class QuietMultilinePrinter(MultilinePrinterBase):
