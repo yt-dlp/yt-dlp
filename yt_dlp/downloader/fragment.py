@@ -324,6 +324,29 @@ class FragmentFD(FileDownloader):
             'fragment_index': 0,
         })
 
+    def decrypter(self, info_dict):
+        _key_cache = {}
+
+        def _get_key(url):
+            if url not in _key_cache:
+                _key_cache[url] = self.ydl.urlopen(self._prepare_url(info_dict, url)).read()
+            return _key_cache[url]
+
+        def decrypt_fragment(fragment, frag_content):
+            decrypt_info = fragment.get('decrypt_info')
+            if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
+                return frag_content
+            iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
+            decrypt_info['KEY'] = decrypt_info.get('KEY') or _get_key(info_dict.get('_decryption_key_url') or decrypt_info['URI'])
+            # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
+            # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
+            # not what it decrypts to.
+            if self.params.get('test', False):
+                return frag_content
+            return aes_cbc_decrypt_bytes(frag_content, decrypt_info['KEY'], iv)
+
+        return decrypt_fragment
+
     def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None):
         fragment_retries = self.params.get('fragment_retries', 0)
         is_fatal = (lambda idx: idx == 0) if self.params.get('skip_unavailable_fragments', True) else (lambda _: True)
@@ -369,26 +392,6 @@ class FragmentFD(FileDownloader):
                 return False, frag_index
             return frag_content, frag_index
 
-        _key_cache = {}
-
-        def _get_key(url):
-            if url not in _key_cache:
-                _key_cache[url] = self.ydl.urlopen(self._prepare_url(info_dict, url)).read()
-            return _key_cache[url]
-
-        def decrypt_fragment(fragment, frag_content):
-            decrypt_info = fragment.get('decrypt_info')
-            if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
-                return frag_content
-            iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
-            decrypt_info['KEY'] = decrypt_info.get('KEY') or _get_key(info_dict.get('_decryption_key_url') or decrypt_info['URI'])
-            # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
-            # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
-            # not what it decrypts to.
-            if self.params.get('test', False):
-                return frag_content
-            return aes_cbc_decrypt_bytes(frag_content, decrypt_info['KEY'], iv)
-
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
                 if not is_fatal(frag_index - 1):
@@ -401,6 +404,8 @@ class FragmentFD(FileDownloader):
                     return False
             self._append_fragment(ctx, pack_func(frag_content, frag_index))
             return True
+
+        decrypt_fragment = self.decrypter(info_dict)
 
         max_workers = self.params.get('concurrent_fragment_downloads', 1)
         if can_threaded_download and max_workers > 1:
