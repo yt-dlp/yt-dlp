@@ -74,3 +74,11 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
         yie: YoutubeIE = self.ydl.get_info_extractor(YoutubeIE.ie_key())
 
         return self._manifest_fragments(yie, manifest_url, stream_number)
+
+    @staticmethod
+    def _accept_live():
+        return True
+
+    @staticmethod
+    def _ignore_lethal_error():
+        return True

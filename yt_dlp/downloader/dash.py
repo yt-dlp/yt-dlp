@@ -15,7 +15,7 @@ class DashSegmentsFD(FragmentFD):
     FD_NAME = 'dashsegments'
 
     def real_download(self, filename, info_dict):
-        if info_dict.get('is_live') and not info_dict.get('__iknowwhatiamdoing'):
+        if info_dict.get('is_live') and not self._accept_live():
             # YoutubeDlFromStartDashFD needs to avoid this
             self.report_error('Live DASH videos are not supported')
 
@@ -44,7 +44,7 @@ class DashSegmentsFD(FragmentFD):
             fd = real_downloader(self.ydl, self.params)
             return fd.real_download(filename, info_copy)
 
-        return self.download_and_append_fragments(ctx, fragments_to_download, info_dict)
+        return self.download_and_append_fragments(ctx, fragments_to_download, info_dict, ignore_lethal_error=self._ignore_lethal_error())
 
     def _calculate_fragment_count(self, info_dict):
         return False, (1 if self.params.get('test', False) else len(info_dict['fragments']))
@@ -72,3 +72,11 @@ class DashSegmentsFD(FragmentFD):
             })
 
         return fragments_to_download
+
+    @staticmethod
+    def _accept_live():
+        return False
+
+    @staticmethod
+    def _ignore_lethal_error():
+        return False
