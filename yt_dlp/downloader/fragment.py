@@ -396,7 +396,7 @@ class FragmentFD(FileDownloader):
         self._finish_multiline_status()
         return True
 
-    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, ignore_lethal_error=False):
+    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, tpe=None, ignore_lethal_error=False):
         fragment_retries = self.params.get('fragment_retries', 0)
         is_fatal = (lambda idx: idx == 0) if self.params.get('skip_unavailable_fragments', True) or ignore_lethal_error else (lambda _: True)
         if not pack_func:
