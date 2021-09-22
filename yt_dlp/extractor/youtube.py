@@ -2858,6 +2858,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 protocol = f['protocol']
                 if 'dash' in protocol:
                     f['protocol'] = 'youtube_dl_from_start_dash'
+                    f['__iknowwhatiamdoing'] = True
                 else:
                     # give an excessively negative priority to prevent from being choosen
                     f['quality'] = -1000
