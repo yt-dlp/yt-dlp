@@ -208,9 +208,9 @@ from .cartoonnetwork import CartoonNetworkIE
 from .cbc import (
     CBCIE,
     CBCPlayerIE,
-    CBCWatchVideoIE,
-    CBCWatchIE,
-    CBCOlympicsIE,
+    CBCGemIE,
+    CBCGemPlaylistIE,
+    CBCGemLiveIE,
 )
 from .cbs import CBSIE
 from .cbslocal import (
@@ -239,6 +239,7 @@ from .ceskatelevize import (
     CeskaTelevizeIE,
     CeskaTelevizePoradyIE,
 )
+from .cgtn import CGTNIE
 from .channel9 import Channel9IE
 from .charlierose import CharlieRoseIE
 from .chaturbate import ChaturbateIE
@@ -1811,6 +1812,7 @@ from .yourporn import YourPornIE
 from .yourupload import YourUploadIE
 from .youtube import (
     YoutubeIE,
+    YoutubeClipIE,
     YoutubeFavouritesIE,
     YoutubeHistoryIE,
     YoutubeTabIE,

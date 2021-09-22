@@ -789,9 +789,10 @@ class InfoExtractor(object):
             self._downloader.to_screen(dump)
         if self.get_param('write_pages', False):
             basen = '%s_%s' % (video_id, urlh.geturl())
-            if len(basen) > 240:
+            trim_length = self.get_param('trim_file_name') or 240
+            if len(basen) > trim_length:
                 h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
-                basen = basen[:240 - len(h)] + h
+                basen = basen[:trim_length - len(h)] + h
             raw_filename = basen + '.dump'
             filename = sanitize_filename(raw_filename, restricted=True)
             self.to_screen('Saving request to ' + filename)
@@ -2622,8 +2623,10 @@ class InfoExtractor(object):
                             base_url = base_url_e.text + base_url
                             if re.match(r'^https?://', base_url):
                                 break
-                    if mpd_base_url and not re.match(r'^https?://', base_url):
-                        if not mpd_base_url.endswith('/') and not base_url.startswith('/'):
+                    if mpd_base_url and base_url.startswith('/'):
+                        base_url = compat_urlparse.urljoin(mpd_base_url, base_url)
+                    elif mpd_base_url and not re.match(r'^https?://', base_url):
+                        if not mpd_base_url.endswith('/'):
                             mpd_base_url += '/'
                         base_url = mpd_base_url + base_url
                     representation_id = representation_attrib.get('id')

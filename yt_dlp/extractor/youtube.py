@@ -246,7 +246,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     """Provide base functions for Youtube extractors"""
 
     _RESERVED_NAMES = (
-        r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|'
+        r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|clip|'
         r'shorts|movies|results|shared|hashtag|trending|feed|feeds|'
         r'browse|oembed|get_video_info|iframe_api|s/player|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
@@ -869,7 +869,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
             'id': video_id,
-            'url': video_id,
+            'url': f'https://www.youtube.com/watch?v={video_id}',
             'title': title,
             'description': description,
             'duration': duration,
@@ -4284,7 +4284,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if video_id and playlist_id:
             if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
-                return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
+                return self.url_result(f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key(), video_id=video_id)
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
 
         webpage, data = self._extract_webpage(url, item_id)
@@ -4337,7 +4337,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if video_id:
             if mobj['tab'] != '/live':  # live tab is expected to redirect to video
                 self.report_warning('Unable to recognize playlist. Downloading just video %s' % video_id)
-            return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
+            return self.url_result(f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key(), video_id=video_id)
 
         raise ExtractorError('Unable to recognize tab page')
 
@@ -4725,6 +4725,16 @@ class YoutubeTruncatedURLIE(InfoExtractor):
             '"https://www.youtube.com/watch?feature=foo&v=BaW_jenozKc" '
             ' or simply  youtube-dl BaW_jenozKc  .',
             expected=True)
+
+
+class YoutubeClipIE(InfoExtractor):
+    IE_NAME = 'youtube:clip'
+    IE_DESC = False  # Do not list
+    _VALID_URL = r'https?://(?:www\.)?youtube\.com/clip/'
+
+    def _real_extract(self, url):
+        self.report_warning('YouTube clips are not currently supported. The entire video will be downloaded instead')
+        return self.url_result(url, 'Generic')
 
 
 class YoutubeTruncatedIDIE(InfoExtractor):

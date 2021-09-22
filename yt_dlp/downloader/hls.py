@@ -56,8 +56,6 @@ class HlsFD(FragmentFD):
 
         def check_results():
             yield not info_dict.get('is_live')
-            is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
-            yield not (is_aes128_enc and r'#EXT-X-BYTERANGE' in manifest)
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
         return all(check_results())
@@ -169,6 +167,7 @@ class HlsFD(FragmentFD):
                         'byte_range': byte_range,
                         'media_sequence': media_sequence,
                     })
+                    media_sequence += 1
 
                 elif line.startswith('#EXT-X-MAP'):
                     if format_index and discontinuity_count != format_index:
@@ -193,6 +192,7 @@ class HlsFD(FragmentFD):
                         'byte_range': byte_range,
                         'media_sequence': media_sequence
                     })
+                    media_sequence += 1
 
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
