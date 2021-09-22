@@ -1215,14 +1215,13 @@ class GenericIE(InfoExtractor):
         },
         {
             # JWPlatform iframe
-            'url': 'https://www.mediaite.com/tv/dem-senator-claims-gary-cohn-faked-a-bad-connection-during-trump-call-to-get-him-off-the-phone/',
-            'md5': 'ca00a040364b5b439230e7ebfd02c4e9',
+            'url': 'https://www.covermagazine.co.uk/feature/2465255/business-protection-involved',
             'info_dict': {
-                'id': 'O0c5JcKT',
+                'id': 'AG26UQXM',
                 'ext': 'mp4',
-                'upload_date': '20171122',
-                'timestamp': 1511366290,
-                'title': 'Dem Senator Claims Gary Cohn Faked a Bad Connection During Trump Call to Get Him Off the Phone',
+                'upload_date': '20160719',
+                'timestamp': 468923808,
+                'title': '2016_05_18 Cover L&G Business Protection V1 FINAL.mp4',
             },
             'add_ie': [JWPlatformIE.ie_key()],
         },

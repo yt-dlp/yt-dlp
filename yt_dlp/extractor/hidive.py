@@ -1,12 +1,13 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
+    try_get,
     url_or_none,
     urlencode_postdata,
 )
@@ -57,48 +58,51 @@ class HiDiveIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         title, key = mobj.group('title', 'key')
         video_id = '%s/%s' % (title, key)
-
-        settings = self._download_json(
-            'https://www.hidive.com/play/settings', video_id,
-            data=urlencode_postdata({
-                'Title': title,
-                'Key': key,
-                'PlayerId': 'f4f895ce1ca713ba263b91caeb1daa2d08904783',
-            }))
-
-        restriction = settings.get('restrictionReason')
-        if restriction == 'RegionRestricted':
-            self.raise_geo_restricted()
-
-        if restriction and restriction != 'None':
-            raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, restriction), expected=True)
-
+        webpage = self._download_webpage(url, video_id, fatal=False)
+        data_videos = re.findall(r'data-video=\"([^\"]+)\"\s?data-captions=\"([^\"]+)\"', webpage)
         formats = []
         subtitles = {}
-        for rendition_id, rendition in settings['renditions'].items():
-            bitrates = rendition.get('bitrates')
-            if not isinstance(bitrates, dict):
-                continue
-            m3u8_url = url_or_none(bitrates.get('hls'))
-            if not m3u8_url:
-                continue
-            formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                m3u8_id='%s-hls' % rendition_id, fatal=False))
-            cc_files = rendition.get('ccFiles')
-            if not isinstance(cc_files, list):
-                continue
-            for cc_file in cc_files:
-                if not isinstance(cc_file, list) or len(cc_file) < 3:
+        for data_video in data_videos:
+            _, _, _, version, audio, _, extra = data_video[0].split('_')
+            caption = data_video[1]
+
+            settings = self._download_json(
+                'https://www.hidive.com/play/settings', video_id,
+                data=urlencode_postdata({
+                    'Title': title,
+                    'Key': key,
+                    'PlayerId': 'f4f895ce1ca713ba263b91caeb1daa2d08904783',
+                    'Version': version,
+                    'Audio': audio,
+                    'Captions': caption,
+                    'Extra': extra,
+                }))
+
+            restriction = settings.get('restrictionReason')
+            if restriction == 'RegionRestricted':
+                self.raise_geo_restricted()
+
+            if restriction and restriction != 'None':
+                raise ExtractorError(
+                    '%s said: %s' % (self.IE_NAME, restriction), expected=True)
+
+            for rendition_id, rendition in settings['renditions'].items():
+                m3u8_url = url_or_none(try_get(rendition, lambda x: x['bitrates']['hls']))
+                if not m3u8_url:
                     continue
-                cc_lang = cc_file[0]
-                cc_url = url_or_none(cc_file[2])
-                if not isinstance(cc_lang, compat_str) or not cc_url:
-                    continue
-                subtitles.setdefault(cc_lang, []).append({
-                    'url': cc_url,
-                })
+                frmt = self._extract_m3u8_formats(
+                    m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                    m3u8_id='%s-%s-%s-%s' % (version, audio, extra, caption), fatal=False)
+                for f in frmt:
+                    f['language'] = audio
+                formats.extend(frmt)
+
+                for cc_file in rendition.get('ccFiles', []):
+                    cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
+                    # name is used since we cant distinguish subs with same language code
+                    cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
+                    if cc_url and cc_lang:
+                        subtitles.setdefault(cc_lang, []).append({'url': cc_url})
         self._sort_formats(formats)
 
         season_number = int_or_none(self._search_regex(
@@ -114,4 +118,5 @@ class HiDiveIE(InfoExtractor):
             'series': title,
             'season_number': season_number,
             'episode_number': episode_number,
+            'http_headers': {'Referer': url}
         }

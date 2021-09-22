@@ -1,15 +1,14 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     int_or_none,
-    merge_dicts,
-    parse_iso8601,
+    parse_duration,
     qualities,
     try_get,
+    unified_strdate,
     urljoin,
 )
 
@@ -28,110 +27,110 @@ class NDRIE(NDRBaseIE):
     IE_DESC = 'NDR.de - Norddeutscher Rundfunk'
     _VALID_URL = r'https?://(?:www\.)?(?:daserste\.)?ndr\.de/(?:[^/]+/)*(?P<display_id>[^/?#]+),(?P<id>[\da-z]+)\.html'
     _TESTS = [{
-        # httpVideo, same content id
         'url': 'http://www.ndr.de/fernsehen/Party-Poette-und-Parade,hafengeburtstag988.html',
-        'md5': '6515bc255dc5c5f8c85bbc38e035a659',
         'info_dict': {
             'id': 'hafengeburtstag988',
-            'display_id': 'Party-Poette-und-Parade',
             'ext': 'mp4',
             'title': 'Party, Pötte und Parade',
+            'thumbnail': 'https://www.ndr.de/fernsehen/hafengeburtstag990_v-contentxl.jpg',
             'description': 'md5:ad14f9d2f91d3040b6930c697e5f6b4c',
-            'uploader': 'ndrtv',
-            'timestamp': 1431108900,
-            'upload_date': '20150510',
+            'series': None,
+            'channel': 'NDR Fernsehen',
+            'upload_date': '20150508',
             'duration': 3498,
         },
-        'params': {
-            'skip_download': True,
-        },
     }, {
-        # httpVideo, different content id
-        'url': 'http://www.ndr.de/sport/fussball/40-Osnabrueck-spielt-sich-in-einen-Rausch,osna270.html',
-        'md5': '1043ff203eab307f0c51702ec49e9a71',
+        'url': 'https://www.ndr.de/sport/fussball/Rostocks-Matchwinner-Froede-Ein-Hansa-Debuet-wie-im-Maerchen,hansa10312.html',
+        'only_matching': True
+    }, {
+        'url': 'https://www.ndr.de/nachrichten/niedersachsen/kommunalwahl_niedersachsen_2021/Grosse-Parteien-zufrieden-mit-Ergebnissen-der-Kommunalwahl,kommunalwahl1296.html',
         'info_dict': {
-            'id': 'osna272',
-            'display_id': '40-Osnabrueck-spielt-sich-in-einen-Rausch',
+            'id': 'kommunalwahl1296',
             'ext': 'mp4',
-            'title': 'Osnabrück - Wehen Wiesbaden: Die Highlights',
-            'description': 'md5:32e9b800b3d2d4008103752682d5dc01',
-            'uploader': 'ndrtv',
-            'timestamp': 1442059200,
-            'upload_date': '20150912',
-            'duration': 510,
-        },
-        'params': {
-            'skip_download': True,
+            'title': 'Die Spitzenrunde: Die Wahl aus Sicht der Landespolitik',
+            'thumbnail': 'https://www.ndr.de/fernsehen/screenshot1194912_v-contentxl.jpg',
+            'description': 'md5:5c6e2ad744cef499135735a1036d7aa7',
+            'series': 'Hallo Niedersachsen',
+            'channel': 'NDR Fernsehen',
+            'upload_date': '20210913',
+            'duration': 438,
         },
     }, {
-        # httpAudio, same content id
-        'url': 'http://www.ndr.de/info/La-Valette-entgeht-der-Hinrichtung,audio51535.html',
-        'md5': 'bb3cd38e24fbcc866d13b50ca59307b8',
-        'info_dict': {
-            'id': 'audio51535',
-            'display_id': 'La-Valette-entgeht-der-Hinrichtung',
-            'ext': 'mp3',
-            'title': 'La Valette entgeht der Hinrichtung',
-            'description': 'md5:22f9541913a40fe50091d5cdd7c9f536',
-            'uploader': 'ndrinfo',
-            'timestamp': 1290626100,
-            'upload_date': '20140729',
-            'duration': 884,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # with subtitles
         'url': 'https://www.ndr.de/fernsehen/sendungen/extra_3/extra-3-Satiremagazin-mit-Christian-Ehring,sendung1091858.html',
         'info_dict': {
-            'id': 'extra18674',
-            'display_id': 'extra-3-Satiremagazin-mit-Christian-Ehring',
+            'id': 'sendung1091858',
             'ext': 'mp4',
             'title': 'Extra 3 vom 11.11.2020 mit Christian Ehring',
-            'description': 'md5:42ee53990a715eaaf4dc7f13a3bd56c6',
-            'uploader': 'ndrtv',
-            'upload_date': '20201113',
+            'thumbnail': 'https://www.ndr.de/fernsehen/screenshot983938_v-contentxl.jpg',
+            'description': 'md5:700f6de264010585012a72f97b0ac0c9',
+            'series': 'extra 3',
+            'channel': 'NDR Fernsehen',
+            'upload_date': '20201111',
             'duration': 1749,
-            'subtitles': {
-                'de': [{
-                    'ext': 'ttml',
-                    'url': r're:^https://www\.ndr\.de.+',
-                }],
-            },
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'expected_warnings': ['Unable to download f4m manifest'],
+        }
     }, {
-        'url': 'https://www.ndr.de/Fettes-Brot-Ferris-MC-und-Thees-Uhlmann-live-on-stage,festivalsommer116.html',
-        'only_matching': True,
+        'url': 'http://www.ndr.de/info/La-Valette-entgeht-der-Hinrichtung,audio51535.html',
+        'info_dict': {
+            'id': 'audio51535',
+            'ext': 'mp3',
+            'title': 'La Valette entgeht der Hinrichtung',
+            'thumbnail': 'https://www.ndr.de/mediathek/mediathekbild140_v-podcast.jpg',
+            'description': 'md5:22f9541913a40fe50091d5cdd7c9f536',
+            'upload_date': '20140729',
+            'duration': 884.0,
+        },
+        'expected_warnings': ['unable to extract json url'],
     }]
 
     def _extract_embed(self, webpage, display_id, id):
-        embed_url = self._html_search_meta(
-            'embedURL', webpage, 'embed URL',
-            default=None) or self._search_regex(
-            r'\bembedUrl["\']\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage,
-            'embed URL', fatal=False, group='url')
-        if embed_url is None:
-            return self.url_result('ndr:%s' % id, ie=NDREmbedBaseIE.ie_key())
-        description = self._search_regex(
-            r'<p[^>]+itemprop="description">([^<]+)</p>',
-            webpage, 'description', default=None) or self._og_search_description(webpage)
-        timestamp = parse_iso8601(
-            self._search_regex(
-                r'<span[^>]+itemprop="(?:datePublished|uploadDate)"[^>]+content="([^"]+)"',
-                webpage, 'upload date', default=None))
-        info = self._search_json_ld(webpage, display_id, default={})
-        return merge_dicts({
-            '_type': 'url_transparent',
-            'url': embed_url,
-            'display_id': display_id,
-            'description': description,
-            'timestamp': timestamp,
-        }, info)
+        formats = []
+        base_url = 'https://www.ndr.de'
+        json_url = self._search_regex(r'<iframe[^>]+src=\"([^\"]+)_theme-ndrde[^\.]*\.html\"', webpage,
+                                      'json url', fatal=False)
+        if json_url:
+            data_json = self._download_json(base_url + json_url.replace('ardplayer_image', 'ardjson_image') + '.json',
+                                            id, fatal=False)
+            info_json = data_json.get('_info', {})
+            media_json = try_get(data_json, lambda x: x['_mediaArray'][0]['_mediaStreamArray'])
+            for media in media_json:
+                if media.get('_quality') == 'auto':
+                    formats.extend(self._extract_m3u8_formats(media['_stream'], id))
+            subtitles = {}
+            sub_url = data_json.get('_subtitleUrl')
+            if sub_url:
+                subtitles.setdefault('de', []).append({
+                    'url': base_url + sub_url,
+                })
+            self._sort_formats(formats)
+            return {
+                'id': id,
+                'title': info_json.get('clipTitle'),
+                'thumbnail': base_url + data_json.get('_previewImage'),
+                'description': info_json.get('clipDescription'),
+                'series': info_json.get('seriesTitle') or None,
+                'channel': info_json.get('channelTitle'),
+                'upload_date': unified_strdate(info_json.get('clipDate')),
+                'duration': data_json.get('_duration'),
+                'formats': formats,
+                'subtitles': subtitles,
+            }
+        else:
+            json_url = base_url + self._search_regex(r'apiUrl\s?=\s?\'([^\']+)\'', webpage, 'json url').replace(
+                '_belongsToPodcast-', '')
+            data_json = self._download_json(json_url, id, fatal=False)
+            return {
+                'id': id,
+                'title': data_json.get('title'),
+                'thumbnail': base_url + data_json.get('poster'),
+                'description': data_json.get('summary'),
+                'upload_date': unified_strdate(data_json.get('publicationDate')),
+                'duration': parse_duration(data_json.get('duration')),
+                'formats': [{
+                    'url': try_get(data_json, (lambda x: x['audio'][0]['url'], lambda x: x['files'][0]['url'])),
+                    'vcodec': 'none',
+                    'ext': 'mp3',
+                }],
+            }
 
 
 class NJoyIE(NDRBaseIE):

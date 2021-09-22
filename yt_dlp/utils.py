@@ -1740,6 +1740,7 @@ DATE_FORMATS = (
     '%b %dth %Y %I:%M',
     '%Y %m %d',
     '%Y-%m-%d',
+    '%Y.%m.%d.',
     '%Y/%m/%d',
     '%Y/%m/%d %H:%M',
     '%Y/%m/%d %H:%M:%S',
@@ -1761,6 +1762,7 @@ DATE_FORMATS = (
     '%b %d %Y at %H:%M:%S',
     '%B %d %Y at %H:%M',
     '%B %d %Y at %H:%M:%S',
+    '%H:%M %d-%b-%Y',
 )
 
 DATE_FORMATS_DAY_FIRST = list(DATE_FORMATS)
@@ -2408,7 +2410,7 @@ class ExtractorError(YoutubeDLError):
         if sys.exc_info()[0] in network_exceptions:
             expected = True
 
-        self.msg = msg
+        self.msg = str(msg)
         self.traceback = tb
         self.expected = expected
         self.cause = cause
@@ -2419,7 +2421,7 @@ class ExtractorError(YoutubeDLError):
         super(ExtractorError, self).__init__(''.join((
             format_field(ie, template='[%s] '),
             format_field(video_id, template='%s: '),
-            msg,
+            self.msg,
             format_field(cause, template=' (caused by %r)'),
             '' if expected else bug_reports_message())))
 
@@ -3033,8 +3035,16 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
 
 def extract_timezone(date_str):
     m = re.search(
-        r'^.{8,}?(?P<tz>Z$| ?(?P<sign>\+|-)(?P<hours>[0-9]{2}):?(?P<minutes>[0-9]{2})$)',
-        date_str)
+        r'''(?x)
+            ^.{8,}?                                              # >=8 char non-TZ prefix, if present
+            (?P<tz>Z|                                            # just the UTC Z, or
+                (?:(?<=.\b\d{4}|\b\d{2}:\d\d)|                   # preceded by 4 digits or hh:mm or
+                   (?<!.\b[a-zA-Z]{3}|[a-zA-Z]{4}|..\b\d\d))     # not preceded by 3 alpha word or >= 4 alpha or 2 digits
+                   [ ]?                                          # optional space
+                (?P<sign>\+|-)                                   # +/-
+                (?P<hours>[0-9]{2}):?(?P<minutes>[0-9]{2})       # hh[:]mm
+            $)
+        ''', date_str)
     if not m:
         timezone = datetime.timedelta()
     else:
@@ -3972,6 +3982,9 @@ class LazyList(collections.abc.Sequence):
     ''' Lazy immutable list from an iterable
     Note that slices of a LazyList are lists and not LazyList'''
 
+    class IndexError(IndexError):
+        pass
+
     def __init__(self, iterable):
         self.__iterable = iter(iterable)
         self.__cache = []
@@ -4015,22 +4028,28 @@ class LazyList(collections.abc.Sequence):
                 or (stop is None and step > 0)):
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
-            return self.__exhaust()[idx]
-
+            self.__exhaust()
+            try:
+                return self.__cache[idx]
+            except IndexError as e:
+                raise self.IndexError(e) from e
         n = max(start or 0, stop or 0) - len(self.__cache) + 1
         if n > 0:
             self.__cache.extend(itertools.islice(self.__iterable, n))
-        return self.__cache[idx]
+        try:
+            return self.__cache[idx]
+        except IndexError as e:
+            raise self.IndexError(e) from e
 
     def __bool__(self):
         try:
             self[-1] if self.__reversed else self[0]
-        except IndexError:
+        except self.IndexError:
             return False
         return True
 
     def __len__(self):
-        self.exhaust()
+        self.__exhaust()
         return len(self.__cache)
 
     def reverse(self):
@@ -4378,6 +4397,8 @@ def js_to_json(code, vars={}):
         v = m.group(0)
         if v in ('true', 'false', 'null'):
             return v
+        elif v in ('undefined', 'void 0'):
+            return 'null'
         elif v.startswith('/*') or v.startswith('//') or v.startswith('!') or v == ',':
             return ""
 
@@ -4404,7 +4425,7 @@ def js_to_json(code, vars={}):
         "(?:[^"\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^"\\]*"|
         '(?:[^'\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^'\\]*'|
         {comment}|,(?={skip}[\]}}])|
-        (?:(?<![0-9])[eE]|[a-df-zA-DF-Z_])[.a-zA-Z_0-9]*|
+        void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
         \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{skip}:)?|
         [0-9]+(?={skip}:)|
         !+
@@ -6359,3 +6380,11 @@ def time_millis():
     now = datetime.datetime.now(datetime.timezone.utc)
     epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
     return (now - epoch) // datetime.timedelta(milliseconds=1)
+
+
+def get_windows_version():
+    ''' Get Windows version. None if it's not running on Windows '''
+    if compat_os_name == 'nt':
+        return version_tuple(platform.win32_ver()[1])
+    else:
+        return None

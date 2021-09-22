@@ -649,6 +649,7 @@ class TestYoutubeDL(unittest.TestCase):
         'title2': '%PATH%',
         'title3': 'foo/bar\\test',
         'title4': 'foo "bar" test',
+        'title5': 'áéí',
         'timestamp': 1618488000,
         'duration': 100000,
         'playlist_index': 1,
@@ -767,6 +768,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(ext)l', 'mp4')
         test('%(formats.:.id) 15l', '  id1, id2, id3')
         test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
+        test('%(title5).3B', 'á')
         if compat_os_name == 'nt':
             test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
         else:
@@ -787,6 +789,12 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.:2:-1)r', repr(FORMATS[:2:-1]))
         test('%(formats.0.id.-1+id)f', '1235.000000')
         test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
+
+        # Alternates
+        test('%(title,id)s', '1234')
+        test('%(width-100,height+20|def)d', '1100')
+        test('%(width-100,height+width|def)s', 'def')
+        test('%(timestamp-x>%H\\,%M\\,%S,timestamp>%H\\,%M\\,%S)s', '12,00,00')
 
         # Laziness
         def gen():

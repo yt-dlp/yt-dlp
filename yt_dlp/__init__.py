@@ -248,7 +248,7 @@ def _real_main(argv=None):
     if opts.cookiesfrombrowser is not None:
         opts.cookiesfrombrowser = [
             part.strip() or None for part in opts.cookiesfrombrowser.split(':', 1)]
-        if opts.cookiesfrombrowser[0] not in SUPPORTED_BROWSERS:
+        if opts.cookiesfrombrowser[0].lower() not in SUPPORTED_BROWSERS:
             parser.error('unsupported browser specified for cookies')
 
     if opts.date is not None:
@@ -575,6 +575,7 @@ def _real_main(argv=None):
 
     ydl_opts = {
         'usenetrc': opts.usenetrc,
+        'netrc_location': opts.netrc_location,
         'username': opts.username,
         'password': opts.password,
         'twofactor': opts.twofactor,

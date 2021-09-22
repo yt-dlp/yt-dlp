@@ -30,7 +30,7 @@
     * The fetched sponsor sections are written to the infojson
     * Deprecates: `--sponskrub`, `--no-sponskrub`, `--sponskrub-cut`, `--no-sponskrub-cut`, `--sponskrub-force`, `--no-sponskrub-force`, `--sponskrub-location`, `--sponskrub-args`
 * Split `--embed-chapters` from `--embed-metadata` (it still implies the former by default)
-* Add option `--remove-chapters` to remove arbitrary chapters by [nihil-admirari](https://github.com/nihil-admirari), pukkandan
+* Add option `--remove-chapters` to remove arbitrary chapters by [nihil-admirari](https://github.com/nihil-admirari), [pukkandan](https://github.com/pukkandan)
 * Add option `--force-keyframes-at-cuts` for more accurate cuts when removing and splitting chapters by [nihil-admirari](https://github.com/nihil-admirari)
 * Let `--match-filter` reject entries early
     * Makes redundant: `--match-title`, `--reject-title`, `--min-views`, `--max-views`

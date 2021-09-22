@@ -35,6 +35,7 @@ from .compat import (
     compat_kwargs,
     compat_numeric_types,
     compat_os_name,
+    compat_pycrypto_AES,
     compat_shlex_quote,
     compat_str,
     compat_tokenize_tokenize,
@@ -907,7 +908,7 @@ class YoutubeDL(object):
     def validate_outtmpl(cls, outtmpl):
         ''' @return None or Exception object '''
         outtmpl = re.sub(
-            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljq]'),
+            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljqB]'),
             lambda mobj: f'{mobj.group(0)[:-1]}s',
             cls._outtmpl_expandpath(outtmpl))
         try:
@@ -939,7 +940,7 @@ class YoutubeDL(object):
         }
 
         TMPL_DICT = {}
-        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljq]'))
+        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljqB]'))
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
@@ -954,6 +955,7 @@ class YoutubeDL(object):
             (?P<fields>{field})
             (?P<maths>(?:{math_op}{math_field})*)
             (?:>(?P<strf_format>.+?))?
+            (?P<alternate>(?<!\\),[^|)]+)?
             (?:\|(?P<default>.*?))?
             $'''.format(field=FIELD_RE, math_op=MATH_OPERATORS_RE, math_field=MATH_FIELD_RE))
 
@@ -995,7 +997,7 @@ class YoutubeDL(object):
                     operator = None
             # Datetime formatting
             if mdict['strf_format']:
-                value = strftime_or_none(value, mdict['strf_format'])
+                value = strftime_or_none(value, mdict['strf_format'].replace('\\,', ','))
 
             return value
 
@@ -1011,12 +1013,16 @@ class YoutubeDL(object):
                 return f'%{outer_mobj.group(0)}'
             key = outer_mobj.group('key')
             mobj = re.match(INTERNAL_FORMAT_RE, key)
-            if mobj is None:
-                value, default, mobj = None, na, {'fields': ''}
-            else:
+            initial_field = mobj.group('fields').split('.')[-1] if mobj else ''
+            value, default = None, na
+            while mobj:
                 mobj = mobj.groupdict()
-                default = mobj['default'] if mobj['default'] is not None else na
+                default = mobj['default'] if mobj['default'] is not None else default
                 value = get_value(mobj)
+                if value is None and mobj['alternate']:
+                    mobj = re.match(INTERNAL_FORMAT_RE, mobj['alternate'][1:])
+                else:
+                    break
 
             fmt = outer_mobj.group('format')
             if fmt == 's' and value is not None and key in field_size_compat_map.keys():
@@ -1031,6 +1037,9 @@ class YoutubeDL(object):
                 value, fmt = json.dumps(value, default=_dumpjson_default), str_fmt
             elif fmt[-1] == 'q':
                 value, fmt = compat_shlex_quote(str(value)), str_fmt
+            elif fmt[-1] == 'B':
+                value = f'%{str_fmt}'.encode('utf-8') % str(value).encode('utf-8')
+                value, fmt = value.decode('utf-8', 'ignore'), 's'
             elif fmt[-1] == 'c':
                 value = str(value)
                 if value is None:
@@ -1048,7 +1057,7 @@ class YoutubeDL(object):
                     # So we convert it to repr first
                     value, fmt = repr(value), str_fmt
                 if fmt[-1] in 'csr':
-                    value = sanitize(mobj['fields'].split('.')[-1], value)
+                    value = sanitize(initial_field, value)
 
             key = '%s\0%s' % (key.replace('%', '%\0'), outer_mobj.group('format'))
             TMPL_DICT[key] = value
@@ -1166,7 +1175,7 @@ class YoutubeDL(object):
         for key, value in extra_info.items():
             info_dict.setdefault(key, value)
 
-    def extract_info(self, url, download=True, ie_key=None, extra_info={},
+    def extract_info(self, url, download=True, ie_key=None, extra_info=None,
                      process=True, force_generic_extractor=False):
         """
         Return a list with a dictionary for each video extracted.
@@ -1182,6 +1191,9 @@ class YoutubeDL(object):
             must be True for download to work.
         force_generic_extractor -- force using the generic extractor
         """
+
+        if extra_info is None:
+            extra_info = {}
 
         if not ie_key and force_generic_extractor:
             ie_key = 'Generic'
@@ -1208,7 +1220,8 @@ class YoutubeDL(object):
         else:
             self.report_error('no suitable InfoExtractor for URL %s' % url)
 
-    def __handle_extraction_exceptions(func, handle_all_errors=True):
+    def __handle_extraction_exceptions(func):
+
         def wrapper(self, *args, **kwargs):
             try:
                 return func(self, *args, **kwargs)
@@ -1225,10 +1238,10 @@ class YoutubeDL(object):
                 self.to_stderr('\r')
                 self.report_warning('The download speed is below throttle limit. Re-extracting data')
                 return wrapper(self, *args, **kwargs)
-            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
+            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached, LazyList.IndexError):
                 raise
             except Exception as e:
-                if handle_all_errors and self.params.get('ignoreerrors', False):
+                if self.params.get('ignoreerrors', False):
                     self.report_error(error_to_compat_str(e), tb=encode_compat_str(traceback.format_exc()))
                 else:
                     raise
@@ -1287,10 +1300,14 @@ class YoutubeDL(object):
             if ((extract_flat == 'in_playlist' and 'playlist' in extra_info)
                     or extract_flat is True):
                 info_copy = ie_result.copy()
-                self.add_extra_info(info_copy, extra_info)
                 ie = try_get(ie_result.get('ie_key'), self.get_info_extractor)
+                if not ie_result.get('id'):
+                    info_copy['id'] = ie.get_temp_id(ie_result['url'])
                 self.add_default_extra_info(info_copy, ie, ie_result['url'])
+                self.add_extra_info(info_copy, extra_info)
                 self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
+                if self.params.get('force_write_download_archive', False):
+                    self.record_download_archive(info_copy)
                 return ie_result
 
         if result_type == 'video':
@@ -1433,14 +1450,18 @@ class YoutubeDL(object):
         msg = (
             'Downloading %d videos' if not isinstance(ie_entries, list)
             else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
-        if not isinstance(ie_entries, (list, PagedList)):
-            ie_entries = LazyList(ie_entries)
 
-        def get_entry(i):
-            return YoutubeDL.__handle_extraction_exceptions(
-                lambda self, i: ie_entries[i - 1],
-                False
-            )(self, i)
+        if isinstance(ie_entries, list):
+            def get_entry(i):
+                return ie_entries[i - 1]
+        else:
+            if not isinstance(ie_entries, PagedList):
+                ie_entries = LazyList(ie_entries)
+
+            def get_entry(i):
+                return YoutubeDL.__handle_extraction_exceptions(
+                    lambda self, i: ie_entries[i - 1]
+                )(self, i)
 
         entries = []
         for i in playlistitems or itertools.count(playliststart):
@@ -1531,8 +1552,8 @@ class YoutubeDL(object):
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
             playlist_index, entry = entry_tuple
-            if 'playlist-index' in self.params.get('compat_options', []):
-                playlist_index = playlistitems[i - 1] if playlistitems else i
+            if 'playlist-index' in self.params.get('compat_opts', []):
+                playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
             self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes
@@ -2738,7 +2759,7 @@ class YoutubeDL(object):
                     _protocols = set(determine_protocol(f) for f in requested_formats)
                     if len(_protocols) == 1:  # All requested formats have same protocol
                         info_dict['protocol'] = _protocols.pop()
-                    directly_mergable = FFmpegFD.can_merge_formats(info_dict)
+                    directly_mergable = FFmpegFD.can_merge_formats(info_dict, self.params)
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif (directly_mergable and get_suitable_downloader(
@@ -2777,6 +2798,7 @@ class YoutubeDL(object):
                                     'f%s' % f['format_id'], new_info['ext'])
                                 if not self._ensure_dir_exists(fname):
                                     return
+                                f['filepath'] = fname
                                 downloaded.append(fname)
                             partial_success, real_download = self.dl(fname, new_info)
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
@@ -3280,13 +3302,12 @@ class YoutubeDL(object):
         ) or 'none'
         self._write_string('[debug] exe versions: %s\n' % exe_str)
 
-        from .downloader.fragment import can_decrypt_frag
         from .downloader.websocket import has_websockets
         from .postprocessor.embedthumbnail import has_mutagen
         from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
 
         lib_str = ', '.join(sorted(filter(None, (
-            can_decrypt_frag and 'pycryptodome',
+            compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
             has_websockets and 'websockets',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',
