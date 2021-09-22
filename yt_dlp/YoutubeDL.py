@@ -2798,6 +2798,7 @@ class YoutubeDL(object):
                                     'f%s' % f['format_id'], new_info['ext'])
                                 if not self._ensure_dir_exists(fname):
                                     return
+                                f['filepath'] = fname
                                 downloaded.append(fname)
                             partial_success, real_download = self.dl(fname, new_info)
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
