@@ -28,17 +28,16 @@ class MultilinePrinter(MultilinePrinterBase):
         self.stream = stream
 
         is_win10 = compat_os_name == 'nt' and get_windows_version() >= (10, )
+        self.CARRIAGE_RETURN = '\r'
         if os.getenv('TERM') and self._isatty() or is_win10:
             # reason not to use curses https://github.com/yt-dlp/yt-dlp/pull/1036#discussion_r713851492
             # escape sequences for Win10 https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
             self.UP = '\x1b[A'
             self.DOWN = '\n'
             self.ERASE_LINE = '\x1b[K'
-            self.CARRIAGE_RETURN = '\r'
             self._HAVE_FULLCAP = self._isatty() or is_win10
         else:
             self.UP = self.DOWN = self.ERASE_LINE = None
-            self.CARRIAGE_RETURN = '\r'
             self._HAVE_FULLCAP = False
 
         # lines are numbered from top to bottom, counting from 0 to self.maximum
