@@ -9,6 +9,7 @@ from ..compat import compat_urllib_parse_unquote_plus
 from ..utils import (
     clean_html,
     ExtractorError,
+    int_or_none,
     str_to_int,
     url_or_none,
 )
@@ -37,7 +38,7 @@ class ChingariBaseIE(InfoExtractor):
         self._sort_formats(formats)
         timestamp = str_to_int(post_data.get('created_at'))
         if timestamp:
-            timestamp //= 1000
+            timestamp = int_or_none(timestamp, 1000)
 
         thumbnail, uploader_url = None, None
         if media_data.get('thumbnail'):
