@@ -7,11 +7,9 @@ import sys
 import time
 
 from .fragment import FragmentFD
-from ..aes import aes_cbc_decrypt_bytes
 from ..compat import (
     compat_setenv,
     compat_str,
-    compat_struct_pack,
 )
 from ..postprocessor.ffmpeg import FFmpegPostProcessor, EXT_TO_OUT_FORMATS
 from ..utils import (
@@ -25,7 +23,6 @@ from ..utils import (
     check_executable,
     is_outdated_version,
     process_communicate_or_kill,
-    sanitized_Request,
     sanitize_open,
 )
 
