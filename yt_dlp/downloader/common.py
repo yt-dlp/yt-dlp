@@ -247,6 +247,8 @@ class FileDownloader(object):
             self._multiline = QuietMultilinePrinter()
         elif self.params.get('progress_with_newline', False):
             self._multiline = BreaklineStatusPrinter(sys.stderr, lines)
+        elif self.params.get('noprogress', False):
+            self._multiline = None
         else:
             self._multiline = MultilinePrinter(sys.stderr, lines)
 
