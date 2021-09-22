@@ -639,21 +639,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;', webpage, 'ytcfg',
                 default='{}'), video_id, fatal=False) or {}
 
-    def generate_api_headers(self, **kwargs):
-        """
-        Generates required headers for the Innertube API
-
-        Parameters (all optional):
-        ytcfg, account_syncid, session_index, visitor_data,
-        identity_token, api_hostname, default_client
-
-        If a parameter is not supplied, it will try to be extracted from the ytcfg (or the default ytcfg for the given client)
-        """
-
-        ytcfg = kwargs.get('ytcfg')
-        account_syncid = kwargs.get('account_syncid')
-        api_hostname = kwargs.get('api_hostname')
-        default_client = kwargs.get('default_client', 'web')
+    def generate_api_headers(
+            self, *, ytcfg=None, account_syncid=None, session_index=None,
+            visitor_data=None, identity_token=None, api_hostname=None, default_client='web'):
 
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(default_client))
         headers = {
@@ -661,12 +649,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=default_client)),
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, default_client),
             'Origin': origin,
-            'X-Youtube-Identity-Token': kwargs.get('identity_token') or self._extract_identity_token(ytcfg),
+            'X-Youtube-Identity-Token': identity_token or self._extract_identity_token(ytcfg),
             'X-Goog-PageId': account_syncid or self._extract_account_syncid(ytcfg),
-            'X-Goog-Visitor-Id': kwargs.get('visitor_data') or try_get(
+            'X-Goog-Visitor-Id': visitor_data or try_get(
                 self._extract_context(ytcfg, default_client), lambda x: x['client']['visitorData'], compat_str)
         }
-        session_index = kwargs.get('session_index', self._extract_session_index(ytcfg))
+        if session_index is None:
+            session_index = self._extract_session_index(ytcfg)
         if account_syncid or session_index is not None:
             headers['X-Goog-AuthUser'] = session_index if session_index is not None else 0
 
