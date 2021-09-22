@@ -1,7 +1,7 @@
 import re
 
 from threading import Lock
-from .utils import compat_os_name
+from .utils import compat_os_name, get_windows_version
 
 try:
     # curses is in standard modules, but like sqlite in cookies.py,
@@ -46,7 +46,7 @@ class MultilinePrinter(MultilinePrinterBase):
         self.movelock = Lock()
 
     def _load_termcaps(self):
-        if compat_os_name == 'nt':
+        if compat_os_name == 'nt' and get_windows_version() >= (10, ):
             # https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
             self.UP = '\033[1A'
             self.DOWN = '\n'
