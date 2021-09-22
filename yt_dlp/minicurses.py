@@ -1,17 +1,8 @@
 import re
+import os
 
 from threading import Lock
 from .utils import compat_os_name, get_windows_version
-
-try:
-    # curses is in standard modules, but like sqlite in cookies.py,
-    # it is not present under some circumstances (especially when running on Windows)
-    import curses
-    has_curses = True
-    CURSES_ERROR = (curses.error, )
-except ImportError:
-    has_curses = False
-    CURSES_ERROR = (NameError, )
 
 
 class MultilinePrinterBase():
@@ -46,23 +37,16 @@ class MultilinePrinter(MultilinePrinterBase):
         self.movelock = Lock()
 
     def _load_termcaps(self):
-        if compat_os_name == 'nt' and get_windows_version() >= (10, ):
-            # https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
-            self.UP = '\033[1A'
+        is_win10 = compat_os_name == 'nt' and get_windows_version() >= (10, )
+        if os.getenv('TERM') and self._isatty() or is_win10:
+            # reason not to use curses https://github.com/yt-dlp/yt-dlp/pull/1036#discussion_r713851492
+            # escape sequences for Win10 https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
+            self.UP = '\x1b[A'
             self.DOWN = '\n'
-            self.ERASE_LINE = '\033[2K'
+            self.ERASE_LINE = '\x1b[K'
             self.CARRIAGE_RETURN = '\r'
-            self._HAVE_FULLCAP = True
-            return
-        try:
-            # calling this multiple times won't throw errors and safe
-            curses.setupterm()
-            self.UP = self.tputs('cuu1') or self.tputs('up')
-            self.DOWN = self.tputs('cud1') or self.tputs('do')
-            self.ERASE_LINE = self.tputs('el') or self.tputs('ce')
-            self.CARRIAGE_RETURN = self.tputs('cr') or '\r'
-            self._HAVE_FULLCAP = self._isatty() and self.UP and self.DOWN and self.ERASE_LINE
-        except CURSES_ERROR:
+            self._HAVE_FULLCAP = self._isatty() or is_win10
+        else:
             self.UP = self.DOWN = self.ERASE_LINE = None
             self.CARRIAGE_RETURN = '\r'
             self._HAVE_FULLCAP = False
@@ -80,13 +64,6 @@ class MultilinePrinter(MultilinePrinterBase):
             return self.stream.isatty()
         except BaseException:
             return False
-
-    def tputs(self, cap_name):
-        cap = curses.tigetstr(cap_name)
-        if not cap:
-            return None
-        # needed to strip delays
-        return re.sub(rb'\$<\d+>[/*]?', '', cap).decode()
 
     def _move_cursor(self, dest):
         current = min(self.lastline, self.maximum)
