@@ -25,8 +25,9 @@ class DashSegmentsFD(FragmentFD):
         args = []
         for fmt in info_dict.get('requested_formats') or [info_dict]:
             is_live, fragment_count = self._calculate_fragment_count(fmt)
+            real_filename = fmt.get('filepath', ) or filename
             ctx = {
-                'filename': filename,
+                'filename': real_filename,
                 'live': is_live,
                 'total_frags': fragment_count,
             }
@@ -44,9 +45,9 @@ class DashSegmentsFD(FragmentFD):
                 info_copy = fmt.copy()
                 info_copy['fragments'] = fragments_to_download
                 fd = real_downloader(self.ydl, self.params)
-                return fd.real_download(filename, info_copy)
-            
-            args.append([ctx, fragments_to_download, info_dict])
+                return fd.real_download(real_filename, info_copy)
+
+            args.append([ctx, fragments_to_download, fmt])
 
         return self.download_and_append_fragments_multiple(*args, ignore_lethal_error=self._ignore_lethal_error())
 

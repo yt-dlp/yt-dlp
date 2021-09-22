@@ -128,6 +128,7 @@ from .extractor import (
 from .extractor.openload import PhantomJSwrapper
 from .downloader import (
     FFmpegFD,
+    YoutubeDlFromStartDashFD,
     get_suitable_downloader,
     shorten_protocol_name
 )
@@ -2760,6 +2761,8 @@ class YoutubeDL(object):
                     if len(_protocols) == 1:  # All requested formats have same protocol
                         info_dict['protocol'] = _protocols.pop()
                     directly_mergable = FFmpegFD.can_merge_formats(info_dict, self.params)
+                    downloaded = []
+                    merger = FFmpegMergerPP(self)
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif (directly_mergable and get_suitable_downloader(
@@ -2767,9 +2770,19 @@ class YoutubeDL(object):
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
+                    elif (len(set(x.get('manifest_url') for x in requested_formats)) == 1 and get_suitable_downloader(
+                            info_dict, self.params, to_stdout=(temp_filename == '-')) == YoutubeDlFromStartDashFD):
+                        for f in requested_formats:
+                            f['filepath'] = fname = prepend_extension(
+                                correct_ext(temp_filename, info_dict['ext']),
+                                'f%s' % f['format_id'], info_dict['ext'])
+                            downloaded.append(fname)
+                            if not self._ensure_dir_exists(fname):
+                                return
+                        info_dict['url'] = requested_formats[0]['url']
+                        success, real_download = self.dl(temp_filename, info_dict)
+                        info_dict['__real_download'] = real_download
                     else:
-                        downloaded = []
-                        merger = FFmpegMergerPP(self)
                         if self.params.get('allow_unplayable_formats'):
                             self.report_warning(
                                 'You have requested merging of multiple formats '
@@ -2803,14 +2816,14 @@ class YoutubeDL(object):
                             partial_success, real_download = self.dl(fname, new_info)
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
                             success = success and partial_success
-                        if merger.available and not self.params.get('allow_unplayable_formats'):
-                            info_dict['__postprocessors'].append(merger)
-                            info_dict['__files_to_merge'] = downloaded
-                            # Even if there were no downloads, it is being merged only now
-                            info_dict['__real_download'] = True
-                        else:
-                            for file in downloaded:
-                                files_to_move[file] = None
+                    if merger.available and not self.params.get('allow_unplayable_formats'):
+                        info_dict['__postprocessors'].append(merger)
+                        info_dict['__files_to_merge'] = downloaded
+                        # Even if there were no downloads, it is being merged only now
+                        info_dict['__real_download'] = True
+                    else:
+                        for file in downloaded:
+                            files_to_move[file] = None
                 else:
                     # Just a single file
                     dl_filename = existing_file(full_filename, temp_filename)
