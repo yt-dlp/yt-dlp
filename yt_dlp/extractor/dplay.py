@@ -349,7 +349,7 @@ class DiscoveryPlusIE(DPlayIE):
     _API_URL = 'us1-prod-direct.discoveryplus.com'
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers['x-disco-client'] = f'WEB:UNKNOWN:{self._PRODUCT}:15.0.0'
+        headers['x-disco-client'] = f'WEB:UNKNOWN:{self._PRODUCT}:25.2.6'
 
     def _download_video_playback_info(self, disco_base, video_id, headers):
         return self._download_json(
@@ -409,3 +409,23 @@ class DIYNetworkIE(DiscoveryPlusIE):
 
     _PRODUCT = 'diy'
     _API_URL = 'us1-prod-direct.watch.diynetwork.com'
+
+
+class AnimalPlanetIE(DiscoveryPlusIE):
+    _VALID_URL = r'https?://(?:www\.)?animalplanet\.com/video' + DPlayIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.animalplanet.com/video/north-woods-law-animal-planet/squirrel-showdown',
+        'info_dict': {
+            'id': '3338923',
+            'display_id': 'north-woods-law-animal-planet/squirrel-showdown',
+            'ext': 'mp4',
+            'title': 'Squirrel Showdown',
+            'description': 'A woman is suspected of being in possession of flying squirrel kits.',
+            'season_number': 16,
+            'episode_number': 11,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'apl'
+    _API_URL = 'us1-prod-direct.animalplanet.com'
