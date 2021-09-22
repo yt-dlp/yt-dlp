@@ -1,4 +1,3 @@
-import re
 import os
 
 from threading import Lock
@@ -27,16 +26,7 @@ class MultilinePrinter(MultilinePrinterBase):
         @lines number of lines to be written
         """
         self.stream = stream
-        self._load_termcaps()
 
-        # lines are numbered from top to bottom, counting from 0 to self.maximum
-        self.maximum = lines - 1
-        self.lastline = 0
-        self.lastlength = 0
-
-        self.movelock = Lock()
-
-    def _load_termcaps(self):
         is_win10 = compat_os_name == 'nt' and get_windows_version() >= (10, )
         if os.getenv('TERM') and self._isatty() or is_win10:
             # reason not to use curses https://github.com/yt-dlp/yt-dlp/pull/1036#discussion_r713851492
@@ -50,6 +40,13 @@ class MultilinePrinter(MultilinePrinterBase):
             self.UP = self.DOWN = self.ERASE_LINE = None
             self.CARRIAGE_RETURN = '\r'
             self._HAVE_FULLCAP = False
+
+        # lines are numbered from top to bottom, counting from 0 to self.maximum
+        self.maximum = lines - 1
+        self.lastline = 0
+        self.lastlength = 0
+
+        self.movelock = Lock()
 
     @property
     def have_fullcap(self):
