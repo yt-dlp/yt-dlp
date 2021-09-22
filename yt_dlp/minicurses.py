@@ -1,6 +1,7 @@
 import re
 
 from threading import Lock
+from .utils import compat_os_name
 
 try:
     # curses is in standard modules, but like sqlite in cookies.py,
@@ -35,6 +36,24 @@ class MultilinePrinter(MultilinePrinterBase):
         @lines number of lines to be written
         """
         self.stream = stream
+        self._load_termcaps()
+
+        # lines are numbered from top to bottom, counting from 0 to self.maximum
+        self.maximum = lines - 1
+        self.lastline = 0
+        self.lastlength = 0
+
+        self.movelock = Lock()
+
+    def _load_termcaps(self):
+        if compat_os_name == 'nt':
+            # https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
+            self.UP = '\033[1A'
+            self.DOWN = '\n'
+            self.ERASE_LINE = '\033[2K'
+            self.CARRIAGE_RETURN = '\r'
+            self._HAVE_FULLCAP = True
+            return
         try:
             # calling this multiple times won't throw errors and safe
             curses.setupterm()
@@ -47,13 +66,6 @@ class MultilinePrinter(MultilinePrinterBase):
             self.UP = self.DOWN = self.ERASE_LINE = None
             self.CARRIAGE_RETURN = '\r'
             self._HAVE_FULLCAP = False
-
-        # lines are numbered from top to bottom, counting from 0 to self.maximum
-        self.maximum = lines - 1
-        self.lastline = 0
-        self.lastlength = 0
-
-        self.movelock = Lock()
 
     @property
     def have_fullcap(self):
