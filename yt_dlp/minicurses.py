@@ -105,7 +105,7 @@ class MultilinePrinter(MultilinePrinterBase):
             else:
                 if self.maximum != 0:
                     # let user know about which line is updating the status
-                    text = f'{pos + 1}: ${text}'
+                    text = f'{pos + 1}: {text}'
                 textlen = len(text)
                 if self.lastline == pos:
                     # move cursor at the start of progress when writing to same line
