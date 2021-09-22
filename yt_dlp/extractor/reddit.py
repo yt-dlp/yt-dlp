@@ -49,7 +49,7 @@ class RedditIE(InfoExtractor):
 
 
 class RedditRIE(InfoExtractor):
-    _VALID_URL = r'(?P<url>https?://(?:[^/]+\.)?reddit\.com/r/[^/]+/comments/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'https?://(?:[^/]+\.)?reddit\.com/r/(?P<slug>[^/]+/comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
@@ -97,15 +97,11 @@ class RedditRIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        url, video_id = mobj.group('url', 'id')
-
-        video_id = self._match_id(url)
+        slug, video_id = self._match_valid_url(url).group('slug', 'id')
 
         self._set_cookie('reddit.com', '_options', '%7B%22pref_quarantine_optin%22%3A%20true%7D')
-
         data = self._download_json(
-            url + '/.json', video_id)[0]['data']['children'][0]['data']
+            f'https://old.reddit.com/r/{slug}/.json', video_id)[0]['data']['children'][0]['data']
 
         video_url = data['url']
 
