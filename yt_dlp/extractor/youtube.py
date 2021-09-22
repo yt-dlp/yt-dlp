@@ -869,7 +869,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
             'id': video_id,
-            'url': video_id,
+            'url': f'https://www.youtube.com/watch?v={video_id}',
             'title': title,
             'description': description,
             'duration': duration,
@@ -4284,7 +4284,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if video_id and playlist_id:
             if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
-                return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
+                return self.url_result(f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key(), video_id=video_id)
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
 
         webpage, data = self._extract_webpage(url, item_id)
@@ -4337,7 +4337,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         if video_id:
             if mobj['tab'] != '/live':  # live tab is expected to redirect to video
                 self.report_warning('Unable to recognize playlist. Downloading just video %s' % video_id)
-            return self.url_result(video_id, ie=YoutubeIE.ie_key(), video_id=video_id)
+            return self.url_result(f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key(), video_id=video_id)
 
         raise ExtractorError('Unable to recognize tab page')
 
