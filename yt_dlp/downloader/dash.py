@@ -22,29 +22,33 @@ class DashSegmentsFD(FragmentFD):
         real_downloader = get_suitable_downloader(
             info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
-        is_live, fragment_count = self._calculate_fragment_count(info_dict)
-        ctx = {
-            'filename': filename,
-            'live': is_live,
-            'total_frags': fragment_count,
-        }
+        args = []
+        for fmt in info_dict.get('requested_formats') or [info_dict]:
+            is_live, fragment_count = self._calculate_fragment_count(fmt)
+            ctx = {
+                'filename': filename,
+                'live': is_live,
+                'total_frags': fragment_count,
+            }
 
-        if real_downloader:
-            self._prepare_external_frag_download(ctx)
-        else:
-            self._prepare_and_start_frag_download(ctx, info_dict)
+            if real_downloader:
+                self._prepare_external_frag_download(ctx)
+            else:
+                self._prepare_and_start_frag_download(ctx, fmt)
 
-        fragments_to_download = self._get_fragments(info_dict, ctx)
+            fragments_to_download = self._get_fragments(fmt, ctx)
 
-        if real_downloader:
-            self.to_screen(
-                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
-            info_copy = info_dict.copy()
-            info_copy['fragments'] = fragments_to_download
-            fd = real_downloader(self.ydl, self.params)
-            return fd.real_download(filename, info_copy)
+            if real_downloader:
+                self.to_screen(
+                    '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
+                info_copy = fmt.copy()
+                info_copy['fragments'] = fragments_to_download
+                fd = real_downloader(self.ydl, self.params)
+                return fd.real_download(filename, info_copy)
+            
+            args.append([ctx, fragments_to_download, info_dict])
 
-        return self.download_and_append_fragments(ctx, fragments_to_download, info_dict, ignore_lethal_error=self._ignore_lethal_error())
+        return self.download_and_append_fragments_multiple(*args, ignore_lethal_error=self._ignore_lethal_error())
 
     def _calculate_fragment_count(self, info_dict):
         return False, (1 if self.params.get('test', False) else len(info_dict['fragments']))
