@@ -146,5 +146,5 @@ class BreaklineStatusPrinter(MultilinePrinterBase):
     def print_at_line(self, text, pos):
         if self.maximum != 0:
             # let user know about which line is updating the status
-            text = f'{pos + 1}: ${text}'
+            text = f'{pos + 1}: {text}'
         self.stream.write(text + '\n')
