@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import try_get
 
+
 class ThetaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?theta\.tv/(?P<id>[a-z0-9]+)'
     _TESTS = [{
