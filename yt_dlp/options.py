@@ -119,7 +119,7 @@ def parseOpts(overrideArguments=None):
     def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = getattr(parser.values, option.dest) if append else []
-        value = [process(value)] if delim is None else list(map(process, value.split(delim)))
+        value = list(filter(None, [process(value)] if delim is None else map(process, value.split(delim))))
         setattr(
             parser.values, option.dest,
             current + value if append is True else value + current)
