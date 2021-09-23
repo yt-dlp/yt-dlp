@@ -35,13 +35,11 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
                 continue
             fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
             fragments = fmt_info['fragments']
-            fragment_base_url = fmt_info.get('fragment_base_url')
+            fragment_base_url = fmt_info['fragment_base_url']
+            assert fragment_base_url
 
             last_fragment = fragments[-1]
-
-            assert fragment_base_url
             last_url = urljoin(fragment_base_url, last_fragment['path'])
-
             last_seq = int(re.search(r'/sq/(\d+)', last_url).group(1))
             for idx in range(known_idx, last_seq):
                 seq = idx + 1
