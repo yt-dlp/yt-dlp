@@ -15,7 +15,6 @@ from ..utils import (
 class YoutubeDlFromStartDashFD(DashSegmentsFD):
     """
     Download YouTube live from the start, to the end. For DASH formats.
-    This currently does not handle downloading 2 streams at once.
     """
 
     FD_NAME = 'ytlivestartdash'
