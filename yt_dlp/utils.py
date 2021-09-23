@@ -16,6 +16,8 @@ import email.header
 import errno
 import functools
 import gzip
+import hashlib
+import hmac
 import imp
 import io
 import itertools
@@ -3290,6 +3292,14 @@ def platform_name():
     return res
 
 
+def get_windows_version():
+    ''' Get Windows version. None if it's not running on Windows '''
+    if compat_os_name == 'nt':
+        return version_tuple(platform.win32_ver()[1])
+    else:
+        return None
+
+
 def _windows_write_string(s, out):
     """ Returns True if the string was written using special methods,
     False if it has yet to be written out."""
@@ -6375,9 +6385,20 @@ def variadic(x, allowed_types=(str, bytes)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
 
 
-def get_windows_version():
-    ''' Get Windows version. None if it's not running on Windows '''
-    if compat_os_name == 'nt':
-        return version_tuple(platform.win32_ver()[1])
-    else:
-        return None
+# create a JSON Web Signature (jws) with HS256 algorithm
+# the resulting format is in JWS Compact Serialization
+# implemented following JWT https://www.rfc-editor.org/rfc/rfc7519.html
+# implemented following JWS https://www.rfc-editor.org/rfc/rfc7515.html
+def jwt_encode_hs256(payload_data, key, headers={}):
+    header_data = {
+        'alg': 'HS256',
+        'typ': 'JWT',
+    }
+    if headers:
+        header_data.update(headers)
+    header_b64 = base64.b64encode(json.dumps(header_data).encode('utf-8'))
+    payload_b64 = base64.b64encode(json.dumps(payload_data).encode('utf-8'))
+    h = hmac.new(key.encode('utf-8'), header_b64 + b'.' + payload_b64, hashlib.sha256)
+    signature_b64 = base64.b64encode(h.digest())
+    token = header_b64 + b'.' + payload_b64 + b'.' + signature_b64
+    return token
