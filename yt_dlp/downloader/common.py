@@ -264,8 +264,7 @@ class FileDownloader(object):
             self._multiline.print_at_line(fullmsg, progress_line)
         else:
             if compat_os_name == 'nt' or not sys.stderr.isatty():
-                prev_len = getattr(self, '_report_progress_prev_line_length',
-                                   0)
+                prev_len = getattr(self, '_report_progress_prev_line_length', 0)
                 if prev_len > len(fullmsg):
                     fullmsg += ' ' * (prev_len - len(fullmsg))
                 self._report_progress_prev_line_length = len(fullmsg)
@@ -288,7 +287,7 @@ class FileDownloader(object):
                     s['_elapsed_str'] = self.format_seconds(s['elapsed'])
                     msg_template += ' in %(_elapsed_str)s'
                 self._report_progress_status(
-                    msg_template % s, progress_line=s.get('progress_idx'))
+                    msg_template % s, is_last_line=True, progress_line=s.get('progress_idx'))
             return
 
         if self.params.get('noprogress'):
