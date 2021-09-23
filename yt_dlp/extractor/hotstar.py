@@ -254,6 +254,9 @@ class HotStarIE(HotStarBaseIE):
             'season_id': video_data.get('seasonId'),
             'episode': title,
             'episode_number': int_or_none(video_data.get('episodeNo')),
+            'http_headers': {
+                'Referer': 'https://www.hotstar.com/in',
+            }
         }
 
 

@@ -167,6 +167,7 @@ class HlsFD(FragmentFD):
                         'byte_range': byte_range,
                         'media_sequence': media_sequence,
                     })
+                    media_sequence += 1
 
                 elif line.startswith('#EXT-X-MAP'):
                     if format_index and discontinuity_count != format_index:
@@ -191,6 +192,7 @@ class HlsFD(FragmentFD):
                         'byte_range': byte_range,
                         'media_sequence': media_sequence
                     })
+                    media_sequence += 1
 
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')

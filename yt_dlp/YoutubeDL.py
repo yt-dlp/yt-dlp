@@ -2594,7 +2594,9 @@ class YoutubeDL(object):
                             return
                     else:
                         try:
-                            self.dl(sub_filename, sub_info.copy(), subtitle=True)
+                            sub_copy = sub_info.copy()
+                            sub_copy.setdefault('http_headers', info_dict.get('http_headers'))
+                            self.dl(sub_filename, sub_copy, subtitle=True)
                             sub_info['filepath'] = sub_filename
                             files_to_move[sub_filename] = sub_filename_final
                         except (ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
@@ -2798,6 +2800,7 @@ class YoutubeDL(object):
                                     'f%s' % f['format_id'], new_info['ext'])
                                 if not self._ensure_dir_exists(fname):
                                     return
+                                f['filepath'] = fname
                                 downloaded.append(fname)
                             partial_success, real_download = self.dl(fname, new_info)
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download

@@ -730,9 +730,13 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         filename = info['filepath']
         temp_filename = prepend_extension(filename, 'temp')
         args = ['-c', 'copy']
+        audio_streams = 0
         for (i, fmt) in enumerate(info['requested_formats']):
             if fmt.get('acodec') != 'none':
-                args.extend(['-map', '%u:a:0' % (i)])
+                args.extend(['-map', f'{i}:a:0'])
+                if self.get_audio_codec(fmt['filepath']) == 'aac':
+                    args.extend([f'-bsf:a:{audio_streams}', 'aac_adtstoasc'])
+                audio_streams += 1
             if fmt.get('vcodec') != 'none':
                 args.extend(['-map', '%u:v:0' % (i)])
         self.to_screen('Merging formats into "%s"' % filename)
