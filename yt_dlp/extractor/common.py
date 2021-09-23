@@ -3503,9 +3503,11 @@ class InfoExtractor(object):
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def mark_watched(self, *args, **kwargs):
-        if (self.get_param('mark_watched', False)
-                and (self._get_login_info()[0] is not None
-                     or self.get_param('cookiefile') is not None)):
+        if not self.get_param('mark_watched', False):
+            return
+        if (self._get_login_info()[0] is not None
+                or self.get_param('cookiefile')
+                or self.get_param('cookiesfrombrowser')):
             self._mark_watched(*args, **kwargs)
 
     def _mark_watched(self, *args, **kwargs):
