@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-
+from ..utils import try_get
 
 class ThetaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?theta\.tv/(?P<id>[a-z0-9]+)'
@@ -11,7 +11,7 @@ class ThetaIE(InfoExtractor):
         'info_dict': {
             'id': 'DaVirus',
             'ext': 'mp4',
-            'title': r're:.+',
+            'title': 'I choose you - My Community is King -👀 - YO HABLO ESPANOL - CODE DAVIRUS',
             'thumbnail': r're:https://live-thumbnails-prod-theta-tv\.imgix\.net/thumbnail/.+\.jpg',
         }
     }, {
@@ -19,16 +19,16 @@ class ThetaIE(InfoExtractor):
         'info_dict': {
             'id': 'MST3K',
             'ext': 'mp4',
-            'title': r're:.+',
+            'title': 'Mystery Science Theatre 3000 24/7 Powered by the THETA Network.',
             'thumbnail': r're:https://user-prod-theta-tv\.imgix\.net/.+\.jpg',
         }
     }]
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        info = self._download_json('https://api.theta.tv/v1/channel?alias={}'.format(channel_id), channel_id)['body']
+        info = self._download_json(f'https://api.theta.tv/v1/channel?alias={channel_id}', channel_id)['body']
 
-        for data in info.get('live_stream').get('video_urls'):
+        for data in try_get(info, lambda x: x['live_stream']['video_urls']):
             if (data.get('type') != 'embed') and ((data.get('resolution') == 'master') or (data.get('resolution') == 'source')):
                 m3u8_playlist = data.get('url')
 
@@ -36,9 +36,9 @@ class ThetaIE(InfoExtractor):
         self._sort_formats(formats)
 
         return {
-            'id': info.get('user').get('username'),  # using this field instead of channel_id due to capitalization
-            'title': info.get('live_stream').get('title'),
+            'id': try_get(info, lambda x: x['user']['username']),  # using this field instead of channel_id due to capitalization
+            'title': try_get(info, lambda x: x['live_stream']['title']),
             'is_live': True,
             'formats': formats,
-            'thumbnail': info.get('live_stream').get('thumbnail_url'),
+            'thumbnail': try_get(info, lambda x: x['live_stream']['thumbnail_url']),
         }
