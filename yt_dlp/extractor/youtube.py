@@ -2450,13 +2450,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
         if sts is not None:
             context['signatureTimestamp'] = sts
-        playback_context = {
+        return {
             'playbackContext': {
                 'contentPlaybackContext': context
-            }
+            },
+            **cls._get_checkok_params()
         }
-        playback_context.update(cls._get_checkok_params())
-        return playback_context
 
     @staticmethod
     def _is_agegated(player_response):
