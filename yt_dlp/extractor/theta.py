@@ -37,10 +37,14 @@ class ThetaIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(m3u8_playlist, channel_id, 'mp4', m3u8_id='hls', live=True)
         self._sort_formats(formats)
+        
+        channel = try_get(info, lambda x: x['user']['username'])  # using this field instead of channel_id due to capitalization
 
         return {
-            'id': try_get(info, lambda x: x['user']['username']),  # using this field instead of channel_id due to capitalization
+            'id': channel,
             'title': try_get(info, lambda x: x['live_stream']['title']),
+            'channel': channel,
+            'view_count': try_get(info, lambda x: x['live_stream']['view_count']),
             'is_live': True,
             'formats': formats,
             'thumbnail': try_get(info, lambda x: x['live_stream']['thumbnail_url']),
