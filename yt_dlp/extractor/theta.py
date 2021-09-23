@@ -9,6 +9,7 @@ class ThetaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?theta\.tv/(?P<id>[a-z0-9]+)'
     _TESTS = [{
         'url': 'https://www.theta.tv/davirus',
+        'skip': 'The live may have ended',
         'info_dict': {
             'id': 'DaVirus',
             'ext': 'mp4',
@@ -17,6 +18,7 @@ class ThetaIE(InfoExtractor):
         }
     }, {
         'url': 'https://www.theta.tv/mst3k',
+        'note': 'This channel is live 24/7',
         'info_dict': {
             'id': 'MST3K',
             'ext': 'mp4',
@@ -29,9 +31,9 @@ class ThetaIE(InfoExtractor):
         channel_id = self._match_id(url)
         info = self._download_json(f'https://api.theta.tv/v1/channel?alias={channel_id}', channel_id)['body']
 
-        for data in try_get(info, lambda x: x['live_stream']['video_urls']):
-            if (data.get('type') != 'embed') and ((data.get('resolution') == 'master') or (data.get('resolution') == 'source')):
-                m3u8_playlist = data.get('url')
+        m3u8_playlist = next(
+            data['url'] for data in info['live_stream']['video_urls']
+            if data.get('type') != 'embed' and data.get('resolution') in ('master', 'source'))
 
         formats = self._extract_m3u8_formats(m3u8_playlist, channel_id, 'mp4', m3u8_id='hls', live=True)
         self._sort_formats(formats)
