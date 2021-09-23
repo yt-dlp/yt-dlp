@@ -2595,7 +2595,9 @@ class YoutubeDL(object):
                             return
                     else:
                         try:
-                            self.dl(sub_filename, sub_info.copy(), subtitle=True)
+                            sub_copy = sub_info.copy()
+                            sub_copy.setdefault('http_headers', info_dict.get('http_headers'))
+                            self.dl(sub_filename, sub_copy, subtitle=True)
                             sub_info['filepath'] = sub_filename
                             files_to_move[sub_filename] = sub_filename_final
                         except (ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
