@@ -2413,7 +2413,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         """Entry for comment extraction"""
         def _real_comment_extract(contents):
             yield from self._comment_entries(
-                traverse_obj(contents, (..., ('itemSectionRenderer',)), get_all=False), ytcfg, video_id)
+                traverse_obj(contents, (..., 'itemSectionRenderer'), get_all=False), ytcfg, video_id)
 
         comments = []
         estimated_total = 0
