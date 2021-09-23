@@ -64,15 +64,15 @@ class ATVAtIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        json_data = self._parse_json(self._search_regex(
-            r'<script id="state" type="text/plain">(.*)</script>',
-            webpage, 'json_data'),
+        json_data = self._parse_json(
+            self._search_regex(r'<script id="state" type="text/plain">(.*)</script>', webpage, 'json_data'),
             video_id=video_id)
 
         video_title = json_data['views']['default']['page']['title']
         contentResource = json_data['views']['default']['page']['contentResource']
         content_id = contentResource[0]['id']
-        content_ids = [{'id': id, 'subclip_start': content['start'], 'subclip_end': content['end']} for id, content in enumerate(contentResource)]
+        content_ids = [{'id': id, 'subclip_start': content['start'], 'subclip_end': content['end']}
+                       for id, content in enumerate(contentResource)]
 
         time_of_request = datetime.datetime.now()
         not_before = time_of_request - datetime.timedelta(minutes=5)
