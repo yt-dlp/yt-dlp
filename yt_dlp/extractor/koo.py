@@ -1,7 +1,5 @@
 # coding: utf-8
 from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -88,7 +86,8 @@ class KooIE(InfoExtractor):
     def _real_extract(self, url):
         id = self._match_id(url)
         data_json = self._download_json(f'https://www.kooapp.com/apiV1/ku/{id}?limit=20&offset=0&showSimilarKoos=true', id)['parentContent']
-        item_json = next(content['items'][0] for content in data_json if try_get(content, lambda x: x['items'][0]['id']) == id)
+        item_json = next(content['items'][0] for content in data_json
+                         if try_get(content, lambda x: x['items'][0]['id']) == id)
         media_json = item_json['mediaMap']
         formats = []
 
