@@ -2363,20 +2363,24 @@ class YoutubeDL(object):
         if self.params.get('allsubtitles', False):
             requested_langs = all_sub_langs
         elif self.params.get('subtitleslangs', False):
-            requested_langs = set()
-            for lang in self.params.get('subtitleslangs'):
-                if lang == 'all':
-                    requested_langs.update(all_sub_langs)
+            # A list is used so that the order of languages will be the same as
+            # given in subtitleslangs. See https://github.com/yt-dlp/yt-dlp/issues/1041
+            requested_langs = []
+            for lang_re in self.params.get('subtitleslangs'):
+                if lang_re == 'all':
+                    requested_langs.extend(all_sub_langs)
                     continue
-                discard = lang[0] == '-'
+                discard = lang_re[0] == '-'
                 if discard:
-                    lang = lang[1:]
-                current_langs = filter(re.compile(lang + '$').match, all_sub_langs)
+                    lang_re = lang_re[1:]
+                current_langs = filter(re.compile(lang_re + '$').match, all_sub_langs)
                 if discard:
                     for lang in current_langs:
-                        requested_langs.discard(lang)
+                        while lang in requested_langs:
+                            requested_langs.remove(lang)
                 else:
-                    requested_langs.update(current_langs)
+                    requested_langs.extend(current_langs)
+            requested_langs = orderedSet(requested_langs)
         elif 'en' in available_subs:
             requested_langs = ['en']
         else:
