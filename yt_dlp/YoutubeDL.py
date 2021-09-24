@@ -1308,6 +1308,7 @@ class YoutubeDL(object):
                 self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
                 if self.params.get('force_write_download_archive', False):
                     self.record_download_archive(info_copy)
+                ie_result, _ = self.pre_process(ie_result)
                 return ie_result
 
         if result_type == 'video':
