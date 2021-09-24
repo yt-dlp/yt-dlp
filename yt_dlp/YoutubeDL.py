@@ -27,7 +27,6 @@ import traceback
 import random
 
 from string import ascii_letters
-from zipimport import zipimporter
 
 from .compat import (
     compat_basestring,
@@ -144,6 +143,7 @@ from .postprocessor import (
     FFmpegPostProcessor,
     MoveFilesAfterDownloadPP,
 )
+from .update import detect_variant
 from .version import __version__
 
 if compat_os_name == 'nt':
@@ -227,9 +227,9 @@ class YoutubeDL(object):
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
     windowsfilenames:  Force the filenames to be windows compatible
-    ignoreerrors:      Do not stop on download errors
-                       (Default True when running yt-dlp,
-                       but False when directly accessing YoutubeDL class)
+    ignoreerrors:      Do not stop on download/postprocessing errors.
+                       Can be 'only_download' to ignore only download errors.
+                       Default is 'only_download' for CLI, but False for API
     skip_playlist_after_errors: Number of allowed failures until the rest of
                        the playlist is skipped
     force_generic_extractor: Force downloader to use the generic extractor
@@ -777,7 +777,7 @@ class YoutubeDL(object):
                     tb = ''.join(tb_data)
             if tb:
                 self.to_stderr(tb)
-        if not self.params.get('ignoreerrors', False):
+        if not self.params.get('ignoreerrors'):
             if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
                 exc_info = sys.exc_info()[1].exc_info
             else:
@@ -1242,7 +1242,7 @@ class YoutubeDL(object):
             except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached, LazyList.IndexError):
                 raise
             except Exception as e:
-                if self.params.get('ignoreerrors', False):
+                if self.params.get('ignoreerrors'):
                     self.report_error(error_to_compat_str(e), tb=encode_compat_str(traceback.format_exc()))
                 else:
                     raise
@@ -2364,20 +2364,24 @@ class YoutubeDL(object):
         if self.params.get('allsubtitles', False):
             requested_langs = all_sub_langs
         elif self.params.get('subtitleslangs', False):
-            requested_langs = set()
-            for lang in self.params.get('subtitleslangs'):
-                if lang == 'all':
-                    requested_langs.update(all_sub_langs)
+            # A list is used so that the order of languages will be the same as
+            # given in subtitleslangs. See https://github.com/yt-dlp/yt-dlp/issues/1041
+            requested_langs = []
+            for lang_re in self.params.get('subtitleslangs'):
+                if lang_re == 'all':
+                    requested_langs.extend(all_sub_langs)
                     continue
-                discard = lang[0] == '-'
+                discard = lang_re[0] == '-'
                 if discard:
-                    lang = lang[1:]
-                current_langs = filter(re.compile(lang + '$').match, all_sub_langs)
+                    lang_re = lang_re[1:]
+                current_langs = filter(re.compile(lang_re + '$').match, all_sub_langs)
                 if discard:
                     for lang in current_langs:
-                        requested_langs.discard(lang)
+                        while lang in requested_langs:
+                            requested_langs.remove(lang)
                 else:
-                    requested_langs.update(current_langs)
+                    requested_langs.extend(current_langs)
+            requested_langs = orderedSet(requested_langs)
         elif 'en' in available_subs:
             requested_langs = ['en']
         else:
@@ -2998,10 +3002,17 @@ class YoutubeDL(object):
         files_to_delete = []
         if '__files_to_move' not in infodict:
             infodict['__files_to_move'] = {}
-        files_to_delete, infodict = pp.run(infodict)
+        try:
+            files_to_delete, infodict = pp.run(infodict)
+        except PostProcessingError as e:
+            # Must be True and not 'only_download'
+            if self.params.get('ignoreerrors') is True:
+                self.report_error(e)
+                return infodict
+            raise
+
         if not files_to_delete:
             return infodict
-
         if self.params.get('keepvideo', False):
             for f in files_to_delete:
                 infodict['__files_to_move'].setdefault(f, '')
@@ -3268,12 +3279,8 @@ class YoutubeDL(object):
                 self.get_encoding()))
         write_string(encoding_str, encoding=None)
 
-        source = (
-            '(exe)' if hasattr(sys, 'frozen')
-            else '(zip)' if isinstance(globals().get('__loader__'), zipimporter)
-            else '(source)' if os.path.basename(sys.argv[0]) == '__main__.py'
-            else '')
-        self._write_string('[debug] yt-dlp version %s %s\n' % (__version__, source))
+        source = detect_variant()
+        self._write_string('[debug] yt-dlp version %s%s\n' % (__version__, '' if source == 'unknown' else f' ({source})'))
         if _LAZY_LOADER:
             self._write_string('[debug] Lazy loading extractors enabled\n')
         if _PLUGIN_CLASSES:

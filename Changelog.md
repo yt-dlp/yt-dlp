@@ -7,14 +7,9 @@
 * Update Changelog.md and CONTRIBUTORS
 * Change "Merged with ytdl" version in Readme.md if needed
 * Add new/fixed extractors in "new features" section of Readme.md
-* Commit to master as `Release <version>`
+* Commit as `Release <version>`
 * Push to origin/release using `git push origin master:release`
     build task will now run
-* Update version.py using `devscripts\update-version.py`
-* Run `make issuetemplates`
-* Commit to master as `[version] update :ci skip all`
-* Push to origin/master
-* Update changelog in /releases
 
 -->
 

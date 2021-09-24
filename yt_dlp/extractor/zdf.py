@@ -14,6 +14,7 @@ from ..utils import (
     orderedSet,
     parse_codecs,
     qualities,
+    str_or_none,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -49,35 +50,35 @@ class ZDFBaseIE(InfoExtractor):
 
     def _extract_format(self, video_id, formats, format_urls, meta):
         format_url = url_or_none(meta.get('url'))
-        if not format_url:
-            return
-        if format_url in format_urls:
+        if not format_url or format_url in format_urls:
             return
         format_urls.add(format_url)
-        mime_type = meta.get('mimeType')
-        ext = determine_ext(format_url)
+
+        mime_type, ext = meta.get('mimeType'), determine_ext(format_url)
         if mime_type == 'application/x-mpegURL' or ext == 'm3u8':
-            formats.extend(self._extract_m3u8_formats(
+            new_formats = self._extract_m3u8_formats(
                 format_url, video_id, 'mp4', m3u8_id='hls',
-                entry_protocol='m3u8_native', fatal=False))
+                entry_protocol='m3u8_native', fatal=False)
         elif mime_type == 'application/f4m+xml' or ext == 'f4m':
-            formats.extend(self._extract_f4m_formats(
-                update_url_query(format_url, {'hdcore': '3.7.0'}), video_id, f4m_id='hds', fatal=False))
+            new_formats = self._extract_f4m_formats(
+                update_url_query(format_url, {'hdcore': '3.7.0'}), video_id, f4m_id='hds', fatal=False)
         else:
             f = parse_codecs(meta.get('mimeCodec'))
-            format_id = ['http']
-            for p in (meta.get('type'), meta.get('quality')):
-                if p and isinstance(p, compat_str):
-                    format_id.append(p)
+            if not f and meta.get('type'):
+                data = meta['type'].split('_')
+                if try_get(data, lambda x: x[2]) == ext:
+                    f = {'vcodec': data[0], 'acodec': data[1]}
             f.update({
                 'url': format_url,
-                'format_id': '-'.join(format_id),
-                'format_note': meta.get('quality'),
-                'language': meta.get('language'),
-                'quality': qualities(self._QUALITIES)(meta.get('quality')),
-                'preference': -10,
+                'format_id': '-'.join(filter(str_or_none, ('http', meta.get('type'), meta.get('quality')))),
             })
-            formats.append(f)
+            new_formats = [f]
+        formats.extend(merge_dicts(f, {
+            'format_note': ', '.join(filter(None, (meta.get('quality'), meta.get('class')))),
+            'language': meta.get('language'),
+            'language_preference': 10 if meta.get('class') == 'main' else -10 if meta.get('class') == 'ad' else -1,
+            'quality': qualities(self._QUALITIES)(meta.get('quality')),
+        }) for f in new_formats)
 
     def _extract_ptmd(self, ptmd_url, video_id, api_token, referrer):
         ptmd = self._call_api(
@@ -106,9 +107,10 @@ class ZDFBaseIE(InfoExtractor):
                                 'type': f.get('type'),
                                 'mimeType': f.get('mimeType'),
                                 'quality': quality.get('quality'),
+                                'class': track.get('class'),
                                 'language': track.get('language'),
                             })
-        self._sort_formats(formats)
+        self._sort_formats(formats, ('hasaud', 'res', 'quality', 'language_preference'))
 
         duration = float_or_none(try_get(
             ptmd, lambda x: x['attributes']['duration']['value']), scale=1000)

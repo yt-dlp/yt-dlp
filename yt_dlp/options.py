@@ -119,7 +119,7 @@ def parseOpts(overrideArguments=None):
     def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = getattr(parser.values, option.dest) if append else []
-        value = [process(value)] if delim is None else list(map(process, value.split(delim)))
+        value = list(filter(None, [process(value)] if delim is None else map(process, value.split(delim))))
         setattr(
             parser.values, option.dest,
             current + value if append is True else value + current)
@@ -206,9 +206,13 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='update_self',
         help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
     general.add_option(
-        '-i', '--ignore-errors', '--no-abort-on-error',
-        action='store_true', dest='ignoreerrors', default=None,
-        help='Continue on download errors, for example to skip unavailable videos in a playlist (default) (Alias: --no-abort-on-error)')
+        '-i', '--ignore-errors',
+        action='store_true', dest='ignoreerrors',
+        help='Ignore download and postprocessing errors. The download will be considered successfull even if the postprocessing fails')
+    general.add_option(
+        '--no-abort-on-error',
+        action='store_const', dest='ignoreerrors', const='only_download',
+        help='Continue with next video on download errors; e.g. to skip unavailable videos in a playlist (default)')
     general.add_option(
         '--abort-on-error', '--no-ignore-errors',
         action='store_false', dest='ignoreerrors',

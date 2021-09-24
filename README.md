@@ -243,9 +243,12 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     -U, --update                     Update this program to latest version. Make
                                      sure that you have sufficient permissions
                                      (run with sudo if needed)
-    -i, --ignore-errors              Continue on download errors, for example to
-                                     skip unavailable videos in a playlist
-                                     (default) (Alias: --no-abort-on-error)
+    -i, --ignore-errors              Ignore download and postprocessing errors.
+                                     The download will be considered successfull
+                                     even if the postprocessing fails
+    --no-abort-on-error              Continue with next video on download
+                                     errors; e.g. to skip unavailable videos in
+                                     a playlist (default)
     --abort-on-error                 Abort downloading of further videos if an
                                      error occurs (Alias: --no-ignore-errors)
     --dump-user-agent                Display the current user-agent and exit

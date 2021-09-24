@@ -52,6 +52,7 @@ class PostProcessor(object):
             return self._downloader.report_warning(text, *args, **kwargs)
 
     def report_error(self, text, *args, **kwargs):
+        # Exists only for compatibility. Do not use
         if self._downloader:
             return self._downloader.report_error(text, *args, **kwargs)
 
