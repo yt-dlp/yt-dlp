@@ -1428,6 +1428,7 @@ from .theplatform import (
 from .thescene import TheSceneIE
 from .thestar import TheStarIE
 from .thesun import TheSunIE
+from .theta import ThetaIE
 from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE
