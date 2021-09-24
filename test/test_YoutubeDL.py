@@ -1000,6 +1000,7 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '2-4'}, [2, 3, 4])
         test_selection({'playlist_items': '2,4'}, [2, 4])
         test_selection({'playlist_items': '10'}, [])
+        test_selection({'playlist_items': '0'}, [])
 
         # Tests for https://github.com/ytdl-org/youtube-dl/issues/10591
         test_selection({'playlist_items': '2-4,3-4,3'}, [2, 3, 4])

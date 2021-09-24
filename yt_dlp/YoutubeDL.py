@@ -1464,7 +1464,10 @@ class YoutubeDL(object):
                 )(self, i)
 
         entries = []
-        for i in playlistitems or itertools.count(playliststart):
+        items = playlistitems if playlistitems is not None else itertools.count(playliststart)
+        for i in items:
+            if i == 0:
+                continue
             if playlistitems is None and playlistend is not None and playlistend < i:
                 break
             entry = None
