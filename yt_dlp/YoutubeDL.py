@@ -226,9 +226,9 @@ class YoutubeDL(object):
     restrictfilenames: Do not allow "&" and spaces in file names
     trim_file_name:    Limit length of filename (extension excluded)
     windowsfilenames:  Force the filenames to be windows compatible
-    ignoreerrors:      Do not stop on download errors
-                       (Default True when running yt-dlp,
-                       but False when directly accessing YoutubeDL class)
+    ignoreerrors:      Do not stop on download/postprocessing errors.
+                       Can be 'only_download' to ignore only download errors.
+                       Default is 'only_download' for CLI, but False for API
     skip_playlist_after_errors: Number of allowed failures until the rest of
                        the playlist is skipped
     force_generic_extractor: Force downloader to use the generic extractor
@@ -776,7 +776,7 @@ class YoutubeDL(object):
                     tb = ''.join(tb_data)
             if tb:
                 self.to_stderr(tb)
-        if not self.params.get('ignoreerrors', False):
+        if not self.params.get('ignoreerrors'):
             if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
                 exc_info = sys.exc_info()[1].exc_info
             else:
@@ -1241,7 +1241,7 @@ class YoutubeDL(object):
             except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached, LazyList.IndexError):
                 raise
             except Exception as e:
-                if self.params.get('ignoreerrors', False):
+                if self.params.get('ignoreerrors'):
                     self.report_error(error_to_compat_str(e), tb=encode_compat_str(traceback.format_exc()))
                 else:
                     raise
@@ -2989,10 +2989,17 @@ class YoutubeDL(object):
         files_to_delete = []
         if '__files_to_move' not in infodict:
             infodict['__files_to_move'] = {}
-        files_to_delete, infodict = pp.run(infodict)
+        try:
+            files_to_delete, infodict = pp.run(infodict)
+        except PostProcessingError as e:
+            # Must be True and not 'only_download'
+            if self.params.get('ignoreerrors') is True:
+                self.report_error(e)
+                return infodict
+            raise
+
         if not files_to_delete:
             return infodict
-
         if self.params.get('keepvideo', False):
             for f in files_to_delete:
                 infodict['__files_to_move'].setdefault(f, '')

@@ -288,8 +288,7 @@ class FFmpegPostProcessor(PostProcessor):
         stdout, stderr = process_communicate_or_kill(p)
         if p.returncode not in variadic(expected_retcodes):
             stderr = stderr.decode('utf-8', 'replace').strip()
-            if self.get_param('verbose', False):
-                self.report_error(stderr)
+            self.write_debug(stderr)
             raise FFmpegPostProcessorError(stderr.split('\n')[-1])
         for out_path, _ in output_path_opts:
             if out_path:
