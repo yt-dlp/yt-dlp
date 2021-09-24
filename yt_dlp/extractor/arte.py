@@ -174,7 +174,7 @@ class ArteTVIE(ArteTVBaseIE):
         return {
             'id': player_info.get('VID') or video_id,
             'title': title,
-            'description': player_info.get('VDE'),
+            'description': player_info.get('VDE') or player_info.get('V7T'),
             'upload_date': unified_strdate(upload_date_str),
             'thumbnail': player_info.get('programImage') or player_info.get('VTU', {}).get('IUR'),
             'formats': formats,
