@@ -136,7 +136,7 @@ class NewgroundsIE(InfoExtractor):
             'duration', default=None))
 
         view_count = parse_count(self._html_search_regex(
-            r'(?s)<dt>\s*Views\s*</dt>\s*<dd>([\d\.,]+)</dd>', webpage,
+            r'(?s)<dt>\s*(?:Views|Listens)\s*</dt>\s*<dd>([\d\.,]+)</dd>', webpage,
             'view count', default=None))
 
         filesize = int_or_none(self._html_search_regex(
