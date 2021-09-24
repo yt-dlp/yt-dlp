@@ -6392,14 +6392,6 @@ def time_millis():
     return (now - epoch) // datetime.timedelta(milliseconds=1)
 
 
-def get_windows_version():
-    ''' Get Windows version. None if it's not running on Windows '''
-    if compat_os_name == 'nt':
-        return version_tuple(platform.win32_ver()[1])
-    else:
-        return None
-
-
 # create a JSON Web Signature (jws) with HS256 algorithm
 # the resulting format is in JWS Compact Serialization
 # implemented following JWT https://www.rfc-editor.org/rfc/rfc7519.html
