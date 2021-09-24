@@ -5,6 +5,7 @@ from ..compat import compat_os_name
 from ..utils import (
     hyphenate_date,
     write_xattr,
+    PostProcessingError,
     XAttrMetadataError,
     XAttrUnavailableError,
 )
