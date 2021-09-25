@@ -64,7 +64,10 @@ class N1InfoIIE(InfoExtractor):
             'id': 'ljsottomazilirija3060921-n1info-si-worldwide',
             'ext': 'mp4',
             'title': 'ljsottomazilirija3060921-n1info-si-worldwide'
-        }
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
