@@ -29,7 +29,7 @@ class N1InfoBaseIE(InfoExtractor):
 
 
 class N1InfoIIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)/[^/]+/(?:[^/]+/)?(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://rs.n1info.com/sport-klub/tenis/kako-je-djokovic-propustio-istorijsku-priliku-video/',
         'md5': '01ddb6646d0fd9c4c7d990aa77fe1c5a',
