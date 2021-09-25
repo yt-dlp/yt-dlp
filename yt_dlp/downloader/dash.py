@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from ..downloader import get_suitable_downloader
 from .fragment import FragmentFD
 
-from ..utils import urljoin
+from ..utils import urljoin, time_millis
 
 
 class DashSegmentsFD(FragmentFD):
@@ -19,6 +19,7 @@ class DashSegmentsFD(FragmentFD):
             # YoutubeDlFromStartDashFD needs to avoid this
             self.report_error('Live DASH videos are not supported')
 
+        real_start = time_millis() / 1000
         real_downloader = get_suitable_downloader(
             info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
@@ -36,8 +37,9 @@ class DashSegmentsFD(FragmentFD):
                 self._prepare_external_frag_download(ctx)
             else:
                 self._prepare_and_start_frag_download(ctx, fmt)
+            ctx['start'] = real_start
 
-            fragments_to_download = self._get_fragments(fmt, ctx)
+            fragments_to_download = self._get_fragments(fmt, info_dict, ctx)
 
             if real_downloader:
                 self.to_screen(
@@ -54,7 +56,7 @@ class DashSegmentsFD(FragmentFD):
     def _calculate_fragment_count(self, info_dict):
         return False, (1 if self.params.get('test', False) else len(info_dict['fragments']))
 
-    def _get_fragments(self, info_dict, ctx):
+    def _get_fragments(self, info_dict, root_info_dict, ctx):
         fragment_base_url = info_dict.get('fragment_base_url')
         fragments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']

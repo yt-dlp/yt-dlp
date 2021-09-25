@@ -7,6 +7,7 @@ from .dash import DashSegmentsFD
 from ..extractor.youtube import YoutubeIE
 
 from ..utils import (
+    traverse_obj,
     urljoin,
     time_millis,
 )
@@ -38,6 +39,9 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
             assert fragment_base_url
 
             last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1)) + 1
+            if begin_index < 0 and known_idx <= 0:
+                # skip from the start when it's negative value
+                known_idx = last_seq + begin_index
             for idx in range(known_idx, last_seq):
                 yield {
                     'frag_index': idx - 1,
@@ -59,7 +63,7 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
     def _calculate_fragment_count(self, info_dict):
         return True, None
 
-    def _get_fragments(self, info_dict, ctx):
+    def _get_fragments(self, info_dict, root_info_dict, ctx):
         manifest_url = info_dict.get('manifest_url')
         if not manifest_url:
             self.report_error('URL for MPD manifest is not known; there is a problem in YoutubeIE code')
@@ -67,7 +71,14 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
         stream_number = info_dict.get('manifest_stream_number', 0)
         yie: YoutubeIE = self.ydl.get_info_extractor(YoutubeIE.ie_key())
 
-        return self._manifest_fragments(yie, manifest_url, stream_number)
+        download_start_time = ctx.get('start') or (time_millis() / 1000)
+        live_start_time = traverse_obj(root_info_dict, ('__original_infodict', 'release_timestamp'))
+        begin_index = 0
+        if live_start_time is not None and download_start_time - live_start_time > 432000:
+            self.report_warning('Starting downloading from recent 120 hours of live, because YouTube does not have the data. Please file an issue if you think it is wrong.', only_once=True)
+            begin_index = -86400  # 432000 / 5, where 5 is the duration of each segments
+
+        return self._manifest_fragments(yie, manifest_url, stream_number, begin_index=begin_index)
 
     @staticmethod
     def _accept_live():
