@@ -67,18 +67,16 @@ class N1InfoIIE(InfoExtractor):
         entries = []
         for video in videos:
             video_data = extract_attributes(video)
-            entries.append(
-                self.url_result(
-                    video_data.get('data-url'),
-                    ie=N1InfoBaseIE.ie_key(), video_id=video_data.get('id'), video_title=title))
+            entries.append(self.url_result(
+                video_data.get('data-url'), ie=N1InfoBaseIE.ie_key(),
+                video_id=video_data.get('id'), video_title=title))
 
         youtube_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for youtube_video in youtube_videos:
             video_data = extract_attributes(youtube_video)
             url = video_data.get('src')
             if url.startswith('https://www.youtube.com'):
-                entries.append(
-                    self.url_result(url, ie=YoutubeIE.ie_key()))
+                entries.append(self.url_result(url, ie=YoutubeIE.ie_key()))
 
         return {
             '_type': 'playlist',
