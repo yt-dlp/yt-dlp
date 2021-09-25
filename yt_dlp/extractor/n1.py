@@ -39,6 +39,7 @@ class N1InfoAssetIE(InfoExtractor):
 
 
 class N1InfoIIE(InfoExtractor):
+    IE_NAME = 'N1Info:article'
     _VALID_URL = r'https?://(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
     _TESTS = [{
         # Youtube embedded
