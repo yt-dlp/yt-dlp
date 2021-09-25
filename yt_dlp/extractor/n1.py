@@ -70,7 +70,7 @@ class N1InfoIIE(InfoExtractor):
             entries.append(self.url_result(
                 video_data.get('data-url'), ie=N1InfoAssetIE.ie_key(),
                 video_id=video_data.get('id'), video_title=title))
-            
+
         youtube_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for youtube_video in youtube_videos:
             video_data = extract_attributes(youtube_video)
