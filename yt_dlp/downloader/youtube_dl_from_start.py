@@ -20,8 +20,8 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
     FD_NAME = 'ytlivestartdash'
 
     @staticmethod
-    def _manifest_fragments(ie: YoutubeIE, mpd_url, stream_number, fetch_span=5000):
-        known_idx = 0
+    def _manifest_fragments(ie: YoutubeIE, mpd_url, stream_number, begin_index=0, fetch_span=5000):
+        known_idx = begin_index
         no_fragment_count = 0
         prev_dl = time_millis()
         while True:
