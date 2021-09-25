@@ -8,6 +8,8 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    srt_subtitles_timecode,
+    try_get,
     urlencode_postdata,
     urljoin,
 )
@@ -86,6 +88,23 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         },
     }
 
+    def json2srt(self, transcript_lines, end_time=None):
+        srt_data = ''
+        line = 1
+        for line_dict, next_dict in zip(transcript_lines, transcript_lines[1:]):
+            srt_data += '%d\n%s --> %s\n%s\n' % (line, srt_subtitles_timecode(line_dict['transcriptStartAt'] / 1000),
+                                                 srt_subtitles_timecode(next_dict['transcriptStartAt'] / 1000),
+                                                 line_dict['caption'])
+            line += 1
+        last_start_time, last_caption = transcript_lines[-1]['transcriptStartAt'], transcript_lines[-1]['caption']
+        if not end_time:
+            end_time = (last_start_time + 1000) / 1000
+        srt_data += '%d\n%s --> %s\n%s\n' % (
+            line, srt_subtitles_timecode(last_start_time / 1000),
+            srt_subtitles_timecode(end_time),
+            last_caption)
+        return srt_data
+
     def _real_extract(self, url):
         course_slug, video_slug = self._match_valid_url(url).groups()
 
@@ -101,6 +120,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
                 formats.append({
                     'format_id': 'progressive-%dp' % height,
                     'url': progressive_url,
+                    'ext': 'mp4',
                     'height': height,
                     'width': width,
                     'source_preference': 1,
@@ -128,6 +148,14 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         # However, unless someone can confirm this, the old
         # behaviour is being kept as-is
         self._sort_formats(formats, ('res', 'source_preference'))
+        subtitles = {}
+        duration = int_or_none(video_data.get('durationInSeconds'))
+        transcript_lines = try_get(video_data, lambda x: x['transcript']['lines'], expected_type=list)
+        if transcript_lines:
+            subtitles['en'] = [{
+                'ext': 'srt',
+                'data': self.json2srt(transcript_lines, duration)
+            }]
 
         return {
             'id': self._get_video_id(video_data, course_slug, video_slug),
@@ -135,7 +163,8 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
             'formats': formats,
             'thumbnail': video_data.get('defaultThumbnail'),
             'timestamp': float_or_none(video_data.get('publishedOn'), 1000),
-            'duration': int_or_none(video_data.get('durationInSeconds')),
+            'duration': duration,
+            'subtitles': subtitles,
         }
 
 
