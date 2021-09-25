@@ -21,7 +21,7 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
 
     @staticmethod
     def _manifest_fragments(ie: YoutubeIE, mpd_url, stream_number, begin_index=0, fetch_span=5000):
-        known_idx = begin_index
+        known_idx = begin_index + 1
         no_fragment_count = 0
         prev_dl = time_millis()
         while True:
@@ -37,13 +37,12 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
             fragment_base_url = fmt_info['fragment_base_url']
             assert fragment_base_url
 
-            last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
+            last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1)) + 1
             for idx in range(known_idx, last_seq):
-                seq = idx + 1
                 yield {
-                    'frag_index': seq,
-                    'index': seq,
-                    'url': urljoin(fragment_base_url, 'sq/%d' % seq),
+                    'frag_index': idx - 1,
+                    'index': idx - 1,
+                    'url': urljoin(fragment_base_url, 'sq/%d' % idx),
                 }
             if known_idx == last_seq:
                 no_fragment_count += 1
