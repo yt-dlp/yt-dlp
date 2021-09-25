@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+from itertools import zip_longest
 import re
 
 from .common import InfoExtractor
@@ -88,21 +89,14 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         },
     }
 
-    def json2srt(self, transcript_lines, end_time=None):
+    def json2srt(self, transcript_lines, duration=None):
         srt_data = ''
-        line = 1
-        for line_dict, next_dict in zip(transcript_lines, transcript_lines[1:]):
-            srt_data += '%d\n%s --> %s\n%s\n' % (line, srt_subtitles_timecode(line_dict['transcriptStartAt'] / 1000),
-                                                 srt_subtitles_timecode(next_dict['transcriptStartAt'] / 1000),
-                                                 line_dict['caption'])
-            line += 1
-        last_start_time, last_caption = transcript_lines[-1]['transcriptStartAt'], transcript_lines[-1]['caption']
-        if not end_time:
-            end_time = (last_start_time + 1000) / 1000
-        srt_data += '%d\n%s --> %s\n%s\n' % (
-            line, srt_subtitles_timecode(last_start_time / 1000),
-            srt_subtitles_timecode(end_time),
-            last_caption)
+        for line, (line_dict, next_dict) in enumerate(zip_longest(transcript_lines, transcript_lines[1:])):
+            start_time, caption = line_dict['transcriptStartAt'], line_dict['caption']
+            end_time = next_dict['transcriptStartAt'] / 1000 if next_dict else duration if duration else ((start_time + 1000) / 1000)
+            srt_data += '%d\n%s --> %s\n%s\n' % (line + 1, srt_subtitles_timecode(start_time / 1000),
+                                                 srt_subtitles_timecode(end_time),
+                                                 caption)
         return srt_data
 
     def _real_extract(self, url):
