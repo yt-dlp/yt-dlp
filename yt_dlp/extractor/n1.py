@@ -11,8 +11,17 @@ from ..utils import (
 )
 
 
-class N1InfoBaseIE(InfoExtractor):
+class N1InfoAssetIE(InfoExtractor):
     _VALID_URL = r'https?://best-vod\.umn\.cdn\.united\.cloud/stream\?asset=(?P<id>[^&]+)'
+    _TESTS = [{
+        'url': 'https://best-vod.umn.cdn.united.cloud/stream?asset=ljsottomazilirija3060921-n1info-si-worldwide&stream=hp1400&t=0&player=m3u8v&sp=n1info&u=n1info&p=n1Sh4redSecre7iNf0',
+        'md5': '28b08b32aeaff2b8562736ccd5a66fe7',
+        'info_dict': {
+            'id': 'ljsottomazilirija3060921-n1info-si-worldwide',
+            'ext': 'mp4',
+            'title': 'ljsottomazilirija3060921-n1info-si-worldwide',
+        }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -29,7 +38,8 @@ class N1InfoBaseIE(InfoExtractor):
 
 
 class N1InfoIIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
+    IE_NAME = 'N1info:article'
+    _VALID_URL = r'https?://(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)/[^/]+/(?:[^/]+/)?(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://rs.n1info.com/sport-klub/tenis/kako-je-djokovic-propustio-istorijsku-priliku-video/',
         'md5': '01ddb6646d0fd9c4c7d990aa77fe1c5a',
@@ -67,9 +77,11 @@ class N1InfoIIE(InfoExtractor):
         entries = []
         for video in videos:
             video_data = extract_attributes(video)
-            entries.append(self.url_result(
-                video_data.get('data-url'), ie=N1InfoBaseIE.ie_key(),
-                video_id=video_data.get('id'), video_title=title))
+            entries.append(
+                self.url_result(
+                    video_data.get('data-url'),
+                    ie=N1InfoAssetIE.ie_key(),
+                    video_id=video_data.get('id'), video_title=title))
 
         youtube_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for youtube_video in youtube_videos:
@@ -84,5 +96,5 @@ class N1InfoIIE(InfoExtractor):
             'title': title,
             'timestamp': timestamp,
             'entries': entries,
-            'ie_key': N1InfoBaseIE.ie_key(),
+            'ie_key': N1InfoAssetIE.ie_key(),
         }

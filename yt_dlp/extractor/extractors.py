@@ -833,7 +833,7 @@ from .myvi import (
 )
 from .myvideoge import MyVideoGeIE
 from .myvidster import MyVidsterIE
-from .n1 import N1InfoIIE, N1InfoBaseIE
+from .n1 import N1InfoIIE, N1InfoAssetIE
 from .nationalgeographic import (
     NationalGeographicVideoIE,
     NationalGeographicTVIE,
