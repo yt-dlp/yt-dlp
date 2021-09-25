@@ -13,6 +13,15 @@ from ..utils import (
 
 class N1InfoAssetIE(InfoExtractor):
     _VALID_URL = r'https?://best-vod\.umn\.cdn\.united\.cloud/stream\?asset=(?P<id>[^&]+)'
+    _TESTS = [{
+        'url': 'https://best-vod.umn.cdn.united.cloud/stream?asset=ljsottomazilirija3060921-n1info-si-worldwide&stream=hp1400&t=0&player=m3u8v&sp=n1info&u=n1info&p=n1Sh4redSecre7iNf0',
+        'md5': '28b08b32aeaff2b8562736ccd5a66fe7',
+        'info_dict': {
+            'id': 'ljsottomazilirija3060921-n1info-si-worldwide',
+            'ext': 'mp4',
+            'title': 'ljsottomazilirija3060921-n1info-si-worldwide',
+        }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
