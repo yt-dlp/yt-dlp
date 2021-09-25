@@ -1,74 +1,106 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import datetime
+
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
-    dict_get,
-    int_or_none,
-    unescapeHTML,
+    float_or_none,
+    jwt_encode_hs256,
+    try_get,
 )
 
 
 class ATVAtIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?atv\.at/(?:[^/]+/){2}(?P<id>[dv]\d+)'
+    _VALID_URL = r'https?://(?:www\.)?atv\.at/tv/(?:[^/]+/){2,3}(?P<id>.*)'
+
     _TESTS = [{
-        'url': 'https://www.atv.at/bauer-sucht-frau-die-zweite-chance/folge-1/d3390693/',
-        'md5': 'c471605591009dfb6e6c54f7e62e2807',
+        'url': 'https://www.atv.at/tv/bauer-sucht-frau/staffel-18/bauer-sucht-frau/bauer-sucht-frau-staffel-18-folge-3-die-hofwochen',
+        'md5': '3c3b4aaca9f63e32b35e04a9c2515903',
         'info_dict': {
-            'id': '3390684',
+            'id': 'v-ce9cgn1e70n5-1',
             'ext': 'mp4',
-            'title': 'Bauer sucht Frau - Die zweite Chance Folge 1',
+            'title': 'Bauer sucht Frau - Staffel 18 Folge 3 - Die Hofwochen',
         }
     }, {
-        'url': 'https://www.atv.at/bauer-sucht-frau-staffel-17/fuenfte-eventfolge/d3339537/',
+        'url': 'https://www.atv.at/tv/bauer-sucht-frau/staffel-18/episode-01/bauer-sucht-frau-staffel-18-vorstellungsfolge-1',
         'only_matching': True,
     }]
 
-    def _process_source_entry(self, source, part_id):
-        source_url = source.get('url')
-        if not source_url:
-            return
-        if determine_ext(source_url) == 'm3u8':
-            return self._extract_m3u8_formats(
-                source_url, part_id, 'mp4', 'm3u8_native',
-                m3u8_id='hls', fatal=False)
-        else:
-            return [{
-                'url': source_url,
-            }]
+    # extracted from bootstrap.js function (search for e.encryption_key and use your browser's debugger)
+    _ACCESS_ID = 'x_atv'
+    _ENCRYPTION_KEY = 'Hohnaekeishoogh2omaeghooquooshia'
 
-    def _process_entry(self, entry):
-        part_id = entry.get('id')
-        if not part_id:
-            return
+    def _extract_video_info(self, url, content, video):
+        clip_id = content.get('splitId', content['id'])
         formats = []
-        for source in entry.get('sources', []):
-            formats.extend(self._process_source_entry(source, part_id) or [])
-
+        clip_urls = video['urls']
+        for protocol, variant in clip_urls.items():
+            source_url = try_get(variant, lambda x: x['clear']['url'])
+            if not source_url:
+                continue
+            if protocol == 'dash':
+                formats.extend(self._extract_mpd_formats(
+                    source_url, clip_id, mpd_id=protocol, fatal=False))
+            elif protocol == 'hls':
+                formats.extend(self._extract_m3u8_formats(
+                    source_url, clip_id, 'mp4', 'm3u8_native',
+                    m3u8_id=protocol, fatal=False))
+            else:
+                formats.append({
+                    'url': source_url,
+                    'format_id': protocol,
+                })
         self._sort_formats(formats)
+
         return {
-            'id': part_id,
-            'title': entry.get('title'),
-            'duration': int_or_none(entry.get('duration')),
-            'formats': formats
+            'id': clip_id,
+            'title': content.get('title'),
+            'duration': float_or_none(content.get('duration')),
+            'series': content.get('tvShowTitle'),
+            'formats': formats,
         }
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        video_data = self._parse_json(unescapeHTML(self._search_regex(
-            r'var\splaylist\s*=\s*(?P<json>\[.*\]);',
-            webpage, 'player data', group='json')),
-            display_id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        json_data = self._parse_json(
+            self._search_regex(r'<script id="state" type="text/plain">(.*)</script>', webpage, 'json_data'),
+            video_id=video_id)
 
-        first_video = video_data[0]
-        video_id = first_video['id']
-        video_title = dict_get(first_video, ('tvShowTitle', 'title'))
+        video_title = json_data['views']['default']['page']['title']
+        contentResource = json_data['views']['default']['page']['contentResource']
+        content_id = contentResource[0]['id']
+        content_ids = [{'id': id, 'subclip_start': content['start'], 'subclip_end': content['end']}
+                       for id, content in enumerate(contentResource)]
+
+        time_of_request = datetime.datetime.now()
+        not_before = time_of_request - datetime.timedelta(minutes=5)
+        expire = time_of_request + datetime.timedelta(minutes=5)
+        payload = {
+            'content_ids': {
+                content_id: content_ids,
+            },
+            'secure_delivery': True,
+            'iat': int(time_of_request.timestamp()),
+            'nbf': int(not_before.timestamp()),
+            'exp': int(expire.timestamp()),
+        }
+        jwt_token = jwt_encode_hs256(payload, self._ENCRYPTION_KEY, headers={'kid': self._ACCESS_ID})
+        videos = self._download_json(
+            'https://vas-v4.p7s1video.net/4.0/getsources',
+            content_id, 'Downloading videos JSON', query={
+                'token': jwt_token.decode('utf-8')
+            })
+
+        video_id, videos_data = list(videos['data'].items())[0]
+        entries = [
+            self._extract_video_info(url, contentResource[video['id']], video)
+            for video in videos_data]
 
         return {
             '_type': 'multi_video',
             'id': video_id,
             'title': video_title,
-            'entries': (self._process_entry(entry) for entry in video_data),
+            'entries': entries,
         }

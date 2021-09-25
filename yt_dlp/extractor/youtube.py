@@ -508,13 +508,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             ytcfg, (lambda x: x['INNERTUBE_CLIENT_NAME'],
                     lambda x: x['INNERTUBE_CONTEXT']['client']['clientName']), compat_str, default_client)
 
-    @staticmethod
-    def _extract_session_index(*data):
-        for ytcfg in data:
-            session_index = int_or_none(try_get(ytcfg, lambda x: x['SESSION_INDEX']))
-            if session_index is not None:
-                return session_index
-
     def _extract_client_version(self, ytcfg, default_client='web'):
         return self._ytcfg_get_safe(
             ytcfg, (lambda x: x['INNERTUBE_CLIENT_VERSION'],
@@ -593,17 +586,27 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                  self._YT_INITIAL_DATA_RE), webpage, 'yt initial data'),
             video_id)
 
-    def _extract_identity_token(self, webpage, item_id):
-        if not webpage:
-            return None
-        ytcfg = self.extract_ytcfg(item_id, webpage)
+    @staticmethod
+    def _extract_session_index(*data):
+        """
+        Index of current account in account list.
+        See: https://github.com/yt-dlp/yt-dlp/pull/519
+        """
+        for ytcfg in data:
+            session_index = int_or_none(try_get(ytcfg, lambda x: x['SESSION_INDEX']))
+            if session_index is not None:
+                return session_index
+
+    # Deprecated?
+    def _extract_identity_token(self, ytcfg=None, webpage=None):
         if ytcfg:
             token = try_get(ytcfg, lambda x: x['ID_TOKEN'], compat_str)
             if token:
                 return token
-        return self._search_regex(
-            r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
-            'identity token', default=None)
+        if webpage:
+            return self._search_regex(
+                r'\bID_TOKEN["\']\s*:\s*["\'](.+?)["\']', webpage,
+                'identity token', default=None, fatal=False)
 
     @staticmethod
     def _extract_account_syncid(*args):
@@ -624,6 +627,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # and just "user_syncid||" for primary channel. We only want the channel_syncid
                 return sync_ids[0]
 
+    @property
+    def is_authenticated(self):
+        return bool(self._generate_sapisidhash_header())
+
     def extract_ytcfg(self, video_id, webpage):
         if not webpage:
             return {}
@@ -633,33 +640,30 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 default='{}'), video_id, fatal=False) or {}
 
     def generate_api_headers(
-            self, ytcfg=None, identity_token=None, account_syncid=None,
-            visitor_data=None, api_hostname=None, default_client='web', session_index=None):
+            self, *, ytcfg=None, account_syncid=None, session_index=None,
+            visitor_data=None, identity_token=None, api_hostname=None, default_client='web'):
+
         origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(default_client))
         headers = {
             'X-YouTube-Client-Name': compat_str(
                 self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=default_client)),
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, default_client),
-            'Origin': origin
-        }
-        if not visitor_data and ytcfg:
-            visitor_data = try_get(
+            'Origin': origin,
+            'X-Youtube-Identity-Token': identity_token or self._extract_identity_token(ytcfg),
+            'X-Goog-PageId': account_syncid or self._extract_account_syncid(ytcfg),
+            'X-Goog-Visitor-Id': visitor_data or try_get(
                 self._extract_context(ytcfg, default_client), lambda x: x['client']['visitorData'], compat_str)
-        if identity_token:
-            headers['X-Youtube-Identity-Token'] = identity_token
-        if account_syncid:
-            headers['X-Goog-PageId'] = account_syncid
-        if session_index is None and ytcfg:
+        }
+        if session_index is None:
             session_index = self._extract_session_index(ytcfg)
         if account_syncid or session_index is not None:
             headers['X-Goog-AuthUser'] = session_index if session_index is not None else 0
-        if visitor_data:
-            headers['X-Goog-Visitor-Id'] = visitor_data
+
         auth = self._generate_sapisidhash_header(origin)
         if auth is not None:
             headers['Authorization'] = auth
             headers['X-Origin'] = origin
-        return headers
+        return {h: v for h, v in headers.items() if v is not None}
 
     @staticmethod
     def _build_api_continuation_query(continuation, ctp=None):
@@ -2224,8 +2228,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'parent': parent or 'root'
         }
 
-    def _comment_entries(self, root_continuation_data, identity_token, account_syncid,
-                         ytcfg, video_id, parent=None, comment_counts=None):
+    def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, comment_counts=None):
 
         def extract_header(contents):
             _total_comments = 0
@@ -2283,8 +2286,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if comment_replies_renderer:
                     comment_counts[2] += 1
                     comment_entries_iter = self._comment_entries(
-                        comment_replies_renderer, identity_token, account_syncid, ytcfg,
-                        video_id, parent=comment.get('id'), comment_counts=comment_counts)
+                        comment_replies_renderer, ytcfg, video_id,
+                        parent=comment.get('id'), comment_counts=comment_counts)
 
                     for reply_comment in comment_entries_iter:
                         yield reply_comment
@@ -2309,7 +2312,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for page_num in itertools.count(0):
             if not continuation:
                 break
-            headers = self.generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
+            headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=visitor_data)
             comment_prog_str = '(%d/%d)' % (comment_counts[0], comment_counts[1])
             if page_num == 0:
                 if is_first_continuation:
@@ -2409,18 +2412,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
         def _real_comment_extract(contents):
-            if isinstance(contents, list):
-                for entry in contents:
-                    for key, renderer in entry.items():
-                        if key not in known_entry_comment_renderers:
-                            continue
-                        yield from self._comment_entries(
-                            renderer, video_id=video_id, ytcfg=ytcfg,
-                            identity_token=self._extract_identity_token(webpage, item_id=video_id),
-                            account_syncid=self._extract_account_syncid(ytcfg))
-                        break
+            yield from self._comment_entries(
+                traverse_obj(contents, (..., 'itemSectionRenderer'), get_all=False), ytcfg, video_id)
+
         comments = []
-        known_entry_comment_renderers = ('itemSectionRenderer',)
         estimated_total = 0
         max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0]) or float('inf')
         # Force English regardless of account setting to prevent parsing issues
@@ -2445,7 +2440,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
     @staticmethod
-    def _generate_player_context(sts=None):
+    def _get_checkok_params():
+        return {'contentCheckOk': True, 'racyCheckOk': True}
+
+    @classmethod
+    def _generate_player_context(cls, sts=None):
         context = {
             'html5Preference': 'HTML5_PREF_WANTS',
         }
@@ -2455,8 +2454,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playbackContext': {
                 'contentPlaybackContext': context
             },
-            'contentCheckOk': True,
-            'racyCheckOk': True
+            **cls._get_checkok_params()
         }
 
     @staticmethod
@@ -2475,14 +2473,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, identity_token, player_url, initial_pr):
+    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
         sts = self._extract_signature_timestamp(video_id, player_url, master_ytcfg, fatal=False) if player_url else None
         headers = self.generate_api_headers(
-            player_ytcfg, identity_token, syncid,
-            default_client=client, session_index=session_index)
+            ytcfg=player_ytcfg, account_syncid=syncid, session_index=session_index, default_client=client)
 
         yt_query = {'videoId': video_id}
         yt_query.update(self._generate_player_context(sts))
@@ -2524,7 +2521,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = self._download_webpage(url, video_id, fatal=False, note=f'Downloading {client} config')
         return self.extract_ytcfg(video_id, webpage) or {}
 
-    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, identity_token):
+    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg):
         initial_pr = None
         if webpage:
             initial_pr = self._extract_yt_initial_variable(
@@ -2569,7 +2566,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             try:
                 pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, identity_token, player_url if require_js_player else None, initial_pr)
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr)
             except ExtractorError as e:
                 if last_error:
                     self.report_warning(last_error)
@@ -2580,7 +2577,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if client.endswith('_agegate') and self._is_unplayable(pr) and self._generate_sapisidhash_header():
+            if client.endswith('_agegate') and self._is_unplayable(pr) and self.is_authenticated:
                 append_client(client.replace('_agegate', '_creator'))
             elif self._is_agegated(pr):
                 append_client(f'{client}_agegate')
@@ -2742,11 +2739,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
 
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
-        identity_token = self._extract_identity_token(webpage, video_id)
 
         player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, master_ytcfg, identity_token)
+            video_id, webpage, master_ytcfg)
 
         get_first = lambda obj, keys, **kwargs: traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
@@ -3059,13 +3055,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_DATA_RE, video_id,
                 'yt initial data')
         if not initial_data:
-            headers = self.generate_api_headers(
-                master_ytcfg, identity_token, self._extract_account_syncid(master_ytcfg),
-                session_index=self._extract_session_index(master_ytcfg))
-
+            query = {'videoId': video_id}
+            query.update(self._get_checkok_params())
             initial_data = self._extract_response(
                 item_id=video_id, ep='next', fatal=False,
-                ytcfg=master_ytcfg, headers=headers, query={'videoId': video_id},
+                ytcfg=master_ytcfg, query=query,
+                headers=self.generate_api_headers(ytcfg=master_ytcfg),
                 note='Downloading initial data API JSON')
 
         try:
@@ -3837,7 +3832,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 if entry:
                     yield entry
     '''
-    def _entries(self, tab, item_id, identity_token, account_syncid, ytcfg):
+    def _entries(self, tab, item_id, account_syncid, ytcfg):
 
         def extract_entries(parent_renderer):  # this needs to called again for continuation to work with feeds
             contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
@@ -3894,7 +3889,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         for page_num in itertools.count(1):
             if not continuation:
                 break
-            headers = self.generate_api_headers(ytcfg, identity_token, account_syncid, visitor_data)
+            headers = self.generate_api_headers(
+                ytcfg=ytcfg, account_syncid=account_syncid, visitor_data=visitor_data)
             response = self._extract_response(
                 item_id='%s page %s' % (item_id, page_num),
                 query=continuation, headers=headers, ytcfg=ytcfg,
@@ -4048,7 +4044,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         return self.playlist_result(
             self._entries(
                 selected_tab, playlist_id,
-                self._extract_identity_token(webpage, item_id),
                 self._extract_account_syncid(ytcfg, data), ytcfg),
             **metadata)
 
@@ -4056,8 +4051,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         first_id = last_id = None
         ytcfg = self.extract_ytcfg(playlist_id, webpage)
         headers = self.generate_api_headers(
-            ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
-            identity_token=self._extract_identity_token(webpage, item_id=playlist_id))
+            ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data))
         for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
             if not videos:
@@ -4173,10 +4167,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
         ytcfg = self.extract_ytcfg(item_id, webpage)
         headers = self.generate_api_headers(
-            ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
-            identity_token=self._extract_identity_token(webpage, item_id=item_id),
-            visitor_data=try_get(
-                self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
+            ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
+            visitor_data=try_get(self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
         query = {
             'params': params or 'wgYCCAA=',
             'browseId': browse_id or 'VL%s' % item_id
