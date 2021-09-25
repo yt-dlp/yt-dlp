@@ -88,9 +88,9 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ, BannedVideo, bilibili categories, Epicon, filmmodu, GabTV, HungamaAlbum, ManotoTV, Niconico search, Patreon User, peloton, ProjectVeritas, radiko, StarTV, tiktok user, Tokentube, voicy, TV2HuSeries
+* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ, BannedVideo, bilibili categories, Epicon, filmmodu, GabTV, HungamaAlbum, ManotoTV, Niconico search, Patreon User, peloton, ProjectVeritas, radiko, StarTV, tiktok user, Tokentube, voicy, TV2HuSeries, biliintl, 17live, NewgroundsUser, peertube channel/playlist, ZenYandex, CAM4, CGTN, damtomo, gotostage, Koo, Mediaite, Mediaklikk, MuseScore, nzherald, Olympics replay, radlive, SovietsCloset, Streamanity, Theta, Chingari
 
-* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds, SAML Verizon login, Hungama, afreecatv, aljazeera, ATV, bitchute, camtube, CDA, eroprofile, facebook, HearThisAtIE, iwara, kakao, Motherless, Nova, peertube, pornhub, reddit, tiktok, TV2, TV2Hu, tv5mondeplus, VH1, Viafree, XHamster
+* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds, SAML Verizon login, Hungama, afreecatv, aljazeera, ATV, bitchute, camtube, CDA, eroprofile, facebook, HearThisAtIE, iwara, kakao, Motherless, Nova, peertube, pornhub, reddit, tiktok, TV2, TV2Hu, tv5mondeplus, VH1, Viafree, XHamster, 9Now, AnimalPlanet, Arte, CBC, Chingari, comedycentral, DIYNetwork, niconico, dw, funimation, globo, HiDive, NDR, Nuvid, Oreilly, pbs, plutotv, reddit, redtube, soundcloud, SpankBang, VrtNU
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -533,10 +533,10 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --cookies-from-browser BROWSER[:PROFILE]
                                      Load cookies from a user profile of the
                                      given web browser. Currently supported
-                                     browsers are: brave|chrome|chromium|edge|fi
-                                     refox|opera|safari|vivaldi. You can specify
-                                     the user profile name or directory using
-                                     "BROWSER:PROFILE_NAME" or
+                                     browsers are: brave, chrome, chromium,
+                                     edge, firefox, opera, safari, vivaldi. You
+                                     can specify the user profile name or
+                                     directory using "BROWSER:PROFILE_NAME" or
                                      "BROWSER:PROFILE_PATH". If no profile is
                                      given, the most recently accessed one is
                                      used
