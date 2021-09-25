@@ -42,19 +42,21 @@ class N1InfoIIE(InfoExtractor):
             'uploader': 'Sport Klub',
             'uploader_id': 'sportklub',
         }
-    }, {'url': 'https://rs.n1info.com/vesti/djilas-los-plan-za-metro-nece-resiti-nijedan-saobracajni-problem/',
+    }, {
+        'url': 'https://rs.n1info.com/vesti/djilas-los-plan-za-metro-nece-resiti-nijedan-saobracajni-problem/',
         'info_dict': {
             'id': 'bgmetrosot2409zta20210924174316682-n1info-rs-worldwide',
             'ext': 'mp4',
             'title': 'bgmetrosot2409zta20210924174316682-n1info-rs-worldwide'
-        }},
-        {'url': 'https://n1info.si/novice/slovenija/zadnji-dnevi-na-kopaliscu-ilirija-ilirija-ni-umrla-ubili-so-jo/',
+        }
+    }, {
+        'url': 'https://n1info.si/novice/slovenija/zadnji-dnevi-na-kopaliscu-ilirija-ilirija-ni-umrla-ubili-so-jo/',
          'info_dict': {
              'id': 'ljsottomazilirija3060921-n1info-si-worldwide',
              'ext': 'mp4',
              'title': 'ljsottomazilirija3060921-n1info-si-worldwide'
          }
-         }]
+     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
