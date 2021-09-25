@@ -14,18 +14,18 @@ from ..utils import (
 class VeoIE(InfoExtractor):
     _VALID_URL = r'https?://app\.veo\.co/matches/(?P<id>[0-9A-Za-z-]+)'
 
-    _TEST = {
+    _TESTS = [{
         'url': 'https://app.veo.co/matches/20201027-last-period/',
         'info_dict': {
             'id': '20201027-last-period',
             'ext': 'mp4',
             'title': 'Akidemy u11s v Bradford Boys u11s (Game 3)',
-            'thumbnail': 'https://c.veocdn.com/8733223a-c6a0-4947-a309-f0f9fb44a1e4/standard/machine/8011e457/thumbnail.jpg',
+            'thumbnail': 're:https://c.veocdn.com/.+/thumbnail.jpg',
             'upload_date': '20201028',
             'timestamp': 1603847208,
             'duration': 1916,
         }
-    }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -50,7 +50,7 @@ class VeoIE(InfoExtractor):
             if mimetype == 'video/mp2t':
                 continue
             height = int_or_none(fmt.get('height'))
-            bitrate = int_or_none(fmt.get('bit_rate'))
+            bitrate = int_or_none(fmt.get('bit_rate'), scale=1000)
             render_type = fmt.get('render_type')
             formats.append({
                 'url': url_or_none(fmt.get('url')),
@@ -58,7 +58,7 @@ class VeoIE(InfoExtractor):
                 'ext': mimetype2ext(mimetype),
                 'width': int_or_none(fmt.get('width')),
                 'height': height,
-                'vbr': bitrate / 1000 if bitrate else None
+                'vbr': bitrate
             })
 
         self._sort_formats(formats)
