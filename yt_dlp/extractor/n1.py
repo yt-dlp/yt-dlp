@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import re
 
 from .youtube import YoutubeIE
+from .reddit import RedditRIE
 from .common import InfoExtractor
 from ..utils import (
     unified_timestamp,
@@ -33,13 +34,14 @@ class N1InfoAssetIE(InfoExtractor):
         return {
             'id': video_id,
             'title': video_id,
-            'formats': formats
+            'formats': formats,
         }
 
 
 class N1InfoIIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
     _TESTS = [{
+        # Youtube embedded
         'url': 'https://rs.n1info.com/sport-klub/tenis/kako-je-djokovic-propustio-istorijsku-priliku-video/',
         'md5': '01ddb6646d0fd9c4c7d990aa77fe1c5a',
         'info_dict': {
@@ -56,18 +58,40 @@ class N1InfoIIE(InfoExtractor):
         'info_dict': {
             'id': 'bgmetrosot2409zta20210924174316682-n1info-rs-worldwide',
             'ext': 'mp4',
-            'title': 'bgmetrosot2409zta20210924174316682-n1info-rs-worldwide'
+            'title': 'Đilas: Predlog izgradnje metroa besmislen; SNS odbacuje navode',
+            'upload_date': '20210924',
+            'timestamp': 1632481347,
         }
     }, {
         'url': 'https://n1info.si/novice/slovenija/zadnji-dnevi-na-kopaliscu-ilirija-ilirija-ni-umrla-ubili-so-jo/',
         'info_dict': {
             'id': 'ljsottomazilirija3060921-n1info-si-worldwide',
             'ext': 'mp4',
-            'title': 'ljsottomazilirija3060921-n1info-si-worldwide'
+            'title': 'Zadnji dnevi na kopališču Ilirija: “Ilirija ni umrla, ubili so jo”',
+            'timestamp': 1632567630,
+            'upload_date': '20210925',
         },
         'params': {
             'skip_download': True,
         },
+    }, {
+        # Reddit embedded
+        'url': 'https://ba.n1info.com/lifestyle/vucic-bolji-od-tita-ako-izgubi-ja-cu-da-crknem-jugoslavija-je-gotova/',
+        'info_dict': {
+            'id': '2wmfee9eycp71',
+            'ext': 'mp4',
+            'title': '"Ako Vučić izgubi izbore, ja ću da crknem, Jugoslavija je gotova"',
+            'upload_date': '20210924',
+            'timestamp': 1632448649.0,
+            'uploader': 'YouLotWhatDontStop',
+        },
+        'params': {
+            'format': 'bestvideo',
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://hr.n1info.com/vijesti/pravobraniteljica-o-ubojstvu-u-zagrebu-radi-se-o-doista-nezapamcenoj-situaciji/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -81,16 +105,23 @@ class N1InfoIIE(InfoExtractor):
         entries = []
         for video in videos:
             video_data = extract_attributes(video)
-            entries.append(self.url_result(
-                video_data.get('data-url'), ie=N1InfoAssetIE.ie_key(),
-                video_id=video_data.get('id'), video_title=title))
+            entries.append({
+                '_type': 'url_transparent',
+                'url': video_data.get('data-url'),
+                'id': video_data.get('id'),
+                'title': title,
+                'timestamp': timestamp,
+                'ie_key': N1InfoAssetIE.ie_key()})
 
-        youtube_videos = re.findall(r'(<iframe[^>]+>)', webpage)
-        for youtube_video in youtube_videos:
-            video_data = extract_attributes(youtube_video)
+        embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
+        for embedded_video in embedded_videos:
+            video_data = extract_attributes(embedded_video)
             url = video_data.get('src')
             if url.startswith('https://www.youtube.com'):
                 entries.append(self.url_result(url, ie=YoutubeIE.ie_key()))
+            elif url.startswith('https://www.redditmedia.com'):
+                url = 'https://reddit.com' + url[27:]
+                entries.append(self.url_result(url, ie=RedditRIE.ie_key()))
 
         return {
             '_type': 'playlist',
