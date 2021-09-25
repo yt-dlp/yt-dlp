@@ -408,6 +408,16 @@ from .eroprofile import (
     EroProfileIE,
     EroProfileAlbumIE,
 )
+from .err import (
+    ERRNewsIE,
+    ERRRadioIE,
+    ERRTVIE,
+    ERRJupiterIE,
+)
+from .errarhiiv import (
+    ERRArhiivIE,
+    ERRArhiivPlaylistIE,
+)
 from .escapist import EscapistIE
 from .espn import (
     ESPNIE,
