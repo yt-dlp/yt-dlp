@@ -4474,12 +4474,12 @@ OUTTMPL_TYPES = {
 STR_FORMAT_RE_TMPL = r'''(?x)
     (?<!%)(?P<prefix>(?:%%)*)
     %
-    (?P<has_key>\((?P<key>{0})\))?  # mapping key
+    (?P<has_key>\((?P<key>{0})\))?
     (?P<format>
-        (?:[#0\-+ ]+)?  # conversion flags (optional)
-        (?:\d+)?  # minimum field width (optional)
-        (?:\.\d+)?  # precision (optional)
-        [hlL]?  # length modifier (optional)
+        (?P<conversion>[#0\-+ ]+)?
+        (?P<min_width>\d+)?
+        (?P<precision>\.\d+)?
+        (?P<len_mod>[hlL])?  # unused in python
         {1}  # conversion type
     )
 '''
