@@ -15,6 +15,7 @@ from ..utils import (
     dfxp2srt,
     encodeArgument,
     encodeFilename,
+    float_or_none,
     get_exe_version,
     is_outdated_version,
     ISO639Utils,
@@ -233,6 +234,23 @@ class FFmpegPostProcessor(PostProcessor):
             None)
         return num, len(streams)
 
+    def _get_real_video_duration(self, info, fatal=True):
+        try:
+            if '_real_duration' not in info:
+                info['_real_duration'] = float_or_none(
+                    traverse_obj(self.get_metadata_object(info['filepath']), ('format', 'duration')))
+            if not info['_real_duration']:
+                raise PostProcessingError('ffprobe returned empty duration')
+        except PostProcessingError as e:
+            if fatal:
+                raise PostProcessingError(f'Unable to determine video duration; {e}')
+        return info.setdefault('_real_duration', None)
+
+    def _duration_mismatch(self, d1, d2):
+        if not d1 or not d2:
+            return None
+        return abs(d1 - d2) > 1
+
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts, **kwargs):
         return self.real_run_ffmpeg(
             [(path, []) for path in input_paths],
@@ -270,8 +288,7 @@ class FFmpegPostProcessor(PostProcessor):
         stdout, stderr = process_communicate_or_kill(p)
         if p.returncode not in variadic(expected_retcodes):
             stderr = stderr.decode('utf-8', 'replace').strip()
-            if self.get_param('verbose', False):
-                self.report_error(stderr)
+            self.write_debug(stderr)
             raise FFmpegPostProcessorError(stderr.split('\n')[-1])
         for out_path, _ in output_path_opts:
             if out_path:
@@ -528,6 +545,10 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             return [], information
 
         filename = information['filepath']
+        if self._duration_mismatch(
+                self._get_real_video_duration(information, False), information['duration']):
+            self.to_screen(f'Skipping {self.pp_key()} since the real and expected durations mismatch')
+            return [], information
 
         ext = information['ext']
         sub_langs, sub_names, sub_filenames = [], [], []
@@ -708,9 +729,13 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         filename = info['filepath']
         temp_filename = prepend_extension(filename, 'temp')
         args = ['-c', 'copy']
+        audio_streams = 0
         for (i, fmt) in enumerate(info['requested_formats']):
             if fmt.get('acodec') != 'none':
-                args.extend(['-map', '%u:a:0' % (i)])
+                args.extend(['-map', f'{i}:a:0'])
+                if self.get_audio_codec(fmt['filepath']) == 'aac':
+                    args.extend([f'-bsf:a:{audio_streams}', 'aac_adtstoasc'])
+                audio_streams += 1
             if fmt.get('vcodec') != 'none':
                 args.extend(['-map', '%u:v:0' % (i)])
         self.to_screen('Merging formats into "%s"' % filename)

@@ -130,6 +130,33 @@ except AttributeError:
     asyncio.run = compat_asyncio_run
 
 
+# Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl
+# See https://github.com/yt-dlp/yt-dlp/issues/792
+# https://docs.python.org/3/library/os.path.html#os.path.expanduser
+if compat_os_name in ('nt', 'ce') and 'HOME' in os.environ:
+    _userhome = os.environ['HOME']
+
+    def compat_expanduser(path):
+        if not path.startswith('~'):
+            return path
+        i = path.replace('\\', '/', 1).find('/')  # ~user
+        if i < 0:
+            i = len(path)
+        userhome = os.path.join(os.path.dirname(_userhome), path[1:i]) if i > 1 else _userhome
+        return userhome + path[i:]
+else:
+    compat_expanduser = os.path.expanduser
+
+
+try:
+    from Cryptodome.Cipher import AES as compat_pycrypto_AES
+except ImportError:
+    try:
+        from Crypto.Cipher import AES as compat_pycrypto_AES
+    except ImportError:
+        compat_pycrypto_AES = None
+
+
 #  Deprecated
 
 compat_basestring = str
@@ -152,7 +179,6 @@ compat_cookies = http.cookies
 compat_cookies_SimpleCookie = compat_cookies.SimpleCookie
 compat_etree_Element = etree.Element
 compat_etree_register_namespace = etree.register_namespace
-compat_expanduser = os.path.expanduser
 compat_get_terminal_size = shutil.get_terminal_size
 compat_getenv = os.getenv
 compat_getpass = getpass.getpass
@@ -224,6 +250,7 @@ __all__ = [
     'compat_os_name',
     'compat_parse_qs',
     'compat_print',
+    'compat_pycrypto_AES',
     'compat_realpath',
     'compat_setenv',
     'compat_shlex_quote',

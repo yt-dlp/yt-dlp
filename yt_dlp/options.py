@@ -116,19 +116,19 @@ def parseOpts(overrideArguments=None):
 
         return ''.join(opts)
 
-    def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=','):
+    def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = getattr(parser.values, option.dest) if append else []
-        value = [value] if delim is None else value.split(delim)
+        value = list(filter(None, [process(value)] if delim is None else map(process, value.split(delim))))
         setattr(
             parser.values, option.dest,
             current + value if append is True else value + current)
 
     def _set_from_options_callback(
-            option, opt_str, value, parser,
-            delim=',', allowed_values=None, process=str.lower, aliases={}):
+            option, opt_str, value, parser, delim=',', allowed_values=None, aliases={},
+            process=lambda x: x.lower().strip()):
         current = getattr(parser.values, option.dest)
-        values = [process(value)] if delim is None else process(value).split(delim)[::-1]
+        values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:
             actual_val = val = values.pop()
             if val == 'all':
@@ -206,9 +206,13 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='update_self',
         help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
     general.add_option(
-        '-i', '--ignore-errors', '--no-abort-on-error',
-        action='store_true', dest='ignoreerrors', default=None,
-        help='Continue on download errors, for example to skip unavailable videos in a playlist (default) (Alias: --no-abort-on-error)')
+        '-i', '--ignore-errors',
+        action='store_true', dest='ignoreerrors',
+        help='Ignore download and postprocessing errors. The download will be considered successfull even if the postprocessing fails')
+    general.add_option(
+        '--no-abort-on-error',
+        action='store_const', dest='ignoreerrors', const='only_download',
+        help='Continue with next video on download errors; e.g. to skip unavailable videos in a playlist (default)')
     general.add_option(
         '--abort-on-error', '--no-ignore-errors',
         action='store_false', dest='ignoreerrors',
@@ -235,7 +239,7 @@ def parseOpts(overrideArguments=None):
         help='Use this prefix for unqualified URLs. For example "gvsearch2:" downloads two videos from google videos for the search term "large apple". Use the value "auto" to let yt-dlp guess ("auto_warning" to emit a warning when guessing). "error" just throws an error. The default value "fixup_error" repairs broken URLs, but emits an error if this is not possible instead of searching')
     general.add_option(
         '--ignore-config', '--no-config',
-        action='store_true',
+        action='store_true', dest='ignoreconfig',
         help=(
             'Disable loading any configuration files except the one provided by --config-location. '
             'When given inside a configuration file, no further configuration files are loaded. '
@@ -275,8 +279,7 @@ def parseOpts(overrideArguments=None):
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
                 'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
-            },
-            'aliases': {
+            }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
                 'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
             }
@@ -479,6 +482,10 @@ def parseOpts(overrideArguments=None):
         '-n', '--netrc',
         action='store_true', dest='usenetrc', default=False,
         help='Use .netrc authentication data')
+    authentication.add_option(
+        '--netrc-location',
+        dest='netrc_location', metavar='PATH',
+        help='Location of .netrc authentication data; either the path or its containing directory. Defaults to ~/.netrc')
     authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
@@ -1105,7 +1112,7 @@ def parseOpts(overrideArguments=None):
             'The comments are fetched even without this option if the extraction is known to be quick (Alias: --get-comments)'))
     filesystem.add_option(
         '--no-write-comments', '--no-get-comments',
-        action='store_true', dest='getcomments', default=False,
+        action='store_false', dest='getcomments',
         help='Do not retrieve video comments unless the extraction is known to be quick (Alias: --no-get-comments)')
     filesystem.add_option(
         '--load-info-json', '--load-info',
@@ -1128,7 +1135,7 @@ def parseOpts(overrideArguments=None):
             'You can specify the user profile name or directory using '
             '"BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH". '
             'If no profile is given, the most recently accessed one is used'.format(
-                '|'.join(sorted(SUPPORTED_BROWSERS)))))
+                ', '.join(sorted(SUPPORTED_BROWSERS)))))
     filesystem.add_option(
         '--no-cookies-from-browser',
         action='store_const', const=None, dest='cookiesfrombrowser',
@@ -1394,7 +1401,7 @@ def parseOpts(overrideArguments=None):
             'SponsorBlock categories to create chapters for, separated by commas. '
             'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
             'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories for description of the categories. '
-            'Eg: --sponsorblock-query all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
+            'Eg: --sponsorblock-mark all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
         '--sponsorblock-remove', metavar='CATS',
         dest='sponsorblock_remove', default=set(), action='callback', type='str',
@@ -1421,7 +1428,7 @@ def parseOpts(overrideArguments=None):
 
     sponsorblock.add_option(
         '--sponskrub',
-        action='store_true', dest='sponskrub', default=None,
+        action='store_true', dest='sponskrub', default=False,
         help=optparse.SUPPRESS_HELP)
     sponsorblock.add_option(
         '--no-sponskrub',
@@ -1533,57 +1540,47 @@ def parseOpts(overrideArguments=None):
             'command-line': compat_conf(sys.argv[1:]),
             'custom': [], 'home': [], 'portable': [], 'user': [], 'system': []}
         paths = {'command-line': False}
-        opts, args = parser.parse_args(configs['command-line'])
+
+        def read_options(name, path, user=False):
+            ''' loads config files and returns ignoreconfig '''
+            # Multiple package names can be given here
+            # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
+            # the configuration file of any of these three packages
+            for package in ('yt-dlp',):
+                if user:
+                    config, current_path = _readUserConf(package, default=None)
+                else:
+                    current_path = os.path.join(path, '%s.conf' % package)
+                    config = _readOptions(current_path, default=None)
+                if config is not None:
+                    configs[name], paths[name] = config, current_path
+                    return parser.parse_args(config)[0].ignoreconfig
+            return False
 
         def get_configs():
-            if '--config-location' in configs['command-line']:
+            opts, _ = parser.parse_args(configs['command-line'])
+            if opts.config_location is not None:
                 location = compat_expanduser(opts.config_location)
                 if os.path.isdir(location):
                     location = os.path.join(location, 'yt-dlp.conf')
                 if not os.path.exists(location):
                     parser.error('config-location %s does not exist.' % location)
-                configs['custom'] = _readOptions(location, default=None)
-                if configs['custom'] is None:
-                    configs['custom'] = []
-                else:
-                    paths['custom'] = location
-            if '--ignore-config' in configs['command-line']:
+                config = _readOptions(location, default=None)
+                if config:
+                    configs['custom'], paths['config'] = config, location
+
+            if opts.ignoreconfig:
                 return
-            if '--ignore-config' in configs['custom']:
+            if parser.parse_args(configs['custom'])[0].ignoreconfig:
                 return
-
-            def read_options(path, user=False):
-                # Multiple package names can be given here
-                # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
-                # the configuration file of any of these three packages
-                for package in ('yt-dlp',):
-                    if user:
-                        config, current_path = _readUserConf(package, default=None)
-                    else:
-                        current_path = os.path.join(path, '%s.conf' % package)
-                        config = _readOptions(current_path, default=None)
-                    if config is not None:
-                        return config, current_path
-                return [], None
-
-            configs['portable'], paths['portable'] = read_options(get_executable_path())
-            if '--ignore-config' in configs['portable']:
+            if read_options('portable', get_executable_path()):
                 return
-
-            def get_home_path():
-                opts = parser.parse_args(configs['portable'] + configs['custom'] + configs['command-line'])[0]
-                return expand_path(opts.paths.get('home', '')).strip()
-
-            configs['home'], paths['home'] = read_options(get_home_path())
-            if '--ignore-config' in configs['home']:
+            opts, _ = parser.parse_args(configs['portable'] + configs['custom'] + configs['command-line'])
+            if read_options('home', expand_path(opts.paths.get('home', '')).strip()):
                 return
-
-            configs['system'], paths['system'] = read_options('/etc')
-            if '--ignore-config' in configs['system']:
+            if read_options('system', '/etc'):
                 return
-
-            configs['user'], paths['user'] = read_options('', True)
-            if '--ignore-config' in configs['user']:
+            if read_options('user', None, user=True):
                 configs['system'], paths['system'] = [], None
 
         get_configs()
@@ -1592,10 +1589,9 @@ def parseOpts(overrideArguments=None):
         if opts.verbose:
             for label in ('System', 'User', 'Portable', 'Home', 'Custom', 'Command-line'):
                 key = label.lower()
-                if paths.get(key) is None:
-                    continue
-                if paths[key]:
-                    write_string('[debug] %s config file: %s\n' % (label, paths[key]))
-                write_string('[debug] %s config: %s\n' % (label, repr(_hide_login_info(configs[key]))))
+                if paths.get(key):
+                    write_string(f'[debug] {label} config file: {paths[key]}\n')
+                if paths.get(key) is not None:
+                    write_string(f'[debug] {label} config: {_hide_login_info(configs[key])!r}\n')
 
     return parser, opts, args

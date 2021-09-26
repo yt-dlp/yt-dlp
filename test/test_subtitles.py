@@ -19,6 +19,7 @@ from yt_dlp.extractor import (
     CeskaTelevizeIE,
     LyndaIE,
     NPOIE,
+    PBSIE,
     ComedyCentralIE,
     NRKTVIE,
     RaiPlayIE,
@@ -370,6 +371,43 @@ class TestDemocracynowSubtitles(BaseTestSubtitles):
         subtitles = self.getSubtitles()
         self.assertEqual(set(subtitles.keys()), set(['en']))
         self.assertEqual(md5(subtitles['en']), 'acaca989e24a9e45a6719c9b3d60815c')
+
+
+@is_download_test
+class TestPBSSubtitles(BaseTestSubtitles):
+    url = 'https://www.pbs.org/video/how-fantasy-reflects-our-world-picecq/'
+    IE = PBSIE
+
+    def test_allsubtitles(self):
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['allsubtitles'] = True
+        subtitles = self.getSubtitles()
+        self.assertEqual(set(subtitles.keys()), set(['en']))
+
+    def test_subtitles_dfxp_format(self):
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['subtitlesformat'] = 'dfxp'
+        subtitles = self.getSubtitles()
+        self.assertIn(md5(subtitles['en']), ['643b034254cdc3768ff1e750b6b5873b'])
+
+    def test_subtitles_vtt_format(self):
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['subtitlesformat'] = 'vtt'
+        subtitles = self.getSubtitles()
+        self.assertIn(
+            md5(subtitles['en']), ['937a05711555b165d4c55a9667017045', 'f49ea998d6824d94959c8152a368ff73'])
+
+    def test_subtitles_srt_format(self):
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['subtitlesformat'] = 'srt'
+        subtitles = self.getSubtitles()
+        self.assertIn(md5(subtitles['en']), ['2082c21b43759d9bf172931b2f2ca371'])
+
+    def test_subtitles_sami_format(self):
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['subtitlesformat'] = 'sami'
+        subtitles = self.getSubtitles()
+        self.assertIn(md5(subtitles['en']), ['4256b16ac7da6a6780fafd04294e85cd'])
 
 
 if __name__ == '__main__':

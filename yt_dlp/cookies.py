@@ -9,16 +9,14 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from hashlib import pbkdf2_hmac
 
-from yt_dlp.aes import aes_cbc_decrypt
-from yt_dlp.compat import (
+from .aes import aes_cbc_decrypt_bytes, aes_gcm_decrypt_and_verify_bytes
+from .compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
 )
-from yt_dlp.utils import (
+from .utils import (
     bug_reports_message,
-    bytes_to_intlist,
     expand_path,
-    intlist_to_bytes,
     process_communicate_or_kill,
     YoutubeDLCookieJar,
 )
@@ -31,12 +29,6 @@ except ImportError:
     # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
     SQLITE_AVAILABLE = False
 
-
-try:
-    from Crypto.Cipher import AES
-    CRYPTO_AVAILABLE = True
-except ImportError:
-    CRYPTO_AVAILABLE = False
 
 try:
     import keyring
@@ -123,7 +115,7 @@ def _extract_firefox_cookies(profile, logger):
     cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite')
     if cookie_database_path is None:
         raise FileNotFoundError('could not find firefox cookies database in {}'.format(search_root))
-    logger.debug('extracting from: "{}"'.format(cookie_database_path))
+    logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
     with tempfile.TemporaryDirectory(prefix='youtube_dl') as tmpdir:
         cursor = None
@@ -240,7 +232,7 @@ def _extract_chrome_cookies(browser_name, profile, logger):
     cookie_database_path = _find_most_recently_used_file(search_root, 'Cookies')
     if cookie_database_path is None:
         raise FileNotFoundError('could not find {} cookies database in "{}"'.format(browser_name, search_root))
-    logger.debug('extracting from: "{}"'.format(cookie_database_path))
+    logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
     decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], logger)
 
@@ -361,7 +353,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
 class MacChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_keyring_name, logger):
         self._logger = logger
-        password = _get_mac_keyring_password(browser_keyring_name)
+        password = _get_mac_keyring_password(browser_keyring_name, logger)
         self._v10_key = None if password is None else self.derive_key(password)
 
     @staticmethod
@@ -399,11 +391,6 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
         if version == b'v10':
             if self._v10_key is None:
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
-                return None
-            elif not CRYPTO_AVAILABLE:
-                self._logger.warning('cannot decrypt cookie as the `pycryptodome` module is not installed. '
-                                     'Please install by running `python3 -m pip install pycryptodome`',
-                                     only_once=True)
                 return None
 
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
@@ -559,7 +546,7 @@ def _parse_safari_cookies_record(data, jar, logger):
         p.skip_to(value_offset)
         value = p.read_cstring()
     except UnicodeDecodeError:
-        logger.warning('failed to parse cookie because UTF-8 decoding failed')
+        logger.warning('failed to parse Safari cookie because UTF-8 decoding failed', only_once=True)
         return record_size
 
     p.skip_to(record_size, 'space at the end of the record')
@@ -605,11 +592,13 @@ def _get_linux_keyring_password(browser_keyring_name):
     return password.encode('utf-8')
 
 
-def _get_mac_keyring_password(browser_keyring_name):
+def _get_mac_keyring_password(browser_keyring_name, logger):
     if KEYRING_AVAILABLE:
+        logger.debug('using keyring to obtain password')
         password = keyring.get_password('{} Safe Storage'.format(browser_keyring_name), browser_keyring_name)
         return password.encode('utf-8')
     else:
+        logger.debug('using find-generic-password to obtain password')
         proc = subprocess.Popen(['security', 'find-generic-password',
                                  '-w',  # write password to stdout
                                  '-a', browser_keyring_name,  # match 'account'
@@ -618,8 +607,11 @@ def _get_mac_keyring_password(browser_keyring_name):
                                 stderr=subprocess.DEVNULL)
         try:
             stdout, stderr = process_communicate_or_kill(proc)
+            if stdout[-1:] == b'\n':
+                stdout = stdout[:-1]
             return stdout
-        except BaseException:
+        except BaseException as e:
+            logger.warning(f'exception running find-generic-password: {type(e).__name__}({e})')
             return None
 
 
@@ -648,29 +640,26 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
 
 
 def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
-    plaintext = aes_cbc_decrypt(bytes_to_intlist(ciphertext),
-                                bytes_to_intlist(key),
-                                bytes_to_intlist(initialization_vector))
+    plaintext = aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector)
     padding_length = plaintext[-1]
     try:
-        return intlist_to_bytes(plaintext[:-padding_length]).decode('utf-8')
+        return plaintext[:-padding_length].decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?')
+        logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
 
 
 def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
-    cipher = AES.new(key, AES.MODE_GCM, nonce)
     try:
-        plaintext = cipher.decrypt_and_verify(ciphertext, authentication_tag)
+        plaintext = aes_gcm_decrypt_and_verify_bytes(ciphertext, key, authentication_tag, nonce)
     except ValueError:
-        logger.warning('failed to decrypt cookie because the MAC check failed. Possibly the key is wrong?')
+        logger.warning('failed to decrypt cookie (AES-GCM) because the MAC check failed. Possibly the key is wrong?', only_once=True)
         return None
 
     try:
         return plaintext.decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?')
+        logger.warning('failed to decrypt cookie (AES-GCM) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
 
 
@@ -698,7 +687,7 @@ def _decrypt_windows_dpapi(ciphertext, logger):
         ctypes.byref(blob_out)  # pDataOut
     )
     if not ret:
-        logger.warning('failed to decrypt with DPAPI')
+        logger.warning('failed to decrypt with DPAPI', only_once=True)
         return None
 
     result = ctypes.string_at(blob_out.pbData, blob_out.cbData)
@@ -748,6 +737,7 @@ def _is_path(value):
 
 
 def _parse_browser_specification(browser_name, profile=None):
+    browser_name = browser_name.lower()
     if browser_name not in SUPPORTED_BROWSERS:
         raise ValueError(f'unsupported browser: "{browser_name}"')
     if profile is not None and _is_path(profile):

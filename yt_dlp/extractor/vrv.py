@@ -218,7 +218,7 @@ class VRVIE(VRVBaseIE):
                 })
 
         thumbnails = []
-        for thumbnail in traverse_obj(video_data, ('images', 'thumbnail', ..., ...)):
+        for thumbnail in traverse_obj(video_data, ('images', 'thumbnail', ..., ...)) or []:
             thumbnail_url = thumbnail.get('source')
             if not thumbnail_url:
                 continue

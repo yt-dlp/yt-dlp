@@ -16,6 +16,11 @@ from ..utils import (
     shell_quote,
     timeconvert,
 )
+from ..minicurses import (
+    MultilinePrinter,
+    QuietMultilinePrinter,
+    BreaklineStatusPrinter
+)
 
 
 class FileDownloader(object):
@@ -68,6 +73,7 @@ class FileDownloader(object):
         self.ydl = ydl
         self._progress_hooks = []
         self.params = params
+        self._multiline = None
         self.add_progress_hook(self.report_progress)
 
     @staticmethod
@@ -236,20 +242,35 @@ class FileDownloader(object):
         """Report destination filename."""
         self.to_screen('[download] Destination: ' + filename)
 
-    def _report_progress_status(self, msg, is_last_line=False):
+    def _prepare_multiline_status(self, lines):
+        if self.params.get('quiet'):
+            self._multiline = QuietMultilinePrinter()
+        elif self.params.get('progress_with_newline', False):
+            self._multiline = BreaklineStatusPrinter(sys.stderr, lines)
+        elif self.params.get('noprogress', False):
+            self._multiline = None
+        else:
+            self._multiline = MultilinePrinter(sys.stderr, lines)
+
+    def _finish_multiline_status(self):
+        if self._multiline is not None:
+            self._multiline.end()
+
+    def _report_progress_status(self, msg, is_last_line=False, progress_line=None):
         fullmsg = '[download] ' + msg
         if self.params.get('progress_with_newline', False):
             self.to_screen(fullmsg)
+        elif progress_line is not None and self._multiline is not None:
+            self._multiline.print_at_line(fullmsg, progress_line)
         else:
-            if compat_os_name == 'nt':
-                prev_len = getattr(self, '_report_progress_prev_line_length',
-                                   0)
+            if compat_os_name == 'nt' or not sys.stderr.isatty():
+                prev_len = getattr(self, '_report_progress_prev_line_length', 0)
                 if prev_len > len(fullmsg):
                     fullmsg += ' ' * (prev_len - len(fullmsg))
                 self._report_progress_prev_line_length = len(fullmsg)
                 clear_line = '\r'
             else:
-                clear_line = ('\r\x1b[K' if sys.stderr.isatty() else '\r')
+                clear_line = '\r\x1b[K'
             self.to_screen(clear_line + fullmsg, skip_eol=not is_last_line)
         self.to_console_title('yt-dlp ' + msg)
 
@@ -266,7 +287,8 @@ class FileDownloader(object):
                     s['_elapsed_str'] = self.format_seconds(s['elapsed'])
                     msg_template += ' in %(_elapsed_str)s'
                 self._report_progress_status(
-                    msg_template % s, is_last_line=True)
+                    msg_template % s, is_last_line=True, progress_line=s.get('progress_idx'))
+            return
 
         if self.params.get('noprogress'):
             return
@@ -311,7 +333,7 @@ class FileDownloader(object):
             else:
                 msg_template = '%(_percent_str)s % at %(_speed_str)s ETA %(_eta_str)s'
 
-        self._report_progress_status(msg_template % s)
+        self._report_progress_status(msg_template % s, progress_line=s.get('progress_idx'))
 
     def report_resuming_byte(self, resume_len):
         """Report attempt to resume at given byte."""

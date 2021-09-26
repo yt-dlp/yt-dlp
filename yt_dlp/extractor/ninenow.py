@@ -8,6 +8,10 @@ from ..utils import (
     int_or_none,
     float_or_none,
     smuggle_url,
+    str_or_none,
+    try_get,
+    unified_strdate,
+    unified_timestamp,
 )
 
 
@@ -37,6 +41,24 @@ class NineNowIE(InfoExtractor):
         # DRM protected
         'url': 'https://www.9now.com.au/andrew-marrs-history-of-the-world/season-1/episode-1',
         'only_matching': True,
+    }, {
+        # episode of series
+        'url': 'https://www.9now.com.au/lego-masters/season-3/episode-3',
+        'info_dict': {
+            'id': '6249614030001',
+            'title': 'Episode 3',
+            'ext': 'mp4',
+            'season_number': 3,
+            'episode_number': 3,
+            'description': 'In the first elimination of the competition, teams will have 10 hours to build a world inside a snow globe.',
+            'uploader_id': '4460760524001',
+            'timestamp': 1619002200,
+            'upload_date': '20210421',
+        },
+        'expected_warnings': ['Ignoring subtitle tracks'],
+        'params':{
+            'skip_download': True,
+        }
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId=%s'
 
@@ -59,26 +81,31 @@ class NineNowIE(InfoExtractor):
             cache = page_data.get(kind, {}).get('%sCache' % kind, {})
             if not cache:
                 continue
-            common_data = (cache.get(current_key) or list(cache.values())[0])[kind]
+            common_data = {
+                'episode': (cache.get(current_key) or list(cache.values())[0])[kind],
+                'season': (cache.get(current_key) or list(cache.values())[0]).get('season', None)
+            }
             break
         else:
             raise ExtractorError('Unable to find video data')
 
-        video_data = common_data['video']
+        if not self.get_param('allow_unplayable_formats') and try_get(common_data, lambda x: x['episode']['video']['drm'], bool):
+            self.report_drm(display_id)
+        brightcove_id = try_get(
+            common_data, lambda x: x['episode']['video']['brightcoveId'], compat_str) or 'ref:%s' % common_data['episode']['video']['referenceId']
+        video_id = str_or_none(try_get(common_data, lambda x: x['episode']['video']['id'])) or brightcove_id
 
-        brightcove_id = video_data.get('brightcoveId') or 'ref:' + video_data['referenceId']
-        video_id = compat_str(video_data.get('id') or brightcove_id)
-
-        if not self.get_param('allow_unplayable_formats') and video_data.get('drm'):
-            self.report_drm(video_id)
-
-        title = common_data['name']
-
+        title = try_get(common_data, lambda x: x['episode']['name'], compat_str)
+        season_number = try_get(common_data, lambda x: x['season']['seasonNumber'], int)
+        episode_number = try_get(common_data, lambda x: x['episode']['episodeNumber'], int)
+        timestamp = unified_timestamp(try_get(common_data, lambda x: x['episode']['airDate'], compat_str))
+        release_date = unified_strdate(try_get(common_data, lambda x: x['episode']['availability'], compat_str))
+        thumbnails_data = try_get(common_data, lambda x: x['episode']['image']['sizes'], dict) or {}
         thumbnails = [{
             'id': thumbnail_id,
             'url': thumbnail_url,
-            'width': int_or_none(thumbnail_id[1:])
-        } for thumbnail_id, thumbnail_url in common_data.get('image', {}).get('sizes', {}).items()]
+            'width': int_or_none(thumbnail_id[1:]),
+        } for thumbnail_id, thumbnail_url in thumbnails_data.items()]
 
         return {
             '_type': 'url_transparent',
@@ -87,8 +114,12 @@ class NineNowIE(InfoExtractor):
                 {'geo_countries': self._GEO_COUNTRIES}),
             'id': video_id,
             'title': title,
-            'description': common_data.get('description'),
-            'duration': float_or_none(video_data.get('duration'), 1000),
+            'description': try_get(common_data, lambda x: x['episode']['description'], compat_str),
+            'duration': float_or_none(try_get(common_data, lambda x: x['episode']['video']['duration'], float), 1000),
             'thumbnails': thumbnails,
             'ie_key': 'BrightcoveNew',
+            'season_number': season_number,
+            'episode_number': episode_number,
+            'timestamp': timestamp,
+            'release_date': release_date,
         }
