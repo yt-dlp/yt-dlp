@@ -115,15 +115,9 @@ class N1InfoIIE(InfoExtractor):
                 'timestamp': timestamp,
                 'ie_key': N1InfoAssetIE.ie_key()})
 
-        embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
-        for embedded_video in embedded_videos:
-            video_data = extract_attributes(embedded_video)
-            url = video_data.get('src')
-            if url.startswith('https://www.youtube.com'):
-                entries.append(self.url_result(url, ie=YoutubeIE.ie_key()))
-            elif url.startswith('https://www.redditmedia.com'):
-                url = 'https://reddit.com' + url[27:]
-                entries.append(self.url_result(url, ie=RedditRIE.ie_key()))
+        entries.extend(
+            self.url_result(extract_attributes(embedded_video).get('src'))
+            for embedded_video in re.findall(r'(<iframe[^>]+>)', webpage))
 
         return {
             '_type': 'playlist',
