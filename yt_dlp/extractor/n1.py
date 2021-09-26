@@ -126,5 +126,4 @@ class N1InfoIIE(InfoExtractor):
             'title': title,
             'timestamp': timestamp,
             'entries': entries,
-            'ie_key': N1InfoAssetIE.ie_key(),
         }
