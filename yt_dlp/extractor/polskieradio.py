@@ -15,12 +15,13 @@ from ..utils import (
     int_or_none,
     strip_or_none,
     unified_timestamp,
+    unescapeHTML,
 )
 
 
 class PolskieRadioIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?polskieradio\.pl/\d+/\d+/Artykul/(?P<id>[0-9]+)'
-    _TESTS = [{
+    _TESTS = [{  # Old-style single broadcast.
         'url': 'http://www.polskieradio.pl/7/5102/Artykul/1587943,Prof-Andrzej-Nowak-o-historii-nie-da-sie-myslec-beznamietnie',
         'info_dict': {
             'id': '1587943',
@@ -39,14 +40,41 @@ class PolskieRadioIE(InfoExtractor):
                 'thumbnail': r're:^https?://static\.prsa\.pl/images/.*\.jpg$'
             },
         }],
-    }, {
-        'url': 'http://www.polskieradio.pl/265/5217/Artykul/1635803,Euro-2016-nie-ma-miejsca-na-blad-Polacy-graja-ze-Szwajcaria-o-cwiercfinal',
+    }, {  # New-style single broadcast.
+        'url': 'https://www.polskieradio.pl/8/2382/Artykul/2534482,Zagarysci-Poezja-jak-spoiwo',
         'info_dict': {
-            'id': '1635803',
-            'title': 'Euro 2016: nie ma miejsca na błąd. Polacy grają ze Szwajcarią o ćwierćfinał',
-            'description': 'md5:01cb7d0cad58664095d72b51a1ebada2',
+            'id': '2534482',
+            'title': 'Żagaryści. Poezja jak spoiwo',
+            'description': 'md5:f18d95d5dcba747a09b635e21a4c0695',
         },
-        'playlist_mincount': 12,
+        'playlist': [{
+            'md5': 'd07559829f61d5a93a75755987ded760',
+            'info_dict': {
+                'id': '2516679',
+                'ext': 'mp3',
+                'title': 'md5:c6e1234e0b747ad883cb91b7ad06b98c',
+                'timestamp': 1592654400,
+                'upload_date': '20200620',
+                'duration': 1430,
+                'thumbnail': r're:^https?://static\.prsa\.pl/images/.*\.jpg$'
+            },
+        }],
+    }, {  # Old-style multiple broadcast playlist.
+        'url': 'https://www.polskieradio.pl/8/4346/Artykul/2487823,Marek-Kondrat-czyta-Mistrza-i-Malgorzate',
+        'info_dict': {
+            'id': '2487823',
+            'title': 'Marek Kondrat czyta "Mistrza i Małgorzatę"',
+            'description': 'md5:8422a95cc83834f2aaeff9d82e9c8f39',
+        },
+        'playlist_mincount': 50,
+    }, {  # New-style multiple broadcast playlist.
+        'url': 'https://www.polskieradio.pl/8/4346/Artykul/2541317,Czytamy-Kalendarz-i-klepsydre-Tadeusza-Konwickiego',
+        'info_dict': {
+            'id': '2541317',
+            'title': 'Czytamy "Kalendarz i klepsydrę" Tadeusza Konwickiego',
+            'description': 'md5:0baeaa46d877f1351fb2eeed3e871f9f',
+        },
+        'playlist_mincount': 15,
     }, {
         'url': 'http://polskieradio.pl/9/305/Artykul/1632955,Bardzo-popularne-slowo-remis',
         'only_matching': True,
@@ -78,8 +106,8 @@ class PolskieRadioIE(InfoExtractor):
 
         media_urls = set()
 
-        for data_media in re.findall(r'<[^>]+data-media=({[^>]+})', content):
-            media = self._parse_json(data_media, playlist_id, fatal=False)
+        for data_media in re.findall(r'<[^>]+data-media="?({[^>]+})"?', content):
+            media = self._parse_json(data_media, playlist_id, transform_source=unescapeHTML, fatal=False)
             if not media.get('file') or not media.get('desc'):
                 continue
             media_url = self._proto_relative_url(media['file'], 'http:')
@@ -98,6 +126,7 @@ class PolskieRadioIE(InfoExtractor):
 
         title = self._og_search_title(webpage).strip()
         description = strip_or_none(self._og_search_description(webpage))
+        description = description.replace('\xa0', ' ') if description is not None else None
 
         return self.playlist_result(entries, playlist_id, title, description)
 

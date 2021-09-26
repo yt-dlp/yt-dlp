@@ -25,6 +25,7 @@ import time
 import tokenize
 import traceback
 import random
+import unicodedata
 
 from string import ascii_letters
 
@@ -908,7 +909,7 @@ class YoutubeDL(object):
     def validate_outtmpl(cls, outtmpl):
         ''' @return None or Exception object '''
         outtmpl = re.sub(
-            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljqB]'),
+            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljqBU]'),
             lambda mobj: f'{mobj.group(0)[:-1]}s',
             cls._outtmpl_expandpath(outtmpl))
         try:
@@ -940,7 +941,7 @@ class YoutubeDL(object):
         }
 
         TMPL_DICT = {}
-        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljqB]'))
+        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljqBU]'))
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
@@ -1031,21 +1032,26 @@ class YoutubeDL(object):
             value = default if value is None else value
 
             str_fmt = f'{fmt[:-1]}s'
-            if fmt[-1] == 'l':
+            if fmt[-1] == 'l':  # list
                 value, fmt = ', '.join(variadic(value)), str_fmt
-            elif fmt[-1] == 'j':
+            elif fmt[-1] == 'j':  # json
                 value, fmt = json.dumps(value, default=_dumpjson_default), str_fmt
-            elif fmt[-1] == 'q':
+            elif fmt[-1] == 'q':  # quoted
                 value, fmt = compat_shlex_quote(str(value)), str_fmt
-            elif fmt[-1] == 'B':
+            elif fmt[-1] == 'B':  # bytes
                 value = f'%{str_fmt}'.encode('utf-8') % str(value).encode('utf-8')
                 value, fmt = value.decode('utf-8', 'ignore'), 's'
+            elif fmt[-1] == 'U':  # unicode normalized
+                opts = outer_mobj.group('conversion') or ''
+                value, fmt = unicodedata.normalize(
+                    # "+" = compatibility equivalence, "#" = NFD
+                    'NF%s%s' % ('K' if '+' in opts else '', 'D' if '#' in opts else 'C'),
+                    value), str_fmt
             elif fmt[-1] == 'c':
-                value = str(value)
-                if value is None:
-                    value, fmt = default, 's'
+                if value:
+                    value = str(value)[0]
                 else:
-                    value = value[0]
+                    fmt = str_fmt
             elif fmt[-1] not in 'rs':  # numeric
                 value = float_or_none(value)
                 if value is None:

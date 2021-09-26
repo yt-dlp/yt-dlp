@@ -353,7 +353,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
 class MacChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_keyring_name, logger):
         self._logger = logger
-        password = _get_mac_keyring_password(browser_keyring_name)
+        password = _get_mac_keyring_password(browser_keyring_name, logger)
         self._v10_key = None if password is None else self.derive_key(password)
 
     @staticmethod
@@ -546,7 +546,7 @@ def _parse_safari_cookies_record(data, jar, logger):
         p.skip_to(value_offset)
         value = p.read_cstring()
     except UnicodeDecodeError:
-        logger.warning('failed to parse cookie because UTF-8 decoding failed', only_once=True)
+        logger.warning('failed to parse Safari cookie because UTF-8 decoding failed', only_once=True)
         return record_size
 
     p.skip_to(record_size, 'space at the end of the record')
@@ -592,11 +592,13 @@ def _get_linux_keyring_password(browser_keyring_name):
     return password.encode('utf-8')
 
 
-def _get_mac_keyring_password(browser_keyring_name):
+def _get_mac_keyring_password(browser_keyring_name, logger):
     if KEYRING_AVAILABLE:
+        logger.debug('using keyring to obtain password')
         password = keyring.get_password('{} Safe Storage'.format(browser_keyring_name), browser_keyring_name)
         return password.encode('utf-8')
     else:
+        logger.debug('using find-generic-password to obtain password')
         proc = subprocess.Popen(['security', 'find-generic-password',
                                  '-w',  # write password to stdout
                                  '-a', browser_keyring_name,  # match 'account'
@@ -605,8 +607,11 @@ def _get_mac_keyring_password(browser_keyring_name):
                                 stderr=subprocess.DEVNULL)
         try:
             stdout, stderr = process_communicate_or_kill(proc)
+            if stdout[-1:] == b'\n':
+                stdout = stdout[:-1]
             return stdout
-        except BaseException:
+        except BaseException as e:
+            logger.warning(f'exception running find-generic-password: {type(e).__name__}({e})')
             return None
 
 
@@ -640,7 +645,7 @@ def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
     try:
         return plaintext[:-padding_length].decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
+        logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
 
 
@@ -648,13 +653,13 @@ def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
     try:
         plaintext = aes_gcm_decrypt_and_verify_bytes(ciphertext, key, authentication_tag, nonce)
     except ValueError:
-        logger.warning('failed to decrypt cookie because the MAC check failed. Possibly the key is wrong?', only_once=True)
+        logger.warning('failed to decrypt cookie (AES-GCM) because the MAC check failed. Possibly the key is wrong?', only_once=True)
         return None
 
     try:
         return plaintext.decode('utf-8')
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
+        logger.warning('failed to decrypt cookie (AES-GCM) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
 
 
