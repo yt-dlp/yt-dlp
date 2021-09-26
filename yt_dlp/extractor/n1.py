@@ -125,7 +125,6 @@ class N1InfoIIE(InfoExtractor):
             if url.startswith('https://www.youtube.com'):
                 entries.append(self.url_result(url, ie=YoutubeIE.ie_key()))
             elif url.startswith('https://www.redditmedia.com'):
-                url = 'https://reddit.com' + url[27:]
                 entries.append(self.url_result(url, ie=RedditRIE.ie_key()))
 
         return {
