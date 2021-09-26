@@ -4202,8 +4202,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         return webpage, data
 
     def _extract_tab_endpoint(self, url, item_id, ytcfg=None, fatal=True, default_client='web'):
-        if self._generate_sapisidhash_header():
-            msg = 'Authentication multi-channel and multi-account cookies may not work as expected.'
+        if self.is_authenticated:
+            msg = 'Authentication with multi-channel and multi-account cookies may not work as expected.'
             if 'authcheck' not in self._configuration_arg('skip'):
                 raise ExtractorError(
                     msg + ' If you are sure about this, pass --extractor-args youtubetab:skip=authcheck to skip this check', expected=True)
