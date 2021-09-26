@@ -4201,6 +4201,27 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 raise ExtractorError(last_error)
         return webpage, data
 
+    def _extract_tab_endpoint(self, url, item_id, ytcfg=None, fatal=True, default_client='web'):
+        if self._generate_sapisidhash_header():
+            msg = 'Authentication multi-channel and multi-account cookies may not work as expected.'
+            if 'authcheck' not in self._configuration_arg('skip'):
+                raise ExtractorError(
+                    msg + ' If you are sure about this, pass --extractor-args youtubetab:skip=authcheck to skip this check', expected=True)
+            self.report_warning(msg, only_once=True)
+
+        headers = self.generate_api_headers(ytcfg=ytcfg, default_client=default_client)
+        resolve_response = self._extract_response(
+            item_id=item_id, query={'url': url}, check_get_keys='endpoint', headers=headers, ytcfg=ytcfg, fatal=fatal,
+            ep='navigation/resolve_url', note='Downloading API parameters API JSON', default_client=default_client
+        )
+        endpoints = {'browseEndpoint': 'browse', 'watchEndpoint': 'next'}
+        for ep_key, ep in endpoints.items():
+            params = try_get(resolve_response, lambda x: x['endpoint'][ep_key], dict)
+            if params:
+                return self._extract_response(
+                    item_id=item_id, query=params, ep=ep, headers=headers,
+                    ytcfg=ytcfg, fatal=fatal, default_client=default_client)
+
     @staticmethod
     def _smuggle_data(entries, data):
         for entry in entries:
@@ -4219,38 +4240,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
     _url_re = re.compile(r'(?P<pre>%s)(?(channel_type)(?P<tab>/\w+))?(?P<post>.*)$' % _VALID_URL)
 
-    def _download_auth_params(self, item_id):
-        datasync_id = None
-        session_index = None
-        datasync_page = self._download_webpage(
-            'https://www.youtube.com/getAccountSwitcherEndpoint', item_id,
-            fatal=False, note="Fetching account list webpage")
-        if datasync_page:
-            datasync_json = self._parse_json(
-                try_get(datasync_page, (lambda x: x[4:], lambda x: x)),
-                item_id, fatal=False)
-            account_list = traverse_obj(
-                datasync_json,
-                ('data', 'actions', ..., 'getMultiPageMenuAction', 'menu', 'multiPageMenuRenderer', 'sections', ...,
-                    'accountSectionListRenderer', 'contents', ..., 'accountItemSectionRenderer', 'contents', ...,
-                    'accountItem'),
-                expected_type=dict, default=[])
-
-            for account in account_list:
-                if not account.get('isSelected'):
-                    continue
-                supported_tokens = traverse_obj(
-                    account, (..., ..., 'supportedTokens', ..., ('datasyncIdToken', 'accountSigninToken')), default=[])
-
-                for token in supported_tokens:
-                    if not isinstance(token, dict):
-                        continue
-                    if not datasync_id:
-                        datasync_id = self._extract_account_syncid({'DATASYNC_ID': token.get('datasyncIdToken')}) or datasync_id
-                    if session_index is None:
-                        session_index = int_or_none(try_get(token.get('signinUrl'), lambda x: parse_qs(x)['authuser'][0], compat_str))
-
-        return datasync_id, session_index
 
     def __real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
@@ -4314,30 +4303,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
 
         webpage = data = None
-        if 'non-api' not in self._configuration_arg('skip'):
+        if 'webpage' not in self._configuration_arg('skip'):
             webpage, data = self._extract_webpage(url, item_id, fatal=False)
 
+        ytcfg = self.extract_ytcfg(item_id, webpage)
         if not webpage or not data:
-            datasync_id = session_index = None
-            if self._generate_sapisidhash_header():
-                # TODO: find a better method (though you shouldn't really need to use api-only mode with auth)
-                datasync_id, session_index = self._download_auth_params(item_id)
-                if session_index is None:
-                    self.report_warning(
-                        'Failed to fetch some parameters needed for authentication. You may see adverse behaviour.')
-            # TODO: we need to pass datasync_id and session_index to the later page extractors
-            headers = self.generate_api_headers(account_syncid=datasync_id, session_index=session_index)
-            ep_res = self._extract_response(
-                item_id=item_id, query={'url': url}, check_get_keys='endpoint', headers=headers,
-                ep='navigation/resolve_url', note='Downloading API parameters API JSON'
-            )
-            endpoints = {'browseEndpoint': 'browse', 'watchEndpoint': 'next'}
-            for ep_key, ep in endpoints.items():
-                params = try_get(ep_res, lambda x: x['endpoint'][ep_key], dict)
-                if params:
-                    data = self._extract_response(
-                        item_id, params, ep=ep, headers=headers)
-                    break
+            data = self._extract_tab_endpoint(url, item_id, ytcfg)
             if not data:
                 raise ExtractorError('This playlist or channel does not exist.', expected=True)  # TODO
 
