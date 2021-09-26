@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import itertools
 import re
 
 from .common import InfoExtractor
@@ -75,3 +76,35 @@ class RumbleEmbedIE(InfoExtractor):
             'channel_url': author.get('url'),
             'duration': int_or_none(video.get('duration')),
         }
+
+
+class RumbleChannelIE(InfoExtractor):
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?rumble\.com/(?:c|user)/(?P<id>[^&?#$/]+))'
+
+    _TESTS = [{
+        'url': 'https://rumble.com/c/Styxhexenhammer666',
+        'playlist_mincount': 1160,
+        'info_dict': {
+            'id': 'Styxhexenhammer666',
+        },
+        'expected_warnings': ['Unable to download webpage: HTTP Error 404'],
+    }, {
+        'url': 'https://rumble.com/user/goldenpoodleharleyeuna',
+        'playlist_mincount': 4,
+        'info_dict': {
+            'id': 'goldenpoodleharleyeuna',
+        },
+        'expected_warnings': ['Unable to download webpage: HTTP Error 404'],
+    }]
+
+    def entries(self, url, id):
+        for page in itertools.count(1):
+            webpage = self._download_webpage(f'{url}?page={page}', id, fatal=False, note='Downloading page %d' % page)
+            if not webpage:
+                break
+            for video_url in re.findall(r'class=video-item--a\s?href=([^>]+\.html)', webpage):
+                yield self.url_result('https://rumble.com' + video_url)
+
+    def _real_extract(self, url):
+        url, id = self._match_valid_url(url).groups()
+        return self.playlist_result(self.entries(url, id), playlist_id=id)

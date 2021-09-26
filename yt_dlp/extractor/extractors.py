@@ -1204,7 +1204,10 @@ from .rtve import RTVEALaCartaIE, RTVELiveIE, RTVEInfantilIE, RTVELiveIE, RTVETe
 from .rtvnh import RTVNHIE
 from .rtvs import RTVSIE
 from .ruhd import RUHDIE
-from .rumble import RumbleEmbedIE
+from .rumble import (
+    RumbleEmbedIE,
+    RumbleChannelIE,
+)
 from .rutube import (
     RutubeIE,
     RutubeChannelIE,
