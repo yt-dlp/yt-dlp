@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 
 import re
 
-from .youtube import YoutubeIE
-from .reddit import RedditRIE
 from .common import InfoExtractor
 from ..utils import (
     unified_timestamp,
