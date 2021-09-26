@@ -475,10 +475,6 @@ from .francetv import (
     FranceTVIE,
     FranceTVSiteIE,
     FranceTVInfoIE,
-    FranceTVInfoSportIE,
-    FranceTVJeunesseIE,
-    GenerationWhatIE,
-    CultureboxIE,
 )
 from .freesound import FreesoundIE
 from .freespeech import FreespeechIE
