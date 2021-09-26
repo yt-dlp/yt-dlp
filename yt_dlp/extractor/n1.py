@@ -111,6 +111,7 @@ class N1InfoIIE(InfoExtractor):
                 'url': video_data.get('data-url'),
                 'id': video_data.get('id'),
                 'title': title,
+                'thumbnail': video_data.get('data-thumbnail'),
                 'timestamp': timestamp,
                 'ie_key': N1InfoAssetIE.ie_key()})
 
