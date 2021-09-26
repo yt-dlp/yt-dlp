@@ -60,7 +60,10 @@ class N1InfoIIE(InfoExtractor):
             'title': 'Đilas: Predlog izgradnje metroa besmislen; SNS odbacuje navode',
             'upload_date': '20210924',
             'timestamp': 1632481347,
-        }
+        },
+        'params': {
+            'skip_download': True,
+        },
     }, {
         'url': 'https://n1info.si/novice/slovenija/zadnji-dnevi-na-kopaliscu-ilirija-ilirija-ni-umrla-ubili-so-jo/',
         'info_dict': {
