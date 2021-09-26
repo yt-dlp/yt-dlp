@@ -474,7 +474,6 @@ from .franceinter import FranceInterIE
 from .francetv import (
     FranceTVIE,
     FranceTVSiteIE,
-    FranceTVEmbedIE,
     FranceTVInfoIE,
     FranceTVInfoSportIE,
     FranceTVJeunesseIE,

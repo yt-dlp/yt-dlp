@@ -308,35 +308,6 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         return self._make_url_result(video_id, catalogue)
 
 
-class FranceTVEmbedIE(FranceTVBaseInfoExtractor):
-    _VALID_URL = r'https?://embed\.francetv\.fr/*\?.*?\bue=(?P<id>[^&]+)'
-
-    _TESTS = [{
-        'url': 'http://embed.francetv.fr/?ue=7fd581a2ccf59d2fc5719c5c13cf6961',
-        'info_dict': {
-            'id': 'NI_983319',
-            'ext': 'mp4',
-            'title': 'Le Pen Reims',
-            'upload_date': '20170505',
-            'timestamp': 1493981780,
-            'duration': 16,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'add_ie': [FranceTVIE.ie_key()],
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        video = self._download_json(
-            'http://api-embed.webservices.francetelevisions.fr/key/%s' % video_id,
-            video_id)
-
-        return self._make_url_result(video['video_id'], video.get('catalog'))
-
-
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
     IE_NAME = 'francetvinfo.fr'
     _VALID_URL = r'https?://(?:www|mobile|france3-regions)\.francetvinfo\.fr/(?:[^/]+/)*(?P<id>[^/?#&.]+)'
