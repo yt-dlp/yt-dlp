@@ -21,7 +21,7 @@
         - [Collapse fallbacks](#collapse-fallbacks)
         - [Trailing parentheses](#trailing-parentheses)
         - [Use convenience conversion and parsing functions](#use-convenience-conversion-and-parsing-functions)
-
+- [Embedding yt-dlp](README.md#embedding-yt-dlp)
 
 
 
@@ -545,3 +545,9 @@ description = video.get('summary')
 duration = float_or_none(video.get('durationMs'), scale=1000)
 view_count = int_or_none(video.get('views'))
 ```
+
+
+
+
+# Embedding yt-dlp
+See (README.md#embedding-yt-dlp)[README.md#embedding-yt-dlp]

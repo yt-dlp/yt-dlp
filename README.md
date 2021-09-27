@@ -54,6 +54,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Modifying metadata examples](#modifying-metadata-examples)
 * [EXTRACTOR ARGUMENTS](#extractor-arguments)
 * [PLUGINS](#plugins)
+* [EMBEDDING YT-DLP](#embedding-yt-dlp)
 * [DEPRECATED OPTIONS](#deprecated-options)
 * [CONTRIBUTING](Contributing.md)
     * [Opening an Issue](Contributing.md#opening-an-issue)
@@ -1471,6 +1472,83 @@ NOTE: These options may be changed/removed in the future without concern for bac
 Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently only `extractor` plugins are supported. Support for `downloader` and `postprocessor` plugins may be added in the future. See [ytdlp_plugins](ytdlp_plugins) for example.
 
 **Note**: `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`)
+
+
+# EMBEDDING YT-DLP
+
+yt-dlp makes the best effort to be a good command-line program, and thus should be callable from any programming language. If you encounter any problems parsing its output, feel free to [create a report](https://github.com/yt-dlp/yt-dlp/issues/new)
+
+From a Python program, you can embed yt-dlp in a more powerful fashion, like this:
+
+```python
+import yt_dlp
+
+ydl_opts = {}
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
+```
+
+Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L154-L452).
+
+Here's a more complete example of a program that outputs only errors (and a short message after the download is finished), converts the video to an mp3 file, implements a custom postprocessor and prints the final info_dict as json:
+
+```python
+import json
+import yt_dlp
+
+
+class MyLogger:
+    def debug(self, msg):
+        # For compatability with youtube-dl, both debug and info are passed into debug
+        # You can distinguish them by the prefix '[debug] '
+        if msg.startswith('[debug] '):
+            pass
+        else:
+            self.info(msg)
+
+    def info(self, msg):
+        pass
+
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        print(msg)
+
+
+from yt_dlp.postprocessor.common import PostProcessor
+
+
+class MyCustomPP(PostProcessor):
+    def run(self, info):
+        self.to_screen('Doing stuff')
+        return [], info
+
+
+def my_hook(d):
+    if d['status'] == 'finished':
+        print('Done downloading, now converting ...')
+
+
+ydl_opts = {
+    'format': 'bestaudio/best',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }],
+    'logger': MyLogger(),
+    'progress_hooks': [my_hook],
+}
+
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    ydl.add_post_processor(MyCustomPP())
+    info = ydl.extract_info('https://www.youtube.com/watch?v=BaW_jenozKc')
+    print(json.dumps(ydl.sanitize_info(info)))
+```
+
+See the public functions in [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py) for other available functions. Eg: `ydl.download`, `ydl.download_with_info_file`
+
 
 # DEPRECATED OPTIONS
 
