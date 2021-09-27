@@ -94,9 +94,9 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         for line, (line_dict, next_dict) in enumerate(zip_longest(transcript_lines, transcript_lines[1:])):
             start_time, caption = line_dict['transcriptStartAt'] / 1000, line_dict['caption']
             end_time = next_dict['transcriptStartAt'] / 1000 if next_dict else duration or start_time + 1
-            srt_data += '%d\n%s --> %s\n%s\n' % (line + 1, srt_subtitles_timecode(start_time),
-                                                 srt_subtitles_timecode(end_time),
-                                                 caption)
+            srt_data += '%d\n%s --> %s\n%s\n\n' % (line + 1, srt_subtitles_timecode(start_time),
+                                                   srt_subtitles_timecode(end_time),
+                                                   caption)
         return srt_data
 
     def _real_extract(self, url):
