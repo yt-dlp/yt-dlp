@@ -1033,7 +1033,8 @@ class YoutubeDL(object):
 
             str_fmt = f'{fmt[:-1]}s'
             if fmt[-1] == 'l':  # list
-                value, fmt = ', '.join(variadic(value)), str_fmt
+                delim = '\n' if '#' in (outer_mobj.group('conversion') or '') else ', '
+                value, fmt = delim.join(variadic(value)), str_fmt
             elif fmt[-1] == 'j':  # json
                 value, fmt = json.dumps(value, default=_dumpjson_default), str_fmt
             elif fmt[-1] == 'q':  # quoted

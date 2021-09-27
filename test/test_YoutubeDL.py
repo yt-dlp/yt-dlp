@@ -765,6 +765,7 @@ class TestYoutubeDL(unittest.TestCase):
 
         # Custom type casting
         test('%(formats.:.id)l', 'id1, id2, id3')
+        test('%(formats.:.id)#l', ('id1\nid2\nid3', 'id1 id2 id3'))
         test('%(ext)l', 'mp4')
         test('%(formats.:.id) 15l', '  id1, id2, id3')
         test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
