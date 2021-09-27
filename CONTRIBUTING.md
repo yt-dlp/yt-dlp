@@ -1,5 +1,6 @@
+# CONTRIBUTING TO YT-DLP
 
-- [Opening an Issue](#opening-an-issue)
+- [OPENING AN ISSUE](#opening-an-issue)
     - [Is the description of the issue itself sufficient?](#is-the-description-of-the-issue-itself-sufficient)
     - [Are you using the latest version?](#are-you-using-the-latest-version)
     - [Is the issue already documented?](#is-the-issue-already-documented)
@@ -9,7 +10,7 @@
     - [Does the issue involve one problem, and one problem only?](#does-the-issue-involve-one-problem-and-one-problem-only)
     - [Is anyone going to need the feature?](#is-anyone-going-to-need-the-feature)
     - [Is your question about yt-dlp?](#is-your-question-about-yt-dlp)
-- [Developer Instructions](#developer-instructions)
+- [DEVELOPER INSTRUCTIONS](#developer-instructions)
     - [Adding new feature or making overarching changes](#adding-new-feature-or-making-overarching-changes)
     - [Adding support for a new site](#adding-support-for-a-new-site)
     - [yt-dlp coding conventions](#yt-dlp-coding-conventions)
@@ -21,11 +22,11 @@
         - [Collapse fallbacks](#collapse-fallbacks)
         - [Trailing parentheses](#trailing-parentheses)
         - [Use convenience conversion and parsing functions](#use-convenience-conversion-and-parsing-functions)
-- [Embedding yt-dlp](README.md#embedding-yt-dlp)
+- [EMBEDDING YT-DLP](README.md#embedding-yt-dlp)
 
 
 
-# Opening an Issue
+# OPENING AN ISSUE
 
 Bugs and suggestions should be reported at: [yt-dlp/yt-dlp/issues](https://github.com/yt-dlp/yt-dlp/issues). Unless you were prompted to or there is another pertinent reason (e.g. GitHub fails to accept the bug report), please do not send bug reports via personal email. For discussions, join us in our [discord server](https://discord.gg/H5MNcFW63r).
 
@@ -80,7 +81,7 @@ Additionally, it is also helpful to search the [youtube-dl issue tracker](https:
 
 ###  Why are existing options not enough?
 
-Before requesting a new feature, please have a quick peek at [the list of supported options](README.md#options). Many feature requests are for features that actually exist already! Please, absolutely do show off your work in the issue report and detail how the existing similar options do *not* solve your problem.
+Before requesting a new feature, please have a quick peek at [the list of supported options](README.md#usage-and-options). Many feature requests are for features that actually exist already! Please, absolutely do show off your work in the issue report and detail how the existing similar options do *not* solve your problem.
 
 ###  Have you read and understood the changes, between youtube-dl and yt-dlp
 
@@ -111,7 +112,7 @@ If the issue is with `youtube-dl` (the upstream fork of yt-dlp) and not with yt-
 
 
 
-# Developer Instructions
+# DEVELOPER INSTRUCTIONS
 
 Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases) or get them via [the other installation methods](README.md#installation).
 
@@ -140,7 +141,7 @@ The same applies for overarching changes to the architecture, documentation or s
 
 ## Adding support for a new site
 
-If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](README.md#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
+If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](https://www.github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
 
 After you have ensured this site is distributing its content legally, you can follow this quick list (assuming your service is called `yourextractor`):
 
@@ -159,8 +160,8 @@ After you have ensured this site is distributing its content legally, you can fo
     ```python
     # coding: utf-8
     from .common import InfoExtractor
-
-
+    
+    
     class YourExtractorIE(InfoExtractor):
         _VALID_URL = r'https?://(?:www\.)?yourextractor\.com/watch/(?P<id>[0-9]+)'
         _TESTS = [{
@@ -182,7 +183,7 @@ After you have ensured this site is distributing its content legally, you can fo
         def _real_extract(self, url):
             video_id = self._match_id(url)
             webpage = self._download_webpage(url, video_id)
-
+    
             # TODO more code goes here, for example ...
             title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
 
@@ -196,7 +197,7 @@ After you have ensured this site is distributing its content legally, you can fo
     ```
 5. Add an import in [`yt_dlp/extractor/extractors.py`](yt_dlp/extractor/extractors.py).
 6. Run `python test/test_download.py TestDownload.test_YourExtractor`. This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
-7. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L89-L423). Add tests and code for as many as you want.
+7. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L91-L426). Add tests and code for as many as you want.
 8. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
 
         $ flake8 yt_dlp/extractor/yourextractor.py
@@ -223,7 +224,7 @@ Extractors are very fragile by nature since they depend on the layout of the sou
 
 ### Mandatory and optional metafields
 
-For extraction to work yt-dlp relies on metadata your extractor extracts and provides to yt-dlp expressed by an [information dictionary](yt_dlp/extractor/common.py#L89-L423) or simply *info dict*. Only the following meta fields in the *info dict* are considered mandatory for a successful extraction process by yt-dlp:
+For extraction to work yt-dlp relies on metadata your extractor extracts and provides to yt-dlp expressed by an [information dictionary](yt_dlp/extractor/common.py#L91-L426) or simply *info dict*. Only the following meta fields in the *info dict* are considered mandatory for a successful extraction process by yt-dlp:
 
  - `id` (media identifier)
  - `title` (media title)
@@ -231,7 +232,7 @@ For extraction to work yt-dlp relies on metadata your extractor extracts and pro
 
 The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While in fact, only `id` is technically mandatory. Due to compatability reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
 
-[Any field](yt_dlp/extractor/common.py#216-L423) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
+[Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
 #### Example
 
@@ -245,7 +246,6 @@ Assume at this point `meta`'s layout is:
 
 ```python
 {
-    ...
     "summary": "some fancy summary text",
     "user": {
         "name": "uploader name"
@@ -549,5 +549,5 @@ view_count = int_or_none(video.get('views'))
 
 
 
-# Embedding yt-dlp
-See (README.md#embedding-yt-dlp)[README.md#embedding-yt-dlp]
+# EMBEDDING YT-DLP
+See [README.md#embedding-yt-dlp](README.md#embedding-yt-dlp) for instructions on how to embed yt-dlp in another Python program

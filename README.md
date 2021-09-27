@@ -56,9 +56,9 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * [PLUGINS](#plugins)
 * [EMBEDDING YT-DLP](#embedding-yt-dlp)
 * [DEPRECATED OPTIONS](#deprecated-options)
-* [CONTRIBUTING](Contributing.md)
-    * [Opening an Issue](Contributing.md#opening-an-issue)
-    * [Developer Instructions](Contributing.md#developer-instructions)
+* [CONTRIBUTING](CONTRIBUTING.md#contributing-to-yt-dlp)
+    * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
+    * [Developer Instructions](CONTRIBUTING.md#developer-instructions)
 * [MORE](#more)
 </div>
 
@@ -1652,7 +1652,7 @@ These options were deprecated since 2014 and have now been entirely removed
     -l, --literal                    -o accepts literal names
 
 # CONTRIBUTING
-See [Contributing.md](Contributing.md)
+See [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-yt-dlp) for instructions on [Opening an Issue](CONTRIBUTING.md#opening-an-issue) and [Contributing code to the project](CONTRIBUTING.md#developer-instructions)
 
 # MORE
-For FAQ etc., see the [youtube-dl README](https://github.com/ytdl-org/youtube-dl#faq)
+For FAQ see the [youtube-dl README](https://github.com/ytdl-org/youtube-dl#faq)
