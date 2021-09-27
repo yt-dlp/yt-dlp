@@ -2755,12 +2755,6 @@ class GenericIE(InfoExtractor):
         if vhx_url:
             return self.url_result(vhx_url, VHXEmbedIE.ie_key())
 
-        vid_me_embed_url = self._search_regex(
-            r'src=[\'"](https?://vid\.me/[^\'"]+)[\'"]',
-            webpage, 'vid.me embed', default=None)
-        if vid_me_embed_url is not None:
-            return self.url_result(vid_me_embed_url, 'Vidme')
-
         # Invidious Instances
         # https://github.com/yt-dlp/yt-dlp/issues/195
         # https://github.com/iv-org/invidious/pull/1730
