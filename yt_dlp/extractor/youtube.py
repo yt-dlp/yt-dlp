@@ -580,7 +580,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             query={'key': api_key or self._extract_api_key()})
 
     def extract_yt_initial_data(self, video_id, webpage, fatal=True):
-        if webpage:
             return self._parse_json(
                 self._search_regex(
                     (r'%s\s*%s' % (self._YT_INITIAL_DATA_RE, self._YT_INITIAL_BOUNDARY_RE),
@@ -4178,19 +4177,19 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
     def _extract_webpage(self, url, item_id, fatal=True):
         retries = self.get_param('extractor_retries', 3)
         count = -1
-        last_error = 'Incomplete yt initial data recieved'
-        webpage = data = None
+        webpage = data = last_error = None
         while count < retries:
             count += 1
             # Sometimes youtube returns a webpage with incomplete ytInitialData
             # See: https://github.com/yt-dlp/yt-dlp/issues/116
-            if count:
+            if last_error:
                 self.report_warning('%s. Retrying ...' % last_error)
             try:
                 webpage = self._download_webpage(
                     url, item_id,
                     note='Downloading webpage%s' % (' (retry #%d)' % count if count else '',))
                 webpage = None
+                data = self.extract_yt_initial_data(item_id, webpage, fatal=fatal) if webpage else {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
                     if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (403, 429):
@@ -4199,20 +4198,18 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                             continue
                 if fatal:
                     raise
-                else:
-                    self.report_warning(error_to_compat_str(e))
-                    break
+                self.report_warning(error_to_compat_str(e))
+                break
             else:
-                data = self.extract_yt_initial_data(item_id, webpage, fatal=fatal) or {}
                 if dict_get(data, ('contents', 'currentVideoEndpoint')):
                     break
                 self._extract_and_report_alerts(data, fatal=fatal)
+                last_error = 'Incomplete yt initial data received'
                 if count >= retries:
                     if fatal:
                         raise ExtractorError(last_error)
-                    else:
-                        self.report_warning(last_error)
-                        break
+                    self.report_warning(last_error)
+                    break
 
         return webpage, data
 
