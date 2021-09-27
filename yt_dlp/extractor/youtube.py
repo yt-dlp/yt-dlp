@@ -4243,7 +4243,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
     _url_re = re.compile(r'(?P<pre>%s)(?(channel_type)(?P<tab>/\w+))?(?P<post>.*)$' % _VALID_URL)
 
-
     def __real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
