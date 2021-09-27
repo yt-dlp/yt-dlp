@@ -2215,33 +2215,23 @@ class InfoExtractor(object):
         return formats, subtitles
 
     def _extract_m3u8_vod_duration(
-            self, m3u8_vod_url, video_id, note=None, errnote=None, fatal=True,
-            data=None, headers={}, query={}):
+            self, m3u8_vod_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
 
-        res = self._download_webpage_handle(
+        m3u8_vod = self._download_webpage(
             m3u8_vod_url, video_id,
             note='Downloading m3u8 VOD manifest' if note is None else note,
             errnote='Failed to download VOD manifest' if errnote is None else errnote,
-            fatal=fatal, data=data, headers=headers, query=query)
+            fatal=False, data=data, headers=headers, query=query)
 
-        if res is False:
-            return None
-
-        m3u8_vod, urlh = res
-
-        return self._parse_m3u8_vod_duration(m3u8_vod, video_id)
+        return self._parse_m3u8_vod_duration(m3u8_vod or '', video_id)
 
     def _parse_m3u8_vod_duration(self, m3u8_vod, video_id):
         if '#EXT-X-PLAYLIST-TYPE:VOD' not in m3u8_vod:
             return None
 
-        duration = 0
-        for line in m3u8_vod.splitlines():
-            if line.startswith('#EXTINF:'):
-                segment_duration = float(line.split("#EXTINF:")[1].split(",")[0])
-                duration += int(segment_duration)
-
-        return duration
+        return int(sum(
+            float(line[len('#EXTINF:'):].split(',')[0])
+            for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
 
     @staticmethod
     def _xpath_ns(path, namespace=None):

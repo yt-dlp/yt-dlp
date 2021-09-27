@@ -122,7 +122,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
             duration = None
         else:
             duration = self._extract_m3u8_vod_duration(
-                m3u8_formats[0]["url"], video_id, headers=self.MEDIADELIVERY_REFERER)
+                m3u8_formats[0]['url'], video_id, headers=self.MEDIADELIVERY_REFERER)
 
         return {
             'formats': m3u8_formats,
