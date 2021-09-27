@@ -21,7 +21,7 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
     FD_NAME = 'ytlivestartdash'
 
     @staticmethod
-    def _manifest_fragments(ie: YoutubeIE, mpd_url, stream_number, begin_index=0, fetch_span=5000):
+    def _manifest_fragments(ie: YoutubeIE, mpd_url, stream_number, begin_index=0, fetch_span=5000, lack_early=False):
         known_idx = begin_index + 1
         no_fragment_count = 0
         prev_dl = time_millis()
@@ -42,6 +42,9 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
             if begin_index < 0 and known_idx <= 0:
                 # skip from the start when it's negative value
                 known_idx = last_seq + begin_index
+            if lack_early:
+                # when _get_fragments detects that it's longer than 5 days
+                known_idx = max(known_idx, last_seq - 432000 // fragments[-1]['duration'])
             for idx in range(known_idx, last_seq):
                 yield {
                     'frag_index': idx - 1,
@@ -73,12 +76,12 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
 
         download_start_time = ctx.get('start') or (time_millis() / 1000)
         live_start_time = traverse_obj(root_info_dict, ('__original_infodict', 'release_timestamp'))
-        begin_index = 0
+        lack_early = False
         if live_start_time is not None and download_start_time - live_start_time > 432000:
             self.report_warning('Starting downloading from recent 120 hours of live, because YouTube does not have the data. Please file an issue if you think it is wrong.', only_once=True)
-            begin_index = -86400  # 432000 / 5, where 5 is the duration of each segments
+            lack_early = True
 
-        return self._manifest_fragments(yie, manifest_url, stream_number, begin_index=begin_index)
+        return self._manifest_fragments(yie, manifest_url, stream_number, lack_early=lack_early)
 
     @staticmethod
     def _accept_live():
