@@ -5,12 +5,13 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
+from ..compat import compat_str, compat_HTTPError
 from ..utils import (
     determine_ext,
     int_or_none,
     parse_iso8601,
     try_get,
+    ExtractorError,
 )
 
 
@@ -87,22 +88,20 @@ class RumbleChannelIE(InfoExtractor):
         'info_dict': {
             'id': 'Styxhexenhammer666',
         },
-        'expected_warnings': ['Unable to download webpage: HTTP Error 404'],
     }, {
         'url': 'https://rumble.com/user/goldenpoodleharleyeuna',
-        'playlist_mincount': 4,
+        'playlist_count': 4,
         'info_dict': {
             'id': 'goldenpoodleharleyeuna',
         },
-        'expected_warnings': ['Unable to download webpage: HTTP Error 404'],
     }]
 
     def entries(self, url, playlist_id):
         for page in itertools.count(1):
             try:
                 webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note='Downloading page %d' % page)
-            except compat_HTTPError as e:
-                if e.code == 404:
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
                     break
                 raise
             for video_url in re.findall(r'class=video-item--a\s?href=([^>]+\.html)', webpage):
