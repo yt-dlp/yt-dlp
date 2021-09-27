@@ -1476,7 +1476,9 @@ Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently
 
 # EMBEDDING YT-DLP
 
-yt-dlp makes the best effort to be a good command-line program, and thus should be callable from any programming language. If you encounter any problems parsing its output, feel free to [create a report](https://github.com/yt-dlp/yt-dlp/issues/new)
+yt-dlp makes the best effort to be a good command-line program, and thus should be callable from any programming language.
+
+Your program should avoid parsing the normal stdout since they may change in future versions. Instead they should use options such as `-J`, `--print`, `--progress-template`, `--exec` etc to create console output that you can reliably reproduce and parse.
 
 From a Python program, you can embed yt-dlp in a more powerful fashion, like this:
 
@@ -1494,7 +1496,9 @@ Here's a more complete example of a program that outputs only errors (and a shor
 
 ```python
 import json
+
 import yt_dlp
+from yt_dlp.postprocessor.common import PostProcessor
 
 
 class MyLogger:
@@ -1514,9 +1518,6 @@ class MyLogger:
 
     def error(self, msg):
         print(msg)
-
-
-from yt_dlp.postprocessor.common import PostProcessor
 
 
 class MyCustomPP(PostProcessor):

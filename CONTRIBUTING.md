@@ -61,9 +61,9 @@ So please elaborate on what feature you are requesting, or what bug you want to 
 - How it could be fixed
 - How your proposed solution would look like
 
-If your report is shorter than two lines, it is almost certainly missing some of these, which makes it hard for us to respond to it. We're often too polite to close the issue outright, but the missing info makes misinterpretation likely. As a committer myself, We often get frustrated by these issues, since the only possible way for us to move forward on them is to ask for clarification over and over.
+If your report is shorter than two lines, it is almost certainly missing some of these, which makes it hard for us to respond to it. We're often too polite to close the issue outright, but the missing info makes misinterpretation likely. We often get frustrated by these issues, since the only possible way for us to move forward on them is to ask for clarification over and over.
 
-For bug reports, this means that your report should contain the *complete* output of yt-dlp when called with the `-Uv` flag. The error message you get for (most) bugs even says so, but you would not believe how many of our bug reports do not contain this information.
+For bug reports, this means that your report should contain the **complete** output of yt-dlp when called with the `-Uv` flag. The error message you get for (most) bugs even says so, but you would not believe how many of our bug reports do not contain this information.
 
 If the error is `ERROR: Unable to extract ...` and you cannot reproduce it from multiple countries, add `--write-pages` and upload the `.dump` files you get [somewhere](https://gist.github.com).
 
@@ -77,7 +77,7 @@ Before reporting any issue, type `yt-dlp -U`. This should report that you're up-
 
 Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/yt-dlp/yt-dlp/search?type=Issues) of this repository. If there is an issue, feel free to write something along the lines of "This affects me as well, with version 2021.01.01. Here is some more information on the issue: ...". While some issues may be old, a new post into them often spurs rapid activity.
 
-Additionally, it is also helpful to search the [youtube-dl issue tracker](https://github.com/ytdl-org/youtube-dl/issues) for any similar issues, and to see if the issue has already been documented. If the issue has already been reprted or a similar issue found, a link to that issue (on the youtube-dl issue tracker), should be included in your issue report here.
+Additionally, it is also helpful to see if the issue has already been documented in the [youtube-dl issue tracker](https://github.com/ytdl-org/youtube-dl/issues). If similar issues have already been reported in youtube-dl (but not in our issue tracker), links to them can be included in your issue report here.
 
 ###  Why are existing options not enough?
 
@@ -134,9 +134,9 @@ If you want to create a build of yt-dlp yourself, you can follow the instruction
 
 ## Adding new feature or making overarching changes
 
-Before you start writing code for implementing a new feature, open an issue explaining your feature request and atleast one use case. This allows the maintainers decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
+Before you start writing code for implementing a new feature, open an issue explaining your feature request and atleast one use case. This allows the maintainers to decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
 
-The same applies for overarching changes to the architecture, documentation or style
+The same applies for overarching changes to the architecture, documentation or code style
 
 
 ## Adding support for a new site
@@ -146,16 +146,16 @@ If you want to add support for a new site, first of all **make sure** this site 
 After you have ensured this site is distributing its content legally, you can follow this quick list (assuming your service is called `yourextractor`):
 
 1. [Fork this repository](https://github.com/yt-dlp/yt-dlp/fork)
-2. Check out the source code with:
+1. Check out the source code with:
 
         git clone git@github.com:YOUR_GITHUB_USERNAME/yt-dlp.git
 
-3. Start a new git branch with
+1. Start a new git branch with
 
         cd yt-dlp
         git checkout -b yourextractor
 
-4. Start with this simple template and save it to `yt_dlp/extractor/yourextractor.py`:
+1. Start with this simple template and save it to `yt_dlp/extractor/yourextractor.py`:
 
     ```python
     # coding: utf-8
@@ -195,22 +195,23 @@ After you have ensured this site is distributing its content legally, you can fo
                 # TODO more properties (see yt_dlp/extractor/common.py)
             }
     ```
-5. Add an import in [`yt_dlp/extractor/extractors.py`](yt_dlp/extractor/extractors.py).
-6. Run `python test/test_download.py TestDownload.test_YourExtractor`. This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
-7. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L91-L426). Add tests and code for as many as you want.
-8. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
+1. Add an import in [`yt_dlp/extractor/extractors.py`](yt_dlp/extractor/extractors.py).
+1. Run `python test/test_download.py TestDownload.test_YourExtractor`. This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
+1. Make sure you have atleast one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the purticular test is disabled from running.
+1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L91-L426). Add tests and code for as many as you want.
+1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
 
         $ flake8 yt_dlp/extractor/yourextractor.py
 
-9. Make sure your code works under all [Python](https://www.python.org/) versions claimed supported by yt-dlp, namely all currently supported versions of Python, 3.6+. Backward Compatability is NOT required for older versions of Python.
-10. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files and [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatability is not required for even older versions of Python.
+1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
         $ git add yt_dlp/extractor/extractors.py
         $ git add yt_dlp/extractor/yourextractor.py
         $ git commit -m '[yourextractor] Add extractor'
         $ git push origin yourextractor
 
-11. Finally, [create a pull request](https://help.github.com/articles/creating-a-pull-request). We'll then review and merge it.
+1. Finally, [create a pull request](https://help.github.com/articles/creating-a-pull-request). We'll then review and merge it.
 
 In any case, thank you very much for your contributions!
 
@@ -230,7 +231,7 @@ For extraction to work yt-dlp relies on metadata your extractor extracts and pro
  - `title` (media title)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While in fact, only `id` is technically mandatory. Due to compatability reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
+The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While, in fact, only `id` is technically mandatory, due to compatability reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
