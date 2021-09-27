@@ -265,7 +265,7 @@ class FFmpegPostProcessor(PostProcessor):
         cmd = [encodeFilename(self.executable, True), encodeArgument('-y')]
         # avconv does not have repeat option
         if self.basename == 'ffmpeg':
-            cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info')]
+            cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info'), encodeArgument('-probesize'), encodeArgument('max')]
 
         def make_args(file, args, name, number):
             keys = ['_%s%d' % (name, number), '_%s' % name]
