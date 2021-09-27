@@ -1638,11 +1638,6 @@ from .vidio import (
     VidioLiveIE
 )
 from .vidlii import VidLiiIE
-from .vidme import (
-    VidmeIE,
-    VidmeUserIE,
-    VidmeUserLikesIE,
-)
 from .vier import VierIE, VierVideosIE
 from .viewlift import (
     ViewLiftIE,

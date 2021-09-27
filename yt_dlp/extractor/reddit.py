@@ -49,7 +49,7 @@ class RedditIE(InfoExtractor):
 
 
 class RedditRIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?reddit\.com/r/(?P<slug>[^/]+/comments/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'https?://(?:[^/]+\.)?reddit(?:media)?\.com/r/(?P<slug>[^/]+/comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
@@ -93,6 +93,9 @@ class RedditRIE(InfoExtractor):
     }, {
         # reddit video @ nm reddit
         'url': 'https://nm.reddit.com/r/Cricket/comments/8idvby/lousy_cameraman_finds_himself_in_cairns_line_of/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.redditmedia.com/r/serbia/comments/pu9wbx/ako_vu%C4%8Di%C4%87_izgubi_izbore_ja_%C4%87u_da_crknem/',
         'only_matching': True,
     }]
 

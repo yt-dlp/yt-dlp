@@ -1033,7 +1033,8 @@ class YoutubeDL(object):
 
             str_fmt = f'{fmt[:-1]}s'
             if fmt[-1] == 'l':  # list
-                value, fmt = ', '.join(variadic(value)), str_fmt
+                delim = '\n' if '#' in (outer_mobj.group('conversion') or '') else ', '
+                value, fmt = delim.join(variadic(value)), str_fmt
             elif fmt[-1] == 'j':  # json
                 value, fmt = json.dumps(value, default=_dumpjson_default), str_fmt
             elif fmt[-1] == 'q':  # quoted
@@ -1307,7 +1308,7 @@ class YoutubeDL(object):
                     or extract_flat is True):
                 info_copy = ie_result.copy()
                 ie = try_get(ie_result.get('ie_key'), self.get_info_extractor)
-                if not ie_result.get('id'):
+                if ie and not ie_result.get('id'):
                     info_copy['id'] = ie.get_temp_id(ie_result['url'])
                 self.add_default_extra_info(info_copy, ie, ie_result['url'])
                 self.add_extra_info(info_copy, extra_info)
