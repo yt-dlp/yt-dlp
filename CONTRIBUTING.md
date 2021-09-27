@@ -54,11 +54,11 @@ Additionally, it is also helpful to search the [youtube-dl issue tracker](https:
 
 ###  Why are existing options not enough?
 
-Before requesting a new feature, please have a quick peek at [the list of supported options](https://github.com/yt-dlp/yt-dlp/blob/master/README.md#options). Many feature requests are for features that actually exist already! Please, absolutely do show off your work in the issue report and detail how the existing similar options do *not* solve your problem.
+Before requesting a new feature, please have a quick peek at [the list of supported options](README.md#options). Many feature requests are for features that actually exist already! Please, absolutely do show off your work in the issue report and detail how the existing similar options do *not* solve your problem.
 
 ###  Have you read and understood the changes, between youtube-dl and yt-dlp
 
-There are many changes between youtube-dl and yt-dlp [(changes to default behavior)](https://github.com/yt-dlp/yt-dlp/blob/master/README.md#differences-in-default-behavior), and some of the options available have a different behaviour in yt-dlp, or have been removed all together [(list of changes to options)](https://github.com/yt-dlp/yt-dlp/blob/master/README.md#deprecated-options). Make sure you have read and understand the differences in the options and how this may impact your downloads before opening an issue.
+There are many changes between youtube-dl and yt-dlp [(changes to default behavior)](README.md#differences-in-default-behavior), and some of the options available have a different behaviour in yt-dlp, or have been removed all together [(list of changes to options)](README.md#deprecated-options). Make sure you have read and understand the differences in the options and how this may impact your downloads before opening an issue.
 
 ###  Is there enough context in your bug report?
 
@@ -160,9 +160,9 @@ After you have ensured this site is distributing its content legally, you can fo
                 # TODO more properties (see yt_dlp/extractor/common.py)
             }
     ```
-5. Add an import in [`yt_dlp/extractor/extractors.py`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/extractors.py).
+5. Add an import in [`yt_dlp/extractor/extractors.py`](yt_dlp/extractor/extractors.py).
 6. Run `python test/test_download.py TestDownload.test_YourExtractor`. This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
-7. Have a look at [`yt_dlp/extractor/common.py`](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L89-L423). Add tests and code for as many as you want.
+7. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L89-L423). Add tests and code for as many as you want.
 8. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
 
         $ flake8 yt_dlp/extractor/yourextractor.py
@@ -189,7 +189,7 @@ Extractors are very fragile by nature since they depend on the layout of the sou
 
 ### Mandatory and optional metafields
 
-For extraction to work yt-dlp relies on metadata your extractor extracts and provides to yt-dlp expressed by an [information dictionary](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/common.py#L89-L423) or simply *info dict*. Only the following meta fields in the *info dict* are considered mandatory for a successful extraction process by yt-dlp:
+For extraction to work yt-dlp relies on metadata your extractor extracts and provides to yt-dlp expressed by an [information dictionary](yt_dlp/extractor/common.py#L89-L423) or simply *info dict*. Only the following meta fields in the *info dict* are considered mandatory for a successful extraction process by yt-dlp:
 
  - `id` (media identifier)
  - `title` (media title)
@@ -197,7 +197,7 @@ For extraction to work yt-dlp relies on metadata your extractor extracts and pro
 
 The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While in fact, only `id` is technically mandatory. Due to compatability reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
 
-[Any field](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/common.py#216-L423) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
+[Any field](yt_dlp/extractor/common.py#216-L423) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
 #### Example
 
