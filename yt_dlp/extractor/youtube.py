@@ -580,11 +580,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             query={'key': api_key or self._extract_api_key()})
 
     def extract_yt_initial_data(self, video_id, webpage, fatal=True):
-            return self._parse_json(
-                self._search_regex(
-                    (r'%s\s*%s' % (self._YT_INITIAL_DATA_RE, self._YT_INITIAL_BOUNDARY_RE),
-                     self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal),
-                video_id, fatal=fatal)
+        return self._parse_json(
+            self._search_regex(
+                (r'%s\s*%s' % (self._YT_INITIAL_DATA_RE, self._YT_INITIAL_BOUNDARY_RE),
+                 self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal),
+            video_id, fatal=fatal)
 
     @staticmethod
     def _extract_session_index(*data):
