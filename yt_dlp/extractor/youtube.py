@@ -4188,7 +4188,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 webpage = self._download_webpage(
                     url, item_id,
                     note='Downloading webpage%s' % (' (retry #%d)' % count if count else '',))
-                webpage = None
                 data = self.extract_yt_initial_data(item_id, webpage, fatal=fatal) if webpage else {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
