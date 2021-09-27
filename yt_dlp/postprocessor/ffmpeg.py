@@ -262,7 +262,7 @@ class FFmpegPostProcessor(PostProcessor):
         oldest_mtime = min(
             os.stat(encodeFilename(path)).st_mtime for path, _ in input_path_opts if path)
 
-        cmd = [encodeFilename(self.executable, True), encodeArgument('-y')]
+        cmd = [encodeFilename(self.executable, True), encodeArgument('-y'), encodeArgument('-probesize'), encodeArgument('max')]
         # avconv does not have repeat option
         if self.basename == 'ffmpeg':
             cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info')]
