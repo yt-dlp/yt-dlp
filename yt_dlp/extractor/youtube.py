@@ -4325,8 +4325,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         pl_id = 'UU%s' % item_id[2:]
                         pl_url = 'https://www.youtube.com/playlist?list=%s%s' % (pl_id, mobj['post'])
                         try:
-                            data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True)
-                            item_id, url = pl_id, pl_url
+                            data, ytcfg, item_id, url = *self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True), pl_id, pl_url
                         except ExtractorError:
                             self.report_warning('The playlist gave error. Falling back to channel URL')
                     else:
