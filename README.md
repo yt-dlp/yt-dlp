@@ -55,6 +55,9 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * [EXTRACTOR ARGUMENTS](#extractor-arguments)
 * [PLUGINS](#plugins)
 * [DEPRECATED OPTIONS](#deprecated-options)
+* [CONTRIBUTING](Contributing.md)
+    * [Opening an Issue](Contributing.md#opening-an-issue)
+    * [Developer Instructions](Contributing.md#developer-instructions)
 * [MORE](#more)
 </div>
 
@@ -1570,6 +1573,8 @@ These options were deprecated since 2014 and have now been entirely removed
     -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
     -l, --literal                    -o accepts literal names
 
+# CONTRIBUTING
+See [Contributing.md](Contributing.md)
 
 # MORE
-For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl#faq)
+For FAQ etc., see the [youtube-dl README](https://github.com/ytdl-org/youtube-dl#faq)

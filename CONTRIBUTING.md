@@ -1,4 +1,30 @@
 
+- [Opening an Issue](#opening-an-issue)
+    - [Is the description of the issue itself sufficient?](#is-the-description-of-the-issue-itself-sufficient)
+    - [Are you using the latest version?](#are-you-using-the-latest-version)
+    - [Is the issue already documented?](#is-the-issue-already-documented)
+    - [Why are existing options not enough?](#why-are-existing-options-not-enough)
+    - [Have you read and understood the changes, between youtube-dl and yt-dlp](#have-you-read-and-understood-the-changes-between-youtube-dl-and-yt-dlp)
+    - [Is there enough context in your bug report?](#is-there-enough-context-in-your-bug-report)
+    - [Does the issue involve one problem, and one problem only?](#does-the-issue-involve-one-problem-and-one-problem-only)
+    - [Is anyone going to need the feature?](#is-anyone-going-to-need-the-feature)
+    - [Is your question about yt-dlp?](#is-your-question-about-yt-dlp)
+- [Developer Instructions](#developer-instructions)
+    - [Adding new feature or making overarching changes](#adding-new-feature-or-making-overarching-changes)
+    - [Adding support for a new site](#adding-support-for-a-new-site)
+    - [yt-dlp coding conventions](#yt-dlp-coding-conventions)
+        - [Mandatory and optional metafields](#mandatory-and-optional-metafields)
+        - [Provide fallbacks](#provide-fallbacks)
+        - [Regular expressions](#regular-expressions)
+        - [Long lines policy](#long-lines-policy)
+        - [Inline values](#inline-values)
+        - [Collapse fallbacks](#collapse-fallbacks)
+        - [Trailing parentheses](#trailing-parentheses)
+        - [Use convenience conversion and parsing functions](#use-convenience-conversion-and-parsing-functions)
+
+
+
+
 # Opening an Issue
 
 Bugs and suggestions should be reported at: [yt-dlp/yt-dlp/issues](https://github.com/yt-dlp/yt-dlp/issues). Unless you were prompted to or there is another pertinent reason (e.g. GitHub fails to accept the bug report), please do not send bug reports via personal email. For discussions, join us in our [discord server](https://discord.gg/H5MNcFW63r).
