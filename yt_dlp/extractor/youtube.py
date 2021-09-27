@@ -4201,10 +4201,19 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 raise ExtractorError(last_error)
         return webpage, data
 
-    def _extract_tab_endpoint(self, url, item_id, ytcfg=None, fatal=True, default_client='web'):
+    def _extract_data(self, url, item_id, ytcfg=None, fatal=True, webpage_fatal=False, default_client='web'):
+        webpage = data = None
+        if 'webpage' in self._configuration_arg('skip'):
+            webpage, data = self._extract_webpage(url, item_id, fatal=webpage_fatal)
+        ytcfg = ytcfg or self.extract_ytcfg(item_id, webpage)
+        if not data:
+            data = self._fetch_tab_endpoint(url, item_id, ytcfg, fatal=fatal, default_client=default_client)
+        return webpage, data, ytcfg
+
+    def _fetch_tab_endpoint(self, url, item_id, ytcfg=None, fatal=True, default_client='web'):
         if self.is_authenticated:
             msg = 'Authentication with multi-channel and multi-account cookies may not work as expected.'
-            if 'authcheck' not in self._configuration_arg('skip'):
+            if 'authcheck' not in self._configuration_arg('skip') and fatal:
                 raise ExtractorError(
                     msg + ' If you are sure about this, pass --extractor-args youtubetab:skip=authcheck to skip this check', expected=True)
             self.report_warning(msg, only_once=True)
@@ -4262,13 +4271,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     # Youtube music VL channels have an equivalent playlist
                     item_id = item_id[2:]
                     pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
-                elif item_id[:2] == 'MP':
-                    # Youtube music albums (/channel/MP...) have a OLAK playlist that can be extracted from the webpage
-                    item_id = self._search_regex(
-                        r'\\x22audioPlaylistId\\x22:\\x22([0-9A-Za-z_-]+)\\x22',
-                        self._download_webpage('https://music.youtube.com/channel/%s' % item_id, item_id),
-                        'playlist id')
-                    pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
+                # elif item_id[:2] == 'MP':
+                #     # Youtube music albums (/channel/MP...) have a OLAK playlist that can be extracted from the webpage
+                #     # TODO: Broken
+                #     item_id = self._search_regex(
+                #         r'\\x22audioPlaylistId\\x22:\\x22([0-9A-Za-z_-]+)\\x22',
+                #         self._download_webpage('https://music.youtube.com/channel/%s' % item_id, item_id),
+                #         'playlist id')
+                #     pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
                 elif mobj['channel_type'] == 'browse':
                     # Youtube music /browse/ should be changed to /channel/
                     pre = 'https://www.youtube.com/channel/%s' % item_id
@@ -4302,15 +4312,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 return self.url_result(f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key(), video_id=video_id)
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
 
-        webpage = data = None
-        if 'webpage' not in self._configuration_arg('skip'):
-            webpage, data = self._extract_webpage(url, item_id, fatal=False)
-
-        ytcfg = self.extract_ytcfg(item_id, webpage)
-        if not webpage or not data:
-            data = self._extract_tab_endpoint(url, item_id, ytcfg)
-            if not data:
-                raise ExtractorError('This playlist or channel does not exist.', expected=True)  # TODO
+        webpage, data, ytcfg = self._extract_data(url, item_id)
+        if not data:
+            raise ExtractorError('This playlist or channel does not exist.', expected=True)  # TODO
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
@@ -4328,12 +4332,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         pl_id = 'UU%s' % item_id[2:]
                         pl_url = 'https://www.youtube.com/playlist?list=%s%s' % (pl_id, mobj['post'])
                         try:
-                            # TODO: deal with this redirect
-                            pl_webpage, pl_data = self._extract_webpage(pl_url, pl_id)
-                            for alert_type, alert_message in self._extract_alerts(pl_data):
-                                if alert_type == 'error':
-                                    raise ExtractorError('Youtube said: %s' % alert_message)
-                            item_id, url, webpage, data = pl_id, pl_url, pl_webpage, pl_data
+                            webpage, data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True)
+                            item_id, url = pl_id, pl_url
                         except ExtractorError:
                             self.report_warning('The playlist gave error. Falling back to channel URL')
                     else:
