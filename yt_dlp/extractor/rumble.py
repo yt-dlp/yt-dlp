@@ -97,14 +97,17 @@ class RumbleChannelIE(InfoExtractor):
         'expected_warnings': ['Unable to download webpage: HTTP Error 404'],
     }]
 
-    def entries(self, url, id):
+    def entries(self, url, playlist_id):
         for page in itertools.count(1):
-            webpage = self._download_webpage(f'{url}?page={page}', id, fatal=False, note='Downloading page %d' % page)
-            if not webpage:
-                break
+            try:
+                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note='Downloading page %d' % page)
+            except compat_HTTPError as e:
+                if e.code == 404:
+                    break
+                raise
             for video_url in re.findall(r'class=video-item--a\s?href=([^>]+\.html)', webpage):
                 yield self.url_result('https://rumble.com' + video_url)
 
     def _real_extract(self, url):
-        url, id = self._match_valid_url(url).groups()
-        return self.playlist_result(self.entries(url, id), playlist_id=id)
+        url, playlist_id = self._match_valid_url(url).groups()
+        return self.playlist_result(self.entries(url, playlist_id), playlist_id=playlist_id)
