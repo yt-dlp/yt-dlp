@@ -44,7 +44,7 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
                 known_idx = last_seq + begin_index
             if lack_early:
                 # when _get_fragments detects that it's longer than 5 days
-                known_idx = max(known_idx, last_seq - 432000 // fragments[-1]['duration'])
+                known_idx = max(known_idx, last_seq - int(432000 // fragments[-1]['duration']))
             for idx in range(known_idx, last_seq):
                 yield {
                     'frag_index': idx - 1,
