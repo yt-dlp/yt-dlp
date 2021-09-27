@@ -104,6 +104,14 @@ See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how t
 
 If you want to create a build of yt-dlp yourself, you can follow the instructions [here](README.md#compile).
 
+
+## Adding new feature or making overarching changes
+
+Before you start writing code for implementing a new feature, open an issue explaining your feature request and atleast one use case. This allows the maintainers decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
+
+The same applies for overarching changes to the architecture, documentation or style
+
+
 ## Adding support for a new site
 
 If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](README.md#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
@@ -213,6 +221,9 @@ Assume at this point `meta`'s layout is:
 {
     ...
     "summary": "some fancy summary text",
+    "user": {
+        "name": "uploader name"
+    },
     ...
 }
 ```
@@ -230,6 +241,30 @@ description = meta['summary']  # incorrect
 ```
 
 The latter will break extraction process with `KeyError` if `summary` disappears from `meta` at some later time but with the former approach extraction will just go ahead with `description` set to `None` which is perfectly fine (remember `None` is equivalent to the absence of data).
+
+
+If the data is nested, do not use `.get` chains, but instead make use of the utility functions `try_get` or `traverse_obj`
+
+Considering the above `meta` again, assume you want to extract `["user"]["name"]` and put it in the resulting info dict as `uploader`
+
+```python
+uploader = try_get(meta, lambda x: x['user']['name'])  # correct
+```
+or
+```python
+uploader = traverse_obj(meta, ('user', 'name'))  # correct
+```
+
+and not like:
+
+```python
+uploader = meta['user']['name']  # incorrect
+```
+or
+```python
+uploader = meta.get('user', {}).get('name')  # incorrect
+```
+
 
 Similarly, you should pass `fatal=False` when extracting optional data from a webpage with `_search_regex`, `_html_search_regex` or similar methods, for instance:
 
@@ -250,7 +285,31 @@ description = self._search_regex(
 ```
 
 On failure this code will silently continue the extraction with `description` set to `None`. That is useful for metafields that may or may not be present.
- 
+
+
+Another thing to remember is not to try to iterate over `None`
+
+Say you extracted a list of thumbnails into `thumbnail_data` using `try_get` and now want to iterate over them
+
+```python
+thumbnail_data = try_get(...)
+thumbnails = [{
+    'url': item['url']
+} for item in thumbnail_data or []]  # correct
+```
+
+and not like:
+
+```python
+thumbnail_data = try_get(...)
+thumbnails = [{
+    'url': item['url']
+} for item in thumbnail_data]  # incorrect
+```
+
+In the later case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `for item in thumbnail_data or []` avoids this error and results in setting an empty list in `thumbnails` instead.
+
+
 ### Provide fallbacks
 
 When extracting metadata try to do so from multiple sources. For example if `title` is present in several places, try extracting from at least some of them. This makes it more future-proof in case some of the sources become unavailable.
@@ -332,6 +391,17 @@ title = self._search_regex(  # incorrect
     r'<span style="position: absolute; left: 910px; width: 90px; float: right; z-index: 9999;" class="title">(.*?)</span>',
     webpage, 'title', group='title')
 ```
+
+or even
+
+```python
+title = self._search_regex(  # incorrect
+    r'<span style=".*?" class="title">(.*?)</span>',
+    webpage, 'title', group='title')
+```
+
+Here the presence or absence of other attributes including `style` is irrelevent for the data we need, and so the regex must not depend on it
+
 
 ### Long lines policy
 
