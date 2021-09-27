@@ -4240,7 +4240,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if params:
                 return self._extract_response(
                     item_id=item_id, query=params, ep=ep, headers=headers,
-                    ytcfg=ytcfg, fatal=fatal, default_client=default_client)
+                    ytcfg=ytcfg, fatal=fatal, default_client=default_client,
+                    check_get_keys=('contents', 'currentVideoEndpoint'))
 
     @staticmethod
     def _smuggle_data(entries, data):
