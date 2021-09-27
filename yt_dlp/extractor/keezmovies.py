@@ -35,7 +35,7 @@ class KeezMoviesIE(InfoExtractor):
     }]
 
     def _extract_info(self, url, fatal=True):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         display_id = (mobj.group('display_id')
                       if 'display_id' in mobj.groupdict()

@@ -212,7 +212,7 @@ class LivestreamIE(InfoExtractor):
         return self.playlist_result(entries, event_id, event_data['full_name'])
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         event = mobj.group('event_id') or mobj.group('event_name')
         account = mobj.group('account_id') or mobj.group('account_name')
@@ -319,7 +319,7 @@ class LivestreamOriginalIE(InfoExtractor):
         return self.playlist_result(entries, folder_id)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         user = mobj.group('user')
         url_type = mobj.group('type')
         content_id = mobj.group('id')
@@ -359,7 +359,7 @@ class LivestreamShortenerIE(InfoExtractor):
     _VALID_URL = r'https?://livestre\.am/(?P<id>.+)'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         id = mobj.group('id')
         webpage = self._download_webpage(url, id)
 

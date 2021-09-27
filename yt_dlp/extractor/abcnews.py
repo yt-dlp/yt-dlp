@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .amp import AMPIE
 from .common import InfoExtractor
@@ -59,7 +58,7 @@ class AbcNewsVideoIE(AMPIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('display_id')
         video_id = mobj.group('id')
         info_dict = self._extract_feed_info(

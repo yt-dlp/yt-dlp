@@ -92,6 +92,7 @@ To run the test, simply invoke your favorite test runner, or execute a test file
     python -m unittest discover
     python test/test_download.py
     nosetests
+    pytest
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
 

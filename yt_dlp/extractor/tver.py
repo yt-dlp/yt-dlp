@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -38,7 +37,7 @@ class TVerIE(InfoExtractor):
             'https://tver.jp/api/access_token.php', None)['token']
 
     def _real_extract(self, url):
-        path, video_id = re.match(self._VALID_URL, url).groups()
+        path, video_id = self._match_valid_url(url).groups()
         main = self._download_json(
             'https://api.tver.jp/v4/' + path, video_id,
             query={'token': self._TOKEN})['main']

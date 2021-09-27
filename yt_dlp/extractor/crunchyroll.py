@@ -29,6 +29,7 @@ from ..utils import (
     merge_dicts,
     remove_end,
     sanitized_Request,
+    try_get,
     urlencode_postdata,
     xpath_text,
 )
@@ -412,7 +413,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return subtitles
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
 
         if mobj.group('prefix') == 'm':
@@ -458,6 +459,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         video_description = (self._parse_json(self._html_search_regex(
             r'<script[^>]*>\s*.+?\[media_id=%s\].+?({.+?"description"\s*:.+?})\);' % video_id,
             webpage, 'description', default='{}'), video_id) or media_metadata).get('description')
+
+        thumbnails = []
+        thumbnail_url = (self._parse_json(self._html_search_regex(
+            r'<script type="application\/ld\+json">\n\s*(.+?)<\/script>',
+            webpage, 'thumbnail_url', default='{}'), video_id)).get('image')
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': 1920,
+                'height': 1080
+            })
+
         if video_description:
             video_description = lowercase_escape(video_description.replace(r'\r\n', '\n'))
         video_uploader = self._html_search_regex(
@@ -592,21 +605,25 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             r'(?s)<h\d[^>]+\bid=["\']showmedia_about_episode_num[^>]+>(.+?)</h\d',
             webpage, 'series', fatal=False)
 
-        season = episode = episode_number = duration = thumbnail = None
+        season = episode = episode_number = duration = None
 
         if isinstance(metadata, compat_etree_Element):
             season = xpath_text(metadata, 'series_title')
             episode = xpath_text(metadata, 'episode_title')
             episode_number = int_or_none(xpath_text(metadata, 'episode_number'))
             duration = float_or_none(media_metadata.get('duration'), 1000)
-            thumbnail = xpath_text(metadata, 'episode_image_url')
 
         if not episode:
             episode = media_metadata.get('title')
         if not episode_number:
             episode_number = int_or_none(media_metadata.get('episode_number'))
-        if not thumbnail:
-            thumbnail = media_metadata.get('thumbnail', {}).get('url')
+        thumbnail_url = try_get(media, lambda x: x['thumbnail']['url'])
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': 640,
+                'height': 360
+            })
 
         season_number = int_or_none(self._search_regex(
             r'(?s)<h\d[^>]+id=["\']showmedia_about_episode_num[^>]+>.+?</h\d>\s*<h4>\s*Season (\d+)',
@@ -619,7 +636,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             'title': video_title,
             'description': video_description,
             'duration': duration,
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
             'uploader': video_uploader,
             'series': series,
             'season': season,
@@ -636,7 +653,7 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
     _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?!(?:news|anime-news|library|forum|launchcalendar|lineup|store|comics|freetrial|login|media-\d+))(?P<id>[\w\-]+))/?(?:\?|$)'
 
     _TESTS = [{
-        'url': 'http://www.crunchyroll.com/a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
+        'url': 'https://www.crunchyroll.com/a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
         'info_dict': {
             'id': 'a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
             'title': 'A Bridge to the Starry Skies - Hoshizora e Kakaru Hashi'
@@ -661,7 +678,8 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
         show_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            self._add_skip_wall(url), show_id,
+            # https:// gives a 403, but http:// does not
+            self._add_skip_wall(url).replace('https://', 'http://'), show_id,
             headers=self.geo_verification_headers())
         title = self._html_search_meta('name', webpage, default=None)
 

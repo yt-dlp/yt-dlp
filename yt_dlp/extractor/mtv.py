@@ -44,7 +44,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         # Remove the templates, like &device={device}
         return re.sub(r'&[^=]*?={.*?}(?=(&|$))', '', url)
 
-    def _get_feed_url(self, uri):
+    def _get_feed_url(self, uri, url=None):
         return self._FEED_URL
 
     def _get_thumbnail_url(self, uri, itemdoc):
@@ -229,9 +229,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
             data['lang'] = self._LANG
         return data
 
-    def _get_videos_info(self, uri, use_hls=True):
+    def _get_videos_info(self, uri, use_hls=True, url=None):
         video_id = self._id_from_uri(uri)
-        feed_url = self._get_feed_url(uri)
+        feed_url = self._get_feed_url(uri, url)
         info_url = update_url_query(feed_url, self._get_feed_query(uri))
         return self._get_videos_info_from_url(info_url, video_id, use_hls)
 
@@ -313,13 +313,17 @@ class MTVServicesInfoExtractor(InfoExtractor):
             video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
             mgid = video_player['props']['media']['video']['config']['uri']
 
+        if not mgid:
+            mgid = self._search_regex(
+                r'"media":{"video":{"config":{"uri":"(mgid:.*?)"', webpage, 'mgid', default=None)
+
         return mgid
 
     def _real_extract(self, url):
         title = url_basename(url)
         webpage = self._download_webpage(url, title)
         mgid = self._extract_mgid(webpage)
-        videos_info = self._get_videos_info(mgid)
+        videos_info = self._get_videos_info(mgid, url=url)
         return videos_info
 
 
@@ -348,14 +352,14 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
         if mobj:
             return mobj.group('url')
 
-    def _get_feed_url(self, uri):
+    def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)
         config = self._download_json(
             'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge' % uri, video_id)
         return self._remove_template_parameter(config['feedWithQueryParams'])
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         mgid = mobj.group('mgid')
         return self._get_videos_info(mgid)
 
@@ -437,7 +441,7 @@ class MTVVideoIE(MTVServicesInfoExtractor):
         return 'http://mtv.mtvnimages.com/uri/' + uri
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('videoid')
         uri = mobj.groupdict().get('mgid')
         if uri is None:

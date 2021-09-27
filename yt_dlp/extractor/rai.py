@@ -270,7 +270,7 @@ class RaiPlayIE(RaiBaseIE):
     }]
 
     def _real_extract(self, url):
-        base, video_id = re.match(self._VALID_URL, url).groups()
+        base, video_id = self._match_valid_url(url).groups()
 
         media = self._download_json(
             base + '.json', video_id, 'Downloading video JSON')
@@ -281,7 +281,7 @@ class RaiPlayIE(RaiBaseIE):
                     (lambda x: x['rights_management']['rights']['drm'],
                      lambda x: x['program_info']['rights_management']['rights']['drm']),
                     dict):
-                raise ExtractorError('This video is DRM protected.', expected=True)
+                self.report_drm(video_id)
 
         title = media['name']
         video = media['video']
@@ -363,7 +363,7 @@ class RaiPlayPlaylistIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        base, playlist_id = re.match(self._VALID_URL, url).groups()
+        base, playlist_id = self._match_valid_url(url).groups()
 
         program = self._download_json(
             base + '.json', playlist_id, 'Downloading program JSON')

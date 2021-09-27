@@ -1,5 +1,6 @@
 from __future__ import division, unicode_literals
 
+import copy
 import os
 import re
 import sys
@@ -14,6 +15,11 @@ from ..utils import (
     format_bytes,
     shell_quote,
     timeconvert,
+)
+from ..minicurses import (
+    MultilinePrinter,
+    QuietMultilinePrinter,
+    BreaklineStatusPrinter
 )
 
 
@@ -46,8 +52,11 @@ class FileDownloader(object):
     min_filesize:       Skip files smaller than this size
     max_filesize:       Skip files larger than this size
     xattr_set_filesize: Set ytdl.filesize user xattribute with expected size.
-    external_downloader_args:  A list of additional command-line arguments for the
-                        external downloader.
+    external_downloader_args:  A dictionary of downloader keys (in lower case)
+                        and a list of additional command-line arguments for the
+                        executable. Use 'default' as the name for arguments to be
+                        passed to all downloaders. For compatibility with youtube-dl,
+                        a single list of args can also be used
     hls_use_mpegts:     Use the mpegts container for HLS videos.
     http_chunk_size:    Size of a chunk for chunk-based HTTP downloading. May be
                         useful for bypassing bandwidth throttling imposed by
@@ -64,6 +73,7 @@ class FileDownloader(object):
         self.ydl = ydl
         self._progress_hooks = []
         self.params = params
+        self._multiline = None
         self.add_progress_hook(self.report_progress)
 
     @staticmethod
@@ -200,12 +210,12 @@ class FileDownloader(object):
         return filename + '.ytdl'
 
     def try_rename(self, old_filename, new_filename):
+        if old_filename == new_filename:
+            return
         try:
-            if old_filename == new_filename:
-                return
-            os.rename(encodeFilename(old_filename), encodeFilename(new_filename))
+            os.replace(old_filename, new_filename)
         except (IOError, OSError) as err:
-            self.report_error('unable to rename file: %s' % error_to_compat_str(err))
+            self.report_error(f'unable to rename file: {err}')
 
     def try_utime(self, filename, last_modified_hdr):
         """Try to set the last-modified time of the given file."""
@@ -232,20 +242,35 @@ class FileDownloader(object):
         """Report destination filename."""
         self.to_screen('[download] Destination: ' + filename)
 
-    def _report_progress_status(self, msg, is_last_line=False):
+    def _prepare_multiline_status(self, lines):
+        if self.params.get('quiet'):
+            self._multiline = QuietMultilinePrinter()
+        elif self.params.get('progress_with_newline', False):
+            self._multiline = BreaklineStatusPrinter(sys.stderr, lines)
+        elif self.params.get('noprogress', False):
+            self._multiline = None
+        else:
+            self._multiline = MultilinePrinter(sys.stderr, lines)
+
+    def _finish_multiline_status(self):
+        if self._multiline is not None:
+            self._multiline.end()
+
+    def _report_progress_status(self, msg, is_last_line=False, progress_line=None):
         fullmsg = '[download] ' + msg
         if self.params.get('progress_with_newline', False):
             self.to_screen(fullmsg)
+        elif progress_line is not None and self._multiline is not None:
+            self._multiline.print_at_line(fullmsg, progress_line)
         else:
-            if compat_os_name == 'nt':
-                prev_len = getattr(self, '_report_progress_prev_line_length',
-                                   0)
+            if compat_os_name == 'nt' or not sys.stderr.isatty():
+                prev_len = getattr(self, '_report_progress_prev_line_length', 0)
                 if prev_len > len(fullmsg):
                     fullmsg += ' ' * (prev_len - len(fullmsg))
                 self._report_progress_prev_line_length = len(fullmsg)
                 clear_line = '\r'
             else:
-                clear_line = ('\r\x1b[K' if sys.stderr.isatty() else '\r')
+                clear_line = '\r\x1b[K'
             self.to_screen(clear_line + fullmsg, skip_eol=not is_last_line)
         self.to_console_title('yt-dlp ' + msg)
 
@@ -262,7 +287,8 @@ class FileDownloader(object):
                     s['_elapsed_str'] = self.format_seconds(s['elapsed'])
                     msg_template += ' in %(_elapsed_str)s'
                 self._report_progress_status(
-                    msg_template % s, is_last_line=True)
+                    msg_template % s, is_last_line=True, progress_line=s.get('progress_idx'))
+            return
 
         if self.params.get('noprogress'):
             return
@@ -307,7 +333,7 @@ class FileDownloader(object):
             else:
                 msg_template = '%(_percent_str)s % at %(_speed_str)s ETA %(_eta_str)s'
 
-        self._report_progress_status(msg_template % s)
+        self._report_progress_status(msg_template % s, progress_line=s.get('progress_idx'))
 
     def report_resuming_byte(self, resume_len):
         """Report attempt to resume at given byte."""
@@ -319,12 +345,9 @@ class FileDownloader(object):
             '[download] Got server HTTP error: %s. Retrying (attempt %d of %s) ...'
             % (error_to_compat_str(err), count, self.format_retries(retries)))
 
-    def report_file_already_downloaded(self, file_name):
+    def report_file_already_downloaded(self, *args, **kwargs):
         """Report file has already been fully downloaded."""
-        try:
-            self.to_screen('[download] %s has already been downloaded' % file_name)
-        except UnicodeEncodeError:
-            self.to_screen('[download] The file has already been downloaded')
+        return self.ydl.report_file_already_downloaded(*args, **kwargs)
 
     def report_unable_to_resume(self):
         """Report it was impossible to resume download."""
@@ -342,7 +365,7 @@ class FileDownloader(object):
         """
 
         nooverwrites_and_exists = (
-            not self.params.get('overwrites', subtitle)
+            not self.params.get('overwrites', True)
             and os.path.exists(encodeFilename(filename))
         )
 
@@ -360,7 +383,7 @@ class FileDownloader(object):
                     'filename': filename,
                     'status': 'finished',
                     'total_bytes': os.path.getsize(encodeFilename(filename)),
-                })
+                }, info_dict)
                 return True, False
 
         if subtitle is False:
@@ -388,7 +411,16 @@ class FileDownloader(object):
         """Real download process. Redefine in subclasses."""
         raise NotImplementedError('This method must be implemented by subclasses')
 
-    def _hook_progress(self, status):
+    def _hook_progress(self, status, info_dict):
+        if not self._progress_hooks:
+            return
+        info_dict = dict(info_dict)
+        for key in ('__original_infodict', '__postprocessors'):
+            info_dict.pop(key, None)
+        # youtube-dl passes the same status object to all the hooks.
+        # Some third party scripts seems to be relying on this.
+        # So keep this behavior if possible
+        status['info_dict'] = copy.deepcopy(info_dict)
         for ph in self._progress_hooks:
             ph(status)
 

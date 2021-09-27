@@ -130,7 +130,7 @@ class MetacafeIE(InfoExtractor):
 
     def _real_extract(self, url):
         # Extract id and simplified title from URL
-        video_id, display_id = re.match(self._VALID_URL, url).groups()
+        video_id, display_id = self._match_valid_url(url).groups()
 
         # the video may come from an external site
         m_external = re.match(r'^(\w{2})-(.*)$', video_id)

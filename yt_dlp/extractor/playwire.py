@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -46,7 +45,7 @@ class PlaywireIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         publisher_id, video_id = mobj.group('publisher_id'), mobj.group('id')
 
         player = self._download_json(

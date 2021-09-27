@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -14,7 +13,7 @@ class MinotoIE(InfoExtractor):
     _VALID_URL = r'(?:minoto:|https?://(?:play|iframe|embed)\.minoto-video\.com/(?P<player_id>[0-9]+)/)(?P<id>[a-zA-Z0-9]+)'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         player_id = mobj.group('player_id') or '1'
         video_id = mobj.group('id')
         video_data = self._download_json('http://play.minoto-video.com/%s/%s.js' % (player_id, video_id), video_id)

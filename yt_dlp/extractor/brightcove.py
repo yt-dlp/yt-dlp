@@ -11,7 +11,6 @@ from ..compat import (
     compat_etree_fromstring,
     compat_HTTPError,
     compat_parse_qs,
-    compat_urllib_parse_urlparse,
     compat_urlparse,
     compat_xml_parse_error,
 )
@@ -26,6 +25,7 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     parse_iso8601,
+    parse_qs,
     smuggle_url,
     str_or_none,
     try_get,
@@ -177,7 +177,7 @@ class BrightcoveLegacyIE(InfoExtractor):
             flashvars = {}
 
         data_url = object_doc.attrib.get('data', '')
-        data_url_params = compat_parse_qs(compat_urllib_parse_urlparse(data_url).query)
+        data_url_params = parse_qs(data_url)
 
         def find_param(name):
             if name in flashvars:
@@ -290,7 +290,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         url = re.sub(r'(?<=[?&])(videoI(d|D)|idVideo|bctid)', '%40videoPlayer', url)
         # Change bckey (used by bcove.me urls) to playerKey
         url = re.sub(r'(?<=[?&])bckey', 'playerKey', url)
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         query_str = mobj.group('query')
         query = compat_urlparse.parse_qs(query_str)
 
@@ -472,7 +472,7 @@ class BrightcoveNewIE(AdobePassIE):
         title = json_data['name'].strip()
 
         num_drm_sources = 0
-        formats = []
+        formats, subtitles = [], {}
         sources = json_data.get('sources') or []
         for source in sources:
             container = source.get('container')
@@ -488,12 +488,16 @@ class BrightcoveNewIE(AdobePassIE):
             elif ext == 'm3u8' or container == 'M2TS':
                 if not src:
                     continue
-                formats.extend(self._extract_m3u8_formats(
-                    src, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False))
+                f, subs = self._extract_m3u8_formats_and_subtitles(
+                    src, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
+                formats.extend(f)
+                subtitles = self._merge_subtitles(subtitles, subs)
             elif ext == 'mpd':
                 if not src:
                     continue
-                formats.extend(self._extract_mpd_formats(src, video_id, 'dash', fatal=False))
+                f, subs = self._extract_mpd_formats_and_subtitles(src, video_id, 'dash', fatal=False)
+                formats.extend(f)
+                subtitles = self._merge_subtitles(subtitles, subs)
             else:
                 streaming_src = source.get('streaming_src')
                 stream_name, app_name = source.get('stream_name'), source.get('app_name')
@@ -549,14 +553,13 @@ class BrightcoveNewIE(AdobePassIE):
                     error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
             elif (not self.get_param('allow_unplayable_formats')
                     and sources and num_drm_sources == len(sources)):
-                raise ExtractorError('This video is DRM protected.', expected=True)
+                self.report_drm(video_id)
 
         self._sort_formats(formats)
 
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
 
-        subtitles = {}
         for text_track in json_data.get('text_tracks', []):
             if text_track.get('kind') != 'captions':
                 continue
@@ -595,7 +598,7 @@ class BrightcoveNewIE(AdobePassIE):
             'ip_blocks': smuggled_data.get('geo_ip_blocks'),
         })
 
-        account_id, player_id, embed, content_type, video_id = re.match(self._VALID_URL, url).groups()
+        account_id, player_id, embed, content_type, video_id = self._match_valid_url(url).groups()
 
         policy_key_id = '%s_%s' % (account_id, player_id)
         policy_key = self._downloader.cache.load('brightcove', policy_key_id)

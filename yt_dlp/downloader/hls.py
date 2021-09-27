@@ -4,8 +4,8 @@ import re
 import io
 import binascii
 
-from ..downloader import _get_real_downloader
-from .fragment import FragmentFD, can_decrypt_frag
+from ..downloader import get_suitable_downloader
+from .fragment import FragmentFD
 from .external import FFmpegFD
 
 from ..compat import (
@@ -29,7 +29,7 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False, with_crypto=can_decrypt_frag):
+    def can_download(manifest, info_dict, allow_unplayable_formats=False):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -56,9 +56,6 @@ class HlsFD(FragmentFD):
 
         def check_results():
             yield not info_dict.get('is_live')
-            is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
-            yield with_crypto or not is_aes128_enc
-            yield not (is_aes128_enc and r'#EXT-X-BYTERANGE' in manifest)
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
         return all(check_results())
@@ -75,21 +72,17 @@ class HlsFD(FragmentFD):
             if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
                 self.report_error('pycryptodome not found. Please install')
                 return False
-            if self.can_download(s, info_dict, with_crypto=True):
-                self.report_warning('pycryptodome is needed to download this file natively')
             fd = FFmpegFD(self.ydl, self.params)
             self.report_warning(
                 '%s detected unsupported features; extraction will be delegated to %s' % (self.FD_NAME, fd.get_basename()))
-            # TODO: Make progress updates work without hooking twice
-            # for ph in self._progress_hooks:
-            #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_dict)
 
         is_webvtt = info_dict['ext'] == 'vtt'
         if is_webvtt:
             real_downloader = None  # Packing the fragments is not currently supported for external downloader
         else:
-            real_downloader = _get_real_downloader(info_dict, 'm3u8_frag_urls', self.params, None)
+            real_downloader = get_suitable_downloader(
+                info_dict, self.params, None, protocol='m3u8_frag_urls', to_stdout=(filename == '-'))
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:
@@ -133,7 +126,7 @@ class HlsFD(FragmentFD):
         if real_downloader:
             self._prepare_external_frag_download(ctx)
         else:
-            self._prepare_and_start_frag_download(ctx)
+            self._prepare_and_start_frag_download(ctx, info_dict)
 
         extra_state = ctx.setdefault('extra_state', {})
 
@@ -174,6 +167,7 @@ class HlsFD(FragmentFD):
                         'byte_range': byte_range,
                         'media_sequence': media_sequence,
                     })
+                    media_sequence += 1
 
                 elif line.startswith('#EXT-X-MAP'):
                     if format_index and discontinuity_count != format_index:
@@ -198,6 +192,7 @@ class HlsFD(FragmentFD):
                         'byte_range': byte_range,
                         'media_sequence': media_sequence
                     })
+                    media_sequence += 1
 
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
@@ -256,35 +251,47 @@ class HlsFD(FragmentFD):
             def pack_fragment(frag_content, frag_index):
                 output = io.StringIO()
                 adjust = 0
+                overflow = False
+                mpegts_last = None
                 for block in webvtt.parse_fragment(frag_content):
                     if isinstance(block, webvtt.CueBlock):
+                        extra_state['webvtt_mpegts_last'] = mpegts_last
+                        if overflow:
+                            extra_state['webvtt_mpegts_adjust'] += 1
+                            overflow = False
                         block.start += adjust
                         block.end += adjust
 
                         dedup_window = extra_state.setdefault('webvtt_dedup_window', [])
-                        cue = block.as_json
 
-                        # skip the cue if an identical one appears
-                        # in the window of potential duplicates
-                        # and prune the window of unviable candidates
+                        ready = []
+
                         i = 0
-                        skip = True
+                        is_new = True
                         while i < len(dedup_window):
-                            window_cue = dedup_window[i]
-                            if window_cue == cue:
-                                break
-                            if window_cue['end'] >= cue['start']:
-                                i += 1
+                            wcue = dedup_window[i]
+                            wblock = webvtt.CueBlock.from_json(wcue)
+                            i += 1
+                            if wblock.hinges(block):
+                                wcue['end'] = block.end
+                                is_new = False
                                 continue
+                            if wblock == block:
+                                is_new = False
+                                continue
+                            if wblock.end > block.start:
+                                continue
+                            ready.append(wblock)
+                            i -= 1
                             del dedup_window[i]
-                        else:
-                            skip = False
 
-                        if skip:
-                            continue
+                        if is_new:
+                            dedup_window.append(block.as_json)
+                        for block in ready:
+                            block.write_into(output)
 
-                        # add the cue to the window
-                        dedup_window.append(cue)
+                        # we only emit cues once they fall out of the duplicate window
+                        continue
                     elif isinstance(block, webvtt.Magic):
                         # take care of MPEG PES timestamp overflow
                         if block.mpegts is None:
@@ -292,9 +299,9 @@ class HlsFD(FragmentFD):
                         extra_state.setdefault('webvtt_mpegts_adjust', 0)
                         block.mpegts += extra_state['webvtt_mpegts_adjust'] << 33
                         if block.mpegts < extra_state.get('webvtt_mpegts_last', 0):
-                            extra_state['webvtt_mpegts_adjust'] += 1
+                            overflow = True
                             block.mpegts += 1 << 33
-                        extra_state['webvtt_mpegts_last'] = block.mpegts
+                        mpegts_last = block.mpegts
 
                         if frag_index == 1:
                             extra_state['webvtt_mpegts'] = block.mpegts or 0
@@ -319,6 +326,19 @@ class HlsFD(FragmentFD):
                     block.write_into(output)
 
                 return output.getvalue().encode('utf-8')
+
+            def fin_fragments():
+                dedup_window = extra_state.get('webvtt_dedup_window')
+                if not dedup_window:
+                    return b''
+
+                output = io.StringIO()
+                for cue in dedup_window:
+                    webvtt.CueBlock.from_json(cue).write_into(output)
+
+                return output.getvalue().encode('utf-8')
+
+            self.download_and_append_fragments(
+                ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
         else:
-            pack_fragment = None
-        return self.download_and_append_fragments(ctx, fragments, info_dict, pack_fragment)
+            return self.download_and_append_fragments(ctx, fragments, info_dict)

@@ -6,13 +6,13 @@ import json
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_urlparse,
     compat_HTTPError,
 )
 from ..utils import (
     ExtractorError,
     int_or_none,
     parse_iso8601,
+    parse_qs,
 )
 
 
@@ -212,13 +212,13 @@ class VevoPlaylistIE(VevoBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
         playlist_kind = mobj.group('kind')
 
         webpage = self._download_webpage(url, playlist_id)
 
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         index = qs.get('index', [None])[0]
 
         if index:

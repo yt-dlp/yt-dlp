@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-import re
-import json
 
 from .common import InfoExtractor
 from .gigya import GigyaBaseIE
@@ -17,6 +15,7 @@ from ..utils import (
     str_or_none,
     strip_or_none,
     url_or_none,
+    urlencode_postdata
 )
 
 
@@ -47,7 +46,7 @@ class CanvasIE(InfoExtractor):
     _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v1'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         site_id, video_id = mobj.group('site_id'), mobj.group('id')
 
         data = None
@@ -192,7 +191,7 @@ class CanvasEenIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         site_id, display_id = mobj.group('site_id'), mobj.group('id')
 
         webpage = self._download_webpage(url, display_id)
@@ -265,7 +264,7 @@ class VrtNUIE(GigyaBaseIE):
         'expected_warnings': ['Unable to download asset JSON', 'is not a supported codec', 'Unknown MIME type'],
     }]
     _NETRC_MACHINE = 'vrtnu'
-    _APIKEY = '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy'
+    _APIKEY = '3_qhEcPa5JGFROVwu5SWKqJ4mVOIkwlFNMSKwzPDAh8QZOtHqu6L4nD5Q7lk0eXOOG'
     _CONTEXT_ID = 'R3595707040'
 
     def _real_initialize(self):
@@ -276,35 +275,41 @@ class VrtNUIE(GigyaBaseIE):
         if username is None:
             return
 
-        auth_data = {
-            'APIKey': self._APIKEY,
-            'targetEnv': 'jssdk',
-            'loginID': username,
-            'password': password,
-            'authMode': 'cookie',
-        }
+        auth_info = self._download_json(
+            'https://accounts.vrt.be/accounts.login', None,
+            note='Login data', errnote='Could not get Login data',
+            headers={}, data=urlencode_postdata({
+                'loginID': username,
+                'password': password,
+                'sessionExpiration': '-2',
+                'APIKey': self._APIKEY,
+                'targetEnv': 'jssdk',
+            }))
 
-        auth_info = self._gigya_login(auth_data)
+        if auth_info.get('errorDetails'):
+            raise ExtractorError('Unable to login: VrtNU said: ' + auth_info.get('errorDetails'), expected=True)
 
         # Sometimes authentication fails for no good reason, retry
         login_attempt = 1
         while login_attempt <= 3:
             try:
-                # When requesting a token, no actual token is returned, but the
-                # necessary cookies are set.
+                self._request_webpage('https://token.vrt.be/vrtnuinitlogin',
+                                      None, note='Requesting XSRF Token', errnote='Could not get XSRF Token',
+                                      query={'provider': 'site', 'destination': 'https://www.vrt.be/vrtnu/'})
+
+                post_data = {
+                    'UID': auth_info['UID'],
+                    'UIDSignature': auth_info['UIDSignature'],
+                    'signatureTimestamp': auth_info['signatureTimestamp'],
+                    'client_id': 'vrtnu-site',
+                    '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
+                }
+
                 self._request_webpage(
-                    'https://token.vrt.be',
+                    'https://login.vrt.be/perform_login',
                     None, note='Requesting a token', errnote='Could not get a token',
-                    headers={
-                        'Content-Type': 'application/json',
-                        'Referer': 'https://www.vrt.be/vrtnu/',
-                    },
-                    data=json.dumps({
-                        'uid': auth_info['UID'],
-                        'uidsig': auth_info['UIDSignature'],
-                        'ts': auth_info['signatureTimestamp'],
-                        'email': auth_info['profile']['email'],
-                    }).encode('utf-8'))
+                    headers={}, data=urlencode_postdata(post_data))
+
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
                     login_attempt += 1

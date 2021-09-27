@@ -5,7 +5,7 @@ import os
 
 from ..compat import compat_str
 from ..utils import (
-    cli_configuration_args,
+    _configuration_args,
     encodeFilename,
     PostProcessingError,
 )
@@ -52,6 +52,7 @@ class PostProcessor(object):
             return self._downloader.report_warning(text, *args, **kwargs)
 
     def report_error(self, text, *args, **kwargs):
+        # Exists only for compatibility. Do not use
         if self._downloader:
             return self._downloader.report_error(text, *args, **kwargs)
 
@@ -110,18 +111,9 @@ class PostProcessor(object):
         except Exception:
             self.report_warning(errnote)
 
-    def _configuration_args(self, exe, keys=None, default=[], use_compat=True):
-        pp_key = self.pp_key().lower()
-        exe = exe.lower()
-        root_key = exe if pp_key == exe else '%s+%s' % (pp_key, exe)
-        keys = ['%s%s' % (root_key, k) for k in (keys or [''])]
-        if root_key in keys:
-            keys += [root_key] + ([] if pp_key == exe else [(self.pp_key(), exe)]) + ['default']
-        else:
-            use_compat = False
-        return cli_configuration_args(
-            self.get_param('postprocessor_args'),
-            keys, default, use_compat)
+    def _configuration_args(self, exe, *args, **kwargs):
+        return _configuration_args(
+            self.pp_key(), self.get_param('postprocessor_args'), exe, *args, **kwargs)
 
 
 class AudioConversionError(PostProcessingError):

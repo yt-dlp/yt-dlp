@@ -119,7 +119,7 @@ class WimTVIE(InfoExtractor):
             thumb_id, width)
 
     def _real_extract(self, url):
-        urlc = re.match(self._VALID_URL, url).groupdict()
+        urlc = self._match_valid_url(url).groupdict()
         video_id = urlc['id']
         stream_type = is_live = None
         if urlc['type'] in {'live', 'cast'}:

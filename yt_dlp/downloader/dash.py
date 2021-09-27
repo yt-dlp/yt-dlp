@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from ..downloader import _get_real_downloader
+from ..downloader import get_suitable_downloader
 from .fragment import FragmentFD
 
 from ..utils import urljoin
@@ -15,11 +15,15 @@ class DashSegmentsFD(FragmentFD):
     FD_NAME = 'dashsegments'
 
     def real_download(self, filename, info_dict):
+        if info_dict.get('is_live'):
+            self.report_error('Live DASH videos are not supported')
+
         fragment_base_url = info_dict.get('fragment_base_url')
         fragments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']
 
-        real_downloader = _get_real_downloader(info_dict, 'dash_frag_urls', self.params, None)
+        real_downloader = get_suitable_downloader(
+            info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
         ctx = {
             'filename': filename,
@@ -29,7 +33,7 @@ class DashSegmentsFD(FragmentFD):
         if real_downloader:
             self._prepare_external_frag_download(ctx)
         else:
-            self._prepare_and_start_frag_download(ctx)
+            self._prepare_and_start_frag_download(ctx, info_dict)
 
         fragments_to_download = []
         frag_index = 0
@@ -54,9 +58,6 @@ class DashSegmentsFD(FragmentFD):
             info_copy = info_dict.copy()
             info_copy['fragments'] = fragments_to_download
             fd = real_downloader(self.ydl, self.params)
-            # TODO: Make progress updates work without hooking twice
-            # for ph in self._progress_hooks:
-            #     fd.add_progress_hook(ph)
             return fd.real_download(filename, info_copy)
 
         return self.download_and_append_fragments(ctx, fragments_to_download, info_dict)

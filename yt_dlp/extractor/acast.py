@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -80,7 +79,7 @@ class ACastIE(ACastBaseIE):
     }]
 
     def _real_extract(self, url):
-        channel, display_id = re.match(self._VALID_URL, url).groups()
+        channel, display_id = self._match_valid_url(url).groups()
         episode = self._call_api(
             '%s/episodes/%s' % (channel, display_id),
             display_id, {'showInfo': 'true'})

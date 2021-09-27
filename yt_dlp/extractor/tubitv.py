@@ -141,5 +141,5 @@ class TubiTvShowIE(InfoExtractor):
                 ie=TubiTvIE.ie_key(), video_id=episode_id)
 
     def _real_extract(self, url):
-        show_name = re.match(self._VALID_URL, url).group('show_name')
+        show_name = self._match_valid_url(url).group('show_name')
         return self.playlist_result(self._entries(url, show_name), playlist_id=show_name)

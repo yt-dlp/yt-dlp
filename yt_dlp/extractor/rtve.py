@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import base64
 import io
-import re
 import sys
 
 from .common import InfoExtractor
@@ -216,7 +215,7 @@ class RTVELiveIE(RTVEALaCartaIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
 
         webpage = self._download_webpage(url, video_id)

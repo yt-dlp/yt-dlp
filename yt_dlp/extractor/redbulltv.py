@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -161,7 +160,7 @@ class RedBullTVRrnContentIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        region, lang, rrn_id = re.search(self._VALID_URL, url).groups()
+        region, lang, rrn_id = self._match_valid_url(url).groups()
         rrn_id += ':%s-%s' % (lang, region.upper())
         return self.url_result(
             'https://www.redbull.com/embed/' + rrn_id,
@@ -204,7 +203,7 @@ class RedBullIE(InfoExtractor):
     _LAT_FALLBACK_MAP = ['ar', 'bo', 'car', 'cl', 'co', 'mx', 'pe']
 
     def _real_extract(self, url):
-        region, lang, filter_type, display_id = re.search(self._VALID_URL, url).groups()
+        region, lang, filter_type, display_id = self._match_valid_url(url).groups()
         if filter_type == 'episodes':
             filter_type = 'episode-videos'
         elif filter_type == 'live':

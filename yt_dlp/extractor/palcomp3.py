@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -64,7 +63,7 @@ class PalcoMP3BaseIE(InfoExtractor):
         self._ARTIST_FIELDS_TMPL = self._ARTIST_FIELDS_TMPL % self._MUSIC_FIELDS
 
     def _real_extract(self, url):
-        artist_slug, music_slug = re.match(self._VALID_URL, url).groups()
+        artist_slug, music_slug = self._match_valid_url(url).groups()
         artist_fields = self._ARTIST_FIELDS_TMPL % music_slug
         music = self._call_api(artist_slug, artist_fields)['artist']['music']
         return self._parse_music(music)
@@ -111,7 +110,7 @@ class PalcoMP3ArtistIE(PalcoMP3BaseIE):
 
     @ classmethod
     def suitable(cls, url):
-        return False if re.match(PalcoMP3IE._VALID_URL, url) else super(PalcoMP3ArtistIE, cls).suitable(url)
+        return False if PalcoMP3IE._match_valid_url(url) else super(PalcoMP3ArtistIE, cls).suitable(url)
 
     def _real_extract(self, url):
         artist_slug = self._match_id(url)

@@ -4,13 +4,16 @@ from __future__ import unicode_literals
 import hashlib
 import itertools
 import json
+import functools
 import re
+import math
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
     compat_str,
     compat_parse_qs,
     compat_urlparse,
+    compat_urllib_parse_urlparse
 )
 from ..utils import (
     ExtractorError,
@@ -20,10 +23,12 @@ from ..utils import (
     try_get,
     smuggle_url,
     str_or_none,
+    str_to_int,
     strip_jsonp,
     unified_timestamp,
     unsmuggle_url,
     urlencode_postdata,
+    OnDemandPagedList
 )
 
 
@@ -37,7 +42,7 @@ class BiliBiliIE(InfoExtractor):
                                 video/[aA][vV]|
                                 anime/(?P<anime_id>\d+)/play\#
                             )(?P<id>\d+)|
-                            video/[bB][vV](?P<id_bv>[^/?#&]+)
+                            (s/)?video/[bB][vV](?P<id_bv>[^/?#&]+)
                         )
                         (?:/?\?p=(?P<page>\d+))?
                     '''
@@ -140,7 +145,7 @@ class BiliBiliIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id_bv') or mobj.group('id')
 
         av_id, bv_id = self._get_video_id_set(video_id, mobj.group('id_bv') is not None)
@@ -535,6 +540,75 @@ class BilibiliChannelIE(InfoExtractor):
         return self.playlist_result(self._entries(list_id), list_id)
 
 
+class BilibiliCategoryIE(InfoExtractor):
+    IE_NAME = 'Bilibili category extractor'
+    _MAX_RESULTS = 1000000
+    _VALID_URL = r'https?://www\.bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/v/kichiku/mad',
+        'info_dict': {
+            'id': 'kichiku: mad',
+            'title': 'kichiku: mad'
+        },
+        'playlist_mincount': 45,
+        'params': {
+            'playlistend': 45
+        }
+    }]
+
+    def _fetch_page(self, api_url, num_pages, query, page_num):
+        parsed_json = self._download_json(
+            api_url, query, query={'Search_key': query, 'pn': page_num},
+            note='Extracting results from page %s of %s' % (page_num, num_pages))
+
+        video_list = try_get(parsed_json, lambda x: x['data']['archives'], list)
+        if not video_list:
+            raise ExtractorError('Failed to retrieve video list for page %d' % page_num)
+
+        for video in video_list:
+            yield self.url_result(
+                'https://www.bilibili.com/video/%s' % video['bvid'], 'BiliBili', video['bvid'])
+
+    def _entries(self, category, subcategory, query):
+        # map of categories : subcategories : RIDs
+        rid_map = {
+            'kichiku': {
+                'mad': 26,
+                'manual_vocaloid': 126,
+                'guide': 22,
+                'theatre': 216,
+                'course': 127
+            },
+        }
+
+        if category not in rid_map:
+            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (category, list(rid_map.keys())))
+
+        if subcategory not in rid_map[category]:
+            raise ExtractorError('The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (subcategory, list(rid_map[category].keys())))
+
+        rid_value = rid_map[category][subcategory]
+
+        api_url = 'https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp' % rid_value
+        page_json = self._download_json(api_url, query, query={'Search_key': query, 'pn': '1'})
+        page_data = try_get(page_json, lambda x: x['data']['page'], dict)
+        count, size = int_or_none(page_data.get('count')), int_or_none(page_data.get('size'))
+        if count is None or not size:
+            raise ExtractorError('Failed to calculate either page count or size')
+
+        num_pages = math.ceil(count / size)
+
+        return OnDemandPagedList(functools.partial(
+            self._fetch_page, api_url, num_pages, query), size)
+
+    def _real_extract(self, url):
+        u = compat_urllib_parse_urlparse(url)
+        category, subcategory = u.path.split('/')[2:4]
+        query = '%s: %s' % (category, subcategory)
+
+        return self.playlist_result(self._entries(category, subcategory, query), query, query)
+
+
 class BiliBiliSearchIE(SearchInfoExtractor):
     IE_DESC = 'Bilibili video search, "bilisearch" keyword'
     _MAX_RESULTS = 100000
@@ -701,3 +775,142 @@ class BiliBiliPlayerIE(InfoExtractor):
         return self.url_result(
             'http://www.bilibili.tv/video/av%s/' % video_id,
             ie=BiliBiliIE.ie_key(), video_id=video_id)
+
+
+class BiliIntlBaseIE(InfoExtractor):
+    _API_URL = 'https://api.bili{}/intl/gateway{}'
+
+    def _call_api(self, type, endpoint, id):
+        return self._download_json(self._API_URL.format(type, endpoint), id)['data']
+
+    def _get_subtitles(self, type, ep_id):
+        sub_json = self._call_api(type, f'/m/subtitle?ep_id={ep_id}&platform=web', ep_id)
+        subtitles = {}
+        for sub in sub_json.get('subtitles', []):
+            sub_url = sub.get('url')
+            if not sub_url:
+                continue
+            subtitles.setdefault(sub.get('key', 'en'), []).append({
+                'url': sub_url,
+            })
+        return subtitles
+
+    def _get_formats(self, type, ep_id):
+        video_json = self._call_api(type, f'/web/playurl?ep_id={ep_id}&platform=web', ep_id)
+        if not video_json:
+            self.raise_login_required(method='cookies')
+        video_json = video_json['playurl']
+        formats = []
+        for vid in video_json.get('video', []):
+            video_res = vid.get('video_resource') or {}
+            video_info = vid.get('stream_info') or {}
+            if not video_res.get('url'):
+                continue
+            formats.append({
+                'url': video_res['url'],
+                'ext': 'mp4',
+                'format_note': video_info.get('desc_words'),
+                'width': video_res.get('width'),
+                'height': video_res.get('height'),
+                'vbr': video_res.get('bandwidth'),
+                'acodec': 'none',
+                'vcodec': video_res.get('codecs'),
+                'filesize': video_res.get('size'),
+            })
+        for aud in video_json.get('audio_resource', []):
+            if not aud.get('url'):
+                continue
+            formats.append({
+                'url': aud['url'],
+                'ext': 'mp4',
+                'abr': aud.get('bandwidth'),
+                'acodec': aud.get('codecs'),
+                'vcodec': 'none',
+                'filesize': aud.get('size'),
+            })
+
+        self._sort_formats(formats)
+        return formats
+
+    def _extract_ep_info(self, type, episode_data, ep_id):
+        return {
+            'id': ep_id,
+            'title': episode_data.get('long_title') or episode_data['title'],
+            'thumbnail': episode_data.get('cover'),
+            'episode_number': str_to_int(episode_data.get('title')),
+            'formats': self._get_formats(type, ep_id),
+            'subtitles': self._get_subtitles(type, ep_id),
+            'extractor_key': BiliIntlIE.ie_key(),
+        }
+
+
+class BiliIntlIE(BiliIntlBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bili(?P<type>bili\.tv|intl.com)/(?:[a-z]{2}/)?play/(?P<season_id>\d+)/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.bilibili.tv/en/play/34613/341736',
+        'info_dict': {
+            'id': '341736',
+            'ext': 'mp4',
+            'title': 'The First Night',
+            'thumbnail': 'https://i0.hdslb.com/bfs/intl/management/91e30e5521235d9b163339a26a0b030ebda54310.png',
+            'episode_number': 2,
+        },
+        'params': {
+            'format': 'bv',
+        },
+    }, {
+        'url': 'https://www.biliintl.com/en/play/34613/341736',
+        'info_dict': {
+            'id': '341736',
+            'ext': 'mp4',
+            'title': 'The First Night',
+            'thumbnail': 'https://i0.hdslb.com/bfs/intl/management/91e30e5521235d9b163339a26a0b030ebda54310.png',
+            'episode_number': 2,
+        },
+        'params': {
+            'format': 'bv',
+        },
+    }]
+
+    def _real_extract(self, url):
+        type, season_id, id = self._match_valid_url(url).groups()
+        data_json = self._call_api(type, f'/web/view/ogv_collection?season_id={season_id}', id)
+        episode_data = next(
+            episode for episode in data_json.get('episodes', [])
+            if str(episode.get('ep_id')) == id)
+        return self._extract_ep_info(type, episode_data, id)
+
+
+class BiliIntlSeriesIE(BiliIntlBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bili(?P<type>bili\.tv|intl.com)/(?:[a-z]{2}/)?play/(?P<id>\d+)$'
+    _TESTS = [{
+        'url': 'https://www.bilibili.tv/en/play/34613',
+        'playlist_mincount': 15,
+        'info_dict': {
+            'id': '34613',
+        },
+        'params': {
+            'skip_download': True,
+            'format': 'bv',
+        },
+    }, {
+        'url': 'https://www.biliintl.com/en/play/34613',
+        'playlist_mincount': 15,
+        'info_dict': {
+            'id': '34613',
+        },
+        'params': {
+            'skip_download': True,
+            'format': 'bv',
+        },
+    }]
+
+    def _entries(self, id, type):
+        data_json = self._call_api(type, f'/web/view/ogv_collection?season_id={id}', id)
+        for episode in data_json.get('episodes', []):
+            episode_id = str(episode.get('ep_id'))
+            yield self._extract_ep_info(type, episode, episode_id)
+
+    def _real_extract(self, url):
+        type, id = self._match_valid_url(url).groups()
+        return self.playlist_result(self._entries(id, type), playlist_id=id)

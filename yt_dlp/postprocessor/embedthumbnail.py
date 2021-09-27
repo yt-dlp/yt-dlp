@@ -222,8 +222,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/mov')
 
         if success and temp_filename != filename:
-            os.remove(encodeFilename(filename))
-            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+            os.replace(temp_filename, filename)
 
         self.try_utime(filename, mtime, mtime)
 

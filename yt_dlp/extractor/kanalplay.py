@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -52,7 +51,7 @@ class KanalPlayIE(InfoExtractor):
         return {'sv': [{'ext': 'srt', 'data': self._fix_subtitles(subs)}]} if subs else {}
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         channel_id = mobj.group('channel_id')
 

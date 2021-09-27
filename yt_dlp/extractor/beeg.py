@@ -3,10 +3,10 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_urlparse,
 )
 from ..utils import (
     int_or_none,
+    parse_qs,
     unified_timestamp,
 )
 
@@ -57,7 +57,7 @@ class BeegIE(InfoExtractor):
             query = {
                 'v': 2,
             }
-            qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+            qs = parse_qs(url)
             t = qs.get('t', [''])[0].split('-')
             if len(t) > 1:
                 query.update({

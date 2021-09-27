@@ -4,13 +4,10 @@ from __future__ import unicode_literals
 import re
 
 from .theplatform import ThePlatformBaseIE
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
 from ..utils import (
     ExtractorError,
     int_or_none,
+    parse_qs,
     update_url_query,
 )
 
@@ -30,36 +27,68 @@ class MediasetIE(ThePlatformBaseIE):
                     '''
     _TESTS = [{
         # full episode
-        'url': 'https://www.mediasetplay.mediaset.it/video/hellogoodbye/quarta-puntata_FAFU000000661824',
-        'md5': '9b75534d42c44ecef7bf1ffeacb7f85d',
+        'url': 'https://www.mediasetplay.mediaset.it/video/mrwronglezionidamore/episodio-1_F310575103000102',
+        'md5': 'a7e75c6384871f322adb781d3bd72c26',
         'info_dict': {
-            'id': 'FAFU000000661824',
+            'id': 'F310575103000102',
             'ext': 'mp4',
-            'title': 'Quarta puntata',
+            'title': 'Episodio 1',
             'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 1414.26,
-            'upload_date': '20161107',
-            'series': 'Hello Goodbye',
-            'timestamp': 1478532900,
-            'uploader': 'Rete 4',
-            'uploader_id': 'R4',
+            'duration': 2682.0,
+            'upload_date': '20210530',
+            'series': 'Mr Wrong - Lezioni d\'amore',
+            'timestamp': 1622413946,
+            'uploader': 'Canale 5',
+            'uploader_id': 'C5',
         },
     }, {
         'url': 'https://www.mediasetplay.mediaset.it/video/matrix/puntata-del-25-maggio_F309013801000501',
-        'md5': '288532f0ad18307705b01e581304cd7b',
+        'md5': '1276f966ac423d16ba255ce867de073e',
         'info_dict': {
             'id': 'F309013801000501',
             'ext': 'mp4',
             'title': 'Puntata del 25 maggio',
             'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 6565.007,
-            'upload_date': '20180526',
+            'duration': 6565.008,
+            'upload_date': '20200903',
             'series': 'Matrix',
-            'timestamp': 1527326245,
+            'timestamp': 1599172492,
             'uploader': 'Canale 5',
             'uploader_id': 'C5',
+        },
+    }, {
+        'url': 'https://www.mediasetplay.mediaset.it/video/cameracafe5/episodio-69-pezzo-di-luna_F303843101017801',
+        'md5': 'd1650ac9ff944f185556126a736df148',
+        'info_dict': {
+            'id': 'F303843101017801',
+            'ext': 'mp4',
+            'title': 'Episodio 69 - Pezzo di luna',
+            'description': '',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 263.008,
+            'upload_date': '20200902',
+            'series': 'Camera Café 5',
+            'timestamp': 1599064700,
+            'uploader': 'Italia 1',
+            'uploader_id': 'I1',
+        },
+    }, {
+        'url': 'https://www.mediasetplay.mediaset.it/video/cameracafe5/episodio-51-tu-chi-sei_F303843107000601',
+        'md5': '567e9ad375b7a27a0e370650f572a1e3',
+        'info_dict': {
+            'id': 'F303843107000601',
+            'ext': 'mp4',
+            'title': 'Episodio 51 - Tu chi sei?',
+            'description': '',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 367.021,
+            'upload_date': '20200902',
+            'series': 'Camera Café 5',
+            'timestamp': 1599069817,
+            'uploader': 'Italia 1',
+            'uploader_id': 'I1',
         },
     }, {
         # clip
@@ -96,7 +125,7 @@ class MediasetIE(ThePlatformBaseIE):
     @staticmethod
     def _extract_urls(ie, webpage):
         def _qs(url):
-            return compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+            return parse_qs(url)
 
         def _program_guid(qs):
             return qs.get('programGuid', [None])[0]
@@ -135,36 +164,38 @@ class MediasetIE(ThePlatformBaseIE):
         formats = []
         subtitles = {}
         first_e = None
-        for asset_type in ('SD', 'HD'):
-            # TODO: fixup ISM+none manifest URLs
-            for f in ('MPEG4', 'MPEG-DASH+none', 'M3U+none'):
-                try:
-                    tp_formats, tp_subtitles = self._extract_theplatform_smil(
-                        update_url_query('http://link.theplatform.%s/s/%s' % (self._TP_TLD, tp_path), {
-                            'mbr': 'true',
-                            'formats': f,
-                            'assetTypes': asset_type,
-                        }), guid, 'Downloading %s %s SMIL data' % (f.split('+')[0], asset_type))
-                except ExtractorError as e:
-                    if not first_e:
-                        first_e = e
-                    break
-                for tp_f in tp_formats:
-                    tp_f['quality'] = 1 if asset_type == 'HD' else 0
-                formats.extend(tp_formats)
-                subtitles = self._merge_subtitles(subtitles, tp_subtitles)
+        asset_type = 'geoNo:HD,browser,geoIT|geoNo:HD,geoIT|geoNo:SD,browser,geoIT|geoNo:SD,geoIT|geoNo|HD|SD'
+        # TODO: fixup ISM+none manifest URLs
+        for f in ('MPEG4', 'MPEG-DASH+none', 'M3U+none'):
+            try:
+                tp_formats, tp_subtitles = self._extract_theplatform_smil(
+                    update_url_query('http://link.theplatform.%s/s/%s' % (self._TP_TLD, tp_path), {
+                        'mbr': 'true',
+                        'formats': f,
+                        'assetTypes': asset_type,
+                    }), guid, 'Downloading %s SMIL data' % (f.split('+')[0]))
+            except ExtractorError as e:
+                if not first_e:
+                    first_e = e
+                break
+            formats.extend(tp_formats)
+            subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if first_e and not formats:
             raise first_e
         self._sort_formats(formats)
 
-        fields = []
-        for templ, repls in (('tvSeason%sNumber', ('', 'Episode')), ('mediasetprogram$%s', ('brandTitle', 'numberOfViews', 'publishInfo'))):
-            fields.extend(templ % repl for repl in repls)
         feed_data = self._download_json(
-            'https://feed.entertainment.tv.theplatform.eu/f/PR1GhC/mediaset-prod-all-programs/guid/-/' + guid,
-            guid, fatal=False, query={'fields': ','.join(fields)})
+            'https://feed.entertainment.tv.theplatform.eu/f/PR1GhC/mediaset-prod-all-programs-v2/guid/-/' + guid,
+            guid, fatal=False)
         if feed_data:
             publish_info = feed_data.get('mediasetprogram$publishInfo') or {}
+            thumbnails = feed_data.get('thumbnails') or {}
+            thumbnail = None
+            for key, value in thumbnails.items():
+                if key.startswith('image_keyframe_poster-'):
+                    thumbnail = value.get('url')
+                    break
+
             info.update({
                 'episode_number': int_or_none(feed_data.get('tvSeasonEpisodeNumber')),
                 'season_number': int_or_none(feed_data.get('tvSeasonNumber')),
@@ -172,6 +203,7 @@ class MediasetIE(ThePlatformBaseIE):
                 'uploader': publish_info.get('description'),
                 'uploader_id': publish_info.get('channel'),
                 'view_count': int_or_none(feed_data.get('mediasetprogram$numberOfViews')),
+                'thumbnail': thumbnail,
             })
 
         info.update({

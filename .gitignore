@@ -2,7 +2,8 @@
 *.conf
 *.spec
 cookies
-cookies.txt
+*cookies.txt
+.netrc
 
 # Downloaded
 *.srt
@@ -19,6 +20,8 @@ cookies.txt
 *.wav
 *.ape
 *.mkv
+*.flac
+*.avi
 *.swf
 *.part
 *.part-*
@@ -33,17 +36,19 @@ cookies.txt
 *.info.json
 *.live_chat.json
 *.jpg
+*.jpeg
 *.png
 *.webp
 *.annotations.xml
 *.description
 
 # Allow config/media files in testdata
-!test/testdata/**
+!test/**
 
 # Python
 *.pyc
 *.pyo
+.pytest_cache
 wine-py2exe/
 py2exe.log
 build/
@@ -78,6 +83,7 @@ README.txt
 *.tar.gz
 *.zsh
 *.spec
+test/testdata/player-*.js
 
 # Binary
 /youtube-dl

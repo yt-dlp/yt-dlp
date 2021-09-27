@@ -25,6 +25,7 @@ from ..utils import (
     OnDemandPagedList,
     parse_filesize,
     parse_iso8601,
+    parse_qs,
     RegexNotFoundError,
     sanitized_Request,
     smuggle_url,
@@ -253,6 +254,30 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                             'quality': 1,
                         }
 
+        jwt_response = self._download_json(
+            'https://vimeo.com/_rv/viewer', video_id, note='Downloading jwt token', fatal=False) or {}
+        if not jwt_response.get('jwt'):
+            return
+        headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
+        original_response = self._download_json(
+            f'https://api.vimeo.com/videos/{video_id}', video_id,
+            headers=headers, fatal=False) or {}
+        for download_data in original_response.get('download') or {}:
+            download_url = download_data.get('link')
+            if not download_url or download_data.get('quality') != 'source':
+                continue
+            query = parse_qs(download_url)
+            return {
+                'url': download_url,
+                'ext': determine_ext(query.get('filename', [''])[0].lower()),
+                'format_id': download_data.get('public_name', 'Original'),
+                'width': int_or_none(download_data.get('width')),
+                'height': int_or_none(download_data.get('height')),
+                'fps': int_or_none(download_data.get('fps')),
+                'filesize': int_or_none(download_data.get('size')),
+                'quality': 1,
+            }
+
 
 class VimeoIE(VimeoBaseInfoExtractor):
     """Information extractor for vimeo.com."""
@@ -425,6 +450,22 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'upload_date': '20111220',
                 'description': 'md5:ae23671e82d05415868f7ad1aec21147',
             },
+        },
+        {
+            'note': 'Contains original format not accessible in webpage',
+            'url': 'https://vimeo.com/393756517',
+            'md5': 'c464af248b592190a5ffbb5d33f382b0',
+            'info_dict': {
+                'id': '393756517',
+                'ext': 'mov',
+                'timestamp': 1582642091,
+                'uploader_id': 'frameworkla',
+                'title': 'Straight To Hell - Sabrina: Netflix',
+                'uploader': 'Framework Studio',
+                'description': 'md5:f2edc61af3ea7a5592681ddbb683db73',
+                'upload_date': '20200225',
+            },
+            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             # only available via https://vimeo.com/channels/tributes/6213729 and
@@ -632,7 +673,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             headers['Referer'] = url
 
         # Extract ID from URL
-        video_id, unlisted_hash = re.match(self._VALID_URL, url).groups()
+        video_id, unlisted_hash = self._match_valid_url(url).groups()
         if unlisted_hash:
             token = self._download_json(
                 'https://vimeo.com/_rv/jwt', video_id, headers={
@@ -1147,7 +1188,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         self._login()
 
     def _real_extract(self, url):
-        page_url, video_id = re.match(self._VALID_URL, url).groups()
+        page_url, video_id = self._match_valid_url(url).groups()
         data = self._download_json(
             page_url.replace('/review/', '/review/data/'), video_id)
         if data.get('isLocked') is True:

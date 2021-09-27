@@ -15,8 +15,10 @@ import PyInstaller.__main__
 
 arch = sys.argv[1] if len(sys.argv) > 1 else platform.architecture()[0][:2]
 assert arch in ('32', '64')
-print('Building %sbit version' % arch)
 _x86 = '_x86' if arch == '32' else ''
+
+opts = sys.argv[2:] or ['--onefile']
+print(f'Building {arch}bit version with options {opts}')
 
 FILE_DESCRIPTION = 'yt-dlp%s' % (' (32 Bit)' if _x86 else '')
 
@@ -72,11 +74,12 @@ excluded_modules = ['test', 'ytdlp_plugins', 'youtube-dl', 'youtube-dlc']
 
 PyInstaller.__main__.run([
     '--name=yt-dlp%s' % _x86,
-    '--onefile',
-    '--icon=devscripts/cloud.ico',
+    '--icon=devscripts/logo.ico',
     *[f'--exclude-module={module}' for module in excluded_modules],
     *[f'--hidden-import={module}' for module in dependancies],
     '--upx-exclude=vcruntime140.dll',
+    '--noconfirm',
+    *opts,
     'yt_dlp/__main__.py',
 ])
 SetVersion('dist/yt-dlp%s.exe' % _x86, VERSION_FILE)

@@ -13,7 +13,9 @@ pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites com
 .PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
 clean-test:
-	rm -rf *.dump *.part* *.ytdl *.info.json *.mp4 *.m4a *.flv *.mp3 *.avi *.mkv *.webm *.3gp *.wav *.ape *.swf *.jpg *.png *.frag *.frag.urls *.frag.aria2
+	rm -rf *.3gp *.annotations.xml *.ape *.avi *.description *.dump *.flac *.flv *.frag *.frag.aria2 *.frag.urls \
+	*.info.json *.jpeg *.jpg *.live_chat.json *.m4a *.m4v *.mkv *.mp3 *.mp4 *.ogg *.opus *.part* *.png *.sbv *.srt \
+	*.swf *.swp *.ttml *.vtt *.wav *.webm *.webp *.ytdl test/testdata/player-*.js
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
 clean-cache:
@@ -49,23 +51,11 @@ codetest:
 	flake8 .
 
 test:
-	#nosetests --with-coverage --cover-package=yt_dlp --cover-html --verbose --processes 4 test
-	nosetests --verbose test
+	$(PYTHON) -m pytest
 	$(MAKE) codetest
 
-# Keep this list in sync with devscripts/run_tests.sh
 offlinetest: codetest
-	$(PYTHON) -m nose --verbose test \
-		--exclude test_age_restriction.py \
-		--exclude test_download.py \
-		--exclude test_iqiyi_sdk_interpreter.py \
-		--exclude test_overwrites.py \
-		--exclude test_socks.py \
-		--exclude test_subtitles.py \
-		--exclude test_write_annotations.py \
-		--exclude test_youtube_lists.py \
-		--exclude test_youtube_signature.py \
-		--exclude test_post_hooks.py
+	$(PYTHON) -m pytest -k "not download"
 
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
@@ -122,7 +112,7 @@ _EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
-yt-dlp.tar.gz: README.md yt-dlp.1 completions Changelog.md AUTHORS
+yt-dlp.tar.gz: yt-dlp README.md supportedsites.md yt-dlp.1 completions Changelog.md AUTHORS
 	@tar -czf $(DESTDIR)/yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
@@ -136,7 +126,7 @@ yt-dlp.tar.gz: README.md yt-dlp.1 completions Changelog.md AUTHORS
 		devscripts test \
 		Changelog.md AUTHORS LICENSE README.md supportedsites.md \
 		Makefile MANIFEST.in yt-dlp.1 completions \
-		setup.py setup.cfg yt-dlp
+		setup.py setup.cfg yt-dlp yt_dlp
 
 AUTHORS: .mailmap
 	git shortlog -s -n | cut -f2 | sort > AUTHORS

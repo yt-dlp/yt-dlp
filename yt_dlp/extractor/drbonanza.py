@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -26,7 +25,7 @@ class DRBonanzaIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id, display_id = mobj.group('id', 'display_id')
 
         webpage = self._download_webpage(url, display_id)

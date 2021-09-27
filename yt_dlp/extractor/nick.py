@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .mtv import MTVServicesInfoExtractor
 from ..utils import update_url_query
@@ -68,6 +67,7 @@ class NickIE(MTVServicesInfoExtractor):
             'description': 'md5:9d65a66df38e02254852794b2809d1cf',
             'title': 'Blue\'s Imagination Station',
         },
+        'skip': 'Not accessible?'
     }]
 
     def _get_feed_query(self, uri):
@@ -76,12 +76,8 @@ class NickIE(MTVServicesInfoExtractor):
             'mgid': uri,
         }
 
-    def _extract_mgid(self, webpage):
-        mgid = self._search_regex(r'"media":{"video":{"config":{"uri":"(mgid:.*?)"', webpage, 'mgid', default=None)
-        return mgid
-
     def _real_extract(self, url):
-        domain, video_type, display_id = re.match(self._VALID_URL, url).groups()
+        domain, video_type, display_id = self._match_valid_url(url).groups()
         if video_type.startswith("episodes"):
             return super()._real_extract(url)
         video_data = self._download_json(
@@ -121,7 +117,7 @@ class NickBrIE(MTVServicesInfoExtractor):
     }]
 
     def _real_extract(self, url):
-        domain, display_id = re.match(self._VALID_URL, url).groups()
+        domain, display_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, display_id)
         uri = self._search_regex(
             r'data-(?:contenturi|mgid)="([^"]+)', webpage, 'mgid')

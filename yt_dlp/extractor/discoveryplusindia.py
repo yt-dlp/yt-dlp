@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from ..compat import compat_str
 from ..utils import try_get
@@ -63,8 +62,7 @@ class DiscoveryPlusIndiaShowIE(InfoExtractor):
         'info_dict': {
             'id': 'how-do-they-do-it',
         },
-    }
-    ]
+    }]
 
     def _entries(self, show_name):
         headers = {
@@ -96,5 +94,5 @@ class DiscoveryPlusIndiaShowIE(InfoExtractor):
                 page_num += 1
 
     def _real_extract(self, url):
-        show_name = re.match(self._VALID_URL, url).group('show_name')
+        show_name = self._match_valid_url(url).group('show_name')
         return self.playlist_result(self._entries(show_name), playlist_id=show_name)

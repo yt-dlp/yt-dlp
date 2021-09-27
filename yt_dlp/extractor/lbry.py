@@ -6,16 +6,15 @@ import json
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_parse_qs,
     compat_str,
     compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
 )
 from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
     mimetype2ext,
+    parse_qs,
     OnDemandPagedList,
     try_get,
     urljoin,
@@ -29,14 +28,19 @@ class LBRYBaseIE(InfoExtractor):
     _SUPPORTED_STREAM_TYPES = ['video', 'audio']
 
     def _call_api_proxy(self, method, display_id, params, resource):
-        return self._download_json(
+        response = self._download_json(
             'https://api.lbry.tv/api/v1/proxy',
             display_id, 'Downloading %s JSON metadata' % resource,
             headers={'Content-Type': 'application/json-rpc'},
             data=json.dumps({
                 'method': method,
                 'params': params,
-            }).encode())['result']
+            }).encode())
+        err = response.get('error')
+        if err:
+            raise ExtractorError(
+                f'{self.IE_NAME} said: {err.get("code")} - {err.get("message")}', expected=True)
+        return response['result']
 
     def _resolve_url(self, url, display_id, resource):
         return self._call_api_proxy(
@@ -256,7 +260,7 @@ class LBRYChannelIE(LBRYBaseIE):
         result = self._resolve_url(
             'lbry://' + display_id, display_id, 'channel')
         claim_id = result['claim_id']
-        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        qs = parse_qs(url)
         content = qs.get('content', [None])[0]
         params = {
             'fee_amount': qs.get('fee_amount', ['>=0'])[0],

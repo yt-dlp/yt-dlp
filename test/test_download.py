@@ -10,12 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import (
     assertGreaterEqual,
+    expect_info_dict,
     expect_warnings,
     get_params,
     gettestcases,
-    expect_info_dict,
-    try_rm,
+    is_download_test,
     report_warning,
+    try_rm,
 )
 
 
@@ -64,12 +65,15 @@ def _file_md5(fn):
 defs = gettestcases()
 
 
+@is_download_test
 class TestDownload(unittest.TestCase):
     # Parallel testing in nosetests. See
     # http://nose.readthedocs.org/en/latest/doc_tests/test_multiprocess/multiprocess.html
     _multiprocess_shared_ = True
 
     maxDiff = None
+
+    COMPLETED_TESTS = {}
 
     def __str__(self):
         """Identify each test with the `add_ie` attribute, if available."""
@@ -92,6 +96,9 @@ class TestDownload(unittest.TestCase):
 def generator(test_case, tname):
 
     def test_template(self):
+        if self.COMPLETED_TESTS.get(tname):
+            return
+        self.COMPLETED_TESTS[tname] = True
         ie = yt_dlp.extractor.get_info_extractor(test_case['name'])()
         other_ies = [get_info_extractor(ie_key)() for ie_key in test_case.get('add_ie', [])]
         is_playlist = any(k.startswith('playlist') for k in test_case)
@@ -106,8 +113,13 @@ def generator(test_case, tname):
 
         for tc in test_cases:
             info_dict = tc.get('info_dict', {})
-            if not (info_dict.get('id') and info_dict.get('ext')):
-                raise Exception('Test definition incorrect. The output file cannot be known. Are both \'id\' and \'ext\' keys present?')
+            params = tc.get('params', {})
+            if not info_dict.get('id'):
+                raise Exception('Test definition incorrect. \'id\' key is not present')
+            elif not info_dict.get('ext'):
+                if params.get('skip_download') and params.get('ignore_no_formats_error'):
+                    continue
+                raise Exception('Test definition incorrect. The output file cannot be known. \'ext\' key is not present')
 
         if 'skip' in test_case:
             print_skipping(test_case['skip'])
@@ -135,7 +147,7 @@ def generator(test_case, tname):
         expect_warnings(ydl, test_case.get('expected_warnings', []))
 
         def get_tc_filename(tc):
-            return ydl.prepare_filename(tc.get('info_dict', {}))
+            return ydl.prepare_filename(dict(tc.get('info_dict', {})))
 
         res_dict = None
 
@@ -248,16 +260,33 @@ def generator(test_case, tname):
 
 
 # And add them to TestDownload
-for n, test_case in enumerate(defs):
-    tname = 'test_' + str(test_case['name'])
-    i = 1
-    while hasattr(TestDownload, tname):
-        tname = 'test_%s_%d' % (test_case['name'], i)
-        i += 1
+tests_counter = {}
+for test_case in defs:
+    name = test_case['name']
+    i = tests_counter.get(name, 0)
+    tests_counter[name] = i + 1
+    tname = f'test_{name}_{i}' if i else f'test_{name}'
     test_method = generator(test_case, tname)
     test_method.__name__ = str(tname)
     ie_list = test_case.get('add_ie')
     test_method.add_ie = ie_list and ','.join(ie_list)
+    setattr(TestDownload, test_method.__name__, test_method)
+    del test_method
+
+
+def batch_generator(name, num_tests):
+
+    def test_template(self):
+        for i in range(num_tests):
+            getattr(self, f'test_{name}_{i}' if i else f'test_{name}')()
+
+    return test_template
+
+
+for name, num_tests in tests_counter.items():
+    test_method = batch_generator(name, num_tests)
+    test_method.__name__ = f'test_{name}_all'
+    test_method.add_ie = ''
     setattr(TestDownload, test_method.__name__, test_method)
     del test_method
 

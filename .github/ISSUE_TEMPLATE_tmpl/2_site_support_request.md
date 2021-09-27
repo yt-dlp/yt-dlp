@@ -32,6 +32,7 @@ Carefully read and work through this check list in order to prevent the most com
 - [ ] I've verified that I'm running yt-dlp version **%(version)s**
 - [ ] I've checked that all provided URLs are alive and playable in a browser
 - [ ] I've checked that none of provided URLs violate any copyrights
+- [ ] The provided URLs do not contain any DRM to the best of my knowledge
 - [ ] I've searched the bugtracker for similar site support requests including closed ones
 
 

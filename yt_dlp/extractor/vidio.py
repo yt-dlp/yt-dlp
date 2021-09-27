@@ -1,10 +1,10 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     ExtractorError,
     get_element_by_class,
     int_or_none,
@@ -47,10 +47,19 @@ class VidioBaseIE(InfoExtractor):
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(login_form), expected_status=[302, 401])
 
         if login_post_urlh.status == 401:
-            reason = get_element_by_class('onboarding-form__general-error', login_post)
-            if reason:
+            if get_element_by_class('onboarding-content-register-popup__title', login_post):
                 raise ExtractorError(
-                    'Unable to log in: %s' % reason, expected=True)
+                    'Unable to log in: The provided email has not registered yet.', expected=True)
+
+            reason = get_element_by_class('onboarding-form__general-error', login_post) or get_element_by_class('onboarding-modal__title', login_post)
+            if 'Akun terhubung ke' in reason:
+                raise ExtractorError(
+                    'Unable to log in: Your account is linked to a social media account. '
+                    'Use --cookies to provide account credentials instead', expected=True)
+            elif reason:
+                subreason = get_element_by_class('onboarding-modal__description-text', login_post) or ''
+                raise ExtractorError(
+                    'Unable to log in: %s. %s' % (reason, clean_html(subreason)), expected=True)
             raise ExtractorError('Unable to log in')
 
     def _real_initialize(self):
@@ -100,7 +109,7 @@ class VidioIE(VidioBaseIE):
     }]
 
     def _real_extract(self, url):
-        match = re.match(self._VALID_URL, url).groupdict()
+        match = self._match_valid_url(url).groupdict()
         video_id, display_id = match.get('id'), match.get('display_id')
         data = self._call_api('https://api.vidio.com/videos/' + video_id, display_id)
         video = data['videos'][0]
@@ -184,7 +193,7 @@ class VidioPremierIE(VidioBaseIE):
 
     def _real_extract(self, url):
         url, idata = unsmuggle_url(url, {})
-        playlist_id, display_id = re.match(self._VALID_URL, url).groups()
+        playlist_id, display_id = self._match_valid_url(url).groups()
 
         playlist_url = idata.get('url')
         if playlist_url:  # Smuggled data contains an API URL. Download only that playlist
@@ -226,7 +235,7 @@ class VidioLiveIE(VidioBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id, display_id = re.match(self._VALID_URL, url).groups()
+        video_id, display_id = self._match_valid_url(url).groups()
         stream_data = self._call_api(
             'https://www.vidio.com/api/livestreamings/%s/detail' % video_id, display_id)
         stream_meta = stream_data['livestreamings'][0]
@@ -238,8 +247,7 @@ class VidioLiveIE(VidioBaseIE):
         formats = []
         if stream_meta.get('is_drm'):
             if not self.get_param('allow_unplayable_formats'):
-                self.raise_no_formats(
-                    'This video is DRM protected.', expected=True)
+                self.report_drm(video_id)
         if stream_meta.get('is_premium'):
             sources = self._download_json(
                 'https://www.vidio.com/interactions_stream.json?video_id=%s&type=livestreamings' % video_id,

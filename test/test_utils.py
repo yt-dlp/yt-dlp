@@ -62,6 +62,7 @@ from yt_dlp.utils import (
     parse_iso8601,
     parse_resolution,
     parse_bitrate,
+    parse_qs,
     pkcs1pad,
     read_batch_urls,
     sanitize_filename,
@@ -117,8 +118,6 @@ from yt_dlp.compat import (
     compat_getenv,
     compat_os_name,
     compat_setenv,
-    compat_urlparse,
-    compat_parse_qs,
 )
 
 
@@ -688,38 +687,36 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(isinstance(data, bytes))
 
     def test_update_url_query(self):
-        def query_dict(url):
-            return compat_parse_qs(compat_urlparse.urlparse(url).query)
-        self.assertEqual(query_dict(update_url_query(
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'quality': ['HD'], 'format': ['mp4']})),
-            query_dict('http://example.com/path?quality=HD&format=mp4'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?quality=HD&format=mp4'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'system': ['LINUX', 'WINDOWS']})),
-            query_dict('http://example.com/path?system=LINUX&system=WINDOWS'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?system=LINUX&system=WINDOWS'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'fields': 'id,formats,subtitles'})),
-            query_dict('http://example.com/path?fields=id,formats,subtitles'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?fields=id,formats,subtitles'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'fields': ('id,formats,subtitles', 'thumbnails')})),
-            query_dict('http://example.com/path?fields=id,formats,subtitles&fields=thumbnails'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?fields=id,formats,subtitles&fields=thumbnails'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path?manifest=f4m', {'manifest': []})),
-            query_dict('http://example.com/path'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path?system=LINUX&system=WINDOWS', {'system': 'LINUX'})),
-            query_dict('http://example.com/path?system=LINUX'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?system=LINUX'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'fields': b'id,formats,subtitles'})),
-            query_dict('http://example.com/path?fields=id,formats,subtitles'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?fields=id,formats,subtitles'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'width': 1080, 'height': 720})),
-            query_dict('http://example.com/path?width=1080&height=720'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?width=1080&height=720'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'bitrate': 5020.43})),
-            query_dict('http://example.com/path?bitrate=5020.43'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?bitrate=5020.43'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'test': '第二行тест'})),
-            query_dict('http://example.com/path?test=%E7%AC%AC%E4%BA%8C%E8%A1%8C%D1%82%D0%B5%D1%81%D1%82'))
+            parse_qs('http://example.com/path?test=%E7%AC%AC%E4%BA%8C%E8%A1%8C%D1%82%D0%B5%D1%81%D1%82'))
 
     def test_multipart_encode(self):
         self.assertEqual(
@@ -1207,35 +1204,12 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
             '9999 51')
 
     def test_match_str(self):
-        self.assertRaises(ValueError, match_str, 'xy>foobar', {})
+        # Unary
         self.assertFalse(match_str('xy', {'x': 1200}))
         self.assertTrue(match_str('!xy', {'x': 1200}))
         self.assertTrue(match_str('x', {'x': 1200}))
         self.assertFalse(match_str('!x', {'x': 1200}))
         self.assertTrue(match_str('x', {'x': 0}))
-        self.assertFalse(match_str('x>0', {'x': 0}))
-        self.assertFalse(match_str('x>0', {}))
-        self.assertTrue(match_str('x>?0', {}))
-        self.assertTrue(match_str('x>1K', {'x': 1200}))
-        self.assertFalse(match_str('x>2K', {'x': 1200}))
-        self.assertTrue(match_str('x>=1200 & x < 1300', {'x': 1200}))
-        self.assertFalse(match_str('x>=1100 & x < 1200', {'x': 1200}))
-        self.assertFalse(match_str('y=a212', {'y': 'foobar42'}))
-        self.assertTrue(match_str('y=foobar42', {'y': 'foobar42'}))
-        self.assertFalse(match_str('y!=foobar42', {'y': 'foobar42'}))
-        self.assertTrue(match_str('y!=foobar2', {'y': 'foobar42'}))
-        self.assertFalse(match_str(
-            'like_count > 100 & dislike_count <? 50 & description',
-            {'like_count': 90, 'description': 'foo'}))
-        self.assertTrue(match_str(
-            'like_count > 100 & dislike_count <? 50 & description',
-            {'like_count': 190, 'description': 'foo'}))
-        self.assertFalse(match_str(
-            'like_count > 100 & dislike_count <? 50 & description',
-            {'like_count': 190, 'dislike_count': 60, 'description': 'foo'}))
-        self.assertFalse(match_str(
-            'like_count > 100 & dislike_count <? 50 & description',
-            {'like_count': 190, 'dislike_count': 10}))
         self.assertTrue(match_str('is_live', {'is_live': True}))
         self.assertFalse(match_str('is_live', {'is_live': False}))
         self.assertFalse(match_str('is_live', {'is_live': None}))
@@ -1248,6 +1222,75 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertTrue(match_str('title', {'title': ''}))
         self.assertFalse(match_str('!title', {'title': 'abc'}))
         self.assertFalse(match_str('!title', {'title': ''}))
+
+        # Numeric
+        self.assertFalse(match_str('x>0', {'x': 0}))
+        self.assertFalse(match_str('x>0', {}))
+        self.assertTrue(match_str('x>?0', {}))
+        self.assertTrue(match_str('x>1K', {'x': 1200}))
+        self.assertFalse(match_str('x>2K', {'x': 1200}))
+        self.assertTrue(match_str('x>=1200 & x < 1300', {'x': 1200}))
+        self.assertFalse(match_str('x>=1100 & x < 1200', {'x': 1200}))
+
+        # String
+        self.assertFalse(match_str('y=a212', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y=foobar42', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y!=foobar42', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y!=foobar2', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y^=foo', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y!^=foo', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y^=bar', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y!^=bar', {'y': 'foobar42'}))
+        self.assertRaises(ValueError, match_str, 'x^=42', {'x': 42})
+        self.assertTrue(match_str('y*=bar', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y!*=bar', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y*=baz', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y!*=baz', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y$=42', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y$=43', {'y': 'foobar42'}))
+
+        # And
+        self.assertFalse(match_str(
+            'like_count > 100 & dislike_count <? 50 & description',
+            {'like_count': 90, 'description': 'foo'}))
+        self.assertTrue(match_str(
+            'like_count > 100 & dislike_count <? 50 & description',
+            {'like_count': 190, 'description': 'foo'}))
+        self.assertFalse(match_str(
+            'like_count > 100 & dislike_count <? 50 & description',
+            {'like_count': 190, 'dislike_count': 60, 'description': 'foo'}))
+        self.assertFalse(match_str(
+            'like_count > 100 & dislike_count <? 50 & description',
+            {'like_count': 190, 'dislike_count': 10}))
+
+        # Regex
+        self.assertTrue(match_str(r'x~=\bbar', {'x': 'foo bar'}))
+        self.assertFalse(match_str(r'x~=\bbar.+', {'x': 'foo bar'}))
+        self.assertFalse(match_str(r'x~=^FOO', {'x': 'foo bar'}))
+        self.assertTrue(match_str(r'x~=(?i)^FOO', {'x': 'foo bar'}))
+
+        # Quotes
+        self.assertTrue(match_str(r'x^="foo"', {'x': 'foo "bar"'}))
+        self.assertFalse(match_str(r'x^="foo  "', {'x': 'foo "bar"'}))
+        self.assertFalse(match_str(r'x$="bar"', {'x': 'foo "bar"'}))
+        self.assertTrue(match_str(r'x$=" \"bar\""', {'x': 'foo "bar"'}))
+
+        # Escaping &
+        self.assertFalse(match_str(r'x=foo & bar', {'x': 'foo & bar'}))
+        self.assertTrue(match_str(r'x=foo \& bar', {'x': 'foo & bar'}))
+        self.assertTrue(match_str(r'x=foo \& bar & x^=foo', {'x': 'foo & bar'}))
+        self.assertTrue(match_str(r'x="foo \& bar" & x^=foo', {'x': 'foo & bar'}))
+
+        # Example from docs
+        self.assertTrue(match_str(
+            r"!is_live & like_count>?100 & description~='(?i)\bcats \& dogs\b'",
+            {'description': 'Raining Cats & Dogs'}))
+
+        # Incomplete
+        self.assertFalse(match_str('id!=foo', {'id': 'foo'}, True))
+        self.assertTrue(match_str('x', {'id': 'foo'}, True))
+        self.assertTrue(match_str('!x', {'id': 'foo'}, True))
+        self.assertFalse(match_str('x', {'id': 'foo'}, False))
 
     def test_parse_dfxp_time_expr(self):
         self.assertEqual(parse_dfxp_time_expr(None), None)
@@ -1537,8 +1580,11 @@ Line 1
         self.assertEqual(LazyList(it).exhaust(), it)
         self.assertEqual(LazyList(it)[5], it[5])
 
+        self.assertEqual(LazyList(it)[5:], it[5:])
+        self.assertEqual(LazyList(it)[:5], it[:5])
         self.assertEqual(LazyList(it)[::2], it[::2])
         self.assertEqual(LazyList(it)[1::2], it[1::2])
+        self.assertEqual(LazyList(it)[5::-1], it[5::-1])
         self.assertEqual(LazyList(it)[6:2:-2], it[6:2:-2])
         self.assertEqual(LazyList(it)[::-1], it[::-1])
 
@@ -1550,6 +1596,7 @@ Line 1
 
         self.assertEqual(list(LazyList(it).reverse()), it[::-1])
         self.assertEqual(list(LazyList(it).reverse()[1:3:7]), it[::-1][1:3:7])
+        self.assertEqual(list(LazyList(it).reverse()[::-1]), it)
 
     def test_LazyList_laziness(self):
 

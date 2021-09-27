@@ -6,9 +6,9 @@ import re
 from .common import InfoExtractor
 from .jwplatform import JWPlatformIE
 from .nexx import NexxIE
-from ..compat import compat_urlparse
 from ..utils import (
     NO_DEFAULT,
+    parse_qs,
     smuggle_url,
 )
 
@@ -64,7 +64,7 @@ class Tele5IE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
         video_id = (qs.get('vid') or qs.get('ve_id') or [None])[0]
 
         NEXX_ID_RE = r'\d{6,}'

@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import functools
 import itertools
+import math
 import operator
 import re
 
@@ -261,7 +262,7 @@ class PornHubIE(PornHubBaseIE):
             pattern, webpage, '%s count' % name, fatal=False))
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host') or 'pornhub.com'
         video_id = mobj.group('id')
 
@@ -566,7 +567,7 @@ class PornHubUserIE(PornHubPlaylistBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         user_id = mobj.group('id')
         videos_url = '%s/videos' % mobj.group('url')
         page = self._extract_page(url)
@@ -628,7 +629,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
                 break
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host')
         item_id = mobj.group('id')
 
@@ -638,7 +639,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
 
 
 class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:[^/]+\.)?%s/(?P<id>(?:[^/]+/)*[^/?#&]+)' % PornHubBaseIE._PORNHUB_HOST_RE
+    _VALID_URL = r'https?://(?:[^/]+\.)?%s/(?!playlist/)(?P<id>(?:[^/]+/)*[^/?#&]+)' % PornHubBaseIE._PORNHUB_HOST_RE
     _TESTS = [{
         'url': 'https://www.pornhub.com/model/zoe_ph/videos',
         'only_matching': True,
@@ -732,18 +733,6 @@ class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
         'url': 'https://www.pornhub.com/video/incategories/60fps-1/hd-porn',
         'only_matching': True,
     }, {
-        'url': 'https://www.pornhub.com/playlist/44121572',
-        'info_dict': {
-            'id': 'playlist/44121572',
-        },
-        'playlist_mincount': 132,
-    }, {
-        'url': 'https://www.pornhub.com/playlist/4667351',
-        'only_matching': True,
-    }, {
-        'url': 'https://de.pornhub.com/playlist/4667351',
-        'only_matching': True,
-    }, {
         'url': 'https://pornhubthbh7ap3u.onion/model/zoe_ph/videos',
         'only_matching': True,
     }]
@@ -770,3 +759,59 @@ class PornHubUserVideosUploadIE(PornHubPagedPlaylistBaseIE):
         'url': 'http://pornhubthbh7ap3u.onion/pornstar/jenny-blighe/videos/upload',
         'only_matching': True,
     }]
+
+
+class PornHubPlaylistIE(PornHubPlaylistBaseIE):
+    _VALID_URL = r'(?P<url>https?://(?:[^/]+\.)?%s/playlist/(?P<id>[^/?#&]+))' % PornHubBaseIE._PORNHUB_HOST_RE
+    _TESTS = [{
+        'url': 'https://www.pornhub.com/playlist/44121572',
+        'info_dict': {
+            'id': '44121572',
+        },
+        'playlist_count': 77,
+    }, {
+        'url': 'https://www.pornhub.com/playlist/4667351',
+        'only_matching': True,
+    }, {
+        'url': 'https://de.pornhub.com/playlist/4667351',
+        'only_matching': True,
+    }, {
+        'url': 'https://de.pornhub.com/playlist/4667351?page=2',
+        'only_matching': True,
+    }]
+
+    def _entries(self, url, host, item_id):
+        webpage = self._download_webpage(url, item_id, 'Downloading page 1')
+        playlist_id = self._search_regex(r'var\s+playlistId\s*=\s*"([^"]+)"', webpage, 'playlist_id')
+        video_count = int_or_none(
+            self._search_regex(r'var\s+itemsCount\s*=\s*([0-9]+)\s*\|\|', webpage, 'video_count'))
+        token = self._search_regex(r'var\s+token\s*=\s*"([^"]+)"', webpage, 'token')
+        page_count = math.ceil((video_count - 36) / 40.) + 1
+        page_entries = self._extract_entries(webpage, host)
+
+        def download_page(page_num):
+            note = 'Downloading page {}'.format(page_num)
+            page_url = 'https://www.{}/playlist/viewChunked'.format(host)
+            return self._download_webpage(page_url, item_id, note, query={
+                'id': playlist_id,
+                'page': page_num,
+                'token': token,
+            })
+
+        for page_num in range(1, page_count + 1):
+            if page_num > 1:
+                webpage = download_page(page_num)
+                page_entries = self._extract_entries(webpage, host)
+            if not page_entries:
+                break
+            for e in page_entries:
+                yield e
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        host = mobj.group('host')
+        item_id = mobj.group('id')
+
+        self._login(host)
+
+        return self.playlist_result(self._entries(mobj.group('url'), host, item_id), item_id)

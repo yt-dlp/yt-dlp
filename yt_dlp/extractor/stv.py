@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -43,7 +42,7 @@ class STVPlayerIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        ptype, video_id = re.match(self._VALID_URL, url).groups()
+        ptype, video_id = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(url, video_id, fatal=False) or ''
         props = (self._parse_json(self._search_regex(

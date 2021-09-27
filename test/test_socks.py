@@ -14,6 +14,7 @@ import subprocess
 from test.helper import (
     FakeYDL,
     get_params,
+    is_download_test,
 )
 from yt_dlp.compat import (
     compat_str,
@@ -21,6 +22,7 @@ from yt_dlp.compat import (
 )
 
 
+@is_download_test
 class TestMultipleSocks(unittest.TestCase):
     @staticmethod
     def _check_params(attrs):
@@ -76,6 +78,7 @@ class TestMultipleSocks(unittest.TestCase):
             params['secondary_server_ip'])
 
 
+@is_download_test
 class TestSocks(unittest.TestCase):
     _SKIP_SOCKS_TEST = True
 

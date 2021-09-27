@@ -98,13 +98,14 @@ class RedTubeIE(InfoExtractor):
                 format_id = media.get('quality')
                 formats.append({
                     'url': format_url,
+                    'ext': 'mp4',
                     'format_id': format_id,
                     'height': int_or_none(format_id),
                 })
         if not formats:
             video_url = self._html_search_regex(
                 r'<source src="(.+?)" type="video/mp4">', webpage, 'video URL')
-            formats.append({'url': video_url})
+            formats.append({'url': video_url, 'ext': 'mp4'})
         self._sort_formats(formats)
 
         thumbnail = self._og_search_thumbnail(webpage)
