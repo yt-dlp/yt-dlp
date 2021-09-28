@@ -183,10 +183,10 @@ brew install yt-dlp/taps/yt-dlp
 ```
 
 ### UPDATE
-You can use `yt-dlp -U` to update if you are using the provided release.
-If you are using `pip`, simply re-run the same command that was used to install the program.
-If you have installed using Homebrew, run `brew upgrade yt-dlp/taps/yt-dlp`
-If you have installed using [Scoop](https://github.com/lukesampson/scoop), run `scoop update yt-dlp`
+* You can use `yt-dlp -U` to update if you are using the provided release.
+* If you are using `pip`, simply re-run the same command that was used to install the program.
+* If you have installed using Homebrew, run `brew upgrade yt-dlp/taps/yt-dlp`.
+* If you have installed using [Scoop](https://github.com/lukesampson/scoop), run `scoop update yt-dlp`.
 
 ### DEPENDENCIES
 Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
