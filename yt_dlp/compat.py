@@ -150,15 +150,11 @@ else:
 
 try:
     from Cryptodome.Cipher import AES as compat_pycrypto_AES
-    from Cryptodome.Util.Padding import pad as compat_pycryto_pad, unpad as compat_pycryto_unpad
 except ImportError:
     try:
         from Crypto.Cipher import AES as compat_pycrypto_AES
-        from Crypto.Util.Padding import pad as compat_pycryto_pad, unpad as compat_pycryto_unpad
     except ImportError:
         compat_pycrypto_AES = None
-        compat_pycryto_pad = None
-        compat_pycryto_unpad = None
 
 
 #  Deprecated
@@ -255,8 +251,6 @@ __all__ = [
     'compat_parse_qs',
     'compat_print',
     'compat_pycrypto_AES',
-    'compat_pycryto_pad',
-    'compat_pycryto_unpad',
     'compat_realpath',
     'compat_setenv',
     'compat_shlex_quote',
