@@ -2,14 +2,15 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-from .compat import compat_b64decode, compat_pycrypto_AES
+from .compat import compat_b64decode, compat_pycrypto_AES, compat_pycryto_unpad
 from .utils import bytes_to_intlist, intlist_to_bytes
 
+BLOCK_SIZE_BYTES = 16
 
 if compat_pycrypto_AES:
     def aes_cbc_decrypt_bytes(data, key, iv):
         """ Decrypt bytes with AES-CBC using pycryptodome """
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
+        return compat_pycryto_unpad(compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data), BLOCK_SIZE_BYTES)
 
     def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
         """ Decrypt bytes with AES-GCM using pycryptodome """
@@ -23,9 +24,6 @@ else:
     def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
         """ Decrypt bytes with AES-GCM using native implementation since pycryptodome is unavailable """
         return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
-
-
-BLOCK_SIZE_BYTES = 16
 
 
 def aes_ctr_decrypt(data, key, iv):
