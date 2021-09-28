@@ -2353,11 +2353,12 @@ def formatSeconds(secs, delim=':', msec=False):
 
 
 def make_HTTPS_handler(params, **kwargs):
-    opts_no_check_certificate = params.get('nocheckcertificate', False)
-    context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-    if opts_no_check_certificate:
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
+    opts_check_certificate = not params.get('nocheckcertificate')
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.check_hostname = opts_check_certificate
+    context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
+    if opts_check_certificate:
+        context.load_default_certs(ssl.Purpose.SERVER_AUTH)
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
