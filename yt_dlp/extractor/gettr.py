@@ -1,8 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -80,8 +78,8 @@ class GettrIE(InfoExtractor):
 
         if vid:
             formats = self._extract_m3u8_formats(
-	            urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
-	            entry_protocol='m3u8_native', m3u8_id='hls') if vid else []
+                urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
+                entry_protocol='m3u8_native', m3u8_id='hls') if vid else []
         if ovid:
             formats.append({
                 'url': urljoin(self._MEDIA_BASE_URL, ovid),
