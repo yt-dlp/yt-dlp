@@ -102,7 +102,8 @@ class GettrIE(InfoExtractor):
                 or self._og_search_thumbnail(webpage)),
             'timestamp': int_or_none(post_data.get('cdate')),
             'uploader_id': str_or_none(
-                dict_get(user_data, ['_id', 'username']) or post_data.get('uid')),
+                dict_get(user_data, ['_id', 'username'])
+                or post_data.get('uid')),
             'uploader': uploader,
             'formats': formats,
             'duration': float_or_none(post_data.get('vid_dur')),
