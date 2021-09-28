@@ -161,7 +161,6 @@ except ImportError:
         compat_pycryto_unpad = None
 
 
-
 #  Deprecated
 
 compat_basestring = str
