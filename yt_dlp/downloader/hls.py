@@ -232,7 +232,6 @@ class HlsFD(FragmentFD):
                 elif line.startswith('#EXT-X-DISCONTINUITY'):
                     discontinuity_count += 1
                 i += 1
-                media_sequence += 1
 
         # We only download the first fragment during the test
         if self.params.get('test', False):
