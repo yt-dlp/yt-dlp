@@ -25,7 +25,7 @@ class GettrIE(InfoExtractor):
         'url': 'https://www.gettr.com/post/pcf6uv838f',
         'info_dict': {
             'id': 'pcf6uv838f',
-            'title': 'md5:0f10d7d504f92b1a59fd52a0d62cbc9c',
+            'title': 'md5:9086a646bbd06c41c4fe8e52b3c93454',
             'description': 'md5:be0577f1e4caadc06de4a002da2bf287',
             'ext': 'mp4',
             'uploader': 'EpochTV',
