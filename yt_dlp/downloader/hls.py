@@ -9,6 +9,7 @@ from .fragment import FragmentFD
 from .external import FFmpegFD
 
 from ..compat import (
+    compat_pycrypto_AES,
     compat_urlparse,
 )
 from ..utils import (
@@ -68,14 +69,20 @@ class HlsFD(FragmentFD):
         man_url = urlh.geturl()
         s = urlh.read().decode('utf-8', 'ignore')
 
-        if not self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')):
-            if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
-                self.report_error('pycryptodome not found. Please install')
-                return False
+        can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
+        if can_download and not compat_pycrypto_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
+            if FFmpegFD.available():
+                can_download, message = False, 'The stream has AES-128 encryption and pycryptodome is not available'
+            else:
+                message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodome are available; '
+                           'Decryption will be performed natively, but will be extremely slow')
+        if not can_download:
+            message = message or 'Unsupported features have been detected'
             fd = FFmpegFD(self.ydl, self.params)
-            self.report_warning(
-                '%s detected unsupported features; extraction will be delegated to %s' % (self.FD_NAME, fd.get_basename()))
+            self.report_warning(f'{message}; extraction will be delegated to {fd.get_basename()}')
             return fd.real_download(filename, info_dict)
+        elif message:
+            self.report_warning(message)
 
         is_webvtt = info_dict['ext'] == 'vtt'
         if is_webvtt:
@@ -232,7 +239,6 @@ class HlsFD(FragmentFD):
                 elif line.startswith('#EXT-X-DISCONTINUITY'):
                     discontinuity_count += 1
                 i += 1
-                media_sequence += 1
 
         # We only download the first fragment during the test
         if self.params.get('test', False):
