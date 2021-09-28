@@ -57,16 +57,13 @@ class GettrIE(InfoExtractor):
             'https://api.gettr.com/u/post/%s?incl="poststats|userinfo"' % post_id, post_id)
 
         post_data = try_get(api_data, lambda x: x['result']['data'])
-        user_data = try_get(api_data, lambda x: x['result']['aux']['uinf'][post_data.get('uid')]) or {}
+        user_data = try_get(api_data, lambda x: x['result']['aux']['uinf'][post_data['uid']]) or {}
 
         if post_data.get('nfound'):
             raise ExtractorError(post_data.get('txt'), expected=True)
 
         title = description = str_or_none(
             post_data.get('txt') or self._og_search_description(webpage))
-        if title:
-            # remove link
-            title = re.sub(r'\s*https?://[^\s]+', '', title)
 
         uploader = str_or_none(
             user_data.get('nickname')
@@ -74,30 +71,17 @@ class GettrIE(InfoExtractor):
         if uploader:
             title = '%s - %s' % (uploader, title)
 
-        uploader_id = str_or_none(
-            user_data.get('_id')
-            or user_data.get('username')
-            or post_data.get('uid'))
-
-        thumbnail = url_or_none(
-            urljoin(self._MEDIA_BASE_URL, post_data.get('main'))
-            or self._og_search_thumbnail(webpage))
-
-        tags = post_data.get('htgs')
-        timestamp = int_or_none(post_data.get('cdate'))
-        duration = float_or_none(post_data.get('vid_dur'))
-
         if not dict_get(post_data, ['vid', 'ovid']):
-            raise ExtractorError("There's no video in this post.")
+            raise ExtractorError('There\'s no video in this post.')
 
         formats = []
         vid = post_data.get('vid')
         ovid = post_data.get('ovid')
 
         if vid:
-            formats.extend(self._extract_m3u8_formats(
-                urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
-                entry_protocol='m3u8_native', m3u8_id='hls'))
+            formats = self._extract_m3u8_formats(
+	            urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
+	            entry_protocol='m3u8_native', m3u8_id='hls') if vid else []
         if ovid:
             formats.append({
                 'url': urljoin(self._MEDIA_BASE_URL, ovid),
@@ -105,7 +89,8 @@ class GettrIE(InfoExtractor):
                 'ext': 'mp4',
                 'width': int_or_none(post_data.get('vid_wid')),
                 'height': int_or_none(post_data.get('vid_hgt')),
-                'preference': 0
+                'source_preference': 0,
+                'quality': 0
             })
 
         self._sort_formats(formats)
@@ -114,11 +99,14 @@ class GettrIE(InfoExtractor):
             'id': post_id,
             'title': title,
             'description': description,
-            'thumbnail': thumbnail,
-            'timestamp': timestamp,
-            'uploader_id': uploader_id,
+            'thumbnail': url_or_none(
+                urljoin(self._MEDIA_BASE_URL, post_data.get('main'))
+                or self._og_search_thumbnail(webpage)),
+            'timestamp': int_or_none(post_data.get('cdate')),
+            'uploader_id': str_or_none(
+                dict_get(user_data, ['_id', 'username']) or post_data.get('uid')),
             'uploader': uploader,
             'formats': formats,
-            'duration': duration,
-            'tags': tags,
+            'duration': float_or_none(post_data.get('vid_dur')),
+            'tags': post_data.get('htgs'),
         }
