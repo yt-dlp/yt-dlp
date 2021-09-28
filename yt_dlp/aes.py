@@ -22,7 +22,10 @@ if compat_pycrypto_AES:
 else:
     def aes_cbc_decrypt_bytes(data, key, iv, unpad=False):
         """ Decrypt bytes with AES-CBC using native implementation since pycryptodome is unavailable """
-        return intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
+        decrypted_data = intlist_to_bytes(aes_cbc_decrypt(*map(bytes_to_intlist, (data, key, iv))))
+        if unpad:
+            decrypted_data = decrypted_data[:-decrypted_data[-1]]
+        return decrypted_data
 
     def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
         """ Decrypt bytes with AES-GCM using native implementation since pycryptodome is unavailable """
