@@ -72,14 +72,12 @@ class GettrIE(InfoExtractor):
         if not dict_get(post_data, ['vid', 'ovid']):
             raise ExtractorError('There\'s no video in this post.')
 
-        formats = []
         vid = post_data.get('vid')
         ovid = post_data.get('ovid')
 
-        if vid:
-            formats = self._extract_m3u8_formats(
-                urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
-                entry_protocol='m3u8_native', m3u8_id='hls') if vid else []
+        formats = self._extract_m3u8_formats(
+            urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
+            entry_protocol='m3u8_native', m3u8_id='hls') if vid else []
         if ovid:
             formats.append({
                 'url': urljoin(self._MEDIA_BASE_URL, ovid),
