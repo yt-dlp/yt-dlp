@@ -2352,13 +2352,34 @@ def formatSeconds(secs, delim=':', msec=False):
     return '%s.%03d' % (ret, secs % 1) if msec else ret
 
 
+def _ssl_load_windows_store_certs(ssl_context, storename):
+    # Code adapted from _load_windows_store_certs in https://github.com/python/cpython/blob/main/Lib/ssl.py
+    try:
+        certs = [cert for cert, encoding, trust in ssl.enum_certificates(storename)
+                 if encoding == 'x509_asn' and (
+                     trust is True or ssl.Purpose.SERVER_AUTH.oid in trust)]
+    except PermissionError:
+        return
+    for cert in certs:
+        try:
+            ssl_context.load_verify_locations(cadata=cert)
+        except ssl.SSLError:
+            pass
+
+
 def make_HTTPS_handler(params, **kwargs):
     opts_check_certificate = not params.get('nocheckcertificate')
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = opts_check_certificate
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
-        context.load_default_certs(ssl.Purpose.SERVER_AUTH)
+        # Work around the issue in load_default_certs when there are bad certificates. See:
+        # https://github.com/yt-dlp/yt-dlp/issues/1060,
+        # https://bugs.python.org/issue35665, https://bugs.python.org/issue4531
+        if sys.platform == 'win32':
+            for storename in ('CA', 'ROOT'):
+                _ssl_load_windows_store_certs(context, storename)
+        context.set_default_verify_paths()
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
