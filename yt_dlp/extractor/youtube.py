@@ -581,8 +581,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
         data = self._search_regex(
-                (r'%s\s*%s' % (self._YT_INITIAL_DATA_RE, self._YT_INITIAL_BOUNDARY_RE),
-                 self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal)
+            (r'%s\s*%s' % (self._YT_INITIAL_DATA_RE, self._YT_INITIAL_BOUNDARY_RE),
+             self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal)
         if data:
             return self._parse_json(data, item_id, fatal=fatal)
 
