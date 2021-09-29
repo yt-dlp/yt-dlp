@@ -4225,10 +4225,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         msg + ' If you are sure about this, pass --extractor-args youtubetab:skip=authcheck to skip this check',
                         expected=True)
                 self.report_warning(msg, only_once=True)
-            data = self._fetch_tab_endpoint(url, item_id, ytcfg, fatal=fatal, default_client=default_client)
+            data = self._extract_tab_endpoint(url, item_id, ytcfg, fatal=fatal, default_client=default_client)
         return data, ytcfg
 
-    def _fetch_tab_endpoint(self, url, item_id, ytcfg=None, fatal=True, default_client='web'):
+    def _extract_tab_endpoint(self, url, item_id, ytcfg=None, fatal=True, default_client='web'):
         headers = self.generate_api_headers(ytcfg=ytcfg, default_client=default_client)
         resolve_response = self._extract_response(
             item_id=item_id, query={'url': url}, check_get_keys='endpoint', headers=headers, ytcfg=ytcfg, fatal=fatal,
@@ -4283,7 +4283,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
                 elif item_id[:2] == 'MP':
                     # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
-                    mdata = self._fetch_tab_endpoint(
+                    mdata = self._extract_tab_endpoint(
                         'https://music.youtube.com/channel/%s' % item_id, item_id, fatal=False, default_client='web_music')
                     murl = traverse_obj(
                         mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'), get_all=False, expected_type=compat_str)
