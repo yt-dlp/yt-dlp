@@ -4218,15 +4218,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             webpage, data = self._extract_webpage(url, item_id, fatal=webpage_fatal)
             ytcfg = ytcfg or self.extract_ytcfg(item_id, webpage)
         if not data:
-            if not ytcfg:
-                if self.is_authenticated:
-                    msg = 'Lists that require authentication may not extract correctly without a successful webpage download.'
-                    if 'authcheck' not in self._configuration_arg('skip') and fatal:
-                        raise ExtractorError(
-                            msg + ' If you are not downloading private content, or your cookies are only for the first account and channel,'
-                                  ' pass "--extractor-args youtubetab:skip=authcheck" to skip this check',
-                            expected=True)
-                    self.report_warning(msg, only_once=True)
+            if not ytcfg and self.is_authenticated:
+                msg = 'Lists that require authentication may not extract correctly without a successful webpage download.'
+                if 'authcheck' not in self._configuration_arg('skip') and fatal:
+                    raise ExtractorError(
+                        msg + ' If you are not downloading private content, or your cookies are only for the first account and channel,'
+                              ' pass "--extractor-args youtubetab:skip=authcheck" to skip this check',
+                        expected=True)
+                self.report_warning(msg, only_once=True)
             data = self._extract_tab_endpoint(url, item_id, ytcfg, fatal=fatal, default_client=default_client)
         return data, ytcfg
 
