@@ -859,7 +859,7 @@ class YoutubeDL(object):
             outtmpl_dict = {'default': outtmpl_dict}
         outtmpl_dict.update({
             k: v for k, v in DEFAULT_OUTTMPL.items()
-            if not outtmpl_dict.get(k)})
+            if outtmpl_dict.get(k) is None})
         for key, val in outtmpl_dict.items():
             if isinstance(val, bytes):
                 self.report_warning(
@@ -1084,7 +1084,7 @@ class YoutubeDL(object):
             filename = outtmpl % template_dict
 
             force_ext = OUTTMPL_TYPES.get(tmpl_type)
-            if force_ext is not None:
+            if filename and force_ext is not None:
                 filename = replace_extension(filename, force_ext, info_dict.get('ext'))
 
             # https://github.com/blackjack4494/youtube-dlc/issues/85
@@ -1106,6 +1106,8 @@ class YoutubeDL(object):
         """Generate the output filename."""
 
         filename = self._prepare_filename(info_dict, dir_type or 'default')
+        if not filename and dir_type not in ('', 'temp'):
+            return ''
 
         if warn:
             if not self.params.get('paths'):
@@ -1517,38 +1519,14 @@ class YoutubeDL(object):
             }
             ie_copy.update(dict(ie_result))
 
-            if self.params.get('writeinfojson', False):
-                infofn = self.prepare_filename(ie_copy, 'pl_infojson')
-                if not self._ensure_dir_exists(encodeFilename(infofn)):
-                    return
-                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                    self.to_screen('[info] Playlist metadata is already present')
-                else:
-                    self.to_screen('[info] Writing playlist metadata as JSON to: ' + infofn)
-                    try:
-                        write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), infofn)
-                    except (OSError, IOError):
-                        self.report_error('Cannot write playlist metadata to JSON file ' + infofn)
-
+            if self._write_info_json('playlist', ie_result,
+                                     self.prepare_filename(ie_copy, 'pl_infojson')) is None:
+                return
+            if self._write_description('playlist', ie_result,
+                                       self.prepare_filename(ie_copy, 'pl_description')) is None:
+                return
             # TODO: This should be passed to ThumbnailsConvertor if necessary
-            self._write_thumbnails(ie_copy, self.prepare_filename(ie_copy, 'pl_thumbnail'))
-
-            if self.params.get('writedescription', False):
-                descfn = self.prepare_filename(ie_copy, 'pl_description')
-                if not self._ensure_dir_exists(encodeFilename(descfn)):
-                    return
-                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
-                    self.to_screen('[info] Playlist description is already present')
-                elif ie_result.get('description') is None:
-                    self.report_warning('There\'s no playlist description to write.')
-                else:
-                    try:
-                        self.to_screen('[info] Writing playlist description to: ' + descfn)
-                        with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
-                            descfile.write(ie_result['description'])
-                    except (OSError, IOError):
-                        self.report_error('Cannot write playlist description file ' + descfn)
-                        return
+            self._write_thumbnails('playlist', ie_copy, self.prepare_filename(ie_copy, 'pl_thumbnail'))
 
         if self.params.get('playlistreverse', False):
             entries = entries[::-1]
@@ -2528,37 +2506,43 @@ class YoutubeDL(object):
         if self.params.get('simulate'):
             if self.params.get('force_write_download_archive', False):
                 self.record_download_archive(info_dict)
-
             # Do nothing else if in simulate mode
             return
 
         if full_filename is None:
             return
-
         if not self._ensure_dir_exists(encodeFilename(full_filename)):
             return
         if not self._ensure_dir_exists(encodeFilename(temp_filename)):
             return
 
-        if self.params.get('writedescription', False):
-            descfn = self.prepare_filename(info_dict, 'description')
-            if not self._ensure_dir_exists(encodeFilename(descfn)):
-                return
-            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(descfn)):
-                self.to_screen('[info] Video description is already present')
-            elif info_dict.get('description') is None:
-                self.report_warning('There\'s no description to write.')
-            else:
-                try:
-                    self.to_screen('[info] Writing video description to: ' + descfn)
-                    with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
-                        descfile.write(info_dict['description'])
-                except (OSError, IOError):
-                    self.report_error('Cannot write description file ' + descfn)
-                    return
+        if self._write_description('video', info_dict,
+                                   self.prepare_filename(info_dict, 'description')) is None:
+            return
 
+        sub_files = self._write_subtitles(info_dict, temp_filename)
+        if sub_files is None:
+            return
+        files_to_move.update(dict(sub_files))
+
+        thumb_files = self._write_thumbnails(
+            'video', info_dict, temp_filename, self.prepare_filename(info_dict, 'thumbnail'))
+        if thumb_files is None:
+            return
+        files_to_move.update(dict(thumb_files))
+
+        infofn = self.prepare_filename(info_dict, 'infojson')
+        _infojson_written = self._write_info_json('video', info_dict, infofn)
+        if _infojson_written:
+            info_dict['__infojson_filename'] = infofn
+        elif _infojson_written is None:
+            return
+
+        # Note: Annotations are deprecated
+        annofn = None
         if self.params.get('writeannotations', False):
             annofn = self.prepare_filename(info_dict, 'annotation')
+        if annofn:
             if not self._ensure_dir_exists(encodeFilename(annofn)):
                 return
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(annofn)):
@@ -2575,69 +2559,6 @@ class YoutubeDL(object):
                 except (OSError, IOError):
                     self.report_error('Cannot write annotations file: ' + annofn)
                     return
-
-        subtitles_are_requested = any([self.params.get('writesubtitles', False),
-                                       self.params.get('writeautomaticsub')])
-
-        if subtitles_are_requested and info_dict.get('requested_subtitles'):
-            # subtitles download errors are already managed as troubles in relevant IE
-            # that way it will silently go on when used with unsupporting IE
-            subtitles = info_dict['requested_subtitles']
-            # ie = self.get_info_extractor(info_dict['extractor_key'])
-            for sub_lang, sub_info in subtitles.items():
-                sub_format = sub_info['ext']
-                sub_filename = subtitles_filename(temp_filename, sub_lang, sub_format, info_dict.get('ext'))
-                sub_filename_final = subtitles_filename(
-                    self.prepare_filename(info_dict, 'subtitle'), sub_lang, sub_format, info_dict.get('ext'))
-                if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(sub_filename)):
-                    self.to_screen('[info] Video subtitle %s.%s is already present' % (sub_lang, sub_format))
-                    sub_info['filepath'] = sub_filename
-                    files_to_move[sub_filename] = sub_filename_final
-                else:
-                    self.to_screen('[info] Writing video subtitles to: ' + sub_filename)
-                    if sub_info.get('data') is not None:
-                        try:
-                            # Use newline='' to prevent conversion of newline characters
-                            # See https://github.com/ytdl-org/youtube-dl/issues/10268
-                            with io.open(encodeFilename(sub_filename), 'w', encoding='utf-8', newline='') as subfile:
-                                subfile.write(sub_info['data'])
-                            sub_info['filepath'] = sub_filename
-                            files_to_move[sub_filename] = sub_filename_final
-                        except (OSError, IOError):
-                            self.report_error('Cannot write subtitles file ' + sub_filename)
-                            return
-                    else:
-                        try:
-                            sub_copy = sub_info.copy()
-                            sub_copy.setdefault('http_headers', info_dict.get('http_headers'))
-                            self.dl(sub_filename, sub_copy, subtitle=True)
-                            sub_info['filepath'] = sub_filename
-                            files_to_move[sub_filename] = sub_filename_final
-                        except (ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
-                            self.report_warning('Unable to download subtitle for "%s": %s' %
-                                                (sub_lang, error_to_compat_str(err)))
-                            continue
-
-        if self.params.get('writeinfojson', False):
-            infofn = self.prepare_filename(info_dict, 'infojson')
-            if not self._ensure_dir_exists(encodeFilename(infofn)):
-                return
-            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(infofn)):
-                self.to_screen('[info] Video metadata is already present')
-            else:
-                self.to_screen('[info] Writing video metadata as JSON to: ' + infofn)
-                try:
-                    write_json_file(self.sanitize_info(info_dict, self.params.get('clean_infojson', True)), infofn)
-                except (OSError, IOError):
-                    self.report_error('Cannot write video metadata to JSON file ' + infofn)
-                    return
-            info_dict['__infojson_filename'] = infofn
-
-        for thumb_ext in self._write_thumbnails(info_dict, temp_filename):
-            thumb_filename_temp = replace_extension(temp_filename, thumb_ext, info_dict.get('ext'))
-            thumb_filename = replace_extension(
-                self.prepare_filename(info_dict, 'thumbnail'), thumb_ext, info_dict.get('ext'))
-            files_to_move[thumb_filename_temp] = thumb_filename
 
         # Write internet shortcut files
         url_link = webloc_link = desktop_link = False
@@ -3416,39 +3337,133 @@ class YoutubeDL(object):
             encoding = preferredencoding()
         return encoding
 
-    def _write_thumbnails(self, info_dict, filename):  # return the extensions
+    def _write_info_json(self, label, ie_result, infofn):
+        ''' Write infojson and returns True = written, False = skip, None = error '''
+        if not self.params.get('writeinfojson'):
+            return False
+        elif not infofn:
+            self.write_debug(f'Skipping writing {label} infojson')
+            return False
+        elif not self._ensure_dir_exists(infofn):
+            return None
+        elif not self.params.get('overwrites', True) and os.path.exists(infofn):
+            self.to_screen(f'[info] {label.title()} metadata is already present')
+        else:
+            self.to_screen(f'[info] Writing {label} metadata as JSON to: {infofn}')
+            try:
+                write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), infofn)
+            except (OSError, IOError):
+                self.report_error(f'Cannot write {label} metadata to JSON file {infofn}')
+                return None
+        return True
+
+    def _write_description(self, label, ie_result, descfn):
+        ''' Write description and returns True = written, False = skip, None = error '''
+        if not self.params.get('writedescription'):
+            return False
+        elif not descfn:
+            self.write_debug(f'Skipping writing {label} description')
+            return False
+        elif not self._ensure_dir_exists(descfn):
+            return None
+        elif not self.params.get('overwrites', True) and os.path.exists(descfn):
+            self.to_screen(f'[info] {label.title()} description is already present')
+        elif ie_result.get('description') is None:
+            self.report_warning(f'There\'s no {label} description to write')
+            return False
+        else:
+            try:
+                self.to_screen(f'[info] Writing {label} description to: {descfn}')
+                with io.open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
+                    descfile.write(ie_result['description'])
+            except (OSError, IOError):
+                self.report_error(f'Cannot write {label} description file {descfn}')
+                return None
+        return True
+
+    def _write_subtitles(self, info_dict, filename):
+        ''' Write subtitles to file and return list of (sub_filename, final_sub_filename); or None if error'''
+        ret = []
+        subtitles = info_dict.get('requested_subtitles')
+        if not subtitles or not (self.params.get('writesubtitles') or self.params.get('writeautomaticsub')):
+            # subtitles download errors are already managed as troubles in relevant IE
+            # that way it will silently go on when used with unsupporting IE
+            return ret
+
+        sub_filename_base = self.prepare_filename(info_dict, 'subtitle')
+        if not sub_filename_base:
+            self.to_screen('[info] Skipping writing video subtitles')
+            return ret
+        for sub_lang, sub_info in subtitles.items():
+            sub_format = sub_info['ext']
+            sub_filename = subtitles_filename(filename, sub_lang, sub_format, info_dict.get('ext'))
+            sub_filename_final = subtitles_filename(sub_filename_base, sub_lang, sub_format, info_dict.get('ext'))
+            if not self.params.get('overwrites', True) and os.path.exists(sub_filename):
+                self.to_screen(f'[info] Video subtitle {sub_lang}.{sub_format} is already present')
+                sub_info['filepath'] = sub_filename
+                ret.append((sub_filename, sub_filename_final))
+                continue
+
+            self.to_screen(f'[info] Writing video subtitles to: {sub_filename}')
+            if sub_info.get('data') is not None:
+                try:
+                    # Use newline='' to prevent conversion of newline characters
+                    # See https://github.com/ytdl-org/youtube-dl/issues/10268
+                    with io.open(sub_filename, 'w', encoding='utf-8', newline='') as subfile:
+                        subfile.write(sub_info['data'])
+                    sub_info['filepath'] = sub_filename
+                    ret.append((sub_filename, sub_filename_final))
+                    continue
+                except (OSError, IOError):
+                    self.report_error(f'Cannot write video subtitles file {sub_filename}')
+                    return None
+
+            try:
+                sub_copy = sub_info.copy()
+                sub_copy.setdefault('http_headers', info_dict.get('http_headers'))
+                self.dl(sub_filename, sub_copy, subtitle=True)
+                sub_info['filepath'] = sub_filename
+                ret.append((sub_filename, sub_filename_final))
+            except (ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
+                self.report_warning(f'Unable to download video subtitles for {sub_lang!r}: {err}')
+                continue
+            return ret
+
+    def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
+        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename) '''
         write_all = self.params.get('write_all_thumbnails', False)
-        thumbnails = []
+        thumbnails, ret = [], []
         if write_all or self.params.get('writethumbnail', False):
             thumbnails = info_dict.get('thumbnails') or []
         multiple = write_all and len(thumbnails) > 1
 
-        ret = []
-        for t in thumbnails[::-1]:
-            thumb_ext = determine_ext(t['url'], 'jpg')
-            suffix = '%s.' % t['id'] if multiple else ''
-            thumb_display_id = '%s ' % t['id'] if multiple else ''
-            thumb_filename = replace_extension(filename, suffix + thumb_ext, info_dict.get('ext'))
+        if thumb_filename_base is None:
+            thumb_filename_base = filename
+        if thumbnails and not thumb_filename_base:
+            self.write_debug(f'Skipping writing {label} thumbnail')
+            return ret
 
-            if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(thumb_filename)):
-                ret.append(suffix + thumb_ext)
+        for t in thumbnails[::-1]:
+            thumb_ext = (f'{t["id"]}.' if multiple else '') + determine_ext(t['url'], 'jpg')
+            thumb_display_id = f'{label} thumbnail' + (f' {t["id"]}' if multiple else '')
+            thumb_filename = replace_extension(filename, thumb_ext, info_dict.get('ext'))
+            thumb_filename_final = replace_extension(thumb_filename_base, thumb_ext, info_dict.get('ext'))
+
+            if not self.params.get('overwrites', True) and os.path.exists(thumb_filename):
+                ret.append((thumb_filename, thumb_filename_final))
                 t['filepath'] = thumb_filename
-                self.to_screen('[%s] %s: Thumbnail %sis already present' %
-                               (info_dict['extractor'], info_dict['id'], thumb_display_id))
+                self.to_screen(f'[info] {thumb_display_id.title()} is already present')
             else:
-                self.to_screen('[%s] %s: Downloading thumbnail %s ...' %
-                               (info_dict['extractor'], info_dict['id'], thumb_display_id))
+                self.to_screen(f'[info] Downloading {thumb_display_id} ...')
                 try:
                     uf = self.urlopen(t['url'])
+                    self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
-                    ret.append(suffix + thumb_ext)
-                    self.to_screen('[%s] %s: Writing thumbnail %sto: %s' %
-                                   (info_dict['extractor'], info_dict['id'], thumb_display_id, thumb_filename))
+                    ret.append((thumb_filename, thumb_filename_final))
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
-                    self.report_warning('Unable to download thumbnail "%s": %s' %
-                                        (t['url'], error_to_compat_str(err)))
+                    self.report_warning(f'Unable to download {thumb_display_id}: {err}')
             if ret and not write_all:
                 break
         return ret

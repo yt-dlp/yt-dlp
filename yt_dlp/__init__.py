@@ -535,6 +535,7 @@ def _real_main(argv=None):
         })
         if not already_have_thumbnail:
             opts.writethumbnail = True
+            opts.outtmpl['pl_thumbnail'] = ''
     if opts.split_chapters:
         postprocessors.append({
             'key': 'FFmpegSplitChapters',
