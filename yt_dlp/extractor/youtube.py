@@ -4275,7 +4275,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         mobj = get_mobj(url)
         # Youtube returns incomplete data if tabname is not lower case
         pre, tab, post, is_channel = mobj['pre'], mobj['tab'].lower(), mobj['post'], not mobj['not_channel']
-        mwebpage = None
         if is_channel:
             if smuggled_data.get('is_music_url'):
                 if item_id[:2] == 'VL':
@@ -4283,13 +4282,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     item_id = item_id[2:]
                     pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
                 elif item_id[:2] == 'MP':
-                    # Resolve albums (/[channel/browse]/MP...) to their OLAK playlist
-                    if not mwebpage:
-                        mwebpage = self._extract_data(
-                            'https://music.youtube.com/channel/%s' % item_id, item_id, fatal=False, default_client='web_music')
-                    # TODO: OLAK id extraction
-                    raise ExtractorError('MP to OLAK playlist resolve is not supported at this time.', expected=True)
-                    pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
+                    # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
+                    mwebpage = self._extract_data(
+                        'https://music.youtube.com/channel/%s' % item_id, item_id, fatal=False, default_client='web_music')
+                    url = traverse_obj(
+                        mwebpage, (..., 'microformat', 'microformatDataRenderer', 'urlCanonical'), get_all=False, expected_type=compat_str)
+                    if url:
+                        return self.url_result(url, ie=YoutubeTabIE.ie_key())
+                    self.report_warning('Failed to resolve album to playlist.')
                 elif mobj['channel_type'] == 'browse':
                     # Youtube music /browse/ should be changed to /channel/
                     pre = 'https://www.youtube.com/channel/%s' % item_id
@@ -4356,12 +4356,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             data = self._reload_with_unavailable_videos(item_id, data, ytcfg) or data
         self._extract_and_report_alerts(data, only_once=True)
         tabs = try_get(
-            data, lambda x: x['contents']['singleColumnBrowseResultsRenderer']['tabs'], list)
+            data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
         if tabs:
             return self._extract_from_tabs(item_id, ytcfg, data, tabs)
 
         playlist = try_get(
-            data, lambda x: x['contents']['singleColumnWatchNextResults']['playlist']['playlist'], dict)
+            data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
         if playlist:
             return self._extract_from_playlist(item_id, url, data, playlist, ytcfg)
 
