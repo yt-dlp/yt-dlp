@@ -579,12 +579,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             data=json.dumps(data).encode('utf8'), headers=real_headers,
             query={'key': api_key or self._extract_api_key()})
 
-    def extract_yt_initial_data(self, video_id, webpage):
-        return self._parse_json(
-            self._search_regex(
-                (r'%s\s*%s' % (self._YT_INITIAL_DATA_RE, self._YT_INITIAL_BOUNDARY_RE),
-                 self._YT_INITIAL_DATA_RE), webpage, 'yt initial data'),
-            video_id)
+    def extract_yt_initial_data(self, item_id, webpage, fatal=True):
+        data = self._search_regex(
+            (r'%s\s*%s' % (self._YT_INITIAL_DATA_RE, self._YT_INITIAL_BOUNDARY_RE),
+             self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal)
+        if data:
+            return self._parse_json(data, item_id, fatal=fatal)
 
     @staticmethod
     def _extract_session_index(*data):
@@ -3973,7 +3973,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], compat_str))
         return {k: v for k, v in uploader.items() if v is not None}
 
-    def _extract_from_tabs(self, item_id, webpage, data, tabs):
+    def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
         playlist_id = title = description = channel_url = channel_name = channel_id = None
         thumbnails_list = tags = []
 
@@ -4040,16 +4040,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'channel': metadata['uploader'],
             'channel_id': metadata['uploader_id'],
             'channel_url': metadata['uploader_url']})
-        ytcfg = self.extract_ytcfg(item_id, webpage)
         return self.playlist_result(
             self._entries(
                 selected_tab, playlist_id,
                 self._extract_account_syncid(ytcfg, data), ytcfg),
             **metadata)
 
-    def _extract_mix_playlist(self, playlist, playlist_id, data, webpage):
+    def _extract_mix_playlist(self, playlist, playlist_id, data, ytcfg):
         first_id = last_id = None
-        ytcfg = self.extract_ytcfg(playlist_id, webpage)
         headers = self.generate_api_headers(
             ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data))
         for page_num in itertools.count(1):
@@ -4082,7 +4080,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             playlist = try_get(
                 response, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
 
-    def _extract_from_playlist(self, item_id, url, data, playlist, webpage):
+    def _extract_from_playlist(self, item_id, url, data, playlist, ytcfg):
         title = playlist.get('title') or try_get(
             data, lambda x: x['titleText']['simpleText'], compat_str)
         playlist_id = playlist.get('playlistId') or item_id
@@ -4097,7 +4095,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 video_title=title)
 
         return self.playlist_result(
-            self._extract_mix_playlist(playlist, playlist_id, data, webpage),
+            self._extract_mix_playlist(playlist, playlist_id, data, ytcfg),
             playlist_id=playlist_id, playlist_title=title)
 
     def _extract_availability(self, data):
@@ -4141,7 +4139,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if renderer:
                 return renderer
 
-    def _reload_with_unavailable_videos(self, item_id, data, webpage):
+    def _reload_with_unavailable_videos(self, item_id, data, ytcfg):
         """
         Get playlist with unavailable videos if the 'show unavailable videos' button exists.
         """
@@ -4165,10 +4163,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             params = browse_endpoint.get('params')
             break
 
-        ytcfg = self.extract_ytcfg(item_id, webpage)
         headers = self.generate_api_headers(
-            ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
-            visitor_data=try_get(self._extract_context(ytcfg), lambda x: x['client']['visitorData'], compat_str))
+            ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data))
         query = {
             'params': params or 'wgYCCAA=',
             'browseId': browse_id or 'VL%s' % item_id
@@ -4178,27 +4174,76 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             check_get_keys='contents', fatal=False, ytcfg=ytcfg,
             note='Downloading API JSON with unavailable videos')
 
-    def _extract_webpage(self, url, item_id):
+    def _extract_webpage(self, url, item_id, fatal=True):
         retries = self.get_param('extractor_retries', 3)
         count = -1
-        last_error = 'Incomplete yt initial data recieved'
+        webpage = data = last_error = None
         while count < retries:
             count += 1
             # Sometimes youtube returns a webpage with incomplete ytInitialData
             # See: https://github.com/yt-dlp/yt-dlp/issues/116
-            if count:
+            if last_error:
                 self.report_warning('%s. Retrying ...' % last_error)
-            webpage = self._download_webpage(
-                url, item_id,
-                'Downloading webpage%s' % (' (retry #%d)' % count if count else ''))
-            data = self.extract_yt_initial_data(item_id, webpage)
-            if data.get('contents') or data.get('currentVideoEndpoint'):
+            try:
+                webpage = self._download_webpage(
+                    url, item_id,
+                    note='Downloading webpage%s' % (' (retry #%d)' % count if count else '',))
+                data = self.extract_yt_initial_data(item_id, webpage or '', fatal=fatal) or {}
+            except ExtractorError as e:
+                if isinstance(e.cause, network_exceptions):
+                    if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (403, 429):
+                        last_error = error_to_compat_str(e.cause or e.msg)
+                        if count < retries:
+                            continue
+                if fatal:
+                    raise
+                self.report_warning(error_to_compat_str(e))
                 break
-            # Extract alerts here only when there is error
-            self._extract_and_report_alerts(data)
-            if count >= retries:
-                raise ExtractorError(last_error)
+            else:
+                if dict_get(data, ('contents', 'currentVideoEndpoint')):
+                    break
+                self._extract_and_report_alerts(data, fatal=fatal)
+                last_error = 'Incomplete yt initial data received'
+                if count >= retries:
+                    if fatal:
+                        raise ExtractorError(last_error)
+                    self.report_warning(last_error)
+                    break
+
         return webpage, data
+
+    def _extract_data(self, url, item_id, ytcfg=None, fatal=True, webpage_fatal=False, default_client='web'):
+        data = None
+        if 'webpage' not in self._configuration_arg('skip'):
+            webpage, data = self._extract_webpage(url, item_id, fatal=webpage_fatal)
+            ytcfg = ytcfg or self.extract_ytcfg(item_id, webpage)
+        if not data:
+            if not ytcfg:
+                if self.is_authenticated:
+                    msg = 'Lists that require authentication may not extract correctly without a successful webpage download.'
+                    if 'authcheck' not in self._configuration_arg('skip') and fatal:
+                        raise ExtractorError(
+                            msg + ' If you are not downloading private content, or your cookies are only for the first account and channel,'
+                                  ' pass "--extractor-args youtubetab:skip=authcheck" to skip this check',
+                            expected=True)
+                    self.report_warning(msg, only_once=True)
+            data = self._extract_tab_endpoint(url, item_id, ytcfg, fatal=fatal, default_client=default_client)
+        return data, ytcfg
+
+    def _extract_tab_endpoint(self, url, item_id, ytcfg=None, fatal=True, default_client='web'):
+        headers = self.generate_api_headers(ytcfg=ytcfg, default_client=default_client)
+        resolve_response = self._extract_response(
+            item_id=item_id, query={'url': url}, check_get_keys='endpoint', headers=headers, ytcfg=ytcfg, fatal=fatal,
+            ep='navigation/resolve_url', note='Downloading API parameters API JSON', default_client=default_client
+        )
+        endpoints = {'browseEndpoint': 'browse', 'watchEndpoint': 'next'}
+        for ep_key, ep in endpoints.items():
+            params = try_get(resolve_response, lambda x: x['endpoint'][ep_key], dict)
+            if params:
+                return self._extract_response(
+                    item_id=item_id, query=params, ep=ep, headers=headers,
+                    ytcfg=ytcfg, fatal=fatal, default_client=default_client,
+                    check_get_keys=('contents', 'currentVideoEndpoint'))
 
     @staticmethod
     def _smuggle_data(entries, data):
@@ -4232,7 +4277,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         mobj = get_mobj(url)
         # Youtube returns incomplete data if tabname is not lower case
         pre, tab, post, is_channel = mobj['pre'], mobj['tab'].lower(), mobj['post'], not mobj['not_channel']
-
         if is_channel:
             if smuggled_data.get('is_music_url'):
                 if item_id[:2] == 'VL':
@@ -4240,12 +4284,14 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     item_id = item_id[2:]
                     pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
                 elif item_id[:2] == 'MP':
-                    # Youtube music albums (/channel/MP...) have a OLAK playlist that can be extracted from the webpage
-                    item_id = self._search_regex(
-                        r'\\x22audioPlaylistId\\x22:\\x22([0-9A-Za-z_-]+)\\x22',
-                        self._download_webpage('https://music.youtube.com/channel/%s' % item_id, item_id),
-                        'playlist id')
-                    pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
+                    # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
+                    mdata = self._extract_tab_endpoint(
+                        'https://music.youtube.com/channel/%s' % item_id, item_id, fatal=False, default_client='web_music')
+                    murl = traverse_obj(
+                        mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'), get_all=False, expected_type=compat_str)
+                    if murl:
+                        return self.url_result(murl, ie=YoutubeTabIE.ie_key())
+                    self.report_warning('Failed to resolve album to playlist.')
                 elif mobj['channel_type'] == 'browse':
                     # Youtube music /browse/ should be changed to /channel/
                     pre = 'https://www.youtube.com/channel/%s' % item_id
@@ -4279,7 +4325,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 return self.url_result(f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key(), video_id=video_id)
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
 
-        webpage, data = self._extract_webpage(url, item_id)
+        data, ytcfg = self._extract_data(url, item_id)
+        if not data:
+            raise ExtractorError('This playlist or channel does not exist.', expected=True)  # TODO
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
@@ -4297,11 +4345,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         pl_id = 'UU%s' % item_id[2:]
                         pl_url = 'https://www.youtube.com/playlist?list=%s%s' % (pl_id, mobj['post'])
                         try:
-                            pl_webpage, pl_data = self._extract_webpage(pl_url, pl_id)
-                            for alert_type, alert_message in self._extract_alerts(pl_data):
-                                if alert_type == 'error':
-                                    raise ExtractorError('Youtube said: %s' % alert_message)
-                            item_id, url, webpage, data = pl_id, pl_url, pl_webpage, pl_data
+                            data, ytcfg, item_id, url = *self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True), pl_id, pl_url
                         except ExtractorError:
                             self.report_warning('The playlist gave error. Falling back to channel URL')
                     else:
@@ -4311,17 +4355,17 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
         if 'no-youtube-unavailable-videos' not in compat_opts:
-            data = self._reload_with_unavailable_videos(item_id, data, webpage) or data
+            data = self._reload_with_unavailable_videos(item_id, data, ytcfg) or data
         self._extract_and_report_alerts(data, only_once=True)
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
         if tabs:
-            return self._extract_from_tabs(item_id, webpage, data, tabs)
+            return self._extract_from_tabs(item_id, ytcfg, data, tabs)
 
         playlist = try_get(
             data, lambda x: x['contents']['twoColumnWatchNextResults']['playlist']['playlist'], dict)
         if playlist:
-            return self._extract_from_playlist(item_id, url, data, playlist, webpage)
+            return self._extract_from_playlist(item_id, url, data, playlist, ytcfg)
 
         video_id = try_get(
             data, lambda x: x['currentVideoEndpoint']['watchEndpoint']['videoId'],
