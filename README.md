@@ -207,7 +207,10 @@ While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
 
-Note that the windows releases are already built with the python interpreter, mutagen, pycryptodome and websockets included.
+The windows releases are already built with the python interpreter, mutagen, pycryptodome and websockets included.
+
+**Note**: There are some regressions in newer ffmpeg versions that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependancy, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds/wiki/Latest#latest-autobuilds) with patches for these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specifc issues solved by these builds
+
 
 ### COMPILE
 
