@@ -4326,8 +4326,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self.to_screen('Downloading playlist %s; add --no-playlist to just download video %s' % (playlist_id, video_id))
 
         data, ytcfg = self._extract_data(url, item_id)
-        if not data:
-            raise ExtractorError('This playlist or channel does not exist.', expected=True)  # TODO
 
         tabs = try_get(
             data, lambda x: x['contents']['twoColumnBrowseResultsRenderer']['tabs'], list)
