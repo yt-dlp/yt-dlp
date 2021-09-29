@@ -418,7 +418,7 @@ def _real_main(argv=None):
         opts.sponskrub = False
 
     # PostProcessors
-    postprocessors = []
+    postprocessors = list(opts.add_postprocessors)
     if sponsorblock_query:
         postprocessors.append({
             'key': 'SponsorBlock',

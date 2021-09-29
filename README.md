@@ -837,6 +837,20 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      around the cuts
     --no-force-keyframes-at-cuts     Do not force keyframes around the chapters
                                      when cutting/splitting (default)
+    --use-postprocessor NAME[:ARGS]  The (case sensitive) name of plugin
+                                     postprocessors to be enabled, and
+                                     (optionally) arguments to be passed to it,
+                                     seperated by a colon ":". ARGS are a
+                                     semicolon ";" delimited list of NAME=VALUE.
+                                     The "when" argument determines when the
+                                     postprocessor is invoked. It can be one of
+                                     "pre_process" (after extraction),
+                                     "before_dl" (before video download),
+                                     "post_process" (after video download;
+                                     default) or "after_move" (after moving file
+                                     to their final locations). This option can
+                                     be used multiple times to add different
+                                     postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -1465,9 +1479,16 @@ NOTE: These options may be changed/removed in the future without concern for bac
 
 # PLUGINS
 
-Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently only `extractor` plugins are supported. Support for `downloader` and `postprocessor` plugins may be added in the future. See [ytdlp_plugins](ytdlp_plugins) for example.
+Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`; where `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`). Plugins are currently not supported for the `pip` version
 
-**Note**: `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`)
+Plugins can be of `<type>`s `extractor` or `postprocessor`. Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
+
+See [ytdlp_plugins](ytdlp_plugins) for example plugins.
+
+Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. Use plugins at your own risk and only if you trust the code
+
+If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
+
 
 # DEPRECATED OPTIONS
 

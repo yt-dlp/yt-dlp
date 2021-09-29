@@ -123,7 +123,7 @@ from .extractor import (
     gen_extractor_classes,
     get_info_extractor,
     _LAZY_LOADER,
-    _PLUGIN_CLASSES
+    _PLUGIN_CLASSES as plugin_extractors
 )
 from .extractor.openload import PhantomJSwrapper
 from .downloader import (
@@ -142,6 +142,7 @@ from .postprocessor import (
     FFmpegMergerPP,
     FFmpegPostProcessor,
     MoveFilesAfterDownloadPP,
+    _PLUGIN_CLASSES as plugin_postprocessors
 )
 from .update import detect_variant
 from .version import __version__
@@ -3201,9 +3202,10 @@ class YoutubeDL(object):
         self._write_string('[debug] yt-dlp version %s%s\n' % (__version__, '' if source == 'unknown' else f' ({source})'))
         if _LAZY_LOADER:
             self._write_string('[debug] Lazy loading extractors enabled\n')
-        if _PLUGIN_CLASSES:
-            self._write_string(
-                '[debug] Plugin Extractors: %s\n' % [ie.ie_key() for ie in _PLUGIN_CLASSES])
+        if plugin_extractors or plugin_postprocessors:
+            self._write_string('[debug] Plugins: %s\n' % [
+                '%s%s' % (klass.__name__, '' if klass.__name__ == name else f' as {name}')
+                for name, klass in itertools.chain(plugin_extractors.items(), plugin_postprocessors.items())])
         if self.params.get('compat_opts'):
             self._write_string(
                 '[debug] Compatibility options: %s\n' % ', '.join(self.params.get('compat_opts')))
