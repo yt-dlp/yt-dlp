@@ -545,7 +545,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             return [], information
 
         filename = information['filepath']
-        if self._duration_mismatch(
+        if information.get('duration') and self._duration_mismatch(
                 self._get_real_video_duration(information, False), information['duration']):
             self.to_screen(f'Skipping {self.pp_key()} since the real and expected durations mismatch')
             return [], information
