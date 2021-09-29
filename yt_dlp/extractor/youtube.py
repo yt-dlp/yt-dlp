@@ -579,12 +579,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             data=json.dumps(data).encode('utf8'), headers=real_headers,
             query={'key': api_key or self._extract_api_key()})
 
-    def extract_yt_initial_data(self, video_id, webpage, fatal=True):
-        return self._parse_json(
-            self._search_regex(
+    def extract_yt_initial_data(self, item_id, webpage, fatal=True):
+        data = self._search_regex(
                 (r'%s\s*%s' % (self._YT_INITIAL_DATA_RE, self._YT_INITIAL_BOUNDARY_RE),
-                 self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal),
-            video_id, fatal=fatal)
+                 self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal)
+        if data:
+            return self._parse_json(data, item_id, fatal=fatal)
 
     @staticmethod
     def _extract_session_index(*data):
@@ -4188,7 +4188,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 webpage = self._download_webpage(
                     url, item_id,
                     note='Downloading webpage%s' % (' (retry #%d)' % count if count else '',))
-                data = self.extract_yt_initial_data(item_id, webpage, fatal=fatal) if webpage else {}
+                data = self.extract_yt_initial_data(item_id, webpage or '', fatal=fatal) or {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
                     if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (403, 429):
@@ -4218,17 +4218,17 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             webpage, data = self._extract_webpage(url, item_id, fatal=webpage_fatal)
             ytcfg = ytcfg or self.extract_ytcfg(item_id, webpage)
         if not data:
+            if self.is_authenticated:
+                msg = 'Authentication with multi-channel and multi-account cookies may not work as expected.'
+                if 'authcheck' not in self._configuration_arg('skip') and fatal:
+                    raise ExtractorError(
+                        msg + ' If you are sure about this, pass --extractor-args youtubetab:skip=authcheck to skip this check',
+                        expected=True)
+                self.report_warning(msg, only_once=True)
             data = self._fetch_tab_endpoint(url, item_id, ytcfg, fatal=fatal, default_client=default_client)
         return data, ytcfg
 
     def _fetch_tab_endpoint(self, url, item_id, ytcfg=None, fatal=True, default_client='web'):
-        if self.is_authenticated:
-            msg = 'Authentication with multi-channel and multi-account cookies may not work as expected.'
-            if 'authcheck' not in self._configuration_arg('skip') and fatal:
-                raise ExtractorError(
-                    msg + ' If you are sure about this, pass --extractor-args youtubetab:skip=authcheck to skip this check', expected=True)
-            self.report_warning(msg, only_once=True)
-
         headers = self.generate_api_headers(ytcfg=ytcfg, default_client=default_client)
         resolve_response = self._extract_response(
             item_id=item_id, query={'url': url}, check_get_keys='endpoint', headers=headers, ytcfg=ytcfg, fatal=fatal,
@@ -4283,10 +4283,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     pre, tab, post, is_channel = 'https://www.youtube.com/playlist?list=%s' % item_id, '', '', False
                 elif item_id[:2] == 'MP':
                     # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
-                    mwebpage = self._extract_data(
+                    mwebpage = self._fetch_tab_endpoint(
                         'https://music.youtube.com/channel/%s' % item_id, item_id, fatal=False, default_client='web_music')
                     murl = traverse_obj(
-                        mwebpage, (..., 'microformat', 'microformatDataRenderer', 'urlCanonical'), get_all=False, expected_type=compat_str)
+                        mwebpage, ('microformat', 'microformatDataRenderer', 'urlCanonical'), get_all=False, expected_type=compat_str)
                     if murl:
                         return self.url_result(murl, ie=YoutubeTabIE.ie_key())
                     self.report_warning('Failed to resolve album to playlist.')
