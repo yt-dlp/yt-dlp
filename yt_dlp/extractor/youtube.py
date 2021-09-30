@@ -627,6 +627,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # and just "user_syncid||" for primary channel. We only want the channel_syncid
                 return sync_ids[0]
 
+    @staticmethod
+    def _extract_visitor_data(*args):
+        """
+        Extracts visitorData
+        Required to track sessions
+        """
+        return traverse_obj(
+            args, (..., ('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))),
+            expected_type=compat_str, get_all=False)
+
     @property
     def is_authenticated(self):
         return bool(self._generate_sapisidhash_header())
@@ -651,8 +661,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'Origin': origin,
             'X-Youtube-Identity-Token': identity_token or self._extract_identity_token(ytcfg),
             'X-Goog-PageId': account_syncid or self._extract_account_syncid(ytcfg),
-            'X-Goog-Visitor-Id': visitor_data or try_get(
-                self._extract_context(ytcfg, default_client), lambda x: x['client']['visitorData'], compat_str)
+            'X-Goog-Visitor-Id': visitor_data or self._extract_visitor_data(ytcfg)
         }
         if session_index is None:
             session_index = self._extract_session_index(ytcfg)
@@ -3546,7 +3555,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/feed/watch_later',
         'only_matching': True,
     }, {
-        'note': 'Recommended - redirects to home page',
+        'note': 'Recommended - redirects to home page. Requires visitorData',
         'url': 'https://www.youtube.com/feed/recommended',
         'only_matching': True,
     }, {
@@ -3643,6 +3652,18 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'availability': 'unlisted'
         },
         'playlist_count': 1,
+    }, {
+        'note': 'API Only: Recommended - redirects to home page. Requires visitorData',
+        'url': 'https://www.youtube.com/feed/recommended',
+        'info_dict': {
+            'id': 'recommended',
+            'title': 'recommended',
+        },
+        'playlist_mincount': 50,
+        'params': {
+            'skip_download': True,
+            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
+        },
     }]
 
     @classmethod
@@ -3831,7 +3852,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 if entry:
                     yield entry
     '''
-    def _entries(self, tab, item_id, account_syncid, ytcfg):
+    def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
 
         def extract_entries(parent_renderer):  # this needs to called again for continuation to work with feeds
             contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
@@ -3873,7 +3894,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             if not continuation_list[0]:
                 continuation_list[0] = self._extract_continuation(parent_renderer)
 
-        continuation_list = [None]  # Python 2 doesnot support nonlocal
+        continuation_list = [None]  # Python 2 does not support nonlocal
         tab_content = try_get(tab, lambda x: x['content'], dict)
         if not tab_content:
             return
@@ -3883,7 +3904,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         for entry in extract_entries(parent_renderer):
             yield entry
         continuation = continuation_list[0]
-        visitor_data = None
 
         for page_num in itertools.count(1):
             if not continuation:
@@ -3897,8 +3917,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
             if not response:
                 break
-            visitor_data = try_get(
-                response, lambda x: x['responseContext']['visitorData'], compat_str) or visitor_data
+            # Extracting updated visitor data is required to prevent an infinite extraction loop in some cases
+            # See: https://github.com/ytdl-org/youtube-dl/issues/28702
+            visitor_data = self._extract_visitor_data(response) or visitor_data
 
             known_continuation_renderers = {
                 'playlistVideoListContinuation': self._playlist_entries,
@@ -4041,14 +4062,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             'channel_url': metadata['uploader_url']})
         return self.playlist_result(
             self._entries(
-                selected_tab, playlist_id,
-                self._extract_account_syncid(ytcfg, data), ytcfg),
+                selected_tab, playlist_id, ytcfg,
+                self._extract_account_syncid(ytcfg, data),
+                self._extract_visitor_data(ytcfg, data)),
             **metadata)
 
     def _extract_mix_playlist(self, playlist, playlist_id, data, ytcfg):
-        first_id = last_id = None
-        headers = self.generate_api_headers(
-            ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data))
+        first_id = last_id = response = None
         for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
             if not videos:
@@ -4065,6 +4085,9 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             last_id = videos[-1]['id']
             watch_endpoint = try_get(
                 playlist, lambda x: x['contents'][-1]['playlistPanelVideoRenderer']['navigationEndpoint']['watchEndpoint'])
+            headers = self.generate_api_headers(
+                ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
+                visitor_data=self._extract_visitor_data(response, ytcfg, data))
             query = {
                 'playlistId': playlist_id,
                 'videoId': watch_endpoint.get('videoId') or last_id,
@@ -4163,7 +4186,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             break
 
         headers = self.generate_api_headers(
-            ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data))
+            ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
+            visitor_data=self._extract_visitor_data(ytcfg, data))
         query = {
             'params': params or 'wgYCCAA=',
             'browseId': browse_id or 'VL%s' % item_id
