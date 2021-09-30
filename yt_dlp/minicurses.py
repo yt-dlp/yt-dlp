@@ -41,8 +41,9 @@ class BreaklineStatusPrinter(MultilinePrinterBase):
 
 
 class MultilinePrinter(MultilinePrinterBase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, stream=None, lines=1, preserve_output=True):
+        super().__init__(stream, lines)
+        self.preserve_output = preserve_output
         self._lastline = self._lastlength = 0
         self._movelock = Lock()
         self._HAVE_FULLCAP = supports_terminal_sequences(self.stream)
@@ -92,4 +93,13 @@ class MultilinePrinter(MultilinePrinterBase):
         # so that other to_screen calls can precede
         if self._HAVE_FULLCAP:
             self._move_cursor(self.maximum)
-        self.stream.write('\n')
+        if self.preserve_output:
+            self.stream.write('\n')
+            return
+
+        if self._HAVE_FULLCAP:
+            self.stream.write(
+                TERMINAL_SEQUENCES['ERASE_LINE']
+                + f'{TERMINAL_SEQUENCES["UP"]}{TERMINAL_SEQUENCES["ERASE_LINE"]}' * self.maximum)
+        else:
+            self.stream.write(' ' * self._lastlength)
