@@ -197,7 +197,7 @@ def aes_decrypt(data, expanded_key):
     for i in range(rounds, 0, -1):
         data = xor(data, expanded_key[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES])
         if i != rounds:
-            data = mix_columns_inv(data)
+            data = list(mix_columns_inv(data))
         data = shift_rows_inv(data)
         data = sub_bytes_inv(data)
     data = xor(data, expanded_key[:BLOCK_SIZE_BYTES])
@@ -393,11 +393,13 @@ def mix_column(data, matrix):
 
 
 def mix_columns(data, matrix=MIX_COLUMN_MATRIX):
-    data_mixed = []
-    for i in range(4):
-        column = data[i * 4: (i + 1) * 4]
-        data_mixed += mix_column(column, matrix)
-    return data_mixed
+    for i in range(0, 16, 4):
+        for row in matrix:
+            mixed = 0
+            for byte, column in zip(data[i:i + 4], row):
+                # xor is (+) and (-)
+                mixed ^= rijndael_mul(byte, column)
+            yield mixed
 
 
 def mix_columns_inv(data):
@@ -405,19 +407,11 @@ def mix_columns_inv(data):
 
 
 def shift_rows(data):
-    data_shifted = []
-    for column in range(4):
-        for row in range(4):
-            data_shifted.append(data[((column + row) & 0b11) * 4 + row])
-    return data_shifted
+    return [data[((column + row) & 0b11) * 4 + row] for column in range(4) for row in range(4)]
 
 
 def shift_rows_inv(data):
-    data_shifted = []
-    for column in range(4):
-        for row in range(4):
-            data_shifted.append(data[((column - row) & 0b11) * 4 + row])
-    return data_shifted
+    return [data[((column - row) & 0b11) * 4 + row] for column in range(4) for row in range(4)]
 
 
 def shift_block(data):
@@ -476,7 +470,7 @@ def ghash(subkey, data):
 
     last_y = [0] * BLOCK_SIZE_BYTES
     for i in range(0, len(data), BLOCK_SIZE_BYTES):
-        block = data[i : i + BLOCK_SIZE_BYTES]  # noqa: E203
+        block = data[i: i + BLOCK_SIZE_BYTES]  # noqa: E203
         last_y = block_product(xor(last_y, block), subkey)
 
     return last_y
