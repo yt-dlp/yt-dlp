@@ -3555,7 +3555,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/feed/watch_later',
         'only_matching': True,
     }, {
-        'note': 'Recommended - redirects to home page. Requires visitorData',
+        'note': 'Recommended - redirects to home page.',
         'url': 'https://www.youtube.com/feed/recommended',
         'only_matching': True,
     }, {
@@ -4064,7 +4064,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
             self._entries(
                 selected_tab, playlist_id, ytcfg,
                 self._extract_account_syncid(ytcfg, data),
-                self._extract_visitor_data(ytcfg, data)),
+                self._extract_visitor_data(data, ytcfg)),
             **metadata)
 
     def _extract_mix_playlist(self, playlist, playlist_id, data, ytcfg):
@@ -4087,7 +4087,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 playlist, lambda x: x['contents'][-1]['playlistPanelVideoRenderer']['navigationEndpoint']['watchEndpoint'])
             headers = self.generate_api_headers(
                 ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
-                visitor_data=self._extract_visitor_data(response, ytcfg, data))
+                visitor_data=self._extract_visitor_data(response, data, ytcfg))
             query = {
                 'playlistId': playlist_id,
                 'videoId': watch_endpoint.get('videoId') or last_id,
@@ -4187,7 +4187,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
         headers = self.generate_api_headers(
             ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
-            visitor_data=self._extract_visitor_data(ytcfg, data))
+            visitor_data=self._extract_visitor_data(data, ytcfg))
         query = {
             'params': params or 'wgYCCAA=',
             'browseId': browse_id or 'VL%s' % item_id
