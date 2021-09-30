@@ -2,7 +2,7 @@ from threading import Lock
 from .utils import supports_terminal_sequences, TERMINAL_SEQUENCES
 
 
-class MultilinePrinterBase():
+class MultilinePrinterBase:
     def __init__(self, stream=None, lines=1):
         self.stream = stream
         self.maximum = lines - 1
@@ -31,6 +31,7 @@ class QuietMultilinePrinter(MultilinePrinterBase):
 
 class MultilineLogger(MultilinePrinterBase):
     def print_at_line(self, text, pos):
+        # stream is the logger object, not an actual stream
         self.stream.debug(self._add_line_number(text, pos))
 
 
@@ -46,6 +47,12 @@ class MultilinePrinter(MultilinePrinterBase):
         self._movelock = Lock()
         self._HAVE_FULLCAP = supports_terminal_sequences(self.stream)
 
+    def lock(func):
+        def wrapper(self, *args, **kwargs):
+            with self._movelock:
+                return func(self, *args, **kwargs)
+        return wrapper
+
     def _move_cursor(self, dest):
         current = min(self._lastline, self.maximum)
         self.stream.write('\r')
@@ -56,34 +63,33 @@ class MultilinePrinter(MultilinePrinterBase):
             self.stream.write(TERMINAL_SEQUENCES['DOWN'] * distance)
         self._lastline = dest
 
+    @lock
     def print_at_line(self, text, pos):
-        with self._movelock:
-            if self._HAVE_FULLCAP:
-                self._move_cursor(pos)
-                self.stream.write(TERMINAL_SEQUENCES['ERASE_LINE'])
-                self.stream.write(text)
-                return
-
-            text = self._add_line_number(text, pos)
-            textlen = len(text)
-            if self._lastline == pos:
-                # move cursor at the start of progress when writing to same line
-                self.stream.write('\r')
-                if self._lastlength > textlen:
-                    text += ' ' * (self._lastlength - textlen)
-                self._lastlength = textlen
-            else:
-                # otherwise, break the line
-                self.stream.write('\n')
-                self._lastlength = textlen
-                # self._lastlength = 0  # XXX: WHY?
+        if self._HAVE_FULLCAP:
+            self._move_cursor(pos)
+            self.stream.write(TERMINAL_SEQUENCES['ERASE_LINE'])
             self.stream.write(text)
-            self._lastline = pos
+            return
 
-    def end(self):
-        with self._movelock:
-            # move cursor to the end of the last line, and write line break
-            # so that other to_screen calls can precede
-            if self._HAVE_FULLCAP:
-                self._move_cursor(self.maximum)
+        text = self._add_line_number(text, pos)
+        textlen = len(text)
+        if self._lastline == pos:
+            # move cursor at the start of progress when writing to same line
+            self.stream.write('\r')
+            if self._lastlength > textlen:
+                text += ' ' * (self._lastlength - textlen)
+            self._lastlength = textlen
+        else:
+            # otherwise, break the line
             self.stream.write('\n')
+            self._lastlength = textlen
+        self.stream.write(text)
+        self._lastline = pos
+
+    @lock
+    def end(self):
+        # move cursor to the end of the last line, and write line break
+        # so that other to_screen calls can precede
+        if self._HAVE_FULLCAP:
+            self._move_cursor(self.maximum)
+        self.stream.write('\n')
