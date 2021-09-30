@@ -89,6 +89,7 @@ class FranceTVIE(InfoExtractor):
         image = None
         duration = None
         timestamp = None
+        spritesheets = None
 
         for device_type in ('desktop', 'mobile'):
             dinfo = self._download_json(
@@ -108,6 +109,8 @@ class FranceTVIE(InfoExtractor):
                     duration = video.get('duration')
                 if is_live is None:
                     is_live = video.get('is_live')
+                if spritesheets is None:
+                    spritesheets = video.get('spritesheets')
 
             meta = dinfo.get('meta')
             if meta:
@@ -173,6 +176,24 @@ class FranceTVIE(InfoExtractor):
             if f.get('acodec') != 'none' and f.get('language') in ('qtz', 'qad'):
                 f['language_preference'] = -10
                 f['format_note'] = 'audio description%s' % format_field(f, 'format_note', ', %s')
+
+        if spritesheets:
+            formats.append({
+                'format_id': 'spritesheets',
+                'format_note': 'storyboard',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'url': 'about:dummy',
+                'fragments': [{
+                    'path': sheet,
+                    # XXX: not entirely accurate; each spritesheet seems to be
+                    # a 10×10 grid of thumbnails corresponding to approximately
+                    # 2 seconds of the video; the last spritesheet may be shorter
+                    'duration': 200,
+                } for sheet in spritesheets]
+            })
 
         self._sort_formats(formats)
 
