@@ -1,5 +1,3 @@
-import os
-
 from threading import Lock
 from .utils import supports_terminal_sequences, TERMINAL_SEQUENCES
 
@@ -23,8 +21,9 @@ class MultilinePrinterBase():
 
     def _add_line_number(self, text, line):
         if self.maximum:
-            return f'{pos + 1}: {text}'
+            return f'{line + 1}: {text}'
         return text
+
 
 class QuietMultilinePrinter(MultilinePrinterBase):
     pass
@@ -32,7 +31,7 @@ class QuietMultilinePrinter(MultilinePrinterBase):
 
 class MultilineLogger(MultilinePrinterBase):
     def print_at_line(self, text, pos):
-        self._stream.debug(self._add_line_number(text, pos))
+        self.stream.debug(self._add_line_number(text, pos))
 
 
 class BreaklineStatusPrinter(MultilinePrinterBase):

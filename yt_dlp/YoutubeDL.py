@@ -67,8 +67,6 @@ from .utils import (
     float_or_none,
     format_bytes,
     format_field,
-    STR_FORMAT_RE_TMPL,
-    STR_FORMAT_TYPES,
     formatSeconds,
     GeoRestrictedError,
     HEADRequest,
@@ -101,9 +99,13 @@ from .utils import (
     sanitize_url,
     sanitized_Request,
     std_headers,
+    STR_FORMAT_RE_TMPL,
+    STR_FORMAT_TYPES,
     str_or_none,
     strftime_or_none,
     subtitles_filename,
+    supports_terminal_sequences,
+    TERMINAL_SEQUENCES,
     ThrottledDownload,
     to_high_limit_path,
     traverse_obj,
@@ -117,8 +119,6 @@ from .utils import (
     YoutubeDLCookieProcessor,
     YoutubeDLHandler,
     YoutubeDLRedirectHandler,
-    supports_terminal_sequences,
-    TERMINAL_SEQUENCES,
 )
 from .cache import Cache
 from .extractor import (
@@ -494,8 +494,7 @@ class YoutubeDL(object):
         self.params = params
         self.cache = Cache(self)
 
-        if not self.params.get('no_color') and not supports_terminal_sequences(self._err_file):
-                self.params['no_color'] = True
+        self.params['no_color'] = self.params.get('no_color') or not supports_terminal_sequences(self._err_file)
 
         if sys.version_info < (3, 6):
             self.report_warning(
@@ -807,14 +806,14 @@ class YoutubeDL(object):
         else:
             if self.params.get('no_warnings'):
                 return
-            self.to_stderr(f'{self._color_text("WARNING", "yellow")}: {message}', only_once)
+            self.to_stderr(f'{self._color_text("WARNING:", "yellow")} {message}', only_once)
 
     def report_error(self, message, tb=None):
         '''
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
         '''
-        self.trouble(f'{self._color_text("ERROR", "red")}: {message}', tb)
+        self.trouble(f'{self._color_text("ERROR:", "red")} {message}', tb)
 
     def write_debug(self, message, only_once=False):
         '''Log debug message or Print message to stderr'''

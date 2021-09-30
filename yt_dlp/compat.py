@@ -287,6 +287,6 @@ __all__ = [
     'compat_xml_parse_error',
     'compat_xpath',
     'compat_zip',
-    'workaround_optparse_bug9161',
     'windows_enable_vt_mode',
+    'workaround_optparse_bug9161',
 ]

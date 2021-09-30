@@ -7,7 +7,6 @@ import sys
 import time
 import random
 
-from ..compat import compat_os_name
 from ..utils import (
     decodeArgument,
     encodeFilename,
@@ -17,6 +16,7 @@ from ..utils import (
     timeconvert,
 )
 from ..minicurses import (
+    MultilineLogger,
     MultilinePrinter,
     QuietMultilinePrinter,
     BreaklineStatusPrinter
