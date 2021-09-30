@@ -159,6 +159,12 @@ except ImportError:
         compat_pycrypto_AES = None
 
 
+def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+    if compat_os_name != 'nt':
+        return
+    os.system('')
+
+
 #  Deprecated
 
 compat_basestring = str
@@ -282,4 +288,5 @@ __all__ = [
     'compat_xpath',
     'compat_zip',
     'workaround_optparse_bug9161',
+    'windows_enable_vt_mode',
 ]

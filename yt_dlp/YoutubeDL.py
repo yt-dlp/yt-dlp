@@ -117,6 +117,8 @@ from .utils import (
     YoutubeDLCookieProcessor,
     YoutubeDLHandler,
     YoutubeDLRedirectHandler,
+    supports_terminal_sequences,
+    TERMINAL_SEQUENCES,
 )
 from .cache import Cache
 from .extractor import (
@@ -248,6 +250,7 @@ class YoutubeDL(object):
     rejecttitle:       Reject downloads for matching titles.
     logger:            Log messages to a logging.Logger instance.
     logtostderr:       Log messages to stderr instead of stdout.
+    consoletitle:       Display progress in console window's titlebar.
     writedescription:  Write the video description to a .description file
     writeinfojson:     Write the video description to a .info.json file
     clean_infojson:    Remove private fields from the infojson
@@ -416,7 +419,7 @@ class YoutubeDL(object):
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
-    max_filesize, test, noresizebuffer, retries, continuedl, noprogress, consoletitle,
+    max_filesize, test, noresizebuffer, retries, continuedl, noprogress,
     xattr_set_filesize, external_downloader_args, hls_use_mpegts, http_chunk_size.
 
     The following options are used by the post processors:
@@ -488,12 +491,11 @@ class YoutubeDL(object):
         self._num_downloads = 0
         self._screen_file = [sys.stdout, sys.stderr][params.get('logtostderr', False)]
         self._err_file = sys.stderr
-        self.params = {
-            # Default parameters
-            'nocheckcertificate': False,
-        }
-        self.params.update(params)
+        self.params = params
         self.cache = Cache(self)
+
+        if not self.params.get('no_color') and not supports_terminal_sequences(self._err_file):
+                self.params['no_color'] = True
 
         if sys.version_info < (3, 6):
             self.report_warning(
@@ -790,6 +792,11 @@ class YoutubeDL(object):
         self.to_stdout(
             message, skip_eol, quiet=self.params.get('quiet', False))
 
+    def _color_text(self, text, color):
+        if self.params.get('no_color'):
+            return text
+        return f'{TERMINAL_SEQUENCES[color.upper()]}{text}{TERMINAL_SEQUENCES["RESET_STYLE"]}'
+
     def report_warning(self, message, only_once=False):
         '''
         Print the message to stderr, it will be prefixed with 'WARNING:'
@@ -800,24 +807,14 @@ class YoutubeDL(object):
         else:
             if self.params.get('no_warnings'):
                 return
-            if not self.params.get('no_color') and self._err_file.isatty() and compat_os_name != 'nt':
-                _msg_header = '\033[0;33mWARNING:\033[0m'
-            else:
-                _msg_header = 'WARNING:'
-            warning_message = '%s %s' % (_msg_header, message)
-            self.to_stderr(warning_message, only_once)
+            self.to_stderr(f'{self._color_text("WARNING", "yellow")}: {message}', only_once)
 
     def report_error(self, message, tb=None):
         '''
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
         '''
-        if not self.params.get('no_color') and self._err_file.isatty() and compat_os_name != 'nt':
-            _msg_header = '\033[0;31mERROR:\033[0m'
-        else:
-            _msg_header = 'ERROR:'
-        error_message = '%s %s' % (_msg_header, message)
-        self.trouble(error_message, tb)
+        self.trouble(f'{self._color_text("ERROR", "red")}: {message}', tb)
 
     def write_debug(self, message, only_once=False):
         '''Log debug message or Print message to stderr'''

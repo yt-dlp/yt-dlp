@@ -910,8 +910,12 @@ def parseOpts(overrideArguments=None):
         help='Output progress bar as new lines')
     verbosity.add_option(
         '--no-progress',
-        action='store_true', dest='noprogress', default=False,
+        action='store_true', dest='noprogress', default=None,
         help='Do not print progress bar')
+    verbosity.add_option(
+        '--progress',
+        action='store_false', dest='noprogress',
+        help='Show progress bar, even if in quiet mode')
     verbosity.add_option(
         '--console-title',
         action='store_true', dest='consoletitle', default=False,

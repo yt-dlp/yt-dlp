@@ -20,6 +20,7 @@ from .compat import (
     compat_getpass,
     compat_shlex_quote,
     workaround_optparse_bug9161,
+    windows_enable_vt_mode
 )
 from .cookies import SUPPORTED_BROWSERS
 from .utils import (
@@ -66,6 +67,7 @@ def _real_main(argv=None):
         codecs.register(lambda name: codecs.lookup('utf-8') if name == 'cp65001' else None)
 
     workaround_optparse_bug9161()
+    windows_enable_vt_mode()
 
     setproctitle('yt-dlp')
 
@@ -633,7 +635,7 @@ def _real_main(argv=None):
         'noresizebuffer': opts.noresizebuffer,
         'http_chunk_size': opts.http_chunk_size,
         'continuedl': opts.continue_dl,
-        'noprogress': opts.noprogress,
+        'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
         'progress_with_newline': opts.progress_with_newline,
         'playliststart': opts.playliststart,
         'playlistend': opts.playlistend,

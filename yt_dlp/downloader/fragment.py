@@ -393,9 +393,7 @@ class FragmentFD(FileDownloader):
                 result = result and job.result()
             finally:
                 tpe.shutdown(wait=True)
-
-        self._finish_multiline_status()
-        return True
+        return result
 
     def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, tpe=None):
         fragment_retries = self.params.get('fragment_retries', 0)
