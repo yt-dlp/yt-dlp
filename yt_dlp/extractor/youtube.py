@@ -826,9 +826,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     return
 
             else:
-                # Youtube may send alerts if there was an issue with the continuation page
                 try:
-                    self._extract_and_report_alerts(response, expected=False, only_once=True)
+                    self._extract_and_report_alerts(response, only_once=True)
                 except ExtractorError as e:
                     # YouTube servers may return errors we want to retry on in a 200 OK response
                     # See: https://github.com/yt-dlp/yt-dlp/issues/839
