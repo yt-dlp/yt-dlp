@@ -471,11 +471,91 @@ class FFmpegFD(ExternalFD):
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
         self._debug_cmd(args)
 
-        proc = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
+        proc = subprocess.Popen(args, stderr=subprocess.PIPE, stdin=subprocess.PIPE, env=env, universal_newlines=True, encoding="utf8")
         if url in ('-', 'pipe:'):
             self.on_process_started(proc, proc.stdin)
         try:
-            retval = proc.wait()
+            # Get ffmpeg progress by capturing and parsing the output
+            start_time, end_time, total_time_to_dl = None, None, info_dict['duration']
+            for i, arg in enumerate(args):
+                if arg == "-ss" and i + 1 < len(args):
+                    start_time = parse_ffmpeg_time_string(args[i + 1])
+                elif (arg == "-sseof" or arg == "-t") and i + 1 < len(args):
+                    start_time = info_dict['duration'] - parse_ffmpeg_time_string(args[i + 1])
+                elif (arg == "-to" or arg == "-t") and i + 1 < len(args):
+                    end_time = parse_ffmpeg_time_string(args[i + 1])
+            if start_time is not None and end_time is None:
+                total_time_to_dl = total_time_to_dl - start_time
+            elif start_time is None and end_time is not None:
+                total_time_to_dl = end_time
+            elif start_time is not None and end_time is not None:
+                total_time_to_dl = end_time - start_time
+            started = time.time()
+            if "filesize" in info_dict.keys():
+                total_filesize = info_dict["filesize"] * total_time_to_dl / info_dict['duration']
+            elif "filesize_approx" in info_dict.keys():
+                total_filesize = info_dict["filesize_approx"]
+            else:
+                total_filesize = 0
+            status = {
+                'filename': info_dict['_filename'],
+                'status': 'downloading',
+                'total_bytes': total_filesize,
+                'elapsed': time.time() - started
+            }
+            progress_pattern = re.compile(r'(size|time|bitrate|speed)\s*=\s*(\S+)')
+            retval = proc.poll()
+            while retval is None:
+                output = proc.stderr.readline().rstrip(os.linesep) if proc.stderr is not None else ""
+                if output != "":
+                    sys.stderr.write(output)
+                ffmpeg_output = {key: value for key, value in progress_pattern.findall(output.rstrip(os.linesep))}
+                if ffmpeg_output != {}:
+                    try:
+                        speed = float(ffmpeg_output['speed'][1:])
+                        eta_seconds = (total_time_to_dl - parse_ffmpeg_time_string(ffmpeg_output['time'])) / speed
+                    except ValueError:
+                        eta_seconds = 0
+                    bitrate_int = None
+                    bitrate_str = re.match(r"(?P<E>\d+)(\.(?P<f>\d+))?(?P<U>g|m|k)?bits/s", ffmpeg_output['bitrate'])
+                    if bitrate_str:
+                        bitrate_int = int(bitrate_str.group('E'))
+                        if bitrate_str.group('f') is not None:
+                            bitrate_int += int(bitrate_str.group('f'))
+                        if bitrate_str.group('U') is not None:
+                            if bitrate_str.group('U') == 'g':
+                                bitrate_int *= 1_000_000_000
+                            elif bitrate_str.group('U') == 'm':
+                                bitrate_int *= 1_000_000
+                            elif bitrate_str.group('U') == 'k':
+                                bitrate_int *= 1_000
+                    dl_bytes_int = 0
+                    dl_bytes_str = re.match(r"(?P<E>\d+)(\.(?P<f>\d+))?(?P<U>g|m|k)?B", ffmpeg_output['size'])
+                    if dl_bytes_str:
+                        dl_bytes_int = int(dl_bytes_str.group('E'))
+                        if dl_bytes_str.group('f') is not None:
+                            dl_bytes_int += int(dl_bytes_str.group('f'))
+                        if dl_bytes_str.group('U') is not None:
+                            if dl_bytes_str.group('U') == 'g':
+                                dl_bytes_int *= 1_000_000_000
+                            elif dl_bytes_str.group('U') == 'm':
+                                dl_bytes_int *= 1_000_000
+                            elif dl_bytes_str.group('U') == 'k':
+                                dl_bytes_int *= 1_000
+                    status.update({
+                        'downloaded_bytes': dl_bytes_int,
+                        'speed': bitrate_int,
+                        'eta': eta_seconds
+                    })
+                    self._hook_progress(status, info_dict)
+                    ffmpeg_output = {}
+                status.update({'elapsed': time.time() - started})
+                retval = proc.poll()
+            status.update({
+                'status': 'finished',
+                'downloaded_bytes': total_filesize
+            })
+            self._hook_progress(status, info_dict)
         except BaseException as e:
             # subprocces.run would send the SIGKILL signal to ffmpeg and the
             # mp4 file couldn't be played, but if we ask ffmpeg to quit it
@@ -500,6 +580,27 @@ _BY_NAME = dict(
     for name, klass in globals().items()
     if name.endswith('FD') and name not in ('ExternalFD', 'FragmentFD')
 )
+
+
+def parse_ffmpeg_time_string(time_string):
+    time = 0
+    reg1 = re.match(r"((?P<H>\d\d?):)?((?P<M>\d\d?):)?(?P<S>\d\d?)(\.(?P<f>\d{1,3}))?", time_string)
+    reg2 = re.match(r"\d+(?P<U>s|ms|us)", time_string)
+    if reg1:
+        if reg1.group('H') is not None:
+            time += 3600 * int(reg1.group('H'))
+        if reg1.group('M') is not None:
+            time += 60 * int(reg1.group('M'))
+        time += int(reg1.group('S'))
+        if reg1.group('f') is not None:
+            time += int(reg1.group('f')) / 1_000
+    elif reg2:
+        time = int(reg2.group('U'))
+        if reg2.group('U') == 'ms':
+            time /= 1_000
+        elif reg2.group('U') == 'us':
+            time /= 1_000_000
+    return time
 
 
 def list_external_downloaders():
