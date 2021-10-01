@@ -377,19 +377,13 @@ def xor(data1, data2):
 
 def iter_mix_columns(data, matrix):
     for i in (0, 4, 8, 12):
-        d0, d1, d2, d3 = data[i: i + 4]
         for row in matrix:
-            c0, c1, c2, c3 = row
-            # xor is (+) and (-)
-            v0 = (0 if d0 == 0 or c0 == 0 else
-                  RIJNDAEL_EXP_TABLE[(RIJNDAEL_LOG_TABLE[d0] + RIJNDAEL_LOG_TABLE[c0]) % 0xFF])
-            v1 = (0 if d1 == 0 or c1 == 0 else
-                  RIJNDAEL_EXP_TABLE[(RIJNDAEL_LOG_TABLE[d1] + RIJNDAEL_LOG_TABLE[c1]) % 0xFF])
-            v2 = (0 if d2 == 0 or c2 == 0 else
-                  RIJNDAEL_EXP_TABLE[(RIJNDAEL_LOG_TABLE[d2] + RIJNDAEL_LOG_TABLE[c2]) % 0xFF])
-            v3 = (0 if d3 == 0 or c3 == 0 else
-                  RIJNDAEL_EXP_TABLE[(RIJNDAEL_LOG_TABLE[d3] + RIJNDAEL_LOG_TABLE[c3]) % 0xFF])
-            yield v0 ^ v1 ^ v2 ^ v3
+            mixed = 0
+            for j in range(4):
+                # xor is (+) and (-)
+                mixed ^= (0 if data[i:i + 4][j] == 0 or row[j] == 0 else
+                          RIJNDAEL_EXP_TABLE[(RIJNDAEL_LOG_TABLE[data[i + j]] + RIJNDAEL_LOG_TABLE[row[j]]) % 0xFF])
+            yield mixed
 
 
 def shift_rows(data):
