@@ -149,6 +149,7 @@ class TikTokBaseIE(InfoExtractor):
                     'tbr': try_get(bitrate, lambda x: x['bit_rate'] / 1000),
                     'vcodec': 'h265' if traverse_obj(
                         bitrate, 'is_bytevc1', 'is_h265') else 'h264',
+                    'fps': bitrate.get('FPS'),
                 }))
 
         self._remove_duplicate_formats(formats)
