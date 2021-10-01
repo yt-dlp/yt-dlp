@@ -178,7 +178,7 @@ def aes_encrypt(data, expanded_key):
         data = sub_bytes(data)
         data = shift_rows(data)
         if i != rounds:
-            data = mix_columns(data)
+            data = list(mix_columns(data))
         data = xor(data, expanded_key[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES])
 
     return data
@@ -197,7 +197,7 @@ def aes_decrypt(data, expanded_key):
     for i in range(rounds, 0, -1):
         data = xor(data, expanded_key[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES])
         if i != rounds:
-            data = mix_columns_inv(data)
+            data = list(mix_columns_inv(data))
         data = shift_rows_inv(data)
         data = sub_bytes_inv(data)
     data = xor(data, expanded_key[:BLOCK_SIZE_BYTES])
