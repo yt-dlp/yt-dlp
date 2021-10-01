@@ -8,12 +8,14 @@ import time
 import json
 
 from .common import InfoExtractor
+from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     int_or_none,
     str_or_none,
     traverse_obj,
     try_get,
+    url_or_none,
     qualities,
 )
 
@@ -417,6 +419,7 @@ class TikTokUserIE(TikTokBaseIE):
         })
         own_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID')
         return self.playlist_result(self._entries_api(webpage, own_id, user_id), user_id)
+
 
 class DouyinIE(TikTokIE):
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
