@@ -50,6 +50,7 @@ class ThetaStreamIE(InfoExtractor):
             'thumbnail': try_get(info, lambda x: x['live_stream']['thumbnail_url']),
         }
 
+
 class ThetaVideoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?theta\.tv/video/(?P<id>vid[a-z0-9]+)'
     _TEST = {
@@ -73,8 +74,6 @@ class ThetaVideoIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(m3u8_playlist, video_id, 'mp4', m3u8_id='hls')
         self._sort_formats(formats)
-
-        channel = try_get(info, lambda x: x['user']['username'])  # using this field instead of channel_id due to capitalization
 
         return {
             'id': video_id,
