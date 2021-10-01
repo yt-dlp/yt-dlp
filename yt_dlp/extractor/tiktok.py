@@ -21,6 +21,7 @@ from ..utils import (
 class TikTokBaseIE(InfoExtractor):
     _APP_VERSION = '20.9.3'
     _MANIFEST_APP_VERSION = '291'
+    _API_HOSTNAME = 'api-t2.tiktokv.com'
     QUALITIES = ('360p', '540p', '720p')
 
     def _call_api(self, ep, query, video_id, fatal=True,
@@ -60,9 +61,9 @@ class TikTokBaseIE(InfoExtractor):
             'as': 'a1qwert123',
             'cp': 'cbfhckdckkde1',
         }
-        self._set_cookie('.tiktokv.com', 'odin_tt', ''.join(random.choice('0123456789abcdef') for i in range(160)))
+        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for i in range(160)))
         return self._download_json(
-            'https://api-t2.tiktokv.com/aweme/v1/%s/' % ep, video_id=video_id,
+            'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
                 'User-Agent': f'com.ss.android.ugc.trill/{self._MANIFEST_APP_VERSION} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
                 'Accept': 'application/json',

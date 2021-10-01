@@ -1,8 +1,10 @@
 # coding: utf-8
 
 from ..utils import (
+    ExtractorError,
     int_or_none,
     traverse_obj,
+    qualities,
     url_or_none,
 )
 from .common import (
@@ -94,9 +96,180 @@ class DouyinIE(InfoExtractor):
             'comment_count': int,
         }
     }]
+    _APP_VERSION = '9.6.0'
+    _MANIFEST_APP_VERSION = '960'
+    QUALITIES = ('360p', '540p', '720p')
+
+    def _extract_aweme(self, aweme_id):
+        query = {
+            'aweme_id': aweme_id,
+            'version_name': self._APP_VERSION,
+            'version_code': self._MANIFEST_APP_VERSION,
+            'build_number': self._APP_VERSION,
+            'manifest_version_code': self._MANIFEST_APP_VERSION,
+            'update_version_code': self._MANIFEST_APP_VERSION,
+            'openudid': ''.join(random.choice('0123456789abcdef') for i in range(16)),
+            'uuid': ''.join([random.choice(string.digits) for num in range(16)]),
+            '_rticket': int(time.time() * 1000),
+            'ts': int(time.time()),
+            'device_brand': 'Google',
+            'device_type': 'Pixel 4',
+            'device_platform': 'android',
+            'resolution': '1080*1920',
+            'dpi': 420,
+            'os_version': '10',
+            'os_api': '29',
+            'app_name': 'aweme',
+            'app_type': 'normal',
+            'app_language': 'en',
+            'language': 'en',
+            'channel': 'googleplay',
+            'ac': 'wifi',
+            'is_my_cn': 1,
+            'aid': 1128,
+            'ssmix': 'a',
+            'as': 'a1qwert123',
+            'cp': 'cbfhckdckkde1',
+        }
+        
+        aweme_detail = self._download_json(
+            'https://aweme.snssdk.com/aweme/v1/aweme/detail/', aweme_id,
+            'Downloading video details', 'Unable to download video details', query=query)['aweme_detail']
+        video_info = aweme_detail['video']
+
+        def parse_url_key(url_key):
+            format_id, codec, res, bitrate = self._search_regex(
+                r'v[^_]+_(?P<id>(?P<codec>[^_]+)_(?P<res>\d+p)_(?P<bitrate>\d+))', url_key,
+                'url key', default=(None, None, None, None), group=('id', 'codec', 'res', 'bitrate'))
+            if not format_id:
+                return {}, None
+            return {
+                'format_id': format_id,
+                'vcodec': 'h265' if codec == 'bytevc1' else codec,
+                'tbr': int_or_none(bitrate, scale=1000) or None,
+                'quality': qualities(self.QUALITIES)(res),
+            }, res
+
+        known_resolutions = {}
+
+        def extract_addr(addr, add_meta={}):
+            parsed_meta, res = parse_url_key(addr.get('url_key', ''))
+            if res:
+                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height'))
+                known_resolutions[res].setdefault('width', add_meta.get('width'))
+                parsed_meta.update(known_resolutions.get(res, {}))
+                add_meta.setdefault('height', int_or_none(res[:-1]))
+            return [{
+                'url': url,
+                'filesize': int_or_none(addr.get('data_size')),
+                'ext': 'mp4',
+                'acodec': 'aac',
+                **add_meta, **parsed_meta
+            } for url in addr.get('url_list') or []]
+
+        # Hack: Add direct video links first to prioritize them when removing duplicate formats
+        formats = []
+        if video_info.get('play_addr'):
+            formats.extend(extract_addr(video_info['play_addr'], {
+                'format_id': 'play_addr',
+                'format_note': 'Direct video',
+                'vcodec': 'h265' if traverse_obj(
+                    video_info, 'is_bytevc1', 'is_h265') else 'h264',  # Always h264?
+                'width': video_info.get('width'),
+                'height': video_info.get('height'),
+            }))
+        if video_info.get('download_addr'):
+            formats.extend(extract_addr(video_info['download_addr'], {
+                'format_id': 'download_addr',
+                'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
+                'vcodec': 'h264',
+                'width': video_info.get('width'),
+                'height': video_info.get('height'),
+                'source_preference': -2 if video_info.get('has_watermark') else -1,
+            }))
+        if video_info.get('play_addr_h264'):
+            formats.extend(extract_addr(video_info['play_addr_h264'], {
+                'format_id': 'play_addr_h264',
+                'format_note': 'Direct video',
+                'vcodec': 'h264',
+            }))
+        if video_info.get('play_addr_bytevc1'):
+            formats.extend(extract_addr(video_info['play_addr_bytevc1'], {
+                'format_id': 'play_addr_bytevc1',
+                'format_note': 'Direct video',
+                'vcodec': 'h265',
+            }))
+
+        for bitrate in video_info.get('bit_rate', []):
+            if bitrate.get('play_addr'):
+                formats.extend(extract_addr(bitrate['play_addr'], {
+                    'format_id': bitrate.get('gear_name'),
+                    'format_note': 'Playback video',
+                    'tbr': try_get(bitrate, lambda x: x['bit_rate'] / 1000),
+                    'vcodec': 'h265' if traverse_obj(
+                        bitrate, 'is_bytevc1', 'is_h265') else 'h264',
+                    'fps': bitrate.get('FPS'),
+                }))
+
+        self._remove_duplicate_formats(formats)
+        self._sort_formats(formats, ('quality', 'source', 'codec', 'size', 'br'))
+
+        thumbnails = []
+        for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
+                         'origin_cover', 'dynamic_cover'):
+            cover = video_info.get(cover_id)
+            if cover:
+                for cover_url in cover['url_list']:
+                    thumbnails.append({
+                        'id': cover_id,
+                        'url': cover_url,
+                    })
+
+        stats_info = aweme_detail.get('statistics', {})
+        author_info = aweme_detail.get('author', {})
+        music_info = aweme_detail.get('music', {})
+        user_id = str_or_none(author_info.get('nickname'))
+
+        contained_music_track = traverse_obj(
+            music_info, ('matched_song', 'title'), ('matched_pgc_sound', 'title'), expected_type=str)
+        contained_music_author = traverse_obj(
+            music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), 'author', expected_type=str)
+
+        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - %s' % music_info.get('owner_handle')
+        if is_generic_og_trackname:
+            music_track, music_author = contained_music_track or 'original sound', contained_music_author
+        else:
+            music_track, music_author = music_info.get('title'), music_info.get('author')
+
+        return {
+            'id': aweme_id,
+            'title': aweme_detail['desc'],
+            'description': aweme_detail['desc'],
+            'view_count': int_or_none(stats_info.get('play_count')),
+            'like_count': int_or_none(stats_info.get('digg_count')),
+            'repost_count': int_or_none(stats_info.get('share_count')),
+            'comment_count': int_or_none(stats_info.get('comment_count')),
+            'uploader': str_or_none(author_info.get('unique_id')),
+            'creator': user_id,
+            'uploader_id': str_or_none(author_info.get('uid')),
+            'uploader_url': f'https://www.tiktok.com/@{user_id}' if user_id else None,
+            'track': music_track,
+            'album': str_or_none(music_info.get('album')) or None,
+            'artist': music_author,
+            'timestamp': int_or_none(aweme_detail.get('create_time')),
+            'formats': formats,
+            'thumbnails': thumbnails,
+            'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000)
+        }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+
+        try:
+            return self._extract_aweme(video_id)
+        except ExtractorError as e:
+            self.report_warning(f'{e}; Retrying with webpage')
+
         webpage = self._download_webpage(url, video_id)
         render_data = self._parse_json(
             self._search_regex(
