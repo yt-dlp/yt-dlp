@@ -630,8 +630,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     @staticmethod
     def _extract_visitor_data(*args):
         """
-        Extracts visitorData
-        Required to track sessions
+        Extracts visitorData from an API response or ytcfg
+        Appears to be used to track session state
         """
         return traverse_obj(
             args, (..., ('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))),
