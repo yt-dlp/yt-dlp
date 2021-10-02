@@ -60,12 +60,14 @@ class ParliamentLiveUKIE(InfoExtractor):
 
         formats = []
         for format in video_urls:
-            if format.get('format') == 'DASH' or format.get('format') == 'SMOOTHSTREAMING':
+            if not format.get('mediaLocator'):
+                continue
+            if format.get('format') in ('DASH', 'SMOOTHSTREAMING'):
                 formats.extend(self._extract_mpd_formats(
-                    format.get('mediaLocator'), video_id, mpd_id='dash', fatal=False))
+                    format['mediaLocator'], video_id, mpd_id='dash', fatal=False))
             elif format.get('format') == 'HLS':
                 formats.extend(self._extract_m3u8_formats(
-                    format.get('mediaLocator'), video_id, m3u8_id='hls'))
+                    format['mediaLocator'], video_id, m3u8_id='hls', fatal=False))
 
         self._sort_formats(formats)
 
