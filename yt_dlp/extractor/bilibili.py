@@ -798,8 +798,7 @@ class BiliIntlBaseIE(InfoExtractor):
             if not sub_url:
                 continue
             sub_data = self._download_json(sub_url, ep_id, fatal=False)
-            if not sub_data:
-                continue
+            if not sub_data: continue
             sub_data = self._parse_json(sub_data)
             subtitles.setdefault(sub.get('key', 'en'), []).append({
                 'ext': 'srt',
