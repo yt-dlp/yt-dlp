@@ -145,7 +145,7 @@ class NewgroundsIE(InfoExtractor):
             (r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+</dd>\s*<dd>[^<]+)',
              r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+)'), webpage, 'timestamp',
             default=None))
-        duration = parse_count(self._html_search_regex(
+        duration = parse_duration(self._html_search_regex(
             r'"duration"\s*:\s*["\']?(\d+)["\']?', webpage,
             'duration', default=None))
 
