@@ -799,11 +799,9 @@ class BiliIntlBaseIE(InfoExtractor):
         if json is str:
             json = self._parse_json(json, ep_id)
 
-        data = ''
-        for count, i in enumerate(json['body']):
-            data += str(count + 1) + '\n'
-            data += sec2time(i['from']) + ' --> ' + sec2time(i['to']) + '\n'
-            data += i['content'] + '\n\n'
+        data = '\n\n'.join(
+            f'{i + 1}\n{srt_subtitles_timecode(line["from"])} --> {srt_subtitles_timecode(line["to"])}\n{line["content"]}'
+            for i, line in enumerate(json['body']))
         return data
 
     def _get_subtitles(self, type, ep_id):
