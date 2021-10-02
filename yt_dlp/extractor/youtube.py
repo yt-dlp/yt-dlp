@@ -4257,8 +4257,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         headers = self.generate_api_headers(ytcfg=ytcfg, default_client=default_client)
         resolve_response = self._extract_response(
             item_id=item_id, query={'url': url}, check_get_keys='endpoint', headers=headers, ytcfg=ytcfg, fatal=fatal,
-            ep='navigation/resolve_url', note='Downloading API parameters API JSON', default_client=default_client
-        )
+            ep='navigation/resolve_url', note='Downloading API parameters API JSON', default_client=default_client)
         endpoints = {'browseEndpoint': 'browse', 'watchEndpoint': 'next'}
         for ep_key, ep in endpoints.items():
             params = try_get(resolve_response, lambda x: x['endpoint'][ep_key], dict)
