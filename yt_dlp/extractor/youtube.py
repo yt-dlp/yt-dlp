@@ -4309,12 +4309,12 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 elif item_id[:2] == 'MP':
                     # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
                     mdata = self._extract_tab_endpoint(
-                        'https://music.youtube.com/channel/%s' % item_id, item_id, fatal=False, default_client='web_music')
+                        'https://music.youtube.com/channel/%s' % item_id, item_id, default_client='web_music')
                     murl = traverse_obj(
                         mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'), get_all=False, expected_type=compat_str)
-                    if murl:
-                        return self.url_result(murl, ie=YoutubeTabIE.ie_key())
-                    self.report_warning('Failed to resolve album to playlist.')
+                    if not murl:
+                        raise ExtractorError('Failed to resolve album to playlist.')
+                    return self.url_result(murl, ie=YoutubeTabIE.ie_key())
                 elif mobj['channel_type'] == 'browse':
                     # Youtube music /browse/ should be changed to /channel/
                     pre = 'https://www.youtube.com/channel/%s' % item_id
