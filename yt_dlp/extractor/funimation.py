@@ -13,6 +13,7 @@ from ..utils import (
     js_to_json,
     str_or_none,
     try_get,
+    qualities,
     urlencode_postdata,
     ExtractorError,
 )
@@ -180,6 +181,8 @@ class FunimationIE(InfoExtractor):
 
         formats, subtitles, thumbnails, duration = [], {}, [], 0
         requested_languages, requested_versions = self._configuration_arg('language'), self._configuration_arg('version')
+        language_preference = qualities((requested_languages or [''])[::-1])
+        source_preference = qualities((requested_versions or ['uncut', 'simulcast'])[::-1])
         only_initial_experience = 'seperate-video-versions' in self.get_param('compat_opts', [])
 
         for lang, version, fmt in self._get_experiences(episode):
@@ -227,10 +230,15 @@ class FunimationIE(InfoExtractor):
                     })
                 for f in current_formats:
                     # TODO: Convert language to code
-                    f.update({'language': lang, 'format_note': version})
+                    f.update({
+                        'language': lang,
+                        'format_note': version,
+                        'source_preference': source_preference(version.lower()),
+                        'language_preference': language_preference(lang.lower()),
+                    })
                 formats.extend(current_formats)
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
+        self._sort_formats(formats, ('lang', 'source'))
 
         return {
             'id': initial_experience_id if only_initial_experience else episode_id,
