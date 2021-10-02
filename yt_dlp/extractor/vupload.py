@@ -40,14 +40,12 @@ class VuploadIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'formats': [{
-                'url': video_url,
-                'duration': duration,
-                'filesize_approx': filesize_approx,
-                'width': int_or_none(extra_video_info.get('width')),
-                'height': int_or_none(extra_video_info.get('height')),
-                'format_id': extra_video_info.get('height', '') + 'p',
-            }],
+            'url': video_url,
+            'duration': duration,
+            'filesize_approx': filesize_approx,
+            'width': int_or_none(extra_video_info.get('width')),
+            'height': int_or_none(extra_video_info.get('height')),
+            'format_id': extra_video_info.get('height', '') + 'p',
             'title': title,
             'description': description,
         }
