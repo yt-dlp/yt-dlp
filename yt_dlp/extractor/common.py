@@ -2346,14 +2346,15 @@ class InfoExtractor(object):
         rtmp_count = 0
         http_count = 0
         m3u8_count = 0
+        imgs_count = 0
 
-        srcs = []
+        srcs = set()
         media = smil.findall(self._xpath_ns('.//video', namespace)) + smil.findall(self._xpath_ns('.//audio', namespace))
         for medium in media:
             src = medium.get('src')
             if not src or src in srcs:
                 continue
-            srcs.append(src)
+            srcs.add(src)
 
             bitrate = float_or_none(medium.get('system-bitrate') or medium.get('systemBitrate'), 1000)
             filesize = int_or_none(medium.get('size') or medium.get('fileSize'))
@@ -2426,6 +2427,24 @@ class InfoExtractor(object):
                     'width': width,
                     'height': height,
                 })
+
+        for medium in smil.findall(self._xpath_ns('.//imagestream', namespace)):
+            src = medium.get('src')
+            if not src or src in srcs:
+                continue
+            srcs.add(src)
+
+            imgs_count += 1
+            formats.append({
+                'format_id': 'imagestream-%d' % (imgs_count),
+                'url': src,
+                'ext': mimetype2ext(medium.get('type')),
+                'acodec': 'none',
+                'vcodec': 'none',
+                'width': int_or_none(medium.get('width')),
+                'height': int_or_none(medium.get('height')),
+                'format_note': 'SMIL storyboards',
+            })
 
         return formats
 

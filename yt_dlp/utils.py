@@ -4546,20 +4546,24 @@ def mimetype2ext(mt):
     if mt is None:
         return None
 
-    ext = {
+    mt, _, params = mt.partition(';')
+    mt = mt.strip()
+
+    FULL_MAP = {
         'audio/mp4': 'm4a',
         # Per RFC 3003, audio/mpeg can be .mp1, .mp2 or .mp3. Here use .mp3 as
         # it's the most popular one
         'audio/mpeg': 'mp3',
         'audio/x-wav': 'wav',
-    }.get(mt)
+        'audio/wav': 'wav',
+        'audio/wave': 'wav',
+    }
+
+    ext = FULL_MAP.get(mt)
     if ext is not None:
         return ext
 
-    _, _, res = mt.rpartition('/')
-    res = res.split(';')[0].strip().lower()
-
-    return {
+    SUBTYPE_MAP = {
         '3gpp': '3gp',
         'smptett+xml': 'tt',
         'ttaf+xml': 'dfxp',
@@ -4578,7 +4582,28 @@ def mimetype2ext(mt):
         'quicktime': 'mov',
         'mp2t': 'ts',
         'x-wav': 'wav',
-    }.get(res, res)
+        'filmstrip+json': 'fs',
+        'svg+xml': 'svg',
+    }
+
+    _, _, subtype = mt.rpartition('/')
+    ext = SUBTYPE_MAP.get(subtype.lower())
+    if ext is not None:
+        return ext
+
+    SUFFIX_MAP = {
+        'json': 'json',
+        'xml': 'xml',
+        'zip': 'zip',
+        'gzip': 'gz',
+    }
+
+    _, _, suffix = subtype.partition('+')
+    ext = SUFFIX_MAP.get(suffix)
+    if ext is not None:
+        return ext
+
+    return subtype.replace('+', '.')
 
 
 def parse_codecs(codecs_str):
