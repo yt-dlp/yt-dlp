@@ -1433,7 +1433,10 @@ from .theplatform import (
 from .thescene import TheSceneIE
 from .thestar import TheStarIE
 from .thesun import TheSunIE
-from .theta import ThetaIE
+from .theta import (
+    ThetaVideoIE,
+    ThetaStreamIE,
+)
 from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE
