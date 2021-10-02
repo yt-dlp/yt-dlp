@@ -22,6 +22,7 @@ from ..utils import (
     parse_iso8601,
     try_get,
     smuggle_url,
+    srt_subtitles_timecode,
     str_or_none,
     str_to_int,
     strip_jsonp,
@@ -648,7 +649,7 @@ class BiliBiliSearchIE(SearchInfoExtractor):
                 e = self.url_result(video['arcurl'], 'BiliBili', compat_str(video['aid']))
                 entries.append(e)
 
-            if (len(entries) >= n or len(videos) >= BiliBiliSearchIE.MAX_NUMBER_OF_RESULTS):
+            if len(entries) >= n or len(videos) >= BiliBiliSearchIE.MAX_NUMBER_OF_RESULTS:
                 return {
                     '_type': 'playlist',
                     'id': query,
@@ -789,16 +790,7 @@ class BiliIntlBaseIE(InfoExtractor):
     def _call_api(self, type, endpoint, id):
         return self._download_json(self._API_URL.format(type, endpoint), id)['data']
 
-    def json2srt(self, json, ep_id):
-        def sec2time(sec):
-            h = int(sec) // 3600
-            m = int(sec) // 60 % 60
-            s = sec % 60
-            f = int(sec * 1000) % 1000
-            return "%02d:%02d:%02d,%03d" % (h, m, int(s), f)
-        if json is str:
-            json = self._parse_json(json, ep_id)
-
+    def json2srt(self, json):
         data = '\n\n'.join(
             f'{i + 1}\n{srt_subtitles_timecode(line["from"])} --> {srt_subtitles_timecode(line["to"])}\n{line["content"]}'
             for i, line in enumerate(json['body']))
@@ -811,12 +803,13 @@ class BiliIntlBaseIE(InfoExtractor):
             sub_url = sub.get('url')
             if not sub_url:
                 continue
-            sub_data = self._download_json(sub_url, ep_id)
+            sub_data = self._download_json(sub_url, ep_id, fatal=False)
             if not sub_data:
                 continue
+            sub_data = self._parse_json(sub_data)
             subtitles.setdefault(sub.get('key', 'en'), []).append({
                 'ext': 'srt',
-                'data': self.json2srt(sub_data, ep_id)
+                'data': self.json2srt(sub_data)
             })
         return subtitles
 
