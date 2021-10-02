@@ -374,13 +374,15 @@ class BiliBiliIE(InfoExtractor):
         if response['code'] == -400:
             raise ExtractorError('Video ID does not exist', expected=True, video_id=id)
         elif response['code'] != 0:
-            raise ExtractorError('Unknown error occurred during API check (code %s)' % response['code'], expected=True, video_id=id)
+            raise ExtractorError('Unknown error occurred during API check (code %s)' % response['code'], expected=True,
+                                 video_id=id)
         return (response['data']['aid'], response['data']['bvid'])
 
     # recursive solution to getting every page of comments for the video
     # we can stop when we reach a page without any comments
     def _get_all_comment_pages(self, video_id, commentPageNumber=0):
-        comment_url = "https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=%s&type=1&oid=%s&sort=2&_=1567227301685" % (commentPageNumber, video_id)
+        comment_url = "https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=%s&type=1&oid=%s&sort=2&_=1567227301685" % (
+            commentPageNumber, video_id)
         json_str = self._download_webpage(
             comment_url, video_id,
             note='Extracting comments from page %s' % (commentPageNumber))
@@ -582,10 +584,13 @@ class BilibiliCategoryIE(InfoExtractor):
         }
 
         if category not in rid_map:
-            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (category, list(rid_map.keys())))
+            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (
+                category, list(rid_map.keys())))
 
         if subcategory not in rid_map[category]:
-            raise ExtractorError('The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (subcategory, list(rid_map[category].keys())))
+            raise ExtractorError(
+                'The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (
+                    subcategory, list(rid_map[category].keys())))
 
         rid_value = rid_map[category][subcategory]
 
@@ -623,7 +628,8 @@ class BiliBiliSearchIE(SearchInfoExtractor):
         while True:
             pageNumber += 1
             # FIXME
-            api_url = "https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1" % (pageNumber, query)
+            api_url = "https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1" % (
+                pageNumber, query)
             json_str = self._download_webpage(
                 api_url, "None", query={"Search_key": query},
                 note='Extracting results from page %s' % pageNumber)
@@ -642,7 +648,7 @@ class BiliBiliSearchIE(SearchInfoExtractor):
                 e = self.url_result(video['arcurl'], 'BiliBili', compat_str(video['aid']))
                 entries.append(e)
 
-            if(len(entries) >= n or len(videos) >= BiliBiliSearchIE.MAX_NUMBER_OF_RESULTS):
+            if (len(entries) >= n or len(videos) >= BiliBiliSearchIE.MAX_NUMBER_OF_RESULTS):
                 return {
                     '_type': 'playlist',
                     'id': query,
@@ -783,6 +789,23 @@ class BiliIntlBaseIE(InfoExtractor):
     def _call_api(self, type, endpoint, id):
         return self._download_json(self._API_URL.format(type, endpoint), id)['data']
 
+    def json2srt(self, json, ep_id):
+        def sec2time(sec):
+            h = int(sec) // 3600
+            m = int(sec) // 60 % 60
+            s = sec % 60
+            f = int(sec * 1000) % 1000
+            return "%02d:%02d:%02d,%03d" % (h, m, int(s), f)
+        if json is str:
+            json = self._parse_json(json, ep_id)
+
+        data = ''
+        for count, i in enumerate(json['body']):
+            data += str(count + 1) + '\n'
+            data += sec2time(i['from']) + ' --> ' + sec2time(i['to']) + '\n'
+            data += i['content'] + '\n\n'
+        return data
+
     def _get_subtitles(self, type, ep_id):
         sub_json = self._call_api(type, f'/m/subtitle?ep_id={ep_id}&platform=web', ep_id)
         subtitles = {}
@@ -790,8 +813,10 @@ class BiliIntlBaseIE(InfoExtractor):
             sub_url = sub.get('url')
             if not sub_url:
                 continue
+            sub_data = self._download_json(sub_url, ep_id)
             subtitles.setdefault(sub.get('key', 'en'), []).append({
-                'url': sub_url,
+                'ext': 'srt',
+                'data': self.json2srt(sub_data, ep_id)
             })
         return subtitles
 
@@ -802,8 +827,8 @@ class BiliIntlBaseIE(InfoExtractor):
         video_json = video_json['playurl']
         formats = []
         for vid in video_json.get('video', []):
-            video_res = vid.get('video_resource') or {}
-            video_info = vid.get('stream_info') or {}
+            video_res = vid.get('video_resource', {})
+            video_info = vid.get('stream_info', {})
             if not video_res.get('url'):
                 continue
             formats.append({
