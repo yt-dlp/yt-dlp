@@ -16,7 +16,7 @@ class VuploadIE(InfoExtractor):
     _VALID_URL = r'https://vupload\.com/v/(?P<id>[a-z0-9]+)'
     _TESTS = [{
         'url': 'https://vupload.com/v/u28d0pl2tphy',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'md5': '9b42a4a193cca64d80248e58527d83c8',
         'info_dict': {
             'id': 'u28d0pl2tphy',
             'ext': 'mp4',
