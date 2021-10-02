@@ -4224,9 +4224,17 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 self.report_warning(error_to_compat_str(e))
                 break
             else:
+                try:
+                    self._extract_and_report_alerts(data)
+                except ExtractorError as e:
+                    if fatal:
+                        raise
+                    self.report_warning(error_to_compat_str(e))
+                    break
+
                 if dict_get(data, ('contents', 'currentVideoEndpoint')):
                     break
-                self._extract_and_report_alerts(data, fatal=fatal)
+
                 last_error = 'Incomplete yt initial data received'
                 if count >= retries:
                     if fatal:
