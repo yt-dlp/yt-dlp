@@ -45,9 +45,6 @@ class ParliamentLiveUKIE(InfoExtractor):
         video_id = self._match_id(url)
         video_info = self._download_json(f'https://www.parliamentlive.tv/Event/GetShareVideo/{video_id}', video_id)
 
-        thumbnail = video_info.get('thumbnailUrl')
-        event_title = video_info['event']['title']
-        timestamp = unified_timestamp(try_get(video_info, lambda x: x['event']['publishedStartTime']))
         auth = 'Bearer ' + self._download_json(
             'https://exposure.api.redbee.live/v2/customer/UKParliament/businessunit/ParliamentLive/auth/anonymous',
             video_id, headers={'Origin': 'https://videoplayback.parliamentlive.tv',
@@ -77,7 +74,7 @@ class ParliamentLiveUKIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': formats,
-            'title': event_title,
-            'timestamp': timestamp,
-            'thumbnail': thumbnail,
+            'title': video_info['event']['title'],
+            'timestamp': unified_timestamp(try_get(video_info, lambda x: x['event']['publishedStartTime'])),
+            'thumbnail': video_info.get('thumbnailUrl'),
         }
