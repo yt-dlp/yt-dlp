@@ -32,24 +32,24 @@ class ParliamentLiveUKIE(InfoExtractor):
         'url': 'http://parliamentlive.tv/event/index/3f24936f-130f-40bf-9a5d-b3d6479da6a4',
         'only_matching': True,
     }]
-    _DEVICE_ID = str(uuid.uuid4())
-    _DATA = json.dumps({'device': {
-        'deviceId': _DEVICE_ID,
-        'width': 653,
-        'height': 368,
-        'type': 'WEB',
-        'name': ' Mozilla Firefox 91'},
-        'deviceId': _DEVICE_ID}).encode('utf-8')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_info = self._download_json(f'https://www.parliamentlive.tv/Event/GetShareVideo/{video_id}', video_id)
+        _DEVICE_ID = str(uuid.uuid4())
+        _DATA = json.dumps({'device': {
+            'deviceId': _DEVICE_ID,
+            'width': 653,
+            'height': 368,
+            'type': 'WEB',
+            'name': ' Mozilla Firefox 91'},
+            'deviceId': _DEVICE_ID}).encode('utf-8')
 
         auth = 'Bearer ' + self._download_json(
             'https://exposure.api.redbee.live/v2/customer/UKParliament/businessunit/ParliamentLive/auth/anonymous',
             video_id, headers={'Origin': 'https://videoplayback.parliamentlive.tv',
                                'Accept': 'application/json, text/plain, */*',
-                               'Content-Type': 'application/json;charset=utf-8'}, data=self._DATA)['sessionToken']
+                               'Content-Type': 'application/json;charset=utf-8'}, data=_DATA)['sessionToken']
 
         video_urls = self._download_json(
             f'https://exposure.api.redbee.live/v2/customer/UKParliament/businessunit/ParliamentLive/entitlement/{video_id}/play',
