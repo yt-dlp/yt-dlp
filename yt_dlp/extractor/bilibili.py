@@ -586,8 +586,7 @@ class BilibiliCategoryIE(InfoExtractor):
             raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (category, list(rid_map.keys())))
 
         if subcategory not in rid_map[category]:
-            raise ExtractorError(
-                'The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (subcategory, list(rid_map[category].keys())))
+            raise ExtractorError('The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (subcategory, list(rid_map[category].keys())))
 
         rid_value = rid_map[category][subcategory]
 
