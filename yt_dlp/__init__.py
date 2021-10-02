@@ -418,7 +418,7 @@ def _real_main(argv=None):
         opts.sponskrub = False
 
     # PostProcessors
-    postprocessors = []
+    postprocessors = list(opts.add_postprocessors)
     if sponsorblock_query:
         postprocessors.append({
             'key': 'SponsorBlock',
@@ -513,6 +513,7 @@ def _real_main(argv=None):
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
         })
+    # Note: Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
     # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
@@ -535,6 +536,7 @@ def _real_main(argv=None):
         })
         if not already_have_thumbnail:
             opts.writethumbnail = True
+            opts.outtmpl['pl_thumbnail'] = ''
     if opts.split_chapters:
         postprocessors.append({
             'key': 'FFmpegSplitChapters',

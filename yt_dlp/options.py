@@ -17,6 +17,7 @@ from .utils import (
     get_executable_path,
     OUTTMPL_TYPES,
     preferredencoding,
+    remove_end,
     write_string,
 )
 from .cookies import SUPPORTED_BROWSERS
@@ -260,7 +261,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
-        help='Mark videos watched (YouTube only)')
+        help='Mark videos watched (even with --simulate). Currently only supported for YouTube')
     general.add_option(
         '--no-mark-watched',
         action='store_false', dest='mark_watched',
@@ -767,7 +768,7 @@ def parseOpts(overrideArguments=None):
         dest='encoding', metavar='ENCODING',
         help='Force the specified encoding (experimental)')
     workarounds.add_option(
-        '--no-check-certificate',
+        '--no-check-certificates',
         action='store_true', dest='no_check_certificate', default=False,
         help='Suppress HTTPS certificate validation')
     workarounds.add_option(
@@ -1389,6 +1390,25 @@ def parseOpts(overrideArguments=None):
         '--no-force-keyframes-at-cuts',
         action='store_false', dest='force_keyframes_at_cuts',
         help='Do not force keyframes around the chapters when cutting/splitting (default)')
+    _postprocessor_opts_parser = lambda key, val='': (
+        *(item.split('=', 1) for item in (val.split(';') if val else [])),
+        ('key', remove_end(key, 'PP')))
+    postproc.add_option(
+        '--use-postprocessor',
+        metavar='NAME[:ARGS]', dest='add_postprocessors', default=[], type='str',
+        action='callback', callback=_list_from_options_callback,
+        callback_kwargs={
+            'delim': None,
+            'process': lambda val: dict(_postprocessor_opts_parser(*val.split(':', 1)))
+        }, help=(
+            'The (case sensitive) name of plugin postprocessors to be enabled, '
+            'and (optionally) arguments to be passed to it, seperated by a colon ":". '
+            'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
+            'The "when" argument determines when the postprocessor is invoked. '
+            'It can be one of "pre_process" (after extraction), '
+            '"before_dl" (before video download), "post_process" (after video download; default) '
+            'or "after_move" (after moving file to their final locations). '
+            'This option can be used multiple times to add different postprocessors'))
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
         'Make chapter entries for, or remove various segments (sponsor, introductions, etc.) '

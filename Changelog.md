@@ -41,7 +41,6 @@
 * [Streamanity] Add Extractor by [alerikaisattera](https://github.com/alerikaisattera)
 * [Theta] Add extractor by [alerikaisattera](https://github.com/alerikaisattera)
 * [Yandex] Add ZenYandexIE and ZenYandexChannelIE by [Ashish0804](https://github.com/Ashish0804)
-
 * [9Now] handle episodes of series by [dalanmiller](https://github.com/dalanmiller)
 * [AnimalPlanet] Fix extractor by [Sipherdrakon](https://github.com/Sipherdrakon)
 * [Arte] Improve description extraction by [renalid](https://github.com/renalid)

@@ -507,6 +507,7 @@ from .gazeta import GazetaIE
 from .gdcvault import GDCVaultIE
 from .gedidigital import GediDigitalIE
 from .generic import GenericIE
+from .gettr import GettrIE
 from .gfycat import GfycatIE
 from .giantbomb import GiantBombIE
 from .giga import GigaIE
@@ -1432,7 +1433,10 @@ from .theplatform import (
 from .thescene import TheSceneIE
 from .thestar import TheStarIE
 from .thesun import TheSunIE
-from .theta import ThetaIE
+from .theta import (
+    ThetaVideoIE,
+    ThetaStreamIE,
+)
 from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE

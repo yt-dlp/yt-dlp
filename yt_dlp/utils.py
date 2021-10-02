@@ -6278,7 +6278,7 @@ def get_executable_path():
 
 def load_plugins(name, suffix, namespace):
     plugin_info = [None]
-    classes = []
+    classes = {}
     try:
         plugin_info = imp.find_module(
             name, [os.path.join(get_executable_path(), 'ytdlp_plugins')])
@@ -6289,8 +6289,7 @@ def load_plugins(name, suffix, namespace):
             if not name.endswith(suffix):
                 continue
             klass = getattr(plugins, name)
-            classes.append(klass)
-            namespace[name] = klass
+            classes[name] = namespace[name] = klass
     except ImportError:
         pass
     finally:

@@ -33,6 +33,8 @@ class compat_HTMLParseError(Exception):
     pass
 
 
+# compat_ctypes_WINFUNCTYPE = ctypes.WINFUNCTYPE
+# will not work since ctypes.WINFUNCTYPE does not exist in UNIX machines
 def compat_ctypes_WINFUNCTYPE(*args, **kwargs):
     return ctypes.WINFUNCTYPE(*args, **kwargs)
 

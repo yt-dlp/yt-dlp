@@ -1,7 +1,5 @@
 # coding: utf-8
 
-from __future__ import unicode_literals
-
 # ⚠ Don't use relative imports
 from yt_dlp.extractor.common import InfoExtractor
 
