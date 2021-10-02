@@ -3995,7 +3995,8 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
         playlist_id = title = description = channel_url = channel_name = channel_id = None
-        thumbnails_list = tags = []
+        thumbnails_list = []
+        tags = []
 
         selected_tab = self._extract_selected_tab(tabs)
         renderer = try_get(
