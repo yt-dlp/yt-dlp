@@ -555,7 +555,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         mp4_ass_warn = False
 
         for lang, sub_info in subtitles.items():
-            if not os.path.exists(information.get('filepath', '')):
+            if not os.path.exists(sub_info.get('filepath', '')):
                 self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
                 continue
             sub_ext = sub_info['ext']
@@ -845,6 +845,9 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
         self.to_screen('Converting subtitles')
         sub_filenames = []
         for lang, sub in subs.items():
+            if not os.path.exists(sub.get('filepath', '')):
+                self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
+                continue
             ext = sub['ext']
             if ext == new_ext:
                 self.to_screen('Subtitle file for %s is already in the requested format' % new_ext)
