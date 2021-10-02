@@ -19,12 +19,14 @@ class ParliamentLiveUKIE(InfoExtractor):
     _TESTS = [{
         'url': 'http://parliamentlive.tv/Event/Index/c1e9d44d-fd6c-4263-b50f-97ed26cc998b',
         'info_dict': {
-            'id': '1_af9nv9ym',
+            'id': 'c1e9d44d-fd6c-4263-b50f-97ed26cc998b',
             'ext': 'mp4',
             'title': 'Home Affairs Committee',
-            'uploader_id': 'FFMPEG-01',
-            'timestamp': 1422696664,
-            'upload_date': '20150131',
+            'timestamp': 1395153872,
+            'upload_date': '20140318',
+        },
+        'params': {
+            'format': 'bestvideo',
         },
     }, {
         'url': 'http://parliamentlive.tv/event/index/3f24936f-130f-40bf-9a5d-b3d6479da6a4',
@@ -45,7 +47,7 @@ class ParliamentLiveUKIE(InfoExtractor):
 
         thumbnail = video_info.get('thumbnailUrl')
         event_title = video_info['event']['title']
-        timestamp = unified_timestamp(try_get(video_info, lambda x: x['event']['actualLiveStartTime']))
+        timestamp = unified_timestamp(try_get(video_info, lambda x: x['event']['publishedStartTime']))
         auth = 'Bearer ' + self._download_json(
             'https://exposure.api.redbee.live/v2/customer/UKParliament/businessunit/ParliamentLive/auth/anonymous',
             video_id, headers={'Origin': 'https://videoplayback.parliamentlive.tv',
