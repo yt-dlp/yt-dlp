@@ -39,7 +39,6 @@ class VuploadIE(InfoExtractor):
         extra_video_info = extract_attributes(self._html_search_regex(
             r'(<video[^>]+>)', webpage, 'video_info', fatal=False))
         description = self._html_search_meta('description', webpage)
-        print(extra_video_info)
 
         return {
             'id': video_id,
