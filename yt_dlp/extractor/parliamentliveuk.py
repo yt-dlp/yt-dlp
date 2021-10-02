@@ -14,7 +14,7 @@ from ..utils import (
 class ParliamentLiveUKIE(InfoExtractor):
     IE_NAME = 'parliamentlive.tv'
     IE_DESC = 'UK parliament videos'
-    _VALID_URL = r'https?://(?:www\.)?parliamentlive\.tv/Event/Index/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
+    _VALID_URL = r'(?i)https?://(?:www\.)?parliamentlive\.tv/Event/Index/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
 
     _TESTS = [{
         'url': 'http://parliamentlive.tv/Event/Index/c1e9d44d-fd6c-4263-b50f-97ed26cc998b',
