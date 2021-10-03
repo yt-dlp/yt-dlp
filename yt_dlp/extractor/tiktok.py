@@ -9,7 +9,6 @@ import json
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
-from .openload import PhantomJSwrapper   # noqa: F401
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -551,17 +550,9 @@ class DouyinIE(TikTokIE):
             r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>(%7B.+%7D)</script>',
             webpage, 'render data', default=None)
         if not render_data_json:
+            # TODO: Run verification challenge code to generate signature cookies
             raise ExtractorError('Fresh cookies (not necessarily logged in) are needed.', expected=True)
-            r'''  # PhantomJS cannot load the signature challenge properly
-            try:
-                phantom = PhantomJSwrapper(self)
-                webpage, out = phantom.get(url, webpage, video_id)
-            except ExtractorError:
-                raise ExtractorError('PhantomJS is required to extract Douyin videos.', expected=True)
-            render_data_json = self._search_regex(
-                r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>(%7B.+%7D)</script>',
-                webpage, 'render data')
-            '''
+
         render_data = self._parse_json(
             render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
         return self._parse_aweme_video_web(
