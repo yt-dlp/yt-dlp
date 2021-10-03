@@ -309,6 +309,10 @@ def _real_main(argv=None):
     for tmpl in opts.forceprint or []:
         validate_outtmpl(tmpl, 'print template')
     validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
+    if opts.progress_template is not None:
+        validate_outtmpl(opts.progress_template, 'progress template')
+    if opts.consoletitle_template is not None:
+        validate_outtmpl(opts.consoletitle_template, 'console-title template')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'
@@ -637,6 +641,7 @@ def _real_main(argv=None):
         'continuedl': opts.continue_dl,
         'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
         'progress_with_newline': opts.progress_with_newline,
+        'progress_template': opts.progress_template,
         'playliststart': opts.playliststart,
         'playlistend': opts.playlistend,
         'playlistreverse': opts.playlist_reverse,
@@ -644,6 +649,7 @@ def _real_main(argv=None):
         'noplaylist': opts.noplaylist,
         'logtostderr': outtmpl_default == '-',
         'consoletitle': opts.consoletitle,
+        'consoletitle_template': opts.consoletitle_template,
         'nopart': opts.nopart,
         'updatetime': opts.updatetime,
         'writedescription': opts.writedescription,

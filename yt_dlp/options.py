@@ -917,9 +917,19 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='noprogress',
         help='Show progress bar, even if in quiet mode')
     verbosity.add_option(
+        '--progress-template',
+        metavar='TEMPLATE', dest='progress_template',
+        help=(
+            'TODO'))
+    verbosity.add_option(
         '--console-title',
         action='store_true', dest='consoletitle', default=False,
         help='Display progress in console titlebar')
+    verbosity.add_option(
+        '--console-title-template',
+        metavar='TEMPLATE', dest='consoletitle_template',
+        help=(
+            'TODO'))
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,

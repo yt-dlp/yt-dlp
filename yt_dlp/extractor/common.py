@@ -1134,7 +1134,7 @@ class InfoExtractor(object):
                 if mobj:
                     break
 
-        _name = self._downloader._color_text(name, "blue")
+        _name = self._downloader._color_text(name, 'blue')
 
         if mobj:
             if group is None:

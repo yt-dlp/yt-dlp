@@ -420,6 +420,7 @@ class YoutubeDL(object):
     the downloader (see yt_dlp/downloader/common.py):
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
     max_filesize, test, noresizebuffer, retries, continuedl, noprogress,
+    progress_template, consoletitle_template,
     xattr_set_filesize, external_downloader_args, hls_use_mpegts, http_chunk_size.
 
     The following options are used by the post processors:
@@ -502,9 +503,10 @@ class YoutubeDL(object):
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
-                'You have asked for unplayable formats to be listed/downloaded. '
-                'This is a developer option intended for debugging. '
-                'If you experience any issues while using this option, DO NOT open a bug report')
+                f'You have asked for {self._color_text("unplayable formats", "blue")} to be listed/downloaded. '
+                'This is a developer option intended for debugging. \n'
+                '         If you experience any issues while using this option, '
+                f'{self._color_text("DO NOT", "red")} open a bug report')
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:

@@ -59,6 +59,8 @@ class FileDownloader(object):
     http_chunk_size:    Size of a chunk for chunk-based HTTP downloading. May be
                         useful for bypassing bandwidth throttling imposed by
                         a webserver (experimental)
+    progress_template:  TODO
+    consoletitle_template:  TODO
 
     Subclasses of this one must re-define the real_download method.
     """
@@ -253,9 +255,21 @@ class FileDownloader(object):
     def _finish_multiline_status(self):
         self._multiline.end()
 
-    def _report_progress_status(self, msg, progress_line=None):
-        self._multiline.print_at_line(f'[download] {msg}', progress_line or 0)
-        self.to_console_title(f'yt-dlp {msg}')
+    def _prepare_progress_template(self, tmpl, progress_dict):
+        tmpl, progress_dict = self.ydl.prepare_outtmpl(tmpl, progress_dict)
+        return self.ydl.escape_outtmpl(tmpl) % progress_dict
+
+    def _report_progress_status(self, s):
+        progress_dict = s.copy()
+        progress_dict.pop('info_dict')
+        progress_dict = {'info': s['info_dict'], 'progress': progress_dict}
+
+        self._multiline.print_at_line(self._prepare_progress_template(
+            self.params.get('progress_template') or '[download] %(progress._default_template)s',
+            progress_dict), s.get('progress_idx') or 0)
+        self.to_console_title(self._prepare_progress_template(
+            self.params.get('consoletitle_template') or 'yt-dlp %(progress._default_template)s',
+            progress_dict))
 
     def report_progress(self, s):
         if s['status'] == 'finished':
@@ -268,7 +282,9 @@ class FileDownloader(object):
             if s.get('elapsed') is not None:
                 s['_elapsed_str'] = self.format_seconds(s['elapsed'])
                 msg_template += ' in %(_elapsed_str)s'
-            self._report_progress_status(msg_template % s, s.get('progress_idx'))
+            s['_percent_str'] = self.format_percent(100)
+            s['_default_template'] = msg_template % s
+            self._report_progress_status(s)
             return
 
         if s['status'] != 'downloading':
@@ -310,8 +326,8 @@ class FileDownloader(object):
                     msg_template = '%(_downloaded_bytes_str)s at %(_speed_str)s'
             else:
                 msg_template = '%(_percent_str)s % at %(_speed_str)s ETA %(_eta_str)s'
-
-        self._report_progress_status(msg_template % s, s.get('progress_idx'))
+        s['_default_template'] = msg_template % s
+        self._report_progress_status(s)
 
     def report_resuming_byte(self, resume_len):
         """Report attempt to resume at given byte."""
