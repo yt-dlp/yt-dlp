@@ -3,6 +3,7 @@ from __future__ import division, unicode_literals
 import os
 import time
 import json
+import http.client
 from math import ceil
 
 try:
@@ -418,7 +419,7 @@ class FragmentFD(FileDownloader):
                     if not success:
                         return False, frag_index
                     break
-                except compat_urllib_error.HTTPError as err:
+                except (compat_urllib_error.HTTPError, http.client.IncompleteRead) as err:
                     # Unavailable (possibly temporary) fragments may be served.
                     # First we try to retry then either skip or abort.
                     # See https://github.com/ytdl-org/youtube-dl/issues/10165,
