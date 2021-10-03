@@ -6,6 +6,7 @@ import socket
 import time
 import random
 import re
+import http.client
 
 from .common import FileDownloader
 from ..compat import (
@@ -243,6 +244,10 @@ class HttpFD(FileDownloader):
                 # errno set
                 except socket.timeout as e:
                     retry(e)
+                except http.client.IncompleteRead as e:
+                    if count <= retries:
+                        retry(e)
+                    raise e
                 except socket.error as e:
                     # SSLError on python 2 (inherits socket.error) may have
                     # no errno set but this error message
