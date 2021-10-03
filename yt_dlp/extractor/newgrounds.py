@@ -87,17 +87,17 @@ class NewgroundsIE(InfoExtractor):
             'age_limit': 13,
         }
     }]
+    _AGE_LIMIT = {
+        'e': 0,
+        't': 13,
+        'm': 17,
+        'a': 18,
+    }
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
         formats = []
         uploader = None
-        _age_limit = {
-            'e': 0,
-            't': 13,
-            'm': 17,
-            'a': 18,
-        }
         webpage = self._download_webpage(url, media_id)
 
         title = self._html_search_regex(
@@ -139,7 +139,7 @@ class NewgroundsIE(InfoExtractor):
 
         age_limit = self._html_search_regex(
             r'<h2\s*class=["\']rated-([^"\'])["\'][^>]+>', webpage, 'age_limit', default='e')
-        age_limit = _age_limit.get(age_limit)
+        age_limit = self._AGE_LIMIT.get(age_limit)
 
         timestamp = unified_timestamp(self._html_search_regex(
             (r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+</dd>\s*<dd>[^<]+)',
