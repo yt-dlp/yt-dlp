@@ -202,7 +202,6 @@ class CBCGemIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca'
     _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
     _TESTS = [{
-        # geo-restricted to Canada, bypassable
         # This is a normal, public, TV show video
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
         'md5': '93dbb31c74a8e45b378cf13bd3f6f11e',
@@ -224,7 +223,6 @@ class CBCGemIE(InfoExtractor):
         'params': {'format': 'bv'},
         'skip': 'Geo-restricted to Canada',
     }, {
-        # geo-restricted to Canada, bypassable
         # This video requires an account in the browser, but works fine in yt-dlp
         'url': 'https://gem.cbc.ca/media/schitts-creek/s01e01',
         'md5': '297a9600f554f2258aed01514226a697',
@@ -313,7 +311,6 @@ class CBCGemPlaylistIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:playlist'
     _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))/?(?:[?#]|$)'
     _TESTS = [{
-        # geo-restricted to Canada, bypassable
         # TV show playlist, all public videos
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06',
         'playlist_count': 16,
@@ -322,7 +319,6 @@ class CBCGemPlaylistIE(InfoExtractor):
             'title': 'Season 6',
             'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
         },
-        'skip': 'Geo-restricted to Canada',
     }]
     _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/shows/'
 
