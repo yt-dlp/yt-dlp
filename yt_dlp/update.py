@@ -32,15 +32,31 @@ def rsa_verify(message, signature, key):
 
 
 def detect_variant():
-    if hasattr(sys, 'frozen') and getattr(sys, '_MEIPASS', None):
-        if sys._MEIPASS == os.path.dirname(sys.executable):
-            return 'dir'
-        return 'exe'
+    if hasattr(sys, 'frozen'):
+        if getattr(sys, '_MEIPASS', None):
+            if sys._MEIPASS == os.path.dirname(sys.executable):
+                return 'dir'
+            return 'exe'
+        return 'py2exe'
     elif isinstance(globals().get('__loader__'), zipimporter):
         return 'zip'
     elif os.path.basename(sys.argv[0]) == '__main__.py':
         return 'source'
     return 'unknown'
+
+
+_NON_UPDATEABLE_REASONS = {
+    'exe': None,
+    'zip': None,
+    'dir': 'Auto-update is not supported for unpackaged windows executable. Re-download the latest release',
+    'py2exe': 'There is no official release for py2exe executable. Build it again with the latest source code',
+    'source': 'You cannot update when running from source code',
+    'unknown': 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Use that to update',
+}
+
+
+def is_non_updateable():
+    return _NON_UPDATEABLE_REASONS.get(detect_variant(), _NON_UPDATEABLE_REASONS['unknown'])
 
 
 def update_self(to_screen, verbose, opener):
@@ -114,14 +130,7 @@ def run_update(ydl):
         ydl.to_screen(f'yt-dlp is up to date ({__version__})')
         return
 
-    ERRORS = {
-        'exe': None,
-        'zip': None,
-        'dir': 'Auto-update is not supported for unpackaged windows executable. Re-download the latest release',
-        'source': 'You cannot update when running from source code',
-        'unknown': 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Use that to update',
-    }
-    err = ERRORS.get(detect_variant(), ERRORS['unknown'])
+    err = is_non_updateable()
     if err:
         ydl.to_screen(f'Latest version: {version_id}, Current version: {__version__}')
         return report_error(err, expected=True)

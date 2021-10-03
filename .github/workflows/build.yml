@@ -161,7 +161,7 @@ jobs:
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Run PyInstaller Script
-      run: python pyinst.py 64
+      run: python pyinst.py
     - name: Upload yt-dlp.exe Windows binary
       id: upload-release-windows
       uses: actions/upload-release-asset@v1
@@ -179,7 +179,7 @@ jobs:
       id: sha512_win
       run: echo "::set-output name=sha512_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
     - name: Run PyInstaller Script with --onedir
-      run: python pyinst.py 64 --onedir
+      run: python pyinst.py --onedir
     - uses: papeloto/action-zip@v1
       with:
         files: ./dist/yt-dlp
@@ -227,7 +227,7 @@ jobs:
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Run PyInstaller Script for 32 Bit
-      run: python pyinst.py 32
+      run: python pyinst.py
     - name: Upload Executable yt-dlp_x86.exe
       id: upload-release-windows32
       uses: actions/upload-release-asset@v1

@@ -4521,11 +4521,10 @@ def is_outdated_version(version, limit, assume_new=True):
 
 def ytdl_is_updateable():
     """ Returns if yt-dlp can be updated with -U """
-    return False
 
-    from zipimport import zipimporter
+    from .update import is_non_updateable
 
-    return isinstance(globals().get('__loader__'), zipimporter) or hasattr(sys, 'frozen')
+    return not is_non_updateable()
 
 
 def args_to_str(args):

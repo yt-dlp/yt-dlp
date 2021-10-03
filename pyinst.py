@@ -13,11 +13,18 @@ from PyInstaller.utils.win32.versioninfo import (
 )
 import PyInstaller.__main__
 
-arch = sys.argv[1] if len(sys.argv) > 1 else platform.architecture()[0][:2]
+arch = platform.architecture()[0][:2]
 assert arch in ('32', '64')
 _x86 = '_x86' if arch == '32' else ''
 
-opts = sys.argv[2:] or ['--onefile']
+# Compatability with older arguments
+opts = sys.argv[1:]
+if opts[0:1] in (['32'], ['64']):
+    if arch != opts[0]:
+        raise Exception(f'{opts[0]}bit executable cannot be built on a {arch}bit system')
+    opts = opts[1:]
+opts = opts or ['--onefile']
+
 print(f'Building {arch}bit version with options {opts}')
 
 FILE_DESCRIPTION = 'yt-dlp%s' % (' (32 Bit)' if _x86 else '')
@@ -82,4 +89,4 @@ PyInstaller.__main__.run([
     *opts,
     'yt_dlp/__main__.py',
 ])
-SetVersion('dist/yt-dlp%s.exe' % _x86, VERSION_FILE)
+SetVersion('dist/%syt-dlp%s.exe' % ('yt-dlp/' if '--onedir' in opts else '', _x86), VERSION_FILE)
