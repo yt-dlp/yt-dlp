@@ -1911,10 +1911,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _load_player(self, video_id, player_url, fatal=True) -> bool:
         player_id = self._extract_player_info(player_url)
         if player_id not in self._code_cache:
-            self._code_cache[player_id] = self._download_webpage(
+            code = self._download_webpage(
                 player_url, video_id, fatal=fatal,
                 note='Downloading player ' + player_id,
                 errnote='Download of %s failed' % player_url)
+            if code:
+                self._code_cache[player_id] = code
         return player_id in self._code_cache
 
     def _extract_signature_function(self, video_id, player_url, example_sig):
