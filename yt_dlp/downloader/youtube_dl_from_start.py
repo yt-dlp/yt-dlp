@@ -26,7 +26,7 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
         no_fragment_count = 0
         prev_dl = time_millis()
         while True:
-            if no_fragment_count > 5:
+            if no_fragment_count > 15:
                 return
             fmts, _ = ie._extract_mpd_formats_and_subtitles(
                 mpd_url, None, note=False, errnote=False, fatal=False)
