@@ -76,7 +76,7 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
                     'url': last_segment_url,
                 }
             if known_idx == last_seq:
-                no_fragment_score += 2
+                no_fragment_score += 5
             else:
                 no_fragment_score = 0
             known_idx = last_seq
