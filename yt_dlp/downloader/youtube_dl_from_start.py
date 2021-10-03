@@ -24,18 +24,18 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
     @staticmethod
     def _manifest_fragments(ie: YoutubeIE, mpd_url, stream_number, begin_index=0, fetch_span=5000, lack_early=False):
         known_idx = begin_index
-        no_fragment_count = 0
+        no_fragment_score = 0
         prev_dl = time_millis()
         last_segment_url = None
         while True:
-            if no_fragment_count > 15:
+            if no_fragment_score > 30:
                 return
             if not last_segment_url:
                 # method 1: obtain from MPD's maximum seq value
                 fmts, _ = ie._extract_mpd_formats_and_subtitles(
                     mpd_url, None, note=False, errnote=False, fatal=False)
                 if not fmts:
-                    no_fragment_count += 1
+                    no_fragment_score += 1
                     continue
                 fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
                 fragments = fmt_info['fragments']
@@ -48,11 +48,12 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
                 urlh = ie._request_webpage(
                     last_segment_url, None, note=False, errnote=False, fatal=False)
                 if not urlh:
-                    no_fragment_count += 1
+                    no_fragment_score += 1
+                    last_segment_url = None
                     continue
                 last_seq = int_or_none(urlh.headers.get('X-Head-Seqnum'))
                 if last_seq is None:
-                    no_fragment_count += 1
+                    no_fragment_score += 1
                     last_segment_url = None
                     continue
             if known_idx > last_seq:
@@ -75,9 +76,9 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
                     'url': last_segment_url,
                 }
             if known_idx == last_seq:
-                no_fragment_count += 1
+                no_fragment_score += 2
             else:
-                no_fragment_count = 0
+                no_fragment_score = 0
             known_idx = last_seq
 
             now_time = time_millis()
