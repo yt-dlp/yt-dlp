@@ -537,7 +537,6 @@ class DouyinIE(TikTokIE):
     _AID = 1128
     _API_HOSTNAME = 'aweme.snssdk.com'
     _UPLOADER_URL_FORMAT = 'https://www.douyin.com/user/%s'
-    QUALITIES = ('360p', '540p', '720p')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
