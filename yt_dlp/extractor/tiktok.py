@@ -551,7 +551,7 @@ class DouyinIE(TikTokIE):
             webpage, 'render data', default=None)
         if not render_data_json:
             # TODO: Run verification challenge code to generate signature cookies
-            raise ExtractorError('Fresh cookies (not necessarily logged in) are needed.', expected=True)
+            raise ExtractorError('Fresh cookies (not necessarily logged in) are needed')
 
         render_data = self._parse_json(
             render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
