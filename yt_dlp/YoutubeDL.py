@@ -1944,9 +1944,14 @@ class YoutubeDL(object):
                         filter_f = lambda f: _filter_f(f) and (
                             f.get('vcodec') != 'none' or f.get('acodec') != 'none')
                     else:
-                        filter_f = ((lambda f: f.get('ext') == format_spec)
-                                    if format_spec in ['mp4', 'flv', 'webm', '3gp', 'm4a', 'mp3', 'ogg', 'aac', 'wav']  # extension
-                                    else (lambda f: f.get('format_id') == format_spec))  # id
+                        if format_spec in ('m4a', 'mp3', 'ogg', 'aac'):  # audio extension
+                            filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none'
+                        elif format_spec in ('mp4', 'flv', 'webm', '3gp'):  # video extension
+                            filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none' and f.get('vcodec') != 'none'
+                        elif format_spec in ('mhtml', ):  # storyboards extension
+                            filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') == 'none' and f.get('vcodec') == 'none'
+                        else:
+                            filter_f = (lambda f: f.get('format_id') == format_spec)  # id
 
                     def selector_function(ctx):
                         formats = list(ctx['formats'])
