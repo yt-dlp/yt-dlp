@@ -32,8 +32,11 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
                 return
             if not last_segment_url:
                 # method 1: obtain from MPD's maximum seq value
-                fmts, _ = ie._extract_mpd_formats_and_subtitles(
-                    mpd_url, None, note=False, errnote=False, fatal=False)
+                try:
+                    fmts, _ = ie._extract_mpd_formats_and_subtitles(
+                        mpd_url, None, note=False, errnote=False, fatal=False)
+                except BaseException:
+                    fmts = None
                 if not fmts:
                     no_fragment_score += 1
                     continue
@@ -45,8 +48,11 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
                 last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
             else:
                 # method 2: obtain from "X-Head-Seqnum" header value from each segment
-                urlh = ie._request_webpage(
-                    last_segment_url, None, note=False, errnote=False, fatal=False)
+                try:
+                    urlh = ie._request_webpage(
+                        last_segment_url, None, note=False, errnote=False, fatal=False)
+                except BaseException:
+                    urlh = None
                 if not urlh:
                     no_fragment_score += 1
                     last_segment_url = None
