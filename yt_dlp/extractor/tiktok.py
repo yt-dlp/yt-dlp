@@ -9,6 +9,7 @@ import json
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
+from .openload import PhantomJSwrapper   # noqa: F401
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -26,6 +27,7 @@ class TikTokBaseIE(InfoExtractor):
     _APP_NAME = 'trill'
     _AID = 1180
     _API_HOSTNAME = 'api-t2.tiktokv.com'
+    _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     QUALITIES = ('360p', '540p', '720p')
 
     def _call_api(self, ep, query, video_id, fatal=True,
@@ -73,7 +75,7 @@ class TikTokBaseIE(InfoExtractor):
                 'Accept': 'application/json',
             }, query=real_query)
 
-    def _parse_aweme_video(self, aweme_detail):
+    def _parse_aweme_video_app(self, aweme_detail):
         aweme_id = aweme_detail['aweme_id']
         video_info = aweme_detail['video']
 
@@ -171,7 +173,9 @@ class TikTokBaseIE(InfoExtractor):
         stats_info = aweme_detail.get('statistics', {})
         author_info = aweme_detail.get('author', {})
         music_info = aweme_detail.get('music', {})
-        user_id = str_or_none(author_info.get('nickname'))
+        user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
+                                                             'sec_uid', 'id', 'uid', 'unique_id',
+                                                             expected_type=str_or_none, get_all=False))
 
         contained_music_track = traverse_obj(
             music_info, ('matched_song', 'title'), ('matched_pgc_sound', 'title'), expected_type=str)
@@ -193,9 +197,9 @@ class TikTokBaseIE(InfoExtractor):
             'repost_count': int_or_none(stats_info.get('share_count')),
             'comment_count': int_or_none(stats_info.get('comment_count')),
             'uploader': str_or_none(author_info.get('unique_id')),
-            'creator': user_id,
+            'creator': str_or_none(author_info.get('nickname')),
             'uploader_id': str_or_none(author_info.get('uid')),
-            'uploader_url': f'https://www.tiktok.com/@{user_id}' if user_id else None,
+            'uploader_url': user_url,
             'track': music_track,
             'album': str_or_none(music_info.get('album')) or None,
             'artist': music_author,
@@ -203,6 +207,79 @@ class TikTokBaseIE(InfoExtractor):
             'formats': formats,
             'thumbnails': thumbnails,
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000)
+        }
+
+    def _parse_aweme_video_web(self, aweme_detail, webpage, url):
+        video_info = aweme_detail['video']
+        author_info = traverse_obj(aweme_detail, 'author', 'authorInfo', default={})
+        music_info = aweme_detail.get('music') or {}
+        stats_info = aweme_detail.get('stats') or {}
+        user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
+                                                             'secUid', 'id', 'uid', 'uniqueId',
+                                                             expected_type=str_or_none, get_all=False))
+
+        formats = []
+        play_url = video_info.get('playAddr')
+        width = video_info.get('width')
+        height = video_info.get('height')
+        if isinstance(play_url, str):
+            formats = [{
+                'url': self._proto_relative_url(play_url),
+                'ext': 'mp4',
+                'width': width,
+                'height': height,
+            }]
+        elif isinstance(play_url, list):
+            formats = [{
+                'url': self._proto_relative_url(url),
+                'ext': 'mp4',
+                'width': width,
+                'height': height,
+            } for url in traverse_obj(play_url, (..., 'src'), expected_type=url_or_none, default=[]) if url]
+
+        download_url = url_or_none(video_info.get('downloadAddr')) or traverse_obj(video_info, ('download', 'url'), expected_type=url_or_none)
+        if download_url:
+            formats.append({
+                'format_id': 'download',
+                'url': self._proto_relative_url(download_url),
+                'ext': 'mp4',
+                'width': width,
+                'height': height,
+            })
+        self._remove_duplicate_formats(formats)
+        self._sort_formats(formats)
+
+        thumbnails = []
+        for thumbnail_name in ('thumbnail', 'cover', 'dynamicCover', 'originCover'):
+            if aweme_detail.get(thumbnail_name):
+                thumbnails = [{
+                    'url': self._proto_relative_url(aweme_detail[thumbnail_name]),
+                    'width': width,
+                    'height': height
+                }]
+
+        return {
+            'id': traverse_obj(aweme_detail, 'id', 'awemeId', expected_type=str_or_none),
+            'title': aweme_detail.get('desc'),
+            'duration': try_get(aweme_detail, lambda x: x['video']['duration'], int),
+            'view_count': int_or_none(stats_info.get('playCount')),
+            'like_count': int_or_none(stats_info.get('diggCount')),
+            'repost_count': int_or_none(stats_info.get('shareCount')),
+            'comment_count': int_or_none(stats_info.get('commentCount')),
+            'timestamp': int_or_none(aweme_detail.get('createTime')),
+            'creator': str_or_none(author_info.get('nickname')),
+            'uploader': str_or_none(author_info.get('uniqueId')),
+            'uploader_id': str_or_none(author_info.get('id')),
+            'uploader_url': user_url,
+            'track': str_or_none(music_info.get('title')),
+            'album': str_or_none(music_info.get('album')) or None,
+            'artist': str_or_none(music_info.get('authorName')),
+            'formats': formats,
+            'thumbnails': thumbnails,
+            'description': str_or_none(aweme_detail.get('desc')),
+            'http_headers': {
+                'Referer': url
+            }
         }
 
 
@@ -261,60 +338,10 @@ class TikTokIE(TikTokBaseIE):
         'only_matching': True,
     }]
 
-    def _extract_aweme(self, props_data, webpage, url):
-        video_info = try_get(
-            props_data, lambda x: x['pageProps']['itemInfo']['itemStruct'], dict)
-        author_info = try_get(
-            props_data, lambda x: x['pageProps']['itemInfo']['itemStruct']['author'], dict) or {}
-        music_info = try_get(
-            props_data, lambda x: x['pageProps']['itemInfo']['itemStruct']['music'], dict) or {}
-        stats_info = try_get(props_data, lambda x: x['pageProps']['itemInfo']['itemStruct']['stats'], dict) or {}
-
-        user_id = str_or_none(author_info.get('uniqueId'))
-        download_url = try_get(video_info, (lambda x: x['video']['playAddr'],
-                                            lambda x: x['video']['downloadAddr']))
-        height = try_get(video_info, lambda x: x['video']['height'], int)
-        width = try_get(video_info, lambda x: x['video']['width'], int)
-        thumbnails = [{
-            'url': video_info.get('thumbnail') or self._og_search_thumbnail(webpage),
-            'width': width,
-            'height': height
-        }]
-        tracker = try_get(props_data, lambda x: x['initialProps']['$wid'])
-
-        return {
-            'id': str_or_none(video_info.get('id')),
-            'url': download_url,
-            'ext': 'mp4',
-            'height': height,
-            'width': width,
-            'title': video_info.get('desc') or self._og_search_title(webpage),
-            'duration': try_get(video_info, lambda x: x['video']['duration'], int),
-            'view_count': int_or_none(stats_info.get('playCount')),
-            'like_count': int_or_none(stats_info.get('diggCount')),
-            'repost_count': int_or_none(stats_info.get('shareCount')),
-            'comment_count': int_or_none(stats_info.get('commentCount')),
-            'timestamp': try_get(video_info, lambda x: int(x['createTime']), int),
-            'creator': str_or_none(author_info.get('nickname')),
-            'uploader': user_id,
-            'uploader_id': str_or_none(author_info.get('id')),
-            'uploader_url': f'https://www.tiktok.com/@{user_id}',
-            'track': str_or_none(music_info.get('title')),
-            'album': str_or_none(music_info.get('album')) or None,
-            'artist': str_or_none(music_info.get('authorName')),
-            'thumbnails': thumbnails,
-            'description': str_or_none(video_info.get('desc')),
-            'webpage_url': self._og_search_url(webpage),
-            'http_headers': {
-                'Referer': url,
-                'Cookie': 'tt_webid=%s; tt_webid_v2=%s' % (tracker, tracker),
-            }
-        }
-
     def _extract_aweme_app(self, aweme_id):
         aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
                                       note='Downloading video details', errnote='Unable to download video details')['aweme_detail']
-        return self._parse_aweme_video(aweme_detail)
+        return self._parse_aweme_video_app(aweme_detail)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -336,7 +363,7 @@ class TikTokIE(TikTokBaseIE):
         # Chech statusCode for success
         status = props_data.get('pageProps').get('statusCode')
         if status == 0:
-            return self._extract_aweme(props_data, webpage, url)
+            return self._parse_aweme_video_web(props_data['pageProps']['itemInfo']['itemStruct'], webpage, url)
         elif status == 10216:
             raise ExtractorError('This video is private', expected=True)
 
@@ -509,6 +536,7 @@ class DouyinIE(TikTokIE):
     _APP_NAME = 'aweme'
     _AID = 1128
     _API_HOSTNAME = 'aweme.snssdk.com'
+    _UPLOADER_URL_FORMAT = 'https://www.douyin.com/user/%s'
     QUALITIES = ('360p', '540p', '720p')
 
     def _real_extract(self, url):
@@ -520,48 +548,22 @@ class DouyinIE(TikTokIE):
             self.report_warning(f'{e}; Retrying with webpage')
 
         webpage = self._download_webpage(url, video_id)
-        render_data = self._parse_json(
-            self._search_regex(
+        render_data_json = self._search_regex(
+            r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>(%7B.+%7D)</script>',
+            webpage, 'render data', default=None)
+        if not render_data_json:
+            raise ExtractorError('Fresh cookies (not necessarily logged in) are needed.', expected=True)
+            r'''  # PhantomJS cannot load the signature challenge properly
+            try:
+                phantom = PhantomJSwrapper(self)
+                webpage, out = phantom.get(url, webpage, video_id)
+            except ExtractorError:
+                raise ExtractorError('PhantomJS is required to extract Douyin videos.', expected=True)
+            render_data_json = self._search_regex(
                 r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>(%7B.+%7D)</script>',
-                webpage, 'render data'),
-            video_id, transform_source=compat_urllib_parse_unquote)
-        details = traverse_obj(render_data, (..., 'aweme', 'detail'), get_all=False)
-
-        thumbnails = [{'url': self._proto_relative_url(url)} for url in traverse_obj(
-            details, ('video', ('cover', 'dynamicCover', 'originCover')), expected_type=url_or_none, default=[])]
-
-        common = {
-            'width': traverse_obj(details, ('video', 'width'), expected_type=int),
-            'height': traverse_obj(details, ('video', 'height'), expected_type=int),
-            'ext': 'mp4',
-        }
-        formats = [{**common, 'url': self._proto_relative_url(url)} for url in traverse_obj(
-            details, ('video', 'playAddr', ..., 'src'), expected_type=url_or_none, default=[]) if url]
-        self._remove_duplicate_formats(formats)
-
-        download_url = traverse_obj(details, ('download', 'url'), expected_type=url_or_none)
-        if download_url:
-            formats.append({
-                **common,
-                'format_id': 'download',
-                'url': self._proto_relative_url(download_url),
-                'quality': 1,
-            })
-        self._sort_formats(formats)
-
-        return {
-            'id': video_id,
-            'title': details.get('desc') or self._html_search_meta('title', webpage),
-            'formats': formats,
-            'thumbnails': thumbnails,
-            'uploader': traverse_obj(details, ('authorInfo', 'nickname'), expected_type=str),
-            'uploader_id': traverse_obj(details, ('authorInfo', 'uid'), expected_type=str),
-            'uploader_url': 'https://www.douyin.com/user/%s' % traverse_obj(
-                details, ('authorInfo', 'secUid'), expected_type=str),
-            'timestamp': int_or_none(details.get('createTime')),
-            'duration': traverse_obj(details, ('video', 'duration'), expected_type=int),
-            'view_count': traverse_obj(details, ('stats', 'playCount'), expected_type=int),
-            'like_count': traverse_obj(details, ('stats', 'diggCount'), expected_type=int),
-            'repost_count': traverse_obj(details, ('stats', 'shareCount'), expected_type=int),
-            'comment_count': traverse_obj(details, ('stats', 'commentCount'), expected_type=int),
-        }
+                webpage, 'render data')
+            '''
+        render_data = self._parse_json(
+            render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
+        return self._parse_aweme_video_web(
+            traverse_obj(render_data, (..., 'aweme', 'detail'), get_all=False), webpage, url)
