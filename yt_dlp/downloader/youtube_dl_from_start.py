@@ -7,6 +7,7 @@ from .dash import DashSegmentsFD
 from ..extractor.youtube import YoutubeIE
 
 from ..utils import (
+    int_or_none,
     traverse_obj,
     urljoin,
     time_millis,
@@ -25,20 +26,41 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
         known_idx = begin_index
         no_fragment_count = 0
         prev_dl = time_millis()
+        last_segment_url = None
         while True:
             if no_fragment_count > 15:
                 return
-            fmts, _ = ie._extract_mpd_formats_and_subtitles(
-                mpd_url, None, note=False, errnote=False, fatal=False)
-            if not fmts:
-                no_fragment_count += 1
-                continue
-            fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
-            fragments = fmt_info['fragments']
-            fragment_base_url = fmt_info['fragment_base_url']
-            assert fragment_base_url
+            if not last_segment_url:
+                # method 1: obtain from MPD's maximum seq value
+                fmts, _ = ie._extract_mpd_formats_and_subtitles(
+                    mpd_url, None, note=False, errnote=False, fatal=False)
+                if not fmts:
+                    no_fragment_count += 1
+                    continue
+                fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
+                fragments = fmt_info['fragments']
+                fragment_base_url = fmt_info['fragment_base_url']
+                assert fragment_base_url
 
-            last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1)) + 1
+                last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
+            else:
+                # method 2: obtain from "X-Head-Seqnum" header value from each segment
+                urlh = ie._request_webpage(
+                    last_segment_url, None, note=False, errnote=False, fatal=False)
+                if not urlh:
+                    no_fragment_count += 1
+                    continue
+                last_seq = int_or_none(urlh.headers.get('X-Head-Seqnum'))
+                if last_seq is None:
+                    no_fragment_count += 1
+                    last_segment_url = None
+                    continue
+            if known_idx > last_seq:
+                last_segment_url = None
+                continue
+
+            last_seq += 1
+
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
                 known_idx = last_seq + begin_index
@@ -46,10 +68,11 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
                 # when _get_fragments detects that it's longer than 5 days
                 known_idx = max(known_idx, last_seq - int(432000 // fragments[-1]['duration']))
             for idx in range(known_idx, last_seq):
+                last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
                 yield {
                     'frag_index': idx,
                     'index': idx,
-                    'url': urljoin(fragment_base_url, 'sq/%d' % idx),
+                    'url': last_segment_url,
                 }
             if known_idx == last_seq:
                 no_fragment_count += 1
