@@ -524,6 +524,7 @@ from .googlepodcasts import (
     GooglePodcastsFeedIE,
 )
 from .googlesearch import GoogleSearchIE
+from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
