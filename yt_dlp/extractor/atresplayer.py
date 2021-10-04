@@ -38,7 +38,6 @@ class AtresPlayerIE(InfoExtractor):
             'only_matching': True,
         },
     ]
-    _API_BASE = 'https://api.atresplayer.com/'
 
     def _real_initialize(self):
         self._login()
@@ -56,22 +55,17 @@ class AtresPlayerIE(InfoExtractor):
         if username is None:
             return
 
-        self._request_webpage(
-            self._API_BASE + 'login', None, 'Downloading login page')
-
         try:
-            target_url = self._download_json(
-                'https://account.atresmedia.com/api/login', None,
+            self._download_webpage(
+                'https://account.atresplayer.com/auth/v1/login', None,
                 'Logging in', headers={
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }, data=urlencode_postdata({
                     'username': username,
                     'password': password,
-                }))['targetUrl']
+                }))
         except ExtractorError as e:
             self._handle_error(e, 400)
-
-        self._request_webpage(target_url, None, 'Following Target URL')
 
     def _real_extract(self, url):
         display_id, video_id = self._match_valid_url(url).groups()
