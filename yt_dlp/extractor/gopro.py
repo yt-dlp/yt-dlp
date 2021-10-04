@@ -87,7 +87,7 @@ class GoProIE(InfoExtractor):
             try_get(metadata, lambda x: x['collection']['title'])
             or self._html_search_meta(['og:title', 'twitter:title'], webpage)
             or remove_end(self._html_search_regex(
-                r'<title[^>]*>([^<]+)</title>', webpage, 'title'), ' | GoPro'))
+                r'<title[^>]*>([^<]+)</title>', webpage, 'title', fatal=False), ' | GoPro'))
         if title:
             title = title.replace('\n', ' ')
 
