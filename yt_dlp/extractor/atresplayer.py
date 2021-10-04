@@ -70,9 +70,19 @@ class AtresPlayerIE(InfoExtractor):
     def _real_extract(self, url):
         display_id, video_id = self._match_valid_url(url).groups()
 
+        page = self._download_webpage(url, video_id, 'Downloading video page')
+        preloaded_state_regex = r'window\.__PRELOADED_STATE__\s*=\s*(\{(.*?)\});'
+        preloaded_state_text = self._html_search_regex(preloaded_state_regex, page, 'preloaded state')
+        preloaded_state = self._parse_json(preloaded_state_text, video_id)
+        link_info = next(iter(preloaded_state['links'].values()))
+
         try:
-            episode = self._download_json(
-                self._API_BASE + 'client/v1/player/episode/' + video_id, video_id)
+            metadata = self._download_json(link_info['href'], video_id)
+        except ExtractorError as e:
+            self._handle_error(e, 403)
+
+        try:
+            episode = self._download_json(metadata['urlVideo'], video_id)
         except ExtractorError as e:
             self._handle_error(e, 403)
 
