@@ -37,19 +37,22 @@ class ParliamentLiveUKIE(InfoExtractor):
         video_id = self._match_id(url)
         video_info = self._download_json(f'https://www.parliamentlive.tv/Event/GetShareVideo/{video_id}', video_id)
         _DEVICE_ID = str(uuid.uuid4())
-        _DATA = json.dumps({'device': {
-            'deviceId': _DEVICE_ID,
-            'width': 653,
-            'height': 368,
-            'type': 'WEB',
-            'name': ' Mozilla Firefox 91'},
-            'deviceId': _DEVICE_ID}).encode('utf-8')
-
         auth = 'Bearer ' + self._download_json(
             'https://exposure.api.redbee.live/v2/customer/UKParliament/businessunit/ParliamentLive/auth/anonymous',
-            video_id, headers={'Origin': 'https://videoplayback.parliamentlive.tv',
-                               'Accept': 'application/json, text/plain, */*',
-                               'Content-Type': 'application/json;charset=utf-8'}, data=_DATA)['sessionToken']
+            video_id, headers={
+                'Origin': 'https://videoplayback.parliamentlive.tv',
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json;charset=utf-8'
+            }, data=json.dumps({
+                'deviceId': _DEVICE_ID,
+                'device': {
+                    'deviceId': _DEVICE_ID,
+                    'width': 653,
+                    'height': 368,
+                    'type': 'WEB',
+                    'name': ' Mozilla Firefox 91'
+                }
+            }).encode('utf-8'))['sessionToken']
 
         video_urls = self._download_json(
             f'https://exposure.api.redbee.live/v2/customer/UKParliament/businessunit/ParliamentLive/entitlement/{video_id}/play',
