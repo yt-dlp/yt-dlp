@@ -63,9 +63,9 @@ class GoProIE(InfoExtractor):
         metadata = self._parse_json(
             self._html_search_regex(r'window\.__reflectData\s*=\s*([^;]+)', webpage, 'metadata'), video_id)
 
-        video_info = try_get(metadata, lambda x: x['collectionMedia'][0]) or {}
+        video_info = metadata['collectionMedia'][0]
         media_data = self._download_json(
-            'https://api.gopro.com/media/%s/download' % video_info.get('id'), video_id)
+            'https://api.gopro.com/media/%s/download' % video_info['id'], video_id)
 
         formats = []
         for fmt in try_get(media_data, lambda x: x['_embedded']['variations']) or []:
