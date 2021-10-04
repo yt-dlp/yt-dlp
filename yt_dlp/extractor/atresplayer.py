@@ -47,6 +47,8 @@ class AtresPlayerIE(InfoExtractor):
             error = self._parse_json(e.cause.read(), None)
             if error.get('error') == 'required_registered':
                 self.raise_login_required()
+            if error.get('error') == 'invalid_request':
+                raise ExtractorError('Authentication failed', expected=True)
             raise ExtractorError(error['error_description'], expected=True)
         raise
 
@@ -65,8 +67,6 @@ class AtresPlayerIE(InfoExtractor):
                     'password': password,
                 }))
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
-                raise ExtractorError('Authentication failure', expected=True)
             self._handle_error(e, 400)
 
     def _real_extract(self, url):
