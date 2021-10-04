@@ -22,6 +22,7 @@ from ..utils import (
     parse_iso8601,
     try_get,
     smuggle_url,
+    srt_subtitles_timecode,
     str_or_none,
     str_to_int,
     strip_jsonp,
@@ -623,7 +624,7 @@ class BiliBiliSearchIE(SearchInfoExtractor):
         while True:
             pageNumber += 1
             # FIXME
-            api_url = "https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1" % (pageNumber, query)
+            api_url = 'https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1' % (pageNumber, query)
             json_str = self._download_webpage(
                 api_url, "None", query={"Search_key": query},
                 note='Extracting results from page %s' % pageNumber)
@@ -783,6 +784,12 @@ class BiliIntlBaseIE(InfoExtractor):
     def _call_api(self, type, endpoint, id):
         return self._download_json(self._API_URL.format(type, endpoint), id)['data']
 
+    def json2srt(self, json):
+        data = '\n\n'.join(
+            f'{i + 1}\n{srt_subtitles_timecode(line["from"])} --> {srt_subtitles_timecode(line["to"])}\n{line["content"]}'
+            for i, line in enumerate(json['body']))
+        return data
+
     def _get_subtitles(self, type, ep_id):
         sub_json = self._call_api(type, f'/m/subtitle?ep_id={ep_id}&platform=web', ep_id)
         subtitles = {}
@@ -790,8 +797,13 @@ class BiliIntlBaseIE(InfoExtractor):
             sub_url = sub.get('url')
             if not sub_url:
                 continue
+            sub_data = self._download_json(sub_url, ep_id, fatal=False)
+            if not sub_data:
+                continue
+            sub_data = self._parse_json(sub_data)
             subtitles.setdefault(sub.get('key', 'en'), []).append({
-                'url': sub_url,
+                'ext': 'srt',
+                'data': self.json2srt(sub_data)
             })
         return subtitles
 
