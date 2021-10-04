@@ -3653,13 +3653,46 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         },
         'playlist_count': 1,
     }, {
-        'note': 'API Only: Recommended - redirects to home page. Requires visitorData',
+        'note': 'API Fallback: Recommended - redirects to home page. Requires visitorData',
         'url': 'https://www.youtube.com/feed/recommended',
         'info_dict': {
             'id': 'recommended',
             'title': 'recommended',
         },
         'playlist_mincount': 50,
+        'params': {
+            'skip_download': True,
+            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
+        },
+    }, {
+        'note': 'API Fallback: /videos tab, sorted by oldest first',
+        'url': 'https://www.youtube.com/user/theCodyReeder/videos?view=0&sort=da&flow=grid',
+        'info_dict': {
+            'id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
+            'title': 'Cody\'sLab - Videos',
+            'description': 'md5:d083b7c2f0c67ee7a6c74c3e9b4243fa',
+            'uploader': 'Cody\'sLab',
+            'uploader_id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
+        },
+        'playlist_mincount': 650,
+        'params': {
+            'skip_download': True,
+            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
+        },
+    }, {
+        'note': 'API Fallback: Topic, should redirect to playlist?list=UU...',
+        'url': 'https://music.youtube.com/browse/UC9ALqqC4aIeG5iDs7i90Bfw',
+        'info_dict': {
+            'id': 'UU9ALqqC4aIeG5iDs7i90Bfw',
+            'uploader_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
+            'title': 'Uploads from Royalty Free Music - Topic',
+            'uploader': 'Royalty Free Music - Topic',
+        },
+        'expected_warnings': [
+            'A channel/user page was given',
+            'The URL does not have a videos tab',
+        ],
+        'playlist_mincount': 101,
         'params': {
             'skip_download': True,
             'extractor_args': {'youtubetab': {'skip': ['webpage']}}
@@ -4274,6 +4307,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     item_id=item_id, query=params, ep=ep, headers=headers,
                     ytcfg=ytcfg, fatal=fatal, default_client=default_client,
                     check_get_keys=('contents', 'currentVideoEndpoint'))
+        raise ExtractorError('Failed to resolve url (does the playlist exist?)', expected=True)
 
     @staticmethod
     def _smuggle_data(entries, data):
