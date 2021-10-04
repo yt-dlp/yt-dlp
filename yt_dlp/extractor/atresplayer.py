@@ -65,6 +65,8 @@ class AtresPlayerIE(InfoExtractor):
                     'password': password,
                 }))
         except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                raise ExtractorError('Authentication failure', expected=True)
             self._handle_error(e, 400)
 
     def _real_extract(self, url):
