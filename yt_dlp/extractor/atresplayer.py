@@ -96,11 +96,11 @@ class AtresPlayerIE(InfoExtractor):
                 continue
             src_type = source.get('type')
             if src_type == 'application/vnd.apple.mpegurl':
-                formats, subtitles = self._extract_m3u8_formats(
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                     src, video_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False)
             elif src_type == 'application/dash+xml':
-                formats, subtitles = self._extract_mpd_formats(
+                formats, subtitles = self._extract_mpd_formats_and_subtitles(
                     src, video_id, mpd_id='dash', fatal=False)
         self._sort_formats(formats)
 
