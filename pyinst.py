@@ -76,7 +76,7 @@ VERSION_FILE = VSVersionInfo(
     ]
 )
 
-dependancies = ['Crypto', 'mutagen'] + collect_submodules('websockets')
+dependancies = ['Cryptodome', 'mutagen'] + collect_submodules('websockets')
 excluded_modules = ['test', 'ytdlp_plugins', 'youtube-dl', 'youtube-dlc']
 
 PyInstaller.__main__.run([
