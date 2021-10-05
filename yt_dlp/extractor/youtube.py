@@ -4307,7 +4307,10 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                     item_id=item_id, query=params, ep=ep, headers=headers,
                     ytcfg=ytcfg, fatal=fatal, default_client=default_client,
                     check_get_keys=('contents', 'currentVideoEndpoint'))
-        raise ExtractorError('Failed to resolve url (does the playlist exist?)', expected=True)
+        err_note = 'Failed to resolve url (does the playlist exist?)'
+        if fatal:
+            raise ExtractorError(err_note, expected=True)
+        self.report_warning(err_note, item_id)
 
     @staticmethod
     def _smuggle_data(entries, data):
