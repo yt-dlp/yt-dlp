@@ -918,8 +918,12 @@ def parseOpts(overrideArguments=None):
         help='Show progress bar, even if in quiet mode')
     verbosity.add_option(
         '--progress-template',
-        metavar='TEMPLATE', dest='progress_template',
-        help=(
+        metavar='[TYPE:]TEMPLATE', dest='progress_template', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'download|postprocess',
+            'default_key': 'download'
+        }, help=(
             'TODO'))
     verbosity.add_option(
         '--console-title',
@@ -927,8 +931,12 @@ def parseOpts(overrideArguments=None):
         help='Display progress in console titlebar')
     verbosity.add_option(
         '--console-title-template',
-        metavar='TEMPLATE', dest='consoletitle_template',
-        help=(
+        metavar='[TYPE:]TEMPLATE', dest='consoletitle_template', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'download|postprocess',
+            'default_key': 'download'
+        }, help=(
             'TODO'))
     verbosity.add_option(
         '-v', '--verbose',

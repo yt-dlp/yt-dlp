@@ -304,15 +304,15 @@ def _real_main(argv=None):
             parser.error('invalid %s %r: %s' % (msg, tmpl, error_to_compat_str(err)))
 
     for k, tmpl in opts.outtmpl.items():
-        validate_outtmpl(tmpl, '%s output template' % k)
+        validate_outtmpl(tmpl, f'{k} output template')
     opts.forceprint = opts.forceprint or []
     for tmpl in opts.forceprint or []:
         validate_outtmpl(tmpl, 'print template')
     validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
-    if opts.progress_template is not None:
-        validate_outtmpl(opts.progress_template, 'progress template')
-    if opts.consoletitle_template is not None:
-        validate_outtmpl(opts.consoletitle_template, 'console-title template')
+    for k, tmpl in opts.progress_template.items():
+        validate_outtmpl(tmpl, f'{k} progress template')
+    for k, tmpl in opts.consoletitle_template.items():
+        validate_outtmpl(tmpl, f'{k} console title template')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'

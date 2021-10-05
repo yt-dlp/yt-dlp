@@ -9,6 +9,7 @@ import copy
 import datetime
 import errno
 import fileinput
+import functools
 import io
 import itertools
 import json
@@ -356,6 +357,7 @@ class YoutubeDL(object):
 
                        Progress hooks are guaranteed to be called at least once
                        (with status "finished") if the download is successful.
+    postprocessor_hooks:  TODO
     merge_output_format: Extension to use when merging formats.
     final_ext:         Expected final extension; used to detect when the file was
                        already downloaded and converted. "merge_output_format" is
@@ -415,12 +417,13 @@ class YoutubeDL(object):
                        filename, abort-on-error, multistreams, no-live-chat,
                        no-clean-infojson, no-playlist-metafiles, no-keep-subs.
                        Refer __init__.py for their implementation
+    progress_template: TODO
+    consoletitle_template:  TODO
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
     max_filesize, test, noresizebuffer, retries, continuedl, noprogress,
-    progress_template, consoletitle_template,
     xattr_set_filesize, external_downloader_args, hls_use_mpegts, http_chunk_size.
 
     The following options are used by the post processors:
@@ -488,6 +491,7 @@ class YoutubeDL(object):
         self._first_webpage_request = True
         self._post_hooks = []
         self._progress_hooks = []
+        self._postprocessor_hooks = []
         self._download_retcode = 0
         self._num_downloads = 0
         self._screen_file = [sys.stdout, sys.stderr][params.get('logtostderr', False)]
@@ -678,8 +682,12 @@ class YoutubeDL(object):
         self._post_hooks.append(ph)
 
     def add_progress_hook(self, ph):
-        """Add the progress hook (currently only for the file downloader)"""
+        """Add the download progress hook"""
         self._progress_hooks.append(ph)
+
+    def add_postprocessor_hook(self, ph):
+        """Add the postprocessing progress hook"""
+        self._postprocessor_hooks.append(ph)
 
     def _bidi_workaround(self, message):
         if not hasattr(self, '_output_channel'):
@@ -917,7 +925,7 @@ class YoutubeDL(object):
             return err
 
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
-        """ Make the template and info_dict suitable for substitution : ydl.outtmpl_escape(outtmpl) % info_dict """
+        """ Make the outtmpl and info_dict suitable for substitution: ydl.escape_outtmpl(outtmpl) % info_dict """
         info_dict.setdefault('epoch', int(time.time()))  # keep epoch consistent once set
 
         info_dict = dict(info_dict)  # Do not sanitize so as not to consume LazyList

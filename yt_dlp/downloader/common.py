@@ -59,8 +59,8 @@ class FileDownloader(object):
     http_chunk_size:    Size of a chunk for chunk-based HTTP downloading. May be
                         useful for bypassing bandwidth throttling imposed by
                         a webserver (experimental)
-    progress_template:  TODO
-    consoletitle_template:  TODO
+    progress_template:  See YoutubeDL.py
+    consoletitle_template:  See YoutubeDL.py
 
     Subclasses of this one must re-define the real_download method.
     """
