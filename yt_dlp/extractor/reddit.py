@@ -109,7 +109,7 @@ class RedditRIE(InfoExtractor):
 
         self._set_cookie('.reddit.com', 'reddit_session', self._gen_session_id())
         self._set_cookie('.reddit.com', '_options', '%7B%22pref_quarantine_optin%22%3A%20true%7D')
-        data = self._download_json(f'https://{subdomain}.reddit.com/r/{slug}/.json', video_id, fatal=False)
+        data = self._download_json(f'https://{subdomain}reddit.com/r/{slug}/.json', video_id, fatal=False)
         if not data:
             # Fall back to old.reddit.com in case the requested subdomain fails
             data = self._download_json(f'https://old.reddit.com/r/{slug}/.json', video_id)
