@@ -12,7 +12,7 @@ jobs:
       with:
         python-version: 3.9
     - name: Install test requirements
-      run: pip install pytest pycryptodome
+      run: pip install pytest pycryptodomex
     - name: Run tests
       run: ./devscripts/run_tests.sh core
   flake8:
