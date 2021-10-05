@@ -3434,7 +3434,7 @@ class YoutubeDL(object):
             except (ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
                 self.report_warning(f'Unable to download video subtitles for {sub_lang!r}: {err}')
                 continue
-            return ret
+        return ret
 
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
         ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename) '''
