@@ -31,7 +31,7 @@ class StreamableIE(InfoExtractor):
                 'view_count': int,
             }
         },
-        # older video without bitrate, width/height, etc. info
+        # older video without bitrate, width/height, codecs, etc. info
         {
             'url': 'https://streamable.com/moo',
             'md5': '2cf6923639b87fba3279ad0df3a64e73',
