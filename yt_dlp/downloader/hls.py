@@ -72,9 +72,9 @@ class HlsFD(FragmentFD):
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
         if can_download and not compat_pycrypto_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
             if FFmpegFD.available():
-                can_download, message = False, 'The stream has AES-128 encryption and pycryptodome is not available'
+                can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
             else:
-                message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodome are available; '
+                message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
                            'Decryption will be performed natively, but will be extremely slow')
         if not can_download:
             message = message or 'Unsupported features have been detected'
