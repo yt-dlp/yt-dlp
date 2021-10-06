@@ -60,7 +60,6 @@ class FileDownloader(object):
                         useful for bypassing bandwidth throttling imposed by
                         a webserver (experimental)
     progress_template:  See YoutubeDL.py
-    consoletitle_template:  See YoutubeDL.py
 
     Subclasses of this one must re-define the real_download method.
     """
@@ -260,13 +259,12 @@ class FileDownloader(object):
         progress_dict.pop('info_dict')
         progress_dict = {'info': s['info_dict'], 'progress': progress_dict}
 
+        progress_template = self.params.get('progress_template', {})
         self._multiline.print_at_line(self.ydl.evaluate_outtmpl(
-            self.params.get('progress_template', {}).get('download')
-            or '[download] %(progress._default_template)s',
+            progress_template.get('download') or '[download] %(progress._default_template)s',
             progress_dict), s.get('progress_idx') or 0)
         self.to_console_title(self.ydl.evaluate_outtmpl(
-            self.params.get('consoletitle_template', {}).get('download')
-            or 'yt-dlp %(progress._default_template)s',
+            progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
     def report_progress(self, s):

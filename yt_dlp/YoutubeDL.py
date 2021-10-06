@@ -418,7 +418,6 @@ class YoutubeDL(object):
                        no-clean-infojson, no-playlist-metafiles, no-keep-subs.
                        Refer __init__.py for their implementation
     progress_template: TODO
-    consoletitle_template:  TODO
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):

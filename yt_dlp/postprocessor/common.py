@@ -163,13 +163,13 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         progress_dict.pop('info_dict')
         progress_dict = {'info': s['info_dict'], 'progress': progress_dict}
 
-        tmpl = self.get_param('progress_template', {}).get('postprocess')
+        progress_template = self.get_param('progress_template', {})
+        tmpl = progress_template.get('postprocess')
         if tmpl:
             self._downloader.to_stdout(self._downloader.evaluate_outtmpl(tmpl, progress_dict))
 
         self._downloader.to_console_title(self._downloader.evaluate_outtmpl(
-            self.get_param('consoletitle_template', {}).get('postprocess')
-            or 'yt-dlp %(progress._default_template)s',
+            progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
 

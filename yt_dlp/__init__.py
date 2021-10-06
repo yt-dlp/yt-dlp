@@ -310,9 +310,8 @@ def _real_main(argv=None):
         validate_outtmpl(tmpl, 'print template')
     validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
     for k, tmpl in opts.progress_template.items():
-        validate_outtmpl(tmpl, f'{k} progress template')
-    for k, tmpl in opts.consoletitle_template.items():
-        validate_outtmpl(tmpl, f'{k} console title template')
+        k = f'{k[:-6]} console title' if '-title' in k else f'{k} progress'
+        validate_outtmpl(tmpl, f'{k} template')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'
@@ -649,7 +648,6 @@ def _real_main(argv=None):
         'noplaylist': opts.noplaylist,
         'logtostderr': outtmpl_default == '-',
         'consoletitle': opts.consoletitle,
-        'consoletitle_template': opts.consoletitle_template,
         'nopart': opts.nopart,
         'updatetime': opts.updatetime,
         'writedescription': opts.writedescription,

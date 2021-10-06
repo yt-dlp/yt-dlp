@@ -921,7 +921,7 @@ def parseOpts(overrideArguments=None):
         metavar='[TYPE:]TEMPLATE', dest='progress_template', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'download|postprocess',
+            'allowed_keys': '(download|postprocess)(-title)?',
             'default_key': 'download'
         }, help=(
             'TODO'))
@@ -929,15 +929,6 @@ def parseOpts(overrideArguments=None):
         '--console-title',
         action='store_true', dest='consoletitle', default=False,
         help='Display progress in console titlebar')
-    verbosity.add_option(
-        '--console-title-template',
-        metavar='[TYPE:]TEMPLATE', dest='consoletitle_template', default={}, type='str',
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': 'download|postprocess',
-            'default_key': 'download'
-        }, help=(
-            'TODO'))
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,
