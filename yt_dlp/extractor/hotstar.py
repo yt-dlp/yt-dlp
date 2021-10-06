@@ -290,7 +290,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
 
 class HotStarSeriesIE(HotStarBaseIE):
     IE_NAME = 'hotstar:series'
-    _VALID_URL = r'(?:https?://)(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'(?P<url>(?:https?://)(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://www.hotstar.com/in/tv/radhakrishn/1260000646',
         'info_dict': {
@@ -312,7 +312,7 @@ class HotStarSeriesIE(HotStarBaseIE):
     }]
 
     def _real_extract(self, url):
-        series_id = self._match_id(url)
+        url, series_id = self._match_valid_url(url).groups()
         headers = {
             'x-country-code': 'IN',
             'x-platform-code': 'PCTV',
@@ -324,7 +324,7 @@ class HotStarSeriesIE(HotStarBaseIE):
                                         video_id=series_id, headers=headers)
         entries = [
             self.url_result(
-                'hotstar:episode:%d' % video['contentId'],
+                '%s/ignoreme/%d' % (url, video['contentId']),
                 ie=HotStarIE.ie_key(), video_id=video['contentId'])
             for video in item_json['body']['results']['items']
             if video.get('contentId')]
