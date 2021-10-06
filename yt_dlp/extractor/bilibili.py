@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import hashlib
 import itertools
-import json
 import functools
 import re
 import math
@@ -382,10 +381,9 @@ class BiliBiliIE(InfoExtractor):
     # we can stop when we reach a page without any comments
     def _get_all_comment_pages(self, video_id, commentPageNumber=0):
         comment_url = 'https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=%s&type=1&oid=%s&sort=2&_=1567227301685' % (commentPageNumber, video_id)
-        json_str = self._download_webpage(
+        replies = self._download_json(
             comment_url, video_id,
-            note='Extracting comments from page %s' % commentPageNumber)
-        replies = json.loads(json_str)['data']['replies']
+            note='Extracting comments from page %s' % commentPageNumber)['data']['replies']
         if replies is None:
             return []
         return self._get_all_children(replies) + self._get_all_comment_pages(video_id, commentPageNumber + 1)
@@ -625,10 +623,9 @@ class BiliBiliSearchIE(SearchInfoExtractor):
             pageNumber += 1
             # FIXME
             api_url = 'https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1' % (pageNumber, query)
-            json_str = self._download_webpage(
+            data = self._download_json(
                 api_url, 'None', query={'Search_key': query},
-                note='Extracting results from page %s' % pageNumber)
-            data = json.loads(json_str)['data']
+                note='Extracting results from page %s' % pageNumber)['data']
 
             # FIXME: this is hideous
             if 'result' not in data:
