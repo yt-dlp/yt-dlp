@@ -1071,6 +1071,10 @@ class YoutubeDL(object):
 
         return EXTERNAL_FORMAT_RE.sub(create_key, outtmpl), TMPL_DICT
 
+    def evaluate_outtmpl(self, outtmpl, info_dict, *args, **kwargs):
+        outtmpl, info_dict = self.prepare_outtmpl(outtmpl, info_dict, *args, **kwargs)
+        return self.escape_outtmpl(outtmpl) % info_dict
+
     def _prepare_filename(self, info_dict, tmpl_type='default'):
         try:
             sanitize = lambda k, v: sanitize_filename(
@@ -2424,10 +2428,8 @@ class YoutubeDL(object):
         if self.params.get('forceprint') or self.params.get('forcejson'):
             self.post_extract(info_dict)
         for tmpl in self.params.get('forceprint', []):
-            if re.match(r'\w+$', tmpl):
-                tmpl = '%({})s'.format(tmpl)
-            tmpl, info_copy = self.prepare_outtmpl(tmpl, info_dict)
-            self.to_stdout(self.escape_outtmpl(tmpl) % info_copy)
+            self.to_stdout(self.evaluate_outtmpl(
+                f'%({tmpl})s' if re.match(r'\w+$', tmpl) else tmpl, info_dict))
 
         print_mandatory('title')
         print_mandatory('id')

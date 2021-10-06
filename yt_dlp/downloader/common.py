@@ -255,20 +255,18 @@ class FileDownloader(object):
     def _finish_multiline_status(self):
         self._multiline.end()
 
-    def _prepare_progress_template(self, tmpl, progress_dict):
-        tmpl, progress_dict = self.ydl.prepare_outtmpl(tmpl, progress_dict)
-        return self.ydl.escape_outtmpl(tmpl) % progress_dict
-
     def _report_progress_status(self, s):
         progress_dict = s.copy()
         progress_dict.pop('info_dict')
         progress_dict = {'info': s['info_dict'], 'progress': progress_dict}
 
-        self._multiline.print_at_line(self._prepare_progress_template(
-            self.params.get('progress_template') or '[download] %(progress._default_template)s',
+        self._multiline.print_at_line(self.ydl.evaluate_outtmpl(
+            self.params.get('progress_template', {}).get('download')
+            or '[download] %(progress._default_template)s',
             progress_dict), s.get('progress_idx') or 0)
-        self.to_console_title(self._prepare_progress_template(
-            self.params.get('consoletitle_template') or 'yt-dlp %(progress._default_template)s',
+        self.to_console_title(self.ydl.evaluate_outtmpl(
+            self.params.get('consoletitle_template', {}).get('download')
+            or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
     def report_progress(self, s):
