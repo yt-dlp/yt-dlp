@@ -8,6 +8,8 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    try_get,
+    parse_codecs,
 )
 
 
@@ -95,7 +97,9 @@ class StreamableIE(InfoExtractor):
                 'height': int_or_none(info.get('height')),
                 'filesize': int_or_none(info.get('size')),
                 'fps': int_or_none(info.get('framerate')),
-                'vbr': float_or_none(info.get('bitrate'), 1000)
+                'vbr': float_or_none(info.get('bitrate'), 1000),
+                'vcodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['video_codec_name'])).get('vcodec'),
+                'acodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['audio_codec_name'])).get('acodec'),
             })
         self._sort_formats(formats)
 
