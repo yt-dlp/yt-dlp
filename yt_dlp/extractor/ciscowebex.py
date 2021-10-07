@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import re
-import time
 
 from .common import InfoExtractor
 from ..utils import (
@@ -74,7 +73,7 @@ class CiscoWebexIE(InfoExtractor):
                 })
         except ExtractorError:
             self.raise_login_required()
-        
+
         video_id = stream.get('recordUUID') or video_id
 
         formats = [{
