@@ -1,8 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import (
@@ -43,7 +41,7 @@ class MicrosoftStreamIE(InfoExtractor):
                 '$expand': 'creator,tokens,status,liveEvent,extensions',
                 'api-version': '1.4-private'
             })
-        
+
         video_id = video_data.get('id') or video_id
 
         thumbnails = []
