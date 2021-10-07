@@ -48,7 +48,7 @@ class FunimationPageIE(InfoExtractor):
         'url': 'https://www.funimationnow.uk/shows/puzzle-dragons-x/drop-impact/simulcast/',
         'only_matching': True,
     }, {
-        'url': 'https://www.funimation.com/v/horizon-in-the-middle-of-nowhere/those-lined-up-before-the-horizon',
+        'url': 'https://www.funimation.com/v/a-certain-scientific-railgun/super-powered-level-5',
         'only_matching': True,
     }]
 
@@ -59,13 +59,12 @@ class FunimationPageIE(InfoExtractor):
         if not mobj.group('lang'):
             url = '%s/en/%s' % (mobj.group('origin'), mobj.group('path'))
 
-        if (url.count('/v/') < 1):
+        if '/v/' not in url:
             webpage = self._download_webpage(url, display_id, None, fatal=False)
             title_data = self._parse_json(self._search_regex(
                 r'TITLE_DATA\s*=\s*({[^}]+})',
                 webpage, 'title data', default=''),
                 display_id, js_to_json, fatal=False) or {}
-            
             video_id = (
                 title_data.get('id')
                 or self._search_regex(
@@ -77,14 +76,14 @@ class FunimationPageIE(InfoExtractor):
                     'video id'))
         else:
             region = self._get_cookies('https://www.funimation.com').get('region')
-            region = region.value if region else try_get(
+            self._region = region.value if region else try_get(
                 self._download_json(
                     'https://geo-service.prd.funimationsvc.com/geo/v1/region/check', None, fatal=False,
                     note='Checking geo-location', errnote='Unable to fetch geo-location information'),
                 lambda x: x['region']) or 'US'
             vid_json = self._download_json(
-                'https://title-api.prd.funimationsvc.com/v1/shows/%s/episodes/%s/?region=%s&deviceType=web&locale=%s'
-                % (display_id.split('_')[0], display_id.split('_')[1], region, mobj.group('lang') or 'en'), display_id)
+                'https://title-api.prd.funimationsvc.com/v1/shows/%s/episodes/%s/?region=%s&deviceType=web&locale=en'
+                % (display_id.split('_')[0], display_id.split('_')[1], self._region), display_id)
             video_id = traverse_obj(vid_json, ('videoList', 0, 'id'))
 
         return self.url_result(f'https://www.funimation.com/player/{video_id}', FunimationIE.ie_key(), video_id)
