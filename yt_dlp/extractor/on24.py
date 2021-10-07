@@ -64,7 +64,7 @@ class On24IE(InfoExtractor):
                 'key': event_key,
                 'contentType': 'A'
             })
-        
+
         event_id = compat_str(event_data.get('presentationLogInfo', {}).get('eventid')) or event_id
 
         info_media = event_data.get('mediaUrlInfo', {})
