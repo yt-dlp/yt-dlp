@@ -583,13 +583,13 @@ class BilibiliCategoryIE(InfoExtractor):
         }
 
         if category not in rid_map:
-            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (
-            category, list(rid_map.keys())))
+            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' %
+                                 (category, list(rid_map.keys())))
 
         if subcategory not in rid_map[category]:
             raise ExtractorError(
-                'The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (
-                subcategory, list(rid_map[category].keys())))
+                'The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' %
+                (subcategory, list(rid_map[category].keys())))
 
         rid_value = rid_map[category][subcategory]
 
@@ -627,8 +627,8 @@ class BiliBiliSearchIE(SearchInfoExtractor):
         while True:
             pageNumber += 1
             # FIXME
-            api_url = 'https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1' % (
-            pageNumber, query)
+            api_url = 'https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1' % \
+                      (pageNumber, query)
             data = self._download_json(
                 api_url, 'None', query={'Search_key': query},
                 note='Extracting results from page %s' % pageNumber)['data']
