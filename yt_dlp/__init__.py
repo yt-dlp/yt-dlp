@@ -20,7 +20,6 @@ from .compat import (
     compat_getpass,
     compat_shlex_quote,
     workaround_optparse_bug9161,
-    windows_enable_vt_mode
 )
 from .cookies import SUPPORTED_BROWSERS
 from .utils import (
@@ -67,7 +66,6 @@ def _real_main(argv=None):
         codecs.register(lambda name: codecs.lookup('utf-8') if name == 'cp65001' else None)
 
     workaround_optparse_bug9161()
-    windows_enable_vt_mode()
 
     setproctitle('yt-dlp')
 

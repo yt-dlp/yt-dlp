@@ -42,6 +42,7 @@ from .compat import (
     compat_urllib_error,
     compat_urllib_request,
     compat_urllib_request_DataHandler,
+    windows_enable_vt_mode,
 )
 from .cookies import load_cookies
 from .utils import (
@@ -508,6 +509,7 @@ class YoutubeDL(object):
         self.params = params
         self.cache = Cache(self)
 
+        windows_enable_vt_mode()
         self.params['no_color'] = self.params.get('no_color') or not supports_terminal_sequences(self._err_file)
 
         if sys.version_info < (3, 6):
