@@ -374,13 +374,15 @@ class BiliBiliIE(InfoExtractor):
         if response['code'] == -400:
             raise ExtractorError('Video ID does not exist', expected=True, video_id=id)
         elif response['code'] != 0:
-            raise ExtractorError('Unknown error occurred during API check (code %s)' % response['code'], expected=True, video_id=id)
+            raise ExtractorError('Unknown error occurred during API check (code %s)' % response['code'], expected=True,
+                                 video_id=id)
         return response['data']['aid'], response['data']['bvid']
 
     # recursive solution to getting every page of comments for the video
     # we can stop when we reach a page without any comments
     def _get_all_comment_pages(self, video_id, commentPageNumber=0):
-        comment_url = 'https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=%s&type=1&oid=%s&sort=2&_=1567227301685' % (commentPageNumber, video_id)
+        comment_url = 'https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=%s&type=1&oid=%s&sort=2&_=1567227301685' % (
+            commentPageNumber, video_id)
         replies = self._download_json(
             comment_url, video_id,
             note='Extracting comments from page %s' % commentPageNumber)['data']['replies']
@@ -581,10 +583,13 @@ class BilibiliCategoryIE(InfoExtractor):
         }
 
         if category not in rid_map:
-            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (category, list(rid_map.keys())))
+            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (
+            category, list(rid_map.keys())))
 
         if subcategory not in rid_map[category]:
-            raise ExtractorError('The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (subcategory, list(rid_map[category].keys())))
+            raise ExtractorError(
+                'The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (
+                subcategory, list(rid_map[category].keys())))
 
         rid_value = rid_map[category][subcategory]
 
@@ -622,7 +627,8 @@ class BiliBiliSearchIE(SearchInfoExtractor):
         while True:
             pageNumber += 1
             # FIXME
-            api_url = 'https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1' % (pageNumber, query)
+            api_url = 'https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1' % (
+            pageNumber, query)
             data = self._download_json(
                 api_url, 'None', query={'Search_key': query},
                 note='Extracting results from page %s' % pageNumber)['data']
