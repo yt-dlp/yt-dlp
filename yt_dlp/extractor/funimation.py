@@ -13,6 +13,7 @@ from ..utils import (
     js_to_json,
     str_or_none,
     try_get,
+    traverse_obj,
     qualities,
     urlencode_postdata,
     ExtractorError,
@@ -21,7 +22,7 @@ from ..utils import (
 
 class FunimationPageIE(InfoExtractor):
     IE_NAME = 'funimation:page'
-    _VALID_URL = r'(?P<origin>https?://(?:www\.)?funimation(?:\.com|now\.uk))/(?P<lang>[^/]+/)?(?P<path>shows/(?P<id>[^/]+/[^/?#&]+).*$)'
+    _VALID_URL = r'(?P<origin>https?://(?:www\.)?funimation(?:\.com|now\.uk))/(?P<lang>[^/]+/)?(?P<path>(shows/|v/)(?P<id>[^/]+/[^/?#&]+).*$)'
 
     _TESTS = [{
         'url': 'https://www.funimation.com/shows/attack-on-titan-junior-high/broadcast-dub-preview/',
@@ -46,7 +47,11 @@ class FunimationPageIE(InfoExtractor):
     }, {
         'url': 'https://www.funimationnow.uk/shows/puzzle-dragons-x/drop-impact/simulcast/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.funimation.com/v/horizon-in-the-middle-of-nowhere/those-lined-up-before-the-horizon',
+        'only_matching': True,
     }]
+
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -54,21 +59,34 @@ class FunimationPageIE(InfoExtractor):
         if not mobj.group('lang'):
             url = '%s/en/%s' % (mobj.group('origin'), mobj.group('path'))
 
-        webpage = self._download_webpage(url, display_id)
-        title_data = self._parse_json(self._search_regex(
-            r'TITLE_DATA\s*=\s*({[^}]+})',
-            webpage, 'title data', default=''),
-            display_id, js_to_json, fatal=False) or {}
+        if (url.count('/v/') < 1):
+            webpage = self._download_webpage(url, display_id, None, fatal=False)
+            title_data = self._parse_json(self._search_regex(
+                r'TITLE_DATA\s*=\s*({[^}]+})',
+                webpage, 'title data', default=''),
+                display_id, js_to_json, fatal=False) or {}
+            
+            video_id = (
+                title_data.get('id')
+                or self._search_regex(
+                    (r"KANE_customdimensions.videoID\s*=\s*'(\d+)';", r'<iframe[^>]+src="/player/(\d+)'),
+                    webpage, 'video_id', default=None)
+                or self._search_regex(
+                    r'/player/(\d+)',
+                    self._html_search_meta(['al:web:url', 'og:video:url', 'og:video:secure_url'], webpage, fatal=True),
+                    'video id'))
+        else:
+            region = self._get_cookies('https://www.funimation.com').get('region')
+            region = region.value if region else try_get(
+                self._download_json(
+                    'https://geo-service.prd.funimationsvc.com/geo/v1/region/check', None, fatal=False,
+                    note='Checking geo-location', errnote='Unable to fetch geo-location information'),
+                lambda x: x['region']) or 'US'
+            vid_json = self._download_json(
+                'https://title-api.prd.funimationsvc.com/v1/shows/%s/episodes/%s/?region=%s&deviceType=web&locale=%s'
+                % (display_id.split('_')[0], display_id.split('_')[1], region, mobj.group('lang') or 'en'), display_id)
+            video_id = traverse_obj(vid_json, ('videoList', 0, 'id'))
 
-        video_id = (
-            title_data.get('id')
-            or self._search_regex(
-                (r"KANE_customdimensions.videoID\s*=\s*'(\d+)';", r'<iframe[^>]+src="/player/(\d+)'),
-                webpage, 'video_id', default=None)
-            or self._search_regex(
-                r'/player/(\d+)',
-                self._html_search_meta(['al:web:url', 'og:video:url', 'og:video:secure_url'], webpage, fatal=True),
-                'video id'))
         return self.url_result(f'https://www.funimation.com/player/{video_id}', FunimationIE.ie_key(), video_id)
 
 
@@ -311,6 +329,9 @@ class FunimationShowIE(FunimationIE):
     }]
 
     def _real_initialize(self):
+        self._get_region()
+
+    def _get_region(self):
         region = self._get_cookies('https://www.funimation.com').get('region')
         self._region = region.value if region else try_get(
             self._download_json(
@@ -327,7 +348,8 @@ class FunimationShowIE(FunimationIE):
         items = self._download_json(
             'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
             % show_info.get('id'), display_id).get('items')
-        vod_items = map(lambda k: dict_get(k, ('mostRecentSvod', 'mostRecentAvod')).get('item'), items)
+        vod_region = 'mostRecentSvod' + self._region.capitalize()
+        vod_items = map(lambda k: dict_get(k, (vod_region, vod_region)).get('item'), items)
 
         return {
             '_type': 'playlist',
@@ -335,7 +357,7 @@ class FunimationShowIE(FunimationIE):
             'title': show_info['name'],
             'entries': [
                 self.url_result(
-                    '%s/%s' % (base_url, vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
+                    '%s/%s' % (base_url.replace('shows/', 'v/'), vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
                     vod_item.get('episodeId'), vod_item.get('episodeName'))
                 for vod_item in sorted(vod_items, key=lambda x: x.get('episodeOrder'))],
         }
