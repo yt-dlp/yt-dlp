@@ -604,7 +604,18 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (Alias: --force-download-archive)
     --newline                        Output progress bar as new lines
     --no-progress                    Do not print progress bar
+    --progress                       Show progress bar, even if in quiet mode
     --console-title                  Display progress in console titlebar
+    --progress-template [TYPES:]TEMPLATE
+                                     Template for progress outputs, optionally
+                                     prefixed with one of "download:" (default),
+                                     "download-title:" (the console title),
+                                     "postprocess:",  or "postprocess-title:".
+                                     The video's fields are accessible under the
+                                     "info" key and the progress attributes are
+                                     accessible under "progress" key. Eg:
+                                     --console-title --progress-template
+                                     "download-title:%(info.id)s-%(progress.eta)s"
     -v, --verbose                    Print various debugging information
     --dump-pages                     Print downloaded pages encoded using base64
                                      to debug problems (very verbose)

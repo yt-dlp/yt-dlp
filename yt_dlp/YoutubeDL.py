@@ -9,7 +9,6 @@ import copy
 import datetime
 import errno
 import fileinput
-import functools
 import io
 import itertools
 import json
@@ -357,7 +356,15 @@ class YoutubeDL(object):
 
                        Progress hooks are guaranteed to be called at least once
                        (with status "finished") if the download is successful.
-    postprocessor_hooks:  TODO
+    postprocessor_hooks:  A list of functions that get called on postprocessing
+                       progress, with a dictionary with the entries
+                       * status: One of "started", "processing", or "finished".
+                                 Check this first and ignore unknown values.
+                       * postprocessor: Name of the postprocessor
+                       * info_dict: The extracted info_dict
+
+                       Progress hooks are guaranteed to be called at least twice
+                       (with status "started" and "finished") if the processing is successful.
     merge_output_format: Extension to use when merging formats.
     final_ext:         Expected final extension; used to detect when the file was
                        already downloaded and converted. "merge_output_format" is
@@ -417,7 +424,10 @@ class YoutubeDL(object):
                        filename, abort-on-error, multistreams, no-live-chat,
                        no-clean-infojson, no-playlist-metafiles, no-keep-subs.
                        Refer __init__.py for their implementation
-    progress_template: TODO
+    progress_template: Dictionary of templates for progress outputs.
+                       Allowed keys are 'download', 'postprocess',
+                       'download-title' (console title) and 'postprocess-title'.
+                       The template is mapped on a dictionary with keys 'progress' and 'info'
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):

@@ -19,6 +19,8 @@ class PostProcessorMetaClass(type):
         def run(self, info, *args, **kwargs):
             self._hook_progress({'status': 'started'}, info)
             ret = func(self, info, *args, **kwargs)
+            if ret is not None:
+                _, info = ret
             self._hook_progress({'status': 'finished'}, info)
             return ret
         return run
