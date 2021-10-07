@@ -9,6 +9,7 @@ from ..utils import (
     try_get,
     parse_iso8601,
     parse_duration,
+    parse_resolution,
 )
 
 
@@ -56,12 +57,7 @@ class MicrosoftStreamIE(InfoExtractor):
             }
             thumb_name = thumbnail_url.split('?')[0].split('/')[-1]
             thumb_name = str(compat_b64decode(thumb_name + '=' * (len(thumb_name) % 4)))
-            mobj = re.search(r'(\d+)x(\d+)', thumb_name)
-            if mobj:
-                thumb.update({
-                    'width': int(mobj.group(1)),
-                    'height': int(mobj.group(2)),
-                })
+            thumb.update(parse_resolution(thumb_name))
             thumbnails.append(thumb)
 
         formats = []

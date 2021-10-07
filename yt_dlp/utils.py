@@ -3689,18 +3689,18 @@ def parse_resolution(s):
     if s is None:
         return {}
 
-    mobj = re.search(r'\b(?P<w>\d+)\s*[xX×]\s*(?P<h>\d+)\b', s)
+    mobj = re.search(r'(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)', s)
     if mobj:
         return {
             'width': int(mobj.group('w')),
             'height': int(mobj.group('h')),
         }
 
-    mobj = re.search(r'\b(\d+)[pPiI]\b', s)
+    mobj = re.search(r'(\d+)[pPiI]', s)
     if mobj:
         return {'height': int(mobj.group(1))}
 
-    mobj = re.search(r'\b([48])[kK]\b', s)
+    mobj = re.search(r'([48])[kK]', s)
     if mobj:
         return {'height': int(mobj.group(1)) * 540}
 
@@ -3710,7 +3710,7 @@ def parse_resolution(s):
 def parse_bitrate(s):
     if not isinstance(s, compat_str):
         return
-    mobj = re.search(r'\b(\d+)\s*kbps', s)
+    mobj = re.search(r'(\d+)\s*kbps', s)
     if mobj:
         return int(mobj.group(1))
 
