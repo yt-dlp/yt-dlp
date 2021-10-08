@@ -28,7 +28,7 @@ class MicrosoftStreamIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         if '<title>Microsoft Stream</title>' not in webpage:
-            self.raise_login_required()
+            self.raise_login_required(method='cookies')
 
         access_token = self._html_search_regex(r'"AccessToken":"(.+?)"', webpage, 'access token')
         api_url = self._html_search_regex(r'"ApiGatewayUri":"(.+?)"', webpage, 'api url')
@@ -79,7 +79,7 @@ class MicrosoftStreamIE(InfoExtractor):
         automatic_captions = {}
         text_tracks = self._download_json(
             '%s/videos/%s/texttracks' % (api_url, video_id), video_id,
-            'Downloading subtitles JSON', headers=headers,
+            note='Downloading subtitles JSON', headers=headers,
             query={
                 'api-version': '1.4-private'
             }).get('value')
