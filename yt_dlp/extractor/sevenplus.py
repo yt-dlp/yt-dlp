@@ -1,7 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import json
 import re
+import urllib.request
 
 from .brightcove import BrightcoveNewIE
 from ..compat import (
@@ -42,8 +44,55 @@ class SevenPlusIE(BrightcoveNewIE):
         'only_matching': True,
     }]
 
+    def _real_initialize(self):
+        self.token = None
+
+        cookies = self._get_cookies('https://7plus.com.au')
+        if not cookies:
+            return
+
+        try:
+            api_key = next(x for x in cookies if x.startswith('glt_'))[4:]
+            login_token = cookies[f'glt_{api_key}'].value
+        except StopIteration:
+            raise ExtractorError('Unable to extract gigya API key and login token')
+
+        login_resp = self._download_json('https://login.7plus.com.au/accounts.getJWT', None, 'Logging in', query={
+            'APIKey': api_key,
+            'sdk': 'js_latest',
+            'login_token': login_token,
+            'authMode': 'cookie',
+            'pageURL': 'https://7plus.com.au/',
+            'sdkBuild': '12471',
+            'format': 'json',
+        })
+
+        if 'errorMessage' in login_resp:
+            raise ExtractorError(f'7plus returned an error: {login_resp["errorMessage"]}', expected=True)
+
+        try:
+            id_token = login_resp['id_token']
+        except KeyError:
+            raise ExtractorError('Unable to extract id token')
+
+        token_req = urllib.request.Request('https://7plus.com.au/auth/token', method='POST')
+        token_resp = self._download_json(token_req, None, 'Getting auth token', data=json.dumps({
+            'idToken': id_token,
+            'platformId': 'web',
+            'regSource': '7plus',
+        }).encode('utf-8'), headers={'Content-Type': 'application/json'})
+
+        try:
+            self.token = token_resp['token']
+        except KeyError:
+            raise ExtractorError('Unable to extract auth token')
+
     def _real_extract(self, url):
         path, episode_id = self._match_valid_url(url).groups()
+
+        headers = {}
+        if self.token:
+            headers['Authorization'] = f'Bearer {self.token}'
 
         try:
             media = self._download_json(
@@ -55,7 +104,7 @@ class SevenPlusIE(BrightcoveNewIE):
                     'referenceId': 'ref:' + episode_id,
                     'deliveryId': 'csai',
                     'videoType': 'vod',
-                })['media']
+                }, headers=headers)['media']
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                 raise ExtractorError(self._parse_json(
