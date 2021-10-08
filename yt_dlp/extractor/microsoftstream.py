@@ -9,6 +9,7 @@ from ..utils import (
     parse_duration,
     parse_resolution,
     try_get,
+    url_basename,
 )
 
 
@@ -54,7 +55,7 @@ class MicrosoftStreamIE(InfoExtractor):
                 'id': thumbnail_id,
                 'url': thumbnail_url,
             }
-            thumb_name = thumbnail_url.split('?')[0].split('/')[-1]
+            thumb_name = url_basename(thumbnail_url)
             thumb_name = str(b64decode(thumb_name + '=' * (len(thumb_name) % 4)))
             thumb.update(parse_resolution(thumb_name))
             thumbnails.append(thumb)
