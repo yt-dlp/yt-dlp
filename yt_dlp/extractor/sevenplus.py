@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import json
 import re
-import urllib.request
 
 from .brightcove import BrightcoveNewIE
 from ..compat import (
@@ -75,8 +74,7 @@ class SevenPlusIE(BrightcoveNewIE):
         except KeyError:
             raise ExtractorError('Unable to extract id token')
 
-        token_req = urllib.request.Request('https://7plus.com.au/auth/token', method='POST')
-        token_resp = self._download_json(token_req, None, 'Getting auth token', data=json.dumps({
+        token_resp = self._download_json('https://7plus.com.au/auth/token', None, 'Getting auth token', data=json.dumps({
             'idToken': id_token,
             'platformId': 'web',
             'regSource': '7plus',
