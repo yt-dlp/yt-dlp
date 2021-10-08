@@ -15,7 +15,7 @@ class CiscoWebexIE(InfoExtractor):
     IE_NAME = 'ciscowebex'
     IE_DESC = 'Cisco Webex'
     _VALID_URL = r'''(?x)
-                (?:
+                (?P<url>
                     https?://(?P<subdomain>.*)\.webex\.com/
                         (?:
                             (?P<site_1>.*)/(?:ldr|lsr).php\?(?:[^?&]*&)*RCID=(?P<rcid>[0-9a-f]{32})|
@@ -46,20 +46,11 @@ class CiscoWebexIE(InfoExtractor):
         if rcid is not None:
             # Visit URL and extract redirection URL from inline JavaScript
             webpage = self._download_webpage(url, None, note='Getting video ID')
-            mobj = re.search(self._VALID_URL, webpage)
-            if mobj is None:
-                raise ExtractorError('Could not get video ID; visit the URL manually and use the redirection URL')
-            url = mobj.group()
-            return {
-                '_type': 'url',
-                'url': url
-            }
+            url = self._search_regex(self._VALID_URL, webpage, 'redirection url', group='url')
 
         # Sometimes the siteurl is an alias, we get the real one via HTTP
         # redirection (method HEAD does not work here)
-        url = self._request_webpage(
-            url, None, note='Resolving final URL',
-            errnote='Could not resolve final URL').geturl()
+        url = self._request_webpage(url, None, note='Resolving final URL').geturl()
         mobj = re.match(self._VALID_URL, url)
         subdomain = mobj.group('subdomain')
         siteurl = mobj.group('site_1') or mobj.group('site_2')
