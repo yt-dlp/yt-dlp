@@ -15,19 +15,10 @@ class CiscoWebexIE(InfoExtractor):
     IE_NAME = 'ciscowebex'
     IE_DESC = 'Cisco Webex'
     _VALID_URL = r'''(?x)
-                (?P<url>
-                    https?://(?P<subdomain>.*)\.webex\.com/
-                        (?:
-                            (?P<site_1>.*)/(?:ldr|lsr).php\?(?:[^?&]*&)*RCID=(?P<rcid>[0-9a-f]{32})|
-                            (?:recordingservice|webappng)/sites/(?P<site_2>.*)/recording/
-                                (?:
-                                    playback/(?P<id_1>[0-9a-f]{32})|
-                                    (?P<id_2>[0-9a-f]{32})/playback|
-                                    play/(?P<id_3>[0-9a-f]{32})
-                                )
-                        )
-                )
-                '''
+                    (?P<url>https?://(?P<subdomain>[^/#?]*)\.webex\.com/(?:
+                        (?P<site_1>[^/#?]*)/(?:ldr|lsr).php\?(?:[^#]*&)*RCID=(?P<rcid>[0-9a-f]{32})|
+                        (?:recordingservice|webappng)/sites/(?P<site_2>[^/#?]*)/recording/(?:playback/|play/)?(?P<id>[0-9a-f]{32})
+                    ))'''
 
     _TESTS = [{
         'url': 'https://demosubdomain.webex.com/demositeurl/ldr.php?RCID=e58e803bc0f766bb5f6376d2e86adb5b',
@@ -54,7 +45,7 @@ class CiscoWebexIE(InfoExtractor):
         mobj = re.match(self._VALID_URL, url)
         subdomain = mobj.group('subdomain')
         siteurl = mobj.group('site_1') or mobj.group('site_2')
-        video_id = mobj.group('id_1') or mobj.group('id_2') or mobj.group('id_3')
+        video_id = mobj.group('id')
 
         stream = self._download_json(
             'https://%s.webex.com/webappng/api/v1/recordings/%s/stream' % (subdomain, video_id),
