@@ -1,10 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
     try_get,
     unified_timestamp,
 )
@@ -15,8 +14,8 @@ class CiscoWebexIE(InfoExtractor):
     IE_DESC = 'Cisco Webex'
     _VALID_URL = r'''(?x)
                     (?P<url>https?://(?P<subdomain>[^/#?]*)\.webex\.com/(?:
-                        (?P<site_1>[^/#?]*)/(?:ldr|lsr).php\?(?:[^#]*&)*RCID=(?P<rcid>[0-9a-f]{32})|
-                        (?:recordingservice|webappng)/sites/(?P<site_2>[^/#?]*)/recording/(?:playback/|play/)?(?P<id>[0-9a-f]{32})
+                        (?P<siteurl_1>[^/#?]*)/(?:ldr|lsr).php\?(?:[^#]*&)*RCID=(?P<rcid>[0-9a-f]{32})|
+                        (?:recordingservice|webappng)/sites/(?P<siteurl_2>[^/#?]*)/recording/(?:playback/|play/)?(?P<id>[0-9a-f]{32})
                     ))'''
 
     _TESTS = [{
@@ -39,13 +38,13 @@ class CiscoWebexIE(InfoExtractor):
         url = self._request_webpage(url, None, note='Resolving final URL').geturl()
         mobj = self._match_valid_url(url)
         subdomain = mobj.group('subdomain')
-        siteurl = mobj.group('site_1') or mobj.group('site_2')
+        siteurl = mobj.group('siteurl_1') or mobj.group('siteurl_2')
         video_id = mobj.group('id')
 
         stream = self._download_json(
             'https://%s.webex.com/webappng/api/v1/recordings/%s/stream' % (subdomain, video_id),
             video_id, fatal=False, query={'siteurl': siteurl})
-        if stream is None:
+        if not stream:
             self.raise_login_required(method='cookies')
 
         video_id = stream.get('recordUUID') or video_id
@@ -59,7 +58,7 @@ class CiscoWebexIE(InfoExtractor):
         }]
         if stream.get('preventDownload') is False:
             mp4url = try_get(stream, lambda x: x['downloadRecordingInfo']['downloadInfo']['mp4URL'])
-            if mp4url is not None:
+            if mp4url:
                 formats.append({
                     'format_id': 'video',
                     'url': mp4url,
@@ -68,7 +67,7 @@ class CiscoWebexIE(InfoExtractor):
                     'acodec': 'mp4a.40.2',
                 })
             audiourl = try_get(stream, lambda x: x['downloadRecordingInfo']['downloadInfo']['audioURL'])
-            if audiourl is not None:
+            if audiourl:
                 formats.append({
                     'format_id': 'audio',
                     'url': audiourl,
