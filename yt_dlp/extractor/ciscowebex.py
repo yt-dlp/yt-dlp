@@ -5,7 +5,6 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     try_get,
     unified_timestamp,
 )
