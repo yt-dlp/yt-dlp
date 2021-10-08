@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class AudiomackIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?audiomack\.com/song/(?P<id>[\w/-]+)'
+    _VALID_URL = r'https?://(?:www\.)?audiomack\.com/(?:song/|(?=.+/song/))(?P<id>[\w/-]+)'
     IE_NAME = 'audiomack'
     _TESTS = [
         # hosted on audiomack
@@ -29,25 +29,27 @@ class AudiomackIE(InfoExtractor):
             }
         },
         # audiomack wrapper around soundcloud song
+        # Needs new test URL.
         {
             'add_ie': ['Soundcloud'],
             'url': 'http://www.audiomack.com/song/hip-hop-daily/black-mamba-freestyle',
-            'info_dict': {
-                'id': '258901379',
-                'ext': 'mp3',
-                'description': 'mamba day freestyle for the legend Kobe Bryant ',
-                'title': 'Black Mamba Freestyle [Prod. By Danny Wolf]',
-                'uploader': 'ILOVEMAKONNEN',
-                'upload_date': '20160414',
-            }
+            'only_matching': True,
+            # 'info_dict': {
+                # 'id': '258901379',
+                # 'ext': 'mp3',
+                # 'description': 'mamba day freestyle for the legend Kobe Bryant ',
+                # 'title': 'Black Mamba Freestyle [Prod. By Danny Wolf]',
+                # 'uploader': 'ILOVEMAKONNEN',
+                # 'upload_date': '20160414',
+            # }
         },
     ]
 
     def _real_extract(self, url):
-        # URLs end with [uploader name]/[uploader title]
+        # URLs end with [uploader name]/song/[uploader title]
         # this title is whatever the user types in, and is rarely
         # the proper song title.  Real metadata is in the api response
-        album_url_tag = self._match_id(url)
+        album_url_tag = self._match_id(url).replace('/song/', '/')
 
         # Request the extended version of the api for extra fields like artist and title
         api_response = self._download_json(
@@ -73,13 +75,13 @@ class AudiomackIE(InfoExtractor):
 
 
 class AudiomackAlbumIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?audiomack\.com/album/(?P<id>[\w/-]+)'
+    _VALID_URL = r'https?://(?:www\.)?audiomack\.com/(?:album/|(?=.+/album/))(?P<id>[\w/-]+)'
     IE_NAME = 'audiomack:album'
     _TESTS = [
         # Standard album playlist
         {
             'url': 'http://www.audiomack.com/album/flytunezcom/tha-tour-part-2-mixtape',
-            'playlist_count': 15,
+            'playlist_count': 11,
             'info_dict':
             {
                 'id': '812251',
@@ -95,24 +97,24 @@ class AudiomackAlbumIE(InfoExtractor):
             },
             'playlist': [{
                 'info_dict': {
-                    'title': 'PPP (Pistol P Project) - 9. Heaven or Hell (CHIMACA) ft Zuse (prod by DJ FU)',
-                    'id': '837577',
+                    'title': 'PPP (Pistol P Project) - 10. 4 Minutes Of Hell Part 4 (prod by DY OF 808 MAFIA)',
+                    'id': '837580',
                     'ext': 'mp3',
                     'uploader': 'Lil Herb a.k.a. G Herbo',
                 }
             }],
             'params': {
-                'playliststart': 9,
-                'playlistend': 9,
+                'playliststart': 2,
+                'playlistend': 2,
             }
         }
     ]
 
     def _real_extract(self, url):
-        # URLs end with [uploader name]/[uploader title]
+        # URLs end with [uploader name]/album/[uploader title]
         # this title is whatever the user types in, and is rarely
         # the proper song title.  Real metadata is in the api response
-        album_url_tag = self._match_id(url)
+        album_url_tag = self._match_id(url).replace('/album/', '/')
         result = {'_type': 'playlist', 'entries': []}
         # There is no one endpoint for album metadata - instead it is included/repeated in each song's metadata
         # Therefore we don't know how many songs the album has and must infi-loop until failure
@@ -134,7 +136,7 @@ class AudiomackAlbumIE(InfoExtractor):
                 # Pull out the album metadata and add to result (if it exists)
                 for resultkey, apikey in [('id', 'album_id'), ('title', 'album_title')]:
                     if apikey in api_response and resultkey not in result:
-                        result[resultkey] = api_response[apikey]
+                        result[resultkey] = compat_str(api_response[apikey])
                 song_id = url_basename(api_response['url']).rpartition('.')[0]
                 result['entries'].append({
                     'id': compat_str(api_response.get('id', song_id)),
