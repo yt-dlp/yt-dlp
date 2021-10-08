@@ -1,13 +1,12 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from urllib.parse import urlparse
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     strip_or_none,
     try_get,
+    urljoin,
 )
 
 
@@ -40,10 +39,6 @@ class On24IE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _is_absolute(url):
-        return bool(urlparse(url).netloc)
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         event_id = mobj.group('id_1') or mobj.group('id_2')
@@ -64,9 +59,7 @@ class On24IE(InfoExtractor):
 
         formats = []
         for m in info_media:
-            media_url = str(m['url'])
-            if not self._is_absolute(media_url):
-                media_url = f'https://event.on24.com/media/news/corporatevideo/events/{media_url}'
+            media_url = urljoin('https://event.on24.com/media/news/corporatevideo/events/', str(m['url']))
             if m['code'] == 'fhvideo1':
                 formats.append({
                     'format_id': 'video',
