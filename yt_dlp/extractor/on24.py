@@ -30,6 +30,7 @@ class On24IE(InfoExtractor):
             'title': 'Pearson Test of English General/Pearson English International Certificate Teacher Training Guide',
             'upload_date': '20200219',
             'timestamp': 1582149600.0,
+            'view_count': int,
         }
     }, {
         'url': 'https://event.on24.com/wcc/r/2639291/82829018E813065A122363877975752E?mode=login&email=johnsmith@gmail.com',
