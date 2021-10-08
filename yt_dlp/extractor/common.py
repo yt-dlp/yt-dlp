@@ -1134,10 +1134,7 @@ class InfoExtractor(object):
                 if mobj:
                     break
 
-        if not self.get_param('no_color') and compat_os_name != 'nt' and sys.stderr.isatty():
-            _name = '\033[0;34m%s\033[0m' % name
-        else:
-            _name = name
+        _name = self._downloader._color_text(name, 'blue')
 
         if mobj:
             if group is None:

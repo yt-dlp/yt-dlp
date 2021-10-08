@@ -910,12 +910,30 @@ def parseOpts(overrideArguments=None):
         help='Output progress bar as new lines')
     verbosity.add_option(
         '--no-progress',
-        action='store_true', dest='noprogress', default=False,
+        action='store_true', dest='noprogress', default=None,
         help='Do not print progress bar')
+    verbosity.add_option(
+        '--progress',
+        action='store_false', dest='noprogress',
+        help='Show progress bar, even if in quiet mode')
     verbosity.add_option(
         '--console-title',
         action='store_true', dest='consoletitle', default=False,
         help='Display progress in console titlebar')
+    verbosity.add_option(
+        '--progress-template',
+        metavar='[TYPES:]TEMPLATE', dest='progress_template', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': '(download|postprocess)(-title)?',
+            'default_key': 'download'
+        }, help=(
+            'Template for progress outputs, optionally prefixed with one of "download:" (default), '
+            '"download-title:" (the console title), "postprocess:",  or "postprocess-title:". '
+            'The video\'s fields are accessible under the "info" key and '
+            'the progress attributes are accessible under "progress" key. Eg: '
+            # TODO: Document the fields inside "progress"
+            '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,
