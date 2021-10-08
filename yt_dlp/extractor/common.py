@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import base64
 import datetime
 import hashlib
+import itertools
 import json
 import netrc
 import os
@@ -3617,7 +3618,14 @@ class SearchInfoExtractor(InfoExtractor):
             return self._get_n_results(query, n)
 
     def _get_n_results(self, query, n):
-        """Get a specified number of results for a query"""
+        """Get a specified number of results for a query.
+        Either this function or _search_results must be overridden by subclasses """
+        return self.playlist_result(
+            itertools.islice(self._search_results(query), 0, None if n == float('inf') else n),
+            query, query)
+
+    def _search_results(self, query):
+        """Returns an iterator of search results"""
         raise NotImplementedError('This method must be implemented by subclasses')
 
     @property

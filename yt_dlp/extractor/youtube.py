@@ -4615,11 +4615,10 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
     _SEARCH_PARAMS = None
     _TESTS = []
 
-    def _entries(self, query, n):
+    def _search_results(self, query):
         data = {'query': query}
         if self._SEARCH_PARAMS:
             data['params'] = self._SEARCH_PARAMS
-        total = 0
         continuation = {}
         for page_num in itertools.count(1):
             data.update(continuation)
@@ -4662,16 +4661,9 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                         continue
 
                     yield self._extract_video(video)
-                    total += 1
-                    if total == n:
-                        return
 
             if not continuation:
                 break
-
-    def _get_n_results(self, query, n):
-        """Get a specified number of results for a query"""
-        return self.playlist_result(self._entries(query, n), query, query)
 
 
 class YoutubeSearchDateIE(YoutubeSearchIE):

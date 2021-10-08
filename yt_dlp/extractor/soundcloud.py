@@ -880,25 +880,14 @@ class SoundcloudSearchIE(SearchInfoExtractor, SoundcloudIE):
         })
         next_url = update_url_query(self._API_V2_BASE + endpoint, query)
 
-        collected_results = 0
-
         for i in itertools.count(1):
             response = self._download_json(
-                next_url, collection_id, 'Downloading page {0}'.format(i),
+                next_url, collection_id, f'Downloading page {i}',
                 'Unable to download API page', headers=self._HEADERS)
 
-            collection = response.get('collection', [])
-            if not collection:
-                break
-
-            collection = list(filter(bool, collection))
-            collected_results += len(collection)
-
-            for item in collection:
-                yield self.url_result(item['uri'], SoundcloudIE.ie_key())
-
-            if not collection or collected_results >= limit:
-                break
+            for item in response.get('collection') or []:
+                if item:
+                    yield self.url_result(item['uri'], SoundcloudIE.ie_key())
 
             next_url = response.get('next_href')
             if not next_url:
@@ -906,4 +895,4 @@ class SoundcloudSearchIE(SearchInfoExtractor, SoundcloudIE):
 
     def _get_n_results(self, query, n):
         tracks = self._get_collection('search/tracks', query, limit=n, q=query)
-        return self.playlist_result(tracks, playlist_title=query)
+        return self.playlist_result(tracks, query, query)
