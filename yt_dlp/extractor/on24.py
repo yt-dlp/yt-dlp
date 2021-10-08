@@ -1,14 +1,14 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
+from urllib.parse import urlparse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
+from ..utils import (
+    int_or_none,
+    strip_or_none,
+    try_get,
 )
-from ..utils import strip_or_none
 
 
 class On24IE(InfoExtractor):
@@ -41,10 +41,10 @@ class On24IE(InfoExtractor):
 
     @staticmethod
     def _is_absolute(url):
-        return bool(compat_urlparse.urlparse(url).netloc)
+        return bool(urlparse(url).netloc)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         event_id = mobj.group('id_1') or mobj.group('id_2')
         event_key = mobj.group('key_1') or mobj.group('key_2')
 
@@ -57,16 +57,15 @@ class On24IE(InfoExtractor):
                 'contentType': 'A'
             })
 
-        event_id = compat_str(event_data.get('presentationLogInfo', {}).get('eventid')) or event_id
+        event_id = str(try_get(event_data, lambda x: x['presentationLogInfo']['eventid'])) or event_id
 
         info_media = event_data.get('mediaUrlInfo', {})
-        info_media.sort(key=lambda m: m['id'])
 
         formats = []
         for m in info_media:
-            media_url = compat_str(m['url'])
+            media_url = str(m['url'])
             if not self._is_absolute(media_url):
-                media_url = 'https://event.on24.com/media/news/corporatevideo/events/%s' % media_url
+                media_url = f'https://event.on24.com/media/news/corporatevideo/events/{media_url}'
             if m['code'] == 'fhvideo1':
                 formats.append({
                     'format_id': 'video',
@@ -89,9 +88,8 @@ class On24IE(InfoExtractor):
             'id': event_id,
             'title': strip_or_none(event_data.get('description')),
             'language': event_data.get('localelanguagecode'),
-            'timestamp': (event_data.get('session', {}).get('startdate') / 1000
-                          if event_data.get('session', {}).get('startdate') is not None else None),
-            'webpage_url': 'https://event.on24.com/wcc/r/%s/%s' % (event_id, event_key),
+            'timestamp': int_or_none(try_get(event_data, lambda x: x['session']['startdate']), 1000),
+            'webpage_url': f'https://event.on24.com/wcc/r/{event_id}/{event_key}',
             'view_count': event_data.get('registrantcount'),
             'formats': formats,
         }
