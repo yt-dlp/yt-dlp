@@ -1,16 +1,13 @@
 # coding: utf-8
-from __future__ import unicode_literals
 
 import hashlib
 import itertools
-import json
 import functools
 import re
 import math
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
-    compat_str,
     compat_parse_qs,
     compat_urlparse,
     compat_urllib_parse_urlparse
@@ -20,6 +17,7 @@ from ..utils import (
     int_or_none,
     float_or_none,
     parse_iso8601,
+    traverse_obj,
     try_get,
     smuggle_url,
     srt_subtitles_timecode,
@@ -101,7 +99,7 @@ class BiliBiliIE(InfoExtractor):
                 'upload_date': '20170301',
             },
             'params': {
-                'skip_download': True,  # Test metadata only
+                'skip_download': True,
             },
         }, {
             'info_dict': {
@@ -115,7 +113,7 @@ class BiliBiliIE(InfoExtractor):
                 'upload_date': '20170301',
             },
             'params': {
-                'skip_download': True,  # Test metadata only
+                'skip_download': True,
             },
         }]
     }, {
@@ -169,7 +167,7 @@ class BiliBiliIE(InfoExtractor):
 
         if 'anime/' not in url:
             cid = self._search_regex(
-                r'\bcid(?:["\']:|=)(\d+),["\']page(?:["\']:|=)' + compat_str(page_id), webpage, 'cid',
+                r'\bcid(?:["\']:|=)(\d+),["\']page(?:["\']:|=)' + str(page_id), webpage, 'cid',
                 default=None
             ) or self._search_regex(
                 r'\bcid(?:["\']:|=)(\d+)', webpage, 'cid',
@@ -259,7 +257,7 @@ class BiliBiliIE(InfoExtractor):
             # TODO: The json is already downloaded by _extract_anthology_entries. Don't redownload for each video
             part_title = try_get(
                 self._download_json(
-                    "https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp" % bv_id,
+                    f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',
                     video_id, note='Extracting videos in anthology'),
                 lambda x: x['data'][int(page_id) - 1]['part'])
             title = part_title or title
@@ -273,7 +271,7 @@ class BiliBiliIE(InfoExtractor):
 
         # TODO 'view_count' requires deobfuscating Javascript
         info = {
-            'id': compat_str(video_id) if page_id is None else '%s_p%s' % (video_id, page_id),
+            'id': str(video_id) if page_id is None else '%s_part%s' % (video_id, page_id),
             'cid': cid,
             'title': title,
             'description': description,
@@ -295,29 +293,25 @@ class BiliBiliIE(InfoExtractor):
             info['uploader'] = self._html_search_meta(
                 'author', webpage, 'uploader', default=None)
 
-        raw_danmaku = self._get_raw_danmaku(video_id, cid)
-
-        raw_tags = self._get_tags(video_id)
-        tags = list(map(lambda x: x['tag_name'], raw_tags))
-
         top_level_info = {
-            'raw_danmaku': raw_danmaku,
-            'tags': tags,
-            'raw_tags': raw_tags,
+            'tags': traverse_obj(self._download_json(
+                f'https://api.bilibili.com/x/tag/archive/tags?aid={video_id}',
+                video_id, fatal=False, note='Downloading tags'), ('data', ..., 'tag_name')),
         }
-        if self.get_param('getcomments', False):
-            def get_comments():
-                comments = self._get_all_comment_pages(video_id)
-                return {
-                    'comments': comments,
-                    'comment_count': len(comments)
-                }
 
-            top_level_info['__post_extractor'] = get_comments
+        entries[0]['subtitles'] = {
+            'danmaku': [{
+                'ext': 'xml',
+                'url': f'https://comment.bilibili.com/{cid}.xml',
+            }]
+        }
 
-        '''
+        r'''
         # Requires https://github.com/m13253/danmaku2ass which is licenced under GPL3
         # See https://github.com/animelover1984/youtube-dl
+
+        raw_danmaku = self._download_webpage(
+            f'https://comment.bilibili.com/{cid}.xml', video_id, fatal=False, note='Downloading danmaku comments')
         danmaku = NiconicoIE.CreateDanmaku(raw_danmaku, commentType='Bilibili', x=1024, y=576)
         entries[0]['subtitles'] = {
             'danmaku': [{
@@ -327,29 +321,27 @@ class BiliBiliIE(InfoExtractor):
         }
         '''
 
+        top_level_info['__post_extractor'] = self.extract_comments(video_id)
+
         for entry in entries:
             entry.update(info)
 
         if len(entries) == 1:
             entries[0].update(top_level_info)
             return entries[0]
-        else:
-            for idx, entry in enumerate(entries):
-                entry['id'] = '%s_part%d' % (video_id, (idx + 1))
 
-            global_info = {
-                '_type': 'multi_video',
-                'id': compat_str(video_id),
-                'bv_id': bv_id,
-                'title': title,
-                'description': description,
-                'entries': entries,
-            }
+        for idx, entry in enumerate(entries):
+            entry['id'] = '%s_part%d' % (video_id, (idx + 1))
 
-            global_info.update(info)
-            global_info.update(top_level_info)
-
-            return global_info
+        return {
+            '_type': 'multi_video',
+            'id': str(video_id),
+            'bv_id': bv_id,
+            'title': title,
+            'description': description,
+            'entries': entries,
+            **info, **top_level_info
+        }
 
     def _extract_anthology_entries(self, bv_id, video_id, webpage):
         title = self._html_search_regex(
@@ -357,10 +349,10 @@ class BiliBiliIE(InfoExtractor):
              r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
             group='title')
         json_data = self._download_json(
-            "https://api.bilibili.com/x/player/pagelist?bvid=%s&jsonp=jsonp" % bv_id,
+            f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',
             video_id, note='Extracting videos in anthology')
 
-        if len(json_data['data']) > 1:
+        if json_data['data']:
             return self.playlist_from_matches(
                 json_data['data'], bv_id, title, ie=BiliBiliIE.ie_key(),
                 getter=lambda entry: 'https://www.bilibili.com/video/%s?p=%d' % (bv_id, entry['page']))
@@ -375,65 +367,31 @@ class BiliBiliIE(InfoExtractor):
         if response['code'] == -400:
             raise ExtractorError('Video ID does not exist', expected=True, video_id=id)
         elif response['code'] != 0:
-            raise ExtractorError('Unknown error occurred during API check (code %s)' % response['code'], expected=True, video_id=id)
-        return (response['data']['aid'], response['data']['bvid'])
+            raise ExtractorError(f'Unknown error occurred during API check (code {response["code"]})',
+                                 expected=True, video_id=id)
+        return response['data']['aid'], response['data']['bvid']
 
-    # recursive solution to getting every page of comments for the video
-    # we can stop when we reach a page without any comments
-    def _get_all_comment_pages(self, video_id, commentPageNumber=0):
-        comment_url = "https://api.bilibili.com/x/v2/reply?jsonp=jsonp&pn=%s&type=1&oid=%s&sort=2&_=1567227301685" % (commentPageNumber, video_id)
-        json_str = self._download_webpage(
-            comment_url, video_id,
-            note='Extracting comments from page %s' % (commentPageNumber))
-        replies = json.loads(json_str)['data']['replies']
-        if replies is None:
-            return []
-        return self._get_all_children(replies) + self._get_all_comment_pages(video_id, commentPageNumber + 1)
+    def _get_comments(self, video_id, commentPageNumber=0):
+        for idx in itertools.count(1):
+            replies = traverse_obj(
+                self._download_json(
+                    f'https://api.bilibili.com/x/v2/reply?pn={idx}&oid={video_id}&type=1&jsonp=jsonp&sort=2&_=1567227301685',
+                    video_id, note=f'Extracting comments from page {idx}'),
+                ('data', 'replies')) or []
+            for children in map(self._get_all_children, replies):
+                yield from children
 
-    # extracts all comments in the tree
-    def _get_all_children(self, replies):
-        if replies is None:
-            return []
-
-        ret = []
-        for reply in replies:
-            author = reply['member']['uname']
-            author_id = reply['member']['mid']
-            id = reply['rpid']
-            text = reply['content']['message']
-            timestamp = reply['ctime']
-            parent = reply['parent'] if reply['parent'] != 0 else 'root'
-
-            comment = {
-                "author": author,
-                "author_id": author_id,
-                "id": id,
-                "text": text,
-                "timestamp": timestamp,
-                "parent": parent,
-            }
-            ret.append(comment)
-
-            # from the JSON, the comment structure seems arbitrarily deep, but I could be wrong.
-            # Regardless, this should work.
-            ret += self._get_all_children(reply['replies'])
-
-        return ret
-
-    def _get_raw_danmaku(self, video_id, cid):
-        # This will be useful if I decide to scrape all pages instead of doing them individually
-        # cid_url = "https://www.bilibili.com/widget/getPageList?aid=%s" % (video_id)
-        # cid_str = self._download_webpage(cid_url, video_id, note=False)
-        # cid = json.loads(cid_str)[0]['cid']
-
-        danmaku_url = "https://comment.bilibili.com/%s.xml" % (cid)
-        danmaku = self._download_webpage(danmaku_url, video_id, note='Downloading danmaku comments')
-        return danmaku
-
-    def _get_tags(self, video_id):
-        tags_url = "https://api.bilibili.com/x/tag/archive/tags?aid=%s" % (video_id)
-        tags_json = self._download_json(tags_url, video_id, note='Downloading tags')
-        return tags_json['data']
+    def _get_all_children(self, reply):
+        yield {
+            'author': traverse_obj(reply, ('member', 'uname')),
+            'author_id': traverse_obj(reply, ('member', 'mid')),
+            'id': reply.get('rpid'),
+            'text': traverse_obj(reply, ('content', 'message')),
+            'timestamp': reply.get('ctime'),
+            'parent': reply.get('parent') or 'root',
+        }
+        for children in map(self._get_all_children, reply.get('replies') or []):
+            yield from children
 
 
 class BiliBiliBangumiIE(InfoExtractor):
@@ -516,11 +474,8 @@ class BilibiliChannelIE(InfoExtractor):
         count, max_count = 0, None
 
         for page_num in itertools.count(1):
-            data = self._parse_json(
-                self._download_webpage(
-                    self._API_URL % (list_id, page_num), list_id,
-                    note='Downloading page %d' % page_num),
-                list_id)['data']
+            data = self._download_json(
+                self._API_URL % (list_id, page_num), list_id, note=f'Downloading page {page_num}')['data']
 
             max_count = max_count or try_get(data, lambda x: x['page']['count'])
 
@@ -583,11 +538,11 @@ class BilibiliCategoryIE(InfoExtractor):
         }
 
         if category not in rid_map:
-            raise ExtractorError('The supplied category, %s, is not supported. List of supported categories: %s' % (category, list(rid_map.keys())))
-
+            raise ExtractorError(
+                f'The category {category} isn\'t supported. Supported categories: {list(rid_map.keys())}')
         if subcategory not in rid_map[category]:
-            raise ExtractorError('The subcategory, %s, isn\'t supported for this category. Supported subcategories: %s' % (subcategory, list(rid_map[category].keys())))
-
+            raise ExtractorError(
+                f'The subcategory {subcategory} isn\'t supported for this category. Supported subcategories: {list(rid_map[category].keys())}')
         rid_value = rid_map[category][subcategory]
 
         api_url = 'https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp' % rid_value
@@ -614,41 +569,26 @@ class BiliBiliSearchIE(SearchInfoExtractor):
     IE_DESC = 'Bilibili video search, "bilisearch" keyword'
     _MAX_RESULTS = 100000
     _SEARCH_KEY = 'bilisearch'
-    MAX_NUMBER_OF_RESULTS = 1000
 
-    def _get_n_results(self, query, n):
-        """Get a specified number of results for a query"""
-
-        entries = []
-        pageNumber = 0
-        while True:
-            pageNumber += 1
-            # FIXME
-            api_url = 'https://api.bilibili.com/x/web-interface/search/type?context=&page=%s&order=pubdate&keyword=%s&duration=0&tids_2=&__refresh__=true&search_type=video&tids=0&highlight=1' % (pageNumber, query)
-            json_str = self._download_webpage(
-                api_url, "None", query={"Search_key": query},
-                note='Extracting results from page %s' % pageNumber)
-            data = json.loads(json_str)['data']
-
-            # FIXME: this is hideous
-            if "result" not in data:
-                return {
-                    '_type': 'playlist',
-                    'id': query,
-                    'entries': entries[:n]
-                }
-
-            videos = data['result']
+    def _search_results(self, query):
+        for page_num in itertools.count(1):
+            videos = self._download_json(
+                'https://api.bilibili.com/x/web-interface/search/type', query,
+                note=f'Extracting results from page {page_num}', query={
+                    'Search_key': query,
+                    'keyword': query,
+                    'page': page_num,
+                    'context': '',
+                    'order': 'pubdate',
+                    'duration': 0,
+                    'tids_2': '',
+                    '__refresh__': 'true',
+                    'search_type': 'video',
+                    'tids': 0,
+                    'highlight': 1,
+                })['data'].get('result') or []
             for video in videos:
-                e = self.url_result(video['arcurl'], 'BiliBili', compat_str(video['aid']))
-                entries.append(e)
-
-            if(len(entries) >= n or len(videos) >= BiliBiliSearchIE.MAX_NUMBER_OF_RESULTS):
-                return {
-                    '_type': 'playlist',
-                    'id': query,
-                    'entries': entries[:n]
-                }
+                yield self.url_result(video['arcurl'], 'BiliBili', str(video['aid']))
 
 
 class BilibiliAudioBaseIE(InfoExtractor):
