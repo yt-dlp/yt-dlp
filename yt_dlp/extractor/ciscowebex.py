@@ -31,17 +31,13 @@ class CiscoWebexIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         rcid = mobj.group('rcid')
-        if rcid is not None:
-            # Visit URL and extract redirection URL from inline JavaScript
+        if rcid:
             webpage = self._download_webpage(url, None, note='Getting video ID')
             url = self._search_regex(self._VALID_URL, webpage, 'redirection url', group='url')
-
-        # Sometimes the siteurl is an alias, we get the real one via HTTP
-        # redirection (method HEAD does not work here)
         url = self._request_webpage(url, None, note='Resolving final URL').geturl()
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         subdomain = mobj.group('subdomain')
         siteurl = mobj.group('site_1') or mobj.group('site_2')
         video_id = mobj.group('id')
@@ -89,7 +85,7 @@ class CiscoWebexIE(InfoExtractor):
             'uploader': stream.get('ownerDisplayName'),
             'uploader_id': stream.get('ownerUserName') or stream.get('ownerId'),  # mail or id
             'timestamp': unified_timestamp(stream.get('createTime')),
-            'duration': stream.get('duration') / 1000 if stream.get('duration') is not None else None,
+            'duration': int_or_none(stream.get('duration'), 1000),
             'webpage_url': 'https://%s.webex.com/recordingservice/sites/%s/recording/playback/%s' % (subdomain, siteurl, video_id),
             'formats': formats,
         }
