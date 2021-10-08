@@ -48,8 +48,9 @@ class HttpFD(FileDownloader):
 
         is_test = self.params.get('test', False)
         chunk_size = self._TEST_FILE_SIZE if is_test else (
+            self.params.get('http_chunk_size') or
             info_dict.get('downloader_options', {}).get('http_chunk_size')
-            or self.params.get('http_chunk_size') or 0)
+            or 0)
 
         ctx.open_mode = 'wb'
         ctx.resume_len = 0
