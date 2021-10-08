@@ -5,10 +5,10 @@ from base64 import b64decode
 
 from .common import InfoExtractor
 from ..utils import (
-    try_get,
     parse_iso8601,
     parse_duration,
     parse_resolution,
+    try_get,
 )
 
 
@@ -97,16 +97,16 @@ class MicrosoftStreamIE(InfoExtractor):
             'title': video_data['name'],
             'description': video_data.get('description'),
             'uploader': video_data.get('creator').get('name'),
-            'uploader_id': video_data.get('creator', {}).get('mail') or video_data.get('creator', {}).get('id'),
+            'uploader_id': try_get(video_data, lambda x: x['creator']['mail'], str) or try_get(video_data, lambda x: x['creator']['id'], str),
             'thumbnails': thumbnails,
             'subtitles': subtitles,
             'automatic_captions': automatic_captions,
             'language': video_data.get('language'),
             'timestamp': parse_iso8601(video_data.get('created')),
-            'duration': parse_duration(video_data.get('media', {}).get('duration')),
+            'duration': parse_duration(try_get(video_data, lambda x: x['media']['duration'])),
             'webpage_url': f'https://web.microsoftstream.com/video/{video_id}',
-            'view_count': video_data.get('metrics', {}).get('views'),
-            'like_count': video_data.get('metrics', {}).get('likes'),
-            'comment_count': video_data.get('metrics', {}).get('comments'),
+            'view_count': try_get(video_data, lambda x: x['metrics']['views'], int),
+            'like_count': try_get(video_data, lambda x: x['metrics']['likes'], int),
+            'comment_count': try_get(video_data, lambda x: x['metrics']['comments'], int),
             'formats': formats,
         }
