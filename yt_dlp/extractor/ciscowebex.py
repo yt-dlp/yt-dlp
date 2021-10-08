@@ -56,14 +56,11 @@ class CiscoWebexIE(InfoExtractor):
         siteurl = mobj.group('site_1') or mobj.group('site_2')
         video_id = mobj.group('id_1') or mobj.group('id_2') or mobj.group('id_3')
 
-        try:
-            stream = self._download_json(
-                'https://%s.webex.com/webappng/api/v1/recordings/%s/stream' % (subdomain, video_id),
-                video_id, query={
-                    'siteurl': siteurl
-                })
-        except ExtractorError:
-            self.raise_login_required()
+        stream = self._download_json(
+            'https://%s.webex.com/webappng/api/v1/recordings/%s/stream' % (subdomain, video_id),
+            video_id, fatal=False, query={'siteurl': siteurl})
+        if stream is None:
+            self.raise_login_required(method='cookies')
 
         video_id = stream.get('recordUUID') or video_id
 
