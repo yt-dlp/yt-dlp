@@ -54,7 +54,8 @@ class SevenPlusIE(BrightcoveNewIE):
             api_key = next(x for x in cookies if x.startswith('glt_'))[4:]
             login_token = cookies[f'glt_{api_key}'].value
         except StopIteration:
-            raise ExtractorError('Unable to extract gigya API key and login token')
+            # Cookies are signed out, skip login
+            return
 
         login_resp = self._download_json('https://login.7plus.com.au/accounts.getJWT', None, 'Logging in', query={
             'APIKey': api_key,
