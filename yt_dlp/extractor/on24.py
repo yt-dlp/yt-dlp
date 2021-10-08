@@ -16,19 +16,11 @@ class On24IE(InfoExtractor):
     IE_DESC = 'ON24'
 
     _VALID_URL = r'''(?x)
-                (?:
-                    https?://event\.on24\.com/
-                        (?:
-                            wcc/r/(?P<id_1>\d{7})/(?P<key_1>[0-9A-F]{32})|
-                            eventRegistration/
-                                (?:
-                                    console/EventConsoleApollo\.jsp\?|
-                                    EventLobbyServlet\?target=lobby30\.jsp&
-                                )
-                                (?:uimode=nextgeneration&)?(?:&)?eventid=(?P<id_2>\d{7})(?:&sessionid=1)?.*&key=(?P<key_2>[0-9A-F]{32})
-                        )
-                )
-                '''
+                    https?://event\.on24\.com/(?:
+                        wcc/r/(?P<id_1>\d{7})/(?P<key_1>[0-9A-F]{32})|
+                        eventRegistration/(?:console/EventConsoleApollo|EventLobbyServlet\?target=lobby30)
+                            \.jsp\?(?:[^/#?]*&)?eventid=(?P<id_2>\d{7})[^/#?]*&key=(?P<key_2>[0-9A-F]{32})
+                    )'''
 
     _TESTS = [{
         'url': 'https://event.on24.com/eventRegistration/console/EventConsoleApollo.jsp?uimode=nextgeneration&eventid=2197467&sessionid=1&key=5DF57BE53237F36A43B478DD36277A84&contenttype=A&eventuserid=305999&playerwidth=1000&playerheight=650&caller=previewLobby&text_language_id=en&format=fhaudio&newConsole=false',
