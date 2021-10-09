@@ -23,6 +23,8 @@ from ..utils import (
 
 class FunimationBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'funimation'
+    _REGION = None
+    _TOKEN = None
 
     def _get_region(self):
         region_cookie = self._get_cookies('https://www.funimation.com').get('region')
@@ -50,10 +52,6 @@ class FunimationBaseIE(InfoExtractor):
                 error = self._parse_json(e.cause.read().decode(), None)['error']
                 raise ExtractorError(error, expected=True)
             raise
-
-    def _real_initialize(self):
-        FunimationBaseIE._REGION = self._get_region()
-        FunimationBaseIE._TOKEN = self._login()
 
 
 class FunimationPageIE(FunimationBaseIE):
@@ -87,6 +85,12 @@ class FunimationPageIE(FunimationBaseIE):
         'url': 'https://www.funimation.com/v/a-certain-scientific-railgun/super-powered-level-5',
         'only_matching': True,
     }]
+
+    def _real_initialize(self):
+        if not self._REGION:
+            FunimationBaseIE._REGION = self._get_region()
+        if not self._TOKEN:
+            FunimationBaseIE._TOKEN = self._login()
 
     def _real_extract(self, url):
         locale, show, episode = self._match_valid_url(url).group('lang', 'show', 'episode')
@@ -148,6 +152,10 @@ class FunimationIE(FunimationBaseIE):
             'compat_opts': ['seperate-video-versions'],
         },
     }]
+
+    def _real_initialize(self):
+        if not self._TOKEN:
+            FunimationBaseIE._TOKEN = self._login()
 
     @staticmethod
     def _get_experiences(episode):
@@ -315,6 +323,10 @@ class FunimationShowIE(FunimationBaseIE):
             'skip_download': True,
         },
     }]
+
+    def _real_initialize(self):
+        if not self._REGION:
+            FunimationBaseIE._REGION = self._get_region()
 
     def _real_extract(self, url):
         base_url, locale, display_id = self._match_valid_url(url).groups()
