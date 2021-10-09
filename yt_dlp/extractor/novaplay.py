@@ -1,8 +1,6 @@
 # coding: utf-8
 from .common import InfoExtractor
-import re
-import json
-from ..utils import parse_duration
+from ..utils import int_or_none, parse_duration, parse_iso8601
 
 
 class NovaPlayIE(InfoExtractor):
@@ -17,7 +15,8 @@ class NovaPlayIE(InfoExtractor):
                 'title': 'Братя',
                 'alt_title': 'bratya/season-3/bratq-2021-10-08',
                 'duration': 1603.0,
-                'release_date': '2021-10-08T20:15:50+00:00',
+                'timestamp': 1633724150,
+                'upload_date': '20211008',
                 'thumbnail': 'https://nbg-img.fite.tv/img/548677_460x260.jpg',
                 'description': 'Сезон 3 Епизод 25'
             },
@@ -31,7 +30,8 @@ class NovaPlayIE(InfoExtractor):
                 'title': 'Игри на волята: България (20.09.2021) - част 1',
                 'alt_title': 'gri-na-volqta/season-3/igri-na-volqta-2021-09-20-1',
                 'duration': 4060.0,
-                'release_date': '2021-09-20T19:52:44+00:00',
+                'timestamp': 1632167564,
+                'upload_date': '20210920',
                 'thumbnail': 'https://nbg-img.fite.tv/img/548227_460x260.jpg',
                 'description': 'Сезон 3 Епизод 13'
             },
@@ -40,9 +40,9 @@ class NovaPlayIE(InfoExtractor):
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, self._match_id(url))
-        video_props = json.loads(re.search(
+        video_props = self._parse_json(self._search_regex(
             r'<script\s?id=\"__NEXT_DATA__\"\s?type=\"application/json\">({.+})</script>',
-            webpage).group(1))['props']['pageProps']['video']
+            webpage, 'video_props'), self._match_id(url))['props']['pageProps']['video']
         m3u8_url = self._download_json(
             f'https://nbg-api.fite.tv/api/v2/videos/{video_props["id"]}/streams',
             video_props['id'], headers={'x-flipps-user-agent': 'Flipps/75/9.7'})[0]['url']
@@ -51,13 +51,12 @@ class NovaPlayIE(InfoExtractor):
 
         return {
             'id': str(video_props['id']),
-            'url': url,
             'title': video_props['title'],
             'alt_title': video_props['slug'],
             'thumbnail': self._og_search_thumbnail(webpage),
             'description': self._og_search_description(webpage),
             'formats': formats,
             'duration': parse_duration(video_props['duration']),
-            'release_date': video_props['published_at'],
-            'view_count': video_props['view_count']
+            'timestamp': parse_iso8601(video_props['published_at']),
+            'view_count': int_or_none(video_props['view_count']),
         }
