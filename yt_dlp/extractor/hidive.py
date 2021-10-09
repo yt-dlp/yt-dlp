@@ -93,7 +93,7 @@ class HiDiveIE(InfoExtractor):
             raise ExtractorError(
                 '%s said: %s' % (self.IE_NAME, restriction), expected=True)
 
-        formats, subtitles, parsed_urls = [], {}, {None}
+        formats, parsed_urls = [], {}, {None}
         for rendition_id, rendition in settings['renditions'].items():
             audio, version, extra = rendition_id.split('_')
             m3u8_url = url_or_none(try_get(rendition, lambda x: x['bitrates']['hls']))
@@ -105,14 +105,12 @@ class HiDiveIE(InfoExtractor):
                     f['language'] = audio
                     f['format_note'] = f'{version}, {extra}'
                 formats.extend(frmt)
-
-            self._extract_subtitles_from_rendition(rendition, subtitles, parsed_urls)
         self._sort_formats(formats)
 
         return {
             'id': video_id,
             'title': video_id,
-            'subtitles': self.extract_subtitles(url, video_id, title, key, subtitles, parsed_urls),
+            'subtitles': self.extract_subtitles(url, video_id, title, key, parsed_urls),
             'formats': formats,
             'series': title,
             'season_number': int_or_none(

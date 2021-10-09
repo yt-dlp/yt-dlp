@@ -199,7 +199,7 @@ On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https:
 While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly recommended
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging seperate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. Licence [depends on the build](https://www.ffmpeg.org/legal.html)
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licenced under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
-* [**pycryptodomex**](https://github.com/Legrandin/pycryptodomex) - For decrypting AES-128 HLS streams and various other data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodomex/blob/master/LICENSE.rst)
+* [**pycryptodomex**](https://github.com/Legrandin/pycryptodome) - For decrypting AES-128 HLS streams and various other data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licenced under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
 * [**keyring**](https://github.com/jaraco/keyring) - For decrypting cookies of chromium-based browsers on Linux. Licenced under [MIT](https://github.com/jaraco/keyring/blob/main/LICENSE)
 * [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen is not present. Licenced under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
@@ -287,7 +287,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them
     --no-flat-playlist               Extract the videos of a playlist
-    --mark-watched                   Mark videos watched (YouTube only)
+    --mark-watched                   Mark videos watched (even with --simulate).
+                                     Currently only supported for YouTube
     --no-mark-watched                Do not mark videos watched (default)
     --no-colors                      Do not emit color codes in output
     --compat-options OPTS            Options that can help keep compatibility

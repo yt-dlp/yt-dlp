@@ -1,7 +1,7 @@
 ---
 name: Ask question
 about: Ask yt-dlp related question
-title: "[Question]"
+title: "[Question] A short description of your question"
 labels: question
 assignees: ''
 
@@ -21,14 +21,17 @@ assignees: ''
 
 <!--
 Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
-- Look through the README (https://github.com/yt-dlp/yt-dlp) and FAQ (https://github.com/yt-dlp/yt-dlp) for similar questions
-- Search the bugtracker for similar questions: https://github.com/yt-dlp/yt-dlp
+- Look through the README (https://github.com/yt-dlp/yt-dlp)
+- Read "opening an issue" section in CONTRIBUTING.md: https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue
+- Search the bugtracker for similar questions: https://github.com/yt-dlp/yt-dlp/issues
 - Finally, put x into all relevant boxes like this [x] (Dont forget to delete the empty space)
 -->
 
 - [ ] I'm asking a question
-- [ ] I've looked through the README and FAQ for similar questions
+- [ ] I've looked through the README
+- [ ] I've read the opening an issue section in CONTRIBUTING.md
 - [ ] I've searched the bugtracker for similar questions including closed ones
+- [ ] I have given an appropriate title to the issue
 
 
 ## Question

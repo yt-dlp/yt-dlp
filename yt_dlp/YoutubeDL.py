@@ -9,6 +9,7 @@ import copy
 import datetime
 import errno
 import fileinput
+import functools
 import io
 import itertools
 import json
@@ -330,7 +331,8 @@ class YoutubeDL(object):
                        * when: When to run the postprocessor. Can be one of
                                pre_process|before_dl|post_process|after_move.
                                Assumed to be 'post_process' if not given
-    post_hooks:        A list of functions that get called as the final step
+    post_hooks:        Deprecated - Register a custom postprocessor instead
+                       A list of functions that get called as the final step
                        for each video file, after all postprocessors have been
                        called. The filename will be passed as the only argument.
     progress_hooks:    A list of functions that get called on download
@@ -423,7 +425,7 @@ class YoutubeDL(object):
                        use downloader suggested by extractor if None.
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
-                       filename, abort-on-error, multistreams, no-live-chat,
+                       filename, abort-on-error, multistreams, no-live-chat, format-sort
                        no-clean-infojson, no-playlist-metafiles, no-keep-subs.
                        Refer __init__.py for their implementation
     progress_template: Dictionary of templates for progress outputs.
@@ -434,8 +436,9 @@ class YoutubeDL(object):
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
-    max_filesize, test, noresizebuffer, retries, continuedl, noprogress,
-    xattr_set_filesize, external_downloader_args, hls_use_mpegts, http_chunk_size.
+    max_filesize, test, noresizebuffer, retries, fragment_retries, continuedl,
+    noprogress, xattr_set_filesize, hls_use_mpegts, http_chunk_size,
+    external_downloader_args.
 
     The following options are used by the post processors:
     prefer_ffmpeg:     If False, use avconv instead of ffmpeg if both are available,
@@ -541,13 +544,13 @@ class YoutubeDL(object):
         for msg in self.params.get('warnings', []):
             self.report_warning(msg)
 
-        if self.params.get('overwrites') is None:
-            self.params.pop('overwrites', None)
-        elif self.params.get('nooverwrites') is not None:
+        if 'overwrites' not in self.params and self.params.get('nooverwrites') is not None:
             # nooverwrites was unnecessarily changed to overwrites
             # in 0c3d0f51778b153f65c21906031c2e091fcfb641
             # This ensures compatibility with both keys
             self.params['overwrites'] = not self.params['nooverwrites']
+        elif self.params.get('overwrites') is None:
+            self.params.pop('overwrites', None)
         else:
             self.params['nooverwrites'] = not self.params['overwrites']
 
@@ -1253,7 +1256,7 @@ class YoutubeDL(object):
             self.report_error('no suitable InfoExtractor for URL %s' % url)
 
     def __handle_extraction_exceptions(func):
-
+        @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             try:
                 return func(self, *args, **kwargs)
@@ -1973,7 +1976,7 @@ class YoutubeDL(object):
                         elif format_spec in ('mhtml', ):  # storyboards extension
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') == 'none' and f.get('vcodec') == 'none'
                         else:
-                            filter_f = (lambda f: f.get('format_id') == format_spec)  # id
+                            filter_f = lambda f: f.get('format_id') == format_spec  # id
 
                     def selector_function(ctx):
                         formats = list(ctx['formats'])
@@ -2453,8 +2456,12 @@ class YoutubeDL(object):
         if self.params.get('forceprint') or self.params.get('forcejson'):
             self.post_extract(info_dict)
         for tmpl in self.params.get('forceprint', []):
-            self.to_stdout(self.evaluate_outtmpl(
-                f'%({tmpl})s' if re.match(r'\w+$', tmpl) else tmpl, info_dict))
+            mobj = re.match(r'\w+(=?)$', tmpl)
+            if mobj and mobj.group(1):
+                tmpl = f'{tmpl[:-1]} = %({tmpl[:-1]})s'
+            elif mobj:
+                tmpl = '%({})s'.format(tmpl)
+            self.to_stdout(self.evaluate_outtmpl(tmpl, info_dict))
 
         print_mandatory('title')
         print_mandatory('id')

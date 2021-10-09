@@ -119,7 +119,7 @@ setup(
         'Documentation': 'https://yt-dlp.readthedocs.io',
         'Source': 'https://github.com/yt-dlp/yt-dlp',
         'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
-        #'Funding': 'https://donate.pypi.org',
+        'Funding': 'https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators',
     },
     classifiers=[
         'Topic :: Multimedia :: Video',

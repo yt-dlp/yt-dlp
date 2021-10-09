@@ -37,7 +37,7 @@ class MinotoIE(InfoExtractor):
                     'filesize': int_or_none(fmt.get('filesize')),
                     'width': int_or_none(fmt.get('width')),
                     'height': int_or_none(fmt.get('height')),
-                    'codecs': parse_codecs(fmt.get('codecs')),
+                    **parse_codecs(fmt.get('codecs')),
                 })
         self._sort_formats(formats)
 

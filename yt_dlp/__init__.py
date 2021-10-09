@@ -735,10 +735,6 @@ def _real_main(argv=None):
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
         'warnings': warnings,
         'compat_opts': compat_opts,
-        # just for deprecation check
-        'autonumber': opts.autonumber or None,
-        'usetitle': opts.usetitle or None,
-        'useid': opts.useid or None,
     }
 
     with YoutubeDL(ydl_opts) as ydl:

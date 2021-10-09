@@ -1,3 +1,4 @@
+import functools
 from threading import Lock
 from .utils import supports_terminal_sequences, TERMINAL_SEQUENCES
 
@@ -49,6 +50,7 @@ class MultilinePrinter(MultilinePrinterBase):
         self._HAVE_FULLCAP = supports_terminal_sequences(self.stream)
 
     def lock(func):
+        @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             with self._movelock:
                 return func(self, *args, **kwargs)

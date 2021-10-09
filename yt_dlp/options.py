@@ -972,9 +972,6 @@ def parseOpts(overrideArguments=None):
         help="File containing URLs to download ('-' for stdin), one URL per line. "
              "Lines starting with '#', ';' or ']' are considered as comments and ignored")
     filesystem.add_option(
-        '--id', default=False,
-        action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
         '-P', '--paths',
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
@@ -1029,18 +1026,6 @@ def parseOpts(overrideArguments=None):
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,
         help='Limit the filename length (excluding extension) to the specified number of characters')
-    filesystem.add_option(
-        '--auto-number',
-        action='store_true', dest='autonumber', default=False,
-        help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
-        '--title',
-        action='store_true', dest='usetitle', default=False,
-        help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
-        '--literal', default=False,
-        action='store_true', dest='usetitle',
-        help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-w', '--no-overwrites',
         action='store_false', dest='overwrites', default=None,
@@ -1625,7 +1610,7 @@ def parseOpts(overrideArguments=None):
         argv = configs['system'] + configs['user'] + configs['home'] + configs['portable'] + configs['custom'] + configs['command-line']
         opts, args = parser.parse_args(argv)
         if opts.verbose:
-            for label in ('System', 'User', 'Portable', 'Home', 'Custom', 'Command-line'):
+            for label in ('Command-line', 'Custom', 'Portable', 'Home', 'User', 'System'):
                 key = label.lower()
                 if paths.get(key):
                     write_string(f'[debug] {label} config file: {paths[key]}\n')
