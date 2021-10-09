@@ -385,7 +385,8 @@ class BiliBiliIE(InfoExtractor):
             commentPageNumber, video_id)
         replies = self._download_json(
             comment_url, video_id,
-            note='Extracting comments from page %s' % commentPageNumber)['data']['replies']
+            note='Extracting comments from page %s' % commentPageNumber, fatal=False)
+        replies = try_get(replies, lambda x: x['data']['replies'])
         if replies is None:
             return []
         return self._get_all_children(replies) + self._get_all_comment_pages(video_id, commentPageNumber + 1)
