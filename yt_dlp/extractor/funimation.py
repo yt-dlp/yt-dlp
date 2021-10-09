@@ -9,7 +9,6 @@ from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
     determine_ext,
-    dict_get,
     int_or_none,
     js_to_json,
     orderedSet,
