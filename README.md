@@ -193,8 +193,10 @@ If you have installed using Homebrew, run `brew upgrade yt-dlp/taps/yt-dlp`
 ### DEPENDENCIES
 Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
-<!-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 -->
+<!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
+<!x-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 --x>
 On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe) is also necessary to run yt-dlp. You probably already have this, but if the executable throws an error due to missing `MSVCR100.dll` you need to install it manually.
+-->
 
 While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly recommended
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging seperate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. Licence [depends on the build](https://www.ffmpeg.org/legal.html)
