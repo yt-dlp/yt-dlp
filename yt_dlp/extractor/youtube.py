@@ -4668,7 +4668,6 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                         video_playlist_id = None
                     if not video_id and not video_playlist_id:
                         continue
-                    video_url = ''
                     if video_id:
                         yield self._extract_video(video)
                     elif video_playlist_id:
@@ -4681,20 +4680,18 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                         description = None
                         view_count = None
                         uploader = try_get(video_playlist, lambda x: x['shortBylineText']['runs'][0]['text'], compat_str)
+                        yield {
+                            '_type': 'url_transparent',
+                            'ie_key': YoutubeIE.ie_key(),
+                            'id': video_id,
+                            'url': video_url,
+                            'title': title,
+                            'description': description,
+                            'duration': duration,
+                            'view_count': view_count,
+                            'uploader': uploader,
+                        }
                     total += 1
-
-                    yield {
-                        '_type': 'url_transparent',
-                        'ie_key': YoutubeIE.ie_key(),
-                        'id': video_id,
-                        'url': video_url,
-                        'title': title,
-                        'description': description,
-                        'duration': duration,
-                        'view_count': view_count,
-                        'uploader': uploader,
-                    }
-
                     if total == n:
                         return
 
