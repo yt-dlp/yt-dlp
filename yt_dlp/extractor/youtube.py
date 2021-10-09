@@ -4668,7 +4668,7 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                         video_playlist_id = None
                     if not video_id and not video_playlist_id:
                         continue
-
+                    video_url = ''
                     if video_id:
                         yield self._extract_video(video)
                     elif video_playlist_id:
