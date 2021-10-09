@@ -4673,7 +4673,7 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                         yield self._extract_video(video)
                     elif video_playlist_id:
                         # Youtube playlist id found, duration will get the playlist video count
-                        title = try_get(video_playlist,(lambda x: x['title']['runs'][0]['text'], lambda x: x['title']['simpleText']), compat_str)
+                        title = try_get(video_playlist, (lambda x: x['title']['runs'][0]['text'], lambda x: x['title']['simpleText']), compat_str)
                         duration = int(video_playlist.get('videoCount'))
                         video_id_original = try_get(video_playlist, lambda x: x['navigationEndpoint']['watchEndpoint']['videoId'], compat_str) or 'NA'
                         video_url = 'https://www.youtube.com/watch?v=' + video_id_original + '&list=' + video_playlist_id
