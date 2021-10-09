@@ -4665,26 +4665,24 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                     if video_playlist:
                         video_playlist_id = video_playlist.get('playlistId')
                     else:
-                        video_playlist_id = None	
+                        video_playlist_id = None
                     if not video_id and not video_playlist_id:
                         continue
 
-                    
                     if video_id:
                         yield self._extract_video(video)
                     elif video_playlist_id:
                         # Youtube playlist id found, duration will get the playlist video count
-                        title = try_get(video_playlist,(lambda x: x['title']['runs'][0]['text'],lambda x: x['title']['simpleText']), compat_str)
+                        title = try_get(video_playlist,(lambda x: x['title']['runs'][0]['text'], lambda x: x['title']['simpleText']), compat_str)
                         duration = int(video_playlist.get('videoCount'))
                         video_id_original = try_get(video_playlist, lambda x: x['navigationEndpoint']['watchEndpoint']['videoId'], compat_str) or 'NA'
                         video_url = 'https://www.youtube.com/watch?v=' + video_id_original + '&list=' + video_playlist_id
                         video_id = video_playlist_id
                         description = None
-                        view_count_text = ''
                         view_count = None
                         uploader = try_get(video_playlist, lambda x: x['shortBylineText']['runs'][0]['text'], compat_str)
                     total += 1
-                    
+
                     yield {
                         '_type': 'url_transparent',
                         'ie_key': YoutubeIE.ie_key(),
@@ -4696,7 +4694,7 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                         'view_count': view_count,
                         'uploader': uploader,
                     }
-                    
+
                     if total == n:
                         return
 
