@@ -14,6 +14,17 @@
 -->
 
 
+### 2021.10.10
+
+* [downloader/ffmpeg] Fix bug in initializing `FFmpegPostProcessor`
+* [minicurses] Fix when printing to file
+* [downloader] Fix throttledratelimit
+* [francetv] Fix extractor by [fstirlitz](https://github.com/fstirlitz), [sarnoud](https://github.com/sarnoud)
+* [NovaPlay] Add extractor by [Bojidarist](https://github.com/Bojidarist)
+* [ffmpeg] Revert "Set max probesize" - No longer needed
+* [docs] Remove incorrect dependency on VC++10
+* [build] Allow to release without changelog
+
 ### 2021.10.09
 
 * Improved progress reporting

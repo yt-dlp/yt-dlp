@@ -232,7 +232,6 @@
  - **CTV**
  - **CTVNews**
  - **cu.ntv.co.jp**: Nippon Television Network
- - **Culturebox**
  - **CultureUnplugged**
  - **curiositystream**
  - **curiositystream:collection**
@@ -346,13 +345,10 @@
  - **foxnews**: Fox News and Fox Business Video
  - **foxnews:article**
  - **FoxSports**
- - **france2.fr:generation-what**
  - **FranceCulture**
  - **FranceInter**
  - **FranceTV**
- - **FranceTVEmbed**
  - **francetvinfo.fr**
- - **FranceTVJeunesse**
  - **FranceTVSite**
  - **Freesound**
  - **freespeech.org**
@@ -705,6 +701,7 @@
  - **NosVideo**
  - **Nova**: TN.cz, Prásk.tv, Nova.cz, Novaplus.cz, FANDA.tv, Krásná.cz and Doma.cz
  - **NovaEmbed**
+ - **NovaPlay**
  - **nowness**
  - **nowness:playlist**
  - **nowness:series**
@@ -991,7 +988,6 @@
  - **SpankBangPlaylist**
  - **Spankwire**
  - **Spiegel**
- - **sport.francetvinfo.fr**
  - **Sport5**
  - **SportBox**
  - **SportDeutschland**
