@@ -39,18 +39,19 @@ class NovaPlayIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        webpage = self._download_webpage(url, self._match_id(url))
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         video_props = self._parse_json(self._search_regex(
             r'<script\s?id=\"__NEXT_DATA__\"\s?type=\"application/json\">({.+})</script>',
-            webpage, 'video_props'), self._match_id(url))['props']['pageProps']['video']
+            webpage, 'video_props'), video_id)['props']['pageProps']['video']
         m3u8_url = self._download_json(
             f'https://nbg-api.fite.tv/api/v2/videos/{video_props["id"]}/streams',
             video_props['id'], headers={'x-flipps-user-agent': 'Flipps/75/9.7'})[0]['url']
-        formats = self._extract_m3u8_formats(m3u8_url, video_props['id'], 'mp4', m3u8_id='hls')
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
         self._sort_formats(formats)
 
         return {
-            'id': str(video_props['id']),
+            'id': video_id,
             'title': video_props['title'],
             'alt_title': video_props['slug'],
             'thumbnail': self._og_search_thumbnail(webpage),
