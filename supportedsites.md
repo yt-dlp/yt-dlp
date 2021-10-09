@@ -199,6 +199,7 @@
  - **Cinemax**
  - **CiscoLiveSearch**
  - **CiscoLiveSession**
+ - **ciscowebex**: Cisco Webex
  - **CJSW**
  - **cliphunter**
  - **Clippit**
@@ -379,6 +380,7 @@
  - **gem.cbc.ca:live**
  - **gem.cbc.ca:playlist**
  - **generic**: Generic downloader that works on some sites
+ - **Gettr**
  - **Gfycat**
  - **GiantBomb**
  - **Giga**
@@ -392,6 +394,7 @@
  - **google:podcasts**
  - **google:podcasts:feed**
  - **GoogleDrive**
+ - **GoPro**
  - **Goshgay**
  - **GoToStage**
  - **GPUTechConf**
@@ -630,6 +633,8 @@
  - **MyviEmbed**
  - **MyVisionTV**
  - **n-tv.de**
+ - **N1Info:article**
+ - **N1InfoAsset**
  - **natgeo:video**
  - **NationalGeographicTV**
  - **Naver**
@@ -905,6 +910,7 @@
  - **RTVNH**
  - **RTVS**
  - **RUHD**
+ - **RumbleChannel**
  - **RumbleEmbed**
  - **rutube**: Rutube videos
  - **rutube:channel**: Rutube channels
@@ -1065,7 +1071,8 @@
  - **TheScene**
  - **TheStar**
  - **TheSun**
- - **Theta**
+ - **ThetaStream**
+ - **ThetaVideo**
  - **TheWeatherChannel**
  - **ThisAmericanLife**
  - **ThisAV**
@@ -1174,6 +1181,7 @@
  - **Varzesh3**
  - **Vbox7**
  - **VeeHD**
+ - **Veo**
  - **Veoh**
  - **Vesti**: Вести.Ru
  - **Vevo**
@@ -1202,9 +1210,6 @@
  - **VidioLive**
  - **VidioPremier**
  - **VidLii**
- - **vidme**
- - **vidme:user**
- - **vidme:user:likes**
  - **vier**: vier.be and vijf.be
  - **vier:videos**
  - **viewlift**
@@ -1256,6 +1261,7 @@
  - **VTXTV**
  - **vube**: Vube.com
  - **VuClip**
+ - **Vupload**
  - **VVVVID**
  - **VVVVIDShow**
  - **VyboryMos**

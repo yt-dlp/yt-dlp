@@ -14,6 +14,73 @@
 -->
 
 
+### 2021.10.09
+
+* Improved progress reporting
+    * Separate `--console-title` and `--no-progress`
+    * Add option `--progress` to show progress-bar even in quiet mode
+    * Fix and refactor `minicurses` and use it for all progress reporting
+    * Standardize use of terminal sequences and enable color support for windows 10
+    * Add option `--progress-template` to customize progress-bar and console-title
+    * Add postprocessor hooks and progress reporting
+* [postprocessor] Add plugin support with option `--use-postprocessor`
+* [extractor] Extract storyboards from SMIL manifests by [fstirlitz](https://github.com/fstirlitz)
+* [outtmpl] Alternate form of format type `l` for `\n` delimited list
+* [outtmpl] Format type `U` for unicode normalization
+* [outtmpl] Allow empty output template to skip a type of file
+* Merge webm formats into mkv if thumbnails are to be embedded
+* [adobepass] Add RCN as MSO by [jfogelman](https://github.com/jfogelman)
+* [ciscowebex] Add extractor by [damianoamatruda](https://github.com/damianoamatruda)
+* [Gettr] Add extractor by [i6t](https://github.com/i6t)
+* [GoPro] Add extractor by [i6t](https://github.com/i6t)
+* [N1] Add extractor by [u-spec-png](https://github.com/u-spec-png)
+* [Theta] Add video extractor by [alerikaisattera](https://github.com/alerikaisattera)
+* [Veo] Add extractor by [i6t](https://github.com/i6t)
+* [Vupload] Add extractor by [u-spec-png](https://github.com/u-spec-png)
+* [bbc] Extract better quality videos by [ajj8](https://github.com/ajj8)
+* [Bilibili] Add subtitle converter by [u-spec-png](https://github.com/u-spec-png)
+* [CBC] Cleanup tests by [makeworld-the-better-one](https://github.com/makeworld-the-better-one)
+* [Douyin] Rewrite extractor by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [Funimation] Fix for /v/ urls by [pukkandan](https://github.com/pukkandan), [Jules-A](https://github.com/Jules-A)
+* [Funimation] Sort formats according to the relevant extractor-args
+* [Hidive] Fix duplicate and incorrect formats
+* [HotStarSeries] Fix cookies by [Ashish0804](https://github.com/Ashish0804)
+* [LinkedInLearning] Add subtitles by [Ashish0804](https://github.com/Ashish0804)
+* [Mediaite] Relax valid url by [coletdjnz](https://github.com/coletdjnz)
+* [Newgrounds] Add age_limit and fix duration by [u-spec-png](https://github.com/u-spec-png)
+* [Newgrounds] Fix view count on songs by [u-spec-png](https://github.com/u-spec-png)
+* [parliamentlive.tv] Fix extractor by [u-spec-png](https://github.com/u-spec-png)
+* [PolskieRadio] Fix extractors by [jakubadamw](https://github.com/jakubadamw), [u-spec-png](https://github.com/u-spec-png)
+* [reddit] Add embedded url by [u-spec-png](https://github.com/u-spec-png)
+* [reddit] Fix 429 by generating a random `reddit_session` by [AjaxGb](https://github.com/AjaxGb)
+* [Rumble] Add RumbleChannelIE by [Ashish0804](https://github.com/Ashish0804)
+* [soundcloud:playlist] Detect last page correctly
+* [SovietsCloset] Add duration from m3u8 by [ChillingPepper](https://github.com/ChillingPepper)
+* [Streamable] Add codecs by [u-spec-png](https://github.com/u-spec-png)
+* [vidme] Remove extractor by [alerikaisattera](https://github.com/alerikaisattera)
+* [youtube:tab] Fallback to API when webpage fails to download by [coletdjnz](https://github.com/coletdjnz)
+* [youtube] Fix non-fatal errors in fetching player
+* Fix `--flat-playlist` when neither IE nor id is known
+* Fix `-f mp4` behaving differently from youtube-dl
+* Workaround for bug in `ssl.SSLContext.load_default_certs`
+* [aes] Improve performance slightly by [sulyi](https://github.com/sulyi)
+* [cookies] Fix keyring fallback by [mbway](https://github.com/mbway)
+* [embedsubtitle] Fix error when duration is unknown
+* [ffmpeg] Fix error when subtitle file is missing
+* [ffmpeg] Set max probesize to workaround AAC HLS stream issues by [shirt](https://github.com/shirt-dev)
+* [FixupM3u8] Remove redundant run if merged is needed
+* [hls] Fix decryption issues by [shirt](https://github.com/shirt-dev), [pukkandan](https://github.com/pukkandan)
+* [http] Respect user-provided chunk size over extractor's
+* [utils] Let traverse_obj accept functions as keys
+* [docs] Add note about our custom ffmpeg builds
+* [docs] Write embedding and contributing documentation by [pukkandan](https://github.com/pukkandan), [timethrow](https://github.com/timethrow)
+* [update] Check for new version even if not updateable
+* [build] Add more files to the tarball
+* [build] Allow building with py2exe (and misc fixes)
+* [build] Use pycryptodomex by [shirt](https://github.com/shirt-dev), [pukkandan](https://github.com/pukkandan)
+* [cleanup] Some minor refactoring, improve docs and misc cleanup
+
+
 ### 2021.09.25
 
 * Add new option `--netrc-location`
