@@ -90,9 +90,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     def set_downloader(self, downloader):
         """Sets the downloader for this PP."""
         self._downloader = downloader
-        if not downloader:
-            return
-        for ph in downloader._postprocessor_hooks:
+        for ph in getattr(downloader, '_postprocessor_hooks', []):
             self.add_progress_hook(ph)
 
     @staticmethod
