@@ -69,11 +69,8 @@ class ServusIE(InfoExtractor):
             'https://api-player.redbull.com/stv/servus-tv?videoId=%s&timeZone=%s' % (video_id, timezone),
             video_id, 'Downloading video JSON')
 
-        if 'GEO_BLOCKED' in attrs.get('playabilityErrors', ''):
-            countries = ', '.join(attrs.get('blockedCountries', ['Unknown']))
-            raise ExtractorError(
-                'Video is geo restricted (restricted countries: %s). '
-                'Try bypassing with --geo-bypass-country option, VPN or --proxy option' % countries, expected=True)
+        if 'GEO_BLOCKED' in attrs.get('playabilityErrors', []):
+            self.raise_geo_restricted(countries=attrs.get('blockedCountries'))
 
         formats = []
         format_url = url_or_none(attrs.get('videoUrl'))
