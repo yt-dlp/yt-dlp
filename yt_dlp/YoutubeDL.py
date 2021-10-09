@@ -137,6 +137,7 @@ from .downloader import (
 from .downloader.rtmp import rtmpdump_version
 from .postprocessor import (
     get_postprocessor,
+    EmbedThumbnailPP,
     FFmpegFixupDurationPP,
     FFmpegFixupM3u8PP,
     FFmpegFixupM4aPP,
@@ -2696,10 +2697,19 @@ class YoutubeDL(object):
 
                     requested_formats = info_dict['requested_formats']
                     old_ext = info_dict['ext']
-                    if self.params.get('merge_output_format') is None and not compatible_formats(requested_formats):
-                        info_dict['ext'] = 'mkv'
-                        self.report_warning(
-                            'Requested formats are incompatible for merge and will be merged into mkv.')
+                    if self.params.get('merge_output_format') is None:
+                        if not compatible_formats(requested_formats):
+                            info_dict['ext'] = 'mkv'
+                            self.report_warning(
+                                'Requested formats are incompatible for merge and will be merged into mkv')
+                        if (info_dict['ext'] == 'webm'
+                                and info_dict.get('thumbnails')
+                                # check with type instead of pp_key, __name__, or isinstance
+                                # since we dont want any custom PPs to trigger this
+                                and any(type(pp) == EmbedThumbnailPP for pp in self._pps['post_process'])):
+                            info_dict['ext'] = 'mkv'
+                            self.report_warning(
+                                'webm doesn\'t support embedding a thumbnail, mkv will be used')
                     new_ext = info_dict['ext']
 
                     def correct_ext(filename, ext=new_ext):
