@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import random
+import re
 import string
 
 from .common import InfoExtractor
@@ -11,18 +12,54 @@ from ..utils import (
     dict_get,
     int_or_none,
     js_to_json,
-    str_or_none,
-    try_get,
-    traverse_obj,
+    orderedSet,
     qualities,
+    str_or_none,
+    traverse_obj,
+    try_get,
     urlencode_postdata,
     ExtractorError,
 )
 
 
-class FunimationPageIE(InfoExtractor):
+class FunimationBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'funimation'
+
+    def _get_region(self):
+        region_cookie = self._get_cookies('https://www.funimation.com').get('region')
+        region = region_cookie.value if region_cookie else self.get_param('geo_bypass_country')
+        return region or traverse_obj(
+            self._download_json(
+                'https://geo-service.prd.funimationsvc.com/geo/v1/region/check', None, fatal=False,
+                note='Checking geo-location', errnote='Unable to fetch geo-location information'),
+            'region') or 'US'
+
+    def _login(self):
+        username, password = self._get_login_info()
+        if username is None:
+            return
+        try:
+            data = self._download_json(
+                'https://prod-api-funimationnow.dadcdigital.com/api/auth/login/',
+                None, 'Logging in', data=urlencode_postdata({
+                    'username': username,
+                    'password': password,
+                }))
+            return data['token']
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                error = self._parse_json(e.cause.read().decode(), None)['error']
+                raise ExtractorError(error, expected=True)
+            raise
+
+    def _real_initialize(self):
+        FunimationBaseIE._REGION = self._get_region()
+        FunimationBaseIE._TOKEN = self._login()
+
+
+class FunimationPageIE(FunimationBaseIE):
     IE_NAME = 'funimation:page'
-    _VALID_URL = r'(?P<origin>https?://(?:www\.)?funimation(?:\.com|now\.uk))/(?P<lang>[^/]+/)?(?P<path>(shows/|v/)(?P<id>[^/]+/[^/?#&]+).*$)'
+    _VALID_URL = r'https?://(?:www\.)?funimation(?:\.com|now\.uk)/(?:(?P<lang>[^/]+)/)?(?:shows|v)/(?P<show>[^/]+)/(?P<episode>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.funimation.com/shows/attack-on-titan-junior-high/broadcast-dub-preview/',
@@ -52,48 +89,22 @@ class FunimationPageIE(InfoExtractor):
         'only_matching': True,
     }]
 
-
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        display_id = mobj.group('id').replace('/', '_')
-        if not mobj.group('lang'):
-            url = '%s/en/%s' % (mobj.group('origin'), mobj.group('path'))
+        locale, show, episode = self._match_valid_url(url).group('lang', 'show', 'episode')
 
-        if '/v/' not in url:
-            webpage = self._download_webpage(url, display_id, None, fatal=False)
-            title_data = self._parse_json(self._search_regex(
-                r'TITLE_DATA\s*=\s*({[^}]+})',
-                webpage, 'title data', default=''),
-                display_id, js_to_json, fatal=False) or {}
-            video_id = (
-                title_data.get('id')
-                or self._search_regex(
-                    (r"KANE_customdimensions.videoID\s*=\s*'(\d+)';", r'<iframe[^>]+src="/player/(\d+)'),
-                    webpage, 'video_id', default=None)
-                or self._search_regex(
-                    r'/player/(\d+)',
-                    self._html_search_meta(['al:web:url', 'og:video:url', 'og:video:secure_url'], webpage, fatal=True),
-                    'video id'))
-        else:
-            region = self._get_cookies('https://www.funimation.com').get('region')
-            self._region = region.value if region else try_get(
-                self._download_json(
-                    'https://geo-service.prd.funimationsvc.com/geo/v1/region/check', None, fatal=False,
-                    note='Checking geo-location', errnote='Unable to fetch geo-location information'),
-                lambda x: x['region']) or 'US'
-            vid_json = self._download_json(
-                'https://title-api.prd.funimationsvc.com/v1/shows/%s/episodes/%s/?region=%s&deviceType=web&locale=en'
-                % (display_id.split('_')[0], display_id.split('_')[1], self._region), display_id)
-            video_id = traverse_obj(vid_json, ('videoList', 0, 'id'))
+        video_id = traverse_obj(self._download_json(
+            f'https://title-api.prd.funimationsvc.com/v1/shows/{show}/episodes/{episode}',
+            f'{show}_{episode}', query={
+                'deviceType': 'web',
+                'region': self._REGION,
+                'locale': locale or 'en'
+            }), ('videoList', ..., 'id'), get_all=False)
 
         return self.url_result(f'https://www.funimation.com/player/{video_id}', FunimationIE.ie_key(), video_id)
 
 
-class FunimationIE(InfoExtractor):
+class FunimationIE(FunimationBaseIE):
     _VALID_URL = r'https?://(?:www\.)?funimation\.com/player/(?P<id>\d+)'
-
-    _NETRC_MACHINE = 'funimation'
-    _TOKEN = None
 
     _TESTS = [{
         'url': 'https://www.funimation.com/player/210051',
@@ -110,7 +121,7 @@ class FunimationIE(InfoExtractor):
             'season_number': 99,
             'series': 'Attack on Titan: Junior High',
             'description': '',
-            'duration': 154,
+            'duration': 155,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -131,34 +142,13 @@ class FunimationIE(InfoExtractor):
             'season_number': 99,
             'series': 'Attack on Titan: Junior High',
             'description': '',
-            'duration': 154,
+            'duration': 155,
         },
         'params': {
             'skip_download': 'm3u8',
             'compat_opts': ['seperate-video-versions'],
         },
     }]
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-        try:
-            data = self._download_json(
-                'https://prod-api-funimationnow.dadcdigital.com/api/auth/login/',
-                None, 'Logging in', data=urlencode_postdata({
-                    'username': username,
-                    'password': password,
-                }))
-            self._TOKEN = data['token']
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                error = self._parse_json(e.cause.read().decode(), None)['error']
-                raise ExtractorError(error, expected=True)
-            raise
-
-    def _real_initialize(self):
-        self._login()
 
     @staticmethod
     def _get_experiences(episode):
@@ -300,7 +290,7 @@ class FunimationIE(InfoExtractor):
         return subtitles
 
 
-class FunimationShowIE(FunimationIE):
+class FunimationShowIE(FunimationBaseIE):
     IE_NAME = 'funimation:show'
     _VALID_URL = r'(?P<url>https?://(?:www\.)?funimation(?:\.com|now\.uk)/(?P<locale>[^/]+)?/?shows/(?P<id>[^/?#&]+))/?(?:[?#]|$)'
 
@@ -327,36 +317,25 @@ class FunimationShowIE(FunimationIE):
         },
     }]
 
-    def _real_initialize(self):
-        self._get_region()
-
-    def _get_region(self):
-        region = self._get_cookies('https://www.funimation.com').get('region')
-        self._region = region.value if region else try_get(
-            self._download_json(
-                'https://geo-service.prd.funimationsvc.com/geo/v1/region/check', None, fatal=False,
-                note='Checking geo-location', errnote='Unable to fetch geo-location information'),
-            lambda x: x['region']) or 'US'
-
     def _real_extract(self, url):
         base_url, locale, display_id = self._match_valid_url(url).groups()
 
         show_info = self._download_json(
             'https://title-api.prd.funimationsvc.com/v2/shows/%s?region=%s&deviceType=web&locale=%s'
-            % (display_id, self._region, locale or 'en'), display_id)
-        items = self._download_json(
+            % (display_id, self._REGION, locale or 'en'), display_id)
+        items_info = self._download_json(
             'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
-            % show_info.get('id'), display_id).get('items')
-        vod_region = 'mostRecentSvod' + self._region.capitalize()
-        vod_items = map(lambda k: dict_get(k, (vod_region, vod_region)).get('item'), items)
+            % show_info.get('id'), display_id)
+
+        vod_items = traverse_obj(items_info, ('items', ..., re.compile('(?i)mostRecent[AS]vod').match, 'item'))
 
         return {
             '_type': 'playlist',
             'id': show_info['id'],
             'title': show_info['name'],
-            'entries': [
+            'entries': orderedSet(
                 self.url_result(
-                    '%s/%s' % (base_url.replace('shows/', 'v/'), vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
+                    '%s/%s' % (base_url, vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
                     vod_item.get('episodeId'), vod_item.get('episodeName'))
-                for vod_item in sorted(vod_items, key=lambda x: x.get('episodeOrder'))],
+                for vod_item in sorted(vod_items, key=lambda x: x.get('episodeOrder', -1))),
         }
