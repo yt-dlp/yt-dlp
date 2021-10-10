@@ -601,24 +601,6 @@ class YoutubeDL(object):
 
         self._setup_opener()
 
-        def preload_download_archive(fn):
-            """Preload the archive, if any is specified"""
-            if fn is None:
-                return False
-            self.write_debug('Loading archive file %r\n' % fn)
-            try:
-                with locked_file(fn, 'r', encoding='utf-8') as archive_file:
-                    for line in archive_file:
-                        self.archive.add(line.strip())
-            except IOError as ioe:
-                if ioe.errno != errno.ENOENT:
-                    raise
-                return False
-            return True
-
-        self.archive = set()
-        preload_download_archive(self.params.get('download_archive'))
-
         if auto_init:
             self.print_debug_header()
             self.add_default_info_extractors()
@@ -637,6 +619,24 @@ class YoutubeDL(object):
             self.add_progress_hook(ph)
 
         register_socks_protocols()
+
+        def preload_download_archive(fn):
+            """Preload the archive, if any is specified"""
+            if fn is None:
+                return False
+            self.write_debug('Loading archive file %r\n' % fn)
+            try:
+                with locked_file(fn, 'r', encoding='utf-8') as archive_file:
+                    for line in archive_file:
+                        self.archive.add(line.strip())
+            except IOError as ioe:
+                if ioe.errno != errno.ENOENT:
+                    raise
+                return False
+            return True
+
+        self.archive = set()
+        preload_download_archive(self.params.get('download_archive'))
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?
