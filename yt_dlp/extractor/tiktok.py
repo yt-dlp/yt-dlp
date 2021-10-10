@@ -447,6 +447,7 @@ class TikTokUserIE(TikTokBaseIE):
         return self.playlist_result(self._entries_api(webpage, own_id, user_id), user_id)
 
 
+
 class DouyinIE(TikTokIE):
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
     _TESTS = [{

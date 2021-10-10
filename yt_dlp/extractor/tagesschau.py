@@ -7,7 +7,8 @@ from .common import InfoExtractor
 from ..utils import (
     js_to_json,
     extract_attributes,
-    try_get, int_or_none,
+    try_get,
+    int_or_none,
 )
 
 
