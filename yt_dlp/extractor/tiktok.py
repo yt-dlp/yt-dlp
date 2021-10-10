@@ -430,7 +430,7 @@ class TikTokUserIE(TikTokBaseIE):
                 break
             for video in post_list.get('aweme_list', []):
                 yield {
-                    **self._parse_aweme_video(video),
+                    **self._parse_aweme_video_app(video),
                     'ie_key': TikTokIE.ie_key(),
                     'extractor': 'TikTok',
                 }
