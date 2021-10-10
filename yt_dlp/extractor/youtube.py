@@ -4682,7 +4682,7 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                         yield {
                             '_type': 'url_transparent',
                             'ie_key': YoutubeIE.ie_key(),
-                            'id': video_id,
+                            'id': video_playlist_id,
                             'url': video_url,
                             'title': title,
                             'description': description,
