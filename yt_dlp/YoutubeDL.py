@@ -514,6 +514,7 @@ class YoutubeDL(object):
         self.cache = Cache(self)
 
         windows_enable_vt_mode()
+        # FIXME: This will break if we ever print color to stdout
         self.params['no_color'] = self.params.get('no_color') or not supports_terminal_sequences(self._err_file)
 
         if sys.version_info < (3, 6):
@@ -3298,6 +3299,9 @@ class YoutubeDL(object):
             KEYRING_AVAILABLE and 'keyring',
         )))) or 'none'
         self._write_string('[debug] Optional libraries: %s\n' % lib_str)
+        self._write_string('[debug] ANSI escape support: stdout = %s, stderr = %s\n' % (
+            supports_terminal_sequences(self._screen_file),
+            supports_terminal_sequences(self._err_file)))
 
         proxy_map = {}
         for handler in self._opener.handlers:

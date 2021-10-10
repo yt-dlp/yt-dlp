@@ -47,7 +47,7 @@ jobs:
     - name: Get Changelog
       id: get_changelog
       run: |
-        changelog=$(cat Changelog.md | grep -oPz '(?s)(?<=### ${{ steps.bump_version.outputs.ytdlp_version }}\n{2}).+?(?=\n{2,3}###)')
+        changelog=$(cat Changelog.md | grep -oPz '(?s)(?<=### ${{ steps.bump_version.outputs.ytdlp_version }}\n{2}).+?(?=\n{2,3}###)') || true
         echo "changelog<<EOF" >> $GITHUB_ENV
         echo "$changelog" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV

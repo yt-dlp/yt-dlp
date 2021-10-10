@@ -6458,7 +6458,7 @@ def jwt_encode_hs256(payload_data, key, headers={}):
 
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
-        if get_windows_version() < (10, ):
+        if get_windows_version() < (10, 0, 10586):
             return False
     elif not os.getenv('TERM'):
         return False

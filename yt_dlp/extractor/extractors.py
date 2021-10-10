@@ -474,12 +474,7 @@ from .franceinter import FranceInterIE
 from .francetv import (
     FranceTVIE,
     FranceTVSiteIE,
-    FranceTVEmbedIE,
     FranceTVInfoIE,
-    FranceTVInfoSportIE,
-    FranceTVJeunesseIE,
-    GenerationWhatIE,
-    CultureboxIE,
 )
 from .freesound import FreesoundIE
 from .freespeech import FreespeechIE
@@ -938,6 +933,7 @@ from .nova import (
     NovaEmbedIE,
     NovaIE,
 )
+from .novaplay import NovaPlayIE
 from .nowness import (
     NownessIE,
     NownessPlaylistIE,
