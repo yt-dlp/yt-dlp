@@ -4676,7 +4676,6 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                         duration = int(video_playlist.get('videoCount'))
                         video_id_original = try_get(video_playlist, lambda x: x['navigationEndpoint']['watchEndpoint']['videoId'], compat_str) or 'NA'
                         video_url = 'https://www.youtube.com/watch?v=' + video_id_original + '&list=' + video_playlist_id
-                        video_id = video_playlist_id
                         description = None
                         view_count = None
                         uploader = try_get(video_playlist, lambda x: x['shortBylineText']['runs'][0]['text'], compat_str)
