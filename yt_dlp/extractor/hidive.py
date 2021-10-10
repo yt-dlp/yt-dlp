@@ -72,8 +72,9 @@ class HiDiveIE(InfoExtractor):
                 parsed_urls.add(cc_url)
                 subtitles.setdefault(cc_lang, []).append({'url': cc_url})
 
-    def _get_subtitles(self, url, video_id, title, key, subtitles, parsed_urls):
+    def _get_subtitles(self, url, video_id, title, key, parsed_urls):
         webpage = self._download_webpage(url, video_id, fatal=False) or ''
+        subtitles = {}
         for caption in set(re.findall(r'data-captions=\"([^\"]+)\"', webpage)):
             renditions = self._call_api(
                 video_id, title, key, {'Captions': caption}, fatal=False,
@@ -93,7 +94,7 @@ class HiDiveIE(InfoExtractor):
             raise ExtractorError(
                 '%s said: %s' % (self.IE_NAME, restriction), expected=True)
 
-        formats, parsed_urls = [], {}, {None}
+        formats, parsed_urls = [], {None}
         for rendition_id, rendition in settings['renditions'].items():
             audio, version, extra = rendition_id.split('_')
             m3u8_url = url_or_none(try_get(rendition, lambda x: x['bitrates']['hls']))
