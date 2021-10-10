@@ -4682,7 +4682,7 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                             '_type': 'url_transparent',
                             'ie_key': YoutubeIE.ie_key(),
                             'id': video_playlist_id,
-                            'url': video_url,
+                            'url': f'https://www.youtube.com/watch?v={video_id_original}&list={video_playlist_id}'
                             'title': title,
                             'description': description,
                             'duration': duration,
