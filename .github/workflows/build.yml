@@ -133,6 +133,69 @@ jobs:
         asset_name: yt-dlp.tar.gz
         asset_content_type: application/gzip
 
+  build_macos:
+    runs-on: macos-10.15
+    needs: build_unix
+
+    outputs:
+      sha256_macos: ${{ steps.sha256_macos.outputs.sha256_macos }}
+      sha512_macos: ${{ steps.sha512_macos.outputs.sha512_macos }}
+      sha256_macos_zip: ${{ steps.sha256_macos_zip.outputs.sha256_macos_zip }}
+      sha512_macos_zip: ${{ steps.sha512_macos_zip.outputs.sha512_macos_zip }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Requirements
+      run: |
+          brew install coreutils
+          pip3 install Pyinstaller mutagen pycryptodomex websockets certifi
+    - name: Bump version
+      id: bump_version
+      run: python devscripts/update-version.py
+    - name: Print version
+      run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
+    - name: Run PyInstaller Script
+      run: python3 ./pyinst.py
+    - name: Upload yt-dlp_macos
+      id: upload-release-macos
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build_unix.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp_macos
+        asset_name: yt-dlp_macos
+        asset_content_type: application/octet-stream
+    - name: Get SHA2-256SUMS for yt-dlp_macos
+      id: sha256_macos
+      run: echo "::set-output name=sha256_macos::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
+    - name: Get SHA2-512SUMS for yt-dlp_macos
+      id: sha512_macos
+      run: echo "::set-output name=sha512_macos::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
+
+    - name: Run PyInstaller Script with --onedir
+      run: python3 ./pyinst.py --onedir
+    - uses: papeloto/action-zip@v1
+      with:
+        files: ./dist/yt-dlp_macos
+        dest: ./dist/yt-dlp_macos.zip
+    - name: Upload yt-dlp_macos onedir
+      id: upload-release-macos-zip
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build_unix.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp_macos.zip
+        asset_name: yt-dlp_macos.zip
+        asset_content_type: application/zip
+    - name: Get SHA2-256SUMS for yt-dlp_macos.zip
+      id: sha256_macos_zip
+      run: echo "::set-output name=sha256_macos_zip::$(sha256sum dist/yt-dlp_macos.zip | awk '{print $1}')"
+    - name: Get SHA2-512SUMS for yt-dlp_macos
+      id: sha512_macos_zip
+      run: echo "::set-output name=sha512_macos_zip::$(sha512sum dist/yt-dlp_macos.zip | awk '{print $1}')"
+
   build_windows:
     runs-on: windows-latest
     needs: build_unix
@@ -247,7 +310,7 @@ jobs:
 
   finish:
     runs-on: ubuntu-latest
-    needs: [build_unix, build_windows, build_windows32]
+    needs: [build_unix, build_windows, build_windows32, build_macos]
 
     steps:
     - name: Make SHA2-256SUMS file
@@ -255,11 +318,15 @@ jobs:
         SHA256_WIN: ${{ needs.build_windows.outputs.sha256_win }}
         SHA256_WIN_ZIP: ${{ needs.build_windows.outputs.sha256_win_zip }}
         SHA256_WIN32: ${{ needs.build_windows32.outputs.sha256_win32 }}
+        SHA256_MACOS: ${{ needs.build_macos.outputs.sha256_macos }}
+        SHA256_MACOS_ZIP: ${{ needs.build_macos.outputs.sha256_macos_zip }}
         SHA256_BIN: ${{ needs.build_unix.outputs.sha256_bin }}
         SHA256_TAR: ${{ needs.build_unix.outputs.sha256_tar }}
       run: |
         echo "${{ env.SHA256_WIN }}  yt-dlp.exe" >> SHA2-256SUMS
         echo "${{ env.SHA256_WIN32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
+        echo "${{ env.SHA256_MACOS }}  yt-dlp_macos" >> SHA2-256SUMS
+        echo "${{ env.SHA256_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-256SUMS
         echo "${{ env.SHA256_BIN }}  yt-dlp" >> SHA2-256SUMS
         echo "${{ env.SHA256_TAR }}  yt-dlp.tar.gz" >> SHA2-256SUMS
         echo "${{ env.SHA256_WIN_ZIP }}  yt-dlp.zip" >> SHA2-256SUMS
@@ -278,11 +345,15 @@ jobs:
         SHA512_WIN: ${{ needs.build_windows.outputs.sha512_win }}
         SHA512_WIN_ZIP: ${{ needs.build_windows.outputs.sha512_win_zip }}
         SHA512_WIN32: ${{ needs.build_windows32.outputs.sha512_win32 }}
+        SHA512_MACOS: ${{ needs.build_macos.outputs.sha512_macos }}
+        SHA512_MACOS_ZIP: ${{ needs.build_macos.outputs.sha512_macos_zip }}
         SHA512_BIN: ${{ needs.build_unix.outputs.sha512_bin }}
         SHA512_TAR: ${{ needs.build_unix.outputs.sha512_tar }}
       run: |
         echo "${{ env.SHA512_WIN }}  yt-dlp.exe" >> SHA2-512SUMS
         echo "${{ env.SHA512_WIN32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
+        echo "${{ env.SHA512_MACOS }}  yt-dlp_macos" >> SHA2-512SUMS
+        echo "${{ env.SHA512_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-512SUMS
         echo "${{ env.SHA512_BIN }}  yt-dlp" >> SHA2-512SUMS
         echo "${{ env.SHA512_TAR }}  yt-dlp.tar.gz" >> SHA2-512SUMS
         echo "${{ env.SHA512_WIN_ZIP }}  yt-dlp.zip" >> SHA2-512SUMS
