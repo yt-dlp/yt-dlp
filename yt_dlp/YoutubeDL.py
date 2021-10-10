@@ -2485,7 +2485,7 @@ class YoutubeDL(object):
             verbose = self.params.get('verbose')
             params = {
                 'test': True,
-                'quiet': not verbose,
+                'quiet': self.params.get('quiet') or not verbose,
                 'verbose': verbose,
                 'noprogress': not verbose,
                 'nopart': True,
