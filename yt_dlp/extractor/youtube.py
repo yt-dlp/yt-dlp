@@ -4682,9 +4682,9 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                             'id': video_playlist_id,
                             'url': f'https://www.youtube.com/watch?v={video_id_original}&list={video_playlist_id}',
                             'title': title,
-                            'description': description,
+                            'description': None,
                             'duration': duration,
-                            'view_count': view_count,
+                            'view_count': None,
                             'uploader': uploader,
                         }
                     total += 1
