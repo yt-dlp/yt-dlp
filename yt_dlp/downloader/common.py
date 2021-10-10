@@ -3,7 +3,6 @@ from __future__ import division, unicode_literals
 import copy
 import os
 import re
-import sys
 import time
 import random
 
@@ -247,9 +246,9 @@ class FileDownloader(object):
         elif self.ydl.params.get('logger'):
             self._multiline = MultilineLogger(self.ydl.params['logger'], lines)
         elif self.params.get('progress_with_newline'):
-            self._multiline = BreaklineStatusPrinter(sys.stderr, lines)
+            self._multiline = BreaklineStatusPrinter(self.ydl._screen_file, lines)
         else:
-            self._multiline = MultilinePrinter(sys.stderr, lines, not self.params.get('quiet'))
+            self._multiline = MultilinePrinter(self.ydl._screen_file, lines, not self.params.get('quiet'))
 
     def _finish_multiline_status(self):
         self._multiline.end()
