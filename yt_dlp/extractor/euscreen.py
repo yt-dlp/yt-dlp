@@ -12,7 +12,22 @@ from ..utils import (
 class EUScreenIE(InfoExtractor):
     _VALID_URL = r'(?:https?://)(?:www\.)?euscreen\.eu/item.html\?id=(?P<id>[^&?$/]+)'
 
-    _TESTS = []
+    _TESTS = [{
+        'url': 'https://euscreen.eu/item.html?id=EUS_0EBCBF356BFC4E12A014023BA41BD98C',
+        'info_dict': {
+            'id': 'EUS_0EBCBF356BFC4E12A014023BA41BD98C',
+            'ext': 'mp4',
+            'title': "L'effondrement du stade du Heysel",
+            'alt_title': 'Collapse of the Heysel Stadium',
+            'duration': 318.0,
+            'description': 'md5:f0ffffdfce6821139357a1b8359d6152',
+            'series': 'JA2 DERNIERE',
+            'episode': '-',
+            'uploader': 'INA /  France',
+            'thumbnail': 'http://images3.noterik.com/domain/euscreenxl/user/eu_ina/video/EUS_0EBCBF356BFC4E12A014023BA41BD98C/image.jpg'
+        },
+        'params': {'skip_download': True}
+    }]
 
     def _real_extract(self, url):
         id = self._match_id(url)
