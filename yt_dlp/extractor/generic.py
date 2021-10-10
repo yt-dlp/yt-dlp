@@ -135,6 +135,7 @@ from .arcpublishing import ArcPublishingIE
 from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
+from .youmaker import YoumakerIE
 
 
 class GenericIE(InfoExtractor):
@@ -2333,6 +2334,23 @@ class GenericIE(InfoExtractor):
                 'title': '40 ночей (2016) - BogMedia.org',
                 'thumbnail': 'https://bogmedia.org/contents/videos_screenshots/21000/21217/preview_480p.mp4.jpg',
             }
+        }, {
+            # Youmaker embedded video
+            'url': 'https://www.epochtimes.de/feuilleton/buecher/corona-impfung-was-aerzte-und-patienten-unbedingt-wissen-sollten-a3619532.html',
+            'info_dict': {
+                'extractor_key': 'Youmaker',
+                'id': '203108a4-b4c9-4a65-ac2e-dceac7e4e462',
+                'ext': 'mp4',
+                'title': '„Corona-Impfung – Was Ärzte und Patienten unbedingt wissen sollten“ – Das neue Buch von Beater Bahner',
+                'description': r're:.+\nÜber dem gesellschaftlichen Impf-Fieber schweben zahlreiche Fragezeichen\. .+',
+                'uploader': 'user_90e5b064ea27f8a750ba94e1d78fec6ed12c1b8e',
+                'timestamp': 1633712646,
+                'upload_date': '20211008',
+                'duration': 2789,
+            },
+            "params": {
+                "skip_download": True,
+            },
         },
     ]
 
@@ -2769,6 +2787,10 @@ class GenericIE(InfoExtractor):
         vhx_url = VHXEmbedIE._extract_url(webpage)
         if vhx_url:
             return self.url_result(vhx_url, VHXEmbedIE.ie_key())
+
+        youmaker_url = YoumakerIE._extract_url(webpage)
+        if youmaker_url:
+            return self.url_result(youmaker_url, YoumakerIE.ie_key())
 
         # Invidious Instances
         # https://github.com/yt-dlp/yt-dlp/issues/195
