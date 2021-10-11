@@ -1,5 +1,4 @@
 # coding: utf-8
-import os.path
 import re
 from operator import itemgetter
 from urllib.parse import urlparse, parse_qsl
@@ -176,6 +175,25 @@ class YoumakerIE(InfoExtractor):
     def _live_url(self, video_id):
         return self._fix_url(f'//live.youmaker.com/{video_id}/playlist.m3u8')
 
+    @staticmethod
+    def _try_server_urls(url):
+        """ as some playlist urls are invalid
+            we can generate possible candidates to try
+        """
+        if not url:
+            return []
+
+        match_replace = (("//vs.youmaker.com/", "//vs1.youmaker.com/"),
+                         ("//vs1.youmaker.com/", "//vs.youmaker.com/"),)
+        candidates = [url]
+
+        for match, replace in match_replace:
+            other_url = url.replace(match, replace)
+            if url != other_url:
+                candidates.append(other_url)
+
+        return candidates
+
     def _call_api(self, uid, path, what='JSON metadata', fatal=True, **kwargs):
         """
         call the YouMaker JSON API and return a valid data object
@@ -255,25 +273,27 @@ class YoumakerIE(InfoExtractor):
             f'{self._base_url}/channel/{info["channel_uid"]}' if 'channel_uid' in info else None)
         duration = video_info.get('duration')
 
-        playlist = traverse_obj(video_info, ['videoAssets', 'Stream'], expected_type=str)
-        if info.get('live') and playlist is None:
+        playlist_url = traverse_obj(video_info, ['videoAssets', 'Stream'], expected_type=str)
+        if info.get('live') and playlist_url is None:
             is_live = True
-            playlist = self._live_url(video_uid)
+            playlist_url = self._live_url(video_uid)
             if info.get('live_status') != 'start':
                 self.report_warning('Live stream might not be ready yet.', video_id=video_uid)
         else:
             is_live = False
 
-        if playlist:
-            playlist_name = os.path.basename(playlist)
+        formats = []
+        playlist_subtitles = {}
+        for count, candidate_url in enumerate(self._try_server_urls(playlist_url)):
+            if count > 0:
+                self.report_warning(
+                    f"Missing m3u8 info. Trying alternative server ({count})")
             formats, playlist_subtitles = self._extract_m3u8_formats_and_subtitles(
-                self._fix_url(playlist), video_uid, ext='mp4',
+                self._fix_url(candidate_url), video_uid, ext='mp4',
                 entry_protocol='m3u8' if is_live else 'm3u8_native',
-                note=f'Downloading {playlist_name}',
-                errnote=f'{video_uid} ({playlist_name})', fatal=False)
-        else:
-            formats = []
-            playlist_subtitles = {}
+                errnote=False, fatal=False)
+            if formats:
+                break
 
         if not formats:
             # as there are some videos on the platform with missing playlist
@@ -281,7 +301,7 @@ class YoumakerIE(InfoExtractor):
             raise ExtractorError(
                 'No video formats found!',
                 video_id=video_uid,
-                expected=playlist is not None)
+                expected=playlist_url is not None)
 
         # sometimes there are duplicate entries, so filter we them out
         format_mapping = {item['url']: item for item in formats}
