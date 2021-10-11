@@ -1,7 +1,6 @@
 # coding: utf-8
 import os.path
 import re
-from collections import Sequence
 from operator import itemgetter
 from urllib.parse import urlparse, parse_qsl
 
@@ -330,7 +329,7 @@ class YoumakerIE(InfoExtractor):
                 path='playlist/video',
                 what=f'playlist entries {offset + 1}-{offset + page_size}',
                 query={'playlist_uid': uid, 'offset': offset, 'limit': page_size})
-            if not isinstance(info, Sequence):
+            if not isinstance(info, list):
                 raise ExtractorError('Unexpected playlist entries', uid, expected=False)
 
             for item in info:
@@ -352,7 +351,7 @@ class YoumakerIE(InfoExtractor):
                 path=f'video/channel/{uid}',
                 what=f'channel entries {offset + 1}-{offset + page_size}',
                 query={'offset': offset, 'limit': page_size})
-            if not isinstance(info, Sequence):
+            if not isinstance(info, list):
                 raise ExtractorError('Unexpected channel entries', uid, expected=False)
 
             for item in info:
