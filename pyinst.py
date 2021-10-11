@@ -95,7 +95,7 @@ def pycryptodome_module():
     return 'Cryptodome'
 
 
-dependancies = [pycryptodome_module(), 'mutagen', 'certifi'] + collect_submodules('websockets')
+dependancies = [pycryptodome_module(), 'mutagen'] + collect_submodules('websockets')
 excluded_modules = ['test', 'ytdlp_plugins', 'youtube-dl', 'youtube-dlc']
 
 PyInstaller.__main__.run([
