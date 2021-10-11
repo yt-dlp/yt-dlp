@@ -145,6 +145,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    # In order to create a universal2 application, the version of python3 in /usr/bin has to be used
     - name: Install Requirements
       run: |
           brew install coreutils
