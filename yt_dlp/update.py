@@ -33,13 +33,11 @@ def rsa_verify(message, signature, key):
 
 def detect_variant():
     if hasattr(sys, 'frozen'):
+        prefix = 'mac' if sys.platform == 'darwin' else 'win'
         if getattr(sys, '_MEIPASS', None):
             if sys._MEIPASS == os.path.dirname(sys.executable):
-                return 'dir'
-            if platform.system() == 'Darwin':
-                return 'mac_bin'
-            else:
-                return 'exe'
+                return f'{prefix}_dir'
+            return f'{prefix}_exe'
         return 'py2exe'
     elif isinstance(globals().get('__loader__'), zipimporter):
         return 'zip'
@@ -49,10 +47,11 @@ def detect_variant():
 
 
 _NON_UPDATEABLE_REASONS = {
-    'exe': None,
+    'win_exe': None,
     'zip': None,
-    'mac_bin': None,
-    'dir': 'Auto-update is not supported for unpackaged windows executable; Re-download the latest release',
+    'win_dir': 'Auto-update is not supported for unpackaged windows executable; Re-download the latest release',
+    'mac_exe': 'Auto-update is not supported for standalone MacOS executable; Re-download the latest release',
+    'mac_dir': 'Auto-update is not supported for unpackaged MacOS executable; Re-download the latest release',
     'py2exe': 'There is no official release for py2exe executable; Build it again with the latest source code',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
     'unknown': 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball; Use that to update',
@@ -145,7 +144,7 @@ def run_update(ydl):
 
     # PyInstaller
     variant = detect_variant()
-    if variant == 'exe':
+    if variant == 'win_exe':
         exe = filename
         directory = os.path.dirname(exe)
         if not os.access(directory, os.W_OK):
