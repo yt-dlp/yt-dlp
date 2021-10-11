@@ -406,6 +406,10 @@ class InfoExtractor(object):
     _real_extract() methods and define a _VALID_URL regexp.
     Probably, they should also be added to the list of extractors.
 
+    Subclasses may also override suitable() if necessary, but ensure the function
+    signature is preserved and that this function imports everything it needs
+    (except other extractors), so that lazy_extractors works correctly
+
     _GEO_BYPASS attribute may be set to False in order to disable
     geo restriction bypass mechanisms for a particular extractor.
     Though it won't disable explicit geo restriction bypass based on
@@ -421,7 +425,7 @@ class InfoExtractor(object):
     will be used by geo restriction bypass mechanism similarly
     to _GEO_COUNTRIES.
 
-    Finally, the _WORKING attribute should be set to False for broken IEs
+    The _WORKING attribute should be set to False for broken IEs
     in order to warn the users and skip the tests.
     """
 
@@ -1130,10 +1134,7 @@ class InfoExtractor(object):
                 if mobj:
                     break
 
-        if not self.get_param('no_color') and compat_os_name != 'nt' and sys.stderr.isatty():
-            _name = '\033[0;34m%s\033[0m' % name
-        else:
-            _name = name
+        _name = self._downloader._color_text(name, 'blue')
 
         if mobj:
             if group is None:
@@ -1677,7 +1678,7 @@ class InfoExtractor(object):
                 has_multiple_limits = has_limit and has_multiple_fields and not self._get_field_setting(field, 'same_limit')
 
                 fields = self._get_field_setting(field, 'field') if has_multiple_fields else (field,)
-                limits = limit_text.split(":") if has_multiple_limits else (limit_text,) if has_limit else tuple()
+                limits = limit_text.split(':') if has_multiple_limits else (limit_text,) if has_limit else tuple()
                 limit_count = len(limits)
                 for (i, f) in enumerate(fields):
                     add_item(f, reverse, closest,
@@ -1761,9 +1762,9 @@ class InfoExtractor(object):
                 if format.get('vbr') is not None and format.get('abr') is not None:
                     format['tbr'] = format.get('vbr', 0) + format.get('abr', 0)
             else:
-                if format.get('vcodec') != "none" and format.get('vbr') is None:
+                if format.get('vcodec') != 'none' and format.get('vbr') is None:
                     format['vbr'] = format.get('tbr') - format.get('abr', 0)
-                if format.get('acodec') != "none" and format.get('abr') is None:
+                if format.get('acodec') != 'none' and format.get('abr') is None:
                     format['abr'] = format.get('tbr') - format.get('vbr', 0)
 
             return tuple(self._calculate_field_preference(format, field) for field in self._order)
@@ -1965,13 +1966,16 @@ class InfoExtractor(object):
             'format_note': 'Quality selection URL',
         }
 
+    def _report_ignoring_subs(self, name):
+        self.report_warning(bug_reports_message(
+            f'Ignoring subtitle tracks found in the {name} manifest; '
+            'if any subtitle tracks are missing,'
+        ), only_once=True)
+
     def _extract_m3u8_formats(self, *args, **kwargs):
         fmts, subs = self._extract_m3u8_formats_and_subtitles(*args, **kwargs)
         if subs:
-            self.report_warning(bug_reports_message(
-                "Ignoring subtitle tracks found in the HLS manifest; "
-                "if any subtitle tracks are missing,"
-            ), only_once=True)
+            self._report_ignoring_subs('HLS')
         return fmts
 
     def _extract_m3u8_formats_and_subtitles(
@@ -2219,6 +2223,25 @@ class InfoExtractor(object):
                 last_stream_inf = {}
         return formats, subtitles
 
+    def _extract_m3u8_vod_duration(
+            self, m3u8_vod_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
+
+        m3u8_vod = self._download_webpage(
+            m3u8_vod_url, video_id,
+            note='Downloading m3u8 VOD manifest' if note is None else note,
+            errnote='Failed to download VOD manifest' if errnote is None else errnote,
+            fatal=False, data=data, headers=headers, query=query)
+
+        return self._parse_m3u8_vod_duration(m3u8_vod or '', video_id)
+
+    def _parse_m3u8_vod_duration(self, m3u8_vod, video_id):
+        if '#EXT-X-PLAYLIST-TYPE:VOD' not in m3u8_vod:
+            return None
+
+        return int(sum(
+            float(line[len('#EXTINF:'):].split(',')[0])
+            for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
+
     @staticmethod
     def _xpath_ns(path, namespace=None):
         if not namespace:
@@ -2250,10 +2273,7 @@ class InfoExtractor(object):
     def _extract_smil_formats(self, *args, **kwargs):
         fmts, subs = self._extract_smil_formats_and_subtitles(*args, **kwargs)
         if subs:
-            self.report_warning(bug_reports_message(
-                "Ignoring subtitle tracks found in the SMIL manifest; "
-                "if any subtitle tracks are missing,"
-            ), only_once=True)
+            self._report_ignoring_subs('SMIL')
         return fmts
 
     def _extract_smil_info(self, smil_url, video_id, fatal=True, f4m_params=None):
@@ -2323,14 +2343,15 @@ class InfoExtractor(object):
         rtmp_count = 0
         http_count = 0
         m3u8_count = 0
+        imgs_count = 0
 
-        srcs = []
+        srcs = set()
         media = smil.findall(self._xpath_ns('.//video', namespace)) + smil.findall(self._xpath_ns('.//audio', namespace))
         for medium in media:
             src = medium.get('src')
             if not src or src in srcs:
                 continue
-            srcs.append(src)
+            srcs.add(src)
 
             bitrate = float_or_none(medium.get('system-bitrate') or medium.get('systemBitrate'), 1000)
             filesize = int_or_none(medium.get('size') or medium.get('fileSize'))
@@ -2404,6 +2425,24 @@ class InfoExtractor(object):
                     'height': height,
                 })
 
+        for medium in smil.findall(self._xpath_ns('.//imagestream', namespace)):
+            src = medium.get('src')
+            if not src or src in srcs:
+                continue
+            srcs.add(src)
+
+            imgs_count += 1
+            formats.append({
+                'format_id': 'imagestream-%d' % (imgs_count),
+                'url': src,
+                'ext': mimetype2ext(medium.get('type')),
+                'acodec': 'none',
+                'vcodec': 'none',
+                'width': int_or_none(medium.get('width')),
+                'height': int_or_none(medium.get('height')),
+                'format_note': 'SMIL storyboards',
+            })
+
         return formats
 
     def _parse_smil_subtitles(self, smil, namespace=None, subtitles_lang='en'):
@@ -2476,10 +2515,7 @@ class InfoExtractor(object):
     def _extract_mpd_formats(self, *args, **kwargs):
         fmts, subs = self._extract_mpd_formats_and_subtitles(*args, **kwargs)
         if subs:
-            self.report_warning(bug_reports_message(
-                "Ignoring subtitle tracks found in the DASH manifest; "
-                "if any subtitle tracks are missing,"
-            ), only_once=True)
+            self._report_ignoring_subs('DASH')
         return fmts
 
     def _extract_mpd_formats_and_subtitles(
@@ -2503,10 +2539,7 @@ class InfoExtractor(object):
     def _parse_mpd_formats(self, *args, **kwargs):
         fmts, subs = self._parse_mpd_formats_and_subtitles(*args, **kwargs)
         if subs:
-            self.report_warning(bug_reports_message(
-                "Ignoring subtitle tracks found in the DASH manifest; "
-                "if any subtitle tracks are missing,"
-            ), only_once=True)
+            self._report_ignoring_subs('DASH')
         return fmts
 
     def _parse_mpd_formats_and_subtitles(
@@ -2834,10 +2867,7 @@ class InfoExtractor(object):
     def _extract_ism_formats(self, *args, **kwargs):
         fmts, subs = self._extract_ism_formats_and_subtitles(*args, **kwargs)
         if subs:
-            self.report_warning(bug_reports_message(
-                "Ignoring subtitle tracks found in the ISM manifest; "
-                "if any subtitle tracks are missing,"
-            ))
+            self._report_ignoring_subs('ISM')
         return fmts
 
     def _extract_ism_formats_and_subtitles(self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True, data=None, headers={}, query={}):
@@ -3097,10 +3127,7 @@ class InfoExtractor(object):
     def _extract_akamai_formats(self, *args, **kwargs):
         fmts, subs = self._extract_akamai_formats_and_subtitles(*args, **kwargs)
         if subs:
-            self.report_warning(bug_reports_message(
-                "Ignoring subtitle tracks found in the manifests; "
-                "if any subtitle tracks are missing,"
-            ))
+            self._report_ignoring_subs('akamai')
         return fmts
 
     def _extract_akamai_formats_and_subtitles(self, manifest_url, video_id, hosts={}):

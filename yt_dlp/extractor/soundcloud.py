@@ -707,6 +707,8 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudIE):
                 yield resolve_entry(e, e.get('track'), e.get('playlist'))
 
             url = response.get('next_href')
+            if not url:
+                break
             query.pop('offset', None)
 
 

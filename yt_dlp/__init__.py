@@ -302,11 +302,14 @@ def _real_main(argv=None):
             parser.error('invalid %s %r: %s' % (msg, tmpl, error_to_compat_str(err)))
 
     for k, tmpl in opts.outtmpl.items():
-        validate_outtmpl(tmpl, '%s output template' % k)
+        validate_outtmpl(tmpl, f'{k} output template')
     opts.forceprint = opts.forceprint or []
     for tmpl in opts.forceprint or []:
         validate_outtmpl(tmpl, 'print template')
     validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
+    for k, tmpl in opts.progress_template.items():
+        k = f'{k[:-6]} console title' if '-title' in k else f'{k} progress'
+        validate_outtmpl(tmpl, f'{k} template')
 
     if opts.extractaudio and not opts.keepvideo and opts.format is None:
         opts.format = 'bestaudio/best'
@@ -418,7 +421,7 @@ def _real_main(argv=None):
         opts.sponskrub = False
 
     # PostProcessors
-    postprocessors = []
+    postprocessors = list(opts.add_postprocessors)
     if sponsorblock_query:
         postprocessors.append({
             'key': 'SponsorBlock',
@@ -513,6 +516,7 @@ def _real_main(argv=None):
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
         })
+    # Note: Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
     # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
@@ -535,6 +539,7 @@ def _real_main(argv=None):
         })
         if not already_have_thumbnail:
             opts.writethumbnail = True
+            opts.outtmpl['pl_thumbnail'] = ''
     if opts.split_chapters:
         postprocessors.append({
             'key': 'FFmpegSplitChapters',
@@ -631,8 +636,9 @@ def _real_main(argv=None):
         'noresizebuffer': opts.noresizebuffer,
         'http_chunk_size': opts.http_chunk_size,
         'continuedl': opts.continue_dl,
-        'noprogress': opts.noprogress,
+        'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
         'progress_with_newline': opts.progress_with_newline,
+        'progress_template': opts.progress_template,
         'playliststart': opts.playliststart,
         'playlistend': opts.playlistend,
         'playlistreverse': opts.playlist_reverse,
@@ -729,10 +735,6 @@ def _real_main(argv=None):
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
         'warnings': warnings,
         'compat_opts': compat_opts,
-        # just for deprecation check
-        'autonumber': opts.autonumber or None,
-        'usetitle': opts.usetitle or None,
-        'useid': opts.useid or None,
     }
 
     with YoutubeDL(ydl_opts) as ydl:

@@ -112,7 +112,7 @@ _EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
-yt-dlp.tar.gz: yt-dlp README.md supportedsites.md yt-dlp.1 completions Changelog.md AUTHORS
+yt-dlp.tar.gz: all
 	@tar -czf $(DESTDIR)/yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
@@ -121,12 +121,12 @@ yt-dlp.tar.gz: yt-dlp README.md supportedsites.md yt-dlp.1 completions Changelog
 		--exclude '*~' \
 		--exclude '__pycache__' \
 		--exclude '.git' \
-		--exclude 'docs/_build' \
 		-- \
-		devscripts test \
-		Changelog.md AUTHORS LICENSE README.md supportedsites.md \
-		Makefile MANIFEST.in yt-dlp.1 completions \
-		setup.py setup.cfg yt-dlp yt_dlp
+		README.md supportedsites.md Changelog.md LICENSE \
+		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
+		Makefile MANIFEST.in yt-dlp.1 README.txt completions \
+		setup.py setup.cfg yt-dlp yt_dlp requirements.txt \
+		devscripts test tox.ini pytest.ini
 
 AUTHORS: .mailmap
 	git shortlog -s -n | cut -f2 | sort > AUTHORS

@@ -42,6 +42,7 @@ class NewgroundsIE(InfoExtractor):
             'timestamp': 955064100,
             'upload_date': '20000406',
             'description': 'Scrotum plays "catch."',
+            'age_limit': 17,
         },
     }, {
         # source format unavailable, additional mp4 formats
@@ -54,6 +55,7 @@ class NewgroundsIE(InfoExtractor):
             'timestamp': 1487965140,
             'upload_date': '20170224',
             'description': 'ZTV News Episode 8 (February 2017)',
+            'age_limit': 17,
         },
         'params': {
             'skip_download': True,
@@ -69,6 +71,7 @@ class NewgroundsIE(InfoExtractor):
             'timestamp': 1140663240,
             'upload_date': '20060223',
             'description': 'Metal Gear is awesome is so is this movie.',
+            'age_limit': 13,
         }
     }, {
         'url': 'https://www.newgrounds.com/portal/view/297383/format/flash',
@@ -81,8 +84,15 @@ class NewgroundsIE(InfoExtractor):
             'uploader': 'Egoraptor',
             'upload_date': '20060223',
             'timestamp': 1140663240,
+            'age_limit': 13,
         }
     }]
+    _AGE_LIMIT = {
+        'e': 0,
+        't': 13,
+        'm': 17,
+        'a': 18,
+    }
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
@@ -127,12 +137,16 @@ class NewgroundsIE(InfoExtractor):
                  r'(?:Author|Writer)\s*<a[^>]+>([^<]+)'), webpage, 'uploader',
                 fatal=False)
 
+        age_limit = self._html_search_regex(
+            r'<h2\s*class=["\']rated-([^"\'])["\'][^>]+>', webpage, 'age_limit', default='e')
+        age_limit = self._AGE_LIMIT.get(age_limit)
+
         timestamp = unified_timestamp(self._html_search_regex(
             (r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+</dd>\s*<dd>[^<]+)',
              r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+)'), webpage, 'timestamp',
             default=None))
         duration = parse_duration(self._html_search_regex(
-            r'"duration"\s*:\s*["\']?([\d]+)["\']?,', webpage,
+            r'"duration"\s*:\s*["\']?(\d+)["\']?', webpage,
             'duration', default=None))
 
         view_count = parse_count(self._html_search_regex(
@@ -164,6 +178,7 @@ class NewgroundsIE(InfoExtractor):
             'formats': formats,
             'thumbnail': self._og_search_thumbnail(webpage),
             'description': self._og_search_description(webpage),
+            'age_limit': age_limit,
             'view_count': view_count,
         }
 

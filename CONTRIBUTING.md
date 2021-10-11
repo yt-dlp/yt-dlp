@@ -1,26 +1,59 @@
-**Please include the full output of youtube-dl when run with `-v`**, i.e. **add** `-v` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
+# CONTRIBUTING TO YT-DLP
+
+- [OPENING AN ISSUE](#opening-an-issue)
+    - [Is the description of the issue itself sufficient?](#is-the-description-of-the-issue-itself-sufficient)
+    - [Are you using the latest version?](#are-you-using-the-latest-version)
+    - [Is the issue already documented?](#is-the-issue-already-documented)
+    - [Why are existing options not enough?](#why-are-existing-options-not-enough)
+    - [Have you read and understood the changes, between youtube-dl and yt-dlp](#have-you-read-and-understood-the-changes-between-youtube-dl-and-yt-dlp)
+    - [Is there enough context in your bug report?](#is-there-enough-context-in-your-bug-report)
+    - [Does the issue involve one problem, and one problem only?](#does-the-issue-involve-one-problem-and-one-problem-only)
+    - [Is anyone going to need the feature?](#is-anyone-going-to-need-the-feature)
+    - [Is your question about yt-dlp?](#is-your-question-about-yt-dlp)
+- [DEVELOPER INSTRUCTIONS](#developer-instructions)
+    - [Adding new feature or making overarching changes](#adding-new-feature-or-making-overarching-changes)
+    - [Adding support for a new site](#adding-support-for-a-new-site)
+    - [yt-dlp coding conventions](#yt-dlp-coding-conventions)
+        - [Mandatory and optional metafields](#mandatory-and-optional-metafields)
+        - [Provide fallbacks](#provide-fallbacks)
+        - [Regular expressions](#regular-expressions)
+        - [Long lines policy](#long-lines-policy)
+        - [Inline values](#inline-values)
+        - [Collapse fallbacks](#collapse-fallbacks)
+        - [Trailing parentheses](#trailing-parentheses)
+        - [Use convenience conversion and parsing functions](#use-convenience-conversion-and-parsing-functions)
+- [EMBEDDING YT-DLP](README.md#embedding-yt-dlp)
+
+
+
+# OPENING AN ISSUE
+
+Bugs and suggestions should be reported at: [yt-dlp/yt-dlp/issues](https://github.com/yt-dlp/yt-dlp/issues). Unless you were prompted to or there is another pertinent reason (e.g. GitHub fails to accept the bug report), please do not send bug reports via personal email. For discussions, join us in our [discord server](https://discord.gg/H5MNcFW63r).
+
+**Please include the full output of yt-dlp when run with `-Uv`**, i.e. **add** `-Uv` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
 ```
-$ youtube-dl -v <your command line>
-[debug] System config: []
-[debug] User config: []
-[debug] Command-line args: [u'-v', u'https://www.youtube.com/watch?v=BaW_jenozKc']
-[debug] Encodings: locale cp1251, fs mbcs, out cp866, pref cp1251
-[debug] youtube-dl version 2015.12.06
-[debug] Git HEAD: 135392e
-[debug] Python version 2.6.6 - Windows-2003Server-5.2.3790-SP2
-[debug] exe versions: ffmpeg N-75573-g1d0487f, ffprobe N-75573-g1d0487f, rtmpdump 2.4
+$ yt-dlp -Uv <your command line>
+[debug] Command-line config: ['-v', 'demo.com']
+[debug] Encodings: locale UTF-8, fs utf-8, out utf-8, pref UTF-8
+[debug] yt-dlp version 2021.09.25 (zip)
+[debug] Python version 3.8.10 (CPython 64bit) - Linux-5.4.0-74-generic-x86_64-with-glibc2.29
+[debug] exe versions: ffmpeg 4.2.4, ffprobe 4.2.4
 [debug] Proxy map: {}
+Current Build Hash 25cc412d1d3c0725a1f2f5b7e4682f6fb40e6d15f7024e96f7afd572e9919535
+yt-dlp is up to date (2021.09.25)
 ...
 ```
 **Do not post screenshots of verbose logs; only plain text is acceptable.**
 
-The output (including the first lines) contains important debugging information. Issues without the full output are often not reproducible and therefore do not get solved in short order, if ever.
+The output (including the first lines) contains important debugging information. Issues without the full output are often not reproducible and therefore will be closed as `incomplete`.
+
+The templates provided for the Issues, should be completed and **not removed**, this helps aide the resolution of the issue.
 
 Please re-read your issue once again to avoid a couple of common mistakes (you can and should use this as a checklist):
 
 ### Is the description of the issue itself sufficient?
 
-We often get issue reports that we cannot really decipher. While in most cases we eventually get the required information after asking back multiple times, this poses an unnecessary drain on our resources. Many contributors, including myself, are also not native speakers, so we may misread some parts.
+We often get issue reports that we cannot really decipher. While in most cases we eventually get the required information after asking back multiple times, this poses an unnecessary drain on our resources.
 
 So please elaborate on what feature you are requesting, or what bug you want to be fixed. Make sure that it's obvious
 
@@ -28,25 +61,31 @@ So please elaborate on what feature you are requesting, or what bug you want to 
 - How it could be fixed
 - How your proposed solution would look like
 
-If your report is shorter than two lines, it is almost certainly missing some of these, which makes it hard for us to respond to it. We're often too polite to close the issue outright, but the missing info makes misinterpretation likely. As a committer myself, I often get frustrated by these issues, since the only possible way for me to move forward on them is to ask for clarification over and over.
+If your report is shorter than two lines, it is almost certainly missing some of these, which makes it hard for us to respond to it. We're often too polite to close the issue outright, but the missing info makes misinterpretation likely. We often get frustrated by these issues, since the only possible way for us to move forward on them is to ask for clarification over and over.
 
-For bug reports, this means that your report should contain the *complete* output of youtube-dl when called with the `-v` flag. The error message you get for (most) bugs even says so, but you would not believe how many of our bug reports do not contain this information.
+For bug reports, this means that your report should contain the **complete** output of yt-dlp when called with the `-Uv` flag. The error message you get for (most) bugs even says so, but you would not believe how many of our bug reports do not contain this information.
 
-If your server has multiple IPs or you suspect censorship, adding `--call-home` may be a good idea to get more diagnostics. If the error is `ERROR: Unable to extract ...` and you cannot reproduce it from multiple countries, add `--dump-pages` (warning: this will yield a rather large output, redirect it to the file `log.txt` by adding `>log.txt 2>&1` to your command-line) or upload the `.dump` files you get when you add `--write-pages` [somewhere](https://gist.github.com/).
+If the error is `ERROR: Unable to extract ...` and you cannot reproduce it from multiple countries, add `--write-pages` and upload the `.dump` files you get [somewhere](https://gist.github.com).
 
 **Site support requests must contain an example URL**. An example URL is a URL you might want to download, like `https://www.youtube.com/watch?v=BaW_jenozKc`. There should be an obvious video present. Except under very special circumstances, the main page of a video service (e.g. `https://www.youtube.com/`) is *not* an example URL.
 
 ###  Are you using the latest version?
 
-Before reporting any issue, type `youtube-dl -U`. This should report that you're up-to-date. About 20% of the reports we receive are already fixed, but people are using outdated versions. This goes for feature requests as well.
+Before reporting any issue, type `yt-dlp -U`. This should report that you're up-to-date. This goes for feature requests as well.
 
 ###  Is the issue already documented?
 
-Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/ytdl-org/youtube-dl/search?type=Issues) of this repository. If there is an issue, feel free to write something along the lines of "This affects me as well, with version 2015.01.01. Here is some more information on the issue: ...". While some issues may be old, a new post into them often spurs rapid activity.
+Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/yt-dlp/yt-dlp/search?type=Issues) of this repository. If there is an issue, feel free to write something along the lines of "This affects me as well, with version 2021.01.01. Here is some more information on the issue: ...". While some issues may be old, a new post into them often spurs rapid activity.
+
+Additionally, it is also helpful to see if the issue has already been documented in the [youtube-dl issue tracker](https://github.com/ytdl-org/youtube-dl/issues). If similar issues have already been reported in youtube-dl (but not in our issue tracker), links to them can be included in your issue report here.
 
 ###  Why are existing options not enough?
 
-Before requesting a new feature, please have a quick peek at [the list of supported options](https://github.com/ytdl-org/youtube-dl/blob/master/README.md#options). Many feature requests are for features that actually exist already! Please, absolutely do show off your work in the issue report and detail how the existing similar options do *not* solve your problem.
+Before requesting a new feature, please have a quick peek at [the list of supported options](README.md#usage-and-options). Many feature requests are for features that actually exist already! Please, absolutely do show off your work in the issue report and detail how the existing similar options do *not* solve your problem.
+
+###  Have you read and understood the changes, between youtube-dl and yt-dlp
+
+There are many changes between youtube-dl and yt-dlp [(changes to default behavior)](README.md#differences-in-default-behavior), and some of the options available have a different behaviour in yt-dlp, or have been removed all together [(list of changes to options)](README.md#deprecated-options). Make sure you have read and understand the differences in the options and how this may impact your downloads before opening an issue.
 
 ###  Is there enough context in your bug report?
 
@@ -58,23 +97,28 @@ We are then presented with a very complicated request when the original problem 
 
 Some of our users seem to think there is a limit of issues they can or should open. There is no limit of issues they can or should open. While it may seem appealing to be able to dump all your issues into one ticket, that means that someone who solves one of your issues cannot mark the issue as closed. Typically, reporting a bunch of issues leads to the ticket lingering since nobody wants to attack that behemoth, until someone mercifully splits the issue into multiple ones.
 
-In particular, every site support request issue should only pertain to services at one site (generally under a common domain, but always using the same backend technology). Do not request support for vimeo user videos, White house podcasts, and Google Plus pages in the same issue. Also, make sure that you don't post bug reports alongside feature requests. As a rule of thumb, a feature request does not include outputs of youtube-dl that are not immediately related to the feature at hand. Do not post reports of a network error alongside the request for a new video service.
+In particular, every site support request issue should only pertain to services at one site (generally under a common domain, but always using the same backend technology). Do not request support for vimeo user videos, White house podcasts, and Google Plus pages in the same issue. Also, make sure that you don't post bug reports alongside feature requests. As a rule of thumb, a feature request does not include outputs of yt-dlp that are not immediately related to the feature at hand. Do not post reports of a network error alongside the request for a new video service.
 
 ###  Is anyone going to need the feature?
 
 Only post features that you (or an incapacitated friend you can personally talk to) require. Do not post features because they seem like a good idea. If they are really useful, they will be requested by someone who requires them.
 
-###  Is your question about youtube-dl?
+###  Is your question about yt-dlp?
 
-It may sound strange, but some bug reports we receive are completely unrelated to youtube-dl and relate to a different, or even the reporter's own, application. Please make sure that you are actually using youtube-dl. If you are using a UI for youtube-dl, report the bug to the maintainer of the actual application providing the UI. On the other hand, if your UI for youtube-dl fails in some way you believe is related to youtube-dl, by all means, go ahead and report the bug.
+Some bug reports are completely unrelated to yt-dlp and relate to a different, or even the reporter's own, application. Please make sure that you are actually using yt-dlp. If you are using a UI for yt-dlp, report the bug to the maintainer of the actual application providing the UI. On the other hand, if your UI for yt-dlp fails in some way you believe is related to yt-dlp, by all means, go ahead and report the bug.
+
+If the issue is with `youtube-dl` (the upstream fork of yt-dlp) and not with yt-dlp, the issue should be raised in the youtube-dl project.
+
+
+
 
 # DEVELOPER INSTRUCTIONS
 
-Most users do not need to build youtube-dl and can [download the builds](https://ytdl-org.github.io/youtube-dl/download.html) or get them from their distribution.
+Most users do not need to build yt-dlp and can [download the builds](https://github.com/yt-dlp/yt-dlp/releases) or get them via [the other installation methods](README.md#installation).
 
-To run youtube-dl as a developer, you don't need to build anything either. Simply execute
+To run yt-dlp as a developer, you don't need to build anything either. Simply execute
 
-    python -m youtube_dl
+    python -m yt_dlp
 
 To run the test, simply invoke your favorite test runner, or execute a test file directly; any of the following work:
 
@@ -85,42 +129,42 @@ To run the test, simply invoke your favorite test runner, or execute a test file
 
 See item 6 of [new extractor tutorial](#adding-support-for-a-new-site) for how to run extractor specific test cases.
 
-If you want to create a build of youtube-dl yourself, you'll need
+If you want to create a build of yt-dlp yourself, you can follow the instructions [here](README.md#compile).
 
-* python3
-* make (only GNU make is supported)
-* pandoc
-* zip
-* pytest
 
-### Adding support for a new site
+## Adding new feature or making overarching changes
 
-If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](README.md#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free)**. youtube-dl does **not support** such sites thus pull requests adding support for them **will be rejected**.
+Before you start writing code for implementing a new feature, open an issue explaining your feature request and atleast one use case. This allows the maintainers to decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
+
+The same applies for overarching changes to the architecture, documentation or code style
+
+
+## Adding support for a new site
+
+If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](https://www.github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
 
 After you have ensured this site is distributing its content legally, you can follow this quick list (assuming your service is called `yourextractor`):
 
-1. [Fork this repository](https://github.com/ytdl-org/youtube-dl/fork)
-2. Check out the source code with:
+1. [Fork this repository](https://github.com/yt-dlp/yt-dlp/fork)
+1. Check out the source code with:
 
-        git clone git@github.com:YOUR_GITHUB_USERNAME/youtube-dl.git
+        git clone git@github.com:YOUR_GITHUB_USERNAME/yt-dlp.git
 
-3. Start a new git branch with
+1. Start a new git branch with
 
-        cd youtube-dl
+        cd yt-dlp
         git checkout -b yourextractor
 
-4. Start with this simple template and save it to `youtube_dl/extractor/yourextractor.py`:
+1. Start with this simple template and save it to `yt_dlp/extractor/yourextractor.py`:
 
     ```python
     # coding: utf-8
-    from __future__ import unicode_literals
-
     from .common import InfoExtractor
-
-
+    
+    
     class YourExtractorIE(InfoExtractor):
         _VALID_URL = r'https?://(?:www\.)?yourextractor\.com/watch/(?P<id>[0-9]+)'
-        _TEST = {
+        _TESTS = [{
             'url': 'https://yourextractor.com/watch/42',
             'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
             'info_dict': {
@@ -134,12 +178,12 @@ After you have ensured this site is distributing its content legally, you can fo
                 # * A regular expression; start the string with re:
                 # * Any Python type (for example int or float)
             }
-        }
+        }]
 
         def _real_extract(self, url):
             video_id = self._match_id(url)
             webpage = self._download_webpage(url, video_id)
-
+    
             # TODO more code goes here, for example ...
             title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
 
@@ -148,45 +192,48 @@ After you have ensured this site is distributing its content legally, you can fo
                 'title': title,
                 'description': self._og_search_description(webpage),
                 'uploader': self._search_regex(r'<div[^>]+id="uploader"[^>]*>([^<]+)<', webpage, 'uploader', fatal=False),
-                # TODO more properties (see youtube_dl/extractor/common.py)
+                # TODO more properties (see yt_dlp/extractor/common.py)
             }
     ```
-5. Add an import in [`youtube_dl/extractor/extractors.py`](https://github.com/ytdl-org/youtube-dl/blob/master/youtube_dl/extractor/extractors.py).
-6. Run `python test/test_download.py TestDownload.test_YourExtractor`. This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, then rename ``_TEST`` to ``_TESTS`` and make it into a list of dictionaries. The tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in.
-7. Have a look at [`youtube_dl/extractor/common.py`](https://github.com/ytdl-org/youtube-dl/blob/master/youtube_dl/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](https://github.com/ytdl-org/youtube-dl/blob/7f41a598b3fba1bcab2817de64a08941200aa3c8/youtube_dl/extractor/common.py#L94-L303). Add tests and code for as many as you want.
-8. Make sure your code follows [youtube-dl coding conventions](#youtube-dl-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
+1. Add an import in [`yt_dlp/extractor/extractors.py`](yt_dlp/extractor/extractors.py).
+1. Run `python test/test_download.py TestDownload.test_YourExtractor`. This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
+1. Make sure you have atleast one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the purticular test is disabled from running.
+1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L91-L426). Add tests and code for as many as you want.
+1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
 
-        $ flake8 youtube_dl/extractor/yourextractor.py
+        $ flake8 yt_dlp/extractor/yourextractor.py
 
-9. Make sure your code works under all [Python](https://www.python.org/) versions claimed supported by youtube-dl, namely 2.6, 2.7, and 3.2+.
-10. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files and [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatability is not required for even older versions of Python.
+1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
-        $ git add youtube_dl/extractor/extractors.py
-        $ git add youtube_dl/extractor/yourextractor.py
-        $ git commit -m '[yourextractor] Add new extractor'
+        $ git add yt_dlp/extractor/extractors.py
+        $ git add yt_dlp/extractor/yourextractor.py
+        $ git commit -m '[yourextractor] Add extractor'
         $ git push origin yourextractor
 
-11. Finally, [create a pull request](https://help.github.com/articles/creating-a-pull-request). We'll then review and merge it.
+1. Finally, [create a pull request](https://help.github.com/articles/creating-a-pull-request). We'll then review and merge it.
 
 In any case, thank you very much for your contributions!
 
-## youtube-dl coding conventions
+
+## yt-dlp coding conventions
 
 This section introduces a guide lines for writing idiomatic, robust and future-proof extractor code.
 
-Extractors are very fragile by nature since they depend on the layout of the source data provided by 3rd party media hosters out of your control and this layout tends to change. As an extractor implementer your task is not only to write code that will extract media links and metadata correctly but also to minimize dependency on the source's layout and even to make the code foresee potential future changes and be ready for that. This is important because it will allow the extractor not to break on minor layout changes thus keeping old youtube-dl versions working. Even though this breakage issue is easily fixed by emitting a new version of youtube-dl with a fix incorporated, all the previous versions become broken in all repositories and distros' packages that may not be so prompt in fetching the update from us. Needless to say, some non rolling release distros may never receive an update at all.
+Extractors are very fragile by nature since they depend on the layout of the source data provided by 3rd party media hosters out of your control and this layout tends to change. As an extractor implementer your task is not only to write code that will extract media links and metadata correctly but also to minimize dependency on the source's layout and even to make the code foresee potential future changes and be ready for that. This is important because it will allow the extractor not to break on minor layout changes thus keeping old yt-dlp versions working. Even though this breakage issue may be easily fixed by a new version of yt-dlp, this could take some time, during which the the extractor will remain broken.
+
 
 ### Mandatory and optional metafields
 
-For extraction to work youtube-dl relies on metadata your extractor extracts and provides to youtube-dl expressed by an [information dictionary](https://github.com/ytdl-org/youtube-dl/blob/7f41a598b3fba1bcab2817de64a08941200aa3c8/youtube_dl/extractor/common.py#L94-L303) or simply *info dict*. Only the following meta fields in the *info dict* are considered mandatory for a successful extraction process by youtube-dl:
+For extraction to work yt-dlp relies on metadata your extractor extracts and provides to yt-dlp expressed by an [information dictionary](yt_dlp/extractor/common.py#L91-L426) or simply *info dict*. Only the following meta fields in the *info dict* are considered mandatory for a successful extraction process by yt-dlp:
 
  - `id` (media identifier)
  - `title` (media title)
  - `url` (media download URL) or `formats`
 
-In fact only the last option is technically mandatory (i.e. if you can't figure out the download location of the media the extraction does not make any sense). But by convention youtube-dl also treats `id` and `title` as mandatory. Thus the aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken.
+The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While, in fact, only `id` is technically mandatory, due to compatability reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
 
-[Any field](https://github.com/ytdl-org/youtube-dl/blob/7f41a598b3fba1bcab2817de64a08941200aa3c8/youtube_dl/extractor/common.py#L188-L303) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
+[Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
 #### Example
 
@@ -200,8 +247,10 @@ Assume at this point `meta`'s layout is:
 
 ```python
 {
-    ...
     "summary": "some fancy summary text",
+    "user": {
+        "name": "uploader name"
+    },
     ...
 }
 ```
@@ -219,6 +268,30 @@ description = meta['summary']  # incorrect
 ```
 
 The latter will break extraction process with `KeyError` if `summary` disappears from `meta` at some later time but with the former approach extraction will just go ahead with `description` set to `None` which is perfectly fine (remember `None` is equivalent to the absence of data).
+
+
+If the data is nested, do not use `.get` chains, but instead make use of the utility functions `try_get` or `traverse_obj`
+
+Considering the above `meta` again, assume you want to extract `["user"]["name"]` and put it in the resulting info dict as `uploader`
+
+```python
+uploader = try_get(meta, lambda x: x['user']['name'])  # correct
+```
+or
+```python
+uploader = traverse_obj(meta, ('user', 'name'))  # correct
+```
+
+and not like:
+
+```python
+uploader = meta['user']['name']  # incorrect
+```
+or
+```python
+uploader = meta.get('user', {}).get('name')  # incorrect
+```
+
 
 Similarly, you should pass `fatal=False` when extracting optional data from a webpage with `_search_regex`, `_html_search_regex` or similar methods, for instance:
 
@@ -239,10 +312,35 @@ description = self._search_regex(
 ```
 
 On failure this code will silently continue the extraction with `description` set to `None`. That is useful for metafields that may or may not be present.
- 
+
+
+Another thing to remember is not to try to iterate over `None`
+
+Say you extracted a list of thumbnails into `thumbnail_data` using `try_get` and now want to iterate over them
+
+```python
+thumbnail_data = try_get(...)
+thumbnails = [{
+    'url': item['url']
+} for item in thumbnail_data or []]  # correct
+```
+
+and not like:
+
+```python
+thumbnail_data = try_get(...)
+thumbnails = [{
+    'url': item['url']
+} for item in thumbnail_data]  # incorrect
+```
+
+In the later case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `for item in thumbnail_data or []` avoids this error and results in setting an empty list in `thumbnails` instead.
+
+
 ### Provide fallbacks
 
 When extracting metadata try to do so from multiple sources. For example if `title` is present in several places, try extracting from at least some of them. This makes it more future-proof in case some of the sources become unavailable.
+
 
 #### Example
 
@@ -261,6 +359,7 @@ title = meta.get('title') or self._og_search_title(webpage)
 ```
 
 This code will try to extract from `meta` first and if it fails it will try extracting `og:title` from a `webpage`.
+
 
 ### Regular expressions
 
@@ -283,11 +382,10 @@ Incorrect:
 r'(id|ID)=(?P<id>\d+)'
 ```
 
-
 #### Make regular expressions relaxed and flexible
 
 When using regular expressions try to write them fuzzy, relaxed and flexible, skipping insignificant parts that are more likely to change, allowing both single and double quotes for quoted values and so on.
- 
+
 ##### Example
 
 Say you need to extract `title` from the following HTML code:
@@ -299,14 +397,14 @@ Say you need to extract `title` from the following HTML code:
 The code for that task should look similar to:
 
 ```python
-title = self._search_regex(
+title = self._search_regex(  # correct
     r'<span[^>]+class="title"[^>]*>([^<]+)', webpage, 'title')
 ```
 
 Or even better:
 
 ```python
-title = self._search_regex(
+title = self._search_regex(  # correct
     r'<span[^>]+class=(["\'])title\1[^>]*>(?P<title>[^<]+)',
     webpage, 'title', group='title')
 ```
@@ -316,14 +414,25 @@ Note how you tolerate potential changes in the `style` attribute's value or swit
 The code definitely should not look like:
 
 ```python
-title = self._search_regex(
+title = self._search_regex(  # incorrect
     r'<span style="position: absolute; left: 910px; width: 90px; float: right; z-index: 9999;" class="title">(.*?)</span>',
     webpage, 'title', group='title')
 ```
 
+or even
+
+```python
+title = self._search_regex(  # incorrect
+    r'<span style=".*?" class="title">(.*?)</span>',
+    webpage, 'title', group='title')
+```
+
+Here the presence or absence of other attributes including `style` is irrelevent for the data we need, and so the regex must not depend on it
+
+
 ### Long lines policy
 
-There is a soft limit to keep lines of code under 80 characters long. This means it should be respected if possible and if it does not make readability and code maintenance worse.
+There is a soft limit to keep lines of code under 100 characters long. This means it should be respected if possible and if it does not make readability and code maintenance worse. Sometimes, it may be reasonable to go upto 120 characters and sometimes even 80 can be unreadable. Keep in mind that this is not a hard limit and is just one of many tools to make the code more readable
 
 For example, you should **never** split long string literals like URLs or some other often copied entities over multiple lines to fit this limit:
 
@@ -360,6 +469,7 @@ TITLE_RE = r'<title>([^<]+)</title>'
 title = self._html_search_regex(TITLE_RE, webpage, 'title')
 ```
 
+
 ### Collapse fallbacks
 
 Multiple fallback values can quickly become unwieldy. Collapse multiple fallback values into a single expression via a list of patterns.
@@ -385,9 +495,12 @@ description = (
 
 Methods supporting list of patterns are: `_search_regex`, `_html_search_regex`, `_og_search_property`, `_html_search_meta`.
 
+
 ### Trailing parentheses
 
 Always move trailing parentheses after the last argument.
+
+Note that this *does not* apply to braces `}` or square brackets `]` both of which should closed be in a new line
 
 #### Example
 
@@ -406,30 +519,36 @@ Incorrect:
 )
 ```
 
+
 ### Use convenience conversion and parsing functions
 
-Wrap all extracted numeric data into safe functions from [`youtube_dl/utils.py`](https://github.com/ytdl-org/youtube-dl/blob/master/youtube_dl/utils.py): `int_or_none`, `float_or_none`. Use them for string to number conversions as well.
+Wrap all extracted numeric data into safe functions from [`yt_dlp/utils.py`](yt_dlp/utils.py): `int_or_none`, `float_or_none`. Use them for string to number conversions as well.
 
 Use `url_or_none` for safe URL processing.
 
-Use `try_get` for safe metadata extraction from parsed JSON.
+Use `try_get`, `dict_get` and `traverse_obj` for safe metadata extraction from parsed JSON.
 
 Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction. 
 
-Explore [`youtube_dl/utils.py`](https://github.com/ytdl-org/youtube-dl/blob/master/youtube_dl/utils.py) for more useful convenience functions.
+Explore [`yt_dlp/utils.py`](yt_dlp/utils.py) for more useful convenience functions.
 
 #### More examples
 
 ##### Safely extract optional description from parsed JSON
 ```python
-description = try_get(response, lambda x: x['result']['video'][0]['summary'], compat_str)
+description = traverse_obj(response, ('result', 'video', 'summary'), expected_type=str)
 ```
 
 ##### Safely extract more optional metadata
 ```python
-video = try_get(response, lambda x: x['result']['video'][0], dict) or {}
+video = traverse_obj(response, ('result', 'video', 0), default={}, expected_type=dict)
 description = video.get('summary')
 duration = float_or_none(video.get('durationMs'), scale=1000)
 view_count = int_or_none(video.get('views'))
 ```
 
+
+
+
+# EMBEDDING YT-DLP
+See [README.md#embedding-yt-dlp](README.md#embedding-yt-dlp) for instructions on how to embed yt-dlp in another Python program

@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 # coding: utf-8
-
-from setuptools import setup, Command, find_packages
 import os.path
 import warnings
 import sys
-from distutils.spawn import spawn
 
+try:
+    from setuptools import setup, Command, find_packages
+    setuptools_available = True
+except ImportError:
+    from distutils.core import setup, Command
+    setuptools_available = False
+from distutils.spawn import spawn
 
 # Get the version from yt_dlp/version.py without importing the package
 exec(compile(open('yt_dlp/version.py').read(), 'yt_dlp/version.py', 'exec'))
@@ -19,34 +23,64 @@ LONG_DESCRIPTION = '\n\n'.join((
     '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
     open('README.md', 'r', encoding='utf-8').read()))
 
-REQUIREMENTS = ['mutagen', 'pycryptodome', 'websockets']
+REQUIREMENTS = ['mutagen', 'pycryptodomex', 'websockets']
+
 
 if sys.argv[1:2] == ['py2exe']:
-    raise NotImplementedError('py2exe is not currently supported; instead, use "pyinst.py" to build with pyinstaller')
+    import py2exe
+    warnings.warn(
+        'Building with py2exe is not officially supported. '
+        'The recommended way is to use "pyinst.py" to build using pyinstaller')
+    params = {
+        'console': [{
+            'script': './yt_dlp/__main__.py',
+            'dest_base': 'yt-dlp',
+            'version': __version__,
+            'description': DESCRIPTION,
+            'comments': LONG_DESCRIPTION.split('\n')[0],
+            'product_name': 'yt-dlp',
+            'product_version': __version__,
+        }],
+        'options': {
+            'py2exe': {
+                'bundle_files': 0,
+                'compressed': 1,
+                'optimize': 2,
+                'dist_dir': './dist',
+                'excludes': ['Crypto', 'Cryptodome'],  # py2exe cannot import Crypto
+                'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
+            }
+        },
+        'zipfile': None
+    }
 
+else:
+    files_spec = [
+        ('share/bash-completion/completions', ['completions/bash/yt-dlp']),
+        ('share/zsh/site-functions', ['completions/zsh/_yt-dlp']),
+        ('share/fish/vendor_completions.d', ['completions/fish/yt-dlp.fish']),
+        ('share/doc/yt_dlp', ['README.txt']),
+        ('share/man/man1', ['yt-dlp.1'])
+    ]
+    root = os.path.dirname(os.path.abspath(__file__))
+    data_files = []
+    for dirname, files in files_spec:
+        resfiles = []
+        for fn in files:
+            if not os.path.exists(fn):
+                warnings.warn('Skipping file %s since it is not present. Try running `make pypi-files` first' % fn)
+            else:
+                resfiles.append(fn)
+        data_files.append((dirname, resfiles))
 
-files_spec = [
-    ('share/bash-completion/completions', ['completions/bash/yt-dlp']),
-    ('share/zsh/site-functions', ['completions/zsh/_yt-dlp']),
-    ('share/fish/vendor_completions.d', ['completions/fish/yt-dlp.fish']),
-    ('share/doc/yt_dlp', ['README.txt']),
-    ('share/man/man1', ['yt-dlp.1'])
-]
-root = os.path.dirname(os.path.abspath(__file__))
-data_files = []
-for dirname, files in files_spec:
-    resfiles = []
-    for fn in files:
-        if not os.path.exists(fn):
-            warnings.warn('Skipping file %s since it is not present. Try running `make pypi-files` first' % fn)
-        else:
-            resfiles.append(fn)
-    data_files.append((dirname, resfiles))
+    params = {
+        'data_files': data_files,
+    }
 
-params = {
-    'data_files': data_files,
-}
-params['entry_points'] = {'console_scripts': ['yt-dlp = yt_dlp:main']}
+    if setuptools_available:
+        params['entry_points'] = {'console_scripts': ['yt-dlp = yt_dlp:main']}
+    else:
+        params['scripts'] = ['yt-dlp']
 
 
 class build_lazy_extractors(Command):
@@ -64,7 +98,11 @@ class build_lazy_extractors(Command):
               dry_run=self.dry_run)
 
 
-packages = find_packages(exclude=('youtube_dl', 'test', 'ytdlp_plugins'))
+if setuptools_available:
+    packages = find_packages(exclude=('youtube_dl', 'youtube_dlc', 'test', 'ytdlp_plugins'))
+else:
+    packages = ['yt_dlp', 'yt_dlp.downloader', 'yt_dlp.extractor', 'yt_dlp.postprocessor']
+
 
 setup(
     name='yt-dlp',
@@ -81,7 +119,7 @@ setup(
         'Documentation': 'https://yt-dlp.readthedocs.io',
         'Source': 'https://github.com/yt-dlp/yt-dlp',
         'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
-        #'Funding': 'https://donate.pypi.org',
+        'Funding': 'https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators',
     },
     classifiers=[
         'Topic :: Multimedia :: Video',

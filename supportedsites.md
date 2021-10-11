@@ -199,6 +199,7 @@
  - **Cinemax**
  - **CiscoLiveSearch**
  - **CiscoLiveSession**
+ - **ciscowebex**: Cisco Webex
  - **CJSW**
  - **cliphunter**
  - **Clippit**
@@ -231,7 +232,6 @@
  - **CTV**
  - **CTVNews**
  - **cu.ntv.co.jp**: Nippon Television Network
- - **Culturebox**
  - **CultureUnplugged**
  - **curiositystream**
  - **curiositystream:collection**
@@ -345,13 +345,10 @@
  - **foxnews**: Fox News and Fox Business Video
  - **foxnews:article**
  - **FoxSports**
- - **france2.fr:generation-what**
  - **FranceCulture**
  - **FranceInter**
  - **FranceTV**
- - **FranceTVEmbed**
  - **francetvinfo.fr**
- - **FranceTVJeunesse**
  - **FranceTVSite**
  - **Freesound**
  - **freespeech.org**
@@ -379,6 +376,7 @@
  - **gem.cbc.ca:live**
  - **gem.cbc.ca:playlist**
  - **generic**: Generic downloader that works on some sites
+ - **Gettr**
  - **Gfycat**
  - **GiantBomb**
  - **Giga**
@@ -392,6 +390,7 @@
  - **google:podcasts**
  - **google:podcasts:feed**
  - **GoogleDrive**
+ - **GoPro**
  - **Goshgay**
  - **GoToStage**
  - **GPUTechConf**
@@ -630,6 +629,8 @@
  - **MyviEmbed**
  - **MyVisionTV**
  - **n-tv.de**
+ - **N1Info:article**
+ - **N1InfoAsset**
  - **natgeo:video**
  - **NationalGeographicTV**
  - **Naver**
@@ -700,6 +701,7 @@
  - **NosVideo**
  - **Nova**: TN.cz, Prásk.tv, Nova.cz, Novaplus.cz, FANDA.tv, Krásná.cz and Doma.cz
  - **NovaEmbed**
+ - **NovaPlay**
  - **nowness**
  - **nowness:playlist**
  - **nowness:series**
@@ -905,6 +907,7 @@
  - **RTVNH**
  - **RTVS**
  - **RUHD**
+ - **RumbleChannel**
  - **RumbleEmbed**
  - **rutube**: Rutube videos
  - **rutube:channel**: Rutube channels
@@ -985,7 +988,6 @@
  - **SpankBangPlaylist**
  - **Spankwire**
  - **Spiegel**
- - **sport.francetvinfo.fr**
  - **Sport5**
  - **SportBox**
  - **SportDeutschland**
@@ -1065,7 +1067,8 @@
  - **TheScene**
  - **TheStar**
  - **TheSun**
- - **Theta**
+ - **ThetaStream**
+ - **ThetaVideo**
  - **TheWeatherChannel**
  - **ThisAmericanLife**
  - **ThisAV**
@@ -1174,6 +1177,7 @@
  - **Varzesh3**
  - **Vbox7**
  - **VeeHD**
+ - **Veo**
  - **Veoh**
  - **Vesti**: Вести.Ru
  - **Vevo**
@@ -1202,9 +1206,6 @@
  - **VidioLive**
  - **VidioPremier**
  - **VidLii**
- - **vidme**
- - **vidme:user**
- - **vidme:user:likes**
  - **vier**: vier.be and vijf.be
  - **vier:videos**
  - **viewlift**
@@ -1256,6 +1257,7 @@
  - **VTXTV**
  - **vube**: Vube.com
  - **VuClip**
+ - **Vupload**
  - **VVVVID**
  - **VVVVIDShow**
  - **VyboryMos**

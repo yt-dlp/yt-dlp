@@ -4,7 +4,7 @@ from hashlib import sha256
 
 from .ffmpeg import FFmpegPostProcessor
 from ..compat import compat_urllib_parse_urlencode, compat_HTTPError
-from ..utils import PostProcessingError, sanitized_Request
+from ..utils import PostProcessingError, network_exceptions, sanitized_Request
 
 
 class SponsorBlockPP(FFmpegPostProcessor):
@@ -88,9 +88,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
         self.write_debug(f'SponsorBlock query: {url}')
         try:
             rsp = self._downloader.urlopen(sanitized_Request(url))
-        except compat_HTTPError as e:
-            if e.code == 404:
+        except network_exceptions as e:
+            if isinstance(e, compat_HTTPError) and e.code == 404:
                 return []
-            raise PostProcessingError(f'Error communicating with SponsorBlock API - {e}')
+            raise PostProcessingError(f'Unable to communicate with SponsorBlock API - {e}')
 
         return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))

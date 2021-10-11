@@ -47,7 +47,7 @@ jobs:
     - name: Get Changelog
       id: get_changelog
       run: |
-        changelog=$(cat Changelog.md | grep -oPz '(?s)(?<=### ${{ steps.bump_version.outputs.ytdlp_version }}\n{2}).+?(?=\n{2,3}###)')
+        changelog=$(cat Changelog.md | grep -oPz '(?s)(?<=### ${{ steps.bump_version.outputs.ytdlp_version }}\n{2}).+?(?=\n{2,3}###)') || true
         echo "changelog<<EOF" >> $GITHUB_ENV
         echo "$changelog" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
@@ -154,14 +154,14 @@ jobs:
       run: python -m pip install --upgrade pip setuptools wheel
     - name: Install Requirements
       # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-      run: pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodome websockets
+      run: pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Run PyInstaller Script
-      run: python pyinst.py 64
+      run: python pyinst.py
     - name: Upload yt-dlp.exe Windows binary
       id: upload-release-windows
       uses: actions/upload-release-asset@v1
@@ -179,7 +179,7 @@ jobs:
       id: sha512_win
       run: echo "::set-output name=sha512_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
     - name: Run PyInstaller Script with --onedir
-      run: python pyinst.py 64 --onedir
+      run: python pyinst.py --onedir
     - uses: papeloto/action-zip@v1
       with:
         files: ./dist/yt-dlp
@@ -220,14 +220,14 @@ jobs:
     - name: Upgrade pip and enable wheel support
       run: python -m pip install --upgrade pip setuptools wheel
     - name: Install Requirements
-      run: pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodome websockets
+      run: pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Run PyInstaller Script for 32 Bit
-      run: python pyinst.py 32
+      run: python pyinst.py
     - name: Upload Executable yt-dlp_x86.exe
       id: upload-release-windows32
       uses: actions/upload-release-asset@v1

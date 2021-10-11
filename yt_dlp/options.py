@@ -17,6 +17,7 @@ from .utils import (
     get_executable_path,
     OUTTMPL_TYPES,
     preferredencoding,
+    remove_end,
     write_string,
 )
 from .cookies import SUPPORTED_BROWSERS
@@ -260,7 +261,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
-        help='Mark videos watched (YouTube only)')
+        help='Mark videos watched (even with --simulate). Currently only supported for YouTube')
     general.add_option(
         '--no-mark-watched',
         action='store_false', dest='mark_watched',
@@ -767,7 +768,7 @@ def parseOpts(overrideArguments=None):
         dest='encoding', metavar='ENCODING',
         help='Force the specified encoding (experimental)')
     workarounds.add_option(
-        '--no-check-certificate',
+        '--no-check-certificates',
         action='store_true', dest='no_check_certificate', default=False,
         help='Suppress HTTPS certificate validation')
     workarounds.add_option(
@@ -909,12 +910,30 @@ def parseOpts(overrideArguments=None):
         help='Output progress bar as new lines')
     verbosity.add_option(
         '--no-progress',
-        action='store_true', dest='noprogress', default=False,
+        action='store_true', dest='noprogress', default=None,
         help='Do not print progress bar')
+    verbosity.add_option(
+        '--progress',
+        action='store_false', dest='noprogress',
+        help='Show progress bar, even if in quiet mode')
     verbosity.add_option(
         '--console-title',
         action='store_true', dest='consoletitle', default=False,
         help='Display progress in console titlebar')
+    verbosity.add_option(
+        '--progress-template',
+        metavar='[TYPES:]TEMPLATE', dest='progress_template', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': '(download|postprocess)(-title)?',
+            'default_key': 'download'
+        }, help=(
+            'Template for progress outputs, optionally prefixed with one of "download:" (default), '
+            '"download-title:" (the console title), "postprocess:",  or "postprocess-title:". '
+            'The video\'s fields are accessible under the "info" key and '
+            'the progress attributes are accessible under "progress" key. Eg: '
+            # TODO: Document the fields inside "progress"
+            '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,
@@ -952,9 +971,6 @@ def parseOpts(overrideArguments=None):
         dest='batchfile', metavar='FILE',
         help="File containing URLs to download ('-' for stdin), one URL per line. "
              "Lines starting with '#', ';' or ']' are considered as comments and ignored")
-    filesystem.add_option(
-        '--id', default=False,
-        action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-P', '--paths',
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
@@ -1010,18 +1026,6 @@ def parseOpts(overrideArguments=None):
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,
         help='Limit the filename length (excluding extension) to the specified number of characters')
-    filesystem.add_option(
-        '--auto-number',
-        action='store_true', dest='autonumber', default=False,
-        help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
-        '--title',
-        action='store_true', dest='usetitle', default=False,
-        help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
-        '--literal', default=False,
-        action='store_true', dest='usetitle',
-        help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-w', '--no-overwrites',
         action='store_false', dest='overwrites', default=None,
@@ -1389,6 +1393,25 @@ def parseOpts(overrideArguments=None):
         '--no-force-keyframes-at-cuts',
         action='store_false', dest='force_keyframes_at_cuts',
         help='Do not force keyframes around the chapters when cutting/splitting (default)')
+    _postprocessor_opts_parser = lambda key, val='': (
+        *(item.split('=', 1) for item in (val.split(';') if val else [])),
+        ('key', remove_end(key, 'PP')))
+    postproc.add_option(
+        '--use-postprocessor',
+        metavar='NAME[:ARGS]', dest='add_postprocessors', default=[], type='str',
+        action='callback', callback=_list_from_options_callback,
+        callback_kwargs={
+            'delim': None,
+            'process': lambda val: dict(_postprocessor_opts_parser(*val.split(':', 1)))
+        }, help=(
+            'The (case sensitive) name of plugin postprocessors to be enabled, '
+            'and (optionally) arguments to be passed to it, seperated by a colon ":". '
+            'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
+            'The "when" argument determines when the postprocessor is invoked. '
+            'It can be one of "pre_process" (after extraction), '
+            '"before_dl" (before video download), "post_process" (after video download; default) '
+            'or "after_move" (after moving file to their final locations). '
+            'This option can be used multiple times to add different postprocessors'))
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
         'Make chapter entries for, or remove various segments (sponsor, introductions, etc.) '
@@ -1587,7 +1610,7 @@ def parseOpts(overrideArguments=None):
         argv = configs['system'] + configs['user'] + configs['home'] + configs['portable'] + configs['custom'] + configs['command-line']
         opts, args = parser.parse_args(argv)
         if opts.verbose:
-            for label in ('System', 'User', 'Portable', 'Home', 'Custom', 'Command-line'):
+            for label in ('Command-line', 'Custom', 'Portable', 'Home', 'User', 'System'):
                 key = label.lower()
                 if paths.get(key):
                     write_string(f'[debug] {label} config file: {paths[key]}\n')

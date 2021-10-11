@@ -588,8 +588,8 @@ class BBCIE(BBCCoUkIE):
     _VALID_URL = r'https?://(?:www\.)?bbc\.(?:com|co\.uk)/(?:[^/]+/)+(?P<id>[^/#?]+)'
 
     _MEDIA_SETS = [
-        'mobile-tablet-main',
         'pc',
+        'mobile-tablet-main',
     ]
 
     _TESTS = [{
