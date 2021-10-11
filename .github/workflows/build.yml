@@ -149,7 +149,7 @@ jobs:
     - name: Install Requirements
       run: |
           brew install coreutils
-          /usr/bin/pip3 install --user Pyinstaller mutagen pycryptodomex websockets certifi
+          /usr/bin/pip3 install --user Pyinstaller mutagen pycryptodomex websockets
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
