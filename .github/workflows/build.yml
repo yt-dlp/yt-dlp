@@ -134,7 +134,7 @@ jobs:
         asset_content_type: application/gzip
 
   build_macos:
-    runs-on: macos-10.15
+    runs-on: macos-11
     needs: build_unix
 
     outputs:
@@ -148,14 +148,14 @@ jobs:
     - name: Install Requirements
       run: |
           brew install coreutils
-          pip3 install Pyinstaller mutagen pycryptodomex websockets certifi
+          /usr/bin/pip3 install --user Pyinstaller mutagen pycryptodomex websockets certifi
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Run PyInstaller Script
-      run: python3 ./pyinst.py
+      run: /usr/bin/python3 ./pyinst.py --target-architecture universal2 --onefile
     - name: Upload yt-dlp_macos
       id: upload-release-macos
       uses: actions/upload-release-asset@v1
@@ -174,7 +174,7 @@ jobs:
       run: echo "::set-output name=sha512_macos::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
 
     - name: Run PyInstaller Script with --onedir
-      run: python3 ./pyinst.py --onedir
+      run: /usr/bin/python3 ./pyinst.py --target-architecture universal2 --onedir
     - uses: papeloto/action-zip@v1
       with:
         files: ./dist/yt-dlp_macos
