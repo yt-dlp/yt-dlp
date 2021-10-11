@@ -2012,7 +2012,7 @@ class InfoExtractor(object):
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
             return formats, subtitles
 
-        has_drm = re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)
+        has_drm = re.search(r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://', m3u8_doc)
 
         def format_url(url):
             return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)

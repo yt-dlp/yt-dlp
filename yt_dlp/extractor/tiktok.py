@@ -208,7 +208,7 @@ class TikTokBaseIE(InfoExtractor):
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000)
         }
 
-    def _parse_aweme_video_web(self, aweme_detail, webpage, url):
+    def _parse_aweme_video_web(self, aweme_detail, webpage_url):
         video_info = aweme_detail['video']
         author_info = traverse_obj(aweme_detail, 'author', 'authorInfo', default={})
         music_info = aweme_detail.get('music') or {}
@@ -277,7 +277,7 @@ class TikTokBaseIE(InfoExtractor):
             'thumbnails': thumbnails,
             'description': str_or_none(aweme_detail.get('desc')),
             'http_headers': {
-                'Referer': url
+                'Referer': webpage_url
             }
         }
 
@@ -287,18 +287,18 @@ class TikTokIE(TikTokBaseIE):
 
     _TESTS = [{
         'url': 'https://www.tiktok.com/@leenabhushan/video/6748451240264420610',
-        'md5': '34a7543afd5a151b0840ba6736fb633b',
+        'md5': '736bb7a466c6f0a6afeb597da1e6f5b7',
         'info_dict': {
             'id': '6748451240264420610',
             'ext': 'mp4',
             'title': '#jassmanak #lehanga #leenabhushan',
             'description': '#jassmanak #lehanga #leenabhushan',
             'duration': 13,
-            'height': 1280,
-            'width': 720,
+            'height': 1024,
+            'width': 576,
             'uploader': 'leenabhushan',
             'uploader_id': '6691488002098119685',
-            'uploader_url': 'https://www.tiktok.com/@leenabhushan',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAA_Eb4t1vodM1IuTy_cvp9CY22RAb59xqrO0Xtz9CYQJvgXaDvZxYnZYRzDWhhgJmy',
             'creator': 'facestoriesbyleenabh',
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
             'upload_date': '20191016',
@@ -310,7 +310,7 @@ class TikTokIE(TikTokBaseIE):
         }
     }, {
         'url': 'https://www.tiktok.com/@patroxofficial/video/6742501081818877190?langCountry=en',
-        'md5': '06b9800d47d5fe51a19e322dd86e61c9',
+        'md5': '6f3cf8cdd9b28cb8363fe0a9a160695b',
         'info_dict': {
             'id': '6742501081818877190',
             'ext': 'mp4',
@@ -321,7 +321,7 @@ class TikTokIE(TikTokBaseIE):
             'width': 540,
             'uploader': 'patrox',
             'uploader_id': '18702747',
-            'uploader_url': 'https://www.tiktok.com/@patrox',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAiFnldaILebi5heDoVU6bn4jBWWycX6-9U3xuNPqZ8Ws',
             'creator': 'patroX',
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
             'upload_date': '20190930',
@@ -362,7 +362,7 @@ class TikTokIE(TikTokBaseIE):
         # Chech statusCode for success
         status = props_data.get('pageProps').get('statusCode')
         if status == 0:
-            return self._parse_aweme_video_web(props_data['pageProps']['itemInfo']['itemStruct'], webpage, url)
+            return self._parse_aweme_video_web(props_data['pageProps']['itemInfo']['itemStruct'], url)
         elif status == 10216:
             raise ExtractorError('This video is private', expected=True)
 
@@ -377,13 +377,17 @@ class TikTokUserIE(TikTokBaseIE):
         'playlist_mincount': 45,
         'info_dict': {
             'id': '6935371178089399301',
+            'title': 'corgibobaa',
         },
+        'expected_warnings': ['Retrying']
     }, {
         'url': 'https://www.tiktok.com/@meme',
         'playlist_mincount': 593,
         'info_dict': {
             'id': '79005827461758976',
+            'title': 'meme',
         },
+        'expected_warnings': ['Retrying']
     }]
 
     r'''  # TODO: Fix by adding _signature to api_url
@@ -430,7 +434,7 @@ class TikTokUserIE(TikTokBaseIE):
                 break
             for video in post_list.get('aweme_list', []):
                 yield {
-                    **self._parse_aweme_video(video),
+                    **self._parse_aweme_video_app(video),
                     'ie_key': TikTokIE.ie_key(),
                     'extractor': 'TikTok',
                 }
@@ -439,12 +443,12 @@ class TikTokUserIE(TikTokBaseIE):
             query['max_cursor'] = post_list['max_cursor']
 
     def _real_extract(self, url):
-        user_id = self._match_id(url)
-        webpage = self._download_webpage(url, user_id, headers={
+        user_name = self._match_id(url)
+        webpage = self._download_webpage(url, user_name, headers={
             'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
         })
-        own_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID')
-        return self.playlist_result(self._entries_api(webpage, own_id, user_id), user_id)
+        user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID')
+        return self.playlist_result(self._entries_api(webpage, user_id, user_name), user_id, user_name)
 
 
 class DouyinIE(TikTokIE):
@@ -556,4 +560,4 @@ class DouyinIE(TikTokIE):
         render_data = self._parse_json(
             render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
         return self._parse_aweme_video_web(
-            traverse_obj(render_data, (..., 'aweme', 'detail'), get_all=False), webpage, url)
+            traverse_obj(render_data, (..., 'aweme', 'detail'), get_all=False), url)
