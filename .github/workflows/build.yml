@@ -246,23 +246,23 @@ jobs:
     - uses: papeloto/action-zip@v1
       with:
         files: ./dist/yt-dlp
-        dest: ./dist/yt-dlp.zip
-    - name: Upload yt-dlp.zip Windows onedir
+        dest: ./dist/yt-dlp_win.zip
+    - name: Upload yt-dlp_win.zip Windows onedir
       id: upload-release-windows-zip
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/yt-dlp.zip
-        asset_name: yt-dlp.zip
+        asset_path: ./dist/yt-dlp_win.zip
+        asset_name: yt-dlp_win.zip
         asset_content_type: application/zip
-    - name: Get SHA2-256SUMS for yt-dlp.zip
+    - name: Get SHA2-256SUMS for yt-dlp_win.zip
       id: sha256_win_zip
-      run: echo "::set-output name=sha256_win_zip::$((Get-FileHash dist\yt-dlp.zip -Algorithm SHA256).Hash.ToLower())"
-    - name: Get SHA2-512SUMS for yt-dlp.zip
+      run: echo "::set-output name=sha256_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA256).Hash.ToLower())"
+    - name: Get SHA2-512SUMS for yt-dlp_win.zip
       id: sha512_win_zip
-      run: echo "::set-output name=sha512_win_zip::$((Get-FileHash dist\yt-dlp.zip -Algorithm SHA512).Hash.ToLower())"
+      run: echo "::set-output name=sha512_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA512).Hash.ToLower())"
 
   build_windows32:
     runs-on: windows-latest
@@ -329,7 +329,7 @@ jobs:
         echo "${{ env.SHA256_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-256SUMS
         echo "${{ env.SHA256_BIN }}  yt-dlp" >> SHA2-256SUMS
         echo "${{ env.SHA256_TAR }}  yt-dlp.tar.gz" >> SHA2-256SUMS
-        echo "${{ env.SHA256_WIN_ZIP }}  yt-dlp.zip" >> SHA2-256SUMS
+        echo "${{ env.SHA256_WIN_ZIP }}  yt-dlp_win.zip" >> SHA2-256SUMS
     - name: Upload 256SUMS file
       id: upload-sums
       uses: actions/upload-release-asset@v1
@@ -356,7 +356,7 @@ jobs:
         echo "${{ env.SHA512_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-512SUMS
         echo "${{ env.SHA512_BIN }}  yt-dlp" >> SHA2-512SUMS
         echo "${{ env.SHA512_TAR }}  yt-dlp.tar.gz" >> SHA2-512SUMS
-        echo "${{ env.SHA512_WIN_ZIP }}  yt-dlp.zip" >> SHA2-512SUMS
+        echo "${{ env.SHA512_WIN_ZIP }}  yt-dlp_win.zip" >> SHA2-512SUMS
     - name: Upload 512SUMS file
       id: upload-512sums
       uses: actions/upload-release-asset@v1
