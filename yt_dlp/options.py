@@ -1590,7 +1590,7 @@ def parseOpts(overrideArguments=None):
                     parser.error('config-location %s does not exist.' % location)
                 config = _readOptions(location, default=None)
                 if config:
-                    configs['custom'], paths['config'] = config, location
+                    configs['custom'], paths['custom'] = config, location
 
             if opts.ignoreconfig:
                 return
