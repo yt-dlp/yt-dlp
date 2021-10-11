@@ -732,7 +732,8 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         for (i, fmt) in enumerate(info['requested_formats']):
             if fmt.get('acodec') != 'none':
                 args.extend(['-map', f'{i}:a:0'])
-                if self.get_audio_codec(fmt['filepath']) == 'aac':
+                aac_fixup = fmt['protocol'].startswith('m3u8') and self.get_audio_codec(fmt['filepath']) == 'aac'
+                if aac_fixup:
                     args.extend([f'-bsf:a:{audio_streams}', 'aac_adtstoasc'])
                 audio_streams += 1
             if fmt.get('vcodec') != 'none':
