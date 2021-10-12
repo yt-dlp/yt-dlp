@@ -45,7 +45,7 @@ class TestHLS(unittest.TestCase):
 
     def doCleanups(self):
         for file in ['destination.mp4', 'file.keyinfo',
-                     'out.m3u8', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out6.ts']:
+                     'out.m3u8', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out5.ts', 'out6.ts']:
             try:
                 os.remove(os.path.join(DATA_DIR, '_'.join((self._testMethodName, file))))
             except (FileNotFoundError, IsADirectoryError):
