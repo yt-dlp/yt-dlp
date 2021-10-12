@@ -2856,8 +2856,8 @@ class YoutubeDL(object):
                         'writing DASH m4a. Only some players support this container',
                         FFmpegFixupM4aPP)
 
-                    downloader = (get_suitable_downloader(info_dict, self.params).__name__
-                                  if 'protocol' in info_dict else None)
+                    downloader = get_suitable_downloader(info_dict, self.params) if 'protocol' in info_dict else None
+                    downloader = downloader.__name__ if downloader else None
                     ffmpeg_fixup(info_dict.get('requested_formats') is None and downloader == 'HlsFD',
                                  'malformed AAC bitstream detected', FFmpegFixupM3u8PP)
                     ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'malformed timestamps detected', FFmpegFixupTimestampPP)
