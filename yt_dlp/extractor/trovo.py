@@ -197,22 +197,10 @@ class TrovoVodIE(TrovoBaseIE):
         return info
 
 
-class TrovoBatchVodIE(InfoExtractor):
-    _VALID_URL = r'trovovod:(?P<id>[^\s]+)'
-
-    _TESTS = [{
-        'url': 'trovovod:OneTappedYou',
-        'playlist_mincount': 24,
-        'info_dict': {
-            'id': '100719456',
-        },
-    }]
-
+class TrovoBatchIE(InfoExtractor):
     def _entries(self, uid):
         for page in itertools.count(1):
-            vod_json = self._download_json('https://gql.trovo.live/', uid, query={
-                                           'query': '{getChannelLtvVideoInfos(params:{pageSize:99,currPage:%d,channelID:%s}){hasMore,vodInfos{vid}}}' % (page, uid)
-                                           })['data']['getChannelLtvVideoInfos']
+            vod_json = self._get_vod_json(page, uid)
             vods = vod_json.get('vodInfos', [])
             for vod in vods:
                 yield self.url_result(
@@ -230,8 +218,29 @@ class TrovoBatchVodIE(InfoExtractor):
         return self.playlist_result(self._entries(uid), playlist_id=uid)
 
 
-class TrovoBatchClipIE(InfoExtractor):
+class TrovoBatchVodIE(TrovoBatchIE):
+    _VALID_URL = r'trovovod:(?P<id>[^\s]+)'
+    IE_DESC = 'All VODs of a trovo.live channel, "trovovod" keyword'
+
+    _TESTS = [{
+        'url': 'trovovod:OneTappedYou',
+        'playlist_mincount': 24,
+        'info_dict': {
+            'id': '100719456',
+        },
+    }]
+
+    _QUERY = '{getChannelLtvVideoInfos(params:{pageSize:99,currPage:%d,channelID:%s}){hasMore,vodInfos{vid}}}'
+
+    def _get_vod_json(self, page, uid):
+        return self._download_json('https://gql.trovo.live/', uid, query={
+            'query': self._QUERY % (page, uid)
+        })['data']['getChannelLtvVideoInfos']
+
+
+class TrovoBatchClipIE(TrovoBatchIE):
     _VALID_URL = r'trovoclip:(?P<id>[^\s]+)'
+    IE_DESC = 'All Clips of a trovo.live channel, "trovoclip" keyword'
 
     _TESTS = [{
         'url': 'trovoclip:OneTappedYou',
@@ -241,23 +250,9 @@ class TrovoBatchClipIE(InfoExtractor):
         },
     }]
 
-    def _entries(self, uid):
-        for page in itertools.count(1):
-            vod_json = self._download_json('https://gql.trovo.live/', uid, query={
-                                           'query': '{getChannelClipVideoInfos(params:{pageSize:99,currPage:%d,channelID:%s,albumType:VOD_CLIP_ALBUM_TYPE_LATEST}){hasMore,vodInfos{vid}}}' % (page, uid)
-                                           })['data']['getChannelClipVideoInfos']
-            vods = vod_json.get('vodInfos', [])
-            for vod in vods:
-                yield self.url_result(
-                    'https://trovo.live/clip/%s' % vod.get('vid'),
-                    ie=TrovoVodIE.ie_key())
-            has_more = vod_json['hasMore']
-            if not has_more:
-                break
+    _QUERY = '{getChannelClipVideoInfos(params:{pageSize:99,currPage:%d,channelID:%s,albumType:VOD_CLIP_ALBUM_TYPE_LATEST}){hasMore,vodInfos{vid}}}'
 
-    def _real_extract(self, url):
-        id = self._match_id(url)
-        uid = str(self._download_json('https://gql.trovo.live/', id, query={
-            'query': '{getLiveInfo(params:{userName:"%s"}){streamerInfo{uid}}}' % id
-        })['data']['getLiveInfo']['streamerInfo']['uid'])
-        return self.playlist_result(self._entries(uid), playlist_id=uid)
+    def _get_vod_json(self, page, uid):
+        return self._download_json('https://gql.trovo.live/', uid, query={
+            'query': self._QUERY % (page, uid)
+        })['data']['getChannelClipVideoInfos']
