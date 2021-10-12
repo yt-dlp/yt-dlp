@@ -2964,15 +2964,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
         pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
-        # Converted into dicts to remove duplicates
-        captions = {
-            sub.get('baseUrl'): sub
-            for sub in traverse_obj(pctr, (..., 'captionTracks', ...), default=[])}
-        translation_languages = {
-            lang.get('languageCode'): lang.get('languageName')
-            for lang in traverse_obj(pctr, (..., 'translationLanguages', ...), default=[])}
-        subtitles = {}
         if pctr:
+            def get_lang_code(track):
+                return (remove_start(track.get('vssId') or '', '.').replace('.', '-')
+                        or track.get('languageCode'))
+
+            # Converted into dicts to remove duplicates
+            captions = {
+                get_lang_code(sub): sub
+                for sub in traverse_obj(pctr, (..., 'captionTracks', ...), default=[])}
+            translation_languages = {
+                lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
+                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...), default=[])}
+
             def process_language(container, base_url, lang_code, sub_name, query):
                 lang_subs = container.setdefault(lang_code, [])
                 for fmt in self._SUBTITLE_FORMATS:
@@ -2985,30 +2989,29 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'name': sub_name,
                     })
 
-            for base_url, caption_track in captions.items():
+            subtitles, automatic_captions = {}, {}
+            for lang_code, caption_track in captions.items():
+                base_url = caption_track.get('baseUrl')
                 if not base_url:
                     continue
+                lang_name = self._get_text(caption_track, 'name', max_runs=1)
                 if caption_track.get('kind') != 'asr':
-                    lang_code = (
-                        remove_start(caption_track.get('vssId') or '', '.').replace('.', '-')
-                        or caption_track.get('languageCode'))
                     if not lang_code:
                         continue
                     process_language(
-                        subtitles, base_url, lang_code,
-                        traverse_obj(caption_track, ('name', 'simpleText'), ('name', 'runs', ..., 'text'), get_all=False),
-                        {})
-                    continue
-                automatic_captions = {}
+                        subtitles, base_url, lang_code, lang_name, {})
+                    if not caption_track.get('isTranslatable'):
+                        continue
                 for trans_code, trans_name in translation_languages.items():
                     if not trans_code:
                         continue
+                    if caption_track.get('kind') != 'asr':
+                        trans_code += f'-{lang_code}'
+                        trans_name += format_field(lang_name, template=' from %s')
                     process_language(
-                        automatic_captions, base_url, trans_code,
-                        self._get_text(trans_name, max_runs=1),
-                        {'tlang': trans_code})
-                info['automatic_captions'] = automatic_captions
-        info['subtitles'] = subtitles
+                        automatic_captions, base_url, trans_code, trans_name, {'tlang': trans_code})
+            info['automatic_captions'] = automatic_captions
+            info['subtitles'] = subtitles
 
         parsed_url = compat_urllib_parse_urlparse(url)
         for component in [parsed_url.fragment, parsed_url.query]:
@@ -3054,7 +3057,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         try:
             # This will error if there is no livechat
             initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
-            info['subtitles']['live_chat'] = [{
+            info.setdefault('subtitles', {})['live_chat'] = [{
                 'url': 'https://www.youtube.com/watch?v=%s' % video_id,  # url is needed to set cookies
                 'video_id': video_id,
                 'ext': 'json',
