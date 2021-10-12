@@ -1470,6 +1470,8 @@ from .trilulilu import TriluliluIE
 from .trovo import (
     TrovoIE,
     TrovoVodIE,
+    TrovoBatchVodIE,
+    TrovoBatchClipIE,
 )
 from .trunews import TruNewsIE
 from .trutv import TruTVIE
