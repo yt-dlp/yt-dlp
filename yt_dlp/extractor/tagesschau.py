@@ -123,16 +123,16 @@ class TagesschauIE(InfoExtractor):
                 if media_url.endswith('master.m3u8'):
                     formats = self._extract_m3u8_formats(media_url, video_id, 'mp4', m3u8_id='hls')
                 elif media_url.endswith('.hi.mp3') and media_url.startswith('https://download'):
-                    formats = {
+                    formats = [{
                         'url': media_url,
                         'vcodec': 'none',
-                    }
+                    }]
                 if not formats:
                     continue
                 entries.append({
                     'id': '%s-%d' % (display_id, num),
-                    'title': '%s' % try_get(video_format, lambda x: x['mc']['_title']),
-                    'duration': int_or_none(try_get(video_format, lambda x: x['mc']['_duration'])),
+                    'title': '%s' % try_get(video, lambda x: x['mc']['_title']),
+                    'duration': int_or_none(try_get(video, lambda x: x['mc']['_duration'])),
                     'formats': formats
                 })
         if len(entries) > 1:
