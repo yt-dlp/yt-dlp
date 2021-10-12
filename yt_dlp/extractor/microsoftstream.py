@@ -5,6 +5,7 @@ from base64 import b64decode
 
 from .common import InfoExtractor
 from ..utils import (
+    merge_dicts,
     parse_iso8601,
     parse_duration,
     parse_resolution,
@@ -43,8 +44,8 @@ class MicrosoftStreamIE(InfoExtractor):
                 '$expand': 'creator,tokens,status,liveEvent,extensions',
                 'api-version': '1.4-private'
             })
-
         video_id = video_data.get('id') or video_id
+        language = video_data.get('language')
 
         thumbnails = []
         for thumbnail_id in ('extraSmall', 'small', 'medium', 'large'):
@@ -75,6 +76,7 @@ class MicrosoftStreamIE(InfoExtractor):
                 formats.extend(self._extract_ism_formats(
                     playlist['playbackUrl'], video_id, ism_id='mss',
                     fatal=False, headers=headers))
+        formats = [merge_dicts(f, {'language': language}) for f in formats]
         self._sort_formats(formats)
 
         subtitles = {}
@@ -102,7 +104,6 @@ class MicrosoftStreamIE(InfoExtractor):
             'thumbnails': thumbnails,
             'subtitles': subtitles,
             'automatic_captions': automatic_captions,
-            'language': video_data.get('language'),
             'timestamp': parse_iso8601(video_data.get('created')),
             'duration': parse_duration(try_get(video_data, lambda x: x['media']['duration'])),
             'webpage_url': f'https://web.microsoftstream.com/video/{video_id}',
