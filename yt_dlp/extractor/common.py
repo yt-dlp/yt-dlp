@@ -2646,6 +2646,8 @@ class InfoExtractor(object):
                             content_type = mime_type
                         elif codecs.split('.')[0] == 'stpp':
                             content_type = 'text'
+                        elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
+                            content_type = 'text'
                         else:
                             self.report_warning('Unknown MIME type %s in DASH manifest' % mime_type)
                             continue
