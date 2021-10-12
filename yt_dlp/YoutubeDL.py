@@ -2744,14 +2744,9 @@ class YoutubeDL(object):
                     dl_filename = existing_file(full_filename, temp_filename)
                     info_dict['__real_download'] = False
 
-                    _protocols = set(determine_protocol(f) for f in requested_formats)
-                    if len(_protocols) == 1:  # All requested formats have same protocol
-                        info_dict['protocol'] = _protocols.pop()
-                    directly_mergable = FFmpegFD.can_merge_formats(info_dict, self.params)
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
-                    elif (directly_mergable and get_suitable_downloader(
-                            info_dict, self.params, to_stdout=(temp_filename == '-')) == FFmpegFD):
+                    elif get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-'):
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
@@ -2769,7 +2764,7 @@ class YoutubeDL(object):
                                 'The formats won\'t be merged.')
 
                         if temp_filename == '-':
-                            reason = ('using a downloader other than ffmpeg' if directly_mergable
+                            reason = ('using a downloader other than ffmpeg' if FFmpegFD.can_merge_formats(info_dict)
                                       else 'but the formats are incompatible for simultaneous download' if merger.available
                                       else 'but ffmpeg is not installed')
                             self.report_warning(

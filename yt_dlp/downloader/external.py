@@ -327,6 +327,10 @@ class FFmpegFD(ExternalFD):
         # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
 
+    @classmethod
+    def supports(cls, info_dict):
+        return all(proto in cls.SUPPORTED_PROTOCOLS for proto in info_dict['protocol'].split('+'))
+
     def on_process_started(self, proc, stdin):
         """ Override this in subclasses  """
         pass
