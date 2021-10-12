@@ -263,10 +263,11 @@ class YoumakerIE(InfoExtractor):
 
     def _video_entry_by_metadata(self, info):
         try:
-            video_uid, title, video_info = itemgetter('video_uid', 'title', 'data')(info)
+            video_uid, title = itemgetter('video_uid', 'title')(info)
         except KeyError as exc:
             raise ExtractorError(f'{exc!s} not found in video metadata')
 
+        video_info = info.get('data', {})
         tag_str = info.get('tag')
         tags = [tag.strip() for tag in tag_str.strip('[]').split(',')] if tag_str else None
         channel_url = (
