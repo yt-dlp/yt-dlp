@@ -46,7 +46,7 @@ class MicrosoftStreamIE(InfoExtractor):
             'subtitles': subtitles,
             'automatic_captions': automatic_captions
         }
-    
+
     def extract_all_subtitles(self, *args, **kwargs):
         if (self.get_param('writesubtitles', False)
                 or self.get_param('writeautomaticsub', False)
