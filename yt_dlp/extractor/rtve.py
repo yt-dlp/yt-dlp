@@ -181,7 +181,7 @@ class RTVEALaCartaIE(InfoExtractor):
 class RTVEAudioIE(RTVEALaCartaIE):
     IE_NAME = 'rtve.es:audio'
     IE_DESC = 'RTVE audio'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/alacarta/audios/[^/]+/[^/]+/(?P<id>[0-9]+)/'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(alacarta|play)/audios/[^/]+/[^/]+/(?P<id>[0-9]+)/'
 
     _TESTS = [{
         'url': 'https://www.rtve.es/alacarta/audios/a-hombros-de-gigantes/palabra-ingeniero-codigos-informaticos-27-04-21/5889192/',
@@ -192,6 +192,16 @@ class RTVEAudioIE(RTVEALaCartaIE):
             'title': 'Códigos informáticos',
             'thumbnail': r're:https?://.+/1598856591583.jpg',
             'duration': 349.440,
+        },
+    }, {
+        'url': 'https://www.rtve.es/play/audios/en-radio-3/ignatius-farray/5791165/',
+        'md5': '072855ab89a9450e0ba314c717fa5ebc',
+        'info_dict': {
+            'id': '5791165',
+            'ext': 'mp3',
+            'title': 'Ignatius Farray',
+            'thumbnail': r're:https?://.+/1613243011863.jpg',
+            'duration': 3559.559,
         },
     }]
 
