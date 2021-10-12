@@ -97,21 +97,16 @@ query GetCommentReplies($id: String!) {
                 'query': self._GRAPHQL_QUERIES[operation]
             }).encode('utf8')).get('data')
 
-    def _extract_comments(self, video_id, comments, comment_data):
+    def _get_comments(self, video_id, comments, comment_data):
+        yield from comments
         for comment in comment_data.copy():
             comment_id = comment.get('_id')
             if comment.get('replyCount') > 0:
                 reply_json = self._call_api(
                     video_id, comment_id, 'GetCommentReplies',
                     f'Downloading replies for comment {comment_id}')
-                comments.extend(
-                    self._parse_comment(reply, comment_id)
-                    for reply in reply_json.get('getCommentReplies'))
-
-        return {
-            'comments': comments,
-            'comment_count': len(comments),
-        }
+                for reply in reply_json.get('getCommentReplies'):
+                    yield self._parse_comment(reply, comment_id)
 
     @staticmethod
     def _parse_comment(comment_data, parent):
@@ -159,7 +154,5 @@ query GetCommentReplies($id: String!) {
             'tags': [tag.get('name') for tag in video_info.get('tags')],
             'availability': self._availability(is_unlisted=video_info.get('unlisted')),
             'comments': comments,
-            '__post_extractor': (
-                (lambda: self._extract_comments(video_id, comments, video_json.get('getVideoComments')))
-                if self.get_param('getcomments') else None)
+            '__post_extractor': self.extract_comments(video_id, comments, video_json.get('getVideoComments'))
         }
