@@ -1034,7 +1034,7 @@ class YoutubeDL(object):
 
         def create_key(outer_mobj):
             if not outer_mobj.group('has_key'):
-                return f'%{outer_mobj.group(0)}'
+                return outer_mobj.group(0)
             key = outer_mobj.group('key')
             mobj = re.match(INTERNAL_FORMAT_RE, key)
             initial_field = mobj.group('fields').split('.')[-1] if mobj else ''
@@ -1105,10 +1105,8 @@ class YoutubeDL(object):
                 compat_str(v),
                 restricted=self.params.get('restrictfilenames'),
                 is_id=(k == 'id' or k.endswith('_id')))
-            outtmpl = self.outtmpl_dict.get(tmpl_type, self.outtmpl_dict['default'])
-            outtmpl, template_dict = self.prepare_outtmpl(outtmpl, info_dict, sanitize)
-            outtmpl = self.escape_outtmpl(self._outtmpl_expandpath(outtmpl))
-            filename = outtmpl % template_dict
+            outtmpl = self._outtmpl_expandpath(self.outtmpl_dict.get(tmpl_type, self.outtmpl_dict['default']))
+            filename = self.evaluate_outtmpl(outtmpl, info_dict, sanitize)
 
             force_ext = OUTTMPL_TYPES.get(tmpl_type)
             if filename and force_ext is not None:

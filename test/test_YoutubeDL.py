@@ -817,6 +817,12 @@ class TestYoutubeDL(unittest.TestCase):
         compat_setenv('__yt_dlp_var', 'expanded')
         envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
         test(envvar, (envvar, 'expanded'))
+        if compat_os_name == 'nt':
+            test('%s%', ('%s%', '%s%'))
+            compat_setenv('s', 'expanded')
+            test('%s%', ('%s%', 'expanded'))  # %s% should be expanded before escaping %s
+            compat_setenv('(test)s', 'expanded')
+            test('%(test)s%', ('NA%', 'expanded'))  # Environment should take priority over template
 
         # Path expansion and escaping
         test('Hello %(title1)s', 'Hello $PATH')
