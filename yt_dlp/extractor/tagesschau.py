@@ -119,22 +119,22 @@ class TagesschauIE(InfoExtractor):
             num += 1
             for video_format in video_formats:
                 media_url = video_format.get('_stream') or ''
+                formats = []
                 if media_url.endswith('master.m3u8'):
-                    entries.append({
-                        'id': '%s-%d' % (display_id, num),
-                        'title': '%s' % try_get(video_format, lambda x: x['mc']['_title']),
-                        'duration': int_or_none(try_get(video_format, lambda x: x['mc']['_duration'])),
-                        'formats': self._extract_m3u8_formats(media_url, video_id, 'mp4', m3u8_id='hls')
-                    })
-                    break
+                    formats = self._extract_m3u8_formats(media_url, video_id, 'mp4', m3u8_id='hls')
                 elif media_url.endswith('.hi.mp3') and media_url.startswith('https://download'):
-                    entries.append({
-                        'id': '%s-%d' % (display_id, num),
-                        'title': '%s' % try_get(video_format, lambda x: x['mc']['_title']),
+                    formats = {
                         'url': media_url,
-                        'duration': int_or_none(try_get(video_format, lambda x: x['mc']['_duration'])),
-                        'vcodec': 'none'
-                    })
+                        'vcodec': 'none',
+                    }
+                if not formats:
+                    continue
+                entries.append({
+                    'id': '%s-%d' % (display_id, num),
+                    'title': '%s' % try_get(video_format, lambda x: x['mc']['_title']),
+                    'duration': int_or_none(try_get(video_format, lambda x: x['mc']['_duration'])),
+                    'formats': formats
+                })
         if len(entries) > 1:
             return self.playlist_result(entries, display_id, title)
         formats = entries[0]['formats']
