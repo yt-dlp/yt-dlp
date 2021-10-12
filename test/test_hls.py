@@ -47,20 +47,23 @@ class TestHLS(unittest.TestCase):
         for file in ['destination.mp4', 'file.keyinfo',
                      'out.m3u8', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out6.ts']:
             try:
-                os.remove(os.path.join(DATA_DIR, file))
+                os.remove(os.path.join(DATA_DIR, '_'.join((self._testMethodName, file))))
             except (FileNotFoundError, IsADirectoryError):
                 pass
 
     def test_real_download_noiv(self):
         key_filename = 'file.key'
+        out_filename = '%s_out.m3u8' % self._testMethodName
+        key_info_filename = '%s_file.keyinfo' % self._testMethodName
+
         was_error = False
         try:
-            with open(os.path.join(DATA_DIR, 'file.keyinfo'), 'w') as f:
+            with open(os.path.join(DATA_DIR, '%s_file.keyinfo' % self._testMethodName), 'w') as f:
                 f.write('http://127.0.0.1:%d/%s\n' % (self.port, key_filename))
                 f.write(key_filename + '\n')
 
                 handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=65',
-                                           '-hls_key_info_file', 'file.keyinfo', 'out.m3u8'],
+                                           '-hls_key_info_file', key_info_filename, out_filename],
                                           cwd=DATA_DIR)
         except OSError:
             was_error = True
@@ -70,22 +73,25 @@ class TestHLS(unittest.TestCase):
         ydl = YoutubeDL({'logger': FakeLogger()})
         downloader = HlsFD(ydl, {})
         info_dict = {
-            'url': 'http://127.0.0.1:%d/out.m3u8' % self.port,
+            'url': 'http://127.0.0.1:%d/%s_out.m3u8' % (self.port, self._testMethodName),
             'ext': 'mp4'
         }
-        r = downloader.real_download(os.path.join(DATA_DIR, 'destination.mp4'), info_dict)
+        r = downloader.real_download(os.path.join(DATA_DIR, '%s_destination.mp4' % self._testMethodName), info_dict)
         self.assertTrue(r)
 
     def test_real_download_iv(self):
         key_filename = 'file.key'
+        out_filename = '%s_out.m3u8' % self._testMethodName
+        key_info_filename = '%s_file.keyinfo' % self._testMethodName
+
         was_error = False
         try:
-            with open(os.path.join(DATA_DIR, 'file.keyinfo'), 'w') as f:
+            with open(os.path.join(DATA_DIR, '%s_file.keyinfo' % self._testMethodName), 'w') as f:
                 f.write('http://127.0.0.1:%d/%s\n' % (self.port, key_filename))
                 f.write(key_filename + '\n')
 
                 handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=65',
-                                           '-hls_key_info_file', 'file.keyinfo', 'out.m3u8'],
+                                           '-hls_key_info_file', key_info_filename, out_filename],
                                           cwd=DATA_DIR)
         except OSError:
             was_error = True
@@ -95,10 +101,10 @@ class TestHLS(unittest.TestCase):
         ydl = YoutubeDL({'logger': FakeLogger()})
         downloader = HlsFD(ydl, {})
         info_dict = {
-            'url': 'http://127.0.0.1:%d/out.m3u8' % self.port,
+            'url': 'http://127.0.0.1:%d/%s_out.m3u8' % (self.port, self._testMethodName),
             'ext': 'mp4'
         }
-        r = downloader.real_download(os.path.join(DATA_DIR, 'destination.mp4'), info_dict)
+        r = downloader.real_download(os.path.join(DATA_DIR, '%s_destination.mp4' % self._testMethodName), info_dict)
         self.assertTrue(r)
 
 
