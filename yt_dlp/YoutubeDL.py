@@ -1848,11 +1848,18 @@ class YoutubeDL(object):
                 else:
                     output_ext = 'mkv'
 
+            filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
+
             new_dict = {
                 'requested_formats': formats_info,
-                'format': '+'.join(fmt_info.get('format') for fmt_info in formats_info),
-                'format_id': '+'.join(fmt_info.get('format_id') for fmt_info in formats_info),
+                'format': '+'.join(filtered('format')),
+                'format_id': '+'.join(filtered('format_id')),
                 'ext': output_ext,
+                'protocol': '+'.join(map(determine_protocol, formats_info)),
+                'language': '+'.join(orderedSet(filtered('language'))),
+                'format_note': '+'.join(orderedSet(filtered('format_note'))),
+                'filesize_approx': sum(filtered('filesize', 'filesize_approx')),
+                'tbr': sum(filtered('tbr', 'vbr', 'abr')),
             }
 
             if the_only_video:
@@ -1870,6 +1877,7 @@ class YoutubeDL(object):
                 new_dict.update({
                     'acodec': the_only_audio.get('acodec'),
                     'abr': the_only_audio.get('abr'),
+                    'asr': the_only_audio.get('asr'),
                 })
 
             return new_dict
