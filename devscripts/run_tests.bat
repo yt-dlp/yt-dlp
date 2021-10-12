@@ -3,14 +3,14 @@
 cd /d %~dp0..
 
 if ["%~1"]==[""] (
-    set "test_set="
+    set "test_set="test""
 ) else if ["%~1"]==["core"] (
-    set "test_set="not download""
+    set "test_set="-m not download""
 ) else if ["%~1"]==["download"] (
-    set "test_set="download"
+    set "test_set="-m "download""
 ) else (
     echo.Invalid test type "%~1". Use "core" ^| "download"
     exit /b 1
 )
 
-pytest -m %test_set%
+pytest %test_set%
