@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import os
-import subprocess
 import sys
-import threading
 import unittest
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import http_server_port
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_http_server
 from yt_dlp.downloader import HlsFD
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import subprocess
+import threading
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(TEST_DIR, 'testdata', 'hls')
