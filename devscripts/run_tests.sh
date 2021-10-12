@@ -11,4 +11,4 @@ else
     exit 1
 fi
 
-python3 -m pytest -k "$test_set"
+python3 -m pytest -m "$test_set"
