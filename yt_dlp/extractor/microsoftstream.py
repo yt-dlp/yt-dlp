@@ -33,7 +33,7 @@ class MicrosoftStreamIE(InfoExtractor):
         text_tracks = self._download_json(
             f'{api_url}/videos/{video_id}/texttracks', video_id,
             note='Downloading subtitles JSON', fatal=False, headers=headers,
-            query={'api-version': '1.4-private'}).get('value')
+            query={'api-version': '1.4-private'}).get('value') or []
         for track in text_tracks:
             if not track.get('language') or not track.get('url'):
                 continue
@@ -51,7 +51,7 @@ class MicrosoftStreamIE(InfoExtractor):
         if (self.get_param('writesubtitles', False)
                 or self.get_param('writeautomaticsub', False)
                 or self.get_param('listsubtitles')):
-            return self._get_subtitles(*args, **kwargs)
+            return self._get_all_subtitles(*args, **kwargs)
         return {}
 
     def _real_extract(self, url):
