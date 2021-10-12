@@ -52,26 +52,29 @@ class On24IE(InfoExtractor):
                 'key': event_key,
                 'contentType': 'A'
             })
-
         event_id = str(try_get(event_data, lambda x: x['presentationLogInfo']['eventid'])) or event_id
-
-        info_media = event_data.get('mediaUrlInfo', {})
+        language = event_data.get('localelanguagecode')
 
         formats = []
-        for m in info_media:
-            media_url = urljoin('https://event.on24.com/media/news/corporatevideo/events/', str(m['url']))
-            if m['code'] == 'fhvideo1':
+        for media in event_data.get('mediaUrlInfo', []):
+            media_url = urljoin('https://event.on24.com/media/news/corporatevideo/events/', str(media.get('url')))
+            if not media_url:
+                continue
+            media_type = media.get('code')
+            if media_type == 'fhvideo1':
                 formats.append({
                     'format_id': 'video',
                     'url': media_url,
+                    'language': language,
                     'ext': 'mp4',
                     'vcodec': 'avc1.640020',
                     'acodec': 'mp4a.40.2',
                 })
-            elif m['code'] == 'audio':
+            elif media_type == 'audio':
                 formats.append({
                     'format_id': 'audio',
                     'url': media_url,
+                    'language': language,
                     'ext': 'wav',
                     'vcodec': 'none',
                     'acodec': 'wav'
@@ -81,7 +84,6 @@ class On24IE(InfoExtractor):
         return {
             'id': event_id,
             'title': strip_or_none(event_data.get('description')),
-            'language': event_data.get('localelanguagecode'),
             'timestamp': int_or_none(try_get(event_data, lambda x: x['session']['startdate']), 1000),
             'webpage_url': f'https://event.on24.com/wcc/r/{event_id}/{event_key}',
             'view_count': event_data.get('registrantcount'),
