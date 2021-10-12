@@ -35,7 +35,7 @@ class FakeLogger(object):
 
 
 class TestHLS(unittest.TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.httpd = compat_http_server.HTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         self.port = http_server_port(self.httpd)
