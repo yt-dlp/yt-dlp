@@ -37,14 +37,18 @@ class FakeLogger(object):
 class TestHLS(unittest.TestCase):
     def setUp(self):
         self.httpd = compat_http_server.HTTPServer(
-            ('127.0.0.1', 0), HTTPTestRequestHandler)
+            ('127.0.0.1', 8000), HTTPTestRequestHandler)
         self.port = http_server_port(self.httpd)
         self.server_thread = threading.Thread(target=self.httpd.serve_forever)
         self.server_thread.daemon = True
         self.server_thread.start()
 
+    def tearDown(self):
+        self.httpd.server_close()
+        self.httpd.shutdown()
+
     def doCleanups(self):
-        for file in ['destination.mp4', 'file.keyinfo',
+        for file in ['destination.mp4',
                      'out.m3u8', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out5.ts', 'out6.ts']:
             try:
                 os.remove(os.path.join(DATA_DIR, '_'.join((self._testMethodName, file))))
@@ -52,19 +56,14 @@ class TestHLS(unittest.TestCase):
                 pass
 
     def test_real_download_noiv(self):
-        key_filename = 'file.key'
         out_filename = '%s_out.m3u8' % self._testMethodName
         key_info_filename = '%s_file.keyinfo' % self._testMethodName
 
         was_error = False
         try:
-            with open(os.path.join(DATA_DIR, '%s_file.keyinfo' % self._testMethodName), 'w') as f:
-                f.write('http://127.0.0.1:%d/%s\n' % (self.port, key_filename))
-                f.write(key_filename + '\n')
-
-                handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=65',
-                                           '-hls_key_info_file', key_info_filename, out_filename],
-                                          cwd=DATA_DIR)
+            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=65',
+                                       '-hls_key_info_file', key_info_filename, out_filename],
+                                      cwd=DATA_DIR)
         except OSError:
             was_error = True
         if was_error or handle.wait() != 0:
@@ -80,19 +79,14 @@ class TestHLS(unittest.TestCase):
         self.assertTrue(r)
 
     def test_real_download_iv(self):
-        key_filename = 'file.key'
         out_filename = '%s_out.m3u8' % self._testMethodName
         key_info_filename = '%s_file.keyinfo' % self._testMethodName
 
         was_error = False
         try:
-            with open(os.path.join(DATA_DIR, '%s_file.keyinfo' % self._testMethodName), 'w') as f:
-                f.write('http://127.0.0.1:%d/%s\n' % (self.port, key_filename))
-                f.write(key_filename + '\n')
-
-                handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=65',
-                                           '-hls_key_info_file', key_info_filename, out_filename],
-                                          cwd=DATA_DIR)
+            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=65',
+                                       '-hls_key_info_file', key_info_filename, out_filename],
+                                      cwd=DATA_DIR)
         except OSError:
             was_error = True
         if was_error or handle.wait() != 0:
