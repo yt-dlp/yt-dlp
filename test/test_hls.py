@@ -61,7 +61,7 @@ class TestHLS(unittest.TestCase):
         except (FileNotFoundError, IsADirectoryError):
             pass
 
-        for file in ['out.m3u8', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out5.ts', 'out6.ts']:
+        for file in ['out.m3u8', 'out.ts', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out5.ts', 'out6.ts']:
             try:
                 os.remove(os.path.join(DATA_DIR, '_'.join((self._testMethodName, file))))
             except (FileNotFoundError, IsADirectoryError):
