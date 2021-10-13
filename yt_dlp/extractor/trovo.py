@@ -198,13 +198,16 @@ class TrovoVodIE(TrovoBaseIE):
 
 
 class TrovoBatchIE(InfoExtractor):
+    def _get_vod_json(self, page, uid):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
     def _entries(self, uid):
         for page in itertools.count(1):
             vod_json = self._get_vod_json(page, uid)
             vods = vod_json.get('vodInfos', [])
             for vod in vods:
                 yield self.url_result(
-                    'https://trovo.live/video/%s' % vod.get('vid'),
+                    'https://trovo.live/%s/%s' % (self._TYPE, vod.get('vid')),
                     ie=TrovoVodIE.ie_key())
             has_more = vod_json['hasMore']
             if not has_more:
@@ -231,6 +234,7 @@ class TrovoBatchVodIE(TrovoBatchIE):
     }]
 
     _QUERY = '{getChannelLtvVideoInfos(params:{pageSize:99,currPage:%d,channelID:%s}){hasMore,vodInfos{vid}}}'
+    _TYPE = 'video'
 
     def _get_vod_json(self, page, uid):
         return self._download_json('https://gql.trovo.live/', uid, query={
@@ -251,6 +255,7 @@ class TrovoBatchClipIE(TrovoBatchIE):
     }]
 
     _QUERY = '{getChannelClipVideoInfos(params:{pageSize:99,currPage:%d,channelID:%s,albumType:VOD_CLIP_ALBUM_TYPE_LATEST}){hasMore,vodInfos{vid}}}'
+    _TYPE = 'clip'
 
     def _get_vod_json(self, page, uid):
         return self._download_json('https://gql.trovo.live/', uid, query={
