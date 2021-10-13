@@ -68,7 +68,7 @@ class TestHLS(unittest.TestCase):
         except OSError:
             was_error = True
         if was_error or handle.wait() != 0:
-            self.skipTest("Error occurred during generating files.")
+            self.fail("Error occurred during generating files.")
 
         ydl = YoutubeDL({'logger': FakeLogger()})
         downloader = HlsFD(ydl, {})
@@ -96,7 +96,7 @@ class TestHLS(unittest.TestCase):
         except OSError:
             was_error = True
         if was_error or handle.wait() != 0:
-            self.skipTest("Error occurred during generating files.")
+            self.fail("Error occurred during generating files.")
 
         ydl = YoutubeDL({'logger': FakeLogger()})
         downloader = HlsFD(ydl, {})
