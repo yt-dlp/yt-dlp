@@ -66,6 +66,23 @@ class TestHLS(unittest.TestCase):
             except (FileNotFoundError, IsADirectoryError):
                 pass
 
+    def test_real_download_byterange(self):
+        out_filename = '%s_out.m3u8' % self._testMethodName
+
+        was_error = False
+        try:
+            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=6.5',
+                                       '-hls_init_time', '1s', '-hls_flags', 'split_by_time+single_file',
+                                       out_filename],
+                                      cwd=DATA_DIR)
+        except OSError:
+            was_error = True
+        if was_error or handle.wait() != 0:
+            self.fail("Error occurred during generating files.")
+
+        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
+        self.assertTrue(r)
+
     def test_real_download_noiv(self):
         out_filename = '%s_out.m3u8' % self._testMethodName
         key_info_filename = 'file_noiv.keyinfo'
