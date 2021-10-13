@@ -49,6 +49,7 @@ class TestHLS(unittest.TestCase):
             'url': 'http://127.0.0.1:%d/%s_out.m3u8' % ((http_server_port(self.httpd)), self._testMethodName),
             'ext': 'mp4'
         }
+        self.playlist = '%s_out.m3u8' % self._testMethodName
 
     def tearDown(self):
         self.httpd.server_close()
@@ -67,13 +68,11 @@ class TestHLS(unittest.TestCase):
                 pass
 
     def test_real_download_byterange(self):
-        out_filename = '%s_out.m3u8' % self._testMethodName
-
         was_error = False
         try:
             handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=6.5',
                                        '-hls_init_time', '1s', '-hls_flags', 'split_by_time+single_file',
-                                       out_filename],
+                                       self.playlist],
                                       cwd=DATA_DIR)
         except OSError:
             was_error = True
@@ -84,14 +83,13 @@ class TestHLS(unittest.TestCase):
         self.assertTrue(r)
 
     def test_real_download_noiv(self):
-        out_filename = '%s_out.m3u8' % self._testMethodName
         key_info_filename = 'file_noiv.keyinfo'
 
         was_error = False
         try:
             handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=6.5',
                                        '-hls_init_time', '1s', '-hls_flags', 'split_by_time',
-                                       '-hls_key_info_file', key_info_filename, out_filename],
+                                       '-hls_key_info_file', key_info_filename, self.playlist],
                                       cwd=DATA_DIR)
         except OSError:
             was_error = True
@@ -102,14 +100,13 @@ class TestHLS(unittest.TestCase):
         self.assertTrue(r)
 
     def test_real_download_iv(self):
-        out_filename = '%s_out.m3u8' % self._testMethodName
         key_info_filename = 'file_iv.keyinfo'
 
         was_error = False
         try:
             handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=6.5',
                                        '-hls_init_time', '1s', '-hls_flags', 'split_by_time',
-                                       '-hls_key_info_file', key_info_filename, out_filename],
+                                       '-hls_key_info_file', key_info_filename, self.playlist],
                                       cwd=DATA_DIR)
         except OSError:
             was_error = True
