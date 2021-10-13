@@ -13,6 +13,7 @@ from .aes import aes_cbc_decrypt_bytes, aes_gcm_decrypt_and_verify_bytes
 from .compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
+    compat_subprocess_Popen,
 )
 from .utils import (
     bug_reports_message,
@@ -599,12 +600,12 @@ def _get_mac_keyring_password(browser_keyring_name, logger):
         return password.encode('utf-8')
     else:
         logger.debug('using find-generic-password to obtain password')
-        proc = subprocess.Popen(['security', 'find-generic-password',
-                                 '-w',  # write password to stdout
-                                 '-a', browser_keyring_name,  # match 'account'
-                                 '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL)
+        proc = compat_subprocess_Popen([
+            'security', 'find-generic-password',
+             '-w',  # write password to stdout
+             '-a', browser_keyring_name,  # match 'account'
+             '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
+             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         try:
             stdout, stderr = process_communicate_or_kill(proc)
             if stdout[-1:] == b'\n':

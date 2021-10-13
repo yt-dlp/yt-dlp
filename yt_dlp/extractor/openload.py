@@ -7,8 +7,9 @@ import subprocess
 import tempfile
 
 from ..compat import (
-    compat_urlparse,
     compat_kwargs,
+    compat_subprocess_Popen,
+    compat_urlparse,
 )
 from ..utils import (
     check_executable,
@@ -223,10 +224,9 @@ class PhantomJSwrapper(object):
         else:
             self.extractor.to_screen('%s: %s' % (video_id, note2))
 
-        p = subprocess.Popen([
-            self.exe, '--ssl-protocol=any',
-            self._TMP_FILES['script'].name
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = compat_subprocess_Popen(
+            [self.exe, '--ssl-protocol=any', self._TMP_FILES['script'].name],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process_communicate_or_kill(p)
         if p.returncode != 0:
             raise ExtractorError(

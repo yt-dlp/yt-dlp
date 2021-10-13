@@ -8,6 +8,7 @@ import time
 
 from .fragment import FragmentFD
 from ..compat import (
+    compat_subprocess_Popen,
     compat_setenv,
     compat_str,
 )
@@ -116,8 +117,7 @@ class ExternalFD(FragmentFD):
         self._debug_cmd(cmd)
 
         if 'fragments' not in info_dict:
-            p = subprocess.Popen(
-                cmd, stderr=subprocess.PIPE)
+            p = compat_subprocess_Popen(cmd, stderr=subprocess.PIPE)
             _, stderr = process_communicate_or_kill(p)
             if p.returncode != 0:
                 self.to_stderr(stderr.decode('utf-8', 'replace'))
@@ -128,8 +128,7 @@ class ExternalFD(FragmentFD):
 
         count = 0
         while count <= fragment_retries:
-            p = subprocess.Popen(
-                cmd, stderr=subprocess.PIPE)
+            p = compat_subprocess_Popen(cmd, stderr=subprocess.PIPE)
             _, stderr = process_communicate_or_kill(p)
             if p.returncode == 0:
                 break
@@ -199,7 +198,7 @@ class CurlFD(ExternalFD):
         self._debug_cmd(cmd)
 
         # curl writes the progress to stderr so don't capture it.
-        p = subprocess.Popen(cmd)
+        p = compat_subprocess_Popen(cmd)
         process_communicate_or_kill(p)
         return p.returncode
 
@@ -476,7 +475,7 @@ class FFmpegFD(ExternalFD):
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
         self._debug_cmd(args)
 
-        proc = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
+        proc = compat_subprocess_Popen(args, stdin=subprocess.PIPE, env=env)
         if url in ('-', 'pipe:'):
             self.on_process_started(proc, proc.stdin)
         try:

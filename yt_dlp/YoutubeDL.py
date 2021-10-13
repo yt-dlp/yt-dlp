@@ -36,6 +36,7 @@ from .compat import (
     compat_kwargs,
     compat_numeric_types,
     compat_os_name,
+    compat_subprocess_Popen,
     compat_pycrypto_AES,
     compat_shlex_quote,
     compat_str,
@@ -569,12 +570,9 @@ class YoutubeDL(object):
                     stdout=slave,
                     stderr=self._err_file)
                 try:
-                    self._output_process = subprocess.Popen(
-                        ['bidiv'] + width_args, **sp_kwargs
-                    )
+                    self._output_process = compat_subprocess_Popen(['bidiv'] + width_args, **sp_kwargs)
                 except OSError:
-                    self._output_process = subprocess.Popen(
-                        ['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
+                    self._output_process = compat_subprocess_Popen(['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
                 self._output_channel = os.fdopen(master, 'rb')
             except OSError as ose:
                 if ose.errno == errno.ENOENT:
@@ -3255,7 +3253,7 @@ class YoutubeDL(object):
             self._write_string(
                 '[debug] Compatibility options: %s\n' % ', '.join(self.params.get('compat_opts')))
         try:
-            sp = subprocess.Popen(
+            sp = compat_subprocess_Popen(
                 ['git', 'rev-parse', '--short', 'HEAD'],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=os.path.dirname(os.path.abspath(__file__)))

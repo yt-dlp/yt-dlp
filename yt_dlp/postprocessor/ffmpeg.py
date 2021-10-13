@@ -10,7 +10,7 @@ import json
 
 from .common import AudioConversionError, PostProcessor
 
-from ..compat import compat_str, compat_numeric_types
+from ..compat import compat_str, compat_numeric_types, compat_subprocess_Popen
 from ..utils import (
     dfxp2srt,
     encodeArgument,
@@ -178,9 +178,7 @@ class FFmpegPostProcessor(PostProcessor):
                     encodeArgument('-i')]
             cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
             self.write_debug('%s command line: %s' % (self.basename, shell_quote(cmd)))
-            handle = subprocess.Popen(
-                cmd, stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+            handle = compat_subprocess_Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout_data, stderr_data = process_communicate_or_kill(handle)
             expected_ret = 0 if self.probe_available else 1
             if handle.wait() != expected_ret:
@@ -223,7 +221,7 @@ class FFmpegPostProcessor(PostProcessor):
         cmd += opts
         cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
         self.write_debug('ffprobe command line: %s' % shell_quote(cmd))
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        p = compat_subprocess_Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdout, stderr = p.communicate()
         return json.loads(stdout.decode('utf-8', 'replace'))
 
@@ -284,7 +282,7 @@ class FFmpegPostProcessor(PostProcessor):
                 for i, (path, opts) in enumerate(path_opts) if path)
 
         self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        p = compat_subprocess_Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdout, stderr = process_communicate_or_kill(p)
         if p.returncode not in variadic(expected_retcodes):
             stderr = stderr.decode('utf-8', 'replace').strip()

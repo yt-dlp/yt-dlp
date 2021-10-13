@@ -21,6 +21,7 @@ from .ffmpeg import (
     FFmpegPostProcessor,
     FFmpegThumbnailsConvertorPP,
 )
+from ..compat import compat_subprocess_Popen
 from ..utils import (
     check_executable,
     encodeArgument,
@@ -183,7 +184,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
                 self._report_run('atomicparsley', filename)
                 self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
-                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                p = compat_subprocess_Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = process_communicate_or_kill(p)
                 if p.returncode != 0:
                     msg = stderr.decode('utf-8', 'replace').strip()

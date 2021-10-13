@@ -19,6 +19,7 @@ import shlex
 import shutil
 import socket
 import struct
+import subprocess
 import sys
 import tokenize
 import urllib
@@ -163,6 +164,11 @@ def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.pytho
     if compat_os_name != 'nt':
         return
     os.system('')
+
+
+class compat_subprocess_Popen(subprocess.Popen):
+    def __init__(self, *args, **kwargs):
+        super(compat_subprocess_Popen, self).__init__(*args, **kwargs, creationflags=0)
 
 
 #  Deprecated
