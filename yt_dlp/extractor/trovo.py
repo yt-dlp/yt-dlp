@@ -197,7 +197,7 @@ class TrovoVodIE(TrovoBaseIE):
         return info
 
 
-class TrovoBatchIE(InfoExtractor):
+class TrovoChannelBaseIE(InfoExtractor):
     def _get_vod_json(self, page, uid):
         raise NotImplementedError('This method must be implemented by subclasses')
 
@@ -221,7 +221,7 @@ class TrovoBatchIE(InfoExtractor):
         return self.playlist_result(self._entries(uid), playlist_id=uid)
 
 
-class TrovoBatchVodIE(TrovoBatchIE):
+class TrovoChannelVodIE(TrovoChannelBaseIE):
     _VALID_URL = r'trovovod:(?P<id>[^\s]+)'
     IE_DESC = 'All VODs of a trovo.live channel, "trovovod" keyword'
 
@@ -242,7 +242,7 @@ class TrovoBatchVodIE(TrovoBatchIE):
         })['data']['getChannelLtvVideoInfos']
 
 
-class TrovoBatchClipIE(TrovoBatchIE):
+class TrovoChannelClipIE(TrovoChannelBaseIE):
     _VALID_URL = r'trovoclip:(?P<id>[^\s]+)'
     IE_DESC = 'All Clips of a trovo.live channel, "trovoclip" keyword'
 
