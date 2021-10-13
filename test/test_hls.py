@@ -39,18 +39,28 @@ class TestHLS(unittest.TestCase):
     def setUp(self):
         self.httpd = compat_http_server.HTTPServer(
             ('127.0.0.1', 8000), HTTPTestRequestHandler)
-        self.port = http_server_port(self.httpd)
         self.server_thread = threading.Thread(target=self.httpd.serve_forever)
         self.server_thread.daemon = True
         self.server_thread.start()
+
+        ydl = YoutubeDL({'logger': FakeLogger()})
+        self.downloader = HlsFD(ydl, {})
+        self.info_dict = {
+            'url': 'http://127.0.0.1:%d/%s_out.m3u8' % ((http_server_port(self.httpd)), self._testMethodName),
+            'ext': 'mp4'
+        }
 
     def tearDown(self):
         self.httpd.server_close()
         self.httpd.shutdown()
 
     def doCleanups(self):
-        for file in ['destination.mp4',
-                     'out.m3u8', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out5.ts', 'out6.ts']:
+        try:
+            os.remove('_'.join((self._testMethodName, 'destination.mp4')))
+        except (FileNotFoundError, IsADirectoryError):
+            pass
+
+        for file in ['out.m3u8', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out5.ts', 'out6.ts']:
             try:
                 os.remove(os.path.join(DATA_DIR, '_'.join((self._testMethodName, file))))
             except (FileNotFoundError, IsADirectoryError):
@@ -71,13 +81,7 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
-        ydl = YoutubeDL({'logger': FakeLogger()})
-        downloader = HlsFD(ydl, {})
-        info_dict = {
-            'url': 'http://127.0.0.1:%d/%s_out.m3u8' % (self.port, self._testMethodName),
-            'ext': 'mp4'
-        }
-        r = downloader.real_download(os.path.join(DATA_DIR, '%s_destination.mp4' % self._testMethodName), info_dict)
+        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
         self.assertTrue(r)
 
     def test_real_download_iv(self):
@@ -95,13 +99,7 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
-        ydl = YoutubeDL({'logger': FakeLogger()})
-        downloader = HlsFD(ydl, {})
-        info_dict = {
-            'url': 'http://127.0.0.1:%d/%s_out.m3u8' % (self.port, self._testMethodName),
-            'ext': 'mp4'
-        }
-        r = downloader.real_download(os.path.join(DATA_DIR, '%s_destination.mp4' % self._testMethodName), info_dict)
+        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
         self.assertTrue(r)
 
 
