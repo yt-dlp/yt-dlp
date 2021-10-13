@@ -68,7 +68,7 @@ class TestHLS(unittest.TestCase):
 
     def test_real_download_noiv(self):
         out_filename = '%s_out.m3u8' % self._testMethodName
-        key_info_filename = '%s_file.keyinfo' % self._testMethodName
+        key_info_filename = 'file_noiv.keyinfo'
 
         was_error = False
         try:
@@ -86,7 +86,7 @@ class TestHLS(unittest.TestCase):
 
     def test_real_download_iv(self):
         out_filename = '%s_out.m3u8' % self._testMethodName
-        key_info_filename = '%s_file.keyinfo' % self._testMethodName
+        key_info_filename = 'file_iv.keyinfo'
 
         was_error = False
         try:
