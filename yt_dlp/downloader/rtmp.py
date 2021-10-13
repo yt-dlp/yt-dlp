@@ -6,12 +6,13 @@ import subprocess
 import time
 
 from .common import FileDownloader
-from ..compat import compat_str, compat_subprocess_Popen
+from ..compat import compat_str
 from ..utils import (
     check_executable,
     encodeFilename,
     encodeArgument,
     get_exe_version,
+    Popen,
 )
 
 
@@ -26,7 +27,7 @@ class RtmpFD(FileDownloader):
             start = time.time()
             resume_percent = None
             resume_downloaded_data_len = None
-            proc = compat_subprocess_Popen(args, stderr=subprocess.PIPE)
+            proc = Popen(args, stderr=subprocess.PIPE)
             cursor_in_new_line = True
             proc_stderr_closed = False
             try:
