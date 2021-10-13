@@ -6,7 +6,7 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import http_server_port
+from test.helper import http_server_port, is_download_test
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_http_server
 from yt_dlp.downloader import HlsFD
@@ -34,6 +34,7 @@ class FakeLogger(object):
         pass
 
 
+@is_download_test
 class TestHLS(unittest.TestCase):
     def setUp(self):
         self.httpd = compat_http_server.HTTPServer(
