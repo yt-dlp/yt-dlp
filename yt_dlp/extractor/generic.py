@@ -2348,8 +2348,9 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20211008',
                 'duration': 2789,
             },
-            "params": {
-                "skip_download": True,
+            'add_ie': [YoumakerIE.ie_key()],
+            'params': {
+                'skip_download': True,
             },
         },
     ]

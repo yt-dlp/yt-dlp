@@ -304,7 +304,7 @@ class YoumakerIE(InfoExtractor):
                 video_id=video_uid,
                 expected=playlist_url is not None)
 
-        # sometimes there are duplicate entries, so filter we them out
+        # sometimes there are duplicate entries, so we filter them out
         format_mapping = {item['url']: item for item in formats}
         formats = list(format_mapping.values())
 
