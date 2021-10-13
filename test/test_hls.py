@@ -70,8 +70,8 @@ class TestHLS(unittest.TestCase):
     def test_real_download_byterange(self):
         was_error = False
         try:
-            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=6.5',
-                                       '-hls_init_time', '1s', '-hls_flags', 'split_by_time+single_file',
+            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=0.65',
+                                       '-hls_init_time', '0.1s', '-hls_flags', 'split_by_time+single_file',
                                        self.playlist],
                                       cwd=DATA_DIR)
         except OSError:
@@ -88,8 +88,8 @@ class TestHLS(unittest.TestCase):
 
         was_error = False
         try:
-            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=6.5',
-                                       '-hls_init_time', '1s', '-hls_flags', 'split_by_time+single_file',
+            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=0.65',
+                                       '-hls_init_time', '0.1s', '-hls_flags', 'split_by_time+single_file',
                                        '-hls_key_info_file', key_info_filename, self.playlist],
                                       cwd=DATA_DIR)
         except OSError:
@@ -105,8 +105,8 @@ class TestHLS(unittest.TestCase):
 
         was_error = False
         try:
-            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=6.5',
-                                       '-hls_init_time', '1s', '-hls_flags', 'split_by_time',
+            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=0.65',
+                                       '-hls_init_time', '0.1s', '-hls_flags', 'split_by_time',
                                        '-hls_key_info_file', key_info_filename, self.playlist],
                                       cwd=DATA_DIR)
         except OSError:
@@ -122,8 +122,8 @@ class TestHLS(unittest.TestCase):
 
         was_error = False
         try:
-            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=6.5',
-                                       '-hls_init_time', '1s', '-hls_flags', 'split_by_time',
+            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=0.65',
+                                       '-hls_init_time', '0.1s', '-hls_flags', 'split_by_time',
                                        '-hls_key_info_file', key_info_filename, self.playlist],
                                       cwd=DATA_DIR)
         except OSError:
