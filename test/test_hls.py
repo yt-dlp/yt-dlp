@@ -82,6 +82,24 @@ class TestHLS(unittest.TestCase):
         r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
         self.assertTrue(r)
 
+    @unittest.skip("Broken test data, see also: https://trac.ffmpeg.org/ticket/8783")
+    def test_real_download_byterange_iv(self):
+        key_info_filename = 'file_iv.keyinfo'
+
+        was_error = False
+        try:
+            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=6.5',
+                                       '-hls_init_time', '1s', '-hls_flags', 'split_by_time+single_file',
+                                       '-hls_key_info_file', key_info_filename, self.playlist],
+                                      cwd=DATA_DIR)
+        except OSError:
+            was_error = True
+        if was_error or handle.wait() != 0:
+            self.fail("Error occurred during generating files.")
+
+        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
+        self.assertTrue(r)
+
     def test_real_download_noiv(self):
         key_info_filename = 'file_noiv.keyinfo'
 
