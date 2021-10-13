@@ -36,7 +36,10 @@ def detect_variant():
         if getattr(sys, '_MEIPASS', None):
             if sys._MEIPASS == os.path.dirname(sys.executable):
                 return 'dir'
-            return 'exe'
+            if platform.system() == 'Darwin':
+                return 'mac_bin'
+            else:
+                return 'exe'
         return 'py2exe'
     elif isinstance(globals().get('__loader__'), zipimporter):
         return 'zip'
@@ -48,6 +51,7 @@ def detect_variant():
 _NON_UPDATEABLE_REASONS = {
     'exe': None,
     'zip': None,
+    'mac_bin': None,
     'dir': 'Auto-update is not supported for unpackaged windows executable; Re-download the latest release',
     'py2exe': 'There is no official release for py2exe executable; Build it again with the latest source code',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
@@ -119,6 +123,7 @@ def run_update(ydl):
         'zip_3': '',
         'exe_64': '.exe',
         'exe_32': '_x86.exe',
+        'mac_64': '_macos',
     }
 
     def get_bin_info(bin_or_exe, version):
@@ -150,9 +155,10 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_unable('remove the old version')
 
+        bin_type = 'mac' if platform.system() == 'Darwin' else 'exe'
         try:
             arch = platform.architecture()[0][:2]
-            url = get_bin_info('exe', arch).get('browser_download_url')
+            url = get_bin_info(bin_type, arch).get('browser_download_url')
             if not url:
                 return report_network_error('fetch updates')
             urlh = ydl._opener.open(url)
@@ -161,15 +167,13 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_network_error('download latest version')
 
-        if not os.access(exe + '.new', os.W_OK):
-            return report_permission_error(f'{exe}.new')
         try:
             with open(exe + '.new', 'wb') as outf:
                 outf.write(newcontent)
         except (IOError, OSError):
-            return report_unable('write the new version')
+            return report_permission_error(f'{exe}.new')
 
-        expected_sum = get_sha256sum('exe', arch)
+        expected_sum = get_sha256sum(bin_type, arch)
         if not expected_sum:
             ydl.report_warning('no hash information found for the release')
         elif calc_sha256sum(exe + '.new') != expected_sum:
@@ -190,10 +194,14 @@ def run_update(ydl):
             os.rename(exe + '.old', exe)
             return
         try:
-            # Continues to run in the background
-            subprocess.Popen(
-                'ping 127.0.0.1 -n 5 -w 1000 & del /F "%s.old"' % exe,
-                shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if platform.system() == 'Darwin':
+                os.remove(exe + '.old')
+                os.chmod(exe, 0o755)
+            else:
+                # Continues to run in the background
+                subprocess.Popen(
+                    'ping 127.0.0.1 -n 5 -w 1000 & del /F "%s.old"' % exe,
+                    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             ydl.to_screen('Updated yt-dlp to version %s' % version_id)
             return True  # Exit app
         except OSError:
