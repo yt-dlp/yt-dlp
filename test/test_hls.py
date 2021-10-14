@@ -46,6 +46,8 @@ class TestHLS(unittest.TestCase):
         ydl = YoutubeDL({'logger': FakeLogger()})
         self.downloader = HlsFD(ydl, {})
         self.playlist = '%s_out.m3u8' % self._testMethodName
+        self.generated_data = []
+        self.destination = self._testMethodName
 
     def tearDown(self):
         self.httpd.server_close()
@@ -53,17 +55,18 @@ class TestHLS(unittest.TestCase):
 
     def doCleanups(self):
         try:
-            os.remove('_'.join((self._testMethodName, 'destination.mp4')))
+            os.remove(self.destination)
         except (FileNotFoundError, IsADirectoryError):
             pass
 
-        for file in ['out.m3u8', 'out.ts', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out5.ts', 'out6.ts']:
+        for file in self.generated_data:
             try:
-                os.remove(os.path.join(DATA_DIR, '_'.join((self._testMethodName, file))))
+                os.remove(os.path.join(DATA_DIR, file))
             except (FileNotFoundError, IsADirectoryError):
                 pass
 
     def test_real_download_byterange(self):
+        self.destination += '_destination.mp4'
         was_error = False
         try:
             handle = subprocess.Popen(['ffmpeg', '-n', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=0.65',
@@ -75,15 +78,17 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
+        self.generated_data.extend('_'.join((self._testMethodName, name)) for name in ['out.m3u8', 'out.ts'])
         info_dict = {
-            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), playlist),
+            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), self.playlist),
             'ext': 'mp4'
         }
-        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, info_dict)
+        r = self.downloader.real_download(self.destination, info_dict)
         self.assertTrue(r)
 
     @unittest.skip("Broken test data, see also: https://trac.ffmpeg.org/ticket/8783")
     def test_real_download_byterange_iv(self):
+        self.destination += '_destination.mp4'
         key_info_filename = 'file_iv.keyinfo'
 
         was_error = False
@@ -97,14 +102,16 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
+        self.generated_data.extend('_'.join((self._testMethodName, name)) for name in ['out.m3u8', 'out.ts'])
         info_dict = {
-            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), playlist),
+            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), self.playlist),
             'ext': 'mp4'
         }
-        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, info_dict)
+        r = self.downloader.real_download(self.destination, info_dict)
         self.assertTrue(r)
 
     def test_real_download_noiv(self):
+        self.destination += '_destination.mp4'
         key_info_filename = 'file_noiv.keyinfo'
 
         was_error = False
@@ -118,14 +125,19 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
+        self.generated_data.extend(
+            '_'.join((self._testMethodName, name))
+            for name in ['out.m3u8', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out5.ts', 'out6.ts']
+        )
         info_dict = {
-            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), playlist),
+            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), self.playlist),
             'ext': 'mp4'
         }
-        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, info_dict)
+        r = self.downloader.real_download(self.destination, info_dict)
         self.assertTrue(r)
 
     def test_real_download_iv(self):
+        self.destination += '_destination.mp4'
         key_info_filename = 'file_iv.keyinfo'
 
         was_error = False
@@ -139,6 +151,10 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
+        self.generated_data.extend(
+            '_'.join((self._testMethodName, name))
+            for name in ['out.m3u8', 'out0.ts', 'out1.ts', 'out2.ts', 'out3.ts', 'out4.ts', 'out5.ts', 'out6.ts']
+        )
         info_dict = {
             'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), self.playlist),
             'ext': 'mp4'
@@ -147,8 +163,7 @@ class TestHLS(unittest.TestCase):
         self.assertTrue(r)
 
     def test_real_download_webvtt(self):
-        video = '%s_out.m3u8' % self._testMethodName
-
+        self.destination += '_destination.vtt'
         was_error = False
         try:
             handle = subprocess.Popen(['ffmpeg', '-n', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=0.65',
@@ -161,6 +176,8 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
+        self.generated_data.extend('_'.join((self._testMethodName, name))
+                                   for name in ['out.m3u8', 'out.ts', 'out_vtt.m3u8', 'out.vtt'])
         info_dict = {
             'url': 'http://127.0.0.1:%d/%s_out_vtt.m3u8' % ((http_server_port(self.httpd)), self._testMethodName),
             'ext': 'vtt'
