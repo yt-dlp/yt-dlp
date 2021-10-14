@@ -70,7 +70,7 @@ class HotStarBaseIE(InfoExtractor):
     def _call_api_v2(self, path, video_id, st=None, cookies=None):
         return self._call_api_impl(
             '%s/content/%s' % (path, video_id), video_id, st=st, cookies=cookies, query={
-                'desired-config': 'audio_channel:stereo|dynamic_range:sdr|encryption:plain|ladder:tv|package:dash|resolution:hd|subs-tag:HotstarVIP|video_codec:vp9',
+                'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
                 'device-id': cookies.get('device_id').value if cookies.get('device_id') else compat_str(uuid.uuid4()),
                 'os-name': 'Windows',
                 'os-version': '10',
@@ -196,6 +196,7 @@ class HotStarIE(HotStarBaseIE):
         for playback_set in playback_sets:
             if not isinstance(playback_set, dict):
                 continue
+            dr = re.search(r'dynamic_range:(?P<dr>[a-z]+)', playback_set.get('tagsCombination')).group('dr')
             format_url = url_or_none(playback_set.get('playbackUrl'))
             if not format_url:
                 continue
@@ -210,12 +211,12 @@ class HotStarIE(HotStarBaseIE):
                     hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
                         format_url, video_id, 'mp4',
                         entry_protocol='m3u8_native',
-                        m3u8_id='hls', headers=headers)
+                        m3u8_id=f'{dr}-hls', headers=headers)
                     formats.extend(hls_formats)
                     subs = self._merge_subtitles(subs, hls_subs)
                 elif 'package:dash' in tags or ext == 'mpd':
                     dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
-                        format_url, video_id, mpd_id='dash', headers=headers)
+                        format_url, video_id, mpd_id=f'{dr}-dash', headers=headers)
                     formats.extend(dash_formats)
                     subs = self._merge_subtitles(subs, dash_subs)
                 elif ext == 'f4m':
