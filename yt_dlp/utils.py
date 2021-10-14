@@ -6312,9 +6312,6 @@ def load_plugins(name, suffix, namespace):
     try:
         plugins_spec = importlib.util.spec_from_file_location(
             name, os.path.join(get_executable_path(), 'ytdlp_plugins', name, '__init__.py'))
-    except FileNotFoundError:
-        pass
-    else:
         plugins = importlib.util.module_from_spec(plugins_spec)
         sys.modules[plugins_spec.name] = plugins
         plugins_spec.loader.exec_module(plugins)
@@ -6325,6 +6322,8 @@ def load_plugins(name, suffix, namespace):
                 continue
             klass = getattr(plugins, name)
             classes[name] = namespace[name] = klass
+    except ImportError:
+        pass
     return classes
 
 
