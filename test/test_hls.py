@@ -134,6 +134,22 @@ class TestHLS(unittest.TestCase):
         r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
         self.assertTrue(r)
 
+    def test_real_download_webvtt(self):
+        video = '%s_out.m3u8' % self._testMethodName
+
+        was_error = False
+        try:
+            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=0.65',
+                                       '-i', 'sub.vtt', '-c:s', 'mov_text', '-metadata:s:s:0', 'language=des', video],
+                                      cwd=DATA_DIR)
+        except OSError:
+            was_error = True
+        if was_error or handle.wait() != 0:
+            self.fail("Error occurred during generating files.")
+
+        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
+        self.assertTrue(r)
+
 
 if __name__ == '__main__':
     unittest.main()
