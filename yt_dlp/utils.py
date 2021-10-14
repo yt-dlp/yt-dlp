@@ -18,7 +18,7 @@ import functools
 import gzip
 import hashlib
 import hmac
-import imp
+import importlib
 import io
 import itertools
 import json
@@ -6308,12 +6308,9 @@ def get_executable_path():
 
 
 def load_plugins(name, suffix, namespace):
-    plugin_info = [None]
     classes = {}
     try:
-        plugin_info = imp.find_module(
-            name, [os.path.join(get_executable_path(), 'ytdlp_plugins')])
-        plugins = imp.load_module(name, *plugin_info)
+        plugins = importlib.import_module(name, package='ytdlp_plugins')
         for name in dir(plugins):
             if name in namespace:
                 continue
@@ -6323,9 +6320,6 @@ def load_plugins(name, suffix, namespace):
             classes[name] = namespace[name] = klass
     except ImportError:
         pass
-    finally:
-        if plugin_info[0] is not None:
-            plugin_info[0].close()
     return classes
 
 
