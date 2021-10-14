@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import itertools
 import json
 
 from .common import InfoExtractor
@@ -194,3 +195,69 @@ class TrovoVodIE(TrovoBaseIE):
         }
         info.update(self._extract_streamer_info(vod_detail_info))
         return info
+
+
+class TrovoChannelBaseIE(InfoExtractor):
+    def _get_vod_json(self, page, uid):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+    def _entries(self, uid):
+        for page in itertools.count(1):
+            vod_json = self._get_vod_json(page, uid)
+            vods = vod_json.get('vodInfos', [])
+            for vod in vods:
+                yield self.url_result(
+                    'https://trovo.live/%s/%s' % (self._TYPE, vod.get('vid')),
+                    ie=TrovoVodIE.ie_key())
+            has_more = vod_json['hasMore']
+            if not has_more:
+                break
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        uid = str(self._download_json('https://gql.trovo.live/', id, query={
+            'query': '{getLiveInfo(params:{userName:"%s"}){streamerInfo{uid}}}' % id
+        })['data']['getLiveInfo']['streamerInfo']['uid'])
+        return self.playlist_result(self._entries(uid), playlist_id=uid)
+
+
+class TrovoChannelVodIE(TrovoChannelBaseIE):
+    _VALID_URL = r'trovovod:(?P<id>[^\s]+)'
+    IE_DESC = 'All VODs of a trovo.live channel, "trovovod" keyword'
+
+    _TESTS = [{
+        'url': 'trovovod:OneTappedYou',
+        'playlist_mincount': 24,
+        'info_dict': {
+            'id': '100719456',
+        },
+    }]
+
+    _QUERY = '{getChannelLtvVideoInfos(params:{pageSize:99,currPage:%d,channelID:%s}){hasMore,vodInfos{vid}}}'
+    _TYPE = 'video'
+
+    def _get_vod_json(self, page, uid):
+        return self._download_json('https://gql.trovo.live/', uid, query={
+            'query': self._QUERY % (page, uid)
+        })['data']['getChannelLtvVideoInfos']
+
+
+class TrovoChannelClipIE(TrovoChannelBaseIE):
+    _VALID_URL = r'trovoclip:(?P<id>[^\s]+)'
+    IE_DESC = 'All Clips of a trovo.live channel, "trovoclip" keyword'
+
+    _TESTS = [{
+        'url': 'trovoclip:OneTappedYou',
+        'playlist_mincount': 29,
+        'info_dict': {
+            'id': '100719456',
+        },
+    }]
+
+    _QUERY = '{getChannelClipVideoInfos(params:{pageSize:99,currPage:%d,channelID:%s,albumType:VOD_CLIP_ALBUM_TYPE_LATEST}){hasMore,vodInfos{vid}}}'
+    _TYPE = 'clip'
+
+    def _get_vod_json(self, page, uid):
+        return self._download_json('https://gql.trovo.live/', uid, query={
+            'query': self._QUERY % (page, uid)
+        })['data']['getChannelClipVideoInfos']
