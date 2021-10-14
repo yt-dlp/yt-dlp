@@ -2273,8 +2273,14 @@ def process_communicate_or_kill(p, *args, **kwargs):
 
 
 class Popen(subprocess.Popen):
+    if sys.platform == 'win32':
+        _startupinfo = subprocess.STARTUPINFO()
+        _startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    else:
+        _startupinfo = None
+
     def __init__(self, *args, **kwargs):
-        super(Popen, self).__init__(*args, **kwargs, creationflags=0)
+        super(Popen, self).__init__(*args, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
         return process_communicate_or_kill(self, *args, **kwargs)
