@@ -441,8 +441,8 @@ class InfoExtractor(object):
     _LOGIN_HINTS = {
         'any': 'Use --cookies, --username and --password or --netrc to provide account credentials',
         'cookies': (
-            'Use --cookies for the authentication. '
-            'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to pass cookies'),
+            'Use --cookies-from-browser or --cookies for the authentication. '
+            'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
         'password': 'Use --username and --password or --netrc to provide account credentials',
     }
 
