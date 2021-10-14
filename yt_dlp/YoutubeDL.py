@@ -495,7 +495,10 @@ class YoutubeDL(object):
     _screen_file = None
 
     def __init__(self, params=None, auto_init=True):
-        """Create a FileDownloader object with the given options."""
+        """Create a FileDownloader object with the given options.
+        @param auto_init    Whether to load the default extractors and print header (if verbose).
+                            Set to 'no_verbose_header' to not ptint the header
+        """
         if params is None:
             params = {}
         self._ies = {}
@@ -602,7 +605,8 @@ class YoutubeDL(object):
         self._setup_opener()
 
         if auto_init:
-            self.print_debug_header()
+            if auto_init != 'no_verbose_header':
+                self.print_debug_header()
             self.add_default_info_extractors()
 
         for pp_def_raw in self.params.get('postprocessors', []):
@@ -3232,28 +3236,32 @@ class YoutubeDL(object):
     def print_debug_header(self):
         if not self.params.get('verbose'):
             return
-
-        stdout_encoding = getattr(
-            sys.stdout, 'encoding', 'missing (%s)' % type(sys.stdout).__name__)
+        get_encoding = lambda stream: getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__)
         encoding_str = (
-            '[debug] Encodings: locale %s, fs %s, out %s, pref %s\n' % (
+            '[debug] Encodings: locale %s, fs %s, stdout %s, stderr %s, pref %s\n' % (
                 locale.getpreferredencoding(),
                 sys.getfilesystemencoding(),
-                stdout_encoding,
+                get_encoding(self._screen_file), get_encoding(self._err_file),
                 self.get_encoding()))
-        write_string(encoding_str, encoding=None)
+
+        logger = self.params.get('logger')
+        if logger:
+            write_debug = lambda msg: logger.debug(f'[debug] {msg}')
+            write_debug(encoding_str)
+        else:
+            write_debug = lambda msg: self._write_string(f'[debug] {msg}')
+            write_string(encoding_str, encoding=None)
 
         source = detect_variant()
-        self._write_string('[debug] yt-dlp version %s%s\n' % (__version__, '' if source == 'unknown' else f' ({source})'))
+        write_debug('yt-dlp version %s%s\n' % (__version__, '' if source == 'unknown' else f' ({source})'))
         if _LAZY_LOADER:
-            self._write_string('[debug] Lazy loading extractors enabled\n')
+            write_debug('Lazy loading extractors enabled\n')
         if plugin_extractors or plugin_postprocessors:
-            self._write_string('[debug] Plugins: %s\n' % [
+            write_debug('Plugins: %s\n' % [
                 '%s%s' % (klass.__name__, '' if klass.__name__ == name else f' as {name}')
                 for name, klass in itertools.chain(plugin_extractors.items(), plugin_postprocessors.items())])
         if self.params.get('compat_opts'):
-            self._write_string(
-                '[debug] Compatibility options: %s\n' % ', '.join(self.params.get('compat_opts')))
+            write_debug('Compatibility options: %s\n' % ', '.join(self.params.get('compat_opts')))
         try:
             sp = subprocess.Popen(
                 ['git', 'rev-parse', '--short', 'HEAD'],
@@ -3262,7 +3270,7 @@ class YoutubeDL(object):
             out, err = process_communicate_or_kill(sp)
             out = out.decode().strip()
             if re.match('[0-9a-f]+', out):
-                self._write_string('[debug] Git HEAD: %s\n' % out)
+                write_debug('Git HEAD: %s\n' % out)
         except Exception:
             try:
                 sys.exc_clear()
@@ -3275,7 +3283,7 @@ class YoutubeDL(object):
                 return impl_name + ' version %d.%d.%d' % sys.pypy_version_info[:3]
             return impl_name
 
-        self._write_string('[debug] Python version %s (%s %s) - %s\n' % (
+        write_debug('Python version %s (%s %s) - %s\n' % (
             platform.python_version(),
             python_implementation(),
             platform.architecture()[0],
@@ -3287,7 +3295,7 @@ class YoutubeDL(object):
         exe_str = ', '.join(
             f'{exe} {v}' for exe, v in sorted(exe_versions.items()) if v
         ) or 'none'
-        self._write_string('[debug] exe versions: %s\n' % exe_str)
+        write_debug('exe versions: %s\n' % exe_str)
 
         from .downloader.websocket import has_websockets
         from .postprocessor.embedthumbnail import has_mutagen
@@ -3300,8 +3308,8 @@ class YoutubeDL(object):
             SQLITE_AVAILABLE and 'sqlite',
             KEYRING_AVAILABLE and 'keyring',
         )))) or 'none'
-        self._write_string('[debug] Optional libraries: %s\n' % lib_str)
-        self._write_string('[debug] ANSI escape support: stdout = %s, stderr = %s\n' % (
+        write_debug('Optional libraries: %s\n' % lib_str)
+        write_debug('ANSI escape support: stdout = %s, stderr = %s\n' % (
             supports_terminal_sequences(self._screen_file),
             supports_terminal_sequences(self._err_file)))
 
@@ -3309,11 +3317,11 @@ class YoutubeDL(object):
         for handler in self._opener.handlers:
             if hasattr(handler, 'proxies'):
                 proxy_map.update(handler.proxies)
-        self._write_string('[debug] Proxy map: ' + compat_str(proxy_map) + '\n')
+        write_debug('Proxy map: ' + compat_str(proxy_map) + '\n')
 
         if self.params.get('call_home', False):
             ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode('utf-8')
-            self._write_string('[debug] Public IP address: %s\n' % ipaddr)
+            write_debug('Public IP address: %s\n' % ipaddr)
             return
             latest_version = self.urlopen(
                 'https://yt-dl.org/latest/version').read().decode('utf-8')
