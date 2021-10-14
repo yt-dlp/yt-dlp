@@ -373,6 +373,8 @@ class HttpFD(FileDownloader):
                 count += 1
                 if count <= retries:
                     self.report_retry(e.source_error, count, retries)
+                else:
+                    self.to_screen(f'[download] Got server HTTP error: {e.source_error}')
                 continue
             except NextFragment:
                 continue
