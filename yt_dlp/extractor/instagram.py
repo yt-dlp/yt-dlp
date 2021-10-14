@@ -4,6 +4,7 @@ import itertools
 import hashlib
 import json
 import re
+import time
 
 from .common import InfoExtractor
 from ..compat import (
@@ -20,6 +21,7 @@ from ..utils import (
     try_get,
     url_or_none,
     variadic,
+    urlencode_postdata,
 )
 
 
@@ -139,6 +141,47 @@ class InstagramIE(InfoExtractor):
             r'<a[^>]+href=([\'"])(?P<link>[^\'"]+)\1', blockquote_el)
         if mobj:
             return mobj.group('link')
+
+    def _login(self):
+        username, password = self._get_login_info()
+
+        login_webpage = self._download_webpage(
+            'https://www.instagram.com/accounts/login/', None,
+            note='Downloading login webpage', errnote='Failed to downloading login webpage')
+        # time.sleep(6)
+
+        shared_data = self._parse_json(
+            self._search_regex(
+                r'window\._sharedData\s*=\s*({.+?});',
+                login_webpage, 'shared data', default='{}'),
+            None)
+
+        login = self._download_json('https://www.instagram.com/accounts/login/ajax/', None, note='Logging in', headers={
+            'Accept': '*/*',
+            'X-IG-App-ID': '936619743392459',
+            'X-ASBD-ID': '198387',
+            'X-IG-WWW-Claim': '0',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': shared_data['config']['csrf_token'],
+            'X-Instagram-AJAX': shared_data['rollout_hash'],
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'Referer': 'https://www.instagram.com/',
+        }, data=urlencode_postdata({
+            'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
+            'username': username,
+            'queryParams': '{}',
+            'optIntoOneTap': 'false',
+            'stopDeletionNonce': '',
+            'trustedDeviceRecords': '{}',
+        }))
+
+        if not login.get('authenticated'):
+            raise ExtractorError('Unable to login')
+
+    def _real_initialize(self):
+        self._login()
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
