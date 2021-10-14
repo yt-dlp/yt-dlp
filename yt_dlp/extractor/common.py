@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import base64
 import datetime
 import hashlib
+import itertools
 import json
 import netrc
 import os
@@ -440,8 +441,8 @@ class InfoExtractor(object):
     _LOGIN_HINTS = {
         'any': 'Use --cookies, --username and --password or --netrc to provide account credentials',
         'cookies': (
-            'Use --cookies for the authentication. '
-            'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to pass cookies'),
+            'Use --cookies-from-browser or --cookies for the authentication. '
+            'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
         'password': 'Use --username and --password or --netrc to provide account credentials',
     }
 
@@ -2012,7 +2013,7 @@ class InfoExtractor(object):
         if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
             return formats, subtitles
 
-        has_drm = re.search(r'#EXT-X-SESSION-KEY:.*?URI="skd://', m3u8_doc)
+        has_drm = re.search(r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://', m3u8_doc)
 
         def format_url(url):
             return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)
@@ -2644,6 +2645,8 @@ class InfoExtractor(object):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
                         elif codecs.split('.')[0] == 'stpp':
+                            content_type = 'text'
+                        elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'
                         else:
                             self.report_warning('Unknown MIME type %s in DASH manifest' % mime_type)
@@ -3501,6 +3504,32 @@ class InfoExtractor(object):
     def _get_subtitles(self, *args, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
 
+    def extract_comments(self, *args, **kwargs):
+        if not self.get_param('getcomments'):
+            return None
+        generator = self._get_comments(*args, **kwargs)
+
+        def extractor():
+            comments = []
+            try:
+                while True:
+                    comments.append(next(generator))
+            except KeyboardInterrupt:
+                interrupted = True
+                self.to_screen('Interrupted by user')
+            except StopIteration:
+                interrupted = False
+            comment_count = len(comments)
+            self.to_screen(f'Extracted {comment_count} comments')
+            return {
+                'comments': comments,
+                'comment_count': None if interrupted else comment_count
+            }
+        return extractor
+
+    def _get_comments(self, *args, **kwargs):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
     @staticmethod
     def _merge_subtitle_items(subtitle_list1, subtitle_list2):
         """ Merge subtitle items for one language. Items with duplicated URLs
@@ -3617,7 +3646,14 @@ class SearchInfoExtractor(InfoExtractor):
             return self._get_n_results(query, n)
 
     def _get_n_results(self, query, n):
-        """Get a specified number of results for a query"""
+        """Get a specified number of results for a query.
+        Either this function or _search_results must be overridden by subclasses """
+        return self.playlist_result(
+            itertools.islice(self._search_results(query), 0, None if n == float('inf') else n),
+            query, query)
+
+    def _search_results(self, query):
+        """Returns an iterator of search results"""
         raise NotImplementedError('This method must be implemented by subclasses')
 
     @property
