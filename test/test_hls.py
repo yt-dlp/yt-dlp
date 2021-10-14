@@ -45,10 +45,6 @@ class TestHLS(unittest.TestCase):
 
         ydl = YoutubeDL({'logger': FakeLogger()})
         self.downloader = HlsFD(ydl, {})
-        self.info_dict = {
-            'url': 'http://127.0.0.1:%d/%s_out.m3u8' % ((http_server_port(self.httpd)), self._testMethodName),
-            'ext': 'mp4'
-        }
         self.playlist = '%s_out.m3u8' % self._testMethodName
 
     def tearDown(self):
@@ -79,7 +75,11 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
-        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
+        info_dict = {
+            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), playlist),
+            'ext': 'mp4'
+        }
+        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, info_dict)
         self.assertTrue(r)
 
     @unittest.skip("Broken test data, see also: https://trac.ffmpeg.org/ticket/8783")
@@ -97,7 +97,11 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
-        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
+        info_dict = {
+            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), playlist),
+            'ext': 'mp4'
+        }
+        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, info_dict)
         self.assertTrue(r)
 
     def test_real_download_noiv(self):
@@ -114,7 +118,11 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
-        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
+        info_dict = {
+            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), playlist),
+            'ext': 'mp4'
+        }
+        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, info_dict)
         self.assertTrue(r)
 
     def test_real_download_iv(self):
@@ -131,7 +139,11 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
-        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
+        info_dict = {
+            'url': 'http://127.0.0.1:%d/%s' % ((http_server_port(self.httpd)), self.playlist),
+            'ext': 'mp4'
+        }
+        r = self.downloader.real_download(self.destination, info_dict)
         self.assertTrue(r)
 
     def test_real_download_webvtt(self):
@@ -149,7 +161,11 @@ class TestHLS(unittest.TestCase):
         if was_error or handle.wait() != 0:
             self.fail("Error occurred during generating files.")
 
-        r = self.downloader.real_download('%s_destination.mp4' % self._testMethodName, self.info_dict)
+        info_dict = {
+            'url': 'http://127.0.0.1:%d/%s_out_vtt.m3u8' % ((http_server_port(self.httpd)), self._testMethodName),
+            'ext': 'vtt'
+        }
+        r = self.downloader.real_download(self.destination, info_dict)
         self.assertTrue(r)
 
 
