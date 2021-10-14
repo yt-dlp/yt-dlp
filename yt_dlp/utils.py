@@ -6322,7 +6322,7 @@ def load_plugins(name, suffix, namespace):
                 continue
             klass = getattr(plugins, name)
             classes[name] = namespace[name] = klass
-    except ImportError:
+    except FileNotFoundError:
         pass
     return classes
 
