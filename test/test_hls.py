@@ -139,8 +139,10 @@ class TestHLS(unittest.TestCase):
 
         was_error = False
         try:
-            handle = subprocess.Popen(['ffmpeg', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=0.65',
-                                       '-i', 'sub.vtt', '-c:s', 'mov_text', '-metadata:s:s:0', 'language=des', video],
+            handle = subprocess.Popen(['ffmpeg', '-n', '-f', 'lavfi', '-re', '-i', 'testsrc=duration=0.65',
+                                       '-i', 'sub.vtt', '-c:s', 'webvtt', '-metadata:s:s:1', 'language=des',
+                                       '-hls_init_time', '0.1s', '-hls_flags', 'split_by_time+single_file',
+                                       self.playlist],
                                       cwd=DATA_DIR)
         except OSError:
             was_error = True
