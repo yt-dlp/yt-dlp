@@ -377,7 +377,7 @@ class CBCGemPlaylistIE(InfoExtractor):
 
 class CBCGemLiveIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:live'
-    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>[0-9]{12})'
+    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>[0-9]*)'
     _TEST = {
         'url': 'https://gem.cbc.ca/live/920604739687',
         'info_dict': {
@@ -396,16 +396,25 @@ class CBCGemLiveIE(InfoExtractor):
 
     # It's unclear where the chars at the end come from, but they appear to be
     # constant. Might need updating in the future.
-    _API = 'https://tpfeed.cbc.ca/f/ExhSPC/t_t3UKJR6MAT'
+    # There are two URLs, some livestreams are in one, and some
+    # in the other. The JSON schema is the same for both.
+    _API_URLS = ['https://tpfeed.cbc.ca/f/ExhSPC/t_t3UKJR6MAT', 'https://tpfeed.cbc.ca/f/ExhSPC/FNiv9xQx_BnT']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        live_info = self._download_json(self._API, video_id)['entries']
 
+        live_info = self._download_json(self._API_URLS[0], video_id)['entries']
         video_info = None
         for stream in live_info:
             if stream.get('guid') == video_id:
                 video_info = stream
+
+        if video_info is None:
+            # Try again using other URL
+            live_info = self._download_json(self._API_URLS[1], video_id)['entries']
+            for stream in live_info:
+                if stream.get('guid') == video_id:
+                    video_info = stream
 
         if video_info is None:
             raise ExtractorError(
