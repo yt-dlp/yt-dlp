@@ -292,7 +292,7 @@ class CBCGemIE(InfoExtractor):
         b64_data = self._claims_token.split('.')[1]
         data = base64.urlsafe_b64decode(b64_data + "==")
         return json.loads(data)['exp']
-    
+
     def claims_token_expired(self):
         exp = self._get_claims_token_expiry()
         if exp - time.time() < 10:
@@ -308,7 +308,7 @@ class CBCGemIE(InfoExtractor):
             self._claims_token = self._new_claims_token(email, password)
             self._downloader.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
         return self._claims_token
-    
+
     def _real_initialize(self):
         if self.claims_token_valid():
             return
@@ -326,7 +326,7 @@ class CBCGemIE(InfoExtractor):
             headers = {}
         m3u8_info = self._download_json(video_info['playSession']['url'], video_id, headers=headers)
         m3u8_url = m3u8_info.get('url')
-        
+
         if m3u8_info.get('errorCode') == 1:
             self.raise_geo_restricted(countries=['CA'])
         elif m3u8_info.get('errorCode') == 35:
