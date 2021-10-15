@@ -204,7 +204,7 @@ def run_update(ydl):
 
     # Zip unix or Mac OS binary package
     elif isinstance(globals().get('__loader__'), zipimporter) or \
-         (hasattr(sys, 'frozen') and platform.system() == 'Darwin'):
+                   (hasattr(sys, 'frozen') and platform.system() == 'Darwin'):
         pack_type = ['mac', '64'] if hasattr(sys, 'frozen') else ['zip', '3']
         try:
             url = get_bin_info(*pack_type).get('browser_download_url')
