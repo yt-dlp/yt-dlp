@@ -1384,7 +1384,6 @@ class AdobePassIE(InfoExtractor):
         def post_form(form_page_res, note, data=None):
             data = {} if data is None else data
             form_page, urlh = form_page_res
-
             post_url = self._html_search_regex(r'<form[^>]+action=(["\'])(?P<url>.+?)\1', form_page, 'post url', group='url')
             if not re.match(r'https?://', post_url):
                 post_url = compat_urlparse.urljoin(urlh.geturl(), post_url)

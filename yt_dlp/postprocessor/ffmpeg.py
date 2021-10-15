@@ -220,7 +220,8 @@ class FFmpegPostProcessor(PostProcessor):
             encodeArgument('json'),
         ]
 
-        cmd += opts
+        if opts:
+            cmd += opts
         cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
         self.write_debug('ffprobe command line: %s' % shell_quote(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)

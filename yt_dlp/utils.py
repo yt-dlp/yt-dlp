@@ -3933,7 +3933,7 @@ def check_executable(exe, args=()):
     args can be a list of arguments for a short output (like -version) """
     try:
         process_communicate_or_kill(subprocess.Popen(
-            [exe] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+            [exe] + list(args), stdout=subprocess.PIPE, stderr=subprocess.PIPE))
     except OSError:
         return False
     return exe
@@ -3948,7 +3948,7 @@ def get_exe_version(exe, args=('--version',),
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
         out, _ = process_communicate_or_kill(subprocess.Popen(
-            [encodeArgument(exe)] + args,
+            [encodeArgument(exe)] + list(args),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
     except OSError:
@@ -4987,14 +4987,14 @@ def cli_valueless_option(params, command_option, param, expected_value=True):
     return [command_option] if param == expected_value else []
 
 
-def cli_configuration_args(argdict, keys, default=(), use_compat=True):
+def cli_configuration_args(argdict, keys, default=None, use_compat=True):
     if isinstance(argdict, (list, tuple)):  # for backward compatibility
         if use_compat:
             return argdict
         else:
             argdict = None
     if argdict is None:
-        return default
+        return [] if default is None else default
     assert isinstance(argdict, dict)
 
     assert isinstance(keys, (list, tuple))
@@ -5004,10 +5004,10 @@ def cli_configuration_args(argdict, keys, default=(), use_compat=True):
             [argdict.get(key.lower()) for key in variadic(key_list)]))
         if arg_list:
             return [arg for args in arg_list for arg in args]
-    return default
+    return [] if default is None else default
 
 
-def _configuration_args(main_key, argdict, exe, keys=None, default=(), use_compat=True):
+def _configuration_args(main_key, argdict, exe, keys=None, default=None, use_compat=True):
     main_key, exe = main_key.lower(), exe.lower()
     root_key = exe if main_key == exe else f'{main_key}+{exe}'
     keys = [f'{root_key}{k}' for k in (keys or [''])]
