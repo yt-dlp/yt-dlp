@@ -27,6 +27,7 @@ from ..utils import (
 
 class InstagramIE(InfoExtractor):
     _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com/(?:p|tv|reel)/(?P<id>[^/?#&]+))'
+    _NETRC_MACHINE = 'instagram'
     _TESTS = [{
         'url': 'https://instagram.com/p/aye83DjauH/?foo=bar#abc',
         'md5': '0d2da106a9d2631273e192b372806516',
