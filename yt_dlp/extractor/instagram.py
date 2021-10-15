@@ -148,7 +148,7 @@ class InstagramIE(InfoExtractor):
 
         login_webpage = self._download_webpage(
             'https://www.instagram.com/accounts/login/', None,
-            note='Downloading login webpage', errnote='Failed to downloading login webpage')
+            note='Downloading login webpage', errnote='Failed to download login webpage')
 
         shared_data = self._parse_json(
             self._search_regex(
