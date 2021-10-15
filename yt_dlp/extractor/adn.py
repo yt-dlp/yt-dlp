@@ -70,7 +70,7 @@ class ADNIE(InfoExtractor):
 
     @staticmethod
     def _ass_subtitles_timecode(seconds):
-        return '%01d:%02d:%02d.%02d' % (seconds / 3600, (seconds % 3600) / 60, seconds % 60, (seconds % 1) * 100)
+        return '%01d:%02d:%02d.%02d' % (seconds / 3600, (seconds % 3600) / 60, seconds % 60, (round(seconds % 1, 2)) * 100)
 
     def _get_subtitles(self, sub_url, video_id):
         if not sub_url:
