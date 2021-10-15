@@ -144,7 +144,8 @@ def run_update(ydl):
         return report_permission_error(filename)
 
     # PyInstaller
-    if hasattr(sys, 'frozen') and platform.system() == 'Windows':
+    variant = detect_variant()
+    if variant == 'exe':
         exe = filename
         directory = os.path.dirname(exe)
         if not os.access(directory, os.W_OK):
