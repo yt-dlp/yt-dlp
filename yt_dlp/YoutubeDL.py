@@ -483,6 +483,12 @@ class YoutubeDL(object):
         'track_number', 'disc_number', 'release_year',
     ))
 
+    _format_selection_exts = {
+        'audio': {'m4a', 'mp3', 'ogg', 'aac'},
+        'video': {'mp4', 'flv', 'webm', '3gp'},
+        'storyboards': {'mhtml'},
+    }
+
     params = None
     _ies = {}
     _pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
@@ -1980,11 +1986,11 @@ class YoutubeDL(object):
                         filter_f = lambda f: _filter_f(f) and (
                             f.get('vcodec') != 'none' or f.get('acodec') != 'none')
                     else:
-                        if format_spec in ('m4a', 'mp3', 'ogg', 'aac'):  # audio extension
+                        if format_spec in self._format_selection_exts['audio']:
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none'
-                        elif format_spec in ('mp4', 'flv', 'webm', '3gp'):  # video extension
+                        elif format_spec in self._format_selection_exts['video']:
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none' and f.get('vcodec') != 'none'
-                        elif format_spec in ('mhtml', ):  # storyboards extension
+                        elif format_spec in self._format_selection_exts['storyboards']:
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') == 'none' and f.get('vcodec') == 'none'
                         else:
                             filter_f = lambda f: f.get('format_id') == format_spec  # id
@@ -2259,10 +2265,18 @@ class YoutubeDL(object):
             formats_dict[format_id].append(format)
 
         # Make sure all formats have unique format_id
+        common_exts = set(ext for exts in self._format_selection_exts.values() for ext in exts)
         for format_id, ambiguous_formats in formats_dict.items():
-            if len(ambiguous_formats) > 1:
-                for i, format in enumerate(ambiguous_formats):
+            ambigious_id = len(ambiguous_formats) > 1
+            for i, format in enumerate(ambiguous_formats):
+                if ambigious_id:
                     format['format_id'] = '%s-%d' % (format_id, i)
+                if format.get('ext') is None:
+                    format['ext'] = determine_ext(format['url']).lower()
+                # Ensure there is no conflict between id and ext in format selection
+                # See https://github.com/yt-dlp/yt-dlp/issues/1282
+                if format['format_id'] != format['ext'] and format['format_id'] in common_exts:
+                    format['format_id'] = 'f%s' % format['format_id']
 
         for i, format in enumerate(formats):
             if format.get('format') is None:
@@ -2271,9 +2285,6 @@ class YoutubeDL(object):
                     res=self.format_resolution(format),
                     note=format_field(format, 'format_note', ' (%s)'),
                 )
-            # Automatically determine file extension if missing
-            if format.get('ext') is None:
-                format['ext'] = determine_ext(format['url']).lower()
             # Automatically determine protocol if missing (useful for format
             # selection purposes)
             if format.get('protocol') is None:
