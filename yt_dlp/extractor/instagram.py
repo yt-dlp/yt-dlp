@@ -148,7 +148,6 @@ class InstagramIE(InfoExtractor):
         login_webpage = self._download_webpage(
             'https://www.instagram.com/accounts/login/', None,
             note='Downloading login webpage', errnote='Failed to downloading login webpage')
-        # time.sleep(6)
 
         shared_data = self._parse_json(
             self._search_regex(
@@ -178,6 +177,8 @@ class InstagramIE(InfoExtractor):
         }))
 
         if not login.get('authenticated'):
+            if login.get('message'):
+                raise ExtractorError(f'Unable to login: {login["message"]}')
             raise ExtractorError('Unable to login')
 
     def _real_initialize(self):
