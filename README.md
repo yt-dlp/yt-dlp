@@ -1172,6 +1172,9 @@ $ yt-dlp -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episod
 
 # Stream the video being downloaded to stdout
 $ yt-dlp -o - BaW_jenozKc
+
+# Download YouTube playlist videos in separate directory without indexed by the video order of the playlist but suffixed with the video id
+$ youtube-dl.exe -o "%(playlist)s/%(title)s-%(id)s.%(ext)s" https://www.youtube.com/playlist?list=PL9iCfxJ0ri32PVdbwrEexjuVB3QnwweRP
 ```
 
 # FORMAT SELECTION
