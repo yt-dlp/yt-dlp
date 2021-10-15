@@ -144,7 +144,7 @@ def run_update(ydl):
         return report_permission_error(filename)
 
     # PyInstaller
-    if hasattr(sys, 'frozen'):
+    if hasattr(sys, 'frozen') and platform.system() == 'Windows':
         exe = filename
         directory = os.path.dirname(exe)
         if not os.access(directory, os.W_OK):
@@ -155,10 +155,9 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_unable('remove the old version')
 
-        bin_type = 'mac' if platform.system() == 'Darwin' else 'exe'
         try:
             arch = platform.architecture()[0][:2]
-            url = get_bin_info(bin_type, arch).get('browser_download_url')
+            url = get_bin_info('exe', arch).get('browser_download_url')
             if not url:
                 return report_network_error('fetch updates')
             urlh = ydl._opener.open(url)
@@ -173,7 +172,7 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_permission_error(f'{exe}.new')
 
-        expected_sum = get_sha256sum(bin_type, arch)
+        expected_sum = get_sha256sum('exe', arch)
         if not expected_sum:
             ydl.report_warning('no hash information found for the release')
         elif calc_sha256sum(exe + '.new') != expected_sum:
@@ -194,23 +193,21 @@ def run_update(ydl):
             os.rename(exe + '.old', exe)
             return
         try:
-            if platform.system() == 'Darwin':
-                os.remove(exe + '.old')
-                os.chmod(exe, 0o755)
-            else:
-                # Continues to run in the background
-                subprocess.Popen(
-                    'ping 127.0.0.1 -n 5 -w 1000 & del /F "%s.old"' % exe,
-                    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Continues to run in the background
+            subprocess.Popen(
+                'ping 127.0.0.1 -n 5 -w 1000 & del /F "%s.old"' % exe,
+                shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             ydl.to_screen('Updated yt-dlp to version %s' % version_id)
             return True  # Exit app
         except OSError:
             report_unable('delete the old version')
 
-    # Zip unix package
-    elif isinstance(globals().get('__loader__'), zipimporter):
+    # Zip unix or Mac OS binary package
+    elif isinstance(globals().get('__loader__'), zipimporter) or \
+         (hasattr(sys, 'frozen') and platform.system() == 'Darwin'):
+        pack_type = ['mac', '64'] if hasattr(sys, 'frozen') else ['zip', '3']
         try:
-            url = get_bin_info('zip', '3').get('browser_download_url')
+            url = get_bin_info(*pack_type).get('browser_download_url')
             if not url:
                 return report_network_error('fetch updates')
             urlh = ydl._opener.open(url)
@@ -219,11 +216,11 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_network_error('download the latest version')
 
-        expected_sum = get_sha256sum('zip', '3')
+        expected_sum = get_sha256sum(*pack_type)
         if not expected_sum:
             ydl.report_warning('no hash information found for the release')
         elif hashlib.sha256(newcontent).hexdigest() != expected_sum:
-            return report_network_error('verify the new zip')
+            return report_network_error('verify the new package')
 
         try:
             with open(filename, 'wb') as outf:
