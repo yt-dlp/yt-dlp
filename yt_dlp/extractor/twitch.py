@@ -1004,6 +1004,10 @@ class TwitchClipsIE(TwitchBaseIE):
       sourceURL
     }
     viewCount
+    video {
+      id
+    }
+    videoOffsetSeconds
   }
 }''' % video_id}, 'Downloading clip GraphQL', fatal=False)
 
@@ -1054,4 +1058,6 @@ class TwitchClipsIE(TwitchBaseIE):
             'creator': try_get(clip, lambda x: x['broadcaster']['displayName'], compat_str),
             'uploader': try_get(clip, lambda x: x['curator']['displayName'], compat_str),
             'uploader_id': try_get(clip, lambda x: x['curator']['id'], compat_str),
+            'vod_id': try_get(clip, lambda x: x['video']['id'], compat_str),
+            'vod_offset_seconds': clip.get("videoOffsetSeconds"),
         }
