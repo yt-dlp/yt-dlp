@@ -355,7 +355,8 @@ class FragmentFD(FileDownloader):
             # not what it decrypts to.
             if self.params.get('test', False):
                 return frag_content
-            decrypted_data = aes_cbc_decrypt_bytes(frag_content, decrypt_info['KEY'], iv)
+            padding_len = 16 - (len(frag_content) % 16)
+            decrypted_data = aes_cbc_decrypt_bytes(frag_content + bytes([padding_len] * padding_len), decrypt_info['KEY'], iv)
             return decrypted_data[:-decrypted_data[-1]]
 
         return decrypt_fragment
