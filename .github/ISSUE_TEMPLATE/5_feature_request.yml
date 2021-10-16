@@ -1,0 +1,34 @@
+name: Feature request
+description: Request a new functionality unrelated to any particular site or extractor
+labels: [triage, enhancement]
+body:
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: |
+        Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
+        - First of, make sure you are using the latest version of yt-dlp. Run `yt-dlp --version` and ensure your version is 2021.10.10. If it's not, see [this](https://github.com/yt-dlp/yt-dlp#update) on how to update. Issues with outdated version will be REJECTED.
+        - Read "[opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)" section in [CONTRIBUTING.md](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md) 
+        - Search the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues) for similar issues. DO NOT post duplicates.
+      options:
+        - label: I'm reporting a feature request
+          required: true
+        - label: I've verified that I'm running yt-dlp version **2021.10.10**
+          required: true
+        - label: I've searched the bugtracker for similar issues including closed ones
+          required: true
+        - label: I've read the opening an issue section in CONTRIBUTING.md
+          required: true
+        - label: I've given an appropriate title to the issue
+          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        Provide an explanation of your site feature request in an arbitrary form. Please make sure the description is worded well enough to be understood, see [is-the-description-of-the-issue-itself-sufficient](https://github.com/ytdl-org/youtube-dl#is-the-description-of-the-issue-itself-sufficient).
+        Provide any additional information, suggested solution and as much context and examples as possible.
+      placeholder: WRITE DESCRIPTION HERE
+    validations:
+      required: true
