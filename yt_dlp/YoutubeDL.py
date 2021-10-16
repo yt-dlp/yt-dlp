@@ -2177,6 +2177,9 @@ class YoutubeDL(object):
         if info_dict.get('display_id') is None and 'id' in info_dict:
             info_dict['display_id'] = info_dict['id']
 
+        if info_dict.get('duration') is not None:
+            info_dict['duration_string'] = formatSeconds(info_dict['duration'])
+
         for ts_key, date_key in (
                 ('timestamp', 'upload_date'),
                 ('release_timestamp', 'release_date'),
@@ -2295,10 +2298,10 @@ class YoutubeDL(object):
                     res=self.format_resolution(format),
                     note=format_field(format, 'format_note', ' (%s)'),
                 )
-            # Automatically determine protocol if missing (useful for format
-            # selection purposes)
             if format.get('protocol') is None:
                 format['protocol'] = determine_protocol(format)
+            if format.get('resolution') is None:
+                format['resolution'] = self.format_resolution(format, default=None)
             # Add HTTP headers, so that external programs can use them from the
             # json output
             full_format_info = info_dict.copy()
