@@ -973,7 +973,9 @@ class YoutubeDL(object):
 
         urls = [info_dict[key] for key in ('url', 'webpage_url', 'original_url') if key in info_dict]
         if urls:
-            info_dict['hostname'] = urlsplit(urls[0]).hostname.replace('.', '_')
+            hostname = urlsplit(urls[0]).hostname
+            if hostname:
+                info_dict['hostname'] = hostname.replace('.', '_')
 
         # For fields playlist_index, playlist_autonumber and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
