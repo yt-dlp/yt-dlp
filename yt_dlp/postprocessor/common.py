@@ -17,11 +17,12 @@ class PostProcessorMetaClass(type):
     def run_wrapper(func):
         @functools.wraps(func)
         def run(self, info, *args, **kwargs):
-            self._hook_progress({'status': 'started'}, info)
+            info_copy = copy.deepcopy(self._copy_infodict(info))
+            self._hook_progress({'status': 'started'}, info_copy)
             ret = func(self, info, *args, **kwargs)
             if ret is not None:
                 _, info = ret
-            self._hook_progress({'status': 'finished'}, info)
+            self._hook_progress({'status': 'finished'}, info_copy)
             return ret
         return run
 
@@ -93,6 +94,9 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         for ph in getattr(downloader, '_postprocessor_hooks', []):
             self.add_progress_hook(ph)
 
+    def _copy_infodict(self, info_dict):
+        return getattr(self._downloader, '_copy_infodict', dict)(info_dict)
+
     @staticmethod
     def _restrict_to(*, video=True, audio=True, images=True):
         allowed = {'video': video, 'audio': audio, 'images': images}
@@ -142,11 +146,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     def _hook_progress(self, status, info_dict):
         if not self._progress_hooks:
             return
-        info_dict = dict(info_dict)
-        for key in ('__original_infodict', '__postprocessors'):
-            info_dict.pop(key, None)
         status.update({
-            'info_dict': copy.deepcopy(info_dict),
+            'info_dict': info_dict,
             'postprocessor': self.pp_key(),
         })
         for ph in self._progress_hooks:

@@ -950,13 +950,18 @@ class YoutubeDL(object):
         except ValueError as err:
             return err
 
+    @staticmethod
+    def _copy_infodict(info_dict):
+        info_dict = dict(info_dict)
+        for key in ('__original_infodict', '__postprocessors'):
+            info_dict.pop(key, None)
+        return info_dict
+
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
         """ Make the outtmpl and info_dict suitable for substitution: ydl.escape_outtmpl(outtmpl) % info_dict """
         info_dict.setdefault('epoch', int(time.time()))  # keep epoch consistent once set
 
-        info_dict = dict(info_dict)  # Do not sanitize so as not to consume LazyList
-        for key in ('__original_infodict', '__postprocessors'):
-            info_dict.pop(key, None)
+        info_dict = self._copy_infodict(info_dict)
         info_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
             formatSeconds(info_dict['duration'], '-' if sanitize else ':')
             if info_dict.get('duration', None) is not None
@@ -2265,7 +2270,7 @@ class YoutubeDL(object):
             formats_dict[format_id].append(format)
 
         # Make sure all formats have unique format_id
-        common_exts = set(ext for exts in self._format_selection_exts.values() for ext in exts)
+        common_exts = set(itertools.chain(*self._format_selection_exts.values()))
         for format_id, ambiguous_formats in formats_dict.items():
             ambigious_id = len(ambiguous_formats) > 1
             for i, format in enumerate(ambiguous_formats):
@@ -2523,7 +2528,8 @@ class YoutubeDL(object):
                 fd.add_progress_hook(ph)
             urls = '", "'.join([f['url'] for f in info.get('requested_formats', [])] or [info['url']])
             self.write_debug('Invoking downloader on "%s"' % urls)
-        new_info = dict(info)
+
+        new_info = copy.deepcopy(self._copy_infodict(info))
         if new_info.get('http_headers') is None:
             new_info['http_headers'] = self._calc_headers(new_info)
         return fd.download(name, new_info, subtitle)
