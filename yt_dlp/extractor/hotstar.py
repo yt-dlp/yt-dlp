@@ -203,35 +203,35 @@ class HotStarIE(HotStarBaseIE):
             format_url = re.sub(
                 r'(?<=//staragvod)(\d)', r'web\1', format_url)
             tags = str_or_none(playback_set.get('tagsCombination')) or ''
-            if tags and 'encryption:plain' not in tags:
-                continue
             ext = determine_ext(format_url)
+            current_formats, current_subs = [], {}
             try:
                 if 'package:hls' in tags or ext == 'm3u8':
-                    hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
+                    current_formats, current_subs = self._extract_m3u8_formats_and_subtitles(
                         format_url, video_id, 'mp4',
                         entry_protocol='m3u8_native',
                         m3u8_id=f'{dr}-hls', headers=headers)
-                    formats.extend(hls_formats)
-                    subs = self._merge_subtitles(subs, hls_subs)
                 elif 'package:dash' in tags or ext == 'mpd':
-                    dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
+                    current_formats, current_subs = self._extract_mpd_formats_and_subtitles(
                         format_url, video_id, mpd_id=f'{dr}-dash', headers=headers)
-                    formats.extend(dash_formats)
-                    subs = self._merge_subtitles(subs, dash_subs)
                 elif ext == 'f4m':
                     # produce broken files
                     pass
                 else:
-                    formats.append({
+                    current_formats = [{
                         'url': format_url,
                         'width': int_or_none(playback_set.get('width')),
                         'height': int_or_none(playback_set.get('height')),
-                    })
+                    }]
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                     geo_restricted = True
                 continue
+            if tags and 'encryption:plain' not in tags:
+                for f in current_formats:
+                    f['has_drm'] = True
+            formats.extend(current_formats)
+            subs = self._merge_subtitles(subs, current_subs)
         if not formats and geo_restricted:
             self.raise_geo_restricted(countries=['IN'], metadata_available=True)
         self._sort_formats(formats)
