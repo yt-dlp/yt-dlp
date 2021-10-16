@@ -527,6 +527,10 @@ from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
 from .groupon import GrouponIE
 from .hbo import HBOIE
+from .hanimetv import (
+    HanimetvBaseIE,
+    HanimetvPlaylistIE
+)
 from .hearthisat import HearThisAtIE
 from .heise import HeiseIE
 from .hellporno import HellPornoIE
