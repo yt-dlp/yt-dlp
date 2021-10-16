@@ -889,8 +889,13 @@ class YoutubeDL(object):
         outtmpl_dict = self.params.get('outtmpl', {})
         if not isinstance(outtmpl_dict, dict):
             outtmpl_dict = {'default': outtmpl_dict}
+        # Remove spaces in the default template
+        if self.params.get('restrictfilenames'):
+            sanitize = lambda x: x.replace(' - ', ' ').replace(' ', '-')
+        else:
+            sanitize = lambda x: x
         outtmpl_dict.update({
-            k: v for k, v in DEFAULT_OUTTMPL.items()
+            k: sanitize(v) for k, v in DEFAULT_OUTTMPL.items()
             if outtmpl_dict.get(k) is None})
         for key, val in outtmpl_dict.items():
             if isinstance(val, bytes):
