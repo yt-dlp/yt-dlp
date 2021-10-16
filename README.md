@@ -159,6 +159,7 @@ You can install yt-dlp using one of the following methods:
 * Use [PyPI package](https://pypi.org/project/yt-dlp): `python3 -m pip install --upgrade yt-dlp`
 * Use pip+git: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
 * Install master branch: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp`
+* Use [AUR package](https://aur.archlinux.org/packages/yt-dlp/) (unofficial)
 
 Note that on some systems, you may need to use `py` or `python` instead of `python3`
 
