@@ -1013,6 +1013,7 @@ The available fields are:
  - `id` (string): Video identifier
  - `title` (string): Video title
  - `url` (string): Video URL
+ - `hostname` (string): The hostname (fully qualified domain name) of the site the video is uploaded on
  - `ext` (string): Video filename extension
  - `alt_title` (string): A secondary title of the video
  - `description` (string): The description of the video

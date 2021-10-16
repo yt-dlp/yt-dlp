@@ -29,6 +29,7 @@ import random
 import unicodedata
 
 from string import ascii_letters
+from urllib.parse import urlsplit
 
 from .compat import (
     compat_basestring,
@@ -969,6 +970,10 @@ class YoutubeDL(object):
         info_dict['autonumber'] = self.params.get('autonumber_start', 1) - 1 + self._num_downloads
         if info_dict.get('resolution') is None:
             info_dict['resolution'] = self.format_resolution(info_dict, default=None)
+
+        urls = [info_dict[key] for key in ('url', 'webpage_url', 'original_url') if key in info_dict]
+        if urls:
+            info_dict['hostname'] = urlsplit(urls[0]).hostname.replace('.', '_')
 
         # For fields playlist_index, playlist_autonumber and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
