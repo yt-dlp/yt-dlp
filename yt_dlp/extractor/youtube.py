@@ -2692,7 +2692,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     itag = self._search_regex(
                         r'/itag/(\d+)', f['url'], 'itag', default=None)
                     if itag in itags:
-                        continue
+                        itag += '-hls'
+                        if itag in itags:
+                            continue
                     if itag:
                         f['format_id'] = itag
                         itags.append(itag)
@@ -2704,8 +2706,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 for f in self._extract_mpd_formats(dash_manifest_url, video_id, fatal=False):
                     itag = f['format_id']
                     if itag in itags:
-                        continue
+                        itag += '-dash'
+                        if itag in itags:
+                            continue
                     if itag:
+                        f['format_id'] = itag
                         itags.append(itag)
                     f['quality'] = guess_quality(f)
                     filesize = int_or_none(self._search_regex(

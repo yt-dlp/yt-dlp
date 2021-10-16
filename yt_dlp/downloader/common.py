@@ -1,6 +1,5 @@
 from __future__ import division, unicode_literals
 
-import copy
 import os
 import re
 import time
