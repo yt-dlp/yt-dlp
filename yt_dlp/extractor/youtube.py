@@ -2416,8 +2416,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
         def _real_comment_extract(contents):
-            yield from self._comment_entries(
-                traverse_obj(contents, (..., 'itemSectionRenderer'), get_all=False), ytcfg, video_id)
+            renderer = next(
+                filter(lambda x: x.get('sectionIdentifier') == 'comment-item-section', traverse_obj(contents, (..., 'itemSectionRenderer'), default={})), None)
+            yield from self._comment_entries(renderer, ytcfg, video_id)
 
         max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0])
         # Force English regardless of account setting to prevent parsing issues
