@@ -109,7 +109,8 @@ class HanimetvBaseIE(InfoExtractor):
         description = clean_html(try_get(json_data, lambda val: val['hentai_video']['description']))
         publisher = try_get(json_data, lambda val: val['hentai_video']['brand'])
         tags = list()
-        if (tag_dict := try_get(json_data, lambda val: val['hentai_video']['hentai_tags'])):
+        tag_dict = try_get(json_data, lambda val: val['hentai_video']['hentai_tags'])
+        if tag_dict:
             for i in range(len(tag_dict)):
                 tags.append(try_get(tag_dict, lambda val: val[i]['text'], compat_str))
 
