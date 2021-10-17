@@ -1087,12 +1087,13 @@ class InfoExtractor(object):
 
     # Methods for following #608
     @staticmethod
-    def url_result(url, ie=None, video_id=None, video_title=None):
+    def url_result(url, ie=None, video_id=None, video_title=None, **kwargs):
         """Returns a URL that points to a page that should be processed"""
         # TODO: ie should be the class used for getting the info
         video_info = {'_type': 'url',
                       'url': url,
                       'ie_key': ie}
+        video_info.update(kwargs)
         if video_id is not None:
             video_info['id'] = video_id
         if video_title is not None:

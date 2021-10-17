@@ -686,20 +686,23 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
             headers=self.geo_verification_headers())
         title = self._html_search_meta('name', webpage, default=None)
 
-        episode_paths = re.findall(
-            r'(?s)<li id="showview_videos_media_(\d+)"[^>]+>.*?<a href="([^"]+)"',
-            webpage)
-        entries = [
-            self.url_result('http://www.crunchyroll.com' + ep, 'Crunchyroll', ep_id)
-            for ep_id, ep in episode_paths
-        ]
-        entries.reverse()
+        episode_re = r'<li id="showview_videos_media_(\d+)"[^>]+>.*?<a href="([^"]+)"'
+        season_re = r'<a [^>]+season-dropdown[^>]+>([^<]+)'
+        paths = re.findall(f'(?s){episode_re}|{season_re}', webpage)
+
+        entries, current_season = [], None
+        for ep_id, ep, season in paths:
+            if season:
+                current_season = season
+                continue
+            entries.append(self.url_result(
+                f'http://www.crunchyroll.com{ep}', CrunchyrollIE.ie_key(), ep_id, season=current_season))
 
         return {
             '_type': 'playlist',
             'id': show_id,
             'title': title,
-            'entries': entries,
+            'entries': reversed(entries),
         }
 
 
