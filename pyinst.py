@@ -3,7 +3,6 @@
 
 from __future__ import unicode_literals
 import sys
-# import os
 import platform
 
 from PyInstaller.utils.hooks import collect_submodules
@@ -13,18 +12,21 @@ from PyInstaller.utils.win32.versioninfo import (
 )
 import PyInstaller.__main__
 
-arch = sys.argv[1] if len(sys.argv) > 1 else platform.architecture()[0][:2]
+arch = platform.architecture()[0][:2]
 assert arch in ('32', '64')
 _x86 = '_x86' if arch == '32' else ''
 
-opts = sys.argv[2:] or ['--onefile']
+# Compatability with older arguments
+opts = sys.argv[1:]
+if opts[0:1] in (['32'], ['64']):
+    if arch != opts[0]:
+        raise Exception(f'{opts[0]}bit executable cannot be built on a {arch}bit system')
+    opts = opts[1:]
+opts = opts or ['--onefile']
+
 print(f'Building {arch}bit version with options {opts}')
 
 FILE_DESCRIPTION = 'yt-dlp%s' % (' (32 Bit)' if _x86 else '')
-
-# root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-# print('Changing working directory to %s' % root_dir)
-# os.chdir(root_dir)
 
 exec(compile(open('yt_dlp/version.py').read(), 'yt_dlp/version.py', 'exec'))
 VERSION = locals()['__version__']
@@ -69,7 +71,22 @@ VERSION_FILE = VSVersionInfo(
     ]
 )
 
-dependancies = ['Crypto', 'mutagen'] + collect_submodules('websockets')
+
+def pycryptodome_module():
+    try:
+        import Cryptodome  # noqa: F401
+    except ImportError:
+        try:
+            import Crypto  # noqa: F401
+            print('WARNING: Using Crypto since Cryptodome is not available. '
+                  'Install with: pip install pycryptodomex', file=sys.stderr)
+            return 'Crypto'
+        except ImportError:
+            pass
+    return 'Cryptodome'
+
+
+dependancies = [pycryptodome_module(), 'mutagen'] + collect_submodules('websockets')
 excluded_modules = ['test', 'ytdlp_plugins', 'youtube-dl', 'youtube-dlc']
 
 PyInstaller.__main__.run([
@@ -82,4 +99,4 @@ PyInstaller.__main__.run([
     *opts,
     'yt_dlp/__main__.py',
 ])
-SetVersion('dist/yt-dlp%s.exe' % _x86, VERSION_FILE)
+SetVersion('dist/%syt-dlp%s.exe' % ('yt-dlp/' if '--onedir' in opts else '', _x86), VERSION_FILE)

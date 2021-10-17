@@ -54,7 +54,11 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Modifying metadata examples](#modifying-metadata-examples)
 * [EXTRACTOR ARGUMENTS](#extractor-arguments)
 * [PLUGINS](#plugins)
+* [EMBEDDING YT-DLP](#embedding-yt-dlp)
 * [DEPRECATED OPTIONS](#deprecated-options)
+* [CONTRIBUTING](CONTRIBUTING.md#contributing-to-yt-dlp)
+    * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
+    * [Developer Instructions](CONTRIBUTING.md#developer-instructions)
 * [MORE](#more)
 </div>
 
@@ -77,7 +81,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
     * Most (but not all) age-gated content can be downloaded without cookies
     * Partial workaround for throttling issue
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
-    * `255kbps` audio is extracted from youtube music if premium cookies are given
+    * `255kbps` audio is extracted (if available) from youtube music when premium cookies are given
     * Youtube music Albums, channels etc can be downloaded ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723))
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[:PROFILE]`
@@ -88,9 +92,9 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ, BannedVideo, bilibili categories, Epicon, filmmodu, GabTV, HungamaAlbum, ManotoTV, Niconico search, Patreon User, peloton, ProjectVeritas, radiko, StarTV, tiktok user, Tokentube, voicy, TV2HuSeries
+* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, RCN MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ, BannedVideo, bilibili categories, Epicon, filmmodu, GabTV, HungamaAlbum, ManotoTV, Niconico search, Patreon User, peloton, ProjectVeritas, radiko, StarTV, tiktok user, Tokentube, voicy, TV2HuSeries, biliintl, 17live, NewgroundsUser, peertube channel/playlist, ZenYandex, CAM4, CGTN, damtomo, gotostage, Koo, Mediaite, Mediaklikk, MuseScore, nzherald, Olympics replay, radlive, SovietsCloset, Streamanity, Theta, Chingari, ciscowebex, Gettr, GoPro, N1, Theta, Veo, Vupload, NovaPlay
 
-* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds, SAML Verizon login, Hungama, afreecatv, aljazeera, ATV, bitchute, camtube, CDA, eroprofile, facebook, HearThisAtIE, iwara, kakao, Motherless, Nova, peertube, pornhub, reddit, tiktok, TV2, TV2Hu, tv5mondeplus, VH1, Viafree, XHamster
+* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll playlist, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds, SAML Verizon login, Hungama, afreecatv, aljazeera, ATV, bitchute, camtube, CDA, eroprofile, facebook, HearThisAtIE, iwara, kakao, Motherless, Nova, peertube, pornhub, reddit, tiktok, TV2, TV2Hu, tv5mondeplus, VH1, Viafree, XHamster, 9Now, AnimalPlanet, Arte, CBC, Chingari, comedycentral, DIYNetwork, niconico, dw, funimation, globo, HiDive, NDR, Nuvid, Oreilly, pbs, plutotv, reddit, redtube, soundcloud, SpankBang, VrtNU, bbc, Bilibili, LinkedInLearning, parliamentlive, PolskieRadio, Streamable, vidme, francetv
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -150,7 +154,7 @@ For ease of use, a few more compat options are available:
 yt-dlp is not platform specific. So it should work on your Unix box, on Windows or on macOS
 
 You can install yt-dlp using one of the following methods:
-* Download the binary from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest) (recommended method)
+* Download the binary from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest)
 * With Homebrew, `brew install yt-dlp/taps/yt-dlp`
 * Use [PyPI package](https://pypi.org/project/yt-dlp): `python3 -m pip install --upgrade yt-dlp`
 * Use pip+git: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
@@ -189,13 +193,15 @@ If you have installed using Homebrew, run `brew upgrade yt-dlp/taps/yt-dlp`
 ### DEPENDENCIES
 Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
-<!-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 -->
+<!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
+<!x-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 --x>
 On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe) is also necessary to run yt-dlp. You probably already have this, but if the executable throws an error due to missing `MSVCR100.dll` you need to install it manually.
+-->
 
 While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly recommended
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging seperate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. Licence [depends on the build](https://www.ffmpeg.org/legal.html)
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licenced under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
-* [**pycryptodome**](https://github.com/Legrandin/pycryptodome) - For decrypting various data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
+* [**pycryptodomex**](https://github.com/Legrandin/pycryptodome) - For decrypting AES-128 HLS streams and various other data. Licenced under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licenced under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
 * [**keyring**](https://github.com/jaraco/keyring) - For decrypting cookies of chromium-based browsers on Linux. Licenced under [MIT](https://github.com/jaraco/keyring/blob/main/LICENSE)
 * [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen is not present. Licenced under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
@@ -207,14 +213,17 @@ While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
 
-Note that the windows releases are already built with the python interpreter, mutagen, pycryptodome and websockets included.
+The windows releases are already built with the python interpreter, mutagen, pycryptodomex and websockets included.
+
+**Note**: There are some regressions in newer ffmpeg versions that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependancy, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds/wiki/Latest#latest-autobuilds) with patches for these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specifc issues solved by these builds
+
 
 ### COMPILE
 
 **For Windows**:
-To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodome, websockets)
+To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodomex, websockets)
 
-    python3 -m pip install --upgrade pyinstaller mutagen pycryptodome websockets
+    python3 -m pip install -U -r requirements.txt
 
 Once you have all the necessary dependencies installed, just run `py pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
 
@@ -280,7 +289,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them
     --no-flat-playlist               Extract the videos of a playlist
-    --mark-watched                   Mark videos watched (YouTube only)
+    --mark-watched                   Mark videos watched (even with --simulate).
+                                     Currently only supported for YouTube
     --no-mark-watched                Do not mark videos watched (default)
     --no-colors                      Do not emit color codes in output
     --compat-options OPTS            Options that can help keep compatibility
@@ -533,10 +543,10 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --cookies-from-browser BROWSER[:PROFILE]
                                      Load cookies from a user profile of the
                                      given web browser. Currently supported
-                                     browsers are: brave|chrome|chromium|edge|fi
-                                     refox|opera|safari|vivaldi. You can specify
-                                     the user profile name or directory using
-                                     "BROWSER:PROFILE_NAME" or
+                                     browsers are: brave, chrome, chromium,
+                                     edge, firefox, opera, safari, vivaldi. You
+                                     can specify the user profile name or
+                                     directory using "BROWSER:PROFILE_NAME" or
                                      "BROWSER:PROFILE_PATH". If no profile is
                                      given, the most recently accessed one is
                                      used
@@ -601,7 +611,18 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      (Alias: --force-download-archive)
     --newline                        Output progress bar as new lines
     --no-progress                    Do not print progress bar
+    --progress                       Show progress bar, even if in quiet mode
     --console-title                  Display progress in console titlebar
+    --progress-template [TYPES:]TEMPLATE
+                                     Template for progress outputs, optionally
+                                     prefixed with one of "download:" (default),
+                                     "download-title:" (the console title),
+                                     "postprocess:",  or "postprocess-title:".
+                                     The video's fields are accessible under the
+                                     "info" key and the progress attributes are
+                                     accessible under "progress" key. Eg:
+                                     --console-title --progress-template
+                                     "download-title:%(info.id)s-%(progress.eta)s"
     -v, --verbose                    Print various debugging information
     --dump-pages                     Print downloaded pages encoded using base64
                                      to debug problems (very verbose)
@@ -837,6 +858,20 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      around the cuts
     --no-force-keyframes-at-cuts     Do not force keyframes around the chapters
                                      when cutting/splitting (default)
+    --use-postprocessor NAME[:ARGS]  The (case sensitive) name of plugin
+                                     postprocessors to be enabled, and
+                                     (optionally) arguments to be passed to it,
+                                     seperated by a colon ":". ARGS are a
+                                     semicolon ";" delimited list of NAME=VALUE.
+                                     The "when" argument determines when the
+                                     postprocessor is invoked. It can be one of
+                                     "pre_process" (after extraction),
+                                     "before_dl" (before video download),
+                                     "post_process" (after video download;
+                                     default) or "after_move" (after moving file
+                                     to their final locations). This option can
+                                     be used multiple times to add different
+                                     postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -963,14 +998,15 @@ The field names themselves (the part inside the parenthesis) can also have some 
 1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
 1. **Alternatives**: Alternate fields can be specified seperated with a `,`. Eg: `%(release_date>%Y,upload_date>%Y|Unknown)s`
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` seperator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q` can be used for converting to **B**ytes, **j**son, a comma seperated **l**ist and a string **q**uoted for the terminal respectively
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q` can be used for converting to **B**ytes, **j**son, a comma seperated **l**ist (alternate form flag `#` makes it new line `\n` seperated) and a string **q**uoted for the terminal, respectively
+1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. Eg: `%(title)+.100U` is NFKC
 
 To summarize, the general syntax for a field is:
 ```
 %(name[.keys][addition][>strf][,alternate][|default])[flags][width][.precision][length]type
 ```
 
-Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video.
+Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video. If any of the templates (except default) is empty, that type of file will not be written. Eg: `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
 The available fields are:
 
@@ -984,9 +1020,10 @@ The available fields are:
  - `uploader` (string): Full name of the video uploader
  - `license` (string): License name the video is licensed under
  - `creator` (string): The creator of the video
- - `release_date` (string): The date (YYYYMMDD) when the video was released
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
  - `upload_date` (string): Video upload date (YYYYMMDD)
+ - `release_date` (string): The date (YYYYMMDD) when the video was released
+ - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
  - `uploader_id` (string): Nickname or id of the video uploader
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
@@ -1028,8 +1065,10 @@ The available fields are:
  - `extractor_key` (string): Key name of the extractor
  - `epoch` (numeric): Unix epoch when creating the file
  - `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`
+ - `n_entries` (numeric): Total number of extracted items in the playlist
  - `playlist` (string): Name or id of the playlist that contains the video
- - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according to the total length of the playlist
+ - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according the final index
+ - `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
  - `playlist_id` (string): Playlist identifier
  - `playlist_title` (string): Playlist title
  - `playlist_uploader` (string): Full name of the playlist uploader
@@ -1140,6 +1179,8 @@ $ yt-dlp -o - BaW_jenozKc
 By default, yt-dlp tries to download the best available quality if you **don't** pass any options.
 This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg is unavailable, or if you use yt-dlp to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
 
+**Deprecation warning**: Latest versions of yt-dlp can stream multiple formats to the stdout simultaneously using ffmpeg. So, in future versions, the default for this will be set to `-f bv*+ba/b` similar to normal downloads. If you want to preserve the `-f b/bv+ba` setting, it is recommended to explicitly specify it in the configuration options.
+
 The general syntax for format selection is `-f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
 
 **tl;dr:** [navigate me to examples](#format-selection-examples).
@@ -1248,7 +1289,7 @@ The available fields are:
 
 All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
-The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--force-format-sort`. Apart from these, the default order used is: `lang,quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. The extractors may override this default order, but they cannot override the user-provided order.
+The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--format-sort-force`. Apart from these, the default order used is: `lang,quality,res,fps,codec:vp9.2,size,br,asr,proto,ext,hasaud,source,id`. The extractors may override this default order, but they cannot override the user-provided order.
 
 Note that the default has `codec:vp9.2`; i.e. `av1` is not prefered
 
@@ -1452,6 +1493,9 @@ The following extractors use this feature:
     * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side).
     * `max_comments`: Maximum amount of comments to download (default all).
     * `max_comment_depth`: Maximum depth for nested comments. YouTube supports depths 1 or 2 (default).
+* **youtubetab**
+  (YouTube playlists, channels, feeds, etc.)
+   * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
 
 * **funimation**
     * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
@@ -1465,9 +1509,94 @@ NOTE: These options may be changed/removed in the future without concern for bac
 
 # PLUGINS
 
-Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`. Currently only `extractor` plugins are supported. Support for `downloader` and `postprocessor` plugins may be added in the future. See [ytdlp_plugins](ytdlp_plugins) for example.
+Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`; where `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`). Plugins are currently not supported for the `pip` version
 
-**Note**: `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`)
+Plugins can be of `<type>`s `extractor` or `postprocessor`. Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
+
+See [ytdlp_plugins](ytdlp_plugins) for example plugins.
+
+Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. Use plugins at your own risk and only if you trust the code
+
+If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
+
+
+
+# EMBEDDING YT-DLP
+
+yt-dlp makes the best effort to be a good command-line program, and thus should be callable from any programming language.
+
+Your program should avoid parsing the normal stdout since they may change in future versions. Instead they should use options such as `-J`, `--print`, `--progress-template`, `--exec` etc to create console output that you can reliably reproduce and parse.
+
+From a Python program, you can embed yt-dlp in a more powerful fashion, like this:
+
+```python
+import yt_dlp
+
+ydl_opts = {}
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
+```
+
+Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L154-L452).
+
+Here's a more complete example of a program that outputs only errors (and a short message after the download is finished), converts the video to an mp3 file, implements a custom postprocessor and prints the final info_dict as json:
+
+```python
+import json
+
+import yt_dlp
+from yt_dlp.postprocessor.common import PostProcessor
+
+
+class MyLogger:
+    def debug(self, msg):
+        # For compatability with youtube-dl, both debug and info are passed into debug
+        # You can distinguish them by the prefix '[debug] '
+        if msg.startswith('[debug] '):
+            pass
+        else:
+            self.info(msg)
+
+    def info(self, msg):
+        pass
+
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        print(msg)
+
+
+class MyCustomPP(PostProcessor):
+    def run(self, info):
+        self.to_screen('Doing stuff')
+        return [], info
+
+
+def my_hook(d):
+    if d['status'] == 'finished':
+        print('Done downloading, now converting ...')
+
+
+ydl_opts = {
+    'format': 'bestaudio/best',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }],
+    'logger': MyLogger(),
+    'progress_hooks': [my_hook],
+}
+
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    ydl.add_post_processor(MyCustomPP())
+    info = ydl.extract_info('https://www.youtube.com/watch?v=BaW_jenozKc')
+    print(json.dumps(ydl.sanitize_info(info)))
+```
+
+See the public functions in [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py) for other available functions. Eg: `ydl.download`, `ydl.download_with_info_file`
+
 
 # DEPRECATED OPTIONS
 
@@ -1570,6 +1699,8 @@ These options were deprecated since 2014 and have now been entirely removed
     -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
     -l, --literal                    -o accepts literal names
 
+# CONTRIBUTING
+See [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-yt-dlp) for instructions on [Opening an Issue](CONTRIBUTING.md#opening-an-issue) and [Contributing code to the project](CONTRIBUTING.md#developer-instructions)
 
 # MORE
-For FAQ, Developer Instructions etc., see the [original README](https://github.com/ytdl-org/youtube-dl#faq)
+For FAQ see the [youtube-dl README](https://github.com/ytdl-org/youtube-dl#faq)

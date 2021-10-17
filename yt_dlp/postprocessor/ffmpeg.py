@@ -478,7 +478,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')
     FORMAT_RE = re.compile(r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(SUPPORTED_EXTS)))
-    _action = 'converting'
+    _ACTION = 'converting'
 
     def __init__(self, downloader=None, preferedformat=None):
         super(FFmpegVideoConvertorPP, self).__init__(downloader)
@@ -497,29 +497,28 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
         return []
 
     @PostProcessor._restrict_to(images=False)
-    def run(self, information):
-        path, source_ext = information['filepath'], information['ext'].lower()
+    def run(self, info):
+        filename, source_ext = info['filepath'], info['ext'].lower()
         target_ext = self._target_ext(source_ext)
         _skip_msg = (
-            'could not find a mapping for %s' if not target_ext
-            else 'already is in target format %s' if source_ext == target_ext
+            f'could not find a mapping for {source_ext}' if not target_ext
+            else f'already is in target format {source_ext}' if source_ext == target_ext
             else None)
         if _skip_msg:
-            self.to_screen('Not %s media file "%s"; %s' % (self._action, path, _skip_msg % source_ext))
-            return [], information
+            self.to_screen(f'Not {self._ACTION} media file {filename!r}; {_skip_msg}')
+            return [], info
 
-        prefix, sep, oldext = path.rpartition('.')
-        outpath = prefix + sep + target_ext
-        self.to_screen('%s video from %s to %s; Destination: %s' % (self._action.title(), source_ext, target_ext, outpath))
-        self.run_ffmpeg(path, outpath, self._options(target_ext))
+        outpath = replace_extension(filename, target_ext, source_ext)
+        self.to_screen(f'{self._ACTION.title()} video from {source_ext} to {target_ext}; Destination: {outpath}')
+        self.run_ffmpeg(filename, outpath, self._options(target_ext))
 
-        information['filepath'] = outpath
-        information['format'] = information['ext'] = target_ext
-        return [path], information
+        info['filepath'] = outpath
+        info['format'] = info['ext'] = target_ext
+        return [filename], info
 
 
 class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
-    _action = 'remuxing'
+    _ACTION = 'remuxing'
 
     @staticmethod
     def _options(target_ext):
@@ -545,7 +544,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             return [], information
 
         filename = information['filepath']
-        if self._duration_mismatch(
+        if information.get('duration') and self._duration_mismatch(
                 self._get_real_video_duration(information, False), information['duration']):
             self.to_screen(f'Skipping {self.pp_key()} since the real and expected durations mismatch')
             return [], information
@@ -556,7 +555,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         mp4_ass_warn = False
 
         for lang, sub_info in subtitles.items():
-            if not os.path.exists(information.get('filepath', '')):
+            if not os.path.exists(sub_info.get('filepath', '')):
                 self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
                 continue
             sub_ext = sub_info['ext']
@@ -733,7 +732,8 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         for (i, fmt) in enumerate(info['requested_formats']):
             if fmt.get('acodec') != 'none':
                 args.extend(['-map', f'{i}:a:0'])
-                if self.get_audio_codec(fmt['filepath']) == 'aac':
+                aac_fixup = fmt['protocol'].startswith('m3u8') and self.get_audio_codec(fmt['filepath']) == 'aac'
+                if aac_fixup:
                     args.extend([f'-bsf:a:{audio_streams}', 'aac_adtstoasc'])
                 audio_streams += 1
             if fmt.get('vcodec') != 'none':
@@ -846,6 +846,9 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
         self.to_screen('Converting subtitles')
         sub_filenames = []
         for lang, sub in subs.items():
+            if not os.path.exists(sub.get('filepath', '')):
+                self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
+                continue
             ext = sub['ext']
             if ext == new_ext:
                 self.to_screen('Subtitle file for %s is already in the requested format' % new_ext)

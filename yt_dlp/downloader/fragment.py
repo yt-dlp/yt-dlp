@@ -356,7 +356,8 @@ class FragmentFD(FileDownloader):
             # not what it decrypts to.
             if self.params.get('test', False):
                 return frag_content
-            return aes_cbc_decrypt_bytes(frag_content, decrypt_info['KEY'], iv)
+            decrypted_data = aes_cbc_decrypt_bytes(frag_content, decrypt_info['KEY'], iv)
+            return decrypted_data[:-decrypted_data[-1]]
 
         return decrypt_fragment
 
@@ -393,9 +394,7 @@ class FragmentFD(FileDownloader):
                 result = result and job.result()
             finally:
                 tpe.shutdown(wait=True)
-
-        self._finish_multiline_status()
-        return True
+        return result
 
     def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, tpe=None, ignore_lethal_error=False):
         fragment_retries = self.params.get('fragment_retries', 0)

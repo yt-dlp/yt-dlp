@@ -292,8 +292,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     'name': SponsorBlockPP.CATEGORIES[category],
                     'category_names': [SponsorBlockPP.CATEGORIES[c] for c in cats]
                 })
-                outtmpl, tmpl_dict = self._downloader.prepare_outtmpl(self._sponsorblock_chapter_title, c)
-                c['title'] = self._downloader.escape_outtmpl(outtmpl) % tmpl_dict
+                c['title'] = self._downloader.evaluate_outtmpl(self._sponsorblock_chapter_title, c)
                 # Merge identically named sponsors.
                 if (new_chapters and 'categories' in new_chapters[-1]
                         and new_chapters[-1]['title'] == c['title']):

@@ -334,30 +334,14 @@ class YahooSearchIE(SearchInfoExtractor):
     IE_NAME = 'screen.yahoo:search'
     _SEARCH_KEY = 'yvsearch'
 
-    def _get_n_results(self, query, n):
-        """Get a specified number of results for a query"""
-        entries = []
+    def _search_results(self, query):
         for pagenum in itertools.count(0):
             result_url = 'http://video.search.yahoo.com/search/?p=%s&fr=screen&o=js&gs=0&b=%d' % (compat_urllib_parse.quote_plus(query), pagenum * 30)
             info = self._download_json(result_url, query,
                                        note='Downloading results page ' + str(pagenum + 1))
-            m = info['m']
-            results = info['results']
-
-            for (i, r) in enumerate(results):
-                if (pagenum * 30) + i >= n:
-                    break
-                mobj = re.search(r'(?P<url>screen\.yahoo\.com/.*?-\d*?\.html)"', r)
-                e = self.url_result('http://' + mobj.group('url'), 'Yahoo')
-                entries.append(e)
-            if (pagenum * 30 + i >= n) or (m['last'] >= (m['total'] - 1)):
+            yield from (self.url_result(result['rurl']) for result in info['results'])
+            if info['m']['last'] >= info['m']['total'] - 1:
                 break
-
-        return {
-            '_type': 'playlist',
-            'id': query,
-            'entries': entries,
-        }
 
 
 class YahooGyaOPlayerIE(InfoExtractor):
