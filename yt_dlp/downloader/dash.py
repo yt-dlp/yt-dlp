@@ -82,6 +82,7 @@ class DashSegmentsFD(FragmentFD):
     @staticmethod
     def _accept_live():
         return False
+
     @staticmethod
     def _ignore_lethal_error():
         return False
