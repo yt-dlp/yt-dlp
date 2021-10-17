@@ -298,7 +298,9 @@ from .crackle import CrackleIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crunchyroll import (
     CrunchyrollIE,
-    CrunchyrollShowPlaylistIE
+    CrunchyrollShowPlaylistIE,
+    CrunchyrollBetaIE,
+    CrunchyrollBetaShowIE,
 )
 from .cspan import CSpanIE
 from .ctsnews import CtsNewsIE
