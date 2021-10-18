@@ -20,11 +20,12 @@ DEFAULT_SPONSORBLOCK_CHAPTER_TITLE = '[SponsorBlock]: %(category_names)l'
 
 
 class ModifyChaptersPP(FFmpegPostProcessor):
-    def __init__(self, downloader, remove_chapters_patterns=None, remove_sponsor_segments=None,
-                 sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, force_keyframes=False):
+    def __init__(self, downloader, remove_chapters_patterns=None, remove_sponsor_segments=None, remove_ranges=None,
+                 *, sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, force_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._remove_chapters_patterns = set(remove_chapters_patterns or [])
         self._remove_sponsor_segments = set(remove_sponsor_segments or [])
+        self._ranges_to_remove = set(remove_ranges or [])
         self._sponsorblock_chapter_title = sponsorblock_chapter_title
         self._force_keyframes = force_keyframes
 
@@ -96,6 +97,14 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     warn_no_chapter_to_remove = False
             if warn_no_chapter_to_remove:
                 self.to_screen('There are no matching SponsorBlock chapters')
+
+        sponsor_chapters.extend({
+            'start_time': start,
+            'end_time': end,
+            'category': 'manually_removed',
+            '_categories': [('manually_removed', start, end)],
+            'remove': True,
+        } for start, end in self._ranges_to_remove)
 
         return chapters, sponsor_chapters
 

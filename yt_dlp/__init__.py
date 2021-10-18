@@ -31,6 +31,7 @@ from .utils import (
     expand_path,
     match_filter_func,
     MaxDownloadsReached,
+    parse_duration,
     preferredencoding,
     read_batch_urls,
     RejectedVideoReached,
@@ -490,8 +491,14 @@ def _real_main(argv=None):
     if opts.allsubtitles and not opts.writeautomaticsub:
         opts.writesubtitles = True
     # ModifyChapters must run before FFmpegMetadataPP
-    remove_chapters_patterns = []
+    remove_chapters_patterns, remove_ranges = [], []
     for regex in opts.remove_chapters:
+        if regex.startswith('*'):
+            dur = list(map(parse_duration, regex[1:].split('-')))
+            if len(dur) == 2 and all(t is not None for t in dur):
+                remove_ranges.append(tuple(dur))
+                continue
+            parser.error(f'invalid --remove-chapters time range {regex!r}. Must be of the form ?start-end')
         try:
             remove_chapters_patterns.append(re.compile(regex))
         except re.error as err:
@@ -501,6 +508,7 @@ def _real_main(argv=None):
             'key': 'ModifyChapters',
             'remove_chapters_patterns': remove_chapters_patterns,
             'remove_sponsor_segments': opts.sponsorblock_remove,
+            'remove_ranges': remove_ranges,
             'sponsorblock_chapter_title': opts.sponsorblock_chapter_title,
             'force_keyframes': opts.force_keyframes_at_cuts
         })

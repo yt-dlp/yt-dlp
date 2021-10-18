@@ -847,7 +847,11 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --no-split-chapters              Do not split video based on chapters
                                      (default)
     --remove-chapters REGEX          Remove chapters whose title matches the
-                                     given regular expression. This option can
+                                     given regular expression. Time ranges
+                                     prefixed by a "*" can also be used in place
+                                     of chapters to remove the specified range.
+                                     Eg: --remove-chapters "*10:15-15:00"
+                                     --remove-chapters "intro". This option can
                                      be used multiple times
     --no-remove-chapters             Do not remove any chapters from the file
                                      (default)

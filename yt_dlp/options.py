@@ -1378,7 +1378,11 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--remove-chapters',
         metavar='REGEX', dest='remove_chapters', action='append',
-        help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
+        help=(
+            'Remove chapters whose title matches the given regular expression. '
+            'Time ranges prefixed by a "*" can also be used in place of chapters to remove the specified range. '
+            'Eg: --remove-chapters "*10:15-15:00" --remove-chapters "intro". '
+            'This option can be used multiple times'))
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
         help='Do not remove any chapters from the file (default)')
