@@ -189,7 +189,7 @@ class InstagramIE(InfoExtractor):
 
         webpage, urlh = self._download_webpage_handle(url, video_id)
         if 'www.instagram.com/accounts/login' in urlh.geturl().rstrip('/'):
-            self.raise_login_required('You need to log in to access this content', method='cookies')
+            self.raise_login_required('You need to log in to access this content', method='any')
 
         (media, video_url, description, thumbnail, timestamp, uploader,
          uploader_id, like_count, comment_count, comments, height,
