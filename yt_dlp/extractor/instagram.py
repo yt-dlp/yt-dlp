@@ -164,9 +164,6 @@ class InstagramIE(InfoExtractor):
             'X-Requested-With': 'XMLHttpRequest',
             'X-CSRFToken': shared_data['config']['csrf_token'],
             'X-Instagram-AJAX': shared_data['rollout_hash'],
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
             'Referer': 'https://www.instagram.com/',
         }, data=urlencode_postdata({
             'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
