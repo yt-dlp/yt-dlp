@@ -2095,25 +2095,14 @@ class YoutubeDL(object):
                 t.get('url')))
 
             def thumbnail_tester():
-                if self.params.get('check_formats'):
-                    test_all = True
-                    to_screen = lambda msg: self.to_screen(f'[info] {msg}')
-                else:
-                    test_all = False
-                    to_screen = self.write_debug
-
                 def test_thumbnail(t):
-                    if not test_all and not t.get('_test_url'):
-                        return True
-                    to_screen('Testing thumbnail %s' % t['id'])
+                    self.to_screen(f'[info] Testing thumbnail {t["id"]}')
                     try:
                         self.urlopen(HEADRequest(t['url']))
                     except network_exceptions as err:
-                        to_screen('Unable to connect to thumbnail %s URL "%s" - %s. Skipping...' % (
-                            t['id'], t['url'], error_to_compat_str(err)))
+                        self.to_screen(f'[info] Unable to connect to thumbnail {t["id"]} URL {t["url"]!r} - {err}. Skipping...')
                         return False
                     return True
-
                 return test_thumbnail
 
             for i, t in enumerate(thumbnails):
@@ -2123,7 +2112,7 @@ class YoutubeDL(object):
                     t['resolution'] = '%dx%d' % (t['width'], t['height'])
                 t['url'] = sanitize_url(t['url'])
 
-            if self.params.get('check_formats') is not False:
+            if self.params.get('check_formats'):
                 info_dict['thumbnails'] = LazyList(filter(thumbnail_tester(), thumbnails[::-1])).reverse()
             else:
                 info_dict['thumbnails'] = thumbnails

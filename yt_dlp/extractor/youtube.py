@@ -2699,21 +2699,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # The best resolution thumbnails sometimes does not appear in the webpage
         # See: https://github.com/ytdl-org/youtube-dl/issues/29049, https://github.com/yt-dlp/yt-dlp/issues/340
         # List of possible thumbnails - Ref: <https://stackoverflow.com/a/20542029>
-        hq_thumbnail_names = ['maxresdefault', 'hq720', 'sddefault', 'sd1', 'sd2', 'sd3']
-        # TODO: Test them also? - For some videos, even these don't exist
-        guaranteed_thumbnail_names = [
+        thumbnail_names = [
+            'maxresdefault', 'hq720', 'sddefault', 'sd1', 'sd2', 'sd3',
             'hqdefault', 'hq1', 'hq2', 'hq3', '0',
             'mqdefault', 'mq1', 'mq2', 'mq3',
             'default', '1', '2', '3'
         ]
-        thumbnail_names = hq_thumbnail_names + guaranteed_thumbnail_names
         n_thumbnail_names = len(thumbnail_names)
 
         thumbnails.extend({
             'url': 'https://i.ytimg.com/vi{webp}/{video_id}/{name}{live}.{ext}'.format(
                 video_id=video_id, name=name, ext=ext,
                 webp='_webp' if ext == 'webp' else '', live='_live' if is_live else ''),
-            '_test_url': name in hq_thumbnail_names,
         } for name in thumbnail_names for ext in ('webp', 'jpg'))
         for thumb in thumbnails:
             i = next((i for i, t in enumerate(thumbnail_names) if f'/{video_id}/{t}' in thumb['url']), n_thumbnail_names)
