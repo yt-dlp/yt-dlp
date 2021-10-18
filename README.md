@@ -465,6 +465,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      stdin), one URL per line. Lines starting
                                      with '#', ';' or ']' are considered as
                                      comments and ignored
+    --no-batch-file                  Do not read URLs from batch file (default)
     -P, --paths [TYPES:]PATH         The paths where the files should be
                                      downloaded. Specify the type of file and
                                      the path separated by a colon ":". All the
