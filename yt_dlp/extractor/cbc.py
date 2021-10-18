@@ -248,13 +248,8 @@ class CBCGemIE(InfoExtractor):
         'skip': 'Geo-restricted to Canada',
     }]
 
-    _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/assets/'
     _GEO_COUNTRIES = ['CA']
-    _LOGIN_URL = 'https://api.loginradius.com/identity/v2/auth/login'
-    _TOKEN_URL = 'https://cloud-api.loginradius.com/sso/jwt/api/token'
     _TOKEN_API_KEY = '3f4beddd-2061-49b0-ae80-6f1f2ed65b37'
-    _CBC_ACCESS_TOKEN_URL = 'https://services.radio-canada.ca/ott/cbc-api/v2/token'
-    _CLAIMS_TOKEN_URL = 'https://services.radio-canada.ca/ott/cbc-api/v2/profile'
     _NETRC_MACHINE = 'cbcgem'
     _claims_token = None
 
@@ -265,7 +260,8 @@ class CBCGemIE(InfoExtractor):
         }).encode()
         headers = {'content-type': 'application/json'}
         query = {'apikey': self._TOKEN_API_KEY}
-        resp = self._download_json(self._LOGIN_URL, None, data=data, headers=headers, query=query)
+        resp = self._download_json('https://api.loginradius.com/identity/v2/auth/login',
+            None, data=data, headers=headers, query=query)
         access_token = resp['access_token']
 
         query = {
@@ -273,16 +269,19 @@ class CBCGemIE(InfoExtractor):
             'apikey': self._TOKEN_API_KEY,
             'jwtapp': 'jwt',
         }
-        resp = self._download_json(self._TOKEN_URL, None, headers=headers, query=query)
+        resp = self._download_json('https://cloud-api.loginradius.com/sso/jwt/api/token',
+            None, headers=headers, query=query)
         sig = resp['signature']
 
         data = json.dumps({'jwt': sig}).encode()
         headers = {'content-type': 'application/json', 'ott-device-type': 'web'}
-        resp = self._download_json(self._CBC_ACCESS_TOKEN_URL, None, data=data, headers=headers)
+        resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/token',
+            None, data=data, headers=headers)
         cbc_access_token = resp['accessToken']
 
         headers = {'content-type': 'application/json', 'ott-device-type': 'web', 'ott-access-token': cbc_access_token}
-        resp = self._download_json(self._CLAIMS_TOKEN_URL, None, headers=headers)
+        resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/profile',
+            None, headers=headers)
         return resp['claimsToken']
 
     def _get_claims_token_expiry(self):
@@ -316,7 +315,7 @@ class CBCGemIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._download_json(self._API_BASE + video_id, video_id)
+        video_info = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/assets/' + video_id, video_id)
 
         email, password = self._get_login_info()
         if email and password:
@@ -330,7 +329,6 @@ class CBCGemIE(InfoExtractor):
         if m3u8_info.get('errorCode') == 1:
             self.raise_geo_restricted(countries=['CA'])
         elif m3u8_info.get('errorCode') == 35:
-            # Means user needs to be logged in
             self.raise_login_required(method='password')
         elif m3u8_info.get('errorCode') != 0:
             raise ExtractorError(f'{self.IE_NAME} said: {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}')
