@@ -131,7 +131,7 @@ class TagesschauIE(InfoExtractor):
                     continue
                 entries.append({
                     'id': '%s-%d' % (display_id, num),
-                    'title': '%s' % try_get(video, lambda x: x['mc']['_title']),
+                    'title': try_get(video, lambda x: x['mc']['_title']),
                     'duration': int_or_none(try_get(video, lambda x: x['mc']['_duration'])),
                     'formats': formats
                 })
