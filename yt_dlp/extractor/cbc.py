@@ -261,7 +261,7 @@ class CBCGemIE(InfoExtractor):
         headers = {'content-type': 'application/json'}
         query = {'apikey': self._TOKEN_API_KEY}
         resp = self._download_json('https://api.loginradius.com/identity/v2/auth/login',
-            None, data=data, headers=headers, query=query)
+                                   None, data=data, headers=headers, query=query)
         access_token = resp['access_token']
 
         query = {
@@ -270,18 +270,18 @@ class CBCGemIE(InfoExtractor):
             'jwtapp': 'jwt',
         }
         resp = self._download_json('https://cloud-api.loginradius.com/sso/jwt/api/token',
-            None, headers=headers, query=query)
+                                   None, headers=headers, query=query)
         sig = resp['signature']
 
         data = json.dumps({'jwt': sig}).encode()
         headers = {'content-type': 'application/json', 'ott-device-type': 'web'}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/token',
-            None, data=data, headers=headers)
+                                   None, data=data, headers=headers)
         cbc_access_token = resp['accessToken']
 
         headers = {'content-type': 'application/json', 'ott-device-type': 'web', 'ott-access-token': cbc_access_token}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/profile',
-            None, headers=headers)
+                                   None, headers=headers)
         return resp['claimsToken']
 
     def _get_claims_token_expiry(self):
