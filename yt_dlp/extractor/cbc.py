@@ -377,7 +377,7 @@ class CBCGemPlaylistIE(InfoExtractor):
 
 class CBCGemLiveIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:live'
-    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>[0-9]*)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>\d+)'
     _TEST = {
         'url': 'https://gem.cbc.ca/live/920604739687',
         'info_dict': {
