@@ -65,6 +65,13 @@ class TagesschauIE(InfoExtractor):
         },
         'playlist_count': 2,
     }, {
+        'url': 'https://www.tagesschau.de/multimedia/audio/audio-29417~player.html',
+        'info_dict': {
+            'id': 'audio-29417-1',
+            'ext': 'mp3',
+            'title': 'BVerfG weist Befangenheitsantrag zurück',
+        },
+    }, {
         'url': 'http://www.tagesschau.de/multimedia/sendung/tsg-3771.html',
         'only_matching': True,
     }, {
