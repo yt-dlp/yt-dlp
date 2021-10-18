@@ -3347,7 +3347,7 @@ class YoutubeDL(object):
 
     def _setup_opener(self):
         timeout_val = self.params.get('socket_timeout')
-        self._socket_timeout = 600 if timeout_val is None else float(timeout_val)
+        self._socket_timeout = 20 if timeout_val is None else float(timeout_val)
 
         opts_cookiesfrombrowser = self.params.get('cookiesfrombrowser')
         opts_cookiefile = self.params.get('cookiefile')
