@@ -527,6 +527,7 @@ from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
+from .gronkh import GronkhIE
 from .groupon import GrouponIE
 from .hbo import HBOIE
 from .hearthisat import HearThisAtIE
