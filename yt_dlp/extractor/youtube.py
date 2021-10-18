@@ -2314,6 +2314,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             continuation_token = self._generate_comment_continuation(video_id)
             continuation = self._build_api_continuation_query(continuation_token, None)
 
+        message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
+        if message and not parent:
+            self.report_warning(message, video_id=video_id)
+
         visitor_data = None
         is_first_continuation = parent is None
 
@@ -2416,8 +2420,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _get_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
         def _real_comment_extract(contents):
-            yield from self._comment_entries(
-                traverse_obj(contents, (..., 'itemSectionRenderer'), get_all=False), ytcfg, video_id)
+            renderer = next((
+                item for item in traverse_obj(contents, (..., 'itemSectionRenderer'), default={})
+                if item.get('sectionIdentifier') == 'comment-item-section'), None)
+            yield from self._comment_entries(renderer, ytcfg, video_id)
 
         max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0])
         # Force English regardless of account setting to prevent parsing issues
