@@ -2653,7 +2653,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'source', 'codec:vp9.2', 'lang'))
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang'))
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:

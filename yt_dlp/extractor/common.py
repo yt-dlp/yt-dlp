@@ -147,6 +147,8 @@ class InfoExtractor(object):
                     * width      Width of the video, if known
                     * height     Height of the video, if known
                     * resolution Textual description of width and height
+                    * dynamic_range The dynamic range of the video. One of:
+                                 "SDR" (None), "HDR10", "HDR10+, "HDR12", "HLG, "DV"
                     * tbr        Average bitrate of audio and video in KBit/s
                     * abr        Average audio bitrate in KBit/s
                     * acodec     Name of the audio codec in use
@@ -1507,7 +1509,7 @@ class InfoExtractor(object):
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
         default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-                   'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
+                   'res', 'fps', 'hdr:12', 'codec:vp9.2', 'size', 'br', 'asr',
                    'proto', 'ext', 'hasaud', 'source', 'format_id')  # These must not be aliases
         ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
                         'height', 'width', 'proto', 'vext', 'abr', 'aext',
@@ -1518,6 +1520,8 @@ class InfoExtractor(object):
                        'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
                        'order': ['opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e?a?c-?3', 'dts', '', None, 'none']},
+            'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
+                    'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
                       'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.+', '.*dash', 'ws|websocket', '', 'mms|rtsp', 'none', 'f4']},
             'vext': {'type': 'ordered', 'field': 'video_ext',

@@ -848,30 +848,52 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_codecs('avc1.77.30, mp4a.40.2'), {
             'vcodec': 'avc1.77.30',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.2'), {
             'vcodec': 'none',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.5,avc1.42001e'), {
             'vcodec': 'avc1.42001e',
             'acodec': 'mp4a.40.5',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('avc3.640028'), {
             'vcodec': 'avc3.640028',
             'acodec': 'none',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs(', h264,,newcodec,aac'), {
             'vcodec': 'h264',
             'acodec': 'aac',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('av01.0.05M.08'), {
             'vcodec': 'av01.0.05M.08',
             'acodec': 'none',
+            'dynamic_range': None,
+        })
+        self.assertEqual(parse_codecs('vp9.2'), {
+            'vcodec': 'vp9.2',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('av01.0.12M.10.0.110.09.16.09.0'), {
+            'vcodec': 'av01.0.12M.10',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('dvhe'), {
+            'vcodec': 'dvhe',
+            'acodec': 'none',
+            'dynamic_range': 'DV',
         })
         self.assertEqual(parse_codecs('theora, vorbis'), {
             'vcodec': 'theora',
             'acodec': 'vorbis',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('unknownvcodec, unknownacodec'), {
             'vcodec': 'unknownvcodec',

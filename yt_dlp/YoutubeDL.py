@@ -2291,6 +2291,8 @@ class YoutubeDL(object):
                 format['protocol'] = determine_protocol(format)
             if format.get('resolution') is None:
                 format['resolution'] = self.format_resolution(format, default=None)
+            if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
+                format['dynamic_range'] = 'SDR'
             # Add HTTP headers, so that external programs can use them from the
             # json output
             full_format_info = info_dict.copy()
@@ -3176,6 +3178,7 @@ class YoutubeDL(object):
                     format_field(f, 'ext'),
                     self.format_resolution(f),
                     format_field(f, 'fps', '%d'),
+                    format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                     '|',
                     format_field(f, 'filesize', ' %s', func=format_bytes) + format_field(f, 'filesize_approx', '~%s', func=format_bytes),
                     format_field(f, 'tbr', '%4dk'),
@@ -3193,7 +3196,7 @@ class YoutubeDL(object):
                         format_field(f, 'container', ignore=(None, f.get('ext'))),
                     ))),
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
-            header_line = ['ID', 'EXT', 'RESOLUTION', 'FPS', '|', ' FILESIZE', '  TBR', 'PROTO',
+            header_line = ['ID', 'EXT', 'RESOLUTION', 'FPS', 'HDR', '|', ' FILESIZE', '  TBR', 'PROTO',
                            '|', 'VCODEC', '  VBR', 'ACODEC', ' ABR', ' ASR', 'MORE INFO']
         else:
             table = [
