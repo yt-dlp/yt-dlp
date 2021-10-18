@@ -403,23 +403,14 @@ class CBCGemLiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        live_info = self._download_json(self._API_URLS[0], video_id)['entries']
-        video_info = None
-        for stream in live_info:
-            if stream.get('guid') == video_id:
-                video_info = stream
-
-        if video_info is None:
-            # Try again using other URL
-            live_info = self._download_json(self._API_URLS[1], video_id)['entries']
-            for stream in live_info:
-                if stream.get('guid') == video_id:
-                    video_info = stream
-
-        if video_info is None:
-            raise ExtractorError(
-                'Couldn\'t find video metadata, maybe this livestream is now offline',
-                expected=True)
+        for api_url in self._API_URLS:
+            video_info = next((
+                stream for stream in self._download_json(api_url, video_id)['entries']
+                if stream.get('guid') == video_id), None)
+            if video_info:
+                break
+        else:
+            raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
 
         return {
             '_type': 'url_transparent',
