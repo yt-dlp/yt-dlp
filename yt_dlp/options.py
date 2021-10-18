@@ -973,8 +973,8 @@ def parseOpts(overrideArguments=None):
              "Lines starting with '#', ';' or ']' are considered as comments and ignored")
     filesystem.add_option(
         '--no-batch-file',
-        dest='batchfile', action="store_const", const=None,
-        help="Do not read URLs from batch file (default)")
+        dest='batchfile', action='store_const', const=None,
+        help='Do not read URLs from batch file (default)')
     filesystem.add_option(
         '-P', '--paths',
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
