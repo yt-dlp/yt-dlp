@@ -70,6 +70,7 @@ from .utils import (
     format_field,
     formatSeconds,
     GeoRestrictedError,
+    get_domain,
     HEADRequest,
     int_or_none,
     iri_to_uri,
@@ -1424,6 +1425,7 @@ class YoutubeDL(object):
                 'webpage_url': url,
                 'original_url': url,
                 'webpage_url_basename': url_basename(url),
+                'webpage_url_domain': get_domain(url),
             })
         if ie is not None:
             self.add_extra_info(ie_result, {
@@ -1548,6 +1550,7 @@ class YoutubeDL(object):
                     'extractor': ie_result['extractor'],
                     'webpage_url': ie_result['webpage_url'],
                     'webpage_url_basename': url_basename(ie_result['webpage_url']),
+                    'webpage_url_domain': get_domain(ie_result['webpage_url']),
                     'extractor_key': ie_result['extractor_key'],
                 })
                 return r
@@ -1709,6 +1712,7 @@ class YoutubeDL(object):
                 'extractor': ie_result['extractor'],
                 'webpage_url': ie_result['webpage_url'],
                 'webpage_url_basename': url_basename(ie_result['webpage_url']),
+                'webpage_url_domain': get_domain(ie_result['webpage_url']),
                 'extractor_key': ie_result['extractor_key'],
             }
 
