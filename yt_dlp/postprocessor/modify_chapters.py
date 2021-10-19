@@ -1,7 +1,6 @@
 import copy
 import heapq
 import os
-from copy import deepcopy
 
 from .common import PostProcessor
 from .ffmpeg import (
@@ -31,10 +30,10 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        # sponsorblock_chapters must be preserved intact
-        # when downloading multiple formats of the same video.
+        # Chapters must be preserved intact when downloading multiple formats of the same video.
         chapters, sponsor_chapters = self._mark_chapters_to_remove(
-            info.get('chapters') or [], deepcopy(info.get('sponsorblock_chapters')) or [])
+            copy.deepcopy(info.get('chapters')) or [],
+            copy.deepcopy(info.get('sponsorblock_chapters')) or [])
         if not chapters and not sponsor_chapters:
             return [], info
 
