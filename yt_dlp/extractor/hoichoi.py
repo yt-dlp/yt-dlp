@@ -112,6 +112,8 @@ class HoiChoiIE(InfoExtractor):
         cookies = self._get_cookies(url)
         if cookies and cookies.get('token'):
             token = self._search_regex(r'22authorizationToken\%22:\%22([^\%]+)\%22', cookies['token'].value, 'token')
+        if not token:
+            self.raise_login_required(method='cookies')
         data_json = self._download_json(f'https://prod-api.viewlift.com/entitlement/video/status?id={id}', display_id,
                                         headers={'authorization': token})
         if not data_json['success']:
