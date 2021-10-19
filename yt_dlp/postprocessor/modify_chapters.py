@@ -31,8 +31,10 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        # Chapters must be preserved intact when downloading multiple formats of the same video.
         chapters, sponsor_chapters = self._mark_chapters_to_remove(
-            info.get('chapters') or [], info.get('sponsorblock_chapters') or [])
+            copy.deepcopy(info.get('chapters')) or [],
+            copy.deepcopy(info.get('sponsorblock_chapters')) or [])
         if not chapters and not sponsor_chapters:
             return [], info
 
@@ -126,7 +128,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         cuts = []
 
         def append_cut(c):
-            assert 'remove' in c
+            assert 'remove' in c, 'Not a cut is appended to cuts'
             last_to_cut = cuts[-1] if cuts else None
             if last_to_cut and last_to_cut['end_time'] >= c['start_time']:
                 last_to_cut['end_time'] = max(last_to_cut['end_time'], c['end_time'])
@@ -154,7 +156,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         new_chapters = []
 
         def append_chapter(c):
-            assert 'remove' not in c
+            assert 'remove' not in c, 'Cut is appended to chapters'
             length = c['end_time'] - c['start_time'] - excess_duration(c)
             # Chapter is completely covered by cuts or sponsors.
             if length <= 0:
@@ -237,7 +239,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     heapq.heappush(chapters, (c['start_time'], i, c))
             # (normal, sponsor) and (sponsor, sponsor)
             else:
-                assert '_categories' in c
+                assert '_categories' in c, 'Normal chapters overlap'
                 cur_chapter['_was_cut'] = True
                 c['_was_cut'] = True
                 # Push the part after the sponsor to PQ.
