@@ -11,7 +11,7 @@ from ..utils import (
 class HoiChoiIE(InfoExtractor):
     _VALID_URL = r'(?:https?://)(?:www\.)?hoichoi\.tv(?P<path>(?:/[a-z]{2})?/(?:films|movies|webseries|videos|shows)/(?:title/)?(?P<id>[^/#$?&]+))'
 
-    _TESTS = [{
+    _TESTS = [{  # Free film with langauge code
         'url': 'https://www.hoichoi.tv/bn/films/title/shuyopoka',
         'info_dict': {
             'id': '7a7a9d33-1f4c-4771-9173-ee4fb6dbf196',
@@ -24,7 +24,7 @@ class HoiChoiIE(InfoExtractor):
         },
         'params': {'skip_download': True},
         'skip': 'Cookies (not necessarily logged in) are needed'
-    }, {
+    }, {  # Free film
         'url': 'https://www.hoichoi.tv/films/title/dadu-no1',
         'info_dict': {
             'id': '0000015b-b009-d126-a1db-b81ff3780000',
@@ -37,7 +37,7 @@ class HoiChoiIE(InfoExtractor):
         },
         'params': {'skip_download': True},
         'skip': 'Cookies (not necessarily logged in) are needed'
-    }, {
+    }, {  #Free episode
         'url': 'https://www.hoichoi.tv/webseries/case-jaundice-s01-e01',
         'info_dict': {
             'id': 'f779e07c-30c8-459c-8612-5a834ab5e5ba',
@@ -50,7 +50,7 @@ class HoiChoiIE(InfoExtractor):
         },
         'params': {'skip_download': True},
         'skip': 'Cookies (not necessarily logged in) are needed'
-    }, {
+    }, {  # Free video
         'url': 'https://www.hoichoi.tv/videos/1549072415320-six-episode-02-hindi',
         'info_dict': {
             'id': 'b41fa1ce-aca6-47b6-b208-283ff0a2de30',
@@ -63,7 +63,7 @@ class HoiChoiIE(InfoExtractor):
         },
         'params': {'skip_download': True},
         'skip': 'Cookies (not necessarily logged in) are needed'
-    }, {
+    }, {  # Free episode
         'url': 'https://www.hoichoi.tv/shows/watch-asian-paints-moner-thikana-online-season-1-episode-1',
         'info_dict': {
             'id': '1f45d185-8500-455c-b88d-13252307c3eb',
@@ -76,13 +76,19 @@ class HoiChoiIE(InfoExtractor):
         },
         'params': {'skip_download': True},
         'skip': 'Cookies (not necessarily logged in) are needed'
-    }, {
+    }, {  # Free series
         'url': 'https://www.hoichoi.tv/shows/watch-moner-thikana-bengali-web-series-online',
         'playlist_mincount': 5,
         'info_dict': {
             'id': 'watch-moner-thikana-bengali-web-series-online',
         },
-    }, {  # Couldn't find free url for this pattern
+    }, {  # Premium series
+        'url': 'https://www.hoichoi.tv/shows/watch-byomkesh-bengali-web-series-online',
+        'playlist_mincount': 14,
+        'info_dict': {
+            'id': 'watch-byomkesh-bengali-web-series-online',
+        },
+    }, {  # Premium movie
         'url': 'https://www.hoichoi.tv/movies/detective-2020',
         'only_matching': True
     }]
