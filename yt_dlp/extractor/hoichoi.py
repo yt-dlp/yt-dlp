@@ -37,7 +37,7 @@ class HoiChoiIE(InfoExtractor):
         },
         'params': {'skip_download': True},
         'skip': 'Cookies (not necessarily logged in) are needed'
-    }, {  #Free episode
+    }, {  # Free episode
         'url': 'https://www.hoichoi.tv/webseries/case-jaundice-s01-e01',
         'info_dict': {
             'id': 'f779e07c-30c8-459c-8612-5a834ab5e5ba',
