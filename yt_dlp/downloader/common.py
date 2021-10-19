@@ -12,6 +12,7 @@ from ..utils import (
     format_bytes,
     shell_quote,
     timeconvert,
+    timetuple_from_msec,
 )
 from ..minicurses import (
     MultilineLogger,
@@ -75,14 +76,12 @@ class FileDownloader(object):
 
     @staticmethod
     def format_seconds(seconds):
-        (mins, secs) = divmod(seconds, 60)
-        (hours, mins) = divmod(mins, 60)
-        if hours > 99:
+        time = timetuple_from_msec(seconds * 1000)
+        if time.hours > 99:
             return '--:--:--'
-        if hours == 0:
-            return '%02d:%02d' % (mins, secs)
-        else:
-            return '%02d:%02d:%02d' % (hours, mins, secs)
+        if not time.hours:
+            return '%02d:%02d' % time[1:-1]
+        return '%02d:%02d:%02d' % time[:-1]
 
     @staticmethod
     def calc_percent(byte_counter, data_len):

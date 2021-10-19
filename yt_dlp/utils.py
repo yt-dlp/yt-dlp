@@ -2342,14 +2342,25 @@ def decodeOption(optval):
     return optval
 
 
+_timetuple = collections.namedtuple('Time', ('hours', 'minutes', 'seconds', 'milliseconds'))
+
+
+def timetuple_from_msec(msec):
+    secs, msec = divmod(msec, 1000)
+    mins, secs = divmod(secs, 60)
+    hrs, mins = divmod(mins, 60)
+    return _timetuple(hrs, mins, secs, msec)
+
+
 def formatSeconds(secs, delim=':', msec=False):
-    if secs > 3600:
-        ret = '%d%s%02d%s%02d' % (secs // 3600, delim, (secs % 3600) // 60, delim, secs % 60)
-    elif secs > 60:
-        ret = '%d%s%02d' % (secs // 60, delim, secs % 60)
+    time = timetuple_from_msec(secs * 1000)
+    if time.hours:
+        ret = '%d%s%02d%s%02d' % (time.hours, delim, time.minutes, delim, time.seconds)
+    elif time.minutes:
+        ret = '%d%s%02d' % (time.minutes, delim, time.seconds)
     else:
-        ret = '%d' % secs
-    return '%s.%03d' % (ret, secs % 1) if msec else ret
+        ret = '%d' % time.seconds
+    return '%s.%03d' % (ret, time.milliseconds) if msec else ret
 
 
 def _ssl_load_windows_store_certs(ssl_context, storename):
@@ -4855,7 +4866,12 @@ def parse_dfxp_time_expr(time_expr):
 
 
 def srt_subtitles_timecode(seconds):
-    return '%02d:%02d:%02d,%03d' % (seconds / 3600, (seconds % 3600) / 60, seconds % 60, (seconds % 1) * 1000)
+    return '%02d:%02d:%02d,%03d' % timetuple_from_msec(seconds * 1000)
+
+
+def ass_subtitles_timecode(seconds):
+    time = timetuple_from_msec(seconds * 1000)
+    return '%01d:%02d:%02d.%02d' % (*time[:-1], time.milliseconds / 10)
 
 
 def dfxp2srt(dfxp_data):

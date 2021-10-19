@@ -1390,21 +1390,21 @@ The first line
   </body>
 </tt>'''.encode('utf-8')
         srt_data = '''1
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <font color="white" face="sansSerif" size="16">default style<font color="red">custom style</font></font>
 
 2
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <b><font color="cyan" face="sansSerif" size="16"><font color="lime">part 1
 </font>part 2</font></b>
 
 3
-00:00:05,839 --> 00:00:09,560
+00:00:05,840 --> 00:00:09,560
 <u><font color="lime">line 3
 part 3</font></u>
 
 4
-00:00:09,560 --> 00:00:12,359
+00:00:09,560 --> 00:00:12,360
 <i><u><font color="yellow"><font color="lime">inner
  </font>style</font></u></i>
 
