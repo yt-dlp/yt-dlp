@@ -17,59 +17,50 @@ class TagesschauIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'http://www.tagesschau.de/multimedia/video/video-102143.html',
-        'md5': 'f7c27a0eff3bfe8c7727e65f8fe1b1e6',
+        'md5': '7a7287612fa881a1ae1d087df45c2fd6',
         'info_dict': {
-            'id': 'video-102143',
+            'id': 'video-102143-1',
             'ext': 'mp4',
             'title': 'Regierungsumbildung in Athen: Neue Minister in Griechenland vereidigt',
-            'description': '18.07.2015 20:10 Uhr',
-            'thumbnail': r're:^https?:.*\.jpg$',
         },
     }, {
         'url': 'http://www.tagesschau.de/multimedia/sendung/ts-5727.html',
         'md5': '3c54c1f6243d279b706bde660ceec633',
         'info_dict': {
-            'id': 'ts-5727',
+            'id': 'ts-5727-1',
             'ext': 'mp4',
-            'title': 'Sendung: tagesschau \t04.12.2014 20:00 Uhr',
-            'description': 'md5:695c01bfd98b7e313c501386327aea59',
-            'thumbnail': r're:^https?:.*\.jpg$',
+            'title': 'Ganze Sendung',
         },
     }, {
         # exclusive audio
         'url': 'http://www.tagesschau.de/multimedia/audio/audio-29417.html',
-        'md5': '76e6eec6ebd40740671cf0a2c88617e5',
+        'md5': '4cf22023c285f35e99c24d290ba58cc9',
         'info_dict': {
-            'id': 'audio-29417',
+            'id': 'audio-29417-1',
             'ext': 'mp3',
-            'title': 'Trabi - Bye, bye Rennpappe',
-            'description': 'md5:8687dda862cbbe2cfb2df09b56341317',
-            'thumbnail': r're:^https?:.*\.jpg$',
+            'title': 'Brasilianischer Präsident Bolsonaro unter Druck: Corona-Bericht wird vorgestellt',
         },
     }, {
-        # audio in article
         'url': 'http://www.tagesschau.de/inland/bnd-303.html',
-        'md5': 'e0916c623e85fc1d2b26b78f299d3958',
+        'md5': '12cfb212d9325b5ba0d52b625f1aa61c',
         'info_dict': {
-            'id': 'bnd-303',
-            'ext': 'mp3',
-            'title': 'Viele Baustellen für neuen BND-Chef',
-            'description': 'md5:1e69a54be3e1255b2b07cdbce5bcd8b4',
-            'thumbnail': r're:^https?:.*\.jpg$',
+            'id': 'bnd-303-1',
+            'ext': 'mp4',
+            'title': 'SPD-Gruppenbild mit Bärbel Bas nach der Fraktionssitzung | dpa',
         },
     }, {
         'url': 'http://www.tagesschau.de/inland/afd-parteitag-135.html',
         'info_dict': {
             'id': 'afd-parteitag-135',
-            'title': 'Möchtegern-Underdog mit Machtanspruch',
+            'title': 'AfD',
         },
-        'playlist_count': 2,
+        'playlist_count': 20,
     }, {
         'url': 'https://www.tagesschau.de/multimedia/audio/audio-29417~player.html',
         'info_dict': {
             'id': 'audio-29417-1',
             'ext': 'mp3',
-            'title': 'BVerfG weist Befangenheitsantrag zurück',
+            'title': 'Brasilianischer Präsident Bolsonaro unter Druck: Corona-Bericht wird vorgestellt',
         },
     }, {
         'url': 'http://www.tagesschau.de/multimedia/sendung/tsg-3771.html',
