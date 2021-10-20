@@ -4748,9 +4748,11 @@ def determine_protocol(info_dict):
 
 def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
     """ Render a list of rows, each as a list of values """
+    def width(string):
+        return len(remove_terminal_sequences(string))
 
     def get_max_lens(table):
-        return [max(len(compat_str(v)) for v in col) for col in zip(*table)]
+        return [max(width(str(v)) for v in col) for col in zip(*table)]
 
     def filter_using_list(row, filterArray):
         return [col for (take, col) in zip(filterArray, row) if take]
@@ -4762,10 +4764,15 @@ def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
 
     table = [header_row] + data
     max_lens = get_max_lens(table)
+    extraGap += 1
     if delim:
-        table = [header_row] + [['-' * ml for ml in max_lens]] + data
-    format_str = ' '.join('%-' + compat_str(ml + extraGap) + 's' for ml in max_lens[:-1]) + ' %s'
-    return '\n'.join(format_str % tuple(row) for row in table)
+        table = [header_row] + [[delim * (ml + extraGap) for ml in max_lens]] + data
+    max_lens[-1] = 0
+    for row in table:
+        for pos, text in enumerate(map(str, row)):
+            row[pos] = text + (' ' * (max_lens[pos] - width(text) + extraGap))
+    ret = '\n'.join(''.join(row) for row in table)
+    return ret
 
 
 def _match_one(filter_part, dct, incomplete):
@@ -6498,12 +6505,12 @@ def supports_terminal_sequences(stream):
         return False
 
 
-TERMINAL_SEQUENCES = {
-    'DOWN': '\n',
-    'UP': '\x1b[A',
-    'ERASE_LINE': '\x1b[K',
-    'RED': '\033[0;31m',
-    'YELLOW': '\033[0;33m',
-    'BLUE': '\033[0;34m',
-    'RESET_STYLE': '\033[0m',
-}
+_terminal_sequences_re = re.compile('\033\\[[^m]+m')
+
+
+def remove_terminal_sequences(string):
+    return _terminal_sequences_re.sub('', string)
+
+
+def number_of_digits(number):
+    return len('%d' % number)

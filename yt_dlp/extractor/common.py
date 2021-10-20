@@ -1139,7 +1139,7 @@ class InfoExtractor(object):
                 if mobj:
                     break
 
-        _name = self._downloader._color_text(name, 'blue')
+        _name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
 
         if mobj:
             if group is None:
