@@ -153,6 +153,7 @@ class RedditRIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
+            'id': video_id,
             'url': video_url,
             'title': data.get('title'),
             'thumbnails': thumbnails,
