@@ -43,17 +43,18 @@ body:
       label: Verbose log
       description: |
         Provide the complete verbose output of yt-dlp that clearly demonstrates the problem.
-        Add the `-v` flag to your command line you run yt-dlp with (`yt-dlp -v <your command line>`), copy the WHOLE output and insert it below.
+        Add the `-Uv` flag to your command line you run yt-dlp with (`yt-dlp -Uv <your command line>`), copy the WHOLE output and insert it below.
         It should look similar to this:
       placeholder: |
-        [debug] System config: []
-        [debug] User config: []
-        [debug] Command-line args: [u'-v', u'http://www.youtube.com/watch?v=BaW_jenozKc']
-        [debug] Encodings: locale cp1251, fs mbcs, out cp866, pref cp1251
+        [debug] Command-line config: ['-Uv']
+        [debug] Encodings: locale cp1252, fs utf-8, out utf-8, pref cp1252
         [debug] yt-dlp version %(version)s
-        [debug] Python version 2.7.11 - Windows-2003Server-5.2.3790-SP2
-        [debug] exe versions: ffmpeg N-75573-g1d0487f, ffprobe N-75573-g1d0487f, rtmpdump 2.4
+        [debug] Python version 3.8.8 (CPython 64bit) - Windows-10-10.0.19041-SP0
+        [debug] exe versions: ffmpeg 3.0.1, ffprobe 3.0.1
+        [debug] Optional libraries: Cryptodome, keyring, mutagen, sqlite, websockets
+        [debug] ANSI escape support: stdout = True, stderr = True
         [debug] Proxy map: {}
+        yt-dlp is up to date (%(version)s)
         <more lines>
       render: shell
     validations:
