@@ -650,7 +650,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
     IE_NAME = 'crunchyroll:playlist'
-    _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?!(?:news|anime-news|library|forum|launchcalendar|lineup|store|comics|freetrial|login|media-\d+))(?P<id>[\w\-]+))/?(?:\?|$)'
+    _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?:\w{1,2}/)?(?!(?:news|anime-news|library|forum|launchcalendar|lineup|store|comics|freetrial|login|media-\d+))(?P<id>[\w\-]+))/?(?:\?|$)'
 
     _TESTS = [{
         'url': 'https://www.crunchyroll.com/a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
@@ -672,6 +672,9 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
         # geo-restricted (US), 18+ maturity wall, non-premium will be available since 2015.11.14
         'url': 'http://www.crunchyroll.com/ladies-versus-butlers?skip_wall=1',
         'only_matching': True,
+    }, {
+        'url': 'http://www.crunchyroll.com/fr/ladies-versus-butlers',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -683,18 +686,72 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
             headers=self.geo_verification_headers())
         title = self._html_search_meta('name', webpage, default=None)
 
-        episode_paths = re.findall(
-            r'(?s)<li id="showview_videos_media_(\d+)"[^>]+>.*?<a href="([^"]+)"',
-            webpage)
-        entries = [
-            self.url_result('http://www.crunchyroll.com' + ep, 'Crunchyroll', ep_id)
-            for ep_id, ep in episode_paths
-        ]
-        entries.reverse()
+        episode_re = r'<li id="showview_videos_media_(\d+)"[^>]+>.*?<a href="([^"]+)"'
+        season_re = r'<a [^>]+season-dropdown[^>]+>([^<]+)'
+        paths = re.findall(f'(?s){episode_re}|{season_re}', webpage)
+
+        entries, current_season = [], None
+        for ep_id, ep, season in paths:
+            if season:
+                current_season = season
+                continue
+            entries.append(self.url_result(
+                f'http://www.crunchyroll.com{ep}', CrunchyrollIE.ie_key(), ep_id, season=current_season))
 
         return {
             '_type': 'playlist',
             'id': show_id,
             'title': title,
-            'entries': entries,
+            'entries': reversed(entries),
         }
+
+
+class CrunchyrollBetaIE(CrunchyrollBaseIE):
+    IE_NAME = 'crunchyroll:beta'
+    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)watch/(?P<internal_id>\w+)/(?P<id>[\w\-]+)/?(?:\?|$)'
+    _TESTS = [{
+        'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
+        'info_dict': {
+            'id': '696363',
+            'ext': 'mp4',
+            'timestamp': 1459610100,
+            'description': 'md5:a022fbec4fbb023d43631032c91ed64b',
+            'uploader': 'Toei Animation',
+            'title': 'World Trigger Episode 73 – To the Future',
+            'upload_date': '20160402',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Unable to download XML']
+    }]
+
+    def _real_extract(self, url):
+        lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'internal_id', 'id')
+        webpage = self._download_webpage(url, display_id)
+        episode_data = self._parse_json(
+            self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'episode data'),
+            display_id)['content']['byId'][internal_id]
+        video_id = episode_data['external_id'].split('.')[1]
+        series_id = episode_data['episode_metadata']['series_slug_title']
+        return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
+                               CrunchyrollIE.ie_key(), video_id)
+
+
+class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
+    IE_NAME = 'crunchyroll:playlist:beta'
+    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)series/\w+/(?P<id>[\w\-]+)/?(?:\?|$)'
+    _TESTS = [{
+        'url': 'https://beta.crunchyroll.com/series/GY19NQ2QR/Girl-Friend-BETA',
+        'info_dict': {
+            'id': 'girl-friend-beta',
+            'title': 'Girl Friend BETA',
+        },
+        'playlist_mincount': 10,
+    }, {
+        'url': 'https://beta.crunchyroll.com/it/series/GY19NQ2QR/Girl-Friend-BETA',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        lang, series_id = self._match_valid_url(url).group('lang', 'id')
+        return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id.lower()}',
+                               CrunchyrollShowPlaylistIE.ie_key(), series_id)

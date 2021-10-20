@@ -483,6 +483,12 @@ class YoutubeDL(object):
         'track_number', 'disc_number', 'release_year',
     ))
 
+    _format_selection_exts = {
+        'audio': {'m4a', 'mp3', 'ogg', 'aac'},
+        'video': {'mp4', 'flv', 'webm', '3gp'},
+        'storyboards': {'mhtml'},
+    }
+
     params = None
     _ies = {}
     _pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
@@ -880,8 +886,13 @@ class YoutubeDL(object):
         outtmpl_dict = self.params.get('outtmpl', {})
         if not isinstance(outtmpl_dict, dict):
             outtmpl_dict = {'default': outtmpl_dict}
+        # Remove spaces in the default template
+        if self.params.get('restrictfilenames'):
+            sanitize = lambda x: x.replace(' - ', ' ').replace(' ', '-')
+        else:
+            sanitize = lambda x: x
         outtmpl_dict.update({
-            k: v for k, v in DEFAULT_OUTTMPL.items()
+            k: sanitize(v) for k, v in DEFAULT_OUTTMPL.items()
             if outtmpl_dict.get(k) is None})
         for key, val in outtmpl_dict.items():
             if isinstance(val, bytes):
@@ -941,13 +952,18 @@ class YoutubeDL(object):
         except ValueError as err:
             return err
 
+    @staticmethod
+    def _copy_infodict(info_dict):
+        info_dict = dict(info_dict)
+        for key in ('__original_infodict', '__postprocessors'):
+            info_dict.pop(key, None)
+        return info_dict
+
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
         """ Make the outtmpl and info_dict suitable for substitution: ydl.escape_outtmpl(outtmpl) % info_dict """
         info_dict.setdefault('epoch', int(time.time()))  # keep epoch consistent once set
 
-        info_dict = dict(info_dict)  # Do not sanitize so as not to consume LazyList
-        for key in ('__original_infodict', '__postprocessors'):
-            info_dict.pop(key, None)
+        info_dict = self._copy_infodict(info_dict)
         info_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
             formatSeconds(info_dict['duration'], '-' if sanitize else ':')
             if info_dict.get('duration', None) is not None
@@ -1977,11 +1993,11 @@ class YoutubeDL(object):
                         filter_f = lambda f: _filter_f(f) and (
                             f.get('vcodec') != 'none' or f.get('acodec') != 'none')
                     else:
-                        if format_spec in ('m4a', 'mp3', 'ogg', 'aac'):  # audio extension
+                        if format_spec in self._format_selection_exts['audio']:
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none'
-                        elif format_spec in ('mp4', 'flv', 'webm', '3gp'):  # video extension
+                        elif format_spec in self._format_selection_exts['video']:
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none' and f.get('vcodec') != 'none'
-                        elif format_spec in ('mhtml', ):  # storyboards extension
+                        elif format_spec in self._format_selection_exts['storyboards']:
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') == 'none' and f.get('vcodec') == 'none'
                         else:
                             filter_f = lambda f: f.get('format_id') == format_spec  # id
@@ -2076,25 +2092,14 @@ class YoutubeDL(object):
                 t.get('url')))
 
             def thumbnail_tester():
-                if self.params.get('check_formats'):
-                    test_all = True
-                    to_screen = lambda msg: self.to_screen(f'[info] {msg}')
-                else:
-                    test_all = False
-                    to_screen = self.write_debug
-
                 def test_thumbnail(t):
-                    if not test_all and not t.get('_test_url'):
-                        return True
-                    to_screen('Testing thumbnail %s' % t['id'])
+                    self.to_screen(f'[info] Testing thumbnail {t["id"]}')
                     try:
                         self.urlopen(HEADRequest(t['url']))
                     except network_exceptions as err:
-                        to_screen('Unable to connect to thumbnail %s URL "%s" - %s. Skipping...' % (
-                            t['id'], t['url'], error_to_compat_str(err)))
+                        self.to_screen(f'[info] Unable to connect to thumbnail {t["id"]} URL {t["url"]!r} - {err}. Skipping...')
                         return False
                     return True
-
                 return test_thumbnail
 
             for i, t in enumerate(thumbnails):
@@ -2104,7 +2109,7 @@ class YoutubeDL(object):
                     t['resolution'] = '%dx%d' % (t['width'], t['height'])
                 t['url'] = sanitize_url(t['url'])
 
-            if self.params.get('check_formats') is not False:
+            if self.params.get('check_formats'):
                 info_dict['thumbnails'] = LazyList(filter(thumbnail_tester(), thumbnails[::-1])).reverse()
             else:
                 info_dict['thumbnails'] = thumbnails
@@ -2157,6 +2162,9 @@ class YoutubeDL(object):
 
         if info_dict.get('display_id') is None and 'id' in info_dict:
             info_dict['display_id'] = info_dict['id']
+
+        if info_dict.get('duration') is not None:
+            info_dict['duration_string'] = formatSeconds(info_dict['duration'])
 
         for ts_key, date_key in (
                 ('timestamp', 'upload_date'),
@@ -2256,10 +2264,18 @@ class YoutubeDL(object):
             formats_dict[format_id].append(format)
 
         # Make sure all formats have unique format_id
+        common_exts = set(itertools.chain(*self._format_selection_exts.values()))
         for format_id, ambiguous_formats in formats_dict.items():
-            if len(ambiguous_formats) > 1:
-                for i, format in enumerate(ambiguous_formats):
+            ambigious_id = len(ambiguous_formats) > 1
+            for i, format in enumerate(ambiguous_formats):
+                if ambigious_id:
                     format['format_id'] = '%s-%d' % (format_id, i)
+                if format.get('ext') is None:
+                    format['ext'] = determine_ext(format['url']).lower()
+                # Ensure there is no conflict between id and ext in format selection
+                # See https://github.com/yt-dlp/yt-dlp/issues/1282
+                if format['format_id'] != format['ext'] and format['format_id'] in common_exts:
+                    format['format_id'] = 'f%s' % format['format_id']
 
         for i, format in enumerate(formats):
             if format.get('format') is None:
@@ -2268,13 +2284,12 @@ class YoutubeDL(object):
                     res=self.format_resolution(format),
                     note=format_field(format, 'format_note', ' (%s)'),
                 )
-            # Automatically determine file extension if missing
-            if format.get('ext') is None:
-                format['ext'] = determine_ext(format['url']).lower()
-            # Automatically determine protocol if missing (useful for format
-            # selection purposes)
             if format.get('protocol') is None:
                 format['protocol'] = determine_protocol(format)
+            if format.get('resolution') is None:
+                format['resolution'] = self.format_resolution(format, default=None)
+            if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
+                format['dynamic_range'] = 'SDR'
             # Add HTTP headers, so that external programs can use them from the
             # json output
             full_format_info = info_dict.copy()
@@ -2509,7 +2524,8 @@ class YoutubeDL(object):
                 fd.add_progress_hook(ph)
             urls = '", "'.join([f['url'] for f in info.get('requested_formats', [])] or [info['url']])
             self.write_debug('Invoking downloader on "%s"' % urls)
-        new_info = dict(info)
+
+        new_info = copy.deepcopy(self._copy_infodict(info))
         if new_info.get('http_headers') is None:
             new_info['http_headers'] = self._calc_headers(new_info)
         return fd.download(name, new_info, subtitle)
@@ -3159,6 +3175,7 @@ class YoutubeDL(object):
                     format_field(f, 'ext'),
                     self.format_resolution(f),
                     format_field(f, 'fps', '%d'),
+                    format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                     '|',
                     format_field(f, 'filesize', ' %s', func=format_bytes) + format_field(f, 'filesize_approx', '~%s', func=format_bytes),
                     format_field(f, 'tbr', '%4dk'),
@@ -3176,7 +3193,7 @@ class YoutubeDL(object):
                         format_field(f, 'container', ignore=(None, f.get('ext'))),
                     ))),
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
-            header_line = ['ID', 'EXT', 'RESOLUTION', 'FPS', '|', ' FILESIZE', '  TBR', 'PROTO',
+            header_line = ['ID', 'EXT', 'RESOLUTION', 'FPS', 'HDR', '|', ' FILESIZE', '  TBR', 'PROTO',
                            '|', 'VCODEC', '  VBR', 'ACODEC', ' ABR', ' ASR', 'MORE INFO']
         else:
             table = [
@@ -3251,8 +3268,8 @@ class YoutubeDL(object):
             write_debug = lambda msg: logger.debug(f'[debug] {msg}')
             write_debug(encoding_str)
         else:
-            write_debug = lambda msg: self._write_string(f'[debug] {msg}')
             write_string(f'[debug] {encoding_str}', encoding=None)
+            write_debug = lambda msg: self._write_string(f'[debug] {msg}')
 
         source = detect_variant()
         write_debug('yt-dlp version %s%s\n' % (__version__, '' if source == 'unknown' else f' ({source})'))
@@ -3332,7 +3349,7 @@ class YoutubeDL(object):
 
     def _setup_opener(self):
         timeout_val = self.params.get('socket_timeout')
-        self._socket_timeout = 600 if timeout_val is None else float(timeout_val)
+        self._socket_timeout = 20 if timeout_val is None else float(timeout_val)
 
         opts_cookiesfrombrowser = self.params.get('cookiesfrombrowser')
         opts_cookiefile = self.params.get('cookiefile')

@@ -10,7 +10,7 @@ import json
 
 from .common import AudioConversionError, PostProcessor
 
-from ..compat import compat_str, compat_numeric_types
+from ..compat import compat_str
 from ..utils import (
     dfxp2srt,
     encodeArgument,
@@ -662,15 +662,14 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     def _get_metadata_opts(self, info):
         metadata = {}
+        meta_prefix = 'meta_'
 
         def add(meta_list, info_list=None):
-            if not meta_list:
-                return
-            for info_f in variadic(info_list or meta_list):
-                if isinstance(info.get(info_f), (compat_str, compat_numeric_types)):
-                    for meta_f in variadic(meta_list):
-                        metadata[meta_f] = info[info_f]
-                    break
+            value = next((
+                str(info[key]) for key in [meta_prefix] + list(variadic(info_list or meta_list))
+                if info.get(key) is not None), None)
+            if value not in ('', None):
+                metadata.update({meta_f: value for meta_f in variadic(meta_list)})
 
         # See [1-4] for some info on media metadata/metadata supported
         # by ffmpeg.
@@ -693,9 +692,9 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add('episode_id', ('episode', 'episode_id'))
         add('episode_sort', 'episode_number')
 
-        prefix = 'meta_'
-        for key in filter(lambda k: k.startswith(prefix), info.keys()):
-            add(key[len(prefix):], key)
+        for key, value in info.items():
+            if value is not None and key != meta_prefix and key.startswith(meta_prefix):
+                metadata[key[len(meta_prefix):]] = value
 
         for name, value in metadata.items():
             yield ('-metadata', f'{name}={value}')

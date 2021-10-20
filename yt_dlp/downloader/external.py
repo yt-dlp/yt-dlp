@@ -150,11 +150,11 @@ class ExternalFD(FragmentFD):
             fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
             try:
                 src, _ = sanitize_open(fragment_filename, 'rb')
-            except IOError:
+            except IOError as err:
                 if skip_unavailable_fragments and frag_index > 1:
-                    self.to_screen('[%s] Skipping fragment %d ...' % (self.get_basename(), frag_index))
+                    self.report_skip_fragment(frag_index, err)
                     continue
-                self.report_error('Unable to open fragment %d' % frag_index)
+                self.report_error(f'Unable to open fragment {frag_index}; {err}')
                 return -1
             dest.write(decrypt_fragment(fragment, src.read()))
             src.close()

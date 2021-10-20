@@ -245,13 +245,12 @@ class HlsFD(FragmentFD):
             fragments = [fragments[0] if fragments else None]
 
         if real_downloader:
-            info_copy = info_dict.copy()
-            info_copy['fragments'] = fragments
+            info_dict['fragments'] = fragments
             fd = real_downloader(self.ydl, self.params)
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
-            return fd.real_download(filename, info_copy)
+            return fd.real_download(filename, info_dict)
 
         if is_webvtt:
             def pack_fragment(frag_content, frag_index):

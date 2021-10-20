@@ -18,7 +18,7 @@ import functools
 import gzip
 import hashlib
 import hmac
-import imp
+import importlib.util
 import io
 import itertools
 import json
@@ -2356,14 +2356,25 @@ def decodeOption(optval):
     return optval
 
 
+_timetuple = collections.namedtuple('Time', ('hours', 'minutes', 'seconds', 'milliseconds'))
+
+
+def timetuple_from_msec(msec):
+    secs, msec = divmod(msec, 1000)
+    mins, secs = divmod(secs, 60)
+    hrs, mins = divmod(mins, 60)
+    return _timetuple(hrs, mins, secs, msec)
+
+
 def formatSeconds(secs, delim=':', msec=False):
-    if secs > 3600:
-        ret = '%d%s%02d%s%02d' % (secs // 3600, delim, (secs % 3600) // 60, delim, secs % 60)
-    elif secs > 60:
-        ret = '%d%s%02d' % (secs // 60, delim, secs % 60)
+    time = timetuple_from_msec(secs * 1000)
+    if time.hours:
+        ret = '%d%s%02d%s%02d' % (time.hours, delim, time.minutes, delim, time.seconds)
+    elif time.minutes:
+        ret = '%d%s%02d' % (time.minutes, delim, time.seconds)
     else:
-        ret = '%d' % secs
-    return '%s.%03d' % (ret, secs % 1) if msec else ret
+        ret = '%d' % time.seconds
+    return '%s.%03d' % (ret, time.milliseconds) if msec else ret
 
 
 def _ssl_load_windows_store_certs(ssl_context, storename):
@@ -4630,12 +4641,21 @@ def parse_codecs(codecs_str):
         return {}
     split_codecs = list(filter(None, map(
         str.strip, codecs_str.strip().strip(',').split(','))))
-    vcodec, acodec = None, None
+    vcodec, acodec, hdr = None, None, None
     for full_codec in split_codecs:
         codec = full_codec.split('.')[0]
-        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av01', 'theora'):
+        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av01', 'theora', 'dvh1', 'dvhe'):
             if not vcodec:
                 vcodec = full_codec
+                if codec in ('dvh1', 'dvhe'):
+                    hdr = 'DV'
+                elif codec == 'vp9' and vcodec.startswith('vp9.2'):
+                    hdr = 'HDR10'
+                elif codec == 'av01':
+                    parts = full_codec.split('.')
+                    if len(parts) > 3 and parts[3] == '10':
+                        hdr = 'HDR10'
+                        vcodec = '.'.join(parts[:4])
         elif codec in ('mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
@@ -4651,6 +4671,7 @@ def parse_codecs(codecs_str):
         return {
             'vcodec': vcodec or 'none',
             'acodec': acodec or 'none',
+            'dynamic_range': hdr,
         }
     return {}
 
@@ -4768,7 +4789,6 @@ def _match_one(filter_part, dct, incomplete):
         (?P<key>[a-z_]+)
         \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
         (?:
-            (?P<intval>[0-9.]+(?:[kKmMgGtTpPeEzZyY]i?[Bb]?)?)|
             (?P<quote>["\'])(?P<quotedstrval>.+?)(?P=quote)|
             (?P<strval>.+?)
         )
@@ -4776,40 +4796,35 @@ def _match_one(filter_part, dct, incomplete):
         ''' % '|'.join(map(re.escape, COMPARISON_OPERATORS.keys())))
     m = operator_rex.search(filter_part)
     if m:
-        unnegated_op = COMPARISON_OPERATORS[m.group('op')]
-        if m.group('negation'):
+        m = m.groupdict()
+        unnegated_op = COMPARISON_OPERATORS[m['op']]
+        if m['negation']:
             op = lambda attr, value: not unnegated_op(attr, value)
         else:
             op = unnegated_op
-        actual_value = dct.get(m.group('key'))
-        if (m.group('quotedstrval') is not None
-            or m.group('strval') is not None
+        comparison_value = m['quotedstrval'] or m['strval'] or m['intval']
+        if m['quote']:
+            comparison_value = comparison_value.replace(r'\%s' % m['quote'], m['quote'])
+        actual_value = dct.get(m['key'])
+        numeric_comparison = None
+        if isinstance(actual_value, compat_numeric_types):
             # If the original field is a string and matching comparisonvalue is
             # a number we should respect the origin of the original field
             # and process comparison value as a string (see
-            # https://github.com/ytdl-org/youtube-dl/issues/11082).
-            or actual_value is not None and m.group('intval') is not None
-                and isinstance(actual_value, compat_str)):
-            comparison_value = m.group('quotedstrval') or m.group('strval') or m.group('intval')
-            quote = m.group('quote')
-            if quote is not None:
-                comparison_value = comparison_value.replace(r'\%s' % quote, quote)
-        else:
-            if m.group('op') in STRING_OPERATORS:
-                raise ValueError('Operator %s only supports string values!' % m.group('op'))
+            # https://github.com/ytdl-org/youtube-dl/issues/11082)
             try:
-                comparison_value = int(m.group('intval'))
+                numeric_comparison = int(comparison_value)
             except ValueError:
-                comparison_value = parse_filesize(m.group('intval'))
-                if comparison_value is None:
-                    comparison_value = parse_filesize(m.group('intval') + 'B')
-                if comparison_value is None:
-                    raise ValueError(
-                        'Invalid integer value %r in filter part %r' % (
-                            m.group('intval'), filter_part))
+                numeric_comparison = parse_filesize(comparison_value)
+                if numeric_comparison is None:
+                    numeric_comparison = parse_filesize(f'{comparison_value}B')
+                if numeric_comparison is None:
+                    numeric_comparison = parse_duration(comparison_value)
+        if numeric_comparison is not None and m['op'] in STRING_OPERATORS:
+            raise ValueError('Operator %s only supports string values!' % m['op'])
         if actual_value is None:
-            return incomplete or m.group('none_inclusive')
-        return op(actual_value, comparison_value)
+            return incomplete or m['none_inclusive']
+        return op(actual_value, comparison_value if numeric_comparison is None else numeric_comparison)
 
     UNARY_OPERATORS = {
         '': lambda v: (v is True) if isinstance(v, bool) else (v is not None),
@@ -4863,7 +4878,12 @@ def parse_dfxp_time_expr(time_expr):
 
 
 def srt_subtitles_timecode(seconds):
-    return '%02d:%02d:%02d,%03d' % (seconds / 3600, (seconds % 3600) / 60, seconds % 60, (seconds % 1) * 1000)
+    return '%02d:%02d:%02d,%03d' % timetuple_from_msec(seconds * 1000)
+
+
+def ass_subtitles_timecode(seconds):
+    time = timetuple_from_msec(seconds * 1000)
+    return '%01d:%02d:%02d.%02d' % (*time[:-1], time.milliseconds / 10)
 
 
 def dfxp2srt(dfxp_data):
@@ -6320,12 +6340,13 @@ def get_executable_path():
 
 
 def load_plugins(name, suffix, namespace):
-    plugin_info = [None]
     classes = {}
     try:
-        plugin_info = imp.find_module(
-            name, [os.path.join(get_executable_path(), 'ytdlp_plugins')])
-        plugins = imp.load_module(name, *plugin_info)
+        plugins_spec = importlib.util.spec_from_file_location(
+            name, os.path.join(get_executable_path(), 'ytdlp_plugins', name, '__init__.py'))
+        plugins = importlib.util.module_from_spec(plugins_spec)
+        sys.modules[plugins_spec.name] = plugins
+        plugins_spec.loader.exec_module(plugins)
         for name in dir(plugins):
             if name in namespace:
                 continue
@@ -6333,11 +6354,8 @@ def load_plugins(name, suffix, namespace):
                 continue
             klass = getattr(plugins, name)
             classes[name] = namespace[name] = klass
-    except ImportError:
+    except FileNotFoundError:
         pass
-    finally:
-        if plugin_info[0] is not None:
-            plugin_info[0].close()
     return classes
 
 
