@@ -55,7 +55,6 @@ body:
         [debug] Python version 3.8.8 (CPython 64bit) - Windows-10-10.0.19041-SP0
         [debug] exe versions: ffmpeg 3.0.1, ffprobe 3.0.1
         [debug] Optional libraries: Cryptodome, keyring, mutagen, sqlite, websockets
-        [debug] ANSI escape support: stdout = True, stderr = True
         [debug] Proxy map: {}
         yt-dlp is up to date (%(version)s)
         <more lines>
