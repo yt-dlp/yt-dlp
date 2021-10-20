@@ -503,7 +503,7 @@ class YoutubeDL(object):
     def __init__(self, params=None, auto_init=True):
         """Create a FileDownloader object with the given options.
         @param auto_init    Whether to load the default extractors and print header (if verbose).
-                            Set to 'no_verbose_header' to not print the header
+                            Set to 'no_verbose_header' to not ptint the header
         """
         if params is None:
             params = {}
@@ -3250,26 +3250,21 @@ class YoutubeDL(object):
     def print_debug_header(self):
         if not self.params.get('verbose'):
             return
-
-        def get_encoding(stream):
-            ret = getattr(stream, 'encoding', 'NA (%s)' % type(stream).__name__)
-            if not supports_terminal_sequences(stream):
-                ret += ' (No ANSI)'
-            return ret
-
-        encoding_str = 'Encodings: locale %s, fs %s, out %s, err %s, pref %s\n' % (
-            locale.getpreferredencoding(),
-            sys.getfilesystemencoding(),
-            get_encoding(self._screen_file), get_encoding(self._err_file),
-            self.get_encoding())
+        get_encoding = lambda stream: getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__)
+        encoding_str = (
+            '[debug] Encodings: locale %s, fs %s, stdout %s, stderr %s, pref %s\n' % (
+                locale.getpreferredencoding(),
+                sys.getfilesystemencoding(),
+                get_encoding(self._screen_file), get_encoding(self._err_file),
+                self.get_encoding()))
 
         logger = self.params.get('logger')
         if logger:
             write_debug = lambda msg: logger.debug(f'[debug] {msg}')
             write_debug(encoding_str)
         else:
-            write_string(f'[debug] {encoding_str}', encoding=None)
             write_debug = lambda msg: self._write_string(f'[debug] {msg}')
+            write_string(encoding_str, encoding=None)
 
         source = detect_variant()
         write_debug('yt-dlp version %s%s\n' % (__version__, '' if source == 'unknown' else f' ({source})'))
@@ -3328,6 +3323,9 @@ class YoutubeDL(object):
             KEYRING_AVAILABLE and 'keyring',
         )))) or 'none'
         write_debug('Optional libraries: %s\n' % lib_str)
+        write_debug('ANSI escape support: stdout = %s, stderr = %s\n' % (
+            supports_terminal_sequences(self._screen_file),
+            supports_terminal_sequences(self._err_file)))
 
         proxy_map = {}
         for handler in self._opener.handlers:

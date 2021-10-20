@@ -7,8 +7,8 @@ import subprocess
 import tempfile
 
 from ..compat import (
-    compat_kwargs,
     compat_urlparse,
+    compat_kwargs,
 )
 from ..utils import (
     check_executable,
