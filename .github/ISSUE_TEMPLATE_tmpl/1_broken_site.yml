@@ -21,7 +21,7 @@ body:
           required: true
         - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue).
           required: true
-        - label: I've read [are you willing to share account credentials if required](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#are-you-willing-to-share-account-details-if-needed) and  I'm willing to share.
+        - label: I've read about [sharing account credentials](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#are-you-willing-to-share-account-details-if-needed) and I'm willing to share it if required
   - type: input
     id: region
     attributes:
@@ -33,7 +33,8 @@ body:
     attributes:
       label: Description
       description: |
-        Provide an explanation of your issue in an arbitrary form. Provide any additional information, suggested solution and as much context and examples as possible.
+        Provide an explanation of your issue in an arbitrary form.
+        Provide any additional information, any suggested solutions, and as much context and examples as possible
       placeholder: WRITE DESCRIPTION HERE
     validations:
       required: true
@@ -46,9 +47,11 @@ body:
         Add the `-Uv` flag to your command line you run yt-dlp with (`yt-dlp -Uv <your command line>`), copy the WHOLE output and insert it below.
         It should look similar to this:
       placeholder: |
-        [debug] Command-line config: ['-Uv']
-        [debug] Encodings: locale cp1252, fs utf-8, out utf-8, pref cp1252
-        [debug] yt-dlp version %(version)s
+        [debug] Command-line config: ['-Uv', 'http://www.youtube.com/watch?v=BaW_jenozKc']
+        [debug] Portable config file: yt-dlp.conf
+        [debug] Portable config: ['-i']
+        [debug] Encodings: locale cp1252, fs utf-8, stdout utf-8, stderr utf-8, pref cp1252
+        [debug] yt-dlp version %(version)s (exe)
         [debug] Python version 3.8.8 (CPython 64bit) - Windows-10-10.0.19041-SP0
         [debug] exe versions: ffmpeg 3.0.1, ffprobe 3.0.1
         [debug] Optional libraries: Cryptodome, keyring, mutagen, sqlite, websockets
