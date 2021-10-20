@@ -87,10 +87,10 @@ from .utils import (
     parse_filesize,
     PerRequestProxyHandler,
     platform_name,
+    Popen,
     PostProcessingError,
     preferredencoding,
     prepend_extension,
-    process_communicate_or_kill,
     register_socks_protocols,
     RejectedVideoReached,
     render_table,
@@ -578,12 +578,9 @@ class YoutubeDL(object):
                     stdout=slave,
                     stderr=self._err_file)
                 try:
-                    self._output_process = subprocess.Popen(
-                        ['bidiv'] + width_args, **sp_kwargs
-                    )
+                    self._output_process = Popen(['bidiv'] + width_args, **sp_kwargs)
                 except OSError:
-                    self._output_process = subprocess.Popen(
-                        ['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
+                    self._output_process = Popen(['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
                 self._output_channel = os.fdopen(master, 'rb')
             except OSError as ose:
                 if ose.errno == errno.ENOENT:
@@ -3280,11 +3277,11 @@ class YoutubeDL(object):
         if self.params.get('compat_opts'):
             write_debug('Compatibility options: %s\n' % ', '.join(self.params.get('compat_opts')))
         try:
-            sp = subprocess.Popen(
+            sp = Popen(
                 ['git', 'rev-parse', '--short', 'HEAD'],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 cwd=os.path.dirname(os.path.abspath(__file__)))
-            out, err = process_communicate_or_kill(sp)
+            out, err = sp.communicate_or_kill()
             out = out.decode().strip()
             if re.match('[0-9a-f]+', out):
                 write_debug('Git HEAD: %s\n' % out)
