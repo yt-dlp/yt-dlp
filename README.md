@@ -155,11 +155,10 @@ For ease of use, a few more compat options are available:
 yt-dlp is not platform specific. So it should work on your Unix box, on Windows or on macOS
 
 You can install yt-dlp using one of the following methods:
-* Download the binary from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest)
+* Download [the binary](#release-files) from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest)
 * With Homebrew, `brew install yt-dlp/taps/yt-dlp`
 * Use [PyPI package](https://pypi.org/project/yt-dlp): `python3 -m pip install --upgrade yt-dlp`
-* Use pip+git: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp.git@release`
-* Install master branch: `python3 -m pip install --upgrade git+https://github.com/yt-dlp/yt-dlp`
+* Install master branch: `python3 -m pip3 install -U https://github.com/yt-dlp/yt-dlp/archive/master.zip`
 
 Note that on some systems, you may need to use `py` or `python` instead of `python3`
 
@@ -193,15 +192,27 @@ If you have installed using Homebrew, run `brew upgrade yt-dlp/taps/yt-dlp`
 
 ### RELEASE FILES
 
+#### Recommended
+
 File|Description
 :---|:---
-[yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform independant binary. Needs Python (Recommended for UNIX like OSes)
-[yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows standalone x64 binary (Recommended for Windows)
-[yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows standalone x86 (32bit) binary
-[yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged windows executable
+[yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform independant binary. Needs Python (Recommended for **UNIX-like systems**)
+[yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows standalone x64 binary (Recommended for **Windows**)
+
+#### Alternatives
+
+File|Description
+:---|:---
 [yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|MacOS standalone executable
-[yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS executable
-[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows standalone x64 binary built with `py2exe`. Does not contain `pycryptodomex`, needs VC++14
+[yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows standalone x86 (32bit) binary
+[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows standalone x64 binary built with `py2exe`.<br/> Does not contain `pycryptodomex`, needs VC++14
+[yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged windows executable (No auto-update)
+[yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS executable (No auto-update)
+
+#### Misc
+
+File|Description
+:---|:---
 [yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)|Source tarball. Also contains manpages, completions, etc
 [SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
 [SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
@@ -239,13 +250,10 @@ The windows releases are already built with the python interpreter, mutagen, pyc
 **For Windows**:
 To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodomex, websockets)
 
-    python3 -m pip install -U -r requirements.txt
+Once you have all the necessary dependencies installed, just run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
 
-Once you have all the necessary dependencies installed, just run `py pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
-
-You can also build the executable without any version info or metadata by using:
-
-    pyinstaller.exe yt_dlp\__main__.py --onefile --name yt-dlp
+    py -m pip install -U pyinstaller -r requirements.txt
+    py pyinst.py
 
 Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment
 

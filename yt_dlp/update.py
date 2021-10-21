@@ -167,35 +167,35 @@ def run_update(ydl):
             return report_network_error('download latest version')
 
         try:
-            with open(exe + '.new', 'wb') as outf:
+            with open(filename + '.new', 'wb') as outf:
                 outf.write(newcontent)
         except (IOError, OSError):
-            return report_permission_error(f'{exe}.new')
+            return report_permission_error(f'{filename}.new')
 
-        expected_sum = get_sha256sum('exe', arch)
+        expected_sum = get_sha256sum(variant, arch)
         if not expected_sum:
             ydl.report_warning('no hash information found for the release')
-        elif calc_sha256sum(exe + '.new') != expected_sum:
+        elif calc_sha256sum(filename + '.new') != expected_sum:
             report_network_error('verify the new executable')
             try:
-                os.remove(exe + '.new')
+                os.remove(filename + '.new')
             except OSError:
                 return report_unable('remove corrupt download')
 
         try:
-            os.rename(exe, exe + '.old')
+            os.rename(filename, filename + '.old')
         except (IOError, OSError):
             return report_unable('move current version')
         try:
-            os.rename(exe + '.new', exe)
+            os.rename(filename + '.new', filename)
         except (IOError, OSError):
             report_unable('overwrite current version')
-            os.rename(exe + '.old', exe)
+            os.rename(filename + '.old', filename)
             return
         try:
             # Continues to run in the background
             Popen(
-                'ping 127.0.0.1 -n 5 -w 1000 & del /F "%s.old"' % exe,
+                'ping 127.0.0.1 -n 5 -w 1000 & del /F "%s.old"' % filename,
                 shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             ydl.to_screen('Updated yt-dlp to version %s' % version_id)
             return True  # Exit app
