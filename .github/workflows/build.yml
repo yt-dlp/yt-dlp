@@ -51,6 +51,10 @@ jobs:
         echo "changelog<<EOF" >> $GITHUB_ENV
         echo "$changelog" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
+
+    - name: Build lazy extractors
+      id: lazy_extractors
+      run: python devscripts/make_lazy_extractors.py yt_dlp/extractor/lazy_extractors.py
     - name: Run Make
       run: make all tar
     - name: Get SHA2-256SUMS for yt-dlp
@@ -155,6 +159,9 @@ jobs:
       run: python devscripts/update-version.py
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
+    - name: Build lazy extractors
+      id: lazy_extractors
+      run: /usr/bin/python3 devscripts/make_lazy_extractors.py yt_dlp/extractor/lazy_extractors.py
     - name: Run PyInstaller Script
       run: /usr/bin/python3 ./pyinst.py --target-architecture universal2 --onefile
     - name: Upload yt-dlp MacOS binary
@@ -224,6 +231,9 @@ jobs:
       run: python devscripts/update-version.py
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
+    - name: Build lazy extractors
+      id: lazy_extractors
+      run: python devscripts/make_lazy_extractors.py yt_dlp/extractor/lazy_extractors.py
     - name: Run PyInstaller Script
       run: python pyinst.py
     - name: Upload yt-dlp.exe Windows binary
@@ -290,6 +300,9 @@ jobs:
       run: python devscripts/update-version.py
     - name: Print version
       run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
+    - name: Build lazy extractors
+      id: lazy_extractors
+      run: python devscripts/make_lazy_extractors.py yt_dlp/extractor/lazy_extractors.py
     - name: Run PyInstaller Script for 32 Bit
       run: python pyinst.py
     - name: Upload Executable yt-dlp_x86.exe

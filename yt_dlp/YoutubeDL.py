@@ -3268,8 +3268,11 @@ class YoutubeDL(object):
 
         source = detect_variant()
         write_debug('yt-dlp version %s%s\n' % (__version__, '' if source == 'unknown' else f' ({source})'))
-        if _LAZY_LOADER:
-            write_debug('Lazy loading extractors enabled\n')
+        if not _LAZY_LOADER:
+            if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
+                write_debug('Lazy loading extractors is forcibly disabled\n')
+            else:
+                write_debug('Lazy loading extractors is disabled\n')
         if plugin_extractors or plugin_postprocessors:
             write_debug('Plugins: %s\n' % [
                 '%s%s' % (klass.__name__, '' if klass.__name__ == name else f' as {name}')
