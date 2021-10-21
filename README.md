@@ -22,6 +22,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Differences in default behavior](#differences-in-default-behavior)
 * [INSTALLATION](#installation)
     * [Update](#update)
+    * [Release Files](#release-files)
     * [Dependencies](#dependencies)
     * [Compile](#compile)
 * [USAGE AND OPTIONS](#usage-and-options)
@@ -189,6 +190,20 @@ brew install yt-dlp/taps/yt-dlp
 You can use `yt-dlp -U` to update if you are using the provided release.
 If you are using `pip`, simply re-run the same command that was used to install the program.
 If you have installed using Homebrew, run `brew upgrade yt-dlp/taps/yt-dlp`
+
+### RELEASE FILES
+
+File|Description
+:---|:---
+[yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform independant binary. Needs Python (Recommended for UNIX like OSes)
+[yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows standalone x64 binary (Recommended for Windows)
+[yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows standalone x86 (32bit) binary
+[yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged windows executable
+[yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|MacOS standalone executable
+[yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS executable
+[yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)|Source tarball. Also contains manpages, completions, etc
+[SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
+[SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
 
 ### DEPENDENCIES
 Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.

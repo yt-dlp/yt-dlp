@@ -33,10 +33,11 @@ def rsa_verify(message, signature, key):
 
 def detect_variant():
     if hasattr(sys, 'frozen'):
+        prefix = 'mac' if sys.platform == 'darwin' else 'win'
         if getattr(sys, '_MEIPASS', None):
             if sys._MEIPASS == os.path.dirname(sys.executable):
-                return 'dir'
-            return 'exe'
+                return f'{prefix}_dir'
+            return f'{prefix}_exe'
         return 'py2exe'
     elif isinstance(globals().get('__loader__'), zipimporter):
         return 'zip'
@@ -46,9 +47,11 @@ def detect_variant():
 
 
 _NON_UPDATEABLE_REASONS = {
-    'exe': None,
+    'win_exe': None,
     'zip': None,
-    'dir': 'Auto-update is not supported for unpackaged windows executable; Re-download the latest release',
+    'mac_exe': None,
+    'win_dir': 'Auto-update is not supported for unpackaged windows executable; Re-download the latest release',
+    'mac_dir': 'Auto-update is not supported for unpackaged MacOS executable; Re-download the latest release',
     'py2exe': 'There is no official release for py2exe executable; Build it again with the latest source code',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
     'unknown': 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball; Use that to update',
@@ -119,6 +122,7 @@ def run_update(ydl):
         'zip_3': '',
         'exe_64': '.exe',
         'exe_32': '_x86.exe',
+        'mac_64': '_macos',
     }
 
     def get_bin_info(bin_or_exe, version):
@@ -139,7 +143,8 @@ def run_update(ydl):
         return report_permission_error(filename)
 
     # PyInstaller
-    if hasattr(sys, 'frozen'):
+    variant = detect_variant()
+    if variant == 'win_exe':
         exe = filename
         directory = os.path.dirname(exe)
         if not os.access(directory, os.W_OK):
@@ -161,13 +166,11 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_network_error('download latest version')
 
-        if not os.access(exe + '.new', os.W_OK):
-            return report_permission_error(f'{exe}.new')
         try:
             with open(exe + '.new', 'wb') as outf:
                 outf.write(newcontent)
         except (IOError, OSError):
-            return report_unable('write the new version')
+            return report_permission_error(f'{exe}.new')
 
         expected_sum = get_sha256sum('exe', arch)
         if not expected_sum:
@@ -199,10 +202,10 @@ def run_update(ydl):
         except OSError:
             report_unable('delete the old version')
 
-    # Zip unix package
-    elif isinstance(globals().get('__loader__'), zipimporter):
+    elif variant in ('zip', 'mac_exe'):
+        pack_type = ('mac', '64') if variant == 'mac_exe' else ('zip', '3')
         try:
-            url = get_bin_info('zip', '3').get('browser_download_url')
+            url = get_bin_info(*pack_type).get('browser_download_url')
             if not url:
                 return report_network_error('fetch updates')
             urlh = ydl._opener.open(url)
@@ -211,11 +214,11 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_network_error('download the latest version')
 
-        expected_sum = get_sha256sum('zip', '3')
+        expected_sum = get_sha256sum(*pack_type)
         if not expected_sum:
             ydl.report_warning('no hash information found for the release')
         elif hashlib.sha256(newcontent).hexdigest() != expected_sum:
-            return report_network_error('verify the new zip')
+            return report_network_error('verify the new package')
 
         try:
             with open(filename, 'wb') as outf:
@@ -223,7 +226,10 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_unable('overwrite current version')
 
-    ydl.to_screen('Updated yt-dlp to version %s; Restart yt-dlp to use the new version' % version_id)
+        ydl.to_screen('Updated yt-dlp to version %s; Restart yt-dlp to use the new version' % version_id)
+        return
+
+    assert False, f'Unhandled variant: {variant}'
 
 
 '''  # UNUSED
