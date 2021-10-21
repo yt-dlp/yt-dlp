@@ -29,7 +29,7 @@ REQUIREMENTS = ['mutagen', 'pycryptodomex', 'websockets']
 if sys.argv[1:2] == ['py2exe']:
     import py2exe
     warnings.warn(
-        'Building with py2exe is not officially supported. '
+        'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'The recommended way is to use "pyinst.py" to build using pyinstaller')
     params = {
         'console': [{

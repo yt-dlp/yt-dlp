@@ -50,9 +50,9 @@ _NON_UPDATEABLE_REASONS = {
     'win_exe': None,
     'zip': None,
     'mac_exe': None,
+    'py2exe': None,
     'win_dir': 'Auto-update is not supported for unpackaged windows executable; Re-download the latest release',
     'mac_dir': 'Auto-update is not supported for unpackaged MacOS executable; Re-download the latest release',
-    'py2exe': 'There is no official release for py2exe executable; Build it again with the latest source code',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
     'unknown': 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball; Use that to update',
 }
@@ -120,9 +120,10 @@ def run_update(ydl):
 
     version_labels = {
         'zip_3': '',
-        'exe_64': '.exe',
-        'exe_32': '_x86.exe',
-        'mac_64': '_macos',
+        'win_exe_64': '.exe',
+        'py2exe_64': '_min.exe',
+        'win_exe_32': '_x86.exe',
+        'mac_exe_64': '_macos',
     }
 
     def get_bin_info(bin_or_exe, version):
@@ -144,9 +145,8 @@ def run_update(ydl):
 
     # PyInstaller
     variant = detect_variant()
-    if variant == 'win_exe':
-        exe = filename
-        directory = os.path.dirname(exe)
+    if variant in ('win_exe', 'py2exe'):
+        directory = os.path.dirname(filename)
         if not os.access(directory, os.W_OK):
             return report_permission_error(directory)
         try:
@@ -157,7 +157,7 @@ def run_update(ydl):
 
         try:
             arch = platform.architecture()[0][:2]
-            url = get_bin_info('exe', arch).get('browser_download_url')
+            url = get_bin_info(variant, arch).get('browser_download_url')
             if not url:
                 return report_network_error('fetch updates')
             urlh = ydl._opener.open(url)
@@ -203,9 +203,9 @@ def run_update(ydl):
             report_unable('delete the old version')
 
     elif variant in ('zip', 'mac_exe'):
-        pack_type = ('mac', '64') if variant == 'mac_exe' else ('zip', '3')
+        pack_type = '3' if variant == 'zip' else '64'
         try:
-            url = get_bin_info(*pack_type).get('browser_download_url')
+            url = get_bin_info(variant, pack_type).get('browser_download_url')
             if not url:
                 return report_network_error('fetch updates')
             urlh = ydl._opener.open(url)
@@ -214,7 +214,7 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_network_error('download the latest version')
 
-        expected_sum = get_sha256sum(*pack_type)
+        expected_sum = get_sha256sum(variant, pack_type)
         if not expected_sum:
             ydl.report_warning('no hash information found for the release')
         elif hashlib.sha256(newcontent).hexdigest() != expected_sum:

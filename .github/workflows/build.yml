@@ -211,6 +211,8 @@ jobs:
     outputs:
       sha256_win: ${{ steps.sha256_win.outputs.sha256_win }}
       sha512_win: ${{ steps.sha512_win.outputs.sha512_win }}
+      sha256_py2exe: ${{ steps.sha256_py2exe.outputs.sha256_py2exe }}
+      sha512_py2exe: ${{ steps.sha512_py2exe.outputs.sha512_py2exe }}
       sha256_win_zip: ${{ steps.sha256_win_zip.outputs.sha256_win_zip }}
       sha512_win_zip: ${{ steps.sha512_win_zip.outputs.sha512_win_zip }}
 
@@ -224,7 +226,7 @@ jobs:
     - name: Install Requirements
       # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
       run: |
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip setuptools wheel py2exe
           pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
     - name: Bump version
       id: bump_version
@@ -274,6 +276,25 @@ jobs:
     - name: Get SHA2-512SUMS for yt-dlp_win.zip
       id: sha512_win_zip
       run: echo "::set-output name=sha512_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA512).Hash.ToLower())"
+
+    - name: Run py2exe Script
+      run: python setup.py py2exe
+    - name: Upload yt-dlp_min.exe Windows binary
+      id: upload-release-windows-py2exe
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build_unix.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp.exe
+        asset_name: yt-dlp_min.exe
+        asset_content_type: application/vnd.microsoft.portable-executable
+    - name: Get SHA2-256SUMS for yt-dlp_min.exe
+      id: sha256_py2exe
+      run: echo "::set-output name=sha256_py2exe::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA256).Hash.ToLower())"
+    - name: Get SHA2-512SUMS for yt-dlp_min.exe
+      id: sha512_py2exe
+      run: echo "::set-output name=sha512_py2exe::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
 
   build_windows32:
     runs-on: windows-latest
@@ -330,6 +351,7 @@ jobs:
     - name: Make SHA2-256SUMS file
       env:
         SHA256_WIN: ${{ needs.build_windows.outputs.sha256_win }}
+        SHA256_PY2EXE: ${{ needs.build_windows.outputs.sha256_py2exe }}
         SHA256_WIN_ZIP: ${{ needs.build_windows.outputs.sha256_win_zip }}
         SHA256_WIN32: ${{ needs.build_windows32.outputs.sha256_win32 }}
         SHA256_MACOS: ${{ needs.build_macos.outputs.sha256_macos }}
@@ -338,6 +360,7 @@ jobs:
         SHA256_TAR: ${{ needs.build_unix.outputs.sha256_tar }}
       run: |
         echo "${{ env.SHA256_WIN }}  yt-dlp.exe" >> SHA2-256SUMS
+        echo "${{ env.SHA256_PY2EXE }}  yt-dlp_min.exe" >> SHA2-256SUMS
         echo "${{ env.SHA256_WIN32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
         echo "${{ env.SHA256_MACOS }}  yt-dlp_macos" >> SHA2-256SUMS
         echo "${{ env.SHA256_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-256SUMS
@@ -357,6 +380,7 @@ jobs:
     - name: Make SHA2-512SUMS file
       env:
         SHA512_WIN: ${{ needs.build_windows.outputs.sha512_win }}
+        SHA512_PY2EXE: ${{ needs.build_windows.outputs.sha512_py2exe }}
         SHA512_WIN_ZIP: ${{ needs.build_windows.outputs.sha512_win_zip }}
         SHA512_WIN32: ${{ needs.build_windows32.outputs.sha512_win32 }}
         SHA512_MACOS: ${{ needs.build_macos.outputs.sha512_macos }}
@@ -365,6 +389,7 @@ jobs:
         SHA512_TAR: ${{ needs.build_unix.outputs.sha512_tar }}
       run: |
         echo "${{ env.SHA512_WIN }}  yt-dlp.exe" >> SHA2-512SUMS
+        echo "${{ env.SHA512_PY2EXE }}  yt-dlp_min.exe" >> SHA2-512SUMS
         echo "${{ env.SHA512_WIN32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
         echo "${{ env.SHA512_MACOS }}  yt-dlp_macos" >> SHA2-512SUMS
         echo "${{ env.SHA512_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-512SUMS
