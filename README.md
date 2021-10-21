@@ -1658,6 +1658,7 @@ While these options still work, their use is not recommended since there are oth
     --print-json                     -j --no-simulate
     --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
     --autonumber-start NUMBER        Use internal field formatting like %(autonumber+NUMBER)s
+    --id                             -o "%(id)s.%(ext)s"
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"
     --hls-prefer-native              --downloader "m3u8:native"
     --hls-prefer-ffmpeg              --downloader "m3u8:ffmpeg"
@@ -1724,7 +1725,6 @@ These options may no longer work as intended
 #### Removed
 These options were deprecated since 2014 and have now been entirely removed
 
-    --id                             -o "%(id)s.%(ext)s"
     -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
     -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
     -l, --literal                    -o accepts literal names

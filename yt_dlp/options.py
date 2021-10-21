@@ -976,6 +976,9 @@ def parseOpts(overrideArguments=None):
         dest='batchfile', action='store_const', const=None,
         help='Do not read URLs from batch file (default)')
     filesystem.add_option(
+        '--id', default=False,
+        action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
+    filesystem.add_option(
         '-P', '--paths',
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
