@@ -1,6 +1,6 @@
 # flake8: noqa: F401
 
-from ..utils import load_plugins
+from ..plugins import load_plugins
 
 from .embedthumbnail import EmbedThumbnailPP
 from .exec import ExecPP, ExecAfterDownloadPP

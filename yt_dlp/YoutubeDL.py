@@ -31,6 +31,7 @@ import unicodedata
 from enum import Enum
 from string import ascii_letters
 
+from .plugins import directories as plugin_directories
 from .compat import (
     compat_basestring,
     compat_get_terminal_size,
@@ -3327,6 +3328,7 @@ class YoutubeDL(object):
             write_debug('Plugins: %s' % [
                 '%s%s' % (klass.__name__, '' if klass.__name__ == name else f' as {name}')
                 for name, klass in itertools.chain(plugin_extractors.items(), plugin_postprocessors.items())])
+            write_debug('Plugin directories: %s\n' % plugin_directories())
         if self.params.get('compat_opts'):
             write_debug('Compatibility options: %s' % ', '.join(self.params.get('compat_opts')))
         try:

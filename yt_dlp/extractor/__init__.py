@@ -1,6 +1,6 @@
 import os
 
-from ..utils import load_plugins
+from ..plugins import load_plugins
 
 _LAZY_LOADER = False
 if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
