@@ -49,8 +49,8 @@ def detect_variant():
 _NON_UPDATEABLE_REASONS = {
     'win_exe': None,
     'zip': None,
+    'mac_exe': None,
     'win_dir': 'Auto-update is not supported for unpackaged windows executable; Re-download the latest release',
-    'mac_exe': 'Auto-update is not supported for standalone MacOS executable; Re-download the latest release',
     'mac_dir': 'Auto-update is not supported for unpackaged MacOS executable; Re-download the latest release',
     'py2exe': 'There is no official release for py2exe executable; Build it again with the latest source code',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
@@ -202,8 +202,8 @@ def run_update(ydl):
         except OSError:
             report_unable('delete the old version')
 
-    elif variant in ('zip', 'mac_bin'):
-        pack_type = ('mac', '64') if variant == 'mac_bin' else ('zip', '3')
+    elif variant in ('zip', 'mac_exe'):
+        pack_type = ('mac', '64') if variant == 'mac_exe' else ('zip', '3')
         try:
             url = get_bin_info(*pack_type).get('browser_download_url')
             if not url:
@@ -226,7 +226,10 @@ def run_update(ydl):
         except (IOError, OSError):
             return report_unable('overwrite current version')
 
-    ydl.to_screen('Updated yt-dlp to version %s; Restart yt-dlp to use the new version' % version_id)
+        ydl.to_screen('Updated yt-dlp to version %s; Restart yt-dlp to use the new version' % version_id)
+        return
+
+    assert False, f'Unhandled variant: {variant}'
 
 
 '''  # UNUSED
