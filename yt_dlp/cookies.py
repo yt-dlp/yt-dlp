@@ -620,7 +620,7 @@ def _get_windows_v10_key(browser_root, logger):
     if path is None:
         logger.error('could not find local state file')
         return None
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf8') as f:
         data = json.load(f)
     try:
         base64_key = data['os_crypt']['encrypted_key']
