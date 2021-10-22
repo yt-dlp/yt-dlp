@@ -226,7 +226,9 @@
  - **Crackle**
  - **CrooksAndLiars**
  - **crunchyroll**
+ - **crunchyroll:beta**
  - **crunchyroll:playlist**
+ - **crunchyroll:playlist:beta**
  - **CSpan**: C-SPAN
  - **CtsNews**: 華視新聞
  - **CTV**
@@ -315,6 +317,7 @@
  - **ESPNArticle**
  - **EsriVideo**
  - **Europa**
+ - **EUScreen**
  - **EWETV**
  - **ExpoTV**
  - **Expressen**
@@ -394,6 +397,7 @@
  - **Goshgay**
  - **GoToStage**
  - **GPUTechConf**
+ - **Gronkh**
  - **Groupon**
  - **hbo**
  - **HearThisAt**
@@ -570,6 +574,7 @@
  - **Mgoon**
  - **MGTV**: 芒果TV
  - **MiaoPai**
+ - **microsoftstream**: Microsoft Stream
  - **mildom**: Record ongoing live by specific user in Mildom
  - **mildom:user:vod**: Download all VODs from specific user in Mildom
  - **mildom:vod**: Download a VOD in Mildom
@@ -734,6 +739,7 @@
  - **Odnoklassniki**
  - **OktoberfestTV**
  - **OlympicsReplay**
+ - **on24**: ON24
  - **OnDemandKorea**
  - **onet.pl**
  - **onet.tv**
@@ -961,6 +967,7 @@
  - **SkylineWebcams**
  - **skynewsarabia:article**
  - **skynewsarabia:video**
+ - **SkyNewsAU**
  - **Slideshare**
  - **SlidesLive**
  - **Slutload**
@@ -970,7 +977,7 @@
  - **SonyLIVSeries**
  - **soundcloud**
  - **soundcloud:playlist**
- - **soundcloud:search**: Soundcloud search
+ - **soundcloud:search**: Soundcloud search, "scsearch" keyword
  - **soundcloud:set**
  - **soundcloud:trackstation**
  - **soundcloud:user**
@@ -1029,7 +1036,6 @@
  - **SztvHu**
  - **t-online.de**
  - **Tagesschau**
- - **tagesschau:player**
  - **Tass**
  - **TBS**
  - **TDSLifeway**
@@ -1089,6 +1095,8 @@
  - **TrailerAddict** (Currently broken)
  - **Trilulilu**
  - **Trovo**
+ - **TrovoChannelClip**: All Clips of a trovo.live channel, "trovoclip" keyword
+ - **TrovoChannelVod**: All VODs of a trovo.live channel, "trovovod" keyword
  - **TrovoVod**
  - **TruNews**
  - **TruTV**
@@ -1193,7 +1201,7 @@
  - **Viddler**
  - **Videa**
  - **video.arnes.si**: Arnes Video
- - **video.google:search**: Google Video search
+ - **video.google:search**: Google Video search (Currently broken)
  - **video.sky.it**
  - **video.sky.it:live**
  - **VideoDetective**

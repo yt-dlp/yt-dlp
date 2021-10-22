@@ -14,6 +14,84 @@
 -->
 
 
+### 2021.10.22
+
+* [build] Improvements
+    * Build standalone MacOS packages by [smplayer-dev](https://github.com/smplayer-dev)
+    * Release windows exe built with `py2exe`
+    * Enable lazy-extractors in releases. 
+        * Set env var `YTDLP_NO_LAZY_EXTRACTORS` to forcefully disable this (experimental)
+    * Clean up error reporting in update
+    * Refactor `pyinst.py`, misc cleanup and improve docs
+* [docs] Migrate issues to use forms by [Ashish0804](https://github.com/Ashish0804)
+* [downloader] **Fix slow progress hooks**
+    * This was causing HLS/DASH downloads to be extremely slow in some situations
+* [downloader/ffmpeg] Improve simultaneous download and merge
+* [EmbedMetadata] Allow overwriting all default metadata with `meta_default` key
+* [ModifyChapters] Add ability for `--remove-chapters` to remove sections by timestamp
+* [utils] Allow duration strings in `--match-filter`
+* Add HDR information to formats
+* Add negative option `--no-batch-file` by [Zirro](https://github.com/Zirro)
+* Calculate more fields for merged formats
+* Do not verify thumbnail URLs unless `--check-formats` is specified
+* Don't create console for subprocesses on Windows
+* Fix `--restrict-filename` when used with default template
+* Fix `check_formats` output being written to stdout when `-qv`
+* Fix bug in storyboards
+* Fix conflict b/w id and ext in format selection
+* Fix verbose head not showing custom configs
+* Load archive only after printing verbose head
+* Make `duration_string` and `resolution` available in --match-filter
+* Re-implement deprecated option `--id`
+* Reduce default `--socket-timeout`
+* Write verbose header to logger
+* [outtmpl] Fix bug in expanding environment variables
+* [cookies] Local State should be opened as utf-8
+* [extractor,utils] Detect more codecs/mimetypes
+* [extractor] Detect `EXT-X-KEY` Apple FairPlay
+* [utils] Use `importlib` to load plugins by [sulyi](https://github.com/sulyi)
+* [http] Retry on socket timeout and show the last encountered error
+* [fragment] Print error message when skipping fragment
+* [aria2c] Fix `--skip-unavailable-fragment`
+* [SponsorBlock] Obey `extractor-retries` and `sleep-requests`
+* [Merger] Do not add `aac_adtstoasc` to non-hls audio
+* [ModifyChapters] Do not mutate original chapters by [nihil-admirari](https://github.com/nihil-admirari)
+* [devscripts/run_tests] Use markers to filter tests by [sulyi](https://github.com/sulyi)
+* [7plus] Add cookie based authentication by [nyuszika7h](https://github.com/nyuszika7h)
+* [AdobePass] Fix RCN MSO by [jfogelman](https://github.com/jfogelman)
+* [CBC] Fix Gem livestream by [makeworld-the-better-one](https://github.com/makeworld-the-better-one)
+* [CBC] Support CBC Gem member content by [makeworld-the-better-one](https://github.com/makeworld-the-better-one)
+* [crunchyroll] Add season to flat-playlist Closes #1319
+* [crunchyroll] Add support for `beta.crunchyroll` URLs and fix series URLs with language code
+* [EUScreen] Add Extractor by [Ashish0804](https://github.com/Ashish0804)
+* [Gronkh] Add extractor by [Ashish0804](https://github.com/Ashish0804)
+* [hidive] Fix typo
+* [Hotstar] Mention Dynamic Range in `format_id` by [Ashish0804](https://github.com/Ashish0804)
+* [Hotstar] Raise appropriate error for DRM
+* [instagram] Add login by [u-spec-png](https://github.com/u-spec-png)
+* [instagram] Show appropriate error when login is needed
+* [microsoftstream] Add extractor by [damianoamatruda](https://github.com/damianoamatruda), [nixklai](https://github.com/nixklai)
+* [on24] Add extractor by [damianoamatruda](https://github.com/damianoamatruda)
+* [patreon] Fix vimeo player regex by [zenerdi0de](https://github.com/zenerdi0de)
+* [SkyNewsAU] Add extractor by [Ashish0804](https://github.com/Ashish0804)
+* [tagesschau] Fix extractor by [u-spec-png](https://github.com/u-spec-png)
+* [tbs] Add tbs live streams by [llacb47](https://github.com/llacb47)
+* [tiktok] Fix typo and update tests
+* [trovo] Support channel clips and VODs by [Ashish0804](https://github.com/Ashish0804)
+* [Viafree] Add support for Finland by [18928172992817182](https://github.com/18928172992817182)
+* [vimeo] Fix embedded `player.vimeo`
+* [vlive:channel] Fix extraction by [kikuyan](https://github.com/kikuyan), [pukkandan](https://github.com/pukkandan)
+* [youtube] Add auto-translated subtitles
+* [youtube] Expose different formats with same itag
+* [youtube:comments] Fix for new layout by [coletdjnz](https://github.com/coletdjnz)
+* [cleanup] Cleanup bilibili code by [pukkandan](https://github.com/pukkandan), [u-spec-png](https://github.com/u-spec-png)
+* [cleanup] Remove broken youtube login code
+* [cleanup] Standardize timestamp formatting code
+* [cleanup] Generalize `getcomments` implementation for extractors
+* [cleanup] Simplify search extractors code
+* [cleanup] misc
+
+
 ### 2021.10.10
 
 * [downloader/ffmpeg] Fix bug in initializing `FFmpegPostProcessor`
