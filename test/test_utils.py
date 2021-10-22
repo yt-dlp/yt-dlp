@@ -1163,12 +1163,15 @@ class TestUtil(unittest.TestCase):
     def test_parse_resolution(self):
         self.assertEqual(parse_resolution(None), {})
         self.assertEqual(parse_resolution(''), {})
-        self.assertEqual(parse_resolution('1920x1080'), {'width': 1920, 'height': 1080})
-        self.assertEqual(parse_resolution('1920×1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution(' 1920x1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('1920×1080 '), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('1920 x 1080'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('720p'), {'height': 720})
         self.assertEqual(parse_resolution('4k'), {'height': 2160})
         self.assertEqual(parse_resolution('8K'), {'height': 4320})
+        self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('ep1x2'), {})
+        self.assertEqual(parse_resolution('1920, 1080'), {'width': 1920, 'height': 1080})
 
     def test_parse_bitrate(self):
         self.assertEqual(parse_bitrate(None), None)

@@ -3714,14 +3714,14 @@ def parse_resolution(s):
     if s is None:
         return {}
 
-    mobj = re.search(r'\b(?P<w>\d+)\s*[xX×]\s*(?P<h>\d+)\b', s)
+    mobj = re.search(r'(?<![a-zA-Z0-9])(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)(?![a-zA-Z0-9])', s)
     if mobj:
         return {
             'width': int(mobj.group('w')),
             'height': int(mobj.group('h')),
         }
 
-    mobj = re.search(r'\b(\d+)[pPiI]\b', s)
+    mobj = re.search(r'(?<![a-zA-Z0-9])(\d+)[pPiI](?![a-zA-Z0-9])', s)
     if mobj:
         return {'height': int(mobj.group(1))}
 
