@@ -188,7 +188,7 @@ class NRKIE(NRKBaseIE):
         title = titles['title']
         alt_title = titles.get('subtitle')
 
-        description = preplay.get('description').replace('\r', '')
+        description = preplay.get('description').replace('\r', '\n')
         duration = parse_duration(playable.get('duration')) or parse_duration(data.get('duration'))
 
         thumbnails = []
