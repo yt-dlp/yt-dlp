@@ -4,6 +4,7 @@ import itertools
 import hashlib
 import json
 import re
+import time
 
 from .common import InfoExtractor
 from ..compat import (
@@ -20,11 +21,13 @@ from ..utils import (
     try_get,
     url_or_none,
     variadic,
+    urlencode_postdata,
 )
 
 
 class InstagramIE(InfoExtractor):
     _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com/(?:p|tv|reel)/(?P<id>[^/?#&]+))'
+    _NETRC_MACHINE = 'instagram'
     _TESTS = [{
         'url': 'https://instagram.com/p/aye83DjauH/?foo=bar#abc',
         'md5': '0d2da106a9d2631273e192b372806516',
@@ -140,6 +143,45 @@ class InstagramIE(InfoExtractor):
         if mobj:
             return mobj.group('link')
 
+    def _login(self):
+        username, password = self._get_login_info()
+
+        login_webpage = self._download_webpage(
+            'https://www.instagram.com/accounts/login/', None,
+            note='Downloading login webpage', errnote='Failed to download login webpage')
+
+        shared_data = self._parse_json(
+            self._search_regex(
+                r'window\._sharedData\s*=\s*({.+?});',
+                login_webpage, 'shared data', default='{}'),
+            None)
+
+        login = self._download_json('https://www.instagram.com/accounts/login/ajax/', None, note='Logging in', headers={
+            'Accept': '*/*',
+            'X-IG-App-ID': '936619743392459',
+            'X-ASBD-ID': '198387',
+            'X-IG-WWW-Claim': '0',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': shared_data['config']['csrf_token'],
+            'X-Instagram-AJAX': shared_data['rollout_hash'],
+            'Referer': 'https://www.instagram.com/',
+        }, data=urlencode_postdata({
+            'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
+            'username': username,
+            'queryParams': '{}',
+            'optIntoOneTap': 'false',
+            'stopDeletionNonce': '',
+            'trustedDeviceRecords': '{}',
+        }))
+
+        if not login.get('authenticated'):
+            if login.get('message'):
+                raise ExtractorError(f'Unable to login: {login["message"]}')
+            raise ExtractorError('Unable to login')
+
+    def _real_initialize(self):
+        self._login()
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
@@ -147,7 +189,7 @@ class InstagramIE(InfoExtractor):
 
         webpage, urlh = self._download_webpage_handle(url, video_id)
         if 'www.instagram.com/accounts/login' in urlh.geturl().rstrip('/'):
-            self.raise_login_required('You need to log in to access this content', method='cookies')
+            self.raise_login_required('You need to log in to access this content')
 
         (media, video_url, description, thumbnail, timestamp, uploader,
          uploader_id, like_count, comment_count, comments, height,
