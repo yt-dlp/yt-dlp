@@ -1092,6 +1092,7 @@ from .pokemon import (
     PokemonIE,
     PokemonWatchIE,
 )
+from .polsatgo import PolsatGoIE
 from .polskieradio import (
     PolskieRadioIE,
     PolskieRadioCategoryIE,
