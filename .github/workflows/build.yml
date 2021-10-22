@@ -53,7 +53,7 @@ jobs:
 
     - name: Build lazy extractors
       id: lazy_extractors
-      run: python devscripts/make_lazy_extractors.py yt_dlp/extractor/lazy_extractors.py
+      run: python devscripts/make_lazy_extractors.py
     - name: Run Make
       run: make all tar
     - name: Get SHA2-256SUMS for yt-dlp
@@ -115,10 +115,12 @@ jobs:
         release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
         commitish: ${{ steps.push_update.outputs.head_sha }}
         body: |
-          See [this](https://github.com/yt-dlp/yt-dlp#release-files) for a description of the files
-
-          #### Changelog:
+          ### Changelog:
           ${{ env.changelog }}
+
+          ---
+
+          ### See [this](https://github.com/yt-dlp/yt-dlp#release-files) for a description of the release files
         draft: false
         prerelease: false
     - name: Upload yt-dlp Unix binary
@@ -162,7 +164,7 @@ jobs:
       run: /usr/bin/python3 devscripts/update-version.py
     - name: Build lazy extractors
       id: lazy_extractors
-      run: /usr/bin/python3 devscripts/make_lazy_extractors.py yt_dlp/extractor/lazy_extractors.py
+      run: /usr/bin/python3 devscripts/make_lazy_extractors.py
     - name: Run PyInstaller Script
       run: /usr/bin/python3 pyinst.py --target-architecture universal2 --onefile
     - name: Upload yt-dlp MacOS binary
@@ -233,7 +235,7 @@ jobs:
       run: python devscripts/update-version.py
     - name: Build lazy extractors
       id: lazy_extractors
-      run: python devscripts/make_lazy_extractors.py yt_dlp/extractor/lazy_extractors.py
+      run: python devscripts/make_lazy_extractors.py
     - name: Run PyInstaller Script
       run: python pyinst.py
     - name: Upload yt-dlp.exe Windows binary
@@ -320,7 +322,7 @@ jobs:
       run: python devscripts/update-version.py
     - name: Build lazy extractors
       id: lazy_extractors
-      run: python devscripts/make_lazy_extractors.py yt_dlp/extractor/lazy_extractors.py
+      run: python devscripts/make_lazy_extractors.py
     - name: Run PyInstaller Script for 32 Bit
       run: python pyinst.py
     - name: Upload Executable yt-dlp_x86.exe

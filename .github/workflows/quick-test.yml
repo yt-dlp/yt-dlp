@@ -28,6 +28,6 @@ jobs:
     - name: Install flake8
       run: pip install flake8
     - name: Make lazy extractors
-      run: python devscripts/make_lazy_extractors.py yt_dlp/extractor/lazy_extractors.py
+      run: python devscripts/make_lazy_extractors.py
     - name: Run flake8
       run: flake8 .

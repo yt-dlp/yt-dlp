@@ -4304,9 +4304,7 @@ class YoutubePlaylistIE(InfoExtractor):
     def suitable(cls, url):
         if YoutubeTabIE.suitable(url):
             return False
-        # Hack for lazy extractors until more generic solution is implemented
-        # (see #28780)
-        from .youtube import parse_qs
+        from ..utils import parse_qs
         qs = parse_qs(url)
         if qs.get('v', [None])[0]:
             return False

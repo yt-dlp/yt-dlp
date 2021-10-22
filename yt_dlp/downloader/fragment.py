@@ -370,7 +370,8 @@ class FragmentFD(FileDownloader):
         if max_progress == 1:
             return self.download_and_append_fragments(*args[0], pack_func=pack_func, finish_func=finish_func)
         max_workers = self.params.get('concurrent_fragment_downloads', max_progress)
-        self._prepare_multiline_status(max_progress)
+        if max_progress > 1:
+            self._prepare_multiline_status(max_progress)
 
         def thread_func(idx, ctx, fragments, info_dict, tpe):
             ctx['max_progress'] = max_progress

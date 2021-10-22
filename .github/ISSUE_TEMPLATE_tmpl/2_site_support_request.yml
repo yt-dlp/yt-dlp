@@ -33,7 +33,7 @@ body:
     attributes:
       label: Example URLs
       description: |
-        Provide all kinds of example URLs, support for which should be included. Replace following example URLs by yours
+        Provide all kinds of example URLs for which support should be added
       value: |
         - Single video: https://www.youtube.com/watch?v=BaW_jenozKc
         - Single video: https://youtu.be/BaW_jenozKc

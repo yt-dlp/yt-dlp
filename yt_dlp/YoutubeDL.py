@@ -307,7 +307,7 @@ class YoutubeDL(object):
     cookiefile:        File name where cookies should be read from and dumped to
     cookiesfrombrowser: A tuple containing the name of the browser and the profile
                        name/path from where cookies are loaded.
-                       Eg: ('chrome', ) or (vivaldi, 'default')
+                       Eg: ('chrome', ) or ('vivaldi', 'default')
     nocheckcertificate:Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.
@@ -503,7 +503,7 @@ class YoutubeDL(object):
     def __init__(self, params=None, auto_init=True):
         """Create a FileDownloader object with the given options.
         @param auto_init    Whether to load the default extractors and print header (if verbose).
-                            Set to 'no_verbose_header' to not ptint the header
+                            Set to 'no_verbose_header' to not print the header
         """
         if params is None:
             params = {}
@@ -551,7 +551,7 @@ class YoutubeDL(object):
         check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
         check_deprecated('useid', '--id', '-o "%(id)s.%(ext)s"')
 
-        for msg in self.params.get('warnings', []):
+        for msg in self.params.get('_warnings', []):
             self.report_warning(msg)
 
         if 'overwrites' not in self.params and self.params.get('nooverwrites') is not None:
@@ -584,7 +584,9 @@ class YoutubeDL(object):
                 self._output_channel = os.fdopen(master, 'rb')
             except OSError as ose:
                 if ose.errno == errno.ENOENT:
-                    self.report_warning('Could not find fribidi executable, ignoring --bidi-workaround . Make sure that  fribidi  is an executable file in one of the directories in your $PATH.')
+                    self.report_warning(
+                        'Could not find fribidi executable, ignoring --bidi-workaround. '
+                        'Make sure that  fribidi  is an executable file in one of the directories in your $PATH.')
                 else:
                     raise
 
@@ -631,7 +633,7 @@ class YoutubeDL(object):
             """Preload the archive, if any is specified"""
             if fn is None:
                 return False
-            self.write_debug('Loading archive file %r\n' % fn)
+            self.write_debug(f'Loading archive file {fn!r}')
             try:
                 with locked_file(fn, 'r', encoding='utf-8') as archive_file:
                     for line in archive_file:
@@ -658,7 +660,7 @@ class YoutubeDL(object):
             )
             self.report_warning(
                 'Long argument string detected. '
-                'Use -- to separate parameters and URLs, like this:\n%s\n' %
+                'Use -- to separate parameters and URLs, like this:\n%s' %
                 args_to_str(correct_argv))
 
     def add_info_extractor(self, ie):
@@ -1550,7 +1552,7 @@ class YoutubeDL(object):
             playlistitems = list(range(playliststart, playliststart + n_entries))
         ie_result['requested_entries'] = playlistitems
 
-        if self.params.get('allow_playlist_files', True):
+        if not self.params.get('simulate') and self.params.get('allow_playlist_files', True):
             ie_copy = {
                 'playlist': playlist,
                 'playlist_id': ie_result.get('id'),
@@ -1558,6 +1560,7 @@ class YoutubeDL(object):
                 'playlist_uploader': ie_result.get('uploader'),
                 'playlist_uploader_id': ie_result.get('uploader_id'),
                 'playlist_index': 0,
+                'n_entries': n_entries,
             }
             ie_copy.update(dict(ie_result))
 
@@ -1883,6 +1886,7 @@ class YoutubeDL(object):
                     'height': the_only_video.get('height'),
                     'resolution': the_only_video.get('resolution') or self.format_resolution(the_only_video),
                     'fps': the_only_video.get('fps'),
+                    'dynamic_range': the_only_video.get('dynamic_range'),
                     'vcodec': the_only_video.get('vcodec'),
                     'vbr': the_only_video.get('vbr'),
                     'stretched_ratio': the_only_video.get('stretched_ratio'),
@@ -2381,7 +2385,7 @@ class YoutubeDL(object):
                 new_info['__original_infodict'] = info_dict
                 new_info.update(fmt)
                 self.process_info(new_info)
-        # We update the info dict with the best quality format (backwards compatibility)
+        # We update the info dict with the selected best quality format (backwards compatibility)
         if formats_to_download:
             info_dict.update(formats_to_download[-1])
         return info_dict
@@ -3250,35 +3254,40 @@ class YoutubeDL(object):
     def print_debug_header(self):
         if not self.params.get('verbose'):
             return
-        get_encoding = lambda stream: getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__)
-        encoding_str = (
-            '[debug] Encodings: locale %s, fs %s, stdout %s, stderr %s, pref %s\n' % (
-                locale.getpreferredencoding(),
-                sys.getfilesystemencoding(),
-                get_encoding(self._screen_file), get_encoding(self._err_file),
-                self.get_encoding()))
+
+        def get_encoding(stream):
+            ret = getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__)
+            if not supports_terminal_sequences(stream):
+                ret += ' (No ANSI)'
+            return ret
+
+        encoding_str = 'Encodings: locale %s, fs %s, out %s, err %s, pref %s' % (
+            locale.getpreferredencoding(),
+            sys.getfilesystemencoding(),
+            get_encoding(self._screen_file), get_encoding(self._err_file),
+            self.get_encoding())
 
         logger = self.params.get('logger')
         if logger:
             write_debug = lambda msg: logger.debug(f'[debug] {msg}')
             write_debug(encoding_str)
         else:
-            write_debug = lambda msg: self._write_string(f'[debug] {msg}')
-            write_string(encoding_str, encoding=None)
+            write_string(f'[debug] {encoding_str}', encoding=None)
+            write_debug = lambda msg: self._write_string(f'[debug] {msg}\n')
 
         source = detect_variant()
-        write_debug('yt-dlp version %s%s\n' % (__version__, '' if source == 'unknown' else f' ({source})'))
+        write_debug('yt-dlp version %s%s' % (__version__, '' if source == 'unknown' else f' ({source})'))
         if not _LAZY_LOADER:
             if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
-                write_debug('Lazy loading extractors is forcibly disabled\n')
+                write_debug('Lazy loading extractors is forcibly disabled')
             else:
-                write_debug('Lazy loading extractors is disabled\n')
+                write_debug('Lazy loading extractors is disabled')
         if plugin_extractors or plugin_postprocessors:
-            write_debug('Plugins: %s\n' % [
+            write_debug('Plugins: %s' % [
                 '%s%s' % (klass.__name__, '' if klass.__name__ == name else f' as {name}')
                 for name, klass in itertools.chain(plugin_extractors.items(), plugin_postprocessors.items())])
         if self.params.get('compat_opts'):
-            write_debug('Compatibility options: %s\n' % ', '.join(self.params.get('compat_opts')))
+            write_debug('Compatibility options: %s' % ', '.join(self.params.get('compat_opts')))
         try:
             sp = Popen(
                 ['git', 'rev-parse', '--short', 'HEAD'],
@@ -3287,7 +3296,7 @@ class YoutubeDL(object):
             out, err = sp.communicate_or_kill()
             out = out.decode().strip()
             if re.match('[0-9a-f]+', out):
-                write_debug('Git HEAD: %s\n' % out)
+                write_debug('Git HEAD: %s' % out)
         except Exception:
             try:
                 sys.exc_clear()
@@ -3300,7 +3309,7 @@ class YoutubeDL(object):
                 return impl_name + ' version %d.%d.%d' % sys.pypy_version_info[:3]
             return impl_name
 
-        write_debug('Python version %s (%s %s) - %s\n' % (
+        write_debug('Python version %s (%s %s) - %s' % (
             platform.python_version(),
             python_implementation(),
             platform.architecture()[0],
@@ -3312,7 +3321,7 @@ class YoutubeDL(object):
         exe_str = ', '.join(
             f'{exe} {v}' for exe, v in sorted(exe_versions.items()) if v
         ) or 'none'
-        write_debug('exe versions: %s\n' % exe_str)
+        write_debug('exe versions: %s' % exe_str)
 
         from .downloader.websocket import has_websockets
         from .postprocessor.embedthumbnail import has_mutagen
@@ -3325,21 +3334,18 @@ class YoutubeDL(object):
             SQLITE_AVAILABLE and 'sqlite',
             KEYRING_AVAILABLE and 'keyring',
         )))) or 'none'
-        write_debug('Optional libraries: %s\n' % lib_str)
-        write_debug('ANSI escape support: stdout = %s, stderr = %s\n' % (
-            supports_terminal_sequences(self._screen_file),
-            supports_terminal_sequences(self._err_file)))
+        write_debug('Optional libraries: %s' % lib_str)
 
         proxy_map = {}
         for handler in self._opener.handlers:
             if hasattr(handler, 'proxies'):
                 proxy_map.update(handler.proxies)
-        write_debug('Proxy map: ' + compat_str(proxy_map) + '\n')
+        write_debug(f'Proxy map: {proxy_map}')
 
-        if self.params.get('call_home', False):
+        # Not implemented
+        if False and self.params.get('call_home'):
             ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode('utf-8')
-            write_debug('Public IP address: %s\n' % ipaddr)
-            return
+            write_debug('Public IP address: %s' % ipaddr)
             latest_version = self.urlopen(
                 'https://yt-dl.org/latest/version').read().decode('utf-8')
             if version_tuple(latest_version) > version_tuple(__version__):

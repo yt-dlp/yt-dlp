@@ -855,7 +855,7 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
 
 class SoundcloudSearchIE(SearchInfoExtractor, SoundcloudIE):
     IE_NAME = 'soundcloud:search'
-    IE_DESC = 'Soundcloud search'
+    IE_DESC = 'Soundcloud search, "scsearch" keyword'
     _MAX_RESULTS = float('inf')
     _TESTS = [{
         'url': 'scsearch15:post-avant jazzcore',

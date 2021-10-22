@@ -24,16 +24,15 @@ def main():
     opts = parse_options()
     version = read_version()
 
-    suffix = '_x86' if ARCH == '32' else '_macos' if OS_NAME == 'Darwin' else ''
+    suffix = '_macos' if OS_NAME == 'Darwin' else '_x86' if ARCH == '32' else ''
     final_file = 'dist/%syt-dlp%s%s' % (
         'yt-dlp/' if '--onedir' in opts else '', suffix, '.exe' if OS_NAME == 'Windows' else '')
 
     print(f'Building yt-dlp v{version} {ARCH}bit for {OS_NAME} with options {opts}')
-    print('Remember to update the version using "devscripts/update-version.py"')
+    print('Remember to update the version using  "devscripts/update-version.py"')
     if not os.path.isfile('yt_dlp/extractor/lazy_extractors.py'):
         print('WARNING: Building without lazy_extractors. Run  '
-              '"devscripts/make_lazy_extractors.py" "yt_dlp/extractor/lazy_extractors.py"  '
-              'to build lazy extractors', file=sys.stderr)
+              '"devscripts/make_lazy_extractors.py"  to build lazy extractors', file=sys.stderr)
     print(f'Destination: {final_file}\n')
 
     opts = [

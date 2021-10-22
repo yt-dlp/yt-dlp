@@ -205,7 +205,7 @@ File|Description
 :---|:---
 [yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|MacOS standalone executable
 [yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows standalone x86 (32bit) binary
-[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows standalone x64 binary built with `py2exe`.<br/> Does not contain `pycryptodomex`, needs VC++14
+[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)|Windows standalone x64 binary built with `py2exe`.<br/> Does not contain `pycryptodomex`, needs VC++14
 [yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged windows executable (No auto-update)
 [yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS executable (No auto-update)
 
@@ -248,11 +248,10 @@ The windows releases are already built with the python interpreter, mutagen, pyc
 ### COMPILE
 
 **For Windows**:
-To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodomex, websockets)
-
-Once you have all the necessary dependencies installed, just run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
+To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodomex, websockets). Once you have all the necessary dependencies installed, (optionally) build lazy extractors using `devscripts/make_lazy_extractors.py`, and then just run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
 
     py -m pip install -U pyinstaller -r requirements.txt
+    py devscripts/make_lazy_extractors.py
     py pyinst.py
 
 Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment
@@ -261,7 +260,7 @@ Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstal
 You will need the required build tools: `python`, `make` (GNU), `pandoc`, `zip`, `pytest`  
 Then simply run `make`. You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files
 
-**Note**: In either platform, `devscripts\update-version.py` can be used to automatically update the version number
+**Note**: In either platform, `devscripts/update-version.py` can be used to automatically update the version number
 
 # USAGE AND OPTIONS
 
@@ -1156,11 +1155,13 @@ Available only in `--sponsorblock-chapter-title`:
  - `category_names` (list): Friendly names of the categories
  - `name` (string): Friendly name of the smallest category
 
-Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
+Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. For example for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
 
-For example for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
+Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
-For numeric sequences you can use numeric related formatting, for example, `%(view_count)05d` will result in a string with view count padded with zeros up to 5 characters, like in `00042`.
+**Tip**: Look at the `-j` output to identify which fields are available for the purticular URL
+
+For numeric sequences you can use [numeric related formatting](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting), for example, `%(view_count)05d` will result in a string with view count padded with zeros up to 5 characters, like in `00042`.
 
 Output templates can also contain arbitrary hierarchical path, e.g. `-o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s'` which will result in downloading each video in a directory corresponding to this path template. Any missing directory will be automatically created for you.
 
@@ -1309,7 +1310,7 @@ The available fields are:
  - `width`: Width of video
  - `res`: Video resolution, calculated as the smallest dimension.
  - `fps`: Framerate of video
- - `hdr`: The dynamic range of the video (`DV` > `HDR12` > `HDR10+` > `HDR10` > `SDR`)
+ - `hdr`: The dynamic range of the video (`DV` > `HDR12` > `HDR10+` > `HDR10` > `HLG` > `SDR`)
  - `tbr`: Total average bitrate in KBit/s
  - `vbr`: Average video bitrate in KBit/s
  - `abr`: Average audio bitrate in KBit/s
@@ -1626,6 +1627,8 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 ```
 
 See the public functions in [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py) for other available functions. Eg: `ydl.download`, `ydl.download_with_info_file`
+
+**Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the example above
 
 
 # DEPRECATED OPTIONS
