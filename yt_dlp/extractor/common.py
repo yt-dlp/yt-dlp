@@ -1495,6 +1495,13 @@ class InfoExtractor(object):
                     break
         return dict((k, v) for k, v in info.items() if v is not None)
 
+    def _search_nextjs_data(self, webpage, video_id, **kw):
+        return self._parse_json(
+            self._search_regex(
+                r'(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
+                webpage, 'next.js data', **kw),
+            video_id, **kw)
+
     @staticmethod
     def _hidden_inputs(html):
         html = re.sub(r'<!--(?:(?!<!--).)*-->', '', html)
