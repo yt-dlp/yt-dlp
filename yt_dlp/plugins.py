@@ -2,6 +2,9 @@ import importlib
 import sys
 import traceback
 from contextlib import suppress
+from importlib.abc import MetaPathFinder
+from importlib.machinery import ModuleSpec
+from importlib.util import module_from_spec, find_spec
 from inspect import getmembers, isclass
 from itertools import accumulate
 from pathlib import Path
@@ -25,7 +28,7 @@ class PluginLoader:
         pass
 
 
-class PluginFinder(importlib.abc.MetaPathFinder):
+class PluginFinder(MetaPathFinder):
     '''
     This class provides one or multiple namespace packages
     it searches in sys.path for the existing subdirectories
@@ -67,7 +70,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         if not search_locations:
             return None
 
-        spec = importlib.machinery.ModuleSpec(fullname, PluginLoader, is_package=True)
+        spec = ModuleSpec(fullname, PluginLoader, is_package=True)
         spec.submodule_search_locations = search_locations
         return spec
 
@@ -118,7 +121,7 @@ def load_plugins(name, suffix, namespace):
                 module = finder.load_module(module_name)
             else:
                 spec = finder.find_spec(module_name)
-                module = importlib.util.module_from_spec(spec)
+                module = module_from_spec(spec)
                 spec.loader.exec_module(module)
         except Exception:
             print(f"Error while importing module '{module_name}'", file=sys.stderr)
@@ -143,7 +146,7 @@ def load_plugins(name, suffix, namespace):
 
 
 def directories():
-    spec = importlib.util.find_spec(PACKAGE_NAME)
+    spec = find_spec(PACKAGE_NAME)
     return spec.submodule_search_locations if spec else []
 
 
