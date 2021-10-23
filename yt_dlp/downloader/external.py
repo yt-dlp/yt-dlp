@@ -532,10 +532,8 @@ class FFmpegFD(ExternalFD):
                         bitrate_str = re.match(r"(?P<E>\d+)(\.(?P<f>\d+))?(?P<U>g|m|k)?bits/s", ffmpeg_prog_infos['bitrate'])
                         if bitrate_str:
                             bitrate_int = compute_prefix(bitrate_str)
-                        dl_bytes_int = 0
-                        dl_bytes_str = re.match(r"(?P<E>\d+)(\.(?P<f>\d+))?(?P<U>g|m|k)?B", ffmpeg_prog_infos['total_size'])
-                        if dl_bytes_str:
-                            dl_bytes_int = compute_prefix(dl_bytes_str)
+                        dl_bytes_str = re.match(r"\d+", ffmpeg_prog_infos['total_size'])
+                        dl_bytes_int = int(ffmpeg_prog_infos['total_size']) if dl_bytes_str else 0
                         status.update({
                             'downloaded_bytes': dl_bytes_int,
                             'speed': bitrate_int,
