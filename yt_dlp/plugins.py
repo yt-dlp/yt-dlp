@@ -7,7 +7,7 @@ from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec, find_spec
 from inspect import getmembers, isclass
 from itertools import accumulate
-from pathlib import Path
+from pathlib import Path, PurePath
 from pkgutil import iter_modules as pkgutil_iter_modules
 from shutil import copytree
 from zipfile import ZipFile
@@ -33,29 +33,32 @@ class PluginFinder(MetaPathFinder):
     def partition(name):
         yield from accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
 
+    def zip_has_dir(self, archive, path):
+        if archive not in self._zip_content_cache:
+            self._zip_content_cache[archive] = \
+                [PurePath(name) for name in ZipFile(archive).namelist()]
+        path = PurePath(path)
+        return any(path in file.parents for file in self._zip_content_cache[archive])
+
     def __init__(self, *packages):
         self.packages = set()
+        self._zip_content_cache = {}
+
         for name in packages:
             self.packages.update(self.partition(name))
 
-    @staticmethod
-    def search_locations(fullname):
+    def search_locations(self, fullname):
         parts = fullname.split('.')
-        loc = []
-        for path in map(Path, sys.path):
+        locations = []
+        for path in map(Path, dict.fromkeys(sys.path).keys()):
             candidate = path.joinpath(*parts)
             if candidate.is_dir():
-                loc.append(str(candidate))
+                locations.append(str(candidate))
             elif path.is_file() and path.suffix in {'.zip', '.egg', '.whl'}:
                 with suppress(FileNotFoundError):
-                    zipfile = ZipFile(path, 'r')
-                    if any(
-                        name.startswith('/'.join((*parts, '')))
-                        for name in zipfile.namelist()
-                    ):
-                        loc.append(str(candidate))
-
-        return loc
+                    if self.zip_has_dir(path, "/".join(parts)):
+                        locations.append(str(candidate))
+        return locations
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname not in self.packages:
@@ -81,7 +84,7 @@ def initialize():
     meipass = Path(getattr(sys, '_MEIPASS', '.'))
     if getattr(sys, 'frozen', False) and root != meipass:
         try:
-            copytree(root / PACKAGE_NAME, meipass / PACKAGE_NAME, dirs_exist_ok=False)
+            copytree(root / PACKAGE_NAME, meipass / PACKAGE_NAME, dirs_exist_ok=True)
         except FileNotFoundError:
             pass
         except OSError as exc:
@@ -90,6 +93,11 @@ def initialize():
     sys.meta_path.insert(
         0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
     _INITIALIZED = True
+
+
+def directories():
+    spec = find_spec(PACKAGE_NAME)
+    return spec.submodule_search_locations if spec else []
 
 
 def iter_modules(subpackage):
@@ -102,13 +110,13 @@ def iter_modules(subpackage):
 def load_plugins(name, suffix, namespace):
     classes = {}
 
-    def predicate(package_name):
-        def check_pred(obj):
+    def gen_predicate(package_name):
+        def check_predicate(obj):
             return (isclass(obj)
                     and obj.__name__.endswith(suffix)
                     and obj.__module__.startswith(package_name))
 
-        return check_pred
+        return check_predicate
 
     for finder, module_name, is_pkg in iter_modules(name):
         try:
@@ -124,25 +132,14 @@ def load_plugins(name, suffix, namespace):
             continue
 
         sys.modules[module_name] = module
-        module_classes = dict(getmembers(module, predicate(module_name)))
-        name_collisons = (set(classes.keys()) | set(namespace.keys())) & set(
-            module_classes.keys()
-        )
-        classes.update(
-            {
-                key: value
-                for key, value in module_classes.items()
-                if key not in name_collisons
-            }
-        )
+        module_classes = dict(getmembers(module, gen_predicate(module_name)))
+        name_collisions = (
+            set(classes.keys()) | set(namespace.keys())) & set(module_classes.keys())
+        classes.update({key: value for key, value in module_classes.items()
+                        if key not in name_collisions})
 
     namespace.update(classes)
     return classes
-
-
-def directories():
-    spec = find_spec(PACKAGE_NAME)
-    return spec.submodule_search_locations if spec else []
 
 
 initialize()
