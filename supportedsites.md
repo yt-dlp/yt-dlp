@@ -127,7 +127,7 @@
  - **BilibiliAudioAlbum**
  - **BilibiliChannel**
  - **BiliBiliPlayer**
- - **BiliBiliSearch**: Bilibili video search, "bilisearch" keyword
+ - **BiliBiliSearch**: Bilibili video search; "bilisearch:" prefix
  - **BiliIntl**
  - **BiliIntlSeries**
  - **BioBioChileTV**
@@ -199,6 +199,7 @@
  - **Cinemax**
  - **CiscoLiveSearch**
  - **CiscoLiveSession**
+ - **ciscowebex**: Cisco Webex
  - **CJSW**
  - **cliphunter**
  - **Clippit**
@@ -225,13 +226,14 @@
  - **Crackle**
  - **CrooksAndLiars**
  - **crunchyroll**
+ - **crunchyroll:beta**
  - **crunchyroll:playlist**
+ - **crunchyroll:playlist:beta**
  - **CSpan**: C-SPAN
  - **CtsNews**: 華視新聞
  - **CTV**
  - **CTVNews**
  - **cu.ntv.co.jp**: Nippon Television Network
- - **Culturebox**
  - **CultureUnplugged**
  - **curiositystream**
  - **curiositystream:collection**
@@ -315,6 +317,7 @@
  - **ESPNArticle**
  - **EsriVideo**
  - **Europa**
+ - **EUScreen**
  - **EWETV**
  - **ExpoTV**
  - **Expressen**
@@ -345,13 +348,10 @@
  - **foxnews**: Fox News and Fox Business Video
  - **foxnews:article**
  - **FoxSports**
- - **france2.fr:generation-what**
  - **FranceCulture**
  - **FranceInter**
  - **FranceTV**
- - **FranceTVEmbed**
  - **francetvinfo.fr**
- - **FranceTVJeunesse**
  - **FranceTVSite**
  - **Freesound**
  - **freespeech.org**
@@ -379,6 +379,7 @@
  - **gem.cbc.ca:live**
  - **gem.cbc.ca:playlist**
  - **generic**: Generic downloader that works on some sites
+ - **Gettr**
  - **Gfycat**
  - **GiantBomb**
  - **Giga**
@@ -392,9 +393,11 @@
  - **google:podcasts**
  - **google:podcasts:feed**
  - **GoogleDrive**
+ - **GoPro**
  - **Goshgay**
  - **GoToStage**
  - **GPUTechConf**
+ - **Gronkh**
  - **Groupon**
  - **hbo**
  - **HearThisAt**
@@ -571,6 +574,7 @@
  - **Mgoon**
  - **MGTV**: 芒果TV
  - **MiaoPai**
+ - **microsoftstream**: Microsoft Stream
  - **mildom**: Record ongoing live by specific user in Mildom
  - **mildom:user:vod**: Download all VODs from specific user in Mildom
  - **mildom:vod**: Download a VOD in Mildom
@@ -630,6 +634,8 @@
  - **MyviEmbed**
  - **MyVisionTV**
  - **n-tv.de**
+ - **N1Info:article**
+ - **N1InfoAsset**
  - **natgeo:video**
  - **NationalGeographicTV**
  - **Naver**
@@ -685,8 +691,8 @@
  - **niconico**: ニコニコ動画
  - **NiconicoPlaylist**
  - **NiconicoUser**
- - **nicovideo:search**: Nico video searches
- - **nicovideo:search:date**: Nico video searches, newest first
+ - **nicovideo:search**: Nico video searches; "nicosearch:" prefix
+ - **nicovideo:search:date**: Nico video searches, newest first; "nicosearchdate:" prefix
  - **nicovideo:search_url**: Nico video search URLs
  - **Nintendo**
  - **Nitter**
@@ -700,6 +706,7 @@
  - **NosVideo**
  - **Nova**: TN.cz, Prásk.tv, Nova.cz, Novaplus.cz, FANDA.tv, Krásná.cz and Doma.cz
  - **NovaEmbed**
+ - **NovaPlay**
  - **nowness**
  - **nowness:playlist**
  - **nowness:series**
@@ -732,6 +739,7 @@
  - **Odnoklassniki**
  - **OktoberfestTV**
  - **OlympicsReplay**
+ - **on24**: ON24
  - **OnDemandKorea**
  - **onet.pl**
  - **onet.tv**
@@ -905,6 +913,7 @@
  - **RTVNH**
  - **RTVS**
  - **RUHD**
+ - **RumbleChannel**
  - **RumbleEmbed**
  - **rutube**: Rutube videos
  - **rutube:channel**: Rutube channels
@@ -927,7 +936,7 @@
  - **SBS**: sbs.com.au
  - **schooltv**
  - **ScienceChannel**
- - **screen.yahoo:search**: Yahoo screen search
+ - **screen.yahoo:search**: Yahoo screen search; "yvsearch:" prefix
  - **Screencast**
  - **ScreencastOMatic**
  - **ScrippsNetworks**
@@ -958,6 +967,7 @@
  - **SkylineWebcams**
  - **skynewsarabia:article**
  - **skynewsarabia:video**
+ - **SkyNewsAU**
  - **Slideshare**
  - **SlidesLive**
  - **Slutload**
@@ -967,7 +977,7 @@
  - **SonyLIVSeries**
  - **soundcloud**
  - **soundcloud:playlist**
- - **soundcloud:search**: Soundcloud search
+ - **soundcloud:search**: Soundcloud search; "scsearch:" prefix
  - **soundcloud:set**
  - **soundcloud:trackstation**
  - **soundcloud:user**
@@ -985,7 +995,6 @@
  - **SpankBangPlaylist**
  - **Spankwire**
  - **Spiegel**
- - **sport.francetvinfo.fr**
  - **Sport5**
  - **SportBox**
  - **SportDeutschland**
@@ -1027,7 +1036,6 @@
  - **SztvHu**
  - **t-online.de**
  - **Tagesschau**
- - **tagesschau:player**
  - **Tass**
  - **TBS**
  - **TDSLifeway**
@@ -1065,7 +1073,8 @@
  - **TheScene**
  - **TheStar**
  - **TheSun**
- - **Theta**
+ - **ThetaStream**
+ - **ThetaVideo**
  - **TheWeatherChannel**
  - **ThisAmericanLife**
  - **ThisAV**
@@ -1086,6 +1095,8 @@
  - **TrailerAddict** (Currently broken)
  - **Trilulilu**
  - **Trovo**
+ - **TrovoChannelClip**: All Clips of a trovo.live channel; "trovoclip:" prefix
+ - **TrovoChannelVod**: All VODs of a trovo.live channel; "trovovod:" prefix
  - **TrovoVod**
  - **TruNews**
  - **TruTV**
@@ -1174,6 +1185,7 @@
  - **Varzesh3**
  - **Vbox7**
  - **VeeHD**
+ - **Veo**
  - **Veoh**
  - **Vesti**: Вести.Ru
  - **Vevo**
@@ -1189,7 +1201,7 @@
  - **Viddler**
  - **Videa**
  - **video.arnes.si**: Arnes Video
- - **video.google:search**: Google Video search
+ - **video.google:search**: Google Video search; "gvsearch:" prefix (Currently broken)
  - **video.sky.it**
  - **video.sky.it:live**
  - **VideoDetective**
@@ -1202,9 +1214,6 @@
  - **VidioLive**
  - **VidioPremier**
  - **VidLii**
- - **vidme**
- - **vidme:user**
- - **vidme:user:likes**
  - **vier**: vier.be and vijf.be
  - **vier:videos**
  - **viewlift**
@@ -1256,6 +1265,7 @@
  - **VTXTV**
  - **vube**: Vube.com
  - **VuClip**
+ - **Vupload**
  - **VVVVID**
  - **VVVVIDShow**
  - **VyboryMos**
@@ -1333,19 +1343,19 @@
  - **YouPorn**
  - **YourPorn**
  - **YourUpload**
- - **youtube**: YouTube.com
- - **youtube:favorites**: YouTube.com liked videos, ":ytfav" for short (requires authentication)
- - **youtube:history**: Youtube watch history, ":ythis" for short (requires authentication)
- - **youtube:playlist**: YouTube.com playlists
- - **youtube:recommended**: YouTube.com recommended videos, ":ytrec" for short (requires authentication)
- - **youtube:search**: YouTube.com searches, "ytsearch" keyword
- - **youtube:search:date**: YouTube.com searches, newest videos first, "ytsearchdate" keyword
- - **youtube:search_url**: YouTube.com search URLs
- - **youtube:subscriptions**: YouTube.com subscriptions feed, ":ytsubs" for short (requires authentication)
- - **youtube:tab**: YouTube.com tab
- - **youtube:watchlater**: Youtube watch later list, ":ytwatchlater" for short (requires authentication)
+ - **youtube**: YouTube
+ - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
+ - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
+ - **youtube:playlist**: YouTube playlists
+ - **youtube:recommended**: YouTube recommended videos; ":ytrec" keyword
+ - **youtube:search**: YouTube searches; "ytsearch:" prefix
+ - **youtube:search:date**: YouTube searches, newest videos first; "ytsearchdate:" prefix
+ - **youtube:search_url**: YouTube search URLs with sorting and filter support
+ - **youtube:subscriptions**: YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)
+ - **youtube:tab**: YouTube Tabs
+ - **youtube:watchlater**: Youtube watch later list; ":ytwatchlater" keyword (requires cookies)
  - **YoutubeYtBe**: youtu.be
- - **YoutubeYtUser**: YouTube.com user videos, URL or "ytuser" keyword
+ - **YoutubeYtUser**: YouTube user videos; "ytuser:" prefix
  - **Zapiks**
  - **Zattoo**
  - **ZattooLive**

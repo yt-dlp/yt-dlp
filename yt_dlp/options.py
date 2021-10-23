@@ -910,12 +910,30 @@ def parseOpts(overrideArguments=None):
         help='Output progress bar as new lines')
     verbosity.add_option(
         '--no-progress',
-        action='store_true', dest='noprogress', default=False,
+        action='store_true', dest='noprogress', default=None,
         help='Do not print progress bar')
+    verbosity.add_option(
+        '--progress',
+        action='store_false', dest='noprogress',
+        help='Show progress bar, even if in quiet mode')
     verbosity.add_option(
         '--console-title',
         action='store_true', dest='consoletitle', default=False,
         help='Display progress in console titlebar')
+    verbosity.add_option(
+        '--progress-template',
+        metavar='[TYPES:]TEMPLATE', dest='progress_template', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': '(download|postprocess)(-title)?',
+            'default_key': 'download'
+        }, help=(
+            'Template for progress outputs, optionally prefixed with one of "download:" (default), '
+            '"download-title:" (the console title), "postprocess:",  or "postprocess-title:". '
+            'The video\'s fields are accessible under the "info" key and '
+            'the progress attributes are accessible under "progress" key. Eg: '
+            # TODO: Document the fields inside "progress"
+            '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,
@@ -953,6 +971,10 @@ def parseOpts(overrideArguments=None):
         dest='batchfile', metavar='FILE',
         help="File containing URLs to download ('-' for stdin), one URL per line. "
              "Lines starting with '#', ';' or ']' are considered as comments and ignored")
+    filesystem.add_option(
+        '--no-batch-file',
+        dest='batchfile', action='store_const', const=None,
+        help='Do not read URLs from batch file (default)')
     filesystem.add_option(
         '--id', default=False,
         action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
@@ -1011,18 +1033,6 @@ def parseOpts(overrideArguments=None):
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,
         help='Limit the filename length (excluding extension) to the specified number of characters')
-    filesystem.add_option(
-        '--auto-number',
-        action='store_true', dest='autonumber', default=False,
-        help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
-        '--title',
-        action='store_true', dest='usetitle', default=False,
-        help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
-        '--literal', default=False,
-        action='store_true', dest='usetitle',
-        help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-w', '--no-overwrites',
         action='store_false', dest='overwrites', default=None,
@@ -1375,7 +1385,11 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--remove-chapters',
         metavar='REGEX', dest='remove_chapters', action='append',
-        help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
+        help=(
+            'Remove chapters whose title matches the given regular expression. '
+            'Time ranges prefixed by a "*" can also be used in place of chapters to remove the specified range. '
+            'Eg: --remove-chapters "*10:15-15:00" --remove-chapters "intro". '
+            'This option can be used multiple times'))
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
         help='Do not remove any chapters from the file (default)')
@@ -1587,7 +1601,7 @@ def parseOpts(overrideArguments=None):
                     parser.error('config-location %s does not exist.' % location)
                 config = _readOptions(location, default=None)
                 if config:
-                    configs['custom'], paths['config'] = config, location
+                    configs['custom'], paths['custom'] = config, location
 
             if opts.ignoreconfig:
                 return
@@ -1607,7 +1621,7 @@ def parseOpts(overrideArguments=None):
         argv = configs['system'] + configs['user'] + configs['home'] + configs['portable'] + configs['custom'] + configs['command-line']
         opts, args = parser.parse_args(argv)
         if opts.verbose:
-            for label in ('System', 'User', 'Portable', 'Home', 'Custom', 'Command-line'):
+            for label in ('Command-line', 'Custom', 'Portable', 'Home', 'User', 'System'):
                 key = label.lower()
                 if paths.get(key):
                     write_string(f'[debug] {label} config file: {paths[key]}\n')

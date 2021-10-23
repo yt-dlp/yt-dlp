@@ -72,8 +72,9 @@ class FragmentFD(FileDownloader):
             '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
             % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
 
-    def report_skip_fragment(self, frag_index):
-        self.to_screen('[download] Skipping fragment %d ...' % frag_index)
+    def report_skip_fragment(self, frag_index, err=None):
+        err = f' {err};' if err else ''
+        self.to_screen(f'[download]{err} Skipping fragment {frag_index:d} ...')
 
     def _prepare_url(self, info_dict, url):
         headers = info_dict.get('http_headers')
@@ -369,7 +370,8 @@ class FragmentFD(FileDownloader):
         if max_progress == 1:
             return self.download_and_append_fragments(*args[0], pack_func=pack_func, finish_func=finish_func)
         max_workers = self.params.get('concurrent_fragment_downloads', max_progress)
-        self._prepare_multiline_status(max_progress)
+        if max_progress > 1:
+            self._prepare_multiline_status(max_progress)
 
         def thread_func(idx, ctx, fragments, info_dict, tpe):
             ctx['max_progress'] = max_progress
@@ -393,9 +395,7 @@ class FragmentFD(FileDownloader):
                 result = result and job.result()
             finally:
                 tpe.shutdown(wait=True)
-
-        self._finish_multiline_status()
-        return True
+        return result
 
     def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, tpe=None):
         fragment_retries = self.params.get('fragment_retries', 0)
@@ -445,7 +445,7 @@ class FragmentFD(FileDownloader):
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
                 if not is_fatal(frag_index - 1):
-                    self.report_skip_fragment(frag_index)
+                    self.report_skip_fragment(frag_index, 'fragment not found')
                     return True
                 else:
                     ctx['dest_stream'].close()

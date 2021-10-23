@@ -39,8 +39,8 @@ MSO_INFO = {
     },
     'RCN': {
         'name': 'RCN',
-        'username_field': 'UserName',
-        'password_field': 'UserPassword',
+        'username_field': 'username',
+        'password_field': 'password',
     },
     'Rogers': {
         'name': 'Rogers',

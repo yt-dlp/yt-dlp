@@ -11,9 +11,9 @@ from ..utils import (
     encodeFilename,
     shell_quote,
     str_or_none,
+    Popen,
     PostProcessingError,
     prepend_extension,
-    process_communicate_or_kill,
 )
 
 
@@ -81,8 +81,8 @@ class SponSkrubPP(PostProcessor):
 
         self.write_debug('sponskrub command line: %s' % shell_quote(cmd))
         pipe = None if self.get_param('verbose') else subprocess.PIPE
-        p = subprocess.Popen(cmd, stdout=pipe)
-        stdout = process_communicate_or_kill(p)[0]
+        p = Popen(cmd, stdout=pipe)
+        stdout = p.communicate_or_kill()[0]
 
         if p.returncode == 0:
             os.replace(temp_filename, filename)

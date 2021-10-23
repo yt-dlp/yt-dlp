@@ -704,16 +704,13 @@ class NicovideoSearchURLIE(InfoExtractor):
 
 class NicovideoSearchIE(SearchInfoExtractor, NicovideoSearchURLIE):
     IE_DESC = 'Nico video searches'
-    _MAX_RESULTS = float('inf')
     IE_NAME = NicovideoSearchIE_NAME
     _SEARCH_KEY = 'nicosearch'
     _TESTS = []
 
-    def _get_n_results(self, query, n):
-        entries = self._entries(self._proto_relative_url(f'//www.nicovideo.jp/search/{query}'), query)
-        if n < float('inf'):
-            entries = itertools.islice(entries, 0, n)
-        return self.playlist_result(entries, query, query)
+    def _search_results(self, query):
+        return self._entries(
+            self._proto_relative_url(f'//www.nicovideo.jp/search/{query}'), query)
 
 
 class NicovideoSearchDateIE(NicovideoSearchIE):

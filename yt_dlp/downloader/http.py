@@ -48,8 +48,9 @@ class HttpFD(FileDownloader):
 
         is_test = self.params.get('test', False)
         chunk_size = self._TEST_FILE_SIZE if is_test else (
-            info_dict.get('downloader_options', {}).get('http_chunk_size')
-            or self.params.get('http_chunk_size') or 0)
+            self.params.get('http_chunk_size')
+            or info_dict.get('downloader_options', {}).get('http_chunk_size')
+            or 0)
 
         ctx.open_mode = 'wb'
         ctx.resume_len = 0
@@ -57,6 +58,7 @@ class HttpFD(FileDownloader):
         ctx.block_size = self.params.get('buffersize', 1024)
         ctx.start_time = time.time()
         ctx.chunk_size = None
+        throttle_start = None
 
         if self.params.get('continuedl', True):
             # Establish possible resume length
@@ -189,13 +191,16 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-            except socket.error as err:
-                if err.errno != errno.ECONNRESET:
-                    # Connection reset is no problem, just retry
-                    raise
+            except socket.timeout as err:
                 raise RetryDownload(err)
+            except socket.error as err:
+                if err.errno in (errno.ECONNRESET, errno.ETIMEDOUT):
+                    # Connection reset is no problem, just retry
+                    raise RetryDownload(err)
+                raise
 
         def download():
+            nonlocal throttle_start
             data_len = ctx.data.info().get('Content-length', None)
 
             # Range HTTP header may be ignored/unsupported by a webserver
@@ -224,7 +229,6 @@ class HttpFD(FileDownloader):
             # measure time over whole while-loop, so slow_down() and best_block_size() work together properly
             now = None  # needed for slow_down() in the first loop run
             before = start  # start measuring
-            throttle_start = None
 
             def retry(e):
                 to_stdout = ctx.tmpfilename == '-'
@@ -325,7 +329,7 @@ class HttpFD(FileDownloader):
                         if ctx.stream is not None and ctx.tmpfilename != '-':
                             ctx.stream.close()
                         raise ThrottledDownload()
-                else:
+                elif speed:
                     throttle_start = None
 
             if not is_test and ctx.chunk_size and ctx.data_len is not None and byte_counter < ctx.data_len:
@@ -371,6 +375,8 @@ class HttpFD(FileDownloader):
                 count += 1
                 if count <= retries:
                     self.report_retry(e.source_error, count, retries)
+                else:
+                    self.to_screen(f'[download] Got server HTTP error: {e.source_error}')
                 continue
             except NextFragment:
                 continue

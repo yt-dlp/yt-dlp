@@ -10,7 +10,7 @@ import json
 
 from .common import AudioConversionError, PostProcessor
 
-from ..compat import compat_str, compat_numeric_types
+from ..compat import compat_str
 from ..utils import (
     dfxp2srt,
     encodeArgument,
@@ -20,9 +20,9 @@ from ..utils import (
     is_outdated_version,
     ISO639Utils,
     orderedSet,
+    Popen,
     PostProcessingError,
     prepend_extension,
-    process_communicate_or_kill,
     replace_extension,
     shell_quote,
     traverse_obj,
@@ -178,10 +178,8 @@ class FFmpegPostProcessor(PostProcessor):
                     encodeArgument('-i')]
             cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
             self.write_debug('%s command line: %s' % (self.basename, shell_quote(cmd)))
-            handle = subprocess.Popen(
-                cmd, stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-            stdout_data, stderr_data = process_communicate_or_kill(handle)
+            handle = Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout_data, stderr_data = handle.communicate_or_kill()
             expected_ret = 0 if self.probe_available else 1
             if handle.wait() != expected_ret:
                 return None
@@ -223,7 +221,7 @@ class FFmpegPostProcessor(PostProcessor):
         cmd += opts
         cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
         self.write_debug('ffprobe command line: %s' % shell_quote(cmd))
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         stdout, stderr = p.communicate()
         return json.loads(stdout.decode('utf-8', 'replace'))
 
@@ -262,7 +260,7 @@ class FFmpegPostProcessor(PostProcessor):
         oldest_mtime = min(
             os.stat(encodeFilename(path)).st_mtime for path, _ in input_path_opts if path)
 
-        cmd = [encodeFilename(self.executable, True), encodeArgument('-y'), encodeArgument('-probesize'), encodeArgument('max')]
+        cmd = [encodeFilename(self.executable, True), encodeArgument('-y')]
         # avconv does not have repeat option
         if self.basename == 'ffmpeg':
             cmd += [encodeArgument('-loglevel'), encodeArgument('repeat+info')]
@@ -284,8 +282,8 @@ class FFmpegPostProcessor(PostProcessor):
                 for i, (path, opts) in enumerate(path_opts) if path)
 
         self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        stdout, stderr = process_communicate_or_kill(p)
+        p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        stdout, stderr = p.communicate_or_kill()
         if p.returncode not in variadic(expected_retcodes):
             stderr = stderr.decode('utf-8', 'replace').strip()
             self.write_debug(stderr)
@@ -555,7 +553,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         mp4_ass_warn = False
 
         for lang, sub_info in subtitles.items():
-            if not os.path.exists(information.get('filepath', '')):
+            if not os.path.exists(sub_info.get('filepath', '')):
                 self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
                 continue
             sub_ext = sub_info['ext']
@@ -664,15 +662,14 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     def _get_metadata_opts(self, info):
         metadata = {}
+        meta_prefix = 'meta_'
 
         def add(meta_list, info_list=None):
-            if not meta_list:
-                return
-            for info_f in variadic(info_list or meta_list):
-                if isinstance(info.get(info_f), (compat_str, compat_numeric_types)):
-                    for meta_f in variadic(meta_list):
-                        metadata[meta_f] = info[info_f]
-                    break
+            value = next((
+                str(info[key]) for key in [meta_prefix] + list(variadic(info_list or meta_list))
+                if info.get(key) is not None), None)
+            if value not in ('', None):
+                metadata.update({meta_f: value for meta_f in variadic(meta_list)})
 
         # See [1-4] for some info on media metadata/metadata supported
         # by ffmpeg.
@@ -695,9 +692,9 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add('episode_id', ('episode', 'episode_id'))
         add('episode_sort', 'episode_number')
 
-        prefix = 'meta_'
-        for key in filter(lambda k: k.startswith(prefix), info.keys()):
-            add(key[len(prefix):], key)
+        for key, value in info.items():
+            if value is not None and key != meta_prefix and key.startswith(meta_prefix):
+                metadata[key[len(meta_prefix):]] = value
 
         for name, value in metadata.items():
             yield ('-metadata', f'{name}={value}')
@@ -732,7 +729,8 @@ class FFmpegMergerPP(FFmpegPostProcessor):
         for (i, fmt) in enumerate(info['requested_formats']):
             if fmt.get('acodec') != 'none':
                 args.extend(['-map', f'{i}:a:0'])
-                if self.get_audio_codec(fmt['filepath']) == 'aac':
+                aac_fixup = fmt['protocol'].startswith('m3u8') and self.get_audio_codec(fmt['filepath']) == 'aac'
+                if aac_fixup:
                     args.extend([f'-bsf:a:{audio_streams}', 'aac_adtstoasc'])
                 audio_streams += 1
             if fmt.get('vcodec') != 'none':
@@ -845,6 +843,9 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
         self.to_screen('Converting subtitles')
         sub_filenames = []
         for lang, sub in subs.items():
+            if not os.path.exists(sub.get('filepath', '')):
+                self.report_warning(f'Skipping embedding {lang} subtitle because the file is missing')
+                continue
             ext = sub['ext']
             if ext == new_ext:
                 self.to_screen('Subtitle file for %s is already in the requested format' % new_ext)

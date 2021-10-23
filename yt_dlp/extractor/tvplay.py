@@ -336,8 +336,8 @@ class ViafreeIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:www\.)?
-                        viafree\.(?P<country>dk|no|se)
-                        /(?P<id>program(?:mer)?/(?:[^/]+/)+[^/?#&]+)
+                        viafree\.(?P<country>dk|no|se|fi)
+                        /(?P<id>(?:program(?:mer)?|ohjelmat)?/(?:[^/]+/)+[^/?#&]+)
                     '''
     _TESTS = [{
         'url': 'http://www.viafree.no/programmer/underholdning/det-beste-vorspielet/sesong-2/episode-1',
@@ -388,6 +388,9 @@ class ViafreeIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'http://www.viafree.se/program/underhallning/i-like-radio-live/sasong-1/676869',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.viafree.fi/ohjelmat/entertainment/amazing-makeovers/kausi-7/jakso-2',
         'only_matching': True,
     }]
     _GEO_BYPASS = False

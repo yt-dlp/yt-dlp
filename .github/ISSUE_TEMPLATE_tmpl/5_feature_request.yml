@@ -1,0 +1,30 @@
+name: Feature request request
+description: Request a new functionality unrelated to any particular site or extractor
+labels: [triage, enhancement]
+body:
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: |
+        Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
+      options:
+        - label: I'm reporting a feature request
+          required: true
+        - label: I've verified that I'm running yt-dlp version **%(version)s**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
+          required: true
+        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues including closed ones. DO NOT post duplicates
+          required: true
+        - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
+          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        Provide an explanation of your site feature request in an arbitrary form.
+        Please make sure the description is worded well enough to be understood, see [is-the-description-of-the-issue-itself-sufficient](https://github.com/ytdl-org/youtube-dl#is-the-description-of-the-issue-itself-sufficient).
+        Provide any additional information, any suggested solutions, and as much context and examples as possible
+      placeholder: WRITE DESCRIPTION HERE
+    validations:
+      required: true

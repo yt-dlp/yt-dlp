@@ -666,8 +666,7 @@ class TestYoutubeDL(unittest.TestCase):
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
-            outtmpl, tmpl_dict = ydl.prepare_outtmpl(tmpl, info or self.outtmpl_info)
-            out = ydl.escape_outtmpl(outtmpl) % tmpl_dict
+            out = ydl.evaluate_outtmpl(tmpl, info or self.outtmpl_info)
             fname = ydl.prepare_filename(info or self.outtmpl_info)
 
             if not isinstance(expected, (list, tuple)):
@@ -818,6 +817,12 @@ class TestYoutubeDL(unittest.TestCase):
         compat_setenv('__yt_dlp_var', 'expanded')
         envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
         test(envvar, (envvar, 'expanded'))
+        if compat_os_name == 'nt':
+            test('%s%', ('%s%', '%s%'))
+            compat_setenv('s', 'expanded')
+            test('%s%', ('%s%', 'expanded'))  # %s% should be expanded before escaping %s
+            compat_setenv('(test)s', 'expanded')
+            test('%(test)s%', ('NA%', 'expanded'))  # Environment should take priority over template
 
         # Path expansion and escaping
         test('Hello %(title1)s', 'Hello $PATH')

@@ -72,9 +72,9 @@ class HlsFD(FragmentFD):
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
         if can_download and not compat_pycrypto_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
             if FFmpegFD.available():
-                can_download, message = False, 'The stream has AES-128 encryption and pycryptodome is not available'
+                can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
             else:
-                message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodome are available; '
+                message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
                            'Decryption will be performed natively, but will be extremely slow')
         if not can_download:
             message = message or 'Unsupported features have been detected'
@@ -245,13 +245,12 @@ class HlsFD(FragmentFD):
             fragments = [fragments[0] if fragments else None]
 
         if real_downloader:
-            info_copy = info_dict.copy()
-            info_copy['fragments'] = fragments
+            info_dict['fragments'] = fragments
             fd = real_downloader(self.ydl, self.params)
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
-            return fd.real_download(filename, info_copy)
+            return fd.real_download(filename, info_dict)
 
         if is_webvtt:
             def pack_fragment(frag_content, frag_index):

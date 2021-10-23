@@ -22,7 +22,7 @@ from yt_dlp.utils import (
 )
 
 
-if "pytest" in sys.modules:
+if 'pytest' in sys.modules:
     import pytest
     is_download_test = pytest.mark.download
 else:
@@ -32,9 +32,9 @@ else:
 
 def get_params(override=None):
     PARAMETERS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                   "parameters.json")
+                                   'parameters.json')
     LOCAL_PARAMETERS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                         "local_parameters.json")
+                                         'local_parameters.json')
     with io.open(PARAMETERS_FILE, encoding='utf-8') as pf:
         parameters = json.load(pf)
     if os.path.exists(LOCAL_PARAMETERS_FILE):

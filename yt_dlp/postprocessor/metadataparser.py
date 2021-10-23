@@ -62,8 +62,7 @@ class MetadataParserPP(PostProcessor):
 
     def interpretter(self, inp, out):
         def f(info):
-            outtmpl, tmpl_dict = self._downloader.prepare_outtmpl(template, info)
-            data_to_parse = self._downloader.escape_outtmpl(outtmpl) % tmpl_dict
+            data_to_parse = self._downloader.evaluate_outtmpl(template, info)
             self.write_debug(f'Searching for {out_re.pattern!r} in {template!r}')
             match = out_re.search(data_to_parse)
             if match is None:

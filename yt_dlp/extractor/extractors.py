@@ -258,6 +258,7 @@ from .ciscolive import (
     CiscoLiveSessionIE,
     CiscoLiveSearchIE,
 )
+from .ciscowebex import CiscoWebexIE
 from .cjsw import CJSWIE
 from .cliphunter import CliphunterIE
 from .clippit import ClippitIE
@@ -297,7 +298,9 @@ from .crackle import CrackleIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crunchyroll import (
     CrunchyrollIE,
-    CrunchyrollShowPlaylistIE
+    CrunchyrollShowPlaylistIE,
+    CrunchyrollBetaIE,
+    CrunchyrollBetaShowIE,
 )
 from .cspan import CSpanIE
 from .ctsnews import CtsNewsIE
@@ -340,7 +343,6 @@ from .discoveryplusindia import (
     DiscoveryPlusIndiaShowIE,
 )
 from .dotsub import DotsubIE
-from .douyin import DouyinIE
 from .douyutv import (
     DouyuShowIE,
     DouyuTVIE,
@@ -420,6 +422,7 @@ from .espn import (
 )
 from .esri import EsriVideoIE
 from .europa import EuropaIE
+from .euscreen import EUScreenIE
 from .expotv import ExpoTVIE
 from .expressen import ExpressenIE
 from .extremetube import ExtremeTubeIE
@@ -474,12 +477,7 @@ from .franceinter import FranceInterIE
 from .francetv import (
     FranceTVIE,
     FranceTVSiteIE,
-    FranceTVEmbedIE,
     FranceTVInfoIE,
-    FranceTVInfoSportIE,
-    FranceTVJeunesseIE,
-    GenerationWhatIE,
-    CultureboxIE,
 )
 from .freesound import FreesoundIE
 from .freespeech import FreespeechIE
@@ -525,9 +523,11 @@ from .googlepodcasts import (
     GooglePodcastsFeedIE,
 )
 from .googlesearch import GoogleSearchIE
+from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
+from .gronkh import GronkhIE
 from .groupon import GrouponIE
 from .hbo import HBOIE
 from .hearthisat import HearThisAtIE
@@ -760,6 +760,7 @@ from .metacritic import MetacriticIE
 from .mgoon import MgoonIE
 from .mgtv import MGTVIE
 from .miaopai import MiaoPaiIE
+from .microsoftstream import MicrosoftStreamIE
 from .microsoftvirtualacademy import (
     MicrosoftVirtualAcademyIE,
     MicrosoftVirtualAcademyCourseIE,
@@ -937,6 +938,7 @@ from .nova import (
     NovaEmbedIE,
     NovaIE,
 )
+from .novaplay import NovaPlayIE
 from .nowness import (
     NownessIE,
     NownessPlaylistIE,
@@ -983,6 +985,7 @@ from .odatv import OdaTVIE
 from .odnoklassniki import OdnoklassnikiIE
 from .oktoberfesttv import OktoberfestTVIE
 from .olympics import OlympicsReplayIE
+from .on24 import On24IE
 from .ondemandkorea import OnDemandKoreaIE
 from .onet import (
     OnetIE,
@@ -1283,6 +1286,7 @@ from .skynewsarabia import (
     SkyNewsArabiaIE,
     SkyNewsArabiaArticleIE,
 )
+from .skynewsau import SkyNewsAUIE
 from .sky import (
     SkyNewsIE,
     SkySportsIE,
@@ -1384,10 +1388,7 @@ from .svt import (
 from .swrmediathek import SWRMediathekIE
 from .syfy import SyfyIE
 from .sztvhu import SztvHuIE
-from .tagesschau import (
-    TagesschauPlayerIE,
-    TagesschauIE,
-)
+from .tagesschau import TagesschauIE
 from .tass import TassIE
 from .tbs import TBSIE
 from .tdslifeway import TDSLifewayIE
@@ -1433,7 +1434,10 @@ from .theplatform import (
 from .thescene import TheSceneIE
 from .thestar import TheStarIE
 from .thesun import TheSunIE
-from .theta import ThetaIE
+from .theta import (
+    ThetaVideoIE,
+    ThetaStreamIE,
+)
 from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE
@@ -1442,6 +1446,7 @@ from .threeqsdn import ThreeQSDNIE
 from .tiktok import (
     TikTokIE,
     TikTokUserIE,
+    DouyinIE,
 )
 from .tinypic import TinyPicIE
 from .tmz import TMZIE
@@ -1468,6 +1473,8 @@ from .trilulilu import TriluliluIE
 from .trovo import (
     TrovoIE,
     TrovoVodIE,
+    TrovoChannelVodIE,
+    TrovoChannelClipIE,
 )
 from .trunews import TruNewsIE
 from .trutv import TruTVIE
@@ -1710,6 +1717,7 @@ from .vtm import VTMIE
 from .medialaan import MedialaanIE
 from .vube import VubeIE
 from .vuclip import VuClipIE
+from .vupload import VuploadIE
 from .vvvvid import (
     VVVVIDIE,
     VVVVIDShowIE,

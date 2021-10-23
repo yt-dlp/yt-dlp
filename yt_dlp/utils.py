@@ -18,7 +18,7 @@ import functools
 import gzip
 import hashlib
 import hmac
-import imp
+import importlib.util
 import io
 import itertools
 import json
@@ -2272,6 +2272,20 @@ def process_communicate_or_kill(p, *args, **kwargs):
         raise
 
 
+class Popen(subprocess.Popen):
+    if sys.platform == 'win32':
+        _startupinfo = subprocess.STARTUPINFO()
+        _startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    else:
+        _startupinfo = None
+
+    def __init__(self, *args, **kwargs):
+        super(Popen, self).__init__(*args, **kwargs, startupinfo=self._startupinfo)
+
+    def communicate_or_kill(self, *args, **kwargs):
+        return process_communicate_or_kill(self, *args, **kwargs)
+
+
 def get_subprocess_encoding():
     if sys.platform == 'win32' and sys.getwindowsversion()[0] >= 5:
         # For subprocess calls, encode with locale encoding
@@ -2342,14 +2356,25 @@ def decodeOption(optval):
     return optval
 
 
+_timetuple = collections.namedtuple('Time', ('hours', 'minutes', 'seconds', 'milliseconds'))
+
+
+def timetuple_from_msec(msec):
+    secs, msec = divmod(msec, 1000)
+    mins, secs = divmod(secs, 60)
+    hrs, mins = divmod(mins, 60)
+    return _timetuple(hrs, mins, secs, msec)
+
+
 def formatSeconds(secs, delim=':', msec=False):
-    if secs > 3600:
-        ret = '%d%s%02d%s%02d' % (secs // 3600, delim, (secs % 3600) // 60, delim, secs % 60)
-    elif secs > 60:
-        ret = '%d%s%02d' % (secs // 60, delim, secs % 60)
+    time = timetuple_from_msec(secs * 1000)
+    if time.hours:
+        ret = '%d%s%02d%s%02d' % (time.hours, delim, time.minutes, delim, time.seconds)
+    elif time.minutes:
+        ret = '%d%s%02d' % (time.minutes, delim, time.seconds)
     else:
-        ret = '%d' % secs
-    return '%s.%03d' % (ret, secs % 1) if msec else ret
+        ret = '%d' % time.seconds
+    return '%s.%03d' % (ret, time.milliseconds) if msec else ret
 
 
 def _ssl_load_windows_store_certs(ssl_context, storename):
@@ -2373,13 +2398,20 @@ def make_HTTPS_handler(params, **kwargs):
     context.check_hostname = opts_check_certificate
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
-        # Work around the issue in load_default_certs when there are bad certificates. See:
-        # https://github.com/yt-dlp/yt-dlp/issues/1060,
-        # https://bugs.python.org/issue35665, https://bugs.python.org/issue4531
-        if sys.platform == 'win32':
-            for storename in ('CA', 'ROOT'):
-                _ssl_load_windows_store_certs(context, storename)
-        context.set_default_verify_paths()
+        try:
+            context.load_default_certs()
+            # Work around the issue in load_default_certs when there are bad certificates. See:
+            # https://github.com/yt-dlp/yt-dlp/issues/1060,
+            # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
+        except ssl.SSLError:
+            # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
+            if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
+                # Create a new context to discard any certificates that were already loaded
+                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
+                for storename in ('CA', 'ROOT'):
+                    _ssl_load_windows_store_certs(context, storename)
+            context.set_default_verify_paths()
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
@@ -3682,14 +3714,14 @@ def parse_resolution(s):
     if s is None:
         return {}
 
-    mobj = re.search(r'\b(?P<w>\d+)\s*[xX×]\s*(?P<h>\d+)\b', s)
+    mobj = re.search(r'(?<![a-zA-Z0-9])(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)(?![a-zA-Z0-9])', s)
     if mobj:
         return {
             'width': int(mobj.group('w')),
             'height': int(mobj.group('h')),
         }
 
-    mobj = re.search(r'\b(\d+)[pPiI]\b', s)
+    mobj = re.search(r'(?<![a-zA-Z0-9])(\d+)[pPiI](?![a-zA-Z0-9])', s)
     if mobj:
         return {'height': int(mobj.group(1))}
 
@@ -3959,8 +3991,7 @@ def check_executable(exe, args=[]):
     """ Checks if the given binary is installed somewhere in PATH, and returns its name.
     args can be a list of arguments for a short output (like -version) """
     try:
-        process_communicate_or_kill(subprocess.Popen(
-            [exe] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+        Popen([exe] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate_or_kill()
     except OSError:
         return False
     return exe
@@ -3974,10 +4005,9 @@ def get_exe_version(exe, args=['--version'],
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
-        out, _ = process_communicate_or_kill(subprocess.Popen(
-            [encodeArgument(exe)] + args,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
+        out, _ = Popen(
+            [encodeArgument(exe)] + args, stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate_or_kill()
     except OSError:
         return False
     if isinstance(out, bytes):  # Python 2.x
@@ -4521,11 +4551,10 @@ def is_outdated_version(version, limit, assume_new=True):
 
 def ytdl_is_updateable():
     """ Returns if yt-dlp can be updated with -U """
-    return False
 
-    from zipimport import zipimporter
+    from .update import is_non_updateable
 
-    return isinstance(globals().get('__loader__'), zipimporter) or hasattr(sys, 'frozen')
+    return not is_non_updateable()
 
 
 def args_to_str(args):
@@ -4546,20 +4575,24 @@ def mimetype2ext(mt):
     if mt is None:
         return None
 
-    ext = {
+    mt, _, params = mt.partition(';')
+    mt = mt.strip()
+
+    FULL_MAP = {
         'audio/mp4': 'm4a',
         # Per RFC 3003, audio/mpeg can be .mp1, .mp2 or .mp3. Here use .mp3 as
         # it's the most popular one
         'audio/mpeg': 'mp3',
         'audio/x-wav': 'wav',
-    }.get(mt)
+        'audio/wav': 'wav',
+        'audio/wave': 'wav',
+    }
+
+    ext = FULL_MAP.get(mt)
     if ext is not None:
         return ext
 
-    _, _, res = mt.rpartition('/')
-    res = res.split(';')[0].strip().lower()
-
-    return {
+    SUBTYPE_MAP = {
         '3gpp': '3gp',
         'smptett+xml': 'tt',
         'ttaf+xml': 'dfxp',
@@ -4578,7 +4611,28 @@ def mimetype2ext(mt):
         'quicktime': 'mov',
         'mp2t': 'ts',
         'x-wav': 'wav',
-    }.get(res, res)
+        'filmstrip+json': 'fs',
+        'svg+xml': 'svg',
+    }
+
+    _, _, subtype = mt.rpartition('/')
+    ext = SUBTYPE_MAP.get(subtype.lower())
+    if ext is not None:
+        return ext
+
+    SUFFIX_MAP = {
+        'json': 'json',
+        'xml': 'xml',
+        'zip': 'zip',
+        'gzip': 'gz',
+    }
+
+    _, _, suffix = subtype.partition('+')
+    ext = SUFFIX_MAP.get(suffix)
+    if ext is not None:
+        return ext
+
+    return subtype.replace('+', '.')
 
 
 def parse_codecs(codecs_str):
@@ -4587,12 +4641,21 @@ def parse_codecs(codecs_str):
         return {}
     split_codecs = list(filter(None, map(
         str.strip, codecs_str.strip().strip(',').split(','))))
-    vcodec, acodec = None, None
+    vcodec, acodec, hdr = None, None, None
     for full_codec in split_codecs:
         codec = full_codec.split('.')[0]
-        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av01', 'theora'):
+        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av01', 'theora', 'dvh1', 'dvhe'):
             if not vcodec:
                 vcodec = full_codec
+                if codec in ('dvh1', 'dvhe'):
+                    hdr = 'DV'
+                elif codec == 'vp9' and vcodec.startswith('vp9.2'):
+                    hdr = 'HDR10'
+                elif codec == 'av01':
+                    parts = full_codec.split('.')
+                    if len(parts) > 3 and parts[3] == '10':
+                        hdr = 'HDR10'
+                        vcodec = '.'.join(parts[:4])
         elif codec in ('mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
@@ -4608,6 +4671,7 @@ def parse_codecs(codecs_str):
         return {
             'vcodec': vcodec or 'none',
             'acodec': acodec or 'none',
+            'dynamic_range': hdr,
         }
     return {}
 
@@ -4684,9 +4748,11 @@ def determine_protocol(info_dict):
 
 def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
     """ Render a list of rows, each as a list of values """
+    def width(string):
+        return len(remove_terminal_sequences(string))
 
     def get_max_lens(table):
-        return [max(len(compat_str(v)) for v in col) for col in zip(*table)]
+        return [max(width(str(v)) for v in col) for col in zip(*table)]
 
     def filter_using_list(row, filterArray):
         return [col for (take, col) in zip(filterArray, row) if take]
@@ -4698,10 +4764,15 @@ def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
 
     table = [header_row] + data
     max_lens = get_max_lens(table)
+    extraGap += 1
     if delim:
-        table = [header_row] + [['-' * ml for ml in max_lens]] + data
-    format_str = ' '.join('%-' + compat_str(ml + extraGap) + 's' for ml in max_lens[:-1]) + ' %s'
-    return '\n'.join(format_str % tuple(row) for row in table)
+        table = [header_row] + [[delim * (ml + extraGap) for ml in max_lens]] + data
+    max_lens[-1] = 0
+    for row in table:
+        for pos, text in enumerate(map(str, row)):
+            row[pos] = text + (' ' * (max_lens[pos] - width(text) + extraGap))
+    ret = '\n'.join(''.join(row) for row in table)
+    return ret
 
 
 def _match_one(filter_part, dct, incomplete):
@@ -4725,7 +4796,6 @@ def _match_one(filter_part, dct, incomplete):
         (?P<key>[a-z_]+)
         \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
         (?:
-            (?P<intval>[0-9.]+(?:[kKmMgGtTpPeEzZyY]i?[Bb]?)?)|
             (?P<quote>["\'])(?P<quotedstrval>.+?)(?P=quote)|
             (?P<strval>.+?)
         )
@@ -4733,40 +4803,35 @@ def _match_one(filter_part, dct, incomplete):
         ''' % '|'.join(map(re.escape, COMPARISON_OPERATORS.keys())))
     m = operator_rex.search(filter_part)
     if m:
-        unnegated_op = COMPARISON_OPERATORS[m.group('op')]
-        if m.group('negation'):
+        m = m.groupdict()
+        unnegated_op = COMPARISON_OPERATORS[m['op']]
+        if m['negation']:
             op = lambda attr, value: not unnegated_op(attr, value)
         else:
             op = unnegated_op
-        actual_value = dct.get(m.group('key'))
-        if (m.group('quotedstrval') is not None
-            or m.group('strval') is not None
+        comparison_value = m['quotedstrval'] or m['strval'] or m['intval']
+        if m['quote']:
+            comparison_value = comparison_value.replace(r'\%s' % m['quote'], m['quote'])
+        actual_value = dct.get(m['key'])
+        numeric_comparison = None
+        if isinstance(actual_value, compat_numeric_types):
             # If the original field is a string and matching comparisonvalue is
             # a number we should respect the origin of the original field
             # and process comparison value as a string (see
-            # https://github.com/ytdl-org/youtube-dl/issues/11082).
-            or actual_value is not None and m.group('intval') is not None
-                and isinstance(actual_value, compat_str)):
-            comparison_value = m.group('quotedstrval') or m.group('strval') or m.group('intval')
-            quote = m.group('quote')
-            if quote is not None:
-                comparison_value = comparison_value.replace(r'\%s' % quote, quote)
-        else:
-            if m.group('op') in STRING_OPERATORS:
-                raise ValueError('Operator %s only supports string values!' % m.group('op'))
+            # https://github.com/ytdl-org/youtube-dl/issues/11082)
             try:
-                comparison_value = int(m.group('intval'))
+                numeric_comparison = int(comparison_value)
             except ValueError:
-                comparison_value = parse_filesize(m.group('intval'))
-                if comparison_value is None:
-                    comparison_value = parse_filesize(m.group('intval') + 'B')
-                if comparison_value is None:
-                    raise ValueError(
-                        'Invalid integer value %r in filter part %r' % (
-                            m.group('intval'), filter_part))
+                numeric_comparison = parse_filesize(comparison_value)
+                if numeric_comparison is None:
+                    numeric_comparison = parse_filesize(f'{comparison_value}B')
+                if numeric_comparison is None:
+                    numeric_comparison = parse_duration(comparison_value)
+        if numeric_comparison is not None and m['op'] in STRING_OPERATORS:
+            raise ValueError('Operator %s only supports string values!' % m['op'])
         if actual_value is None:
-            return incomplete or m.group('none_inclusive')
-        return op(actual_value, comparison_value)
+            return incomplete or m['none_inclusive']
+        return op(actual_value, comparison_value if numeric_comparison is None else numeric_comparison)
 
     UNARY_OPERATORS = {
         '': lambda v: (v is True) if isinstance(v, bool) else (v is not None),
@@ -4820,7 +4885,12 @@ def parse_dfxp_time_expr(time_expr):
 
 
 def srt_subtitles_timecode(seconds):
-    return '%02d:%02d:%02d,%03d' % (seconds / 3600, (seconds % 3600) / 60, seconds % 60, (seconds % 1) * 1000)
+    return '%02d:%02d:%02d,%03d' % timetuple_from_msec(seconds * 1000)
+
+
+def ass_subtitles_timecode(seconds):
+    time = timetuple_from_msec(seconds * 1000)
+    return '%01d:%02d:%02d.%02d' % (*time[:-1], time.milliseconds / 10)
 
 
 def dfxp2srt(dfxp_data):
@@ -6104,11 +6174,11 @@ def write_xattr(path, key, value):
                        + [encodeFilename(path, True)])
 
                 try:
-                    p = subprocess.Popen(
+                    p = Popen(
                         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
                 except EnvironmentError as e:
                     raise XAttrMetadataError(e.errno, e.strerror)
-                stdout, stderr = process_communicate_or_kill(p)
+                stdout, stderr = p.communicate_or_kill()
                 stderr = stderr.decode('utf-8', 'replace')
                 if p.returncode != 0:
                     raise XAttrMetadataError(p.returncode, stderr)
@@ -6277,12 +6347,13 @@ def get_executable_path():
 
 
 def load_plugins(name, suffix, namespace):
-    plugin_info = [None]
     classes = {}
     try:
-        plugin_info = imp.find_module(
-            name, [os.path.join(get_executable_path(), 'ytdlp_plugins')])
-        plugins = imp.load_module(name, *plugin_info)
+        plugins_spec = importlib.util.spec_from_file_location(
+            name, os.path.join(get_executable_path(), 'ytdlp_plugins', name, '__init__.py'))
+        plugins = importlib.util.module_from_spec(plugins_spec)
+        sys.modules[plugins_spec.name] = plugins
+        plugins_spec.loader.exec_module(plugins)
         for name in dir(plugins):
             if name in namespace:
                 continue
@@ -6290,11 +6361,8 @@ def load_plugins(name, suffix, namespace):
                 continue
             klass = getattr(plugins, name)
             classes[name] = namespace[name] = klass
-    except ImportError:
+    except FileNotFoundError:
         pass
-    finally:
-        if plugin_info[0] is not None:
-            plugin_info[0].close()
     return classes
 
 
@@ -6304,7 +6372,9 @@ def traverse_obj(
     ''' Traverse nested list/dict/tuple
     @param path_list        A list of paths which are checked one by one.
                             Each path is a list of keys where each key is a string,
-                            a tuple of strings or "...". When a tuple is given,
+                            a function, a tuple of strings or "...".
+                            When a fuction is given, it takes the key as argument and
+                            returns whether the key matches or not. When a tuple is given,
                             all the keys given in the tuple are traversed, and
                             "..." traverses all the keys in the object
     @param default          Default value to return
@@ -6337,6 +6407,18 @@ def traverse_obj(
                 _current_depth += 1
                 depth = max(depth, _current_depth)
                 return [_traverse_obj(inner_obj, path[i + 1:], _current_depth) for inner_obj in obj]
+            elif callable(key):
+                if isinstance(obj, (list, tuple, LazyList)):
+                    obj = enumerate(obj)
+                elif isinstance(obj, dict):
+                    obj = obj.items()
+                else:
+                    if not traverse_string:
+                        return None
+                    obj = str(obj)
+                _current_depth += 1
+                depth = max(depth, _current_depth)
+                return [_traverse_obj(v, path[i + 1:], _current_depth) for k, v in obj if key(k)]
             elif isinstance(obj, dict) and not (is_user_input and key == ':'):
                 obj = (obj.get(key) if casesense or (key in obj)
                        else next((v for k, v in obj.items() if _lower(k) == key), None))
@@ -6409,3 +6491,26 @@ def jwt_encode_hs256(payload_data, key, headers={}):
     signature_b64 = base64.b64encode(h.digest())
     token = header_b64 + b'.' + payload_b64 + b'.' + signature_b64
     return token
+
+
+def supports_terminal_sequences(stream):
+    if compat_os_name == 'nt':
+        if get_windows_version() < (10, 0, 10586):
+            return False
+    elif not os.getenv('TERM'):
+        return False
+    try:
+        return stream.isatty()
+    except BaseException:
+        return False
+
+
+_terminal_sequences_re = re.compile('\033\\[[^m]+m')
+
+
+def remove_terminal_sequences(string):
+    return _terminal_sequences_re.sub('', string)
+
+
+def number_of_digits(number):
+    return len('%d' % number)

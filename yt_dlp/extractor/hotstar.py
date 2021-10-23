@@ -70,7 +70,7 @@ class HotStarBaseIE(InfoExtractor):
     def _call_api_v2(self, path, video_id, st=None, cookies=None):
         return self._call_api_impl(
             '%s/content/%s' % (path, video_id), video_id, st=st, cookies=cookies, query={
-                'desired-config': 'audio_channel:stereo|dynamic_range:sdr|encryption:plain|ladder:tv|package:dash|resolution:hd|subs-tag:HotstarVIP|video_codec:vp9',
+                'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
                 'device-id': cookies.get('device_id').value if cookies.get('device_id') else compat_str(uuid.uuid4()),
                 'os-name': 'Windows',
                 'os-version': '10',
@@ -196,41 +196,42 @@ class HotStarIE(HotStarBaseIE):
         for playback_set in playback_sets:
             if not isinstance(playback_set, dict):
                 continue
+            dr = re.search(r'dynamic_range:(?P<dr>[a-z]+)', playback_set.get('tagsCombination')).group('dr')
             format_url = url_or_none(playback_set.get('playbackUrl'))
             if not format_url:
                 continue
             format_url = re.sub(
                 r'(?<=//staragvod)(\d)', r'web\1', format_url)
             tags = str_or_none(playback_set.get('tagsCombination')) or ''
-            if tags and 'encryption:plain' not in tags:
-                continue
             ext = determine_ext(format_url)
+            current_formats, current_subs = [], {}
             try:
                 if 'package:hls' in tags or ext == 'm3u8':
-                    hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
+                    current_formats, current_subs = self._extract_m3u8_formats_and_subtitles(
                         format_url, video_id, 'mp4',
                         entry_protocol='m3u8_native',
-                        m3u8_id='hls', headers=headers)
-                    formats.extend(hls_formats)
-                    subs = self._merge_subtitles(subs, hls_subs)
+                        m3u8_id=f'{dr}-hls', headers=headers)
                 elif 'package:dash' in tags or ext == 'mpd':
-                    dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(
-                        format_url, video_id, mpd_id='dash', headers=headers)
-                    formats.extend(dash_formats)
-                    subs = self._merge_subtitles(subs, dash_subs)
+                    current_formats, current_subs = self._extract_mpd_formats_and_subtitles(
+                        format_url, video_id, mpd_id=f'{dr}-dash', headers=headers)
                 elif ext == 'f4m':
                     # produce broken files
                     pass
                 else:
-                    formats.append({
+                    current_formats = [{
                         'url': format_url,
                         'width': int_or_none(playback_set.get('width')),
                         'height': int_or_none(playback_set.get('height')),
-                    })
+                    }]
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                     geo_restricted = True
                 continue
+            if tags and 'encryption:plain' not in tags:
+                for f in current_formats:
+                    f['has_drm'] = True
+            formats.extend(current_formats)
+            subs = self._merge_subtitles(subs, current_subs)
         if not formats and geo_restricted:
             self.raise_geo_restricted(countries=['IN'], metadata_available=True)
         self._sort_formats(formats)
@@ -290,7 +291,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
 
 class HotStarSeriesIE(HotStarBaseIE):
     IE_NAME = 'hotstar:series'
-    _VALID_URL = r'(?:https?://)(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'(?P<url>(?:https?://)(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://www.hotstar.com/in/tv/radhakrishn/1260000646',
         'info_dict': {
@@ -312,7 +313,7 @@ class HotStarSeriesIE(HotStarBaseIE):
     }]
 
     def _real_extract(self, url):
-        series_id = self._match_id(url)
+        url, series_id = self._match_valid_url(url).groups()
         headers = {
             'x-country-code': 'IN',
             'x-platform-code': 'PCTV',
@@ -324,7 +325,7 @@ class HotStarSeriesIE(HotStarBaseIE):
                                         video_id=series_id, headers=headers)
         entries = [
             self.url_result(
-                'hotstar:episode:%d' % video['contentId'],
+                '%s/ignoreme/%d' % (url, video['contentId']),
                 ie=HotStarIE.ie_key(), video_id=video['contentId'])
             for video in item_json['body']['results']['items']
             if video.get('contentId')]

@@ -147,7 +147,7 @@ class NRKIE(NRKBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url).split('/')[-1]
 
-        path_templ = 'playback/%s/' + video_id
+        path_templ = 'playback/%s/program/' + video_id
 
         def call_playback_api(item, query=None):
             return self._call_api(path_templ % item, video_id, item, query=query)
@@ -188,7 +188,7 @@ class NRKIE(NRKBaseIE):
         title = titles['title']
         alt_title = titles.get('subtitle')
 
-        description = preplay.get('description')
+        description = try_get(preplay, lambda x: x['description'].replace('\r', '\n'))
         duration = parse_duration(playable.get('duration')) or parse_duration(data.get('duration'))
 
         thumbnails = []

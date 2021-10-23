@@ -13,7 +13,7 @@ in RFC 8216 §3.5 <https://tools.ietf.org/html/rfc8216#section-3.5>.
 
 import re
 import io
-from .utils import int_or_none
+from .utils import int_or_none, timetuple_from_msec
 from .compat import (
     compat_str as str,
     compat_Pattern,
@@ -124,11 +124,7 @@ def _format_ts(ts):
     Convert an MPEG PES timestamp into a WebVTT timestamp.
     This will lose sub-millisecond precision.
     """
-    msec = int((ts + 45) // 90)
-    secs, msec = divmod(msec, 1000)
-    mins, secs = divmod(secs, 60)
-    hrs, mins = divmod(mins, 60)
-    return '%02u:%02u:%02u.%03u' % (hrs, mins, secs, msec)
+    return '%02u:%02u:%02u.%03u' % timetuple_from_msec(int((ts + 45) // 90))
 
 
 class Block(object):
