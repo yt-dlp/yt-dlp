@@ -2,7 +2,7 @@ import importlib
 import sys
 import traceback
 from contextlib import suppress
-from importlib.abc import MetaPathFinder
+from importlib.abc import MetaPathFinder, Loader
 from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec, find_spec
 from inspect import getmembers, isclass
@@ -17,23 +17,18 @@ PACKAGE_NAME = 'ytdlp_plugins'
 _INITIALIZED = False
 
 
-class PluginLoader:
-    ''' Dummy loader for virtual namespace packages '''
-    @classmethod
-    def create_module(cls, spec):
-        pass
-
-    @classmethod
-    def exec_module(cls, module):
-        pass
+class PluginLoader(Loader):
+    """ Dummy loader for virtual namespace packages """
+    def exec_module(self, module):
+        return None
 
 
 class PluginFinder(MetaPathFinder):
-    '''
+    """
     This class provides one or multiple namespace packages
     it searches in sys.path for the existing subdirectories
     from which the modules can be imported
-    '''
+    """
     @staticmethod
     def partition(name):
         yield from accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
@@ -70,7 +65,7 @@ class PluginFinder(MetaPathFinder):
         if not search_locations:
             return None
 
-        spec = ModuleSpec(fullname, PluginLoader, is_package=True)
+        spec = ModuleSpec(fullname, PluginLoader(), is_package=True)
         spec.submodule_search_locations = search_locations
         return spec
 
