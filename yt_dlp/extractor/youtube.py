@@ -695,7 +695,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
 
 class YoutubeIE(YoutubeBaseInfoExtractor):
-    IE_DESC = 'YouTube.com'
+    IE_DESC = 'YouTube'
     _INVIDIOUS_SITES = (
         # invidious-redirect websites
         r'(?:www\.)?redirect\.invidious\.io',
@@ -3010,7 +3010,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
 
 class YoutubeTabIE(YoutubeBaseInfoExtractor):
-    IE_DESC = 'YouTube.com tab'
+    IE_DESC = 'YouTube Tabs'
     _VALID_URL = r'''(?x)
                     https?://
                         (?:\w+\.)?
@@ -4238,7 +4238,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
 
 class YoutubePlaylistIE(InfoExtractor):
-    IE_DESC = 'YouTube.com playlists'
+    IE_DESC = 'YouTube playlists'
     _VALID_URL = r'''(?x)(?:
                         (?:https?://)?
                         (?:\w+\.)?
@@ -4362,7 +4362,7 @@ class YoutubeYtBeIE(InfoExtractor):
 
 
 class YoutubeYtUserIE(InfoExtractor):
-    IE_DESC = 'YouTube.com user videos, URL or "ytuser" keyword'
+    IE_DESC = 'YouTube user videos; "ytuser:" prefix'
     _VALID_URL = r'ytuser:(?P<id>.+)'
     _TESTS = [{
         'url': 'ytuser:phihag',
@@ -4378,7 +4378,7 @@ class YoutubeYtUserIE(InfoExtractor):
 
 class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:favorites'
-    IE_DESC = 'YouTube.com liked videos, ":ytfav" for short (requires authentication)'
+    IE_DESC = 'YouTube liked videos; ":ytfav" keyword (requires cookies)'
     _VALID_URL = r':ytfav(?:ou?rite)?s?'
     _LOGIN_REQUIRED = True
     _TESTS = [{
@@ -4396,10 +4396,7 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
 
 
 class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
-    IE_DESC = 'YouTube.com searches, "ytsearch" keyword'
-    # there doesn't appear to be a real limit, for example if you search for
-    # 'python' you get more than 8.000.000 results
-    _MAX_RESULTS = float('inf')
+    IE_DESC = 'YouTube searches'
     IE_NAME = 'youtube:search'
     _SEARCH_KEY = 'ytsearch'
     _SEARCH_PARAMS = None
@@ -4459,13 +4456,14 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
 class YoutubeSearchDateIE(YoutubeSearchIE):
     IE_NAME = YoutubeSearchIE.IE_NAME + ':date'
     _SEARCH_KEY = 'ytsearchdate'
-    IE_DESC = 'YouTube.com searches, newest videos first, "ytsearchdate" keyword'
+    IE_DESC = 'YouTube searches, newest videos first'
     _SEARCH_PARAMS = 'CAI%3D'
 
 
 class YoutubeSearchURLIE(YoutubeSearchIE):
-    IE_DESC = 'YouTube.com search URLs'
+    IE_DESC = 'YouTube search URLs with sorting and filter support'
     IE_NAME = YoutubeSearchIE.IE_NAME + '_url'
+    _SEARCH_KEY = None
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/results\?(.*?&)?(?:search_query|q)=(?:[^&]+)(?:[&]|$)'
     # _MAX_RESULTS = 100
     _TESTS = [{
@@ -4511,7 +4509,7 @@ class YoutubeFeedsInfoExtractor(YoutubeTabIE):
 
 class YoutubeWatchLaterIE(InfoExtractor):
     IE_NAME = 'youtube:watchlater'
-    IE_DESC = 'Youtube watch later list, ":ytwatchlater" for short (requires authentication)'
+    IE_DESC = 'Youtube watch later list; ":ytwatchlater" keyword (requires cookies)'
     _VALID_URL = r':ytwatchlater'
     _TESTS = [{
         'url': ':ytwatchlater',
@@ -4524,7 +4522,7 @@ class YoutubeWatchLaterIE(InfoExtractor):
 
 
 class YoutubeRecommendedIE(YoutubeFeedsInfoExtractor):
-    IE_DESC = 'YouTube.com recommended videos, ":ytrec" for short (requires authentication)'
+    IE_DESC = 'YouTube recommended videos; ":ytrec" keyword'
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/?(?:[?#]|$)|:ytrec(?:ommended)?'
     _FEED_NAME = 'recommended'
     _LOGIN_REQUIRED = False
@@ -4541,7 +4539,7 @@ class YoutubeRecommendedIE(YoutubeFeedsInfoExtractor):
 
 
 class YoutubeSubscriptionsIE(YoutubeFeedsInfoExtractor):
-    IE_DESC = 'YouTube.com subscriptions feed, ":ytsubs" for short (requires authentication)'
+    IE_DESC = 'YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)'
     _VALID_URL = r':ytsub(?:scription)?s?'
     _FEED_NAME = 'subscriptions'
     _TESTS = [{
@@ -4554,7 +4552,7 @@ class YoutubeSubscriptionsIE(YoutubeFeedsInfoExtractor):
 
 
 class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
-    IE_DESC = 'Youtube watch history, ":ythis" for short (requires authentication)'
+    IE_DESC = 'Youtube watch history; ":ythis" keyword (requires cookies)'
     _VALID_URL = r':ythis(?:tory)?'
     _FEED_NAME = 'history'
     _TESTS = [{

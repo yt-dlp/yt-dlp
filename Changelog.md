@@ -61,7 +61,7 @@
 * [AdobePass] Fix RCN MSO by [jfogelman](https://github.com/jfogelman)
 * [CBC] Fix Gem livestream by [makeworld-the-better-one](https://github.com/makeworld-the-better-one)
 * [CBC] Support CBC Gem member content by [makeworld-the-better-one](https://github.com/makeworld-the-better-one)
-* [crunchyroll] Add season to flat-playlist Closes #1319
+* [crunchyroll] Add season to flat-playlist
 * [crunchyroll] Add support for `beta.crunchyroll` URLs and fix series URLs with language code
 * [EUScreen] Add Extractor by [Ashish0804](https://github.com/Ashish0804)
 * [Gronkh] Add extractor by [Ashish0804](https://github.com/Ashish0804)

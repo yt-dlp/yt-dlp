@@ -3620,8 +3620,10 @@ class SearchInfoExtractor(InfoExtractor):
     """
     Base class for paged search queries extractors.
     They accept URLs in the format _SEARCH_KEY(|all|[0-9]):{query}
-    Instances should define _SEARCH_KEY and _MAX_RESULTS.
+    Instances should define _SEARCH_KEY and optionally _MAX_RESULTS
     """
+
+    _MAX_RESULTS = float('inf')
 
     @classmethod
     def _make_valid_url(cls):

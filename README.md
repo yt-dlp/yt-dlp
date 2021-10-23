@@ -125,9 +125,9 @@ If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the
 
 Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc.
 
-* The options `--id`, `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
+* The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
 * `avconv` is not supported as as an alternative to `ffmpeg`
-* The default [output template](#output-template) is `%(title)s [%(id)s].%(ext)s`. There is no real reason for this change. This was changed before yt-dlp was ever made public and now there are no plans to change it back to `%(title)s.%(id)s.%(ext)s`. Instead, you may use `--compat-options filename`
+* The default [output template](#output-template) is `%(title)s [%(id)s].%(ext)s`. There is no real reason for this change. This was changed before yt-dlp was ever made public and now there are no plans to change it back to `%(title)s-%(id)s.%(ext)s`. Instead, you may use `--compat-options filename`
 * The default [format sorting](#sorting-formats) is different from youtube-dl and prefers higher resolution and better codecs rather than higher bitrates. You can use the `--format-sort` option to change this to any order you prefer, or use `--compat-options format-sort` to use youtube-dl's sorting order
 * The default format selector is `bv*+ba/b`. This means that if a combined video + audio format that is better than the best video-only format is found, the former will be prefered. Use `-f bv+ba/b` or `--compat-options format-spec` to revert this
 * Unlike youtube-dlc, yt-dlp does not allow merging multiple audio/video streams into one file by default (since this conflicts with the use of `-f bv*+ba`). If needed, this feature must be enabled using `--audio-multistreams` and `--video-multistreams`. You can also use `--compat-options multistreams` to enable both
@@ -197,17 +197,17 @@ If you have installed using Homebrew, run `brew upgrade yt-dlp/taps/yt-dlp`
 File|Description
 :---|:---
 [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform independant binary. Needs Python (Recommended for **UNIX-like systems**)
-[yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows standalone x64 binary (Recommended for **Windows**)
+[yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows (Win7 SP1+) standalone x64 binary (Recommended for **Windows**)
 
 #### Alternatives
 
 File|Description
 :---|:---
-[yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|MacOS standalone executable
-[yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows standalone x86 (32bit) binary
-[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)|Windows standalone x64 binary built with `py2exe`.<br/> Does not contain `pycryptodomex`, needs VC++14
+[yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|MacOS (10.15+) standalone executable
+[yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows (Vista SP2+) standalone x86 (32bit) binary
+[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)|Windows (Win7 SP1+) standalone x64 binary built with `py2exe`.<br/> Does not contain `pycryptodomex`, needs VC++14
 [yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged windows executable (No auto-update)
-[yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS executable (No auto-update)
+[yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS (10.15+) executable (No auto-update)
 
 #### Misc
 
@@ -1516,24 +1516,25 @@ $ yt-dlp --replace-in-metadata 'title,uploader' '[ _]' '-'
 Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) seperated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player_client=android_agegate,web;include_live_dash" --extractor-args "funimation:version=uncut"`
 
 The following extractors use this feature:
-* **youtube**
-    * `skip`: `hls` or `dash` (or both) to skip download of the respective manifests
-    * `player_client`: Clients to extract video data from. The main clients are `web`, `android`, `ios`, `mweb`. These also have `_music`, `_embedded`, `_agegate`, and `_creator` variants (Eg: `web_embedded`) (`mweb` has only `_agegate`). By default, `android,web` is used, but the agegate and creator variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can also use `all` to use all the clients
-    * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
-    * `include_live_dash`: Include live dash formats (These formats don't download properly)
-    * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side).
-    * `max_comments`: Maximum amount of comments to download (default all).
-    * `max_comment_depth`: Maximum depth for nested comments. YouTube supports depths 1 or 2 (default).
-* **youtubetab**
-  (YouTube playlists, channels, feeds, etc.)
-   * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
 
-* **funimation**
-    * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
-    * `version`: The video version to extract - `uncut` or `simulcast`
+#### youtube
+* `skip`: `hls` or `dash` (or both) to skip download of the respective manifests
+* `player_client`: Clients to extract video data from. The main clients are `web`, `android`, `ios`, `mweb`. These also have `_music`, `_embedded`, `_agegate`, and `_creator` variants (Eg: `web_embedded`) (`mweb` has only `_agegate`). By default, `android,web` is used, but the agegate and creator variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can also use `all` to use all the clients
+* `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
+* `include_live_dash`: Include live dash formats (These formats don't download properly)
+* `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
+* `max_comments`: Maximum amount of comments to download (default all)
+* `max_comment_depth`: Maximum depth for nested comments. YouTube supports depths 1 or 2 (default)
 
-* **vikiChannel**
-    * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
+#### youtubetab (YouTube playlists, channels, feeds, etc.)
+* `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
+
+#### funimation
+* `language`: Languages to extract. Eg: `funimation:language=english,japanese`
+* `version`: The video version to extract - `uncut` or `simulcast`
+
+#### vikichannel
+* `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 

@@ -16,7 +16,7 @@ from distutils.spawn import spawn
 exec(compile(open('yt_dlp/version.py').read(), 'yt_dlp/version.py', 'exec'))
 
 
-DESCRIPTION = 'Command-line program to download videos from YouTube.com and many other other video platforms.'
+DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
 LONG_DESCRIPTION = '\n\n'.join((
     'Official repository: <https://github.com/yt-dlp/yt-dlp>',

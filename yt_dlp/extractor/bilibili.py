@@ -566,7 +566,7 @@ class BilibiliCategoryIE(InfoExtractor):
 
 
 class BiliBiliSearchIE(SearchInfoExtractor):
-    IE_DESC = 'Bilibili video search, "bilisearch" keyword'
+    IE_DESC = 'Bilibili video search'
     _MAX_RESULTS = 100000
     _SEARCH_KEY = 'bilisearch'
 

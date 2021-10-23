@@ -704,7 +704,6 @@ class NicovideoSearchURLIE(InfoExtractor):
 
 class NicovideoSearchIE(SearchInfoExtractor, NicovideoSearchURLIE):
     IE_DESC = 'Nico video searches'
-    _MAX_RESULTS = float('inf')
     IE_NAME = NicovideoSearchIE_NAME
     _SEARCH_KEY = 'nicosearch'
     _TESTS = []

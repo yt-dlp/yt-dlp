@@ -31,6 +31,11 @@ _TEXT_STYLES = {
 
 
 def format_text(text, f):
+    '''
+    @param f    String representation of formatting to apply in the form:
+                [style] [light] font_color [on [light] bg_color]
+                Eg: "red", "bold green on light blue"
+    '''
     f = f.upper()
     tokens = f.strip().split()
 

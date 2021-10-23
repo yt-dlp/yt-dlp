@@ -122,10 +122,10 @@ def _real_main(argv=None):
             desc = getattr(ie, 'IE_DESC', ie.IE_NAME)
             if desc is False:
                 continue
-            if hasattr(ie, 'SEARCH_KEY'):
+            if getattr(ie, 'SEARCH_KEY', None) is not None:
                 _SEARCHES = ('cute kittens', 'slithering pythons', 'falling cat', 'angry poodle', 'purple fish', 'running tortoise', 'sleeping bunny', 'burping cow')
                 _COUNTS = ('', '5', '10', 'all')
-                desc += ' (Example: "%s%s:%s" )' % (ie.SEARCH_KEY, random.choice(_COUNTS), random.choice(_SEARCHES))
+                desc += f'; "{ie.SEARCH_KEY}:" prefix (Example: "{ie.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(_SEARCHES)}")'
             write_string(desc + '\n', out=sys.stdout)
         sys.exit(0)
     if opts.ap_list_mso:
