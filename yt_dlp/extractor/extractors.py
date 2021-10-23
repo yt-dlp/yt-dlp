@@ -1095,6 +1095,10 @@ from .pokemon import (
 from .polskieradio import (
     PolskieRadioIE,
     PolskieRadioCategoryIE,
+    PolskieRadioPlayerIE,
+    PolskieRadioPodcastIE,
+    PolskieRadioPodcastListIE,
+    PolskieRadioRadioKierowcowIE,
 )
 from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
