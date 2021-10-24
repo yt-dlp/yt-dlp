@@ -2696,6 +2696,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             thumbnails.append({
                 'url': thumbnail_url,
             })
+        original_thumbnails = thumbnails.copy()
+
         # The best resolution thumbnails sometimes does not appear in the webpage
         # See: https://github.com/ytdl-org/youtube-dl/issues/29049, https://github.com/yt-dlp/yt-dlp/issues/340
         # List of possible thumbnails - Ref: <https://stackoverflow.com/a/20542029>
@@ -2706,7 +2708,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'default', '1', '2', '3'
         ]
         n_thumbnail_names = len(thumbnail_names)
-
         thumbnails.extend({
             'url': 'https://i.ytimg.com/vi{webp}/{video_id}/{name}{live}.{ext}'.format(
                 video_id=video_id, name=name, ext=ext,
@@ -2716,6 +2717,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             i = next((i for i, t in enumerate(thumbnail_names) if f'/{video_id}/{t}' in thumb['url']), n_thumbnail_names)
             thumb['preference'] = (0 if '.webp' in thumb['url'] else -1) - (2 * i)
         self._remove_duplicate_formats(thumbnails)
+        self._downloader._sort_thumbnails(original_thumbnails)
 
         category = get_first(microformats, 'category') or search_meta('genre')
         channel_id = str_or_none(
@@ -2745,6 +2747,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'title': self._live_title(video_title) if is_live else video_title,
             'formats': formats,
             'thumbnails': thumbnails,
+            # The best thumbnail that we are sure exists. Prevents unnecessary
+            # URL checking if user don't care about getting the best possible thumbnail
+            'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
             'upload_date': unified_strdate(
                 get_first(microformats, 'uploadDate')
