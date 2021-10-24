@@ -145,6 +145,8 @@ class InstagramIE(InfoExtractor):
 
     def _login(self):
         username, password = self._get_login_info()
+        if username is None:
+            return
 
         login_webpage = self._download_webpage(
             'https://www.instagram.com/accounts/login/', None,
