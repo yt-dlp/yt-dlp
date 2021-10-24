@@ -152,7 +152,7 @@ For ease of use, a few more compat options are available:
 
 
 # INSTALLATION
-yt-dlp is not platform-specific. So it should work on your Unix box, on Windows or on macOS
+yt-dlp is not platform-specific. So it should work on your Unix box, on Windows or on macOS.
 
 You can install yt-dlp using one of the following methods:
 * Download [the binary](#release-files) from the [latest release](https://github.com/yt-dlp/yt-dlp/releases/latest)
@@ -510,8 +510,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      filenames
     --no-restrict-filenames          Allow Unicode characters, "&" and spaces in
                                      filenames (default)
-    --windows-filenames              Force filenames to be Windows compatible
-    --no-windows-filenames           Make filenames Windows compatible only if
+    --windows-filenames              Force filenames to be Windows-compatible
+    --no-windows-filenames           Make filenames Windows-compatible only if
                                      using Windows (default)
     --trim-filenames LENGTH          Limit the filename length (excluding
                                      extension) to the specified number of
@@ -913,7 +913,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                      music_offtopic. You can prefix the category
                                      with a "-" to exempt it. See 
                                      https://wiki.sponsor.ajay.app/index.php/Segment_Categories
-                                     for a description of the categories. Eg:
+                                     for a description of the categories. E.g.:
                                      --sponsorblock-query all,-preview
     --sponsorblock-remove CATS       SponsorBlock categories to be removed from
                                      the video file, separated by commas. If a
@@ -1513,7 +1513,7 @@ $ yt-dlp --replace-in-metadata 'title,uploader' '[ _]' '-'
 
 # EXTRACTOR ARGUMENTS
 
-Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player_client=android_agegate,web;include_live_dash" --extractor-args "funimation:version=uncut"`
+Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon)-separated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player_client=android_agegate,web;include_live_dash" --extractor-args "funimation:version=uncut"`
 
 The following extractors use this feature:
 
