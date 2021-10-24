@@ -567,8 +567,8 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
     --cookies-from-browser BROWSER[:PROFILE]
                                      Load cookies from a user profile of the
                                      given web browser. Currently supported
-                                     browsers are: Brave, Chrome, Chromium,
-                                     Edge, Firefox, Opera, Safari, Vivaldi. You
+                                     browsers are: brave, chrome, chromium,
+                                     edge, firefox, opera, safari, vivaldi. You
                                      can specify the user profile name or
                                      directory using "BROWSER:PROFILE_NAME" or
                                      "BROWSER:PROFILE_PATH". If no profile is
