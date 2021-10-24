@@ -2330,6 +2330,10 @@ class YoutubeDL(object):
                 format['resolution'] = self.format_resolution(format, default=None)
             if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
                 format['dynamic_range'] = 'SDR'
+            if (info_dict.get('duration') and format.get('tbr')
+                    and not format.get('filesize') and not format.get('filesize_approx')):
+                format['filesize_approx'] = info_dict['duration'] * format['tbr'] * (1024 / 8)
+
             # Add HTTP headers, so that external programs can use them from the
             # json output
             full_format_info = info_dict.copy()
