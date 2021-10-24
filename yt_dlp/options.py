@@ -562,12 +562,16 @@ def parseOpts(overrideArguments=None):
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
-        action='store_true', dest='check_formats', default=None,
-        help='Check that the formats selected are actually downloadable')
+        action='store_const', const='selected', dest='check_formats', default=None,
+        help='Check that the selected formats are actually downloadable')
+    video_format.add_option(
+        '--check-all-formats',
+        action='store_true', dest='check_formats',
+        help='Check all formats for whether they are actually downloadable')
     video_format.add_option(
         '--no-check-formats',
         action='store_false', dest='check_formats',
-        help='Do not check that the formats selected are actually downloadable')
+        help='Do not check that the formats are actually downloadable')
     video_format.add_option(
         '-F', '--list-formats',
         action='store_true', dest='listformats',
