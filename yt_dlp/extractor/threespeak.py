@@ -41,8 +41,8 @@ class ThreeSpeakIE(InfoExtractor):
         og_m3u8 = self._html_search_regex(r'<meta\s?property=\"ogvideo\"\s?content=\"([^\"]+)\">', webpage, 'og m3u8', fatal=False)
         if og_m3u8:
             https_frmts, https_subs = self._extract_m3u8_formats_and_subtitles(og_m3u8, id, fatal=False, m3u8_id='https')
-        formats.extend(https_frmts)
-        subtitles = self._merge_subtitles(subtitles, https_subs)
+            formats.extend(https_frmts)
+            subtitles = self._merge_subtitles(subtitles, https_subs)
         ipfs_m3u8 = try_get(video_json, lambda x: x['video']['info']['ipfs'])
         if ipfs_m3u8:
             ipfs_frmts, ipfs_subs = self._extract_m3u8_formats_and_subtitles(f'https://ipfs.3speak.tv/ipfs/{ipfs_m3u8}',
