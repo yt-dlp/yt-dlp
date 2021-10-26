@@ -41,6 +41,7 @@ EXT_TO_OUT_FORMATS = {
     'ts': 'mpegts',
     'wma': 'asf',
     'wmv': 'asf',
+    'vtt': 'webvtt',
 }
 ACODECS = {
     'mp3': 'libmp3lame',
