@@ -2,14 +2,19 @@
 from __future__ import unicode_literals
 
 import re
+
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    unsmuggle_url,
-)
 from ..compat import (
     compat_parse_qs,
     compat_urlparse,
+)
+from ..utils import (
+    ExtractorError,
+    HEADRequest,
+    determine_ext,
+    sanitized_Request,
+    unified_timestamp,
+    unsmuggle_url,
 )
 
 
@@ -48,7 +53,9 @@ class SenateISVPIE(InfoExtractor):
         ['arch', '', 'http://ussenate-f.akamaihd.net/']
     ]
     _IE_NAME = 'senate.gov'
-    _VALID_URL = r'https?://(?:www\.)?senate\.gov/isvp/?\?(?P<qs>.+)'
+    _VALID_ISVP_URL = r'https?://(?:www\.)?senate\.gov/isvp/?\?(?P<qs>.+)'
+    _VALID_OTHER_URL = r'https?:\/\/(?:www\.)?(help|appropriations|judiciary|banking|armed-services|finance)\.senate\.gov'
+    _VALID_URL = r'https?:\/\/(?:www\.?)?(help|appropriations|judiciary|banking|armed-services|finance|)\.senate\.gov'
     _TESTS = [{
         'url': 'http://www.senate.gov/isvp/?comm=judiciary&type=live&stt=&filename=judiciary031715&auto_play=false&wmode=transparent&poster=http%3A%2F%2Fwww.judiciary.senate.gov%2Fthemes%2Fjudiciary%2Fimages%2Fvideo-poster-flash-fit.png',
         'info_dict': {
@@ -94,15 +101,30 @@ class SenateISVPIE(InfoExtractor):
         if mobj:
             return mobj.group('url')
 
+    @classmethod
+    def _is_isvp_url(cls, url):
+        if '_VALID_ISVP_URL_RE' not in cls.__dict__:
+            cls._VALID_ISVP_URL_RE = re.compile(cls._VALID_ISVP_URL)
+
+        return cls._VALID_ISVP_URL_RE.match(url) is not None
+
+    @classmethod
+    def _is_other_url(cls, url):
+        if '_VALID_OTHER_URL_RE' not in cls.__dict__:
+            cls._VALID_OTHER_URL_RE = re.compile(cls._VALID_OTHER_URL)
+
+        return cls._VALID_OTHER_URL_RE.match(url) is not None
+
     def _get_info_for_comm(self, committee):
         for entry in self._COMM_MAP:
             if entry[0] == committee:
                 return entry[1:]
 
-    def _real_extract(self, url):
+    def _isvp_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
-        qs = compat_parse_qs(self._match_valid_url(url).group('qs'))
+        # qs = compat_parse_qs(self._match_valid_url(url).group('qs'))
+        qs = compat_parse_qs(re.match(self._VALID_ISVP_URL, url).group('qs'))
         if not qs.get('filename') or not qs.get('type') or not qs.get('comm'):
             raise ExtractorError('Invalid URL', expected=True)
 
@@ -126,7 +148,7 @@ class SenateISVPIE(InfoExtractor):
             filename = video_id if '.' in video_id else video_id + '.mp4'
             formats = [{
                 # All parameters in the query string are necessary to prevent a 403 error
-                'url': compat_urlparse.urljoin(domain, filename) + '?v=3.1.0&fp=&r=&g=',
+                'url': compat_urlparse.urljoin(domain, 'i/' + filename + '/master.m3u8'),
             }]
         else:
             hdcore_sign = 'hdcore=3.1.0'
@@ -151,3 +173,94 @@ class SenateISVPIE(InfoExtractor):
             'formats': formats,
             'thumbnail': thumbnail,
         }
+
+    def _other_get_video_url(self, parse_info):
+        stream_comm = parse_info["comm"]
+        filename = parse_info["filename"]
+
+        stream_num = ""
+        stream_domain = ""
+        for comm, stream_num, stream_domain in self._COMM_MAP:
+            if not stream_comm:
+                break
+            elif stream_comm == comm:
+                stream_num = stream_num
+                stream_domain = stream_domain
+                break
+
+        hlsurl = stream_domain + '/i/' + filename + '_1@' + stream_num + "/master.m3u8?"
+        return hlsurl
+
+    def _other_extract(self, url):
+        video_id = self._generic_id(url)
+        head_req = HEADRequest(url)
+
+        head_response = self._request_webpage(
+            head_req, video_id,
+            note=False, errnote='Could not send HEAD request to %s' % url,
+            fatal=False)
+
+        info_dict = {
+            'id': video_id,
+            'title': self._generic_title(url),
+            'timestamp': unified_timestamp(head_response.headers.get('Last-Modified'))
+        }
+
+        request = sanitized_Request(url)
+        request.add_header('Accept-Encoding', '*')
+        full_response = self._request_webpage(request, video_id)
+        first_bytes = full_response.read(512)
+        webpage = self._webpage_read_content(
+            full_response, url, video_id, prefix=first_bytes)
+
+        video_title = self._og_search_title(
+            webpage, default=None) or self._html_search_regex(
+            r'(?s)<title>(.*?)</title>', webpage, 'video title',
+            default='video')
+
+        video_description = self._og_search_description(webpage, default=None)
+        video_thumbnail = self._og_search_thumbnail(webpage, default=None)
+        if len(video_title) > 150:
+            if video_title.find(",") != -1:
+                video_title = video_title.split(",")[0]
+            elif video_title.find(".") != -1:
+                video_title = video_title.split(".")[0]
+            else:
+                video_title = " ".join(video_title.split(" ")[:5])
+
+        age_limit = self._rta_search(webpage)
+        info_dict.update({
+            'title': video_title,
+            'description': video_description,
+            'thumbnail': video_thumbnail,
+            'age_limit': age_limit,
+        })
+
+        def parse_site_url(stream_hearing):
+            parse_info = {}
+            params = stream_hearing.split("?")[1]
+            for site_param in params.split("&"):
+                param_data = site_param.split("=")
+                parse_info[param_data[0]] = param_data[1]
+
+            return parse_info
+
+        streaminghearing = re.findall(r'<iframe class="streaminghearing" src="(.*?) ', webpage)[0]
+        parse_info = parse_site_url(streaminghearing)
+        video_url = self._other_get_video_url(parse_info)
+        ext = determine_ext(video_url)
+        if ext == "m3u8":
+            info_dict['formats'] = self._extract_m3u8_formats(video_url, video_id, ext='mp4')
+
+        if info_dict.get('formats'):
+            self._sort_formats(info_dict['formats'])
+
+        return info_dict
+
+    def _real_extract(self, url):
+        if self._is_isvp_url(url):
+            return self._isvp_extract(url)
+        elif self._is_other_url(url):
+            return self._other_extract(url)
+        else:
+            print("invalid url: {}".format(url))
