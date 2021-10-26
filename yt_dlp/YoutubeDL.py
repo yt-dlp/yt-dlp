@@ -56,6 +56,7 @@ from .utils import (
     DEFAULT_OUTTMPL,
     determine_ext,
     determine_protocol,
+    DownloadCancelled,
     DownloadError,
     encode_compat_str,
     encodeFilename,
@@ -1320,7 +1321,7 @@ class YoutubeDL(object):
                 self.to_stderr('\r')
                 self.report_warning('The download speed is below throttle limit. Re-extracting data')
                 return wrapper(self, *args, **kwargs)
-            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached, LazyList.IndexError):
+            except (DownloadCancelled, LazyList.IndexError):
                 raise
             except Exception as e:
                 if self.params.get('ignoreerrors'):
@@ -2949,14 +2950,8 @@ class YoutubeDL(object):
                     url, force_generic_extractor=self.params.get('force_generic_extractor', False))
             except UnavailableVideoError:
                 self.report_error('unable to download video')
-            except MaxDownloadsReached:
-                self.to_screen('[info] Maximum number of downloads reached')
-                raise
-            except ExistingVideoReached:
-                self.to_screen('[info] Encountered a video that is already in the archive, stopping due to --break-on-existing')
-                raise
-            except RejectedVideoReached:
-                self.to_screen('[info] Encountered a video that did not match filter, stopping due to --break-on-reject')
+            except DownloadCancelled as e:
+                self.to_screen(f'[info] {e.msg}')
                 raise
             else:
                 if self.params.get('dump_single_json', False):

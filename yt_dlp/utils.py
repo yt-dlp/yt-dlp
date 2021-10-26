@@ -2542,23 +2542,33 @@ class PostProcessingError(YoutubeDLError):
         self.msg = msg
 
 
-class ExistingVideoReached(YoutubeDLError):
-    """ --max-downloads limit has been reached. """
-    pass
+class DownloadCancelled(YoutubeDLError):
+    """ Exception raised when the download queue should be interrupted """
+    msg = 'The download was cancelled'
+
+    def __init__(self, msg=None):
+        if msg is not None:
+            self.msg = msg
+        YoutubeDLError.__init__(self, self.msg)
 
 
-class RejectedVideoReached(YoutubeDLError):
+class ExistingVideoReached(DownloadCancelled):
+    """ --break-on-existing triggered """
+    msg = 'Encountered a video that is already in the archive, stopping due to --break-on-existing'
+
+
+class RejectedVideoReached(DownloadCancelled):
+    """ --break-on-reject triggered """
+    msg = 'Encountered a video that did not match filter, stopping due to --break-on-reject'
+
+
+class MaxDownloadsReached(DownloadCancelled):
     """ --max-downloads limit has been reached. """
-    pass
+    msg = 'Maximum number of downloads reached, stopping due to --max-downloads'
 
 
 class ThrottledDownload(YoutubeDLError):
     """ Download speed below --throttled-rate. """
-    pass
-
-
-class MaxDownloadsReached(YoutubeDLError):
-    """ --max-downloads limit has been reached. """
     pass
 
 
