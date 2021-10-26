@@ -34,6 +34,7 @@ class ThreeSpeakIE(InfoExtractor):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
         json_str = self._html_search_regex(r'JSON\.parse\(\'([^\']+)\'\)', webpage, 'json')
+        # The json string itself is escaped. Hence the double parsing
         data_json = self._parse_json(self._parse_json(f'"{json_str}"', id), id)
         video_json = self._parse_json(data_json['json_metadata'], id)
         formats, subtitles = [], {}
