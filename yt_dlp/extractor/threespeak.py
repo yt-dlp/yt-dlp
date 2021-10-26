@@ -47,8 +47,8 @@ class ThreeSpeakIE(InfoExtractor):
         if ipfs_m3u8:
             ipfs_frmts, ipfs_subs = self._extract_m3u8_formats_and_subtitles(f'https://ipfs.3speak.tv/ipfs/{ipfs_m3u8}',
                                                                              id, fatal=False, m3u8_id='ipfs')
-        formats.extend(ipfs_frmts)
-        subtitles = self._merge_subtitles(subtitles, ipfs_subs)
+            formats.extend(ipfs_frmts)
+            subtitles = self._merge_subtitles(subtitles, ipfs_subs)
         mp4_file = try_get(video_json, lambda x: x['video']['info']['file'])
         if mp4_file:
             formats.append({
