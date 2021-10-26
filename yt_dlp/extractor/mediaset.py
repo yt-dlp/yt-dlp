@@ -8,6 +8,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_qs,
+    try_get,
     update_url_query,
 )
 
@@ -212,3 +213,82 @@ class MediasetIE(ThePlatformBaseIE):
             'subtitles': subtitles,
         })
         return info
+
+
+class MediasetShowIE(MediasetIE):
+    _VALID_URL = r'''(?x)
+                    (?:
+                        mediaset:|
+                        https?://
+                            (?:(?:www|static3)\.)?mediasetplay\.mediaset\.it/
+                            (?:
+                                (?:fiction|programmi-tv|serie-tv)/(?:.+?/)?
+                                    (?:[a-z]+)_SE(?P<id>\d{12})
+                                    (?:,ST(?P<st>\d{12}))?
+                                    (?:,sb(?P<sb>\d{9}))?$
+                            )
+                    )
+                    '''
+    _TESTS = [{
+        # TV Show webpage (with a single playlist)
+        'url': 'https://www.mediasetplay.mediaset.it/serie-tv/fireforce/episodi_SE000000001556',
+        'info_dict': {
+            'id': '000000001556',
+            'title': 'Fire Force',
+        },
+        'playlist_count': 1,
+    }, {
+        # TV Show webpage (with multiple playlists)
+        'url': 'https://www.mediasetplay.mediaset.it/programmi-tv/leiene/leiene_SE000000000061,ST000000002763',
+        'info_dict': {
+            'id': '000000002763',
+            'title': 'Le Iene',
+        },
+        'playlist_count': 7,
+    }, {
+        # TV Show specific playlist (extracts video contents)
+        'url': 'https://www.mediasetplay.mediaset.it/serie-tv/fireforce/episodi_SE000000001556,ST000000002738,sb100013107',
+        'info_dict': {
+            'id': '100013107',
+            'title': 'Episodi',
+        },
+        'playlist_count': 7,
+    }]
+
+    _HOST = 'https://www.mediasetplay.mediaset.it'
+    _FEED_URL = 'https://feed.entertainment.tv.theplatform.eu/f/PR1GhC/'
+    _BY_SUBBRAND = _FEED_URL + 'mediaset-prod-all-programs-v2?byCustomValue={subBrandId}{%s}&sort=:publishInfo_lastPublished|desc,tvSeasonEpisodeNumber|desc&range=0-20'
+
+    def _get_entries(self, title, data):
+        for entry in data.get('entries') or []:
+            yield self.url_result(entry['mediasetprogram$videoPageUrl'])
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        st = self._match_valid_url(url).group('st')
+        sb = self._match_valid_url(url).group('sb')
+
+        if not sb:
+            pl = []
+            page = self._download_webpage(url, playlist_id)
+            for u in re.findall(
+                    r'href="([^<>=]+SE\d{12},ST\d{12},sb\d{9})">[^<]+<',
+                    page):
+                if not u.startswith('http'):
+                    u = self._HOST + u
+                pl.append(self.url_result(u))
+
+            title = self._html_search_regex(
+                r'(?s)<h1[^>]*>(.+?)</h1>', page, 'title')
+            title = title or self._og_search_title(page)
+
+            return self.playlist_result(
+                pl, st or playlist_id, title)
+
+        content = self._download_json(self._BY_SUBBRAND % sb, sb)
+        title = try_get(
+            content.get('entries'),
+            lambda x: x[0]['mediasetprogram$subBrandDescription'])
+
+        return self.playlist_result(
+            self._get_entries(title, content), sb, title)
