@@ -2492,9 +2492,9 @@ class GeoRestrictedError(ExtractorError):
     geographic location due to geographic restrictions imposed by a website.
     """
 
-    def __init__(self, msg, countries=None):
-        super(GeoRestrictedError, self).__init__(msg, expected=True)
-        self.msg = msg
+    def __init__(self, msg, countries=None, **kwargs):
+        kwargs['expected'] = True
+        super(GeoRestrictedError, self).__init__(msg, **kwargs)
         self.countries = countries
 
 
