@@ -56,9 +56,7 @@ from .utils import (
     DEFAULT_OUTTMPL,
     determine_ext,
     determine_protocol,
-    DOT_DESKTOP_LINK_TEMPLATE,
-    DOT_URL_LINK_TEMPLATE,
-    DOT_WEBLOC_LINK_TEMPLATE,
+    DownloadCancelled,
     DownloadError,
     encode_compat_str,
     encodeFilename,
@@ -77,6 +75,7 @@ from .utils import (
     iri_to_uri,
     ISO3166Utils,
     LazyList,
+    LINK_TEMPLATES,
     locked_file,
     make_dir,
     make_HTTPS_handler,
@@ -1322,7 +1321,7 @@ class YoutubeDL(object):
                 self.to_stderr('\r')
                 self.report_warning('The download speed is below throttle limit. Re-extracting data')
                 return wrapper(self, *args, **kwargs)
-            except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached, LazyList.IndexError):
+            except (DownloadCancelled, LazyList.IndexError):
                 raise
             except Exception as e:
                 if self.params.get('ignoreerrors'):
@@ -2665,53 +2664,41 @@ class YoutubeDL(object):
                     return
 
         # Write internet shortcut files
-        url_link = webloc_link = desktop_link = False
-        if self.params.get('writelink', False):
-            if sys.platform == "darwin":  # macOS.
-                webloc_link = True
-            elif sys.platform.startswith("linux"):
-                desktop_link = True
-            else:  # if sys.platform in ['win32', 'cygwin']:
-                url_link = True
-        if self.params.get('writeurllink', False):
-            url_link = True
-        if self.params.get('writewebloclink', False):
-            webloc_link = True
-        if self.params.get('writedesktoplink', False):
-            desktop_link = True
-
-        if url_link or webloc_link or desktop_link:
+        def _write_link_file(link_type):
             if 'webpage_url' not in info_dict:
                 self.report_error('Cannot write internet shortcut file because the "webpage_url" field is missing in the media information')
-                return
-            ascii_url = iri_to_uri(info_dict['webpage_url'])
-
-        def _write_link_file(extension, template, newline, embed_filename):
-            linkfn = replace_extension(full_filename, extension, info_dict.get('ext'))
+                return False
+            linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
             if self.params.get('overwrites', True) and os.path.exists(encodeFilename(linkfn)):
-                self.to_screen('[info] Internet shortcut is already present')
-            else:
-                try:
-                    self.to_screen('[info] Writing internet shortcut to: ' + linkfn)
-                    with io.open(encodeFilename(to_high_limit_path(linkfn)), 'w', encoding='utf-8', newline=newline) as linkfile:
-                        template_vars = {'url': ascii_url}
-                        if embed_filename:
-                            template_vars['filename'] = linkfn[:-(len(extension) + 1)]
-                        linkfile.write(template % template_vars)
-                except (OSError, IOError):
-                    self.report_error('Cannot write internet shortcut ' + linkfn)
-                    return False
+                self.to_screen(f'[info] Internet shortcut (.{link_type}) is already present')
+                return True
+            try:
+                self.to_screen(f'[info] Writing internet shortcut (.{link_type}) to: {linkfn}')
+                with io.open(encodeFilename(to_high_limit_path(linkfn)), 'w', encoding='utf-8',
+                             newline='\r\n' if link_type == 'url' else '\n') as linkfile:
+                    template_vars = {'url': iri_to_uri(info_dict['webpage_url'])}
+                    if link_type == 'desktop':
+                        template_vars['filename'] = linkfn[:-(len(link_type) + 1)]
+                    linkfile.write(LINK_TEMPLATES[link_type] % template_vars)
+            except (OSError, IOError):
+                self.report_error(f'Cannot write internet shortcut {linkfn}')
+                return False
             return True
 
-        if url_link:
-            if not _write_link_file('url', DOT_URL_LINK_TEMPLATE, '\r\n', embed_filename=False):
-                return
-        if webloc_link:
-            if not _write_link_file('webloc', DOT_WEBLOC_LINK_TEMPLATE, '\n', embed_filename=False):
-                return
-        if desktop_link:
-            if not _write_link_file('desktop', DOT_DESKTOP_LINK_TEMPLATE, '\n', embed_filename=True):
-                return
+        write_links = {
+            'url': self.params.get('writeurllink'),
+            'webloc': self.params.get('writewebloclink'),
+            'desktop': self.params.get('writedesktoplink'),
+        }
+        if self.params.get('writelink'):
+            link_type = ('webloc' if sys.platform == 'darwin'
+                         else 'desktop' if sys.platform.startswith('linux')
+                         else 'url')
+            write_links[link_type] = True
+
+        if any(should_write and not _write_link_file(link_type)
+               for link_type, should_write in write_links.items()):
+            return
 
         try:
             info_dict, files_to_move = self.pre_process(info_dict, 'before_dl', files_to_move)
@@ -2963,14 +2950,8 @@ class YoutubeDL(object):
                     url, force_generic_extractor=self.params.get('force_generic_extractor', False))
             except UnavailableVideoError:
                 self.report_error('unable to download video')
-            except MaxDownloadsReached:
-                self.to_screen('[info] Maximum number of downloads reached')
-                raise
-            except ExistingVideoReached:
-                self.to_screen('[info] Encountered a video that is already in the archive, stopping due to --break-on-existing')
-                raise
-            except RejectedVideoReached:
-                self.to_screen('[info] Encountered a video that did not match filter, stopping due to --break-on-reject')
+            except DownloadCancelled as e:
+                self.to_screen(f'[info] {e.msg}')
                 raise
             else:
                 if self.params.get('dump_single_json', False):

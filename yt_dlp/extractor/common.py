@@ -74,6 +74,7 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     unescapeHTML,
+    UnsupportedError,
     unified_strdate,
     unified_timestamp,
     update_Request,
@@ -604,10 +605,19 @@ class InfoExtractor(object):
                     if self.__maybe_fake_ip_and_retry(e.countries):
                         continue
                     raise
+        except UnsupportedError:
+            raise
         except ExtractorError as e:
-            video_id = e.video_id or self.get_temp_id(url)
-            raise ExtractorError(
-                e.msg, video_id=video_id, ie=self.IE_NAME, tb=e.traceback, expected=e.expected, cause=e.cause)
+            kwargs = {
+                'video_id': e.video_id or self.get_temp_id(url),
+                'ie': self.IE_NAME,
+                'tb': e.traceback,
+                'expected': e.expected,
+                'cause': e.cause
+            }
+            if hasattr(e, 'countries'):
+                kwargs['countries'] = e.countries
+            raise type(e)(e.msg, **kwargs)
         except compat_http_client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
