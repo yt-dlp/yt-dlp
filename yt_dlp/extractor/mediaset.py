@@ -218,7 +218,6 @@ class MediasetIE(ThePlatformBaseIE):
 class MediasetShowIE(MediasetIE):
     _VALID_URL = r'''(?x)
                     (?:
-                        mediaset:|
                         https?://
                             (?:(?:www|static3)\.)?mediasetplay\.mediaset\.it/
                             (?:
