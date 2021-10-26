@@ -4731,7 +4731,7 @@ def determine_protocol(info_dict):
     if protocol is not None:
         return protocol
 
-    url = info_dict['url']
+    url = sanitize_url(info_dict['url'])
     if url.startswith('rtmp'):
         return 'rtmp'
     elif url.startswith('mms'):
