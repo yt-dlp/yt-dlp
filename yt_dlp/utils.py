@@ -4503,6 +4503,7 @@ OUTTMPL_TYPES = {
     'description': 'description',
     'annotation': 'annotations.xml',
     'infojson': 'info.json',
+    'link': None,
     'pl_thumbnail': None,
     'pl_description': 'description',
     'pl_infojson': 'info.json',
@@ -6237,6 +6238,12 @@ Type=Link
 URL=%(url)s
 Icon=text-html
 '''.lstrip()
+
+LINK_TEMPLATES = {
+    'url': DOT_URL_LINK_TEMPLATE,
+    'desktop': DOT_DESKTOP_LINK_TEMPLATE,
+    'webloc': DOT_WEBLOC_LINK_TEMPLATE,
+}
 
 
 def iri_to_uri(iri):
