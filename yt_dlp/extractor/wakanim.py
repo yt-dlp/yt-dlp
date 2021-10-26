@@ -33,11 +33,18 @@ class WakanimIE(InfoExtractor):
         'url': 'https://www.wakanim.tv/de/v2/catalogue/episode/7843/sword-art-online-alicization-omu-arc-2-folge-15-omu',
         'only_matching': True,
     }]
+    _GEO_BYPASS = False
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
+
+        if 'Geoblocking' in webpage:
+            if '/de/' in url:
+                self.raise_geo_restricted(countries=['DE', 'AT', 'CH'])
+            else:
+                self.raise_geo_restricted(countries=['RU'])
 
         manifest_url = urljoin(url, self._search_regex(
             r'file\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage, 'manifest url',
