@@ -125,9 +125,8 @@ class SkyNewsStoryIE(SkyBaseIE):
         article_id = self._match_id(url)
         webpage = self._download_webpage(url, article_id)
 
-        entries = []
-        for sdc_el in re.findall(self._SDC_EL_REGEX, webpage):
-            entries.append(self._process_ooyala_element(webpage, sdc_el, url))
+        entries = [self._process_ooyala_element(webpage, sdc_el, url)
+                   for sdc_el in re.findall(self._SDC_EL_REGEX, webpage)]
 
         return self.playlist_result(
             entries, article_id, self._og_search_title(webpage),
