@@ -256,11 +256,24 @@ class MediasetShowIE(MediasetIE):
 
     _HOST = 'https://www.mediasetplay.mediaset.it'
     _FEED_URL = 'https://feed.entertainment.tv.theplatform.eu/f/PR1GhC/'
-    _BY_SUBBRAND = _FEED_URL + 'mediaset-prod-all-programs-v2?byCustomValue={subBrandId}{%s}&sort=:publishInfo_lastPublished|desc,tvSeasonEpisodeNumber|desc&range=0-20'
+    _BY_SUBBRAND = _FEED_URL + 'mediaset-prod-all-programs-v2?byCustomValue={subBrandId}{%s}&sort=:publishInfo_lastPublished|desc,tvSeasonEpisodeNumber|desc&range=%d-%d'
+    _RANGE_STEP = 25
+    _RANGE_STOP = 200
+
+    def _get_data(self, sb):
+        entries = []
+        for i in range(0, self._RANGE_STOP, self._RANGE_STEP):
+            content = self._download_json(
+                self._BY_SUBBRAND % (sb, i, i + self._RANGE_STEP - 1), sb)
+            if len(content.get('entries')) > 0:
+                entries.extend(content['entries'])
+            else:
+                break
+        return entries
 
     def _get_entries(self, title, data):
-        for entry in data.get('entries') or []:
-            yield self.url_result(entry['mediasetprogram$videoPageUrl'])
+        for entry in data or []:
+            yield self.url_result('mediaset:' + entry['guid'])
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -284,10 +297,10 @@ class MediasetShowIE(MediasetIE):
             return self.playlist_result(
                 pl, st or playlist_id, title)
 
-        content = self._download_json(self._BY_SUBBRAND % sb, sb)
+        entries = self._get_data(sb)
         title = try_get(
-            content.get('entries'),
+            entries,
             lambda x: x[0]['mediasetprogram$subBrandDescription'])
 
         return self.playlist_result(
-            self._get_entries(title, content), sb, title)
+            self._get_entries(title, entries), sb, title)
