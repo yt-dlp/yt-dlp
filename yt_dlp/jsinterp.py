@@ -469,7 +469,7 @@ class JSInterpreter(object):
         return obj
 
     def extract_function_code(self, funcname):
-        ''' @returns argnames, code '''
+        """ @returns argnames, code """
         func_m = re.search(
             r'''(?x)
                 (?:function\s+%s|[{;,]\s*%s\s*=\s*function|var\s+%s\s*=\s*function)\s*

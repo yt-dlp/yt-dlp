@@ -1837,11 +1837,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._print_sig_code(func, s)
             return func(s)
         except Exception as e:
-            tb = traceback.format_exc()
-            raise ExtractorError(
-                'Signature extraction failed: ' + tb, cause=e)
-
-    _nsig_cache = {}
+            raise ExtractorError('Signature extraction failed: ' + traceback.format_exc(), cause=e)
 
     def _decrypt_nsig(self, s, video_id, player_url):
         """Turn the encrypted n field into a working signature"""
@@ -2446,7 +2442,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
         streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
-        _nsig_warned = False
 
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
@@ -2491,17 +2486,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 fmt_url += '&' + sp + '=' + signature
 
             query = parse_qs(fmt_url)
-            n_sig = True
+            throttled = False
             if query.get('ratebypass') != ['yes'] and query.get('n'):
                 try:
-                    n_sig = self._decrypt_nsig(query['n'][0], video_id, player_url) if player_url else False
+                    fmt_url = update_url_query(fmt_url, {
+                        'n': self._decrypt_nsig(query['n'][0], video_id, player_url)})
                 except ExtractorError as e:
-                    if not _nsig_warned:
-                        _nsig_warned = True
-                        self.report_warning(f'nsig extraction failed: You may experience throttling for some formats\n{e}')
-                    n_sig = False
-                if n_sig:
-                    fmt_url = update_url_query(fmt_url, {'n': n_sig})
+                    self.report_warning(f'nsig extraction failed: You may experience throttling for some formats\n{e}', only_once=True)
+                    throttled = True
 
             if itag:
                 itags.append(itag)
@@ -2517,8 +2509,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     '%s%s' % (audio_track.get('displayName') or '',
                               ' (default)' if audio_track.get('audioIsDefault') else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
-                    ' (throttled)' if not n_sig else None))),
-                'source_preference': -10 if not n_sig else -1,
+                    throttled and 'THROTTLED'))),
+                'source_preference': -10 if not throttled else -1,
                 'fps': int_or_none(fmt.get('fps')),
                 'height': height,
                 'quality': q(quality),
