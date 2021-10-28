@@ -7,7 +7,7 @@ from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec, find_spec
 from inspect import getmembers, isclass
 from itertools import accumulate
-from pathlib import Path, PurePath
+from pathlib import Path
 from pkgutil import iter_modules as pkgutil_iter_modules
 from shutil import copytree
 from zipfile import ZipFile
@@ -19,6 +19,7 @@ _INITIALIZED = False
 
 class PluginLoader(Loader):
     """ Dummy loader for virtual namespace packages """
+
     def exec_module(self, module):
         return None
 
@@ -29,16 +30,6 @@ class PluginFinder(MetaPathFinder):
     it searches in sys.path for the existing subdirectories
     from which the modules can be imported
     """
-    @staticmethod
-    def partition(name):
-        yield from accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
-
-    def zip_has_dir(self, archive, path):
-        if archive not in self._zip_content_cache:
-            self._zip_content_cache[archive] = \
-                [PurePath(name) for name in ZipFile(archive).namelist()]
-        path = PurePath(path)
-        return any(path in file.parents for file in self._zip_content_cache[archive])
 
     def __init__(self, *packages):
         self.packages = set()
@@ -46,6 +37,16 @@ class PluginFinder(MetaPathFinder):
 
         for name in packages:
             self.packages.update(self.partition(name))
+
+    @staticmethod
+    def partition(name):
+        yield from accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
+
+    def zip_has_dir(self, archive, path):
+        if archive not in self._zip_content_cache:
+            self._zip_content_cache[archive] = \
+                [Path(name) for name in ZipFile(archive).namelist()]
+        return any(path in file.parents for file in self._zip_content_cache[archive])
 
     def search_locations(self, fullname):
         parts = fullname.split('.')
@@ -56,7 +57,7 @@ class PluginFinder(MetaPathFinder):
                 locations.append(str(candidate))
             elif path.is_file() and path.suffix in {'.zip', '.egg', '.whl'}:
                 with suppress(FileNotFoundError):
-                    if self.zip_has_dir(path, "/".join(parts)):
+                    if self.zip_has_dir(path, Path(*parts)):
                         locations.append(str(candidate))
         return locations
 
@@ -72,6 +73,12 @@ class PluginFinder(MetaPathFinder):
         spec.submodule_search_locations = search_locations
         return spec
 
+    def invalidate_caches(self):
+        self._zip_content_cache.clear()
+        for package in self.packages:
+            if package in sys.modules:
+                del sys.modules[package]
+
 
 def initialize():
     global _INITIALIZED
@@ -81,7 +88,7 @@ def initialize():
     # are we running from PyInstaller single executable?
     # then copy the plugin directory if exist
     root = Path(sys.executable).parent
-    meipass = Path(getattr(sys, '_MEIPASS', '.'))
+    meipass = Path(getattr(sys, '_MEIPASS', root))
     if getattr(sys, 'frozen', False) and root != meipass:
         try:
             copytree(root / PACKAGE_NAME, meipass / PACKAGE_NAME, dirs_exist_ok=True)
