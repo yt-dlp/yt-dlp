@@ -793,6 +793,7 @@ from .mlb import (
     MLBIE,
     MLBVideoIE,
 )
+from .mlssoccer import MLSSoccerIE
 from .mnet import MnetIE
 from .moevideo import MoeVideoIE
 from .mofosex import (
