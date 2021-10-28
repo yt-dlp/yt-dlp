@@ -601,7 +601,7 @@ from .iqiyi import IqiyiIE
 from .ir90tv import Ir90TvIE
 from .itv import (
     ITVIE,
-    ITVBTCCIE,
+    ITVNewsIE,
 )
 from .ivi import (
     IviIE,
