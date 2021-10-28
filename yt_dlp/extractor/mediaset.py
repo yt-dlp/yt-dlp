@@ -281,7 +281,7 @@ class MediasetShowIE(MediasetIE):
         if not sb:
             page = self._download_webpage(url, playlist_id)
             entries = [self.url_result(urljoin('https://www.mediasetplay.mediaset.it', url))
-                for url in re.findall(r'href="([^<>=]+SE\d{12},ST\d{12},sb\d{9})">[^<]+<', page)]
+                       for url in re.findall(r'href="([^<>=]+SE\d{12},ST\d{12},sb\d{9})">[^<]+<', page)]
             title = (self._html_search_regex(r'(?s)<h1[^>]*>(.+?)</h1>', page, 'title', default=None)
                      or self._og_search_title(page))
             return self.playlist_result(entries, st or playlist_id, title)
