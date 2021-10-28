@@ -276,31 +276,16 @@ class MediasetShowIE(MediasetIE):
             yield self.url_result('mediaset:' + entry['guid'])
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        st = self._match_valid_url(url).group('st')
-        sb = self._match_valid_url(url).group('sb')
-
+        playlist_id, st, sb = self._match_valid_url(url).group('id', 'st', 'sb')
         if not sb:
-            pl = []
             page = self._download_webpage(url, playlist_id)
-            for u in re.findall(
-                    r'href="([^<>=]+SE\d{12},ST\d{12},sb\d{9})">[^<]+<',
-                    page):
-                if not u.startswith('http'):
-                    u = self._HOST + u
-                pl.append(self.url_result(u))
-
-            title = self._html_search_regex(
-                r'(?s)<h1[^>]*>(.+?)</h1>', page, 'title')
-            title = title or self._og_search_title(page)
-
-            return self.playlist_result(
-                pl, st or playlist_id, title)
+            entries = [self.url_result(urljoin('https://www.mediasetplay.mediaset.it', url))
+                for url in re.findall(r'href="([^<>=]+SE\d{12},ST\d{12},sb\d{9})">[^<]+<', page)]
+            title = (self._html_search_regex(r'(?s)<h1[^>]*>(.+?)</h1>', page, 'title', default=None)
+                     or self._og_search_title(page))
+            return self.playlist_result(entries, st or playlist_id, title)
 
         entries = self._get_data(sb)
-        title = try_get(
-            entries,
-            lambda x: x[0]['mediasetprogram$subBrandDescription'])
+        title = try_get(entries, lambda x: x[0]['mediasetprogram$subBrandDescription'])
 
-        return self.playlist_result(
-            self._get_entries(title, entries), sb, title)
+        return self.playlist_result(self._get_entries(title, entries), sb, title)
