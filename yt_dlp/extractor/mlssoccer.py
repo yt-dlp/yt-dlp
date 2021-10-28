@@ -112,7 +112,7 @@ class MLSSoccerIE(InfoExtractor):
         data_json = self._parse_json(self._html_search_regex(r'data-options\=\"([^\"]+)\"', webpage, 'json'), id)['videoList'][0]
         return {
             'id': id,
-            '_type': 'url_transparent',
+            '_type': 'url',
             'url': 'https://players.brightcove.net/%s/default_default/index.html?videoId=%s' % (data_json['accountId'], data_json['videoId']),
             'ie_key': 'BrightcoveNew',
         }
