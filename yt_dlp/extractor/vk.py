@@ -471,6 +471,14 @@ class VKIE(VKBaseIE):
                 })
         self._sort_formats(formats)
 
+        subtitles = {}
+        _subtitles = data.get('subs', {})
+        for sub in _subtitles:
+            subtitles.setdefault(sub.get('lang', 'en'), []).append({
+                'ext': sub.get('title', '.srt').split('.')[-1],
+                'url': url_or_none(sub.get('url')),
+            })
+
         return {
             'id': video_id,
             'formats': formats,
@@ -484,6 +492,7 @@ class VKIE(VKBaseIE):
             'like_count': int_or_none(mv_data.get('likes')),
             'comment_count': int_or_none(mv_data.get('commcount')),
             'is_live': is_live,
+            'subtitles': subtitles,
         }
 
 
