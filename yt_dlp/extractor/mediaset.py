@@ -271,10 +271,10 @@ class MediasetShowIE(MediasetIE):
     _PAGE_SIZE = 25
 
     def _fetch_page(self, sb, page):
-        ll = page * self._PAGE_SIZE + 1
-        ul = ll + self._PAGE_SIZE - 1
+        lower_limit = page * self._PAGE_SIZE + 1
+        upper_limit = lower_limit + self._PAGE_SIZE - 1
         content = self._download_json(
-            self._BY_SUBBRAND % (sb, ll, ul), sb)
+            self._BY_SUBBRAND % (sb, lower_limit, upper_limit), sb)
         if len(content.get('entries')) > 0:
             for entry in content['entries']:
                 yield self.url_result(
