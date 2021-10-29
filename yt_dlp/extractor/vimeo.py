@@ -290,14 +290,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                             \.
                         )?
                         vimeo(?:pro)?\.com/
-                        (?!(?:channels|album|showcase)/[^/?#]+/?(?:$|[?#])|[^/]+/review/|ondemand/)
-                        (?:.*?/)?
-                        (?:
-                            (?:
-                                play_redirect_hls|
-                                moogaloop\.swf)\?clip_id=
-                            )?
-                        (?:videos?/)?
+                        (?:[^/]+/)*?
                         (?P<id>[0-9]+)
                         (?:/(?P<unlisted_hash>[\da-f]{10}))?
                         /?(?:[?&].*)?(?:[#].*)?$
@@ -402,6 +395,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'upload_date': '20130928',
                 'duration': 187,
             },
+            'params': {'format': 'http-1080p'},
             'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
@@ -424,7 +418,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
                     'es': [{'ext': 'vtt'}],
                     'fr': [{'ext': 'vtt'}],
                 },
-            }
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         },
         {
             # from https://www.ouya.tv/game/Pier-Solar-and-the-Great-Architects/
@@ -532,10 +527,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             },
         },
         {
-            'url': 'http://vimeo.com/moogaloop.swf?clip_id=2539741',
-            'only_matching': True,
-        },
-        {
             'url': 'https://vimeo.com/109815029',
             'note': 'Video not completely processed, "failed" seed status',
             'only_matching': True,
@@ -554,7 +545,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'info_dict': {
                 'id': '119195465',
                 'ext': 'mp4',
-                'title': 'youtube-dl test video \'ä"BaW_jenozKc',
+                'title': r're:youtube-dl test video ',
                 'uploader': 'Philipp Hagemeister',
                 'uploader_id': 'user20132939',
                 'description': 'md5:fa7b6c6d8db0bdc353893df2f111855b',
@@ -579,10 +570,72 @@ class VimeoIE(VimeoBaseInfoExtractor):
             # requires passing unlisted_hash(a52724358e) to load_download_config request
             'url': 'https://vimeo.com/392479337/a52724358e',
             'only_matching': True,
-        }
+        },
+        {
+            # ondemand video not available via https://vimeo.com/id
+            'url': 'https://vimeo.com/ondemand/20704',
+            'md5': 'c424deda8c7f73c1dfb3edd7630e2f35',
+            'info_dict': {
+                'id': '105442900',
+                'ext': 'mp4',
+                'title': 'המעבדה - במאי יותם פלדמן',
+                'uploader': 'גם סרטים',
+                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/gumfilms',
+                'uploader_id': 'gumfilms',
+                'description': 'md5:4c027c965e439de4baab621e48b60791',
+                'upload_date': '20140906',
+                'timestamp': 1410032453,
+            },
+            'params': {
+                'format': 'best[protocol=https]',
+            },
+            'expected_warnings': ['Unable to download JSON metadata'],
+        },
+        {
+            # requires Referer to be passed along with og:video:url
+            'url': 'https://vimeo.com/ondemand/36938/126682985',
+            'info_dict': {
+                'id': '126584684',
+                'ext': 'mp4',
+                'title': 'Rävlock, rätt läte på rätt plats',
+                'uploader': 'Lindroth & Norin',
+                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/lindrothnorin',
+                'uploader_id': 'lindrothnorin',
+                'description': 'md5:c3c46a90529612c8279fb6af803fc0df',
+                'upload_date': '20150502',
+                'timestamp': 1430586422,
+            },
+            'params': {
+                'skip_download': True,
+            },
+            'expected_warnings': ['Unable to download JSON metadata'],
+        },
+        {
+            'url': 'https://vimeo.com/605084509/3752607502',
+            'info_dict': {
+                'id': '605084509',
+                'ext': 'mp4',
+                'title': 'Al\'s Water Heater Sales & Service',
+                'uploader': 'Avantax',
+                'uploader_id': 'user102056301',
+                'description': 'md5:4184da4e8b874d2656cd17482c282f75',
+                'upload_date': '20210914',
+                'timestamp': 1631650193,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
         # https://gettingthingsdone.com/workflowmap/
         # vimeo embed with check-password page protected by Referer header
     ]
+
+    @classmethod
+    def suitable(cls, url):
+        excludes = (r'.*/review/[0-9]+/[\da-f]{10}', r'.*/(channels|album)/[^/]+/?$')
+        if cls == VimeoIE:
+            return super().suitable(url) and not any(re.match(exclude, url) for exclude in excludes)
+        return super(VimeoIE, cls).suitable(url)
 
     @staticmethod
     def _smuggle_referrer(url, referrer_url):
@@ -875,58 +928,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
         return merge_dicts(info_dict, info_dict_config, json_ld)
 
 
-class VimeoOndemandIE(VimeoIE):
-    IE_NAME = 'vimeo:ondemand'
-    _VALID_URL = r'https?://(?:www\.)?vimeo\.com/ondemand/(?:[^/]+/)?(?P<id>[^/?#&]+)'
-    _TESTS = [{
-        # ondemand video not available via https://vimeo.com/id
-        'url': 'https://vimeo.com/ondemand/20704',
-        'md5': 'c424deda8c7f73c1dfb3edd7630e2f35',
-        'info_dict': {
-            'id': '105442900',
-            'ext': 'mp4',
-            'title': 'המעבדה - במאי יותם פלדמן',
-            'uploader': 'גם סרטים',
-            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/gumfilms',
-            'uploader_id': 'gumfilms',
-            'description': 'md5:4c027c965e439de4baab621e48b60791',
-            'upload_date': '20140906',
-            'timestamp': 1410032453,
-        },
-        'params': {
-            'format': 'best[protocol=https]',
-        },
-        'expected_warnings': ['Unable to download JSON metadata'],
-    }, {
-        # requires Referer to be passed along with og:video:url
-        'url': 'https://vimeo.com/ondemand/36938/126682985',
-        'info_dict': {
-            'id': '126584684',
-            'ext': 'mp4',
-            'title': 'Rävlock, rätt läte på rätt plats',
-            'uploader': 'Lindroth & Norin',
-            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/lindrothnorin',
-            'uploader_id': 'lindrothnorin',
-            'description': 'md5:c3c46a90529612c8279fb6af803fc0df',
-            'upload_date': '20150502',
-            'timestamp': 1430586422,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'expected_warnings': ['Unable to download JSON metadata'],
-    }, {
-        'url': 'https://vimeo.com/ondemand/nazmaalik',
-        'only_matching': True,
-    }, {
-        'url': 'https://vimeo.com/ondemand/141692381',
-        'only_matching': True,
-    }, {
-        'url': 'https://vimeo.com/ondemand/thelastcolony/150274832',
-        'only_matching': True,
-    }]
-
-
 class VimeoChannelIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vimeo:channel'
     _VALID_URL = r'https://vimeo\.com/channels/(?P<id>[^/?#]+)/?(?:$|[?#])'
@@ -1100,10 +1101,10 @@ class VimeoGroupsIE(VimeoChannelIE):
     IE_NAME = 'vimeo:group'
     _VALID_URL = r'https://vimeo\.com/groups/(?P<id>[^/]+)(?:/(?!videos?/\d+)|$)'
     _TESTS = [{
-        'url': 'https://vimeo.com/groups/kattykay',
+        'url': 'https://vimeo.com/groups/meetup',
         'info_dict': {
-            'id': 'kattykay',
-            'title': 'Katty Kay',
+            'id': 'meetup',
+            'title': 'Vimeo Meetup!',
         },
         'playlist_mincount': 27,
     }]
