@@ -273,11 +273,10 @@ class MediasetShowIE(MediasetIE):
         upper_limit = lower_limit + self._PAGE_SIZE - 1
         content = self._download_json(
             self._BY_SUBBRAND % (sb, lower_limit, upper_limit), sb)
-        if content.get('entries'):
-            for entry in content['entries']:
-                yield self.url_result(
-                    'mediaset:' + entry['guid'],
-                    playlist_title=entry['mediasetprogram$subBrandDescription'])
+        for entry in content.get('entries') or []:
+            yield self.url_result(
+                'mediaset:' + entry['guid'],
+                playlist_title=entry['mediasetprogram$subBrandDescription'])
 
     def _real_extract(self, url):
         playlist_id, st, sb = self._match_valid_url(url).group('id', 'st', 'sb')
