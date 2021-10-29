@@ -265,9 +265,7 @@ class MediasetShowIE(MediasetIE):
         'playlist_count': 53,
     }]
 
-    _HOST = 'https://www.mediasetplay.mediaset.it'
-    _FEED_URL = 'https://feed.entertainment.tv.theplatform.eu/f/PR1GhC/'
-    _BY_SUBBRAND = _FEED_URL + 'mediaset-prod-all-programs-v2?byCustomValue={subBrandId}{%s}&sort=:publishInfo_lastPublished|desc,tvSeasonEpisodeNumber|desc&range=%d-%d'
+    _BY_SUBBRAND = 'https://feed.entertainment.tv.theplatform.eu/f/PR1GhC/mediaset-prod-all-programs-v2?byCustomValue={subBrandId}{%s}&sort=:publishInfo_lastPublished|desc,tvSeasonEpisodeNumber|desc&range=%d-%d'
     _PAGE_SIZE = 25
 
     def _fetch_page(self, sb, page):
@@ -275,18 +273,17 @@ class MediasetShowIE(MediasetIE):
         upper_limit = lower_limit + self._PAGE_SIZE - 1
         content = self._download_json(
             self._BY_SUBBRAND % (sb, lower_limit, upper_limit), sb)
-        if len(content.get('entries')) > 0:
+        if content.get('entries'):
             for entry in content['entries']:
                 yield self.url_result(
                     'mediaset:' + entry['guid'],
-                    playlist_title=entry['mediasetprogram$subBrandDescription']
-                )
+                    playlist_title=entry['mediasetprogram$subBrandDescription'])
 
     def _real_extract(self, url):
         playlist_id, st, sb = self._match_valid_url(url).group('id', 'st', 'sb')
         if not sb:
             page = self._download_webpage(url, playlist_id)
-            entries = [self.url_result(urljoin(self._HOST, url))
+            entries = [self.url_result(urljoin('https://www.mediasetplay.mediaset.it', url))
                        for url in re.findall(r'href="([^<>=]+SE\d{12},ST\d{12},sb\d{9})">[^<]+<', page)]
             title = (self._html_search_regex(r'(?s)<h1[^>]*>(.+?)</h1>', page, 'title', default=None)
                      or self._og_search_title(page))
