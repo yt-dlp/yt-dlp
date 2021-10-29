@@ -3,8 +3,9 @@ from __future__ import unicode_literals
 
 import base64
 import functools
-import re
 import itertools
+import re
+from operator import itemgetter
 
 from .common import InfoExtractor
 from ..compat import (
@@ -229,27 +230,26 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             query['unlisted_hash'] = unlisted_hash
         download_data = self._download_json(
             url, video_id, fatal=False, query=query,
-            headers={'X-Requested-With': 'XMLHttpRequest'})
-        if download_data:
-            source_file = download_data.get('source_file')
-            if isinstance(source_file, dict):
-                download_url = source_file.get('download_url')
-                if download_url and not source_file.get('is_cold') and not source_file.get('is_defrosting'):
-                    source_name = source_file.get('public_name', 'Original')
-                    if self._is_valid_url(download_url, video_id, '%s video' % source_name):
-                        ext = (try_get(
-                            source_file, lambda x: x['extension'],
-                            compat_str) or determine_ext(
-                            download_url, None) or 'mp4').lower()
-                        return {
-                            'url': download_url,
-                            'ext': ext,
-                            'width': int_or_none(source_file.get('width')),
-                            'height': int_or_none(source_file.get('height')),
-                            'filesize': parse_filesize(source_file.get('size')),
-                            'format_id': source_name,
-                            'quality': 1,
-                        }
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+            expected_status=(403, 404)) or {}
+        source_file = try_get(download_data, itemgetter('source_file'), expected_type=dict)
+        download_url = try_get(source_file, itemgetter('download_url'))
+        if download_url and not source_file.get('is_cold') and not source_file.get('is_defrosting'):
+            source_name = source_file.get('public_name', 'Original')
+            if self._is_valid_url(download_url, video_id, '%s video' % source_name):
+                ext = (try_get(
+                    source_file, lambda x: x['extension'],
+                    compat_str) or determine_ext(
+                    download_url, None) or 'mp4').lower()
+                return {
+                    'url': download_url,
+                    'ext': ext,
+                    'width': int_or_none(source_file.get('width')),
+                    'height': int_or_none(source_file.get('height')),
+                    'filesize': parse_filesize(source_file.get('size')),
+                    'format_id': source_name,
+                    'quality': 1,
+                }
 
         jwt_response = self._download_json(
             'https://vimeo.com/_rv/viewer', video_id, note='Downloading jwt token', fatal=False) or {}
@@ -258,8 +258,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
         original_response = self._download_json(
             f'https://api.vimeo.com/videos/{video_id}', video_id,
-            headers=headers, fatal=False) or {}
-        for download_data in original_response.get('download') or {}:
+            headers=headers, fatal=False, expected_status=(403, 404)) or {}
+        for download_data in original_response.get('download', ()):
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
                 continue
@@ -355,7 +355,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'format': 'best[protocol=https]',
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             'url': 'http://vimeo.com/68375962',
@@ -396,7 +395,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'duration': 187,
             },
             'params': {'format': 'http-1080p'},
-            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             'url': 'http://vimeo.com/76979871',
@@ -464,7 +462,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'description': 'md5:f2edc61af3ea7a5592681ddbb683db73',
                 'upload_date': '20200225',
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             # only available via https://vimeo.com/channels/tributes/6213729 and
@@ -486,7 +483,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             # redirects to ondemand extractor and should be passed through it
@@ -506,7 +502,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
             'skip': 'this page is no longer available.',
         },
         {
@@ -589,7 +584,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'format': 'best[protocol=https]',
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             # requires Referer to be passed along with og:video:url
@@ -608,7 +602,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             'url': 'https://vimeo.com/605084509/3752607502',
@@ -1126,7 +1119,6 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'uploader_id': 'user21297594',
             'description': "Comedian Dick Hardwick's five minute demo filmed in front of a live theater audience.\nEdit by Doug Mattocks",
         },
-        'expected_warnings': ['Unable to download JSON metadata'],
     }, {
         'note': 'video player needs Referer',
         'url': 'https://vimeo.com/user22258446/review/91613211/13f927e053',
