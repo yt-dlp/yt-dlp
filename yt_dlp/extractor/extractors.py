@@ -744,7 +744,10 @@ from .mdr import MDRIE
 from .medaltv import MedalTVIE
 from .mediaite import MediaiteIE
 from .mediaklikk import MediaKlikkIE
-from .mediaset import MediasetIE
+from .mediaset import (
+    MediasetIE,
+    MediasetShowIE,
+)
 from .mediasite import (
     MediasiteIE,
     MediasiteCatalogIE,
