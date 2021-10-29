@@ -3583,8 +3583,7 @@ class GenericIE(InfoExtractor):
                 return info_dict
 
         # Looking for http://schema.org/VideoObject
-        json_ld = self._search_json_ld(
-            webpage, video_id, default={}, expected_type='VideoObject')
+        json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url'):
             return merge_dicts(json_ld, info_dict)
 
