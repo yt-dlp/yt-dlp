@@ -1864,6 +1864,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         except Exception as e:
             raise ExtractorError(traceback.format_exc(), cause=e)
 
+    def _extract_n_function_name(self, jscode):
+        return self._search_regex(
+            (r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]{3})\([a-zA-Z0-9]\)',),
+            jscode, 'Initial JS player n function name', group='nfunc')
+
     def _extract_n_function(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
         func_code = self._downloader.cache.load('youtube-nsig', player_id)
@@ -1872,10 +1877,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             jsi = JSInterpreter(func_code)
         else:
             jscode = self._load_player(video_id, player_url)
-            funcname = self._search_regex(
-                (r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]{3})\([a-zA-Z0-9]\)',),
-                jscode, 'Initial JS player n function name', group='nfunc'
-            )
+            funcname = self._extract_n_function_name(jscode)
             jsi = JSInterpreter(jscode)
             func_code = jsi.extract_function_code(funcname)
             self._downloader.cache.store('youtube-nsig', player_id, func_code)

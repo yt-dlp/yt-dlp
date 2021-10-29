@@ -270,13 +270,13 @@ class JSInterpreter(object):
                 (?P<expr>.*)$''' % (_NAME_RE, re.escape(op)), expr)
             if not m:
                 continue
-            right_val = self.interpret_expression( m.group('expr'), local_vars, allow_recursion)
+            right_val = self.interpret_expression(m.group('expr'), local_vars, allow_recursion)
 
             if m.groupdict().get('index'):
                 lvar = local_vars[m.group('out')]
                 idx = self.interpret_expression(m.group('index'), local_vars, allow_recursion)
                 if not isinstance(idx, int):
-                    raise ExtractorError('List indices must be intergers: {idx}')
+                    raise ExtractorError(f'List indices must be integers: {idx}')
                 cur = lvar[idx]
                 val = opfunc(cur, right_val)
                 lvar[idx] = val
@@ -444,7 +444,6 @@ class JSInterpreter(object):
             else:
                 return eval_method()
 
-
         m = re.match(r'^(?P<func>%s)\((?P<args>[a-zA-Z0-9_$,]*)\)$' % _NAME_RE, expr)
         if m:
             fname = m.group('func')
@@ -516,8 +515,7 @@ class JSInterpreter(object):
         return self.build_function(argnames, code, local_vars, *global_stack)
 
     def call_function(self, funcname, *args):
-        f = self.extract_function(funcname)
-        return f(args)
+        return self.extract_function(funcname)(args)
 
     def build_function(self, argnames, code, *global_stack):
         global_stack = list(global_stack) or [{}]
