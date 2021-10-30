@@ -1,47 +1,76 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import json
-
 from .common import InfoExtractor
-from ..utils import unified_strdate
+from ..utils import (
+    try_get,
+    unified_strdate,
+)
+
 
 class PlanetMarathiIE(InfoExtractor):
     _VALID_URL = r'(?:https?://)(?:www\.)?planetmarathi\.com/titles/(?P<id>[^/#&?$]+)'
-    _TESTS = []
+    _TESTS = [{
+        'url': 'https://www.planetmarathi.com/titles/ek-unad-divas',
+        'playlist_mincount': 2,
+        'info_dict': {
+            'id': 'ek-unad-divas',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'ASSETS-MOVIE-ASSET-01_ek-unad-divas',
+                'ext': 'mp4',
+                'title': 'ek unad divas',
+                'alt_title': 'चित्रपट',
+                'description': 'md5:41c7ed6b041c2fea9820a3f3125bd881',
+                'season_number': None,
+                'episode_number': 1,
+                'duration': 5539,
+                'upload_date': '20210829',
+            },
+        }]  # Trailer skipped
+    }, {
+        'url': 'https://www.planetmarathi.com/titles/baap-beep-baap-season-1',
+        'playlist_mincount': 10,
+        'info_dict': {
+            'id': 'baap-beep-baap-season-1',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'ASSETS-CHARACTER-PROFILE-SEASON-01-ASSET-01_baap-beep-baap-season-1',
+                'ext': 'mp4',
+                'title': 'Manohar Kanhere',
+                'alt_title': 'मनोहर कान्हेरे',
+                'description': 'md5:285ed45d5c0ab5522cac9a043354ebc6',
+                'season_number': 1,
+                'episode_number': 1,
+                'duration': 29,
+                'upload_date': '20210829',
+            },
+        }]  # Trailers, Episodes, other Character profiles skipped
+    }]
 
     def _real_extract(self, url):
         id = self._match_id(url)
-        genres = self._download_json(f'https://www.planetmarathi.com/api/v1/titles/{id}/genres', id)['genres']
-        types = ['trailer', 'behind-the-scene', 'character-profile']
-        tags = []
-        for genre in genres:
-            tag = genre.get('genreSlug')
-            if tag == 'movies':
-                types.append('movie')
-            else:
-                types.append('episode')
-            tags.append(tag)
         entries = []
-        for type in types:
-            json_data = self._download_json(f'https://www.planetmarathi.com/api/v1/titles/{id}/assets', id, data= json.dumps({"assetType": type}).encode())['assets']
-            for asset in json_data:
-                asset_title = asset['mediaAssetName']['en']
-                alt_title = asset['mediaAssetType']
-                asset_id = f'{alt_title}-{asset_title}'
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(asset['mediaAssetURL'], asset_id)
-                self._sort_formats(formats)
-                entries.append({
-                    'id': asset_id,
-                    'title': asset_title,
-                    'alt_title': alt_title,
-                    'description': asset['mediaAssetDescription']['en'],
-                    'tags': tags,
-                    'season_number': asset.get('mediaAssetSeason'),
-                    'episode_number': asset.get('mediaAssetIndexForAssetType'),
-                    'duration': asset.get('mediaAssetDurationInSeconds'),
-                    'upload_date': unified_strdate(asset.get('created')),
-                    'formats': formats,
-                    'subtitles': subtitles,
-                })
+        json_data = self._download_json(f'https://www.planetmarathi.com/api/v1/titles/{id}/assets', id)['assets']
+        for asset in json_data:
+            asset_title = asset['mediaAssetName']['en']
+            if asset_title == 'Movie':
+                asset_title = id.replace('-', ' ')
+            asset_id = f'{asset["sk"]}_{id}'.replace('#', '-')
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(asset['mediaAssetURL'], asset_id)
+            self._sort_formats(formats)
+            entries.append({
+                'id': asset_id,
+                'title': asset_title,
+                'alt_title': try_get(asset, lambda x: x['mediaAssetName']['mr']),
+                'description': asset['mediaAssetDescription']['en'],
+                'season_number': asset.get('mediaAssetSeason'),
+                'episode_number': asset.get('mediaAssetIndexForAssetType'),
+                'duration': asset.get('mediaAssetDurationInSeconds'),
+                'upload_date': unified_strdate(asset.get('created')),
+                'formats': formats,
+                'subtitles': subtitles,
+            })
         return self.playlist_result(entries, playlist_id=id)
