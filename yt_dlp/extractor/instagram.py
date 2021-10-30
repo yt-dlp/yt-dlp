@@ -329,7 +329,7 @@ class InstagramIE(InfoExtractor):
         }
 
 
-class InstagramPlaylistIE(InfoExtractor):
+class InstagramPlaylistIE(InstagramIE):
     # A superclass for handling any kind of query based on GraphQL which
     # results in a playlist.
 
