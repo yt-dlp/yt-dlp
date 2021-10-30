@@ -65,7 +65,7 @@ class PlanetMarathiIE(InfoExtractor):
                 'id': asset_id,
                 'title': asset_title,
                 'alt_title': try_get(asset, lambda x: x['mediaAssetName']['mr']),
-                'description': asset['mediaAssetDescription']['en'],
+                'description': try_get(asset, lambda x: x['mediaAssetDescription']['en']),
                 'season_number': asset.get('mediaAssetSeason'),
                 'episode_number': asset.get('mediaAssetIndexForAssetType'),
                 'duration': asset.get('mediaAssetDurationInSeconds'),
