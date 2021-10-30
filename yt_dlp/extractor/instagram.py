@@ -296,8 +296,7 @@ class InstagramIE(InfoExtractor):
         }]
         dash = try_get(media, lambda x: x['dash_info']['video_dash_manifest'])
         if dash:
-            additional_formats, subtitle = self._parse_mpd_formats_and_subtitles(self._parse_xml(dash, video_id),
-                                                                                 mpd_id='dash')
+            additional_formats = self._parse_mpd_formats(self._parse_xml(dash, video_id), mpd_id='dash')
             formats += additional_formats
             self._sort_formats(formats)
 
