@@ -2802,10 +2802,6 @@ class YoutubeDL(object):
 
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
-                    elif get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-'):
-                        info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
-                        success, real_download = self.dl(temp_filename, info_dict)
-                        info_dict['__real_download'] = real_download
                     elif (len(set(x.get('manifest_url') for x in requested_formats)) == 1 and get_suitable_downloader(
                             info_dict, self.params, to_stdout=(temp_filename == '-')) == YoutubeDlFromStartDashFD):
                         for f in requested_formats:
@@ -2816,6 +2812,10 @@ class YoutubeDL(object):
                             if not self._ensure_dir_exists(fname):
                                 return
                         info_dict['url'] = requested_formats[0]['url']
+                        success, real_download = self.dl(temp_filename, info_dict)
+                        info_dict['__real_download'] = real_download
+                    elif get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-'):
+                        info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
                     else:
