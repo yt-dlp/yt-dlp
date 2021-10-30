@@ -39,13 +39,10 @@ class OlympicsReplayIE(InfoExtractor):
         json_ld = self._search_json_ld(webpage, uuid)
         thumbnails_list = json_ld.get('image')
         if not thumbnails_list:
-            try:
-                thumbnails_list = self._html_search_regex(
-                    r'["\']image["\']:\s*["\']([^"\']+)["\']', webpage, 'images', default='')
-                thumbnails_list = thumbnails_list.replace('[', '').replace(']', '').split(',')
-                thumbnails_list = [thumbnail.strip() for thumbnail in thumbnails_list]
-            except not KeyboardInterrupt:
-                pass
+            thumbnails_list = self._html_search_regex(
+                r'["\']image["\']:\s*["\']([^"\']+)["\']', webpage, 'images', default='')
+            thumbnails_list = thumbnails_list.replace('[', '').replace(']', '').split(',')
+            thumbnails_list = [thumbnail.strip() for thumbnail in thumbnails_list]
         thumbnails = []
         for thumbnail in thumbnails_list:
             width_a, height_a, width = self._search_regex(
