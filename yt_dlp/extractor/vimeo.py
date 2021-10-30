@@ -623,13 +623,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
         # vimeo embed with check-password page protected by Referer header
     ]
 
-    @classmethod
-    def suitable(cls, url):
-        excludes = (r'.*/review/[0-9]+/[\da-f]{10}', r'.*/(channels|album)/[^/]+/?$')
-        if cls == VimeoIE:
-            return super().suitable(url) and not any(re.match(exclude, url) for exclude in excludes)
-        return super(VimeoIE, cls).suitable(url)
-
     @staticmethod
     def _smuggle_referrer(url, referrer_url):
         return smuggle_url(url, {'http_headers': {'Referer': referrer_url}})
@@ -657,6 +650,19 @@ class VimeoIE(VimeoBaseInfoExtractor):
     def _extract_url(url, webpage):
         urls = VimeoIE._extract_urls(url, webpage)
         return urls[0] if urls else None
+
+    @classmethod
+    def suitable(cls, url):
+        """
+        as vimeo URLs are bit tricky we make sure, that the
+        _VALID_URL of the classes don't overlap
+        this makes regex definitions much simpler
+        """
+        exclude_regex = []
+        for child in VimeoBaseInfoExtractor.__subclasses__():
+            if cls != child and hasattr(child, '_VALID_URL'):
+                exclude_regex.append(child._VALID_URL)
+        return super().suitable(url) and not any(re.match(regex, url) for regex in exclude_regex)
 
     def _verify_player_video_password(self, url, video_id, headers):
         password = self._get_video_password()
