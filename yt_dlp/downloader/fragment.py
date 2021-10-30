@@ -367,6 +367,7 @@ class FragmentFD(FileDownloader):
         @params (ctx1, fragments1, info_dict1), (ctx2, fragments2, info_dict2), ...
                 all args must be either tuple or list
         '''
+        interrupt_trigger = [True]
         max_progress = len(args)
         if max_progress == 1:
             return self.download_and_append_fragments(*args[0], pack_func=pack_func, finish_func=finish_func)
@@ -377,7 +378,7 @@ class FragmentFD(FileDownloader):
         def thread_func(idx, ctx, fragments, info_dict, tpe):
             ctx['max_progress'] = max_progress
             ctx['progress_idx'] = idx
-            return self.download_and_append_fragments(ctx, fragments, info_dict, pack_func=pack_func, finish_func=finish_func, tpe=tpe, ignore_lethal_error=ignore_lethal_error)
+            return self.download_and_append_fragments(ctx, fragments, info_dict, pack_func=pack_func, finish_func=finish_func, tpe=tpe, ignore_lethal_error=ignore_lethal_error, interrupt_trigger=interrupt_trigger)
 
         class FTPE(concurrent.futures.ThreadPoolExecutor):
             # has to stop this or it's going to wait on the worker thread itself
@@ -394,11 +395,17 @@ class FragmentFD(FileDownloader):
         for tpe, job in spins:
             try:
                 result = result and job.result()
+            except KeyboardInterrupt:
+                interrupt_trigger[0] = False
+                print('interuupted')
             finally:
                 tpe.shutdown(wait=True)
         return result
 
-    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, tpe=None, ignore_lethal_error=False):
+    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, tpe=None, ignore_lethal_error=False, interrupt_trigger=None):
+        if not interrupt_trigger:
+            interrupt_trigger = (True, )
+
         fragment_retries = self.params.get('fragment_retries', 0)
         is_fatal = (lambda idx: idx == 0) if self.params.get('skip_unavailable_fragments', True) or ignore_lethal_error else (lambda _: True)
         if not pack_func:
@@ -469,6 +476,7 @@ class FragmentFD(FileDownloader):
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 for fragment, frag_content, frag_index, frag_filename in pool.map(_download_fragment, fragments):
+                    if not interrupt_trigger[0]: break
                     ctx['fragment_filename_sanitized'] = frag_filename
                     ctx['fragment_index'] = frag_index
                     result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index, ctx)
@@ -476,6 +484,7 @@ class FragmentFD(FileDownloader):
                         return False
         else:
             for fragment in fragments:
+                if not interrupt_trigger[0]: break
                 frag_content, frag_index = download_fragment(fragment, ctx)
                 result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index, ctx)
                 if not result:
