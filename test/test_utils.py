@@ -848,30 +848,52 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_codecs('avc1.77.30, mp4a.40.2'), {
             'vcodec': 'avc1.77.30',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.2'), {
             'vcodec': 'none',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.5,avc1.42001e'), {
             'vcodec': 'avc1.42001e',
             'acodec': 'mp4a.40.5',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('avc3.640028'), {
             'vcodec': 'avc3.640028',
             'acodec': 'none',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs(', h264,,newcodec,aac'), {
             'vcodec': 'h264',
             'acodec': 'aac',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('av01.0.05M.08'), {
             'vcodec': 'av01.0.05M.08',
             'acodec': 'none',
+            'dynamic_range': None,
+        })
+        self.assertEqual(parse_codecs('vp9.2'), {
+            'vcodec': 'vp9.2',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('av01.0.12M.10.0.110.09.16.09.0'), {
+            'vcodec': 'av01.0.12M.10',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('dvhe'), {
+            'vcodec': 'dvhe',
+            'acodec': 'none',
+            'dynamic_range': 'DV',
         })
         self.assertEqual(parse_codecs('theora, vorbis'), {
             'vcodec': 'theora',
             'acodec': 'vorbis',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('unknownvcodec, unknownacodec'), {
             'vcodec': 'unknownvcodec',
@@ -1141,12 +1163,15 @@ class TestUtil(unittest.TestCase):
     def test_parse_resolution(self):
         self.assertEqual(parse_resolution(None), {})
         self.assertEqual(parse_resolution(''), {})
-        self.assertEqual(parse_resolution('1920x1080'), {'width': 1920, 'height': 1080})
-        self.assertEqual(parse_resolution('1920×1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution(' 1920x1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('1920×1080 '), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('1920 x 1080'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('720p'), {'height': 720})
         self.assertEqual(parse_resolution('4k'), {'height': 2160})
         self.assertEqual(parse_resolution('8K'), {'height': 4320})
+        self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('ep1x2'), {})
+        self.assertEqual(parse_resolution('1920, 1080'), {'width': 1920, 'height': 1080})
 
     def test_parse_bitrate(self):
         self.assertEqual(parse_bitrate(None), None)
@@ -1231,6 +1256,7 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertFalse(match_str('x>2K', {'x': 1200}))
         self.assertTrue(match_str('x>=1200 & x < 1300', {'x': 1200}))
         self.assertFalse(match_str('x>=1100 & x < 1200', {'x': 1200}))
+        self.assertTrue(match_str('x > 1:0:0', {'x': 3700}))
 
         # String
         self.assertFalse(match_str('y=a212', {'y': 'foobar42'}))
@@ -1367,21 +1393,21 @@ The first line
   </body>
 </tt>'''.encode('utf-8')
         srt_data = '''1
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <font color="white" face="sansSerif" size="16">default style<font color="red">custom style</font></font>
 
 2
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <b><font color="cyan" face="sansSerif" size="16"><font color="lime">part 1
 </font>part 2</font></b>
 
 3
-00:00:05,839 --> 00:00:09,560
+00:00:05,840 --> 00:00:09,560
 <u><font color="lime">line 3
 part 3</font></u>
 
 4
-00:00:09,560 --> 00:00:12,359
+00:00:09,560 --> 00:00:12,360
 <i><u><font color="yellow"><font color="lime">inner
  </font>style</font></u></i>
 

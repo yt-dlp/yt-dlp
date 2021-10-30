@@ -298,7 +298,9 @@ from .crackle import CrackleIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crunchyroll import (
     CrunchyrollIE,
-    CrunchyrollShowPlaylistIE
+    CrunchyrollShowPlaylistIE,
+    CrunchyrollBetaIE,
+    CrunchyrollBetaShowIE,
 )
 from .cspan import CSpanIE
 from .ctsnews import CtsNewsIE
@@ -525,6 +527,7 @@ from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
+from .gronkh import GronkhIE
 from .groupon import GrouponIE
 from .hbo import HBOIE
 from .hearthisat import HearThisAtIE
@@ -741,7 +744,10 @@ from .mdr import MDRIE
 from .medaltv import MedalTVIE
 from .mediaite import MediaiteIE
 from .mediaklikk import MediaKlikkIE
-from .mediaset import MediasetIE
+from .mediaset import (
+    MediasetIE,
+    MediasetShowIE,
+)
 from .mediasite import (
     MediasiteIE,
     MediasiteCatalogIE,
@@ -757,6 +763,7 @@ from .metacritic import MetacriticIE
 from .mgoon import MgoonIE
 from .mgtv import MGTVIE
 from .miaopai import MiaoPaiIE
+from .microsoftstream import MicrosoftStreamIE
 from .microsoftvirtualacademy import (
     MicrosoftVirtualAcademyIE,
     MicrosoftVirtualAcademyCourseIE,
@@ -789,6 +796,7 @@ from .mlb import (
     MLBIE,
     MLBVideoIE,
 )
+from .mlssoccer import MLSSoccerIE
 from .mnet import MnetIE
 from .moevideo import MoeVideoIE
 from .mofosex import (
@@ -981,6 +989,7 @@ from .odatv import OdaTVIE
 from .odnoklassniki import OdnoklassnikiIE
 from .oktoberfesttv import OktoberfestTVIE
 from .olympics import OlympicsReplayIE
+from .on24 import On24IE
 from .ondemandkorea import OnDemandKoreaIE
 from .onet import (
     OnetIE,
@@ -1281,8 +1290,10 @@ from .skynewsarabia import (
     SkyNewsArabiaIE,
     SkyNewsArabiaArticleIE,
 )
+from .skynewsau import SkyNewsAUIE
 from .sky import (
     SkyNewsIE,
+    SkyNewsStoryIE,
     SkySportsIE,
     SkySportsNewsIE,
 )
@@ -1382,10 +1393,7 @@ from .svt import (
 from .swrmediathek import SWRMediathekIE
 from .syfy import SyfyIE
 from .sztvhu import SztvHuIE
-from .tagesschau import (
-    TagesschauPlayerIE,
-    TagesschauIE,
-)
+from .tagesschau import TagesschauIE
 from .tass import TassIE
 from .tbs import TBSIE
 from .tdslifeway import TDSLifewayIE
@@ -1439,6 +1447,10 @@ from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE
 from .thisoldhouse import ThisOldHouseIE
+from .threespeak import (
+    ThreeSpeakIE,
+    ThreeSpeakUserIE,
+)
 from .threeqsdn import ThreeQSDNIE
 from .tiktok import (
     TikTokIE,

@@ -109,6 +109,18 @@ Some bug reports are completely unrelated to yt-dlp and relate to a different, o
 
 If the issue is with `youtube-dl` (the upstream fork of yt-dlp) and not with yt-dlp, the issue should be raised in the youtube-dl project.
 
+### Are you willing to share account details if needed?
+
+The maintainers and potential contributors of the project often do not have an account for the website you are asking support for. So any developer interested in solving your issue may ask you for account details. It is your personal discression whether you are willing to share the account in order for the developer to try and solve your issue. However, if you are unwilling or unable to provide details, they obviously cannot work on the issue and it cannot be solved unless some developer who both has an account and is willing/able to contribute decides to solve it.
+
+By sharing an account with anyone, you agree to bear all risks associated with it. The maintainers and yt-dlp can't be held responsible for any misuse of the credentials.
+
+While these steps won't necessarily ensure that no misuse of the account takes place, these are still some good practices to follow.
+
+- Look for people with `Member` or `Contributor` tag on their messages.
+- Change the password before sharing the account to something random (use [this](https://passwordsgenerator.net/) if you don't have a random password generator).
+- Change the password after receiving the account back.
+
 
 
 

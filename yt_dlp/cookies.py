@@ -17,7 +17,7 @@ from .compat import (
 from .utils import (
     bug_reports_message,
     expand_path,
-    process_communicate_or_kill,
+    Popen,
     YoutubeDLCookieJar,
 )
 
@@ -599,14 +599,14 @@ def _get_mac_keyring_password(browser_keyring_name, logger):
         return password.encode('utf-8')
     else:
         logger.debug('using find-generic-password to obtain password')
-        proc = subprocess.Popen(['security', 'find-generic-password',
-                                 '-w',  # write password to stdout
-                                 '-a', browser_keyring_name,  # match 'account'
-                                 '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL)
+        proc = Popen(
+            ['security', 'find-generic-password',
+             '-w',  # write password to stdout
+             '-a', browser_keyring_name,  # match 'account'
+             '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         try:
-            stdout, stderr = process_communicate_or_kill(proc)
+            stdout, stderr = proc.communicate_or_kill()
             if stdout[-1:] == b'\n':
                 stdout = stdout[:-1]
             return stdout
@@ -620,7 +620,7 @@ def _get_windows_v10_key(browser_root, logger):
     if path is None:
         logger.error('could not find local state file')
         return None
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf8') as f:
         data = json.load(f)
     try:
         base64_key = data['os_crypt']['encrypted_key']

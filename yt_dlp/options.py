@@ -562,12 +562,16 @@ def parseOpts(overrideArguments=None):
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
-        action='store_true', dest='check_formats', default=None,
-        help='Check that the formats selected are actually downloadable')
+        action='store_const', const='selected', dest='check_formats', default=None,
+        help='Check that the selected formats are actually downloadable')
+    video_format.add_option(
+        '--check-all-formats',
+        action='store_true', dest='check_formats',
+        help='Check all formats for whether they are actually downloadable')
     video_format.add_option(
         '--no-check-formats',
         action='store_false', dest='check_formats',
-        help='Do not check that the formats selected are actually downloadable')
+        help='Do not check that the formats are actually downloadable')
     video_format.add_option(
         '-F', '--list-formats',
         action='store_true', dest='listformats',
@@ -971,6 +975,13 @@ def parseOpts(overrideArguments=None):
         dest='batchfile', metavar='FILE',
         help="File containing URLs to download ('-' for stdin), one URL per line. "
              "Lines starting with '#', ';' or ']' are considered as comments and ignored")
+    filesystem.add_option(
+        '--no-batch-file',
+        dest='batchfile', action='store_const', const=None,
+        help='Do not read URLs from batch file (default)')
+    filesystem.add_option(
+        '--id', default=False,
+        action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-P', '--paths',
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
@@ -1378,7 +1389,11 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--remove-chapters',
         metavar='REGEX', dest='remove_chapters', action='append',
-        help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
+        help=(
+            'Remove chapters whose title matches the given regular expression. '
+            'Time ranges prefixed by a "*" can also be used in place of chapters to remove the specified range. '
+            'Eg: --remove-chapters "*10:15-15:00" --remove-chapters "intro". '
+            'This option can be used multiple times'))
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
         help='Do not remove any chapters from the file (default)')
