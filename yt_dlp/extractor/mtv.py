@@ -319,7 +319,12 @@ class MTVServicesInfoExtractor(InfoExtractor):
             main_container = self._extract_child_with_type(data, 'MainContainer')
             ab_testing = self._extract_child_with_type(main_container, 'ABTesting')
             video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
-            mgid = video_player['props']['media']['video']['config']['uri']
+            if video_player:
+                mgid = video_player['props']['media']['video']['config']['uri']
+            else:
+                flex_wrapper = self._extract_child_with_type(main_container, 'FlexWrapper')
+                player = self._extract_child_with_type(flex_wrapper or main_container, 'Player')
+                mgid = player['props']['videoDetail']['mgid']
 
         return mgid
 
