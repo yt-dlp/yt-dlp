@@ -412,7 +412,8 @@ class FragmentFD(FileDownloader):
 
         def download_fragment(fragment, ctx):
             frag_index = ctx['fragment_index'] = fragment['frag_index']
-            if not interrupt_trigger[0]: return False, frag_index
+            if not interrupt_trigger[0]:
+                return False, frag_index
             headers = info_dict.get('http_headers', {}).copy()
             byte_range = fragment.get('byte_range')
             if byte_range:
@@ -476,7 +477,8 @@ class FragmentFD(FileDownloader):
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 for fragment, frag_content, frag_index, frag_filename in pool.map(_download_fragment, fragments):
-                    if not interrupt_trigger[0]: break
+                    if not interrupt_trigger[0]:
+                        break
                     ctx['fragment_filename_sanitized'] = frag_filename
                     ctx['fragment_index'] = frag_index
                     result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index, ctx)
@@ -484,7 +486,8 @@ class FragmentFD(FileDownloader):
                         return False
         else:
             for fragment in fragments:
-                if not interrupt_trigger[0]: break
+                if not interrupt_trigger[0]:
+                    break
                 frag_content, frag_index = download_fragment(fragment, ctx)
                 result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index, ctx)
                 if not result:
