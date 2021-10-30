@@ -1911,12 +1911,61 @@ class YoutubeDL(object):
 
             output_ext = self.params.get('merge_output_format')
             if not output_ext:
-                if the_only_video:
+                if the_only_video and the_only_video.get('acodec') != 'none':
                     output_ext = the_only_video['ext']
                 elif the_only_audio and not video_fmts:
                     output_ext = the_only_audio['ext']
                 else:
-                    output_ext = 'mkv'
+                    output_ext = None
+                    video_codec = try_get(video_fmts, lambda x: x[-1]['vcodec'][:4].lower())
+                    audio_codec = try_get(video_fmts, lambda x: x[-1]['acodec'][:4].lower())
+                    if not audio_codec or audio_codec == 'none':
+                        audio_codec = try_get(audio_fmts, lambda x: x[-1]['acodec'][:4].lower())
+
+                    if video_codec and audio_codec:
+                        COMPATIBLE_CODECS = {
+                            'mp4': {
+                                # fourcc (m3u8, mpd)
+                                'av01', 'hevc', 'avc1', 'mp4a',
+                                # whatever the ism does
+                                'h264', 'aacl',
+                            },
+                            'webm': {
+                                'av01', 'vp9', 'vp8', 'opus', 'vrbs',
+                                # these are in the webm spec, so putting it here to be sure
+                                'vp9x', 'vp8x',
+                            },
+                        }
+                        for ext in COMPATIBLE_CODECS:
+                            if COMPATIBLE_CODECS[ext].issuperset((video_codec, audio_codec)):
+                                output_ext = ext
+                                break
+
+                    if output_ext is None:
+                        # Check extension
+                        exts = set(fmt_info.get('ext') for fmt_info in formats_info)
+                        COMPATIBLE_EXTS = (
+                            {'mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma'},
+                            {'webm'},
+                        )
+                        for ext_sets in COMPATIBLE_EXTS:
+                            if ext_sets.issuperset(exts):
+                                output_ext = the_only_video['ext']
+                                break
+
+                    if output_ext is None:
+                        output_ext = 'mkv'
+
+                    '''
+                    if (output_ext == 'webm'
+                            and info_dict.get('thumbnails')
+                            # check with type instead of pp_key, __name__, or isinstance
+                            # since we dont want any custom PPs to trigger this
+                            and any(type(pp) == EmbedThumbnailPP for pp in self._pps['post_process'])):
+                        output_ext = 'mkv'
+                        self.report_warning(
+                            'webm doesn\'t support embedding a thumbnail, mkv will be used')
+                    '''
 
             filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
 
@@ -2740,50 +2789,15 @@ class YoutubeDL(object):
 
                 success = True
                 if info_dict.get('requested_formats') is not None:
-
-                    def compatible_formats(formats):
-                        # TODO: some formats actually allow this (mkv, webm, ogg, mp4), but not all of them.
-                        video_formats = [format for format in formats if format.get('vcodec') != 'none']
-                        audio_formats = [format for format in formats if format.get('acodec') != 'none']
-                        if len(video_formats) > 2 or len(audio_formats) > 2:
-                            return False
-
-                        # Check extension
-                        exts = set(format.get('ext') for format in formats)
-                        COMPATIBLE_EXTS = (
-                            set(('mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma')),
-                            set(('webm',)),
-                        )
-                        for ext_sets in COMPATIBLE_EXTS:
-                            if ext_sets.issuperset(exts):
-                                return True
-                        # TODO: Check acodec/vcodec
-                        return False
-
                     requested_formats = info_dict['requested_formats']
-                    old_ext = info_dict['ext']
-                    if self.params.get('merge_output_format') is None:
-                        if not compatible_formats(requested_formats):
-                            info_dict['ext'] = 'mkv'
-                            self.report_warning(
-                                'Requested formats are incompatible for merge and will be merged into mkv')
-                        if (info_dict['ext'] == 'webm'
-                                and info_dict.get('thumbnails')
-                                # check with type instead of pp_key, __name__, or isinstance
-                                # since we dont want any custom PPs to trigger this
-                                and any(type(pp) == EmbedThumbnailPP for pp in self._pps['post_process'])):
-                            info_dict['ext'] = 'mkv'
-                            self.report_warning(
-                                'webm doesn\'t support embedding a thumbnail, mkv will be used')
-                    new_ext = info_dict['ext']
 
-                    def correct_ext(filename, ext=new_ext):
+                    def correct_ext(filename, ext=info_dict['ext']):
                         if filename == '-':
                             return filename
                         filename_real_ext = os.path.splitext(filename)[1][1:]
                         filename_wo_ext = (
                             os.path.splitext(filename)[0]
-                            if filename_real_ext in (old_ext, new_ext)
+                            if filename_real_ext == info_dict['ext']
                             else filename)
                         return '%s.%s' % (filename_wo_ext, ext)
 
