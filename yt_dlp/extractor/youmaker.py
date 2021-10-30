@@ -87,6 +87,7 @@ class YoumakerIE(InfoExtractor):
             },
         },
         'params': {'skip_download': True, 'listsubtitles': True},
+        'expected_warnings': ['Missing m3u8 info\\. Trying alternative server'],
     }, {
         # test video with JSON requested subtitles
         'url': 'https://www.youmaker.com/video/b58f88fe-4ddb-4c11-bccf-46f579b7d978',
@@ -105,6 +106,7 @@ class YoumakerIE(InfoExtractor):
             },
         },
         'params': {'skip_download': True, 'listsubtitles': True},
+        'expected_warnings': ['Missing m3u8 info\\. Trying alternative server'],
     }, {
         # all videos from channel
         'url': 'http://www.youmaker.com/channel/f06b2e8d-219e-4069-9003-df343ac5fcf3',
