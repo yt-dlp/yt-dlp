@@ -2,6 +2,10 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
+from ..utils import (
+    int_or_none,
+    try_get
+)
 
 
 class OlympicsReplayIE(InfoExtractor):
@@ -48,17 +52,12 @@ class OlympicsReplayIE(InfoExtractor):
                 r'/images/image/private/t_(?P<width_a>\d+)-(?P<height_a>\d+)_(?P<width>\d+)/primary/[\W\w\d]+',
                 thumbnail,
                 'thumb', group=(1, 2, 3), default=(None, None, None))
-            if None not in (width_a, height_a, width):
-                width_a, height_a, width = int(width_a), int(height_a), int(width)
-                thumbnails.append({
-                    'url': thumbnail,
-                    'width': width,
-                    'height': int(width * height_a / width_a)
-                })
-            else:
-                thumbnails.append({
-                    'url': thumbnail
-                })
+            width_a, height_a, width = int_or_none(width_a), int_or_none(height_a), int_or_none(width)
+            thumbnails.append({
+                'url': thumbnail,
+                'width': width,
+                'height': try_get(width, lambda x: x * height_a / width_a)
+            })
         m3u8_url = self._download_json(
             f'https://olympics.com/tokenGenerator?url={m3u8_url}', uuid, note='Downloading m3u8 url')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, uuid, m3u8_id='hls')
