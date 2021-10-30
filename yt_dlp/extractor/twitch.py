@@ -28,7 +28,7 @@ from ..utils import (
     unified_timestamp,
     update_url_query,
     url_or_none,
-    urljoin,
+    urljoin, traverse_obj,
 )
 
 
@@ -52,6 +52,7 @@ class TwitchBaseIE(InfoExtractor):
         'VideoAccessToken_Clip': '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11',
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
         'VideoMetadata': '226edb3e692509f727fd56821f5653c05740242c82b0388883e0c0e75dcbf687',
+        'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
     }
 
     def _real_initialize(self):
@@ -252,6 +253,16 @@ class TwitchVodIE(TwitchBaseIE):
     }]
 
     def _download_info(self, item_id):
+        # data = self._download_gql(
+        #     item_id, [{
+        #         'operationName': 'VideoMetadata',
+        #         'variables': {
+        #             'channelLogin': '',
+        #             'videoID': item_id,
+        #         },
+        #     }],
+        #     'Downloading stream metadata GraphQL')[0]['data']
+
         data = self._download_gql(
             item_id, [{
                 'operationName': 'VideoMetadata',
@@ -259,9 +270,18 @@ class TwitchVodIE(TwitchBaseIE):
                     'channelLogin': '',
                     'videoID': item_id,
                 },
+            }, {
+                'operationName': 'VideoPlayer_ChapterSelectButtonVideo',
+                'variables': {
+                    'includePrivate': False,
+                    'videoID': item_id,
+                },
             }],
-            'Downloading stream metadata GraphQL')[0]['data']
-        video = data.get('video')
+            'Downloading stream metadata GraphQL')
+
+        video = data[0].get('data').get('video')
+        video["moments"] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges'))
+
         if video is None:
             raise ExtractorError(
                 'Video %s does not exist' % item_id, expected=True)
@@ -314,6 +334,25 @@ class TwitchVodIE(TwitchBaseIE):
         if thumbnail:
             for p in ('width', 'height'):
                 thumbnail = thumbnail.replace('{%s}' % p, '0')
+
+        chapters = list()
+        for moment in info.get('moments'):
+            moment = moment.get('node')
+            if moment.get('type') != 'GAME_CHANGE':
+                # TODO: warning or debug log if found unknown moment type
+                continue
+
+            momentPosition = moment.get('positionMilliseconds') / 1000
+            momentDuration = moment.get('durationMilliseconds') / 1000
+
+            chapter = {
+                'start_time': momentPosition,
+                'end_time': momentPosition + momentDuration,
+                'title': moment.get('description')
+            }
+
+            chapters.append(chapter)
+
         return {
             'id': vod_id,
             'title': info.get('title') or 'Untitled Broadcast',
@@ -324,6 +363,7 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
+            'chapters': chapters,
         }
 
     def _real_extract(self, url):
