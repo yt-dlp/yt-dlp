@@ -488,12 +488,13 @@ class JSInterpreter(object):
             r'''(?x)
                 (?:function\s+%s|[{;,]\s*%s\s*=\s*function|var\s+%s\s*=\s*function)\s*
                 \((?P<args>[^)]*)\)\s*
-                \{(?P<code>(?:(?!};)[^"]|"([^"]|\\")*")+)\}''' % (
+                (?P<code>\{(?:(?!};)[^"]|"([^"]|\\")*")+\})''' % (
                 re.escape(funcname), re.escape(funcname), re.escape(funcname)),
             self.code)
+        code, _ = self._seperate_at_paren(func_m.group('code'), '}')  # refine the match
         if func_m is None:
             raise ExtractorError('Could not find JS function %r' % funcname)
-        return func_m.group('args').split(','), func_m.group('code')
+        return func_m.group('args').split(','), code
 
     def extract_function(self, funcname):
         return self.extract_function_from_code(*self.extract_function_code(funcname))
