@@ -332,6 +332,7 @@ class InstagramIE(InfoExtractor):
 class InstagramPlaylistIE(InstagramIE):
     # A superclass for handling any kind of query based on GraphQL which
     # results in a playlist.
+    _VALID_URL = None
 
     _gis_tmpl = None  # used to cache GIS request type
 
@@ -462,7 +463,7 @@ class InstagramUserIE(InstagramPlaylistIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/(?P<id>[^/]{2,})/?(?:$|[?#])'
     IE_DESC = 'Instagram user profile'
     IE_NAME = 'instagram:user'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://instagram.com/porsche',
         'info_dict': {
             'id': 'porsche',
@@ -474,7 +475,7 @@ class InstagramUserIE(InstagramPlaylistIE):
             'skip_download': True,
             'playlistend': 5,
         }
-    }
+    }]
 
     _QUERY_HASH = '42323d64886122307be10013ad2dcc44',
 
@@ -496,7 +497,7 @@ class InstagramTagIE(InstagramPlaylistIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/explore/tags/(?P<id>[^/]+)'
     IE_DESC = 'Instagram hashtag search'
     IE_NAME = 'instagram:tag'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://instagram.com/explore/tags/lolcats',
         'info_dict': {
             'id': 'lolcats',
@@ -508,7 +509,7 @@ class InstagramTagIE(InstagramPlaylistIE):
             'skip_download': True,
             'playlistend': 50,
         }
-    }
+    }]
 
     _QUERY_HASH = 'f92f56d47dc7a55b606908374b43a314',
 
