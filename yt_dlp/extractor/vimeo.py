@@ -36,6 +36,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
     unescapeHTML,
+    urlhandle_detect_ext,
 )
 
 
@@ -263,10 +264,16 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
                 continue
+            default_ext = 'unknown_video'
             query = parse_qs(download_url)
+            ext = determine_ext(query.get('filename', [''])[0].lower(), default_ext=default_ext)
+            if ext == default_ext:
+                url_handle = self._request_webpage(
+                    download_url, video_id=video_id, fatal=False, note="Determining source extension")
+                ext = url_handle and urlhandle_detect_ext(url_handle) or ext
             return {
                 'url': download_url,
-                'ext': determine_ext(query.get('filename', [''])[0].lower()),
+                'ext': ext,
                 'format_id': download_data.get('public_name', 'Original'),
                 'width': int_or_none(download_data.get('width')),
                 'height': int_or_none(download_data.get('height')),
@@ -617,6 +624,23 @@ class VimeoIE(VimeoBaseInfoExtractor):
             },
             'params': {
                 'skip_download': True,
+            },
+        },
+        {
+            'url': 'https://vimeo.com/138909882',
+            'info_dict': {
+                'id': '138909882',
+                'ext': 'mp4',
+                'title': 'Eastnor Castle 2015 Firework Champions - The Promo!',
+                'description': 'md5:5967e090768a831488f6e74b7821b3c1',
+                'uploader_id': 'fireworkchampions',
+                'uploader': 'Firework Champions',
+                'upload_date': '20150910',
+                'timestamp': 1441901895,
+            },
+            'params': {
+                'skip_download': True,
+                'format': 'Original',
             },
         },
         # https://gettingthingsdone.com/workflowmap/
