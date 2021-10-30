@@ -50,8 +50,7 @@ class OlympicsReplayIE(InfoExtractor):
         for thumbnail in thumbnails_list:
             width_a, height_a, width = self._search_regex(
                 r'/images/image/private/t_(?P<width_a>\d+)-(?P<height_a>\d+)_(?P<width>\d+)/primary/[\W\w\d]+',
-                thumbnail,
-                'thumb', group=(1, 2, 3), default=(None, None, None))
+                thumbnail, 'thumb', group=(1, 2, 3), default=(None, None, None))
             width_a, height_a, width = int_or_none(width_a), int_or_none(height_a), int_or_none(width)
             thumbnails.append({
                 'url': thumbnail,
