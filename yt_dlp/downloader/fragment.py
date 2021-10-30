@@ -397,7 +397,6 @@ class FragmentFD(FileDownloader):
                 result = result and job.result()
             except KeyboardInterrupt:
                 interrupt_trigger[0] = False
-                print('interuupted')
             finally:
                 tpe.shutdown(wait=True)
         return result
@@ -413,6 +412,7 @@ class FragmentFD(FileDownloader):
 
         def download_fragment(fragment, ctx):
             frag_index = ctx['fragment_index'] = fragment['frag_index']
+            if not interrupt_trigger[0]: return False, frag_index
             headers = info_dict.get('http_headers', {}).copy()
             byte_range = fragment.get('byte_range')
             if byte_range:
