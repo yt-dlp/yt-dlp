@@ -236,7 +236,7 @@ class InstagramIE(InstagramBaseIE):
             title = media.get('title')
             display_resources = media.get('display_resources')
             if not display_resources:
-                display_resources = [{'src': media.get('display_src') or media.get('display_url')}]
+                display_resources = [{'src': media.get('display_src')}, {'src': media.get('display_url')}]
             duration = float_or_none(media.get('video_duration'))
             timestamp = int_or_none(media.get('taken_at_timestamp') or media.get('date'))
             uploader = try_get(media, lambda x: x['owner']['full_name'])
