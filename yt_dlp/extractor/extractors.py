@@ -1763,6 +1763,10 @@ from .wistia import (
     WistiaPlaylistIE,
 )
 from .worldstarhiphop import WorldStarHipHopIE
+from .wppilot import (
+    WPPilotIE,
+    WPPilotChannelsIE,
+)
 from .wsj import (
     WSJIE,
     WSJArticleIE,
