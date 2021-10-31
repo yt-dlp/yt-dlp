@@ -1249,7 +1249,10 @@ from .scte import (
 from .seeker import SeekerIE
 from .senateisvp import SenateISVPIE
 from .sendtonews import SendtoNewsIE
-from .servus import ServusIE
+from .servus import (
+    ServusTVIE,
+    PmWissenIE,
+)
 from .sevenplus import SevenPlusIE
 from .sexu import SexuIE
 from .seznamzpravy import (
