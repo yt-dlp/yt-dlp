@@ -2,9 +2,6 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import (
-    url_or_none,
-)
 
 
 class PeerTVIE(InfoExtractor):
