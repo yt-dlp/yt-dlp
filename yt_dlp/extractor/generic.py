@@ -135,6 +135,7 @@ from .arcpublishing import ArcPublishingIE
 from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
+from .tvp import TVPEmbedIE
 
 
 class GenericIE(InfoExtractor):
@@ -3507,6 +3508,10 @@ class GenericIE(InfoExtractor):
         if rumble_urls:
             return self.playlist_from_matches(
                 rumble_urls, video_id, video_title, ie=RumbleEmbedIE.ie_key())
+
+        tvp_urls = TVPEmbedIE._extract_urls(webpage)
+        if tvp_urls:
+            return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
 
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
