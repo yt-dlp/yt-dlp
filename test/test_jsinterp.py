@@ -112,21 +112,55 @@ class TestJSInterpreter(unittest.TestCase):
         ''')
         self.assertEqual(jsi.call_function('z'), 5)
 
-    def test_youtube_nsig(self):
+    def test_for_loop(self):
         jsi = JSInterpreter('''
-        function n(a) {
-            var b=a.split(""),c=[886776427,-156178677,function(d,e){e=(e%d.length+d.length)%d.length;d.splice(e,1)},
-            1784036706,-371371764,235980413,function(d,e){e=(e%d.length+d.length)%d.length;d.splice(0,1,d.splice(e,1,d[0])[0])},
-            1286008293,function(d,e){e=(e%d.length+d.length)%d.length;var f=d[0];d[0]=d[e];d[e]=f},
-            677181136,function(d){for(var e=d.length;e;)d.push(d.splice(--e,1)[0])},
-            1219079387,b,null,565464592,1036637602,b,function(d,e){for(e=(e%d.length+d.length)%d.length;e--;)d.unshift(d.pop())},
-            -258655778,263048964,1590018276,-258655778,-1464634529,503797474,b,"GOH_",null,-2033769892,-1065530794,function(d,e){e=(e%d.length+d.length)%d.length;d.splice(-e).reverse().forEach(function(f){d.unshift(f)})},
-            -790428566,function(d,e){for(var f=64,h=[];++f-h.length-32;){switch(f){case 58:f-=14;case 91:case 92:case 93:continue;case 123:f=47;case 94:case 95:case 96:continue;case 46:f=95}h.push(String.fromCharCode(f))}d.forEach(function(l,m,n){this.push(n[m]=h[(h.indexOf(l)-h.indexOf(this[m])+m-32+f--)%h.length])},e.split(""))},
-            -1117323690,-915049167,1068829082,-1055402792,-1930280214,-611518941,1040413011,null,1564996876,166765587,1061933925,2020843377,-1776154759,146580619,772860797,1594011608,1350972156,2020843377,1350972156,function(d){d.reverse()},
-            37977673];c[13]=c;c[26]=c;c[39]=c;try{c[51](c[26]),c[35](c[26],c[48]),c[1](c[4],c[0]),c[47](c[42],c[10]),c[45](c[43]),c[26](c[16],c[46]),c[3](c[6],c[38]),c[9](c[4],c[24]),c[10](c[1],c[6]),c[10](c[4],c[37]),c[27](c[51]),c[23](c[27],c[15]),c[22](c[31],c[47]),c[44](c[41],c[32]),c[45](c[10],c[12]),c[44](c[8],c[2]),c[45](c[23],c[38]),c[44](c[8],c[28]),c[45](c[21],c[18]),c[44](c[10],c[39]),c[38](c[42],c[19]),c[38](c[14],c[33]),c[38](c[14],c[17]),c[37](c[3],c[44]),c[19](c[16],c[6]),c[13](c[33],c[45]),c[36](c[33],
-            c[26]),c[14](c[33],c[29]),c[30](c[6]),c[34](c[48]),c[24](c[6],c[5]),c[3](c[19],c[27]),c[5](c[41],c[45]),c[34](c[0],c[40]),c[13](c[41],c[29]),c[4](c[41],c[17]),c[36](c[0],c[24]),c[36](c[0],c[22]),c[13](c[41],c[50]),c[6](c[28],c[33]),c[14](c[28]),c[13](c[41],c[30])}catch(d){return"enhanced_except_7ZMBkuz-_w8_"+a}return b.join("")
-        }''')
-        self.assertEqual(jsi.call_function('n', 'iozK6raRyrJcxIfjM'), 'z-p240okzOTM-A')
+        function x() { a=0; for (i=0; i-10; i++) {a++} a }
+        ''')
+        self.assertEqual(jsi.call_function('x'), 10)
+
+    def test_switch(self):
+        jsi = JSInterpreter('''
+        function x(f) { switch(f){
+            case 1:f+=1;
+            case 2:f+=2;
+            case 3:f+=3;break;
+            case 4:f+=4;
+            default:f=0;
+        } return f }
+        ''')
+        self.assertEqual(jsi.call_function('x', 1), 7)
+        self.assertEqual(jsi.call_function('x', 3), 6)
+        self.assertEqual(jsi.call_function('x', 5), 0)
+
+    def test_try(self):
+        jsi = JSInterpreter('''
+        function x() { try{return 10} catch(e){return 5} }
+        ''')
+        self.assertEqual(jsi.call_function('x'), 10)
+
+    def test_for_loop_continue(self):
+        jsi = JSInterpreter('''
+        function x() { a=0; for (i=0; i-10; i++) { continue; a++ } a }
+        ''')
+        self.assertEqual(jsi.call_function('x'), 0)
+
+    def test_for_loop_break(self):
+        jsi = JSInterpreter('''
+        function x() { a=0; for (i=0; i-10; i++) { break; a++ } a }
+        ''')
+        self.assertEqual(jsi.call_function('x'), 0)
+
+    def test_literal_list(self):
+        jsi = JSInterpreter('''
+        function x() { [1, 2, "asdf", [5, 6, 7]][3] }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [5, 6, 7])
+
+    def test_comma(self):
+        jsi = JSInterpreter('''
+        function x() { a=5; a -= 1, a+=3; return a }
+        ''')
+        self.assertEqual(jsi.call_function('x'), 7)
 
 
 if __name__ == '__main__':
