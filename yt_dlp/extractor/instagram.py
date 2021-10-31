@@ -222,8 +222,8 @@ class InstagramIE(InfoExtractor):
                     dict)
         if media:
             video_url = media.get('video_url')
-            height = int_or_none(media.get('dimensions', {}).get('height'))
-            width = int_or_none(media.get('dimensions', {}).get('width'))
+            height = try_get(media, lambda x: x['dimensions']['height'])
+            width = try_get(media, lambda x: x['dimensions']['width'])
             description = try_get(
                 media, lambda x: x['edge_media_to_caption']['edges'][0]['node']['text'],
                 compat_str) or media.get('caption')
@@ -231,8 +231,8 @@ class InstagramIE(InfoExtractor):
             thumbnail = media.get('display_src') or media.get('display_url')
             duration = float_or_none(media.get('video_duration'))
             timestamp = int_or_none(media.get('taken_at_timestamp') or media.get('date'))
-            uploader = media.get('owner', {}).get('full_name')
-            uploader_id = media.get('owner', {}).get('username')
+            uploader = try_get(media, lambda x: x['owner']['full_name'])
+            uploader_id = try_get(media, lambda x: x['owner']['username'])
 
             def get_count(keys, kind):
                 for key in variadic(keys):
@@ -294,6 +294,10 @@ class InstagramIE(InfoExtractor):
             'width': width,
             'height': height,
         }]
+        dash = try_get(media, lambda x: x['dash_info']['video_dash_manifest'])
+        if dash:
+            formats.extend(self._parse_mpd_formats(self._parse_xml(dash, video_id), mpd_id='dash'))
+        self._sort_formats(formats)
 
         if not uploader_id:
             uploader_id = self._search_regex(
