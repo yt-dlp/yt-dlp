@@ -51,7 +51,7 @@ class VKBaseIE(InfoExtractor):
         self._apply_first_set_cookie_header(url_handle, 'remixlhk')
 
         login_page = self._download_webpage(
-            'https://login.vk.com/?act=login', None,
+            'https://vk.com/login', None,
             note='Logging in',
             data=urlencode_postdata(login_form))
 
