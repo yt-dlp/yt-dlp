@@ -423,12 +423,12 @@ class TwitchVodIE(TwitchBaseIE):
     def _extract_chat(self, chat_history, request_url):
         return {
             'live_chat': [  # subtitle tag
-                {           # JSON subformat as data
-                    'data': json.dumps(chat_history),
-                    'ext': 'json'
-                },
                 {           # JSON subformat as URL
                     'url': request_url,
+                    'ext': 'json'
+                },
+                {           # JSON subformat as data
+                    'data': json.dumps(chat_history),
                     'ext': 'json'
                 }
             ]
