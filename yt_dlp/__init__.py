@@ -225,6 +225,7 @@ def _real_main(argv=None):
     if opts.playlistend not in (-1, None) and opts.playlistend < opts.playliststart:
         raise ValueError('Playlist end must be greater than playlist start')
     if opts.extractaudio:
+        opts.audioformat = opts.audioformat.lower()
         if opts.audioformat not in ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS):
             parser.error('invalid audio format specified')
     if opts.audioquality:

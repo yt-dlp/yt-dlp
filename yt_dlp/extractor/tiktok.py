@@ -38,8 +38,8 @@ class TikTokBaseIE(InfoExtractor):
             'build_number': self._APP_VERSION,
             'manifest_version_code': self._MANIFEST_APP_VERSION,
             'update_version_code': self._MANIFEST_APP_VERSION,
-            'openudid': ''.join(random.choice('0123456789abcdef') for i in range(16)),
-            'uuid': ''.join([random.choice(string.digits) for num in range(16)]),
+            'openudid': ''.join(random.choice('0123456789abcdef') for _ in range(16)),
+            'uuid': ''.join([random.choice(string.digits) for _ in range(16)]),
             '_rticket': int(time.time() * 1000),
             'ts': int(time.time()),
             'device_brand': 'Google',
@@ -66,7 +66,7 @@ class TikTokBaseIE(InfoExtractor):
             'as': 'a1qwert123',
             'cp': 'cbfhckdckkde1',
         }
-        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for i in range(160)))
+        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
@@ -416,7 +416,7 @@ class TikTokUserIE(TikTokBaseIE):
             'max_cursor': 0,
             'min_cursor': 0,
             'retry_type': 'no_retry',
-            'device_id': ''.join(random.choice(string.digits) for i in range(19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
+            'device_id': ''.join(random.choice(string.digits) for _ in range(19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
         }
 
         max_retries = self.get_param('extractor_retries', 3)
