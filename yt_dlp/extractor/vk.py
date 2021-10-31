@@ -472,8 +472,7 @@ class VKIE(VKBaseIE):
         self._sort_formats(formats)
 
         subtitles = {}
-        _subtitles = data.get('subs', {})
-        for sub in _subtitles:
+        for sub in data.get('subs') or {}:
             subtitles.setdefault(sub.get('lang', 'en'), []).append({
                 'ext': sub.get('title', '.srt').split('.')[-1],
                 'url': url_or_none(sub.get('url')),
