@@ -254,13 +254,11 @@ class InstagramIE(InstagramBaseIE):
             comment_count = get_count(
                 ('preview_comment', 'to_comment', 'to_parent_comment'), 'comment')
 
-            thumbnails = []
-            for thumbnail in display_resources:
-                thumbnails.append({
-                    'url': thumbnail.get('src'),
-                    'width': thumbnail.get('config_width'),
-                    'height': thumbnail.get('config_height'),
-                })
+            thumbnails = [{
+                'url': thumbnail['src'],
+                'width': thumbnail.get('config_width'),
+                'height': thumbnail.get('config_height'),
+            } for thumbnail in display_resources if thumbnail.get('src')]
 
             comments = []
             for comment in try_get(media, lambda x: x['edge_media_to_parent_comment']['edges']):
