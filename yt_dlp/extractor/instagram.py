@@ -228,8 +228,8 @@ class InstagramIE(InstagramBaseIE):
                     dict)
         if media:
             video_url = media.get('video_url')
-            height = try_get(media, lambda x: x['dimensions']['height'])
-            width = try_get(media, lambda x: x['dimensions']['width'])
+            height = int_or_none(self._html_search_meta(('og:video:height', 'video:height'), webpage)) or try_get(media, lambda x: x['dimensions']['height'])
+            width = int_or_none(self._html_search_meta(('og:video:width', 'video:width'), webpage)) or try_get(media, lambda x: x['dimensions']['width'])
             description = try_get(
                 media, lambda x: x['edge_media_to_caption']['edges'][0]['node']['text'],
                 compat_str) or media.get('caption')
