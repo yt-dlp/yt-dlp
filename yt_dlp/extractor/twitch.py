@@ -253,16 +253,6 @@ class TwitchVodIE(TwitchBaseIE):
     }]
 
     def _download_info(self, item_id):
-        # data = self._download_gql(
-        #     item_id, [{
-        #         'operationName': 'VideoMetadata',
-        #         'variables': {
-        #             'channelLogin': '',
-        #             'videoID': item_id,
-        #         },
-        #     }],
-        #     'Downloading stream metadata GraphQL')[0]['data']
-
         data = self._download_gql(
             item_id, [{
                 'operationName': 'VideoMetadata',
@@ -279,7 +269,8 @@ class TwitchVodIE(TwitchBaseIE):
             }],
             'Downloading stream metadata GraphQL')
 
-        video = data[0].get('data').get('video')
+        # video = data[0].get('data').get('video')
+        video = traverse_obj(data[0], ('data', 'video'))
         video["moments"] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges'))
 
         if video is None:
@@ -342,13 +333,21 @@ class TwitchVodIE(TwitchBaseIE):
                 # TODO: warning or debug log if found unknown moment type
                 continue
 
-            momentPosition = moment.get('positionMilliseconds') / 1000
-            momentDuration = moment.get('durationMilliseconds') / 1000
+            momentPosition = int_or_none(moment.get('positionMilliseconds'))
+            momentDuration = int_or_none(moment.get('durationMilliseconds'))
+
+            if momentPosition is None or momentDuration is None:
+                # TODO: warning or debug log about missing important data
+                chapters.clear()
+                break
+
+            momentPosition /= 1000
+            momentDuration /= 1000
 
             chapter = {
                 'start_time': momentPosition,
                 'end_time': momentPosition + momentDuration,
-                'title': moment.get('description')
+                'title': str_or_none(moment.get('description'))
             }
 
             chapters.append(chapter)
