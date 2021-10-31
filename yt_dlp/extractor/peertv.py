@@ -38,7 +38,7 @@ class PeerTVIE(InfoExtractor):
 
         video_key = self._html_search_regex(r'player\.peer\.tv/js/([\d\w]+)', webpage, 'video key')
 
-        js = self._download_webpage(f'https://player.peer.tv/js/{video_key}/?=&a=1', video_id,
+        js = self._download_webpage(f'https://player.peer.tv/js/{video_key}/', video_id,
                                     headers={'Referer': 'https://www.peer.tv/'})
 
         session_id = self._search_regex(r'["\']session_id["\']:\s*["\']([\w\d]+)["\']', js, 'session id')
