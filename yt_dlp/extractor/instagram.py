@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import unicode_literals
 
 import itertools
@@ -25,9 +26,55 @@ from ..utils import (
 )
 
 
-class InstagramIE(InfoExtractor):
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com/(?:p|tv|reel)/(?P<id>[^/?#&]+))'
+class InstagramBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'instagram'
+    _IS_LOGGED_IN = False
+
+    def _login(self):
+        username, password = self._get_login_info()
+        if username is None or self._IS_LOGGED_IN:
+            return
+
+        login_webpage = self._download_webpage(
+            'https://www.instagram.com/accounts/login/', None,
+            note='Downloading login webpage', errnote='Failed to download login webpage')
+
+        shared_data = self._parse_json(
+            self._search_regex(
+                r'window\._sharedData\s*=\s*({.+?});',
+                login_webpage, 'shared data', default='{}'),
+            None)
+
+        login = self._download_json('https://www.instagram.com/accounts/login/ajax/', None, note='Logging in', headers={
+            'Accept': '*/*',
+            'X-IG-App-ID': '936619743392459',
+            'X-ASBD-ID': '198387',
+            'X-IG-WWW-Claim': '0',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': shared_data['config']['csrf_token'],
+            'X-Instagram-AJAX': shared_data['rollout_hash'],
+            'Referer': 'https://www.instagram.com/',
+        }, data=urlencode_postdata({
+            'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
+            'username': username,
+            'queryParams': '{}',
+            'optIntoOneTap': 'false',
+            'stopDeletionNonce': '',
+            'trustedDeviceRecords': '{}',
+        }))
+
+        if not login.get('authenticated'):
+            if login.get('message'):
+                raise ExtractorError(f'Unable to login: {login["message"]}')
+            raise ExtractorError('Unable to login')
+        InstagramBaseIE._IS_LOGGED_IN = True
+
+    def _real_initialize(self):
+        self._login()
+
+
+class InstagramIE(InstagramBaseIE):
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com/(?:p|tv|reel)/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://instagram.com/p/aye83DjauH/?foo=bar#abc',
         'md5': '0d2da106a9d2631273e192b372806516',
@@ -142,47 +189,6 @@ class InstagramIE(InfoExtractor):
             r'<a[^>]+href=([\'"])(?P<link>[^\'"]+)\1', blockquote_el)
         if mobj:
             return mobj.group('link')
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
-        login_webpage = self._download_webpage(
-            'https://www.instagram.com/accounts/login/', None,
-            note='Downloading login webpage', errnote='Failed to download login webpage')
-
-        shared_data = self._parse_json(
-            self._search_regex(
-                r'window\._sharedData\s*=\s*({.+?});',
-                login_webpage, 'shared data', default='{}'),
-            None)
-
-        login = self._download_json('https://www.instagram.com/accounts/login/ajax/', None, note='Logging in', headers={
-            'Accept': '*/*',
-            'X-IG-App-ID': '936619743392459',
-            'X-ASBD-ID': '198387',
-            'X-IG-WWW-Claim': '0',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': shared_data['config']['csrf_token'],
-            'X-Instagram-AJAX': shared_data['rollout_hash'],
-            'Referer': 'https://www.instagram.com/',
-        }, data=urlencode_postdata({
-            'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
-            'username': username,
-            'queryParams': '{}',
-            'optIntoOneTap': 'false',
-            'stopDeletionNonce': '',
-            'trustedDeviceRecords': '{}',
-        }))
-
-        if not login.get('authenticated'):
-            if login.get('message'):
-                raise ExtractorError(f'Unable to login: {login["message"]}')
-            raise ExtractorError('Unable to login')
-
-    def _real_initialize(self):
-        self._login()
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -333,9 +339,7 @@ class InstagramIE(InfoExtractor):
         }
 
 
-class InstagramPlaylistIE(InfoExtractor):
-    # A superclass for handling any kind of query based on GraphQL which
-    # results in a playlist.
+class InstagramPlaylistBaseIE(InstagramBaseIE):
 
     _gis_tmpl = None  # used to cache GIS request type
 
@@ -462,11 +466,11 @@ class InstagramPlaylistIE(InfoExtractor):
             self._extract_graphql(data, url), user_or_tag, user_or_tag)
 
 
-class InstagramUserIE(InstagramPlaylistIE):
+class InstagramUserIE(InstagramPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/(?P<id>[^/]{2,})/?(?:$|[?#])'
     IE_DESC = 'Instagram user profile'
     IE_NAME = 'instagram:user'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://instagram.com/porsche',
         'info_dict': {
             'id': 'porsche',
@@ -478,7 +482,7 @@ class InstagramUserIE(InstagramPlaylistIE):
             'skip_download': True,
             'playlistend': 5,
         }
-    }
+    }]
 
     _QUERY_HASH = '42323d64886122307be10013ad2dcc44',
 
@@ -496,11 +500,11 @@ class InstagramUserIE(InstagramPlaylistIE):
         }
 
 
-class InstagramTagIE(InstagramPlaylistIE):
+class InstagramTagIE(InstagramPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/explore/tags/(?P<id>[^/]+)'
     IE_DESC = 'Instagram hashtag search'
     IE_NAME = 'instagram:tag'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://instagram.com/explore/tags/lolcats',
         'info_dict': {
             'id': 'lolcats',
@@ -512,7 +516,7 @@ class InstagramTagIE(InstagramPlaylistIE):
             'skip_download': True,
             'playlistend': 50,
         }
-    }
+    }]
 
     _QUERY_HASH = 'f92f56d47dc7a55b606908374b43a314',
 
