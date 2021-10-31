@@ -99,7 +99,7 @@ class FFmpegPostProcessor(PostProcessor):
         self.basename = None
         self.probe_basename = None
 
-        self._paths = None
+        self.paths = None
         self._versions = None
         if self._downloader:
             prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
@@ -120,16 +120,16 @@ class FFmpegPostProcessor(PostProcessor):
                     if basename in ('ffmpeg', 'ffprobe'):
                         prefer_ffmpeg = True
 
-                self._paths = dict(
+                self.paths = dict(
                     (p, os.path.join(dirname, p)) for p in programs)
                 if basename:
-                    self._paths[basename] = location
+                    self.paths[basename] = location
                 self._versions = dict(
-                    (p, get_ffmpeg_version(self._paths[p])) for p in programs)
+                    (p, get_ffmpeg_version(self.paths[p])) for p in programs)
         if self._versions is None:
             self._versions = dict(
                 (p, get_ffmpeg_version(p)) for p in programs)
-            self._paths = dict((p, p) for p in programs)
+            self.paths = dict((p, p) for p in programs)
 
         if prefer_ffmpeg is False:
             prefs = ('avconv', 'ffmpeg')
@@ -155,7 +155,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def executable(self):
-        return self._paths[self.basename]
+        return self.paths[self.basename]
 
     @property
     def probe_available(self):
@@ -163,7 +163,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def probe_executable(self):
-        return self._paths[self.probe_basename]
+        return self.paths[self.probe_basename]
 
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
@@ -374,6 +374,11 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         self._preferredquality = preferredquality
         self._nopostoverwrites = nopostoverwrites
 
+    def libfdk_aac_available(self):
+        if "--enable-libfdk-aac" in subprocess.check_output([self.paths['ffmpeg'], "-buildconf"]).decode():
+            return True
+        return False
+
     def run_ffmpeg(self, path, out_path, codec, more_opts):
         if codec is None:
             acodec_opts = []
@@ -428,10 +433,18 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             acodec = ACODECS[self._preferredcodec]
             extension = self._preferredcodec
             more_opts = []
+            audio_quality_setter = '-q:a'
+            if self._preferredcodec == 'aac' or self._preferredcodec == 'm4a':
+                if self.libfdk_aac_available():
+                    acodec = 'libfdk_aac'
+                    audio_quality_setter = '-vbr'
+                    # The quality range for libfdk_aac is 1-5
+                    if int(self._preferredquality) > 5:
+                        self._preferredquality = '5'
             if self._preferredquality is not None:
-                # The opus codec doesn't support the -aq option
+                # The opus codec doesn't support the audio quality option (-q:a).
                 if int(self._preferredquality) < 10 and extension != 'opus':
-                    more_opts += ['-q:a', self._preferredquality]
+                    more_opts += [audio_quality_setter, self._preferredquality]
                 else:
                     more_opts += ['-b:a', self._preferredquality + 'k']
             if self._preferredcodec == 'aac':
