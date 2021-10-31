@@ -28,7 +28,7 @@ from ..utils import (
     unified_timestamp,
     update_url_query,
     url_or_none,
-    urljoin, traverse_obj,
+    urljoin, traverse_obj, str_or_none,
 )
 
 
@@ -366,6 +366,74 @@ class TwitchVodIE(TwitchBaseIE):
             'chapters': chapters,
         }
 
+    def _download_chat(self, vod_id):
+        live_chat = list()
+
+        request_url = f'https://api.twitch.tv/v5/videos/{vod_id}/comments'
+        query_params = {
+            'client_id': self._CLIENT_ID
+        }
+
+        self.to_screen('Downloading chat fragment JSONs')
+
+        # TODO: question: is it OK to use this config value for this purpose?
+        max_retries = self.get_param('extractor_retries')
+        retries = 0
+        pagenum = 1
+        while True:
+            response_json = self._download_json(
+                request_url,
+                vod_id,
+                fatal=False,
+                note='Downloading chat fragment JSON page %d' % pagenum,
+                errnote='Live chat fragment download failed.',
+                query=query_params)
+
+            if response_json is False:
+                self.report_warning(f'Unable to fetch next chat history fragment. {retries}. try of {max_retries}')
+
+                if retries < max_retries:
+                    retries += 1
+                    continue
+                else:
+                    self.report_warning(f'Chat history download failed: retry limit reached')
+                    # TODO: when this happens, should I forget a partial chat history, or is it better to keep it too?
+                    #       I think if I keep it, it might be better to persist a warning that it is incomplete
+                    # live_chat.clear()
+                    break
+
+            live_chat.extend(response_json.get('comments') or [])
+            next_fragment_cursor = str_or_none(response_json.get('_next'))
+
+
+            if next_fragment_cursor is None:
+                break
+
+            query_params['cursor'] = next_fragment_cursor
+            pagenum += 1
+
+        chat_history_length = len(live_chat)
+
+        self.to_screen('Extracted %d chat messages' % chat_history_length)
+        if chat_history_length == 0:
+            return None
+
+        return self._extract_chat(live_chat, request_url)
+
+    def _extract_chat(self, chat_history, request_url):
+        return {
+            'live_chat': [  # subtitle tag
+                {           # JSON subformat as data
+                    'data': json.dumps(chat_history),
+                    'ext': 'json'
+                },
+                {           # JSON subformat as URL
+                    'url': request_url,
+                    'ext': 'json'
+                }
+            ]
+        }
+
     def _real_extract(self, url):
         vod_id = self._match_id(url)
 
@@ -394,16 +462,9 @@ class TwitchVodIE(TwitchBaseIE):
         if 't' in query:
             info['start_time'] = parse_duration(query['t'][0])
 
-        if info.get('timestamp') is not None:
-            info['subtitles'] = {
-                'rechat': [{
-                    'url': update_url_query(
-                        'https://api.twitch.tv/v5/videos/%s/comments' % vod_id, {
-                            'client_id': self._CLIENT_ID,
-                        }),
-                    'ext': 'json',
-                }],
-            }
+        if ('live_chat' in self.get_param('subtitleslangs')) \
+                and info.get('timestamp') is not None:
+            info['subtitles'] = self._download_chat(vod_id)
 
         return info
 
