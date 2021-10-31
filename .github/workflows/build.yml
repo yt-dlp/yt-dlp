@@ -115,12 +115,12 @@ jobs:
         release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
         commitish: ${{ steps.push_update.outputs.head_sha }}
         body: |
-          ### Changelog:
-          ${{ env.changelog }}
+          #### [A description of the various files]((https://github.com/yt-dlp/yt-dlp#release-files)) are in the README
 
           ---
 
-          ### See [this](https://github.com/yt-dlp/yt-dlp#release-files) for a description of the release files
+          ### Changelog:
+          ${{ env.changelog }}
         draft: false
         prerelease: false
     - name: Upload yt-dlp Unix binary

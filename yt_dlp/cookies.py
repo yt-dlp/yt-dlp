@@ -117,7 +117,7 @@ def _extract_firefox_cookies(profile, logger):
         raise FileNotFoundError('could not find firefox cookies database in {}'.format(search_root))
     logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
-    with tempfile.TemporaryDirectory(prefix='youtube_dl') as tmpdir:
+    with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
@@ -236,7 +236,7 @@ def _extract_chrome_cookies(browser_name, profile, logger):
 
     decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], logger)
 
-    with tempfile.TemporaryDirectory(prefix='youtube_dl') as tmpdir:
+    with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
