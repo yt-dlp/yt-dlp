@@ -250,6 +250,57 @@ class TwitchVodIE(TwitchBaseIE):
     }, {
         'url': 'https://player.twitch.tv/?video=480452374',
         'only_matching': True,
+    }, {
+        'url': 'https://www.twitch.tv/videos/1151099246',
+        'info_dict': {
+            "id": "v1151099246",
+            'ext': 'mp4',
+            "title": "Sz\u00f3val lesz Tarkov! - Subtember -20% a subok \u00e1r\u00e1b\u00f3l! - !VPN !sz\u00e9k !program",
+            "duration": 4661,
+            "uploader": "pingvin_harcos",
+            "uploader_id": "pingvin_harcos",
+            "timestamp": 1631862496,
+            "view_count": 2520,
+            "upload_date": "20210917",
+            "chapters": [
+                {
+                    "start_time": 0.0,
+                    "end_time": 2484.0,
+                    "title": "Escape from Tarkov"
+                },
+                {
+                    "start_time": 2484.0,
+                    "end_time": 2876.0,
+                    "title": "Anno 1800"
+                },
+                {
+                    "start_time": 2876.0,
+                    "end_time": 4400.0,
+                    "title": "Just Chatting"
+                },
+                {
+                    "start_time": 4400.0,
+                    "end_time": 4661.0,
+                    "title": "Escape from Tarkov"
+                }
+            ],
+            "subtitles": {
+                "live_chat": [
+                    {
+                        "url": "https://api.twitch.tv/v5/videos/1151099246/comments",
+                        "ext": "json"
+                    },
+                    {
+                        "data": r"re:^\[\{\"_id\": .*}]$",
+                        "ext": "json"
+                    }
+                ]
+            }
+        },
+        'params': {
+            'subtitleslangs': ['live_chat'],
+            'skip_download': True
+        }
     }]
 
     def _download_info(self, item_id):
@@ -395,7 +446,7 @@ class TwitchVodIE(TwitchBaseIE):
                     retries += 1
                     continue
                 else:
-                    self.report_warning(f'Chat history download failed: retry limit reached')
+                    self.report_warning('Chat history download failed: retry limit reached')
                     # TODO: when this happens, should I forget a partial chat history, or is it better to keep it too?
                     #       I think if I keep it, it might be better to persist a warning that it is incomplete
                     # live_chat.clear()
@@ -403,7 +454,6 @@ class TwitchVodIE(TwitchBaseIE):
 
             live_chat.extend(response_json.get('comments') or [])
             next_fragment_cursor = str_or_none(response_json.get('_next'))
-
 
             if next_fragment_cursor is None:
                 break
@@ -461,7 +511,7 @@ class TwitchVodIE(TwitchBaseIE):
         if 't' in query:
             info['start_time'] = parse_duration(query['t'][0])
 
-        if ('live_chat' in self.get_param('subtitleslangs')) \
+        if ('live_chat' in self.get_param('subtitleslangs', [])) \
                 and info.get('timestamp') is not None:
             info['subtitles'] = self._download_chat(vod_id)
 
