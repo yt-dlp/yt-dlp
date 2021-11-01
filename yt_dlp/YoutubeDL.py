@@ -2329,6 +2329,20 @@ class YoutubeDL(object):
                 format['resolution'] = self.format_resolution(format, default=None)
             if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
                 format['dynamic_range'] = 'SDR'
+            if info_dict.get('duration') and format.get('filesize') and not format.get('tbr'):
+                format['tbr'] = format['filesize'] / info_dict['duration'] / 128
+            if format.get('abr') and format.get('vbr') and not format.get('tbr'):
+                format['tbr'] = format['abr'] + format['vbr']
+            if not format.get('abr') and format.get('tbr') and format.get('vcodec') == 'none':
+                format['abr'] = format['tbr']
+            elif format.get('abr') and not format.get('tbr') and format.get('vcodec') == 'none':
+                format['tbr'] = format['abr']
+            if not format.get('vbr') and format.get('tbr') and format.get('acodec') == 'none':
+                format['vbr'] = format['tbr']
+            elif format.get('vbr') and format.get('tbr') and format.get('acodec') == 'none':
+                format['tbr'] = format['vbr']
+            if not info_dict.get('duration') and format.get('tbr') and format.get('filesize'):
+                info_dict['duration'] = format['filesize'] / format['tbr'] / 128
             if (info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = info_dict['duration'] * format['tbr'] * (1024 / 8)
