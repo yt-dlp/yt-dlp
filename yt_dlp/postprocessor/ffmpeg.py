@@ -434,13 +434,12 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             extension = self._preferredcodec
             more_opts = []
             audio_quality_setter = '-q:a'
-            if self._preferredcodec == 'aac' or self._preferredcodec == 'm4a':
-                if self.libfdk_aac_available():
-                    acodec = 'libfdk_aac'
-                    audio_quality_setter = '-vbr'
-                    # The quality range for libfdk_aac is 1-5
-                    if int(self._preferredquality) > 5:
-                        self._preferredquality = '5'
+            if self._preferredcodec in ('aac', 'm4a') and self.libfdk_aac_available():
+                acodec = 'libfdk_aac'
+                audio_quality_setter = '-vbr'
+                # The quality range for libfdk_aac is 1-5
+                if int(self._preferredquality) > 5:
+                    self._preferredquality = '5'
             if self._preferredquality is not None:
                 # The opus codec doesn't support the audio quality option (-q:a).
                 if int(self._preferredquality) < 10 and extension != 'opus':
