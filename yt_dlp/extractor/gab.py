@@ -8,7 +8,6 @@ from ..utils import (
     unified_timestamp,
     parse_duration,
     parse_codecs,
-    parse_bitrate,
     int_or_none,
     str_to_int,
     clean_html,
@@ -132,7 +131,7 @@ class GabIE(InfoExtractor):
             formats = []
             duration = metadata.get('duration') or parse_duration(metadata.get('length'))
             acodec = parse_codecs(metadata.get('audio_encode')).get('acodec')
-            abr = parse_bitrate(metadata.get('audio_bitrate'))
+            asr = int_or_none((metadata.get('audio_bitrate') or '').split(' ')[0])
             fps = metadata.get('fps')
             for i, format in enumerate([metadata.get('original') or {}, metadata.get('playable') or {}]):
                 if i == 0:
@@ -147,7 +146,7 @@ class GabIE(InfoExtractor):
                     'height': format.get('height'),
                     'tbr': int_or_none(format.get('bitrate'), scale=1000),
                     'fps': fps,
-                    'abr': abr,
+                    'asr': asr,
                     'acodec': acodec,
                 })
             entities.append({
