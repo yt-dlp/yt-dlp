@@ -20,22 +20,8 @@ from ..utils import (
 
 
 class CeskaTelevizeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ceskatelevize\.cz/ivysilani/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'
+    _VALID_URL = r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady)/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'
     _TESTS = [{
-        'url': 'http://www.ceskatelevize.cz/ivysilani/ivysilani/10441294653-hyde-park-civilizace/214411058091220',
-        'info_dict': {
-            'id': '61924494877246241',
-            'ext': 'mp4',
-            'title': 'Hyde Park Civilizace: Život v Grónsku',
-            'description': 'md5:3fec8f6bb497be5cdb0c9e8781076626',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 3350,
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-    }, {
         'url': 'http://www.ceskatelevize.cz/ivysilani/10441294653-hyde-park-civilizace/215411058090502/bonus/20641-bonus-01-en',
         'info_dict': {
             'id': '61924494877028507',
@@ -66,12 +52,58 @@ class CeskaTelevizeIE(InfoExtractor):
     }, {
         'url': 'http://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php?hash=d6a3e1370d2e4fa76296b90bad4dfc19673b641e&IDEC=217 562 22150/0004&channelID=1&width=100%25',
         'only_matching': True,
+    }, {
+        # video with 18+ caution trailer
+        'url': 'http://www.ceskatelevize.cz/porady/10520528904-queer/215562210900007-bogotart/',
+        'info_dict': {
+            'id': '215562210900007-bogotart',
+            'title': 'Queer: Bogotart',
+            'description': 'Hlavní město Kolumbie v doprovodu queer umělců. Vroucí svět plný vášně, sebevědomí, ale i násilí a bolesti. Připravil Peter Serge Butko',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '61924494877311053',
+                'ext': 'mp4',
+                'title': 'Queer: Bogotart (Varování 18+)',
+                'duration': 11.9,
+            },
+        }, {
+            'info_dict': {
+                'id': '61924494877068022',
+                'ext': 'mp4',
+                'title': 'Queer: Bogotart (Queer)',
+                'thumbnail': r're:^https?://.*\.jpg',
+                'duration': 1558.3,
+            },
+        }],
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+    }, {
+        # iframe embed
+        'url': 'http://www.ceskatelevize.cz/porady/10614999031-neviditelni/21251212048/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-
+        parsed_url = compat_urllib_parse_urlparse(url)
         webpage = self._download_webpage(url, playlist_id)
+        site_name = self._og_search_property('site_name', webpage, fatal=False, default=None)
+        playlist_title = self._og_search_title(webpage, default=None)
+        if site_name and playlist_title:
+            playlist_title = playlist_title.replace(f' — {site_name}', '', 1)
+        playlist_description = self._og_search_description(webpage, default=None)
+        if playlist_description:
+            playlist_description = playlist_description.replace('\xa0', ' ')
+
+        if parsed_url.path.startswith('/porady/'):
+            refer_url = update_url_query(unescapeHTML(self._search_regex(
+                (r'<span[^>]*\bdata-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
+                 r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?ceskatelevize\.cz/ivysilani/embed/iFramePlayer\.php.*?)\1'),
+                webpage, 'iframe player url', group='url')), query={'autoStart': 'true'})
+            webpage = self._download_webpage(refer_url, playlist_id)
 
         NOT_AVAILABLE_STRING = 'This content is not available at your territory due to limited copyright.'
         if '%s</p>' % NOT_AVAILABLE_STRING in webpage:
@@ -100,7 +132,7 @@ class CeskaTelevizeIE(InfoExtractor):
         data = {
             'playlist[0][type]': type_,
             'playlist[0][id]': episode_id,
-            'requestUrl': compat_urllib_parse_urlparse(url).path,
+            'requestUrl': parsed_url.path,
             'requestSource': 'iVysilani',
         }
 
@@ -108,7 +140,7 @@ class CeskaTelevizeIE(InfoExtractor):
 
         for user_agent in (None, USER_AGENTS['Safari']):
             req = sanitized_Request(
-                'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist',
+                'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                 data=urlencode_postdata(data))
 
             req.add_header('Content-type', 'application/x-www-form-urlencoded')
@@ -129,9 +161,6 @@ class CeskaTelevizeIE(InfoExtractor):
 
             req = sanitized_Request(compat_urllib_parse_unquote(playlist_url))
             req.add_header('Referer', url)
-
-            playlist_title = self._og_search_title(webpage, default=None)
-            playlist_description = self._og_search_description(webpage, default=None)
 
             playlist = self._download_json(req, playlist_id, fatal=False)
             if not playlist:
@@ -237,54 +266,3 @@ class CeskaTelevizeIE(InfoExtractor):
                     yield line
 
         return '\r\n'.join(_fix_subtitle(subtitles))
-
-
-class CeskaTelevizePoradyIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ceskatelevize\.cz/porady/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'
-    _TESTS = [{
-        # video with 18+ caution trailer
-        'url': 'http://www.ceskatelevize.cz/porady/10520528904-queer/215562210900007-bogotart/',
-        'info_dict': {
-            'id': '215562210900007-bogotart',
-            'title': 'Queer: Bogotart',
-            'description': 'Alternativní průvodce současným queer světem',
-        },
-        'playlist': [{
-            'info_dict': {
-                'id': '61924494876844842',
-                'ext': 'mp4',
-                'title': 'Queer: Bogotart (Varování 18+)',
-                'duration': 10.2,
-            },
-        }, {
-            'info_dict': {
-                'id': '61924494877068022',
-                'ext': 'mp4',
-                'title': 'Queer: Bogotart (Queer)',
-                'thumbnail': r're:^https?://.*\.jpg',
-                'duration': 1558.3,
-            },
-        }],
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-    }, {
-        # iframe embed
-        'url': 'http://www.ceskatelevize.cz/porady/10614999031-neviditelni/21251212048/',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, video_id)
-
-        data_url = update_url_query(unescapeHTML(self._search_regex(
-            (r'<span[^>]*\bdata-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
-             r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?ceskatelevize\.cz/ivysilani/embed/iFramePlayer\.php.*?)\1'),
-            webpage, 'iframe player url', group='url')), query={
-                'autoStart': 'true',
-        })
-
-        return self.url_result(data_url, ie=CeskaTelevizeIE.ie_key())

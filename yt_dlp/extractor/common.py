@@ -441,11 +441,11 @@ class InfoExtractor(object):
     _WORKING = True
 
     _LOGIN_HINTS = {
-        'any': 'Use --cookies, --username and --password or --netrc to provide account credentials',
+        'any': 'Use --cookies, --username and --password, or --netrc to provide account credentials',
         'cookies': (
             'Use --cookies-from-browser or --cookies for the authentication. '
             'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
-        'password': 'Use --username and --password or --netrc to provide account credentials',
+        'password': 'Use --username and --password, or --netrc to provide account credentials',
     }
 
     def __init__(self, downloader=None):

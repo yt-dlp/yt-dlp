@@ -215,8 +215,8 @@ class YoutubeDL(object):
     ignore_no_formats_error: Ignore "No video formats" error. Usefull for
                        extracting metadata even if the video is not actually
                        available for download (experimental)
-    format_sort:       How to sort the video formats. see "Sorting Formats"
-                       for more details.
+    format_sort:       A list of fields by which to sort the video formats.
+                       See "Sorting Formats" for more details.
     format_sort_force: Force the given format_sort. see "Sorting Formats"
                        for more details.
     allow_multiple_video_streams:   Allow multiple video streams to be merged

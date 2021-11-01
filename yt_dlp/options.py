@@ -209,7 +209,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
-        help='Ignore download and postprocessing errors. The download will be considered successfull even if the postprocessing fails')
+        help='Ignore download and postprocessing errors. The download will be considered successful even if the postprocessing fails')
     general.add_option(
         '--no-abort-on-error',
         action='store_const', dest='ignoreerrors', const='only_download',
@@ -383,7 +383,7 @@ def parseOpts(overrideArguments=None):
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded in this date. '
+            'Download only videos uploaded on this date. '
             'The date can be "YYYYMMDD" or in the format '
             '"(now|today)[+-][0-9](day|week|month|year)(s)?"'))
     selection.add_option(
@@ -840,7 +840,7 @@ def parseOpts(overrideArguments=None):
         '--ignore-no-formats-error',
         action='store_true', dest='ignore_no_formats_error', default=False,
         help=(
-            'Ignore "No video formats" error. Usefull for extracting metadata '
+            'Ignore "No video formats" error. Useful for extracting metadata '
             'even if the videos are not actually available for download (experimental)'))
     verbosity.add_option(
         '--no-ignore-no-formats-error',
@@ -935,7 +935,7 @@ def parseOpts(overrideArguments=None):
             'Template for progress outputs, optionally prefixed with one of "download:" (default), '
             '"download-title:" (the console title), "postprocess:",  or "postprocess-title:". '
             'The video\'s fields are accessible under the "info" key and '
-            'the progress attributes are accessible under "progress" key. Eg: '
+            'the progress attributes are accessible under "progress" key. E.g.: '
             # TODO: Document the fields inside "progress"
             '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
     verbosity.add_option(
@@ -1028,11 +1028,11 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--windows-filenames',
         action='store_true', dest='windowsfilenames', default=False,
-        help='Force filenames to be windows compatible')
+        help='Force filenames to be Windows-compatible')
     filesystem.add_option(
         '--no-windows-filenames',
         action='store_false', dest='windowsfilenames',
-        help='Make filenames windows compatible only if using windows (default)')
+        help='Make filenames Windows-compatible only if using Windows (default)')
     filesystem.add_option(
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,

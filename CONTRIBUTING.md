@@ -148,7 +148,7 @@ If you want to create a build of yt-dlp yourself, you can follow the instruction
 
 Before you start writing code for implementing a new feature, open an issue explaining your feature request and atleast one use case. This allows the maintainers to decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
 
-The same applies for overarching changes to the architecture, documentation or code style
+The same applies for changes to the documentation, code style, or overarching changes to the architecture
 
 
 ## Adding support for a new site
