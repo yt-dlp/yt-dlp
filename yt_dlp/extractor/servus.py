@@ -26,6 +26,7 @@ class ServusTVIE(InfoExtractor):
                         /[\w-]+/(?:v|[bp]/[\w-]+)
                         /(?P<id>[A-Za-z0-9-]+)
                     '''
+    _GEO_COUNTRIES = ['AT', 'DE', 'CH', 'LI', 'IT']
     _API_URL = 'https://api-player.redbull.com/stv/servus-tv'
     _QUERY_API_URL = 'https://backend.servustv.com/wp-json/rbmh/v2/query-filters/query/'
     _LIVE_URLS = {
@@ -44,10 +45,10 @@ class ServusTVIE(InfoExtractor):
             'title': 'Der Hof meines Vertrauens',
             'description': 'Rinder, Gemüse, Schnecken - drei Selbstvermarkter zeigen ihren Hof.',
             'thumbnail': r're:^https?://.*\.jpg',
-            'timestamp': 1635538309,
+            'timestamp': 1635538304,
             'upload_date': '20211029',
         },
-        'params': {'skip_download': True, 'format': 'bestvideo'},
+        'params': {'skip_download': True, 'format': 'bestvideo', 'geo_bypass': False},
     }, {
         # playlist
         'url': 'https://www.servustv.com/volkskultur/b/ich-bauer/aa-1qcy94h3s1w11/',
@@ -111,9 +112,10 @@ class ServusTVIE(InfoExtractor):
         }
 
     def _live_stream_from_schedule(self, schedule):
+        live_url = self._LIVE_URLS['AT']
         for item in sorted(schedule, key=lambda x: x.get('is_live', False), reverse=True):
             is_live = item.get('is_live', False)
-            video_url = self._LIVE_URLS.get(self.country_code) if is_live else None
+            video_url = self._LIVE_URLS.get(self.country_code, live_url) if is_live else None
             return self._entry_by_id(item['aa_id'].lower(), video_url=video_url, is_live=is_live)
 
     def _paged_playlist_entries(self, query_id, query_type, page_size=20):
@@ -151,7 +153,8 @@ class ServusTVIE(InfoExtractor):
                 return value['id']
         return None
 
-    def _json_extract(self, webpage, video_id):
+    @staticmethod
+    def _json_extract(webpage, video_id):
         json_string = get_element_by_id('__FRONTITY_CONNECT_STATE__', webpage)
         if not json_string:
             raise ExtractorError('Missing HTML metadata', video_id=video_id, expected=True)
@@ -164,7 +167,16 @@ class ServusTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         parsed_url = compat_urllib_parse_urlparse(url)
-        url_query = {key.lower(): value[0] for key, value in compat_parse_qs(parsed_url.query).items()}
+        url_query = {
+            key.lower(): value[0] for key, value in compat_parse_qs(parsed_url.query).items()}
+
+        geo_bypass_country = self.get_param('geo_bypass_country')
+        if geo_bypass_country:
+            self.country_code = geo_bypass_country.upper()
+            self.to_screen(f'Set countrycode to {self.country_code!r}')
+
+        # server accepts tz database names
+        # see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
         if 'timezone' in url_query:
             self.timezone = url_query['timezone']
             self.to_screen(f'Set timezone to {self.timezone!r}')
@@ -175,8 +187,6 @@ class ServusTVIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id=video_id)
         json_obj = self._json_extract(webpage, video_id=video_id)
-        self.country_code = traverse_obj(
-            json_obj, ('geolocation', 'countryCode'), default='AT', expected_type=str)
 
         # find livestreams
         live_schedule = traverse_obj(
