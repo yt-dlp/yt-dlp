@@ -2696,8 +2696,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if reason:
                 self.raise_no_formats(reason, expected=True)
 
-        for f in formats:
-            if is_live and self._configuration_arg('download_live_from_start'):
+        if is_live and self._configuration_arg('download_live_from_start'):
+            for f in formats:
                 # override protocols with dl-from-start one
                 protocol = f['protocol']
                 if 'dash' in protocol:
