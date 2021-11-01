@@ -100,7 +100,7 @@ class FFmpegPostProcessor(PostProcessor):
                 return
 
             # If the libfdk_aac encoder is available, it will be used instead of FFmpeg's AAC encoder.
-            self.use_fdk_aac = True if '--enable-libfdk-aac' in ffmpeg_banner else False
+            self.use_fdk_aac = True if ffmpeg_banner and '--enable-libfdk-aac' in ffmpeg_banner else False
 
         self.basename = None
         self.probe_basename = None
