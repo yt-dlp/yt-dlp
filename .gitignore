@@ -106,3 +106,6 @@ yt-dlp.zip
 ytdlp_plugins/extractor/*
 !ytdlp_plugins/extractor/__init__.py
 !ytdlp_plugins/extractor/sample.py
+
+# Developer Test Generator
+gentest.py
