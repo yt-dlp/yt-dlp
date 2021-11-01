@@ -16,7 +16,8 @@ from ..utils import (
     encodeArgument,
     encodeFilename,
     float_or_none,
-    get_exe_version,
+    _get_exe_version_output,
+    detect_exe_version,
     is_outdated_version,
     ISO639Utils,
     orderedSet,
@@ -80,10 +81,10 @@ class FFmpegPostProcessor(PostProcessor):
 
     def _determine_executables(self):
         programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
-        prefer_ffmpeg = True
 
-        def get_ffmpeg_version(path):
-            ver = get_exe_version(path, args=['-version'])
+        def get_ffmpeg_version(path, prog):
+            ffmpeg_banner = _get_exe_version_output(path, ['-version'])
+            ver = detect_exe_version(ffmpeg_banner) if ffmpeg_banner else False
             if ver:
                 regexs = [
                     r'(?:\d+:)?([0-9.]+)-[0-9]+ubuntu[0-9.]+$',  # Ubuntu, see [1]
@@ -94,42 +95,46 @@ class FFmpegPostProcessor(PostProcessor):
                     mobj = re.match(regex, ver)
                     if mobj:
                         ver = mobj.group(1)
-            return ver
+            self._versions[prog] = ver
+            if prog != 'ffmpeg':
+                return
+
+            # If the libfdk_aac encoder is available, it will be used instead of FFmpeg's AAC encoder.
+            self.use_fdk_aac = True if '--enable-libfdk-aac' in ffmpeg_banner else False
 
         self.basename = None
         self.probe_basename = None
-
-        self.paths = None
+        self._paths = None
         self._versions = None
-        if self._downloader:
-            prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
-            location = self.get_param('ffmpeg_location')
-            if location is not None:
-                if not os.path.exists(location):
-                    self.report_warning(
-                        'ffmpeg-location %s does not exist! '
-                        'Continuing without ffmpeg.' % (location))
-                    self._versions = {}
-                    return
-                elif os.path.isdir(location):
-                    dirname, basename = location, None
-                else:
-                    basename = os.path.splitext(os.path.basename(location))[0]
-                    basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
-                    dirname = os.path.dirname(os.path.abspath(location))
-                    if basename in ('ffmpeg', 'ffprobe'):
-                        prefer_ffmpeg = True
 
-                self.paths = dict(
-                    (p, os.path.join(dirname, p)) for p in programs)
-                if basename:
-                    self.paths[basename] = location
-                self._versions = dict(
-                    (p, get_ffmpeg_version(self.paths[p])) for p in programs)
-        if self._versions is None:
-            self._versions = dict(
-                (p, get_ffmpeg_version(p)) for p in programs)
-            self.paths = dict((p, p) for p in programs)
+        prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
+        location = self.get_param('ffmpeg_location')
+        if location is None:
+            self._paths = {p: p for p in programs}
+        else:
+            if not os.path.exists(location):
+                self.report_warning(
+                    'ffmpeg-location %s does not exist! '
+                    'Continuing without ffmpeg.' % (location))
+                self._versions = {}
+                return
+            elif os.path.isdir(location):
+                dirname, basename = location, None
+            else:
+                basename = os.path.splitext(os.path.basename(location))[0]
+                basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
+                dirname = os.path.dirname(os.path.abspath(location))
+                if basename in ('ffmpeg', 'ffprobe'):
+                    prefer_ffmpeg = True
+
+            self._paths = dict(
+                (p, os.path.join(dirname, p)) for p in programs)
+            if basename:
+                self._paths[basename] = location
+
+        self._versions = {}
+        for p in programs:
+            get_ffmpeg_version(self._paths[p], p)
 
         if prefer_ffmpeg is False:
             prefs = ('avconv', 'ffmpeg')
@@ -155,7 +160,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def executable(self):
-        return self.paths[self.basename]
+        return self._paths[self.basename]
 
     @property
     def probe_available(self):
@@ -163,7 +168,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def probe_executable(self):
-        return self.paths[self.probe_basename]
+        return self._paths[self.probe_basename]
 
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
@@ -374,11 +379,6 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         self._preferredquality = preferredquality
         self._nopostoverwrites = nopostoverwrites
 
-    def libfdk_aac_available(self):
-        if "--enable-libfdk-aac" in subprocess.check_output([self.paths['ffmpeg'], "-buildconf"]).decode():
-            return True
-        return False
-
     def run_ffmpeg(self, path, out_path, codec, more_opts):
         if codec is None:
             acodec_opts = []
@@ -431,17 +431,16 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         else:
             # We convert the audio (lossy if codec is lossy)
             acodec = ACODECS[self._preferredcodec]
+            if acodec in ('aac', 'm4a') and self.use_fdk_aac:
+                acodec = 'libfdk_aac'
             extension = self._preferredcodec
             more_opts = []
-            audio_quality_setter = '-q:a'
-            if self._preferredcodec in ('aac', 'm4a') and self.libfdk_aac_available():
-                acodec = 'libfdk_aac'
-                audio_quality_setter = '-vbr'
-                # The quality range for libfdk_aac is 1-5
-                if int(self._preferredquality) > 5:
-                    self._preferredquality = '5'
+            audio_quality_setter = '-q:a' if not self.use_fdk_aac else '-vbr'
             if self._preferredquality is not None:
-                # The opus codec doesn't support the audio quality option (-q:a).
+                # Quality range for FDK AAC is 1-5.
+                if self.use_fdk_aac and int(self._preferredquality) > 5:
+                    self._preferredquality = '5'
+                # The opus codec doesn't support the audio quality option.
                 if int(self._preferredquality) < 10 and extension != 'opus':
                     more_opts += [audio_quality_setter, self._preferredquality]
                 else:
