@@ -209,7 +209,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
-        help='Ignore download and postprocessing errors. The download will be considered successfull even if the postprocessing fails')
+        help='Ignore download and postprocessing errors. The download will be considered successful even if the postprocessing fails')
     general.add_option(
         '--no-abort-on-error',
         action='store_const', dest='ignoreerrors', const='only_download',
@@ -383,7 +383,7 @@ def parseOpts(overrideArguments=None):
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded in this date. '
+            'Download only videos uploaded on this date. '
             'The date can be "YYYYMMDD" or in the format '
             '"(now|today)[+-][0-9](day|week|month|year)(s)?"'))
     selection.add_option(
@@ -562,12 +562,16 @@ def parseOpts(overrideArguments=None):
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
-        action='store_true', dest='check_formats', default=None,
-        help='Check that the formats selected are actually downloadable')
+        action='store_const', const='selected', dest='check_formats', default=None,
+        help='Check that the selected formats are actually downloadable')
+    video_format.add_option(
+        '--check-all-formats',
+        action='store_true', dest='check_formats',
+        help='Check all formats for whether they are actually downloadable')
     video_format.add_option(
         '--no-check-formats',
         action='store_false', dest='check_formats',
-        help='Do not check that the formats selected are actually downloadable')
+        help='Do not check that the formats are actually downloadable')
     video_format.add_option(
         '-F', '--list-formats',
         action='store_true', dest='listformats',
@@ -836,7 +840,7 @@ def parseOpts(overrideArguments=None):
         '--ignore-no-formats-error',
         action='store_true', dest='ignore_no_formats_error', default=False,
         help=(
-            'Ignore "No video formats" error. Usefull for extracting metadata '
+            'Ignore "No video formats" error. Useful for extracting metadata '
             'even if the videos are not actually available for download (experimental)'))
     verbosity.add_option(
         '--no-ignore-no-formats-error',
@@ -931,7 +935,7 @@ def parseOpts(overrideArguments=None):
             'Template for progress outputs, optionally prefixed with one of "download:" (default), '
             '"download-title:" (the console title), "postprocess:",  or "postprocess-title:". '
             'The video\'s fields are accessible under the "info" key and '
-            'the progress attributes are accessible under "progress" key. Eg: '
+            'the progress attributes are accessible under "progress" key. E.g.: '
             # TODO: Document the fields inside "progress"
             '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
     verbosity.add_option(
@@ -971,6 +975,13 @@ def parseOpts(overrideArguments=None):
         dest='batchfile', metavar='FILE',
         help="File containing URLs to download ('-' for stdin), one URL per line. "
              "Lines starting with '#', ';' or ']' are considered as comments and ignored")
+    filesystem.add_option(
+        '--no-batch-file',
+        dest='batchfile', action='store_const', const=None,
+        help='Do not read URLs from batch file (default)')
+    filesystem.add_option(
+        '--id', default=False,
+        action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-P', '--paths',
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
@@ -1017,11 +1028,11 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--windows-filenames',
         action='store_true', dest='windowsfilenames', default=False,
-        help='Force filenames to be windows compatible')
+        help='Force filenames to be Windows-compatible')
     filesystem.add_option(
         '--no-windows-filenames',
         action='store_false', dest='windowsfilenames',
-        help='Make filenames windows compatible only if using windows (default)')
+        help='Make filenames Windows-compatible only if using Windows (default)')
     filesystem.add_option(
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,
@@ -1378,7 +1389,11 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--remove-chapters',
         metavar='REGEX', dest='remove_chapters', action='append',
-        help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
+        help=(
+            'Remove chapters whose title matches the given regular expression. '
+            'Time ranges prefixed by a "*" can also be used in place of chapters to remove the specified range. '
+            'Eg: --remove-chapters "*10:15-15:00" --remove-chapters "intro". '
+            'This option can be used multiple times'))
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
         help='Do not remove any chapters from the file (default)')
@@ -1590,7 +1605,7 @@ def parseOpts(overrideArguments=None):
                     parser.error('config-location %s does not exist.' % location)
                 config = _readOptions(location, default=None)
                 if config:
-                    configs['custom'], paths['config'] = config, location
+                    configs['custom'], paths['custom'] = config, location
 
             if opts.ignoreconfig:
                 return

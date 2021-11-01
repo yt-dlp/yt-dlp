@@ -15,6 +15,7 @@ from ..compat import (
     compat_ord,
 )
 from ..utils import (
+    ass_subtitles_timecode,
     bytes_to_intlist,
     bytes_to_long,
     ExtractorError,
@@ -68,10 +69,6 @@ class ADNIE(InfoExtractor):
         'end': 4,
     }
 
-    @staticmethod
-    def _ass_subtitles_timecode(seconds):
-        return '%01d:%02d:%02d.%02d' % (seconds / 3600, (seconds % 3600) / 60, seconds % 60, (seconds % 1) * 100)
-
     def _get_subtitles(self, sub_url, video_id):
         if not sub_url:
             return None
@@ -117,8 +114,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     continue
                 alignment = self._POS_ALIGN_MAP.get(position_align, 2) + self._LINE_ALIGN_MAP.get(line_align, 0)
                 ssa += os.linesep + 'Dialogue: Marked=0,%s,%s,Default,,0,0,0,,%s%s' % (
-                    self._ass_subtitles_timecode(start),
-                    self._ass_subtitles_timecode(end),
+                    ass_subtitles_timecode(start),
+                    ass_subtitles_timecode(end),
                     '{\\a%d}' % alignment if alignment != 2 else '',
                     text.replace('\n', '\\N').replace('<i>', '{\\i1}').replace('</i>', '{\\i0}'))
 

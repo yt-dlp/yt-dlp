@@ -41,6 +41,7 @@ cookies
 *.webp
 *.annotations.xml
 *.description
+.cache/
 
 # Allow config/media files in testdata
 !test/**

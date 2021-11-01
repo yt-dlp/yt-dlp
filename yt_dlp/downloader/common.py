@@ -1,6 +1,5 @@
 from __future__ import division, unicode_literals
 
-import copy
 import os
 import re
 import time
@@ -13,6 +12,7 @@ from ..utils import (
     format_bytes,
     shell_quote,
     timeconvert,
+    timetuple_from_msec,
 )
 from ..minicurses import (
     MultilineLogger,
@@ -76,14 +76,12 @@ class FileDownloader(object):
 
     @staticmethod
     def format_seconds(seconds):
-        (mins, secs) = divmod(seconds, 60)
-        (hours, mins) = divmod(mins, 60)
-        if hours > 99:
+        time = timetuple_from_msec(seconds * 1000)
+        if time.hours > 99:
             return '--:--:--'
-        if hours == 0:
-            return '%02d:%02d' % (mins, secs)
-        else:
-            return '%02d:%02d:%02d' % (hours, mins, secs)
+        if not time.hours:
+            return '%02d:%02d' % time[1:-1]
+        return '%02d:%02d:%02d' % time[:-1]
 
     @staticmethod
     def calc_percent(byte_counter, data_len):
@@ -405,13 +403,10 @@ class FileDownloader(object):
     def _hook_progress(self, status, info_dict):
         if not self._progress_hooks:
             return
-        info_dict = dict(info_dict)
-        for key in ('__original_infodict', '__postprocessors'):
-            info_dict.pop(key, None)
+        status['info_dict'] = info_dict
         # youtube-dl passes the same status object to all the hooks.
         # Some third party scripts seems to be relying on this.
         # So keep this behavior if possible
-        status['info_dict'] = copy.deepcopy(info_dict)
         for ph in self._progress_hooks:
             ph(status)
 

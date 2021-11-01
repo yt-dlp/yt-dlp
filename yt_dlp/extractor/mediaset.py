@@ -1,13 +1,17 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import functools
 import re
 
 from .theplatform import ThePlatformBaseIE
 from ..utils import (
     ExtractorError,
     int_or_none,
+    OnDemandPagedList,
     parse_qs,
+    try_get,
+    urljoin,
     update_url_query,
 )
 
@@ -212,3 +216,81 @@ class MediasetIE(ThePlatformBaseIE):
             'subtitles': subtitles,
         })
         return info
+
+
+class MediasetShowIE(MediasetIE):
+    _VALID_URL = r'''(?x)
+                    (?:
+                        https?://
+                            (?:(?:www|static3)\.)?mediasetplay\.mediaset\.it/
+                            (?:
+                                (?:fiction|programmi-tv|serie-tv)/(?:.+?/)?
+                                    (?:[a-z]+)_SE(?P<id>\d{12})
+                                    (?:,ST(?P<st>\d{12}))?
+                                    (?:,sb(?P<sb>\d{9}))?$
+                            )
+                    )
+                    '''
+    _TESTS = [{
+        # TV Show webpage (with a single playlist)
+        'url': 'https://www.mediasetplay.mediaset.it/serie-tv/fireforce/episodi_SE000000001556',
+        'info_dict': {
+            'id': '000000001556',
+            'title': 'Fire Force',
+        },
+        'playlist_count': 1,
+    }, {
+        # TV Show webpage (with multiple playlists)
+        'url': 'https://www.mediasetplay.mediaset.it/programmi-tv/leiene/leiene_SE000000000061,ST000000002763',
+        'info_dict': {
+            'id': '000000002763',
+            'title': 'Le Iene',
+        },
+        'playlist_count': 7,
+    }, {
+        # TV Show specific playlist (single page)
+        'url': 'https://www.mediasetplay.mediaset.it/serie-tv/fireforce/episodi_SE000000001556,ST000000002738,sb100013107',
+        'info_dict': {
+            'id': '100013107',
+            'title': 'Episodi',
+        },
+        'playlist_count': 4,
+    }, {
+        # TV Show specific playlist (with multiple pages)
+        'url': 'https://www.mediasetplay.mediaset.it/programmi-tv/leiene/iservizi_SE000000000061,ST000000002763,sb100013375',
+        'info_dict': {
+            'id': '100013375',
+            'title': 'I servizi',
+        },
+        'playlist_count': 53,
+    }]
+
+    _BY_SUBBRAND = 'https://feed.entertainment.tv.theplatform.eu/f/PR1GhC/mediaset-prod-all-programs-v2?byCustomValue={subBrandId}{%s}&sort=:publishInfo_lastPublished|desc,tvSeasonEpisodeNumber|desc&range=%d-%d'
+    _PAGE_SIZE = 25
+
+    def _fetch_page(self, sb, page):
+        lower_limit = page * self._PAGE_SIZE + 1
+        upper_limit = lower_limit + self._PAGE_SIZE - 1
+        content = self._download_json(
+            self._BY_SUBBRAND % (sb, lower_limit, upper_limit), sb)
+        for entry in content.get('entries') or []:
+            yield self.url_result(
+                'mediaset:' + entry['guid'],
+                playlist_title=entry['mediasetprogram$subBrandDescription'])
+
+    def _real_extract(self, url):
+        playlist_id, st, sb = self._match_valid_url(url).group('id', 'st', 'sb')
+        if not sb:
+            page = self._download_webpage(url, playlist_id)
+            entries = [self.url_result(urljoin('https://www.mediasetplay.mediaset.it', url))
+                       for url in re.findall(r'href="([^<>=]+SE\d{12},ST\d{12},sb\d{9})">[^<]+<', page)]
+            title = (self._html_search_regex(r'(?s)<h1[^>]*>(.+?)</h1>', page, 'title', default=None)
+                     or self._og_search_title(page))
+            return self.playlist_result(entries, st or playlist_id, title)
+
+        entries = OnDemandPagedList(
+            functools.partial(self._fetch_page, sb),
+            self._PAGE_SIZE)
+        title = try_get(entries, lambda x: x[0]['playlist_title'])
+
+        return self.playlist_result(entries, sb, title)

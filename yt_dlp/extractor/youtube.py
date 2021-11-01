@@ -258,28 +258,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     # If True it will raise an error if no login info is provided
     _LOGIN_REQUIRED = False
 
-    r'''  # Unused since login is broken
-    _LOGIN_URL = 'https://accounts.google.com/ServiceLogin'
-    _TWOFACTOR_URL = 'https://accounts.google.com/signin/challenge'
-
-    _LOOKUP_URL = 'https://accounts.google.com/_/signin/sl/lookup'
-    _CHALLENGE_URL = 'https://accounts.google.com/_/signin/sl/challenge'
-    _TFA_URL = 'https://accounts.google.com/_/signin/challenge?hl=en&TL={0}'
-    '''
-
     def _login(self):
         """
         Attempt to log in to YouTube.
-        True is returned if successful or skipped.
-        False is returned if login failed.
-
         If _LOGIN_REQUIRED is set and no authentication was provided, an error is raised.
         """
 
-        def warn(message):
-            self.report_warning(message)
-
-        # username+password login is broken
         if (self._LOGIN_REQUIRED
                 and self.get_param('cookiefile') is None
                 and self.get_param('cookiesfrombrowser') is None):
@@ -287,184 +271,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 'Login details are needed to download this content', method='cookies')
         username, password = self._get_login_info()
         if username:
-            warn('Logging in using username and password is broken. %s' % self._LOGIN_HINTS['cookies'])
-        return
-
-        # Everything below this is broken!
-        r'''
-        # No authentication to be performed
-        if username is None:
-            if self._LOGIN_REQUIRED and self.get_param('cookiefile') is None:
-                raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
-            # if self.get_param('cookiefile'):  # TODO remove 'and False' later - too many people using outdated cookies and open issues, remind them.
-            #     self.to_screen('[Cookies] Reminder - Make sure to always use up to date cookies!')
-            return True
-
-        login_page = self._download_webpage(
-            self._LOGIN_URL, None,
-            note='Downloading login page',
-            errnote='unable to fetch login page', fatal=False)
-        if login_page is False:
-            return
-
-        login_form = self._hidden_inputs(login_page)
-
-        def req(url, f_req, note, errnote):
-            data = login_form.copy()
-            data.update({
-                'pstMsg': 1,
-                'checkConnection': 'youtube',
-                'checkedDomains': 'youtube',
-                'hl': 'en',
-                'deviceinfo': '[null,null,null,[],null,"US",null,null,[],"GlifWebSignIn",null,[null,null,[]]]',
-                'f.req': json.dumps(f_req),
-                'flowName': 'GlifWebSignIn',
-                'flowEntry': 'ServiceLogin',
-                # TODO: reverse actual botguard identifier generation algo
-                'bgRequest': '["identifier",""]',
-            })
-            return self._download_json(
-                url, None, note=note, errnote=errnote,
-                transform_source=lambda s: re.sub(r'^[^[]*', '', s),
-                fatal=False,
-                data=urlencode_postdata(data), headers={
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-                    'Google-Accounts-XSRF': 1,
-                })
-
-        lookup_req = [
-            username,
-            None, [], None, 'US', None, None, 2, False, True,
-            [
-                None, None,
-                [2, 1, None, 1,
-                 'https://accounts.google.com/ServiceLogin?passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Fnext%3D%252F%26action_handle_signin%3Dtrue%26hl%3Den%26app%3Ddesktop%26feature%3Dsign_in_button&hl=en&service=youtube&uilel=3&requestPath=%2FServiceLogin&Page=PasswordSeparationSignIn',
-                 None, [], 4],
-                1, [None, None, []], None, None, None, True
-            ],
-            username,
-        ]
-
-        lookup_results = req(
-            self._LOOKUP_URL, lookup_req,
-            'Looking up account info', 'Unable to look up account info')
-
-        if lookup_results is False:
-            return False
-
-        user_hash = try_get(lookup_results, lambda x: x[0][2], compat_str)
-        if not user_hash:
-            warn('Unable to extract user hash')
-            return False
-
-        challenge_req = [
-            user_hash,
-            None, 1, None, [1, None, None, None, [password, None, True]],
-            [
-                None, None, [2, 1, None, 1, 'https://accounts.google.com/ServiceLogin?passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Fnext%3D%252F%26action_handle_signin%3Dtrue%26hl%3Den%26app%3Ddesktop%26feature%3Dsign_in_button&hl=en&service=youtube&uilel=3&requestPath=%2FServiceLogin&Page=PasswordSeparationSignIn', None, [], 4],
-                1, [None, None, []], None, None, None, True
-            ]]
-
-        challenge_results = req(
-            self._CHALLENGE_URL, challenge_req,
-            'Logging in', 'Unable to log in')
-
-        if challenge_results is False:
-            return
-
-        login_res = try_get(challenge_results, lambda x: x[0][5], list)
-        if login_res:
-            login_msg = try_get(login_res, lambda x: x[5], compat_str)
-            warn(
-                'Unable to login: %s' % 'Invalid password'
-                if login_msg == 'INCORRECT_ANSWER_ENTERED' else login_msg)
-            return False
-
-        res = try_get(challenge_results, lambda x: x[0][-1], list)
-        if not res:
-            warn('Unable to extract result entry')
-            return False
-
-        login_challenge = try_get(res, lambda x: x[0][0], list)
-        if login_challenge:
-            challenge_str = try_get(login_challenge, lambda x: x[2], compat_str)
-            if challenge_str == 'TWO_STEP_VERIFICATION':
-                # SEND_SUCCESS - TFA code has been successfully sent to phone
-                # QUOTA_EXCEEDED - reached the limit of TFA codes
-                status = try_get(login_challenge, lambda x: x[5], compat_str)
-                if status == 'QUOTA_EXCEEDED':
-                    warn('Exceeded the limit of TFA codes, try later')
-                    return False
-
-                tl = try_get(challenge_results, lambda x: x[1][2], compat_str)
-                if not tl:
-                    warn('Unable to extract TL')
-                    return False
-
-                tfa_code = self._get_tfa_info('2-step verification code')
-
-                if not tfa_code:
-                    warn(
-                        'Two-factor authentication required. Provide it either interactively or with --twofactor <code>'
-                        '(Note that only TOTP (Google Authenticator App) codes work at this time.)')
-                    return False
-
-                tfa_code = remove_start(tfa_code, 'G-')
-
-                tfa_req = [
-                    user_hash, None, 2, None,
-                    [
-                        9, None, None, None, None, None, None, None,
-                        [None, tfa_code, True, 2]
-                    ]]
-
-                tfa_results = req(
-                    self._TFA_URL.format(tl), tfa_req,
-                    'Submitting TFA code', 'Unable to submit TFA code')
-
-                if tfa_results is False:
-                    return False
-
-                tfa_res = try_get(tfa_results, lambda x: x[0][5], list)
-                if tfa_res:
-                    tfa_msg = try_get(tfa_res, lambda x: x[5], compat_str)
-                    warn(
-                        'Unable to finish TFA: %s' % 'Invalid TFA code'
-                        if tfa_msg == 'INCORRECT_ANSWER_ENTERED' else tfa_msg)
-                    return False
-
-                check_cookie_url = try_get(
-                    tfa_results, lambda x: x[0][-1][2], compat_str)
-            else:
-                CHALLENGES = {
-                    'LOGIN_CHALLENGE': "This device isn't recognized. For your security, Google wants to make sure it's really you.",
-                    'USERNAME_RECOVERY': 'Please provide additional information to aid in the recovery process.',
-                    'REAUTH': "There is something unusual about your activity. For your security, Google wants to make sure it's really you.",
-                }
-                challenge = CHALLENGES.get(
-                    challenge_str,
-                    '%s returned error %s.' % (self.IE_NAME, challenge_str))
-                warn('%s\nGo to https://accounts.google.com/, login and solve a challenge.' % challenge)
-                return False
-        else:
-            check_cookie_url = try_get(res, lambda x: x[2], compat_str)
-
-        if not check_cookie_url:
-            warn('Unable to extract CheckCookie URL')
-            return False
-
-        check_cookie_results = self._download_webpage(
-            check_cookie_url, None, 'Checking cookie', fatal=False)
-
-        if check_cookie_results is False:
-            return False
-
-        if 'https://myaccount.google.com/' not in check_cookie_results:
-            warn('Unable to log in')
-            return False
-
-        return True
-        '''
+            self.report_warning(f'Cannot login to YouTube using username and password. {self._LOGIN_HINTS["cookies"]}')
 
     def _initialize_consent(self):
         cookies = self._get_cookies('https://www.youtube.com/')
@@ -483,10 +290,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _real_initialize(self):
         self._initialize_consent()
-        if self._downloader is None:
-            return
-        if not self._login():
-            return
+        self._login()
 
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
@@ -891,7 +695,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
 
 class YoutubeIE(YoutubeBaseInfoExtractor):
-    IE_DESC = 'YouTube.com'
+    IE_DESC = 'YouTube'
     _INVIDIOUS_SITES = (
         # invidious-redirect websites
         r'(?:www\.)?redirect\.invidious\.io',
@@ -1916,7 +1720,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Cannot identify player %r' % player_url)
         return id_m.group('id')
 
-    def _load_player(self, video_id, player_url, fatal=True) -> bool:
+    def _load_player(self, video_id, player_url, fatal=True):
         player_id = self._extract_player_info(player_url)
         if player_id not in self._code_cache:
             code = self._download_webpage(
@@ -1925,7 +1729,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 errnote='Download of %s failed' % player_url)
             if code:
                 self._code_cache[player_id] = code
-        return player_id in self._code_cache
+        return self._code_cache.get(player_id)
 
     def _extract_signature_function(self, video_id, player_url, example_sig):
         player_id = self._extract_player_info(player_url)
@@ -1939,8 +1743,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if cache_spec is not None:
             return lambda s: ''.join(s[i] for i in cache_spec)
 
-        if self._load_player(video_id, player_url):
-            code = self._code_cache[player_id]
+        code = self._load_player(video_id, player_url)
+        if code:
             res = self._parse_sig_js(code)
 
             test_string = ''.join(map(compat_chr, range(len(example_sig))))
@@ -1951,6 +1755,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return res
 
     def _print_sig_code(self, func, example_sig):
+        if not self.get_param('youtube_print_sig_code'):
+            return
+
         def gen_sig_code(idxs):
             def _genslice(start, end, step):
                 starts = '' if start == 0 else str(start)
@@ -2027,13 +1834,58 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 )
                 self._player_cache[player_id] = func
             func = self._player_cache[player_id]
-            if self.get_param('youtube_print_sig_code'):
-                self._print_sig_code(func, s)
+            self._print_sig_code(func, s)
             return func(s)
         except Exception as e:
-            tb = traceback.format_exc()
-            raise ExtractorError(
-                'Signature extraction failed: ' + tb, cause=e)
+            raise ExtractorError('Signature extraction failed: ' + traceback.format_exc(), cause=e)
+
+    def _decrypt_nsig(self, s, video_id, player_url):
+        """Turn the encrypted n field into a working signature"""
+        if player_url is None:
+            raise ExtractorError('Cannot decrypt nsig without player_url')
+        if player_url.startswith('//'):
+            player_url = 'https:' + player_url
+        elif not re.match(r'https?://', player_url):
+            player_url = compat_urlparse.urljoin(
+                'https://www.youtube.com', player_url)
+
+        sig_id = ('nsig_value', s)
+        if sig_id in self._player_cache:
+            return self._player_cache[sig_id]
+
+        try:
+            player_id = ('nsig', player_url)
+            if player_id not in self._player_cache:
+                self._player_cache[player_id] = self._extract_n_function(video_id, player_url)
+            func = self._player_cache[player_id]
+            self._player_cache[sig_id] = func(s)
+            self.write_debug(f'Decrypted nsig {s} => {self._player_cache[sig_id]}')
+            return self._player_cache[sig_id]
+        except Exception as e:
+            raise ExtractorError(traceback.format_exc(), cause=e)
+
+    def _extract_n_function_name(self, jscode):
+        return self._search_regex(
+            (r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]{3})\([a-zA-Z0-9]\)',),
+            jscode, 'Initial JS player n function name', group='nfunc')
+
+    def _extract_n_function(self, video_id, player_url):
+        player_id = self._extract_player_info(player_url)
+        func_code = self._downloader.cache.load('youtube-nsig', player_id)
+
+        if func_code:
+            jsi = JSInterpreter(func_code)
+        else:
+            jscode = self._load_player(video_id, player_url)
+            funcname = self._extract_n_function_name(jscode)
+            jsi = JSInterpreter(jscode)
+            func_code = jsi.extract_function_code(funcname)
+            self._downloader.cache.store('youtube-nsig', player_id, func_code)
+
+        if self.get_param('youtube_print_sig_code'):
+            self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
+
+        return lambda s: jsi.extract_function_from_code(*func_code)([s])
 
     def _extract_signature_timestamp(self, video_id, player_url, ytcfg=None, fatal=False):
         """
@@ -2052,9 +1904,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     raise ExtractorError(error_msg)
                 self.report_warning(error_msg)
                 return
-            if self._load_player(video_id, player_url, fatal=fatal):
-                player_id = self._extract_player_info(player_url)
-                code = self._code_cache[player_id]
+            code = self._load_player(video_id, player_url, fatal=fatal)
+            if code:
                 sts = int_or_none(self._search_regex(
                     r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
                     'JS player signature timestamp', group='sts', fatal=fatal))
@@ -2241,7 +2092,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, comment_counts=None):
 
         def extract_header(contents):
-            _total_comments = 0
             _continuation = None
             for content in contents:
                 comments_header_renderer = try_get(content, lambda x: x['commentsHeaderRenderer'])
@@ -2251,7 +2101,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if expected_comment_count:
                     comment_counts[1] = expected_comment_count
                     self.to_screen('Downloading ~%d comments' % expected_comment_count)
-                    _total_comments = comment_counts[1]
                 sort_mode_str = self._configuration_arg('comment_sort', [''])[0]
                 comment_sort_index = int(sort_mode_str != 'top')  # 1 = new, 0 = top
 
@@ -2271,7 +2120,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     sort_text = 'top comments' if comment_sort_index == 0 else 'newest first'
                 self.to_screen('Sorting comments by %s' % sort_text)
                 break
-            return _total_comments, _continuation
+            return _continuation
 
         def extract_thread(contents):
             if not parent:
@@ -2316,6 +2165,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             continuation_token = self._generate_comment_continuation(video_id)
             continuation = self._build_api_continuation_query(continuation_token, None)
 
+        message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
+        if message and not parent:
+            self.report_warning(message, video_id=video_id)
+
         visitor_data = None
         is_first_continuation = parent is None
 
@@ -2359,9 +2212,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                          lambda x: x['appendContinuationItemsAction']['continuationItems']),
                         list) or []
                     if is_first_continuation:
-                        total_comments, continuation = extract_header(continuation_items)
-                        if total_comments:
-                            yield total_comments
+                        continuation = extract_header(continuation_items)
                         is_first_continuation = False
                         if continuation:
                             break
@@ -2389,9 +2240,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     if is_first_continuation:
                         header_continuation_items = [continuation_renderer.get('header') or {}]
-                        total_comments, continuation = extract_header(header_continuation_items)
-                        if total_comments:
-                            yield total_comments
+                        continuation = extract_header(header_continuation_items)
                         is_first_continuation = False
                         if continuation:
                             break
@@ -2419,35 +2268,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             [bytes_to_intlist(base64.b64decode(part)) for part in parts]))
         return base64.b64encode(intlist_to_bytes(new_continuation_intlist)).decode('utf-8')
 
-    def _extract_comments(self, ytcfg, video_id, contents, webpage):
+    def _get_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
         def _real_comment_extract(contents):
-            yield from self._comment_entries(
-                traverse_obj(contents, (..., 'itemSectionRenderer'), get_all=False), ytcfg, video_id)
+            renderer = next((
+                item for item in traverse_obj(contents, (..., 'itemSectionRenderer'), default={})
+                if item.get('sectionIdentifier') == 'comment-item-section'), None)
+            yield from self._comment_entries(renderer, ytcfg, video_id)
 
-        comments = []
-        estimated_total = 0
-        max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0]) or float('inf')
+        max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0])
         # Force English regardless of account setting to prevent parsing issues
         # See: https://github.com/yt-dlp/yt-dlp/issues/532
         ytcfg = copy.deepcopy(ytcfg)
         traverse_obj(
             ytcfg, ('INNERTUBE_CONTEXT', 'client'), expected_type=dict, default={})['hl'] = 'en'
-        try:
-            for comment in _real_comment_extract(contents):
-                if len(comments) >= max_comments:
-                    break
-                if isinstance(comment, int):
-                    estimated_total = comment
-                    continue
-                comments.append(comment)
-        except KeyboardInterrupt:
-            self.to_screen('Interrupted by user')
-        self.to_screen('Downloaded %d/%d comments' % (len(comments), estimated_total))
-        return {
-            'comments': comments,
-            'comment_count': len(comments),
-        }
+        return itertools.islice(_real_comment_extract(contents), 0, max_comments)
 
     @staticmethod
     def _get_checkok_params():
@@ -2599,7 +2434,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return prs, player_url
 
     def _extract_formats(self, streaming_data, video_id, player_url, is_live):
-        itags, stream_ids = [], []
+        itags, stream_ids = {}, []
         itag_qualities, res_qualities = {}, {}
         q = qualities([
             # Normally tiny is the smallest video-only formats. But
@@ -2652,8 +2487,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sp = try_get(sc, lambda x: x['sp'][0]) or 'signature'
                 fmt_url += '&' + sp + '=' + signature
 
+            query = parse_qs(fmt_url)
+            throttled = False
+            if query.get('ratebypass') != ['yes'] and query.get('n'):
+                try:
+                    fmt_url = update_url_query(fmt_url, {
+                        'n': self._decrypt_nsig(query['n'][0], video_id, player_url)})
+                except ExtractorError as e:
+                    self.report_warning(f'nsig extraction failed: You may experience throttling for some formats\n{e}', only_once=True)
+                    throttled = True
+
             if itag:
-                itags.append(itag)
+                itags[itag] = 'https'
                 stream_ids.append(stream_id)
 
             tbr = float_or_none(
@@ -2665,7 +2510,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'format_note': ', '.join(filter(None, (
                     '%s%s' % (audio_track.get('displayName') or '',
                               ' (default)' if audio_track.get('audioIsDefault') else ''),
-                    fmt.get('qualityLabel') or quality.replace('audio_quality_', '')))),
+                    fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
+                    throttled and 'THROTTLED'))),
+                'source_preference': -10 if not throttled else -1,
                 'fps': int_or_none(fmt.get('fps')),
                 'height': height,
                 'quality': q(quality),
@@ -2701,41 +2548,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             and 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True))
         get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
 
-        def guess_quality(f):
-            for val, qdict in ((f.get('format_id'), itag_qualities), (f.get('height'), res_qualities)):
-                if val in qdict:
-                    return q(qdict[val])
-            return -1
+        def process_manifest_format(f, proto, itag):
+            if itag in itags:
+                if itags[itag] == proto or f'{itag}-{proto}' in itags:
+                    return False
+                itag = f'{itag}-{proto}'
+            if itag:
+                f['format_id'] = itag
+                itags[itag] = proto
+
+            f['quality'] = next((
+                q(qdict[val])
+                for val, qdict in ((f.get('format_id'), itag_qualities), (f.get('height'), res_qualities))
+                if val in qdict), -1)
+            return True
 
         for sd in streaming_data:
             hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 for f in self._extract_m3u8_formats(hls_manifest_url, video_id, 'mp4', fatal=False):
-                    itag = self._search_regex(
-                        r'/itag/(\d+)', f['url'], 'itag', default=None)
-                    if itag in itags:
-                        continue
-                    if itag:
-                        f['format_id'] = itag
-                        itags.append(itag)
-                    f['quality'] = guess_quality(f)
-                    yield f
+                    if process_manifest_format(f, 'hls', self._search_regex(
+                            r'/itag/(\d+)', f['url'], 'itag', default=None)):
+                        yield f
 
             dash_manifest_url = get_dash and sd.get('dashManifestUrl')
             if dash_manifest_url:
                 for f in self._extract_mpd_formats(dash_manifest_url, video_id, fatal=False):
-                    itag = f['format_id']
-                    if itag in itags:
-                        continue
-                    if itag:
-                        itags.append(itag)
-                    f['quality'] = guess_quality(f)
-                    filesize = int_or_none(self._search_regex(
-                        r'/clen/(\d+)', f.get('fragment_base_url')
-                        or f['url'], 'file size', default=None))
-                    if filesize:
-                        f['filesize'] = filesize
-                    yield f
+                    if process_manifest_format(f, 'dash', f['format_id']):
+                        f['filesize'] = int_or_none(self._search_regex(
+                            r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
+                        yield f
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -2852,15 +2694,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if reason:
                 self.raise_no_formats(reason, expected=True)
 
-        for f in formats:
-            if '&c=WEB&' in f['url'] and '&ratebypass=yes&' not in f['url']:  # throttled
-                f['source_preference'] = -10
-                # TODO: this method is not reliable
-                f['format_note'] = format_field(f, 'format_note', '%s ') + '(maybe throttled)'
-
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'source', 'codec:vp9.2', 'lang'))
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang'))
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:
@@ -2903,29 +2739,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             thumbnails.append({
                 'url': thumbnail_url,
             })
+        original_thumbnails = thumbnails.copy()
+
         # The best resolution thumbnails sometimes does not appear in the webpage
         # See: https://github.com/ytdl-org/youtube-dl/issues/29049, https://github.com/yt-dlp/yt-dlp/issues/340
         # List of possible thumbnails - Ref: <https://stackoverflow.com/a/20542029>
-        hq_thumbnail_names = ['maxresdefault', 'hq720', 'sddefault', 'sd1', 'sd2', 'sd3']
-        # TODO: Test them also? - For some videos, even these don't exist
-        guaranteed_thumbnail_names = [
+        thumbnail_names = [
+            'maxresdefault', 'hq720', 'sddefault', 'sd1', 'sd2', 'sd3',
             'hqdefault', 'hq1', 'hq2', 'hq3', '0',
             'mqdefault', 'mq1', 'mq2', 'mq3',
             'default', '1', '2', '3'
         ]
-        thumbnail_names = hq_thumbnail_names + guaranteed_thumbnail_names
         n_thumbnail_names = len(thumbnail_names)
-
         thumbnails.extend({
             'url': 'https://i.ytimg.com/vi{webp}/{video_id}/{name}{live}.{ext}'.format(
                 video_id=video_id, name=name, ext=ext,
                 webp='_webp' if ext == 'webp' else '', live='_live' if is_live else ''),
-            '_test_url': name in hq_thumbnail_names,
         } for name in thumbnail_names for ext in ('webp', 'jpg'))
         for thumb in thumbnails:
             i = next((i for i, t in enumerate(thumbnail_names) if f'/{video_id}/{t}' in thumb['url']), n_thumbnail_names)
             thumb['preference'] = (0 if '.webp' in thumb['url'] else -1) - (2 * i)
         self._remove_duplicate_formats(thumbnails)
+        self._downloader._sort_thumbnails(original_thumbnails)
 
         category = get_first(microformats, 'category') or search_meta('genre')
         channel_id = str_or_none(
@@ -2955,6 +2790,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'title': self._live_title(video_title) if is_live else video_title,
             'formats': formats,
             'thumbnails': thumbnails,
+            # The best thumbnail that we are sure exists. Prevents unnecessary
+            # URL checking if user don't care about getting the best possible thumbnail
+            'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
             'upload_date': unified_strdate(
                 get_first(microformats, 'uploadDate')
@@ -2986,15 +2824,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
         pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
-        # Converted into dicts to remove duplicates
-        captions = {
-            sub.get('baseUrl'): sub
-            for sub in traverse_obj(pctr, (..., 'captionTracks', ...), default=[])}
-        translation_languages = {
-            lang.get('languageCode'): lang.get('languageName')
-            for lang in traverse_obj(pctr, (..., 'translationLanguages', ...), default=[])}
-        subtitles = {}
         if pctr:
+            def get_lang_code(track):
+                return (remove_start(track.get('vssId') or '', '.').replace('.', '-')
+                        or track.get('languageCode'))
+
+            # Converted into dicts to remove duplicates
+            captions = {
+                get_lang_code(sub): sub
+                for sub in traverse_obj(pctr, (..., 'captionTracks', ...), default=[])}
+            translation_languages = {
+                lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
+                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...), default=[])}
+
             def process_language(container, base_url, lang_code, sub_name, query):
                 lang_subs = container.setdefault(lang_code, [])
                 for fmt in self._SUBTITLE_FORMATS:
@@ -3007,30 +2849,29 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'name': sub_name,
                     })
 
-            for base_url, caption_track in captions.items():
+            subtitles, automatic_captions = {}, {}
+            for lang_code, caption_track in captions.items():
+                base_url = caption_track.get('baseUrl')
                 if not base_url:
                     continue
+                lang_name = self._get_text(caption_track, 'name', max_runs=1)
                 if caption_track.get('kind') != 'asr':
-                    lang_code = (
-                        remove_start(caption_track.get('vssId') or '', '.').replace('.', '-')
-                        or caption_track.get('languageCode'))
                     if not lang_code:
                         continue
                     process_language(
-                        subtitles, base_url, lang_code,
-                        traverse_obj(caption_track, ('name', 'simpleText'), ('name', 'runs', ..., 'text'), get_all=False),
-                        {})
-                    continue
-                automatic_captions = {}
+                        subtitles, base_url, lang_code, lang_name, {})
+                    if not caption_track.get('isTranslatable'):
+                        continue
                 for trans_code, trans_name in translation_languages.items():
                     if not trans_code:
                         continue
+                    if caption_track.get('kind') != 'asr':
+                        trans_code += f'-{lang_code}'
+                        trans_name += format_field(lang_name, template=' from %s')
                     process_language(
-                        automatic_captions, base_url, trans_code,
-                        self._get_text(trans_name, max_runs=1),
-                        {'tlang': trans_code})
-                info['automatic_captions'] = automatic_captions
-        info['subtitles'] = subtitles
+                        automatic_captions, base_url, trans_code, trans_name, {'tlang': trans_code})
+            info['automatic_captions'] = automatic_captions
+            info['subtitles'] = subtitles
 
         parsed_url = compat_urllib_parse_urlparse(url)
         for component in [parsed_url.fragment, parsed_url.query]:
@@ -3076,7 +2917,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         try:
             # This will error if there is no livechat
             initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
-            info['subtitles']['live_chat'] = [{
+            info.setdefault('subtitles', {})['live_chat'] = [{
                 'url': 'https://www.youtube.com/watch?v=%s' % video_id,  # url is needed to set cookies
                 'video_id': video_id,
                 'ext': 'json',
@@ -3209,8 +3050,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             needs_auth=info['age_limit'] >= 18,
             is_unlisted=None if is_private is None else is_unlisted)
 
-        if self.get_param('getcomments', False):
-            info['__post_extractor'] = lambda: self._extract_comments(master_ytcfg, video_id, contents, webpage)
+        info['__post_extractor'] = self.extract_comments(master_ytcfg, video_id, contents, webpage)
 
         self.mark_watched(video_id, player_responses)
 
@@ -3218,7 +3058,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
 
 class YoutubeTabIE(YoutubeBaseInfoExtractor):
-    IE_DESC = 'YouTube.com tab'
+    IE_DESC = 'YouTube Tabs'
     _VALID_URL = r'''(?x)
                     https?://
                         (?:\w+\.)?
@@ -4446,7 +4286,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
 
 
 class YoutubePlaylistIE(InfoExtractor):
-    IE_DESC = 'YouTube.com playlists'
+    IE_DESC = 'YouTube playlists'
     _VALID_URL = r'''(?x)(?:
                         (?:https?://)?
                         (?:\w+\.)?
@@ -4512,9 +4352,7 @@ class YoutubePlaylistIE(InfoExtractor):
     def suitable(cls, url):
         if YoutubeTabIE.suitable(url):
             return False
-        # Hack for lazy extractors until more generic solution is implemented
-        # (see #28780)
-        from .youtube import parse_qs
+        from ..utils import parse_qs
         qs = parse_qs(url)
         if qs.get('v', [None])[0]:
             return False
@@ -4572,7 +4410,7 @@ class YoutubeYtBeIE(InfoExtractor):
 
 
 class YoutubeYtUserIE(InfoExtractor):
-    IE_DESC = 'YouTube.com user videos, URL or "ytuser" keyword'
+    IE_DESC = 'YouTube user videos; "ytuser:" prefix'
     _VALID_URL = r'ytuser:(?P<id>.+)'
     _TESTS = [{
         'url': 'ytuser:phihag',
@@ -4588,7 +4426,7 @@ class YoutubeYtUserIE(InfoExtractor):
 
 class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:favorites'
-    IE_DESC = 'YouTube.com liked videos, ":ytfav" for short (requires authentication)'
+    IE_DESC = 'YouTube liked videos; ":ytfav" keyword (requires cookies)'
     _VALID_URL = r':ytfav(?:ou?rite)?s?'
     _LOGIN_REQUIRED = True
     _TESTS = [{
@@ -4606,20 +4444,16 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
 
 
 class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
-    IE_DESC = 'YouTube.com searches, "ytsearch" keyword'
-    # there doesn't appear to be a real limit, for example if you search for
-    # 'python' you get more than 8.000.000 results
-    _MAX_RESULTS = float('inf')
+    IE_DESC = 'YouTube searches'
     IE_NAME = 'youtube:search'
     _SEARCH_KEY = 'ytsearch'
     _SEARCH_PARAMS = None
     _TESTS = []
 
-    def _entries(self, query, n):
+    def _search_results(self, query):
         data = {'query': query}
         if self._SEARCH_PARAMS:
             data['params'] = self._SEARCH_PARAMS
-        total = 0
         continuation = {}
         for page_num in itertools.count(1):
             data.update(continuation)
@@ -4687,28 +4521,21 @@ class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
                             'view_count': None,
                             'uploader': uploader,
                         }
-                    total += 1
-                    if total == n:
-                        return
-
             if not continuation:
                 break
-
-    def _get_n_results(self, query, n):
-        """Get a specified number of results for a query"""
-        return self.playlist_result(self._entries(query, n), query, query)
 
 
 class YoutubeSearchDateIE(YoutubeSearchIE):
     IE_NAME = YoutubeSearchIE.IE_NAME + ':date'
     _SEARCH_KEY = 'ytsearchdate'
-    IE_DESC = 'YouTube.com searches, newest videos first, "ytsearchdate" keyword'
+    IE_DESC = 'YouTube searches, newest videos first'
     _SEARCH_PARAMS = 'CAI%3D'
 
 
 class YoutubeSearchURLIE(YoutubeSearchIE):
-    IE_DESC = 'YouTube.com search URLs'
+    IE_DESC = 'YouTube search URLs with sorting and filter support'
     IE_NAME = YoutubeSearchIE.IE_NAME + '_url'
+    _SEARCH_KEY = None
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/results\?(.*?&)?(?:search_query|q)=(?:[^&]+)(?:[&]|$)'
     # _MAX_RESULTS = 100
     _TESTS = [{
@@ -4754,7 +4581,7 @@ class YoutubeFeedsInfoExtractor(YoutubeTabIE):
 
 class YoutubeWatchLaterIE(InfoExtractor):
     IE_NAME = 'youtube:watchlater'
-    IE_DESC = 'Youtube watch later list, ":ytwatchlater" for short (requires authentication)'
+    IE_DESC = 'Youtube watch later list; ":ytwatchlater" keyword (requires cookies)'
     _VALID_URL = r':ytwatchlater'
     _TESTS = [{
         'url': ':ytwatchlater',
@@ -4767,7 +4594,7 @@ class YoutubeWatchLaterIE(InfoExtractor):
 
 
 class YoutubeRecommendedIE(YoutubeFeedsInfoExtractor):
-    IE_DESC = 'YouTube.com recommended videos, ":ytrec" for short (requires authentication)'
+    IE_DESC = 'YouTube recommended videos; ":ytrec" keyword'
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/?(?:[?#]|$)|:ytrec(?:ommended)?'
     _FEED_NAME = 'recommended'
     _LOGIN_REQUIRED = False
@@ -4784,7 +4611,7 @@ class YoutubeRecommendedIE(YoutubeFeedsInfoExtractor):
 
 
 class YoutubeSubscriptionsIE(YoutubeFeedsInfoExtractor):
-    IE_DESC = 'YouTube.com subscriptions feed, ":ytsubs" for short (requires authentication)'
+    IE_DESC = 'YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)'
     _VALID_URL = r':ytsub(?:scription)?s?'
     _FEED_NAME = 'subscriptions'
     _TESTS = [{
@@ -4797,7 +4624,7 @@ class YoutubeSubscriptionsIE(YoutubeFeedsInfoExtractor):
 
 
 class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
-    IE_DESC = 'Youtube watch history, ":ythis" for short (requires authentication)'
+    IE_DESC = 'Youtube watch history; ":ythis" keyword (requires cookies)'
     _VALID_URL = r':ythis(?:tory)?'
     _FEED_NAME = 'history'
     _TESTS = [{

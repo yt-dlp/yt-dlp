@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import base64
 import datetime
 import hashlib
+import itertools
 import json
 import netrc
 import os
@@ -73,6 +74,7 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     unescapeHTML,
+    UnsupportedError,
     unified_strdate,
     unified_timestamp,
     update_Request,
@@ -146,6 +148,8 @@ class InfoExtractor(object):
                     * width      Width of the video, if known
                     * height     Height of the video, if known
                     * resolution Textual description of width and height
+                    * dynamic_range The dynamic range of the video. One of:
+                                 "SDR" (None), "HDR10", "HDR10+, "HDR12", "HLG, "DV"
                     * tbr        Average bitrate of audio and video in KBit/s
                     * abr        Average audio bitrate in KBit/s
                     * acodec     Name of the audio codec in use
@@ -232,7 +236,6 @@ class InfoExtractor(object):
                         * "resolution" (optional, string "{width}x{height}",
                                         deprecated)
                         * "filesize" (optional, int)
-                        * "_test_url" (optional, bool) - If true, test the URL
     thumbnail:      Full URL to a video thumbnail image.
     description:    Full video description.
     uploader:       Full name of the video uploader.
@@ -438,15 +441,17 @@ class InfoExtractor(object):
     _WORKING = True
 
     _LOGIN_HINTS = {
-        'any': 'Use --cookies, --username and --password or --netrc to provide account credentials',
+        'any': 'Use --cookies, --username and --password, or --netrc to provide account credentials',
         'cookies': (
-            'Use --cookies for the authentication. '
-            'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to pass cookies'),
-        'password': 'Use --username and --password or --netrc to provide account credentials',
+            'Use --cookies-from-browser or --cookies for the authentication. '
+            'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
+        'password': 'Use --username and --password, or --netrc to provide account credentials',
     }
 
     def __init__(self, downloader=None):
-        """Constructor. Receives an optional downloader."""
+        """Constructor. Receives an optional downloader (a YoutubeDL instance).
+        If a downloader is not passed during initialization,
+        it must be set using "set_downloader()" before "extract()" is called"""
         self._ready = False
         self._x_forwarded_for_ip = None
         self._printed_messages = set()
@@ -600,10 +605,19 @@ class InfoExtractor(object):
                     if self.__maybe_fake_ip_and_retry(e.countries):
                         continue
                     raise
+        except UnsupportedError:
+            raise
         except ExtractorError as e:
-            video_id = e.video_id or self.get_temp_id(url)
-            raise ExtractorError(
-                e.msg, video_id=video_id, ie=self.IE_NAME, tb=e.traceback, expected=e.expected, cause=e.cause)
+            kwargs = {
+                'video_id': e.video_id or self.get_temp_id(url),
+                'ie': self.IE_NAME,
+                'tb': e.traceback,
+                'expected': e.expected,
+                'cause': e.cause
+            }
+            if hasattr(e, 'countries'):
+                kwargs['countries'] = e.countries
+            raise type(e)(e.msg, **kwargs)
         except compat_http_client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
@@ -662,7 +676,7 @@ class InfoExtractor(object):
         See _download_webpage docstring for arguments specification.
         """
         if not self._downloader._first_webpage_request:
-            sleep_interval = float_or_none(self.get_param('sleep_interval_requests')) or 0
+            sleep_interval = self.get_param('sleep_interval_requests') or 0
             if sleep_interval > 0:
                 self.to_screen('Sleeping %s seconds ...' % sleep_interval)
                 time.sleep(sleep_interval)
@@ -1086,12 +1100,13 @@ class InfoExtractor(object):
 
     # Methods for following #608
     @staticmethod
-    def url_result(url, ie=None, video_id=None, video_title=None):
+    def url_result(url, ie=None, video_id=None, video_title=None, **kwargs):
         """Returns a URL that points to a page that should be processed"""
         # TODO: ie should be the class used for getting the info
         video_info = {'_type': 'url',
                       'url': url,
                       'ie_key': ie}
+        video_info.update(kwargs)
         if video_id is not None:
             video_info['id'] = video_id
         if video_title is not None:
@@ -1134,7 +1149,7 @@ class InfoExtractor(object):
                 if mobj:
                     break
 
-        _name = self._downloader._color_text(name, 'blue')
+        _name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
 
         if mobj:
             if group is None:
@@ -1506,7 +1521,7 @@ class InfoExtractor(object):
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
         default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-                   'res', 'fps', 'codec:vp9.2', 'size', 'br', 'asr',
+                   'res', 'fps', 'hdr:12', 'codec:vp9.2', 'size', 'br', 'asr',
                    'proto', 'ext', 'hasaud', 'source', 'format_id')  # These must not be aliases
         ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
                         'height', 'width', 'proto', 'vext', 'abr', 'aext',
@@ -1517,6 +1532,8 @@ class InfoExtractor(object):
                        'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
                        'order': ['opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e?a?c-?3', 'dts', '', None, 'none']},
+            'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
+                    'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
                       'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.+', '.*dash', 'ws|websocket', '', 'mms|rtsp', 'none', 'f4']},
             'vext': {'type': 'ordered', 'field': 'video_ext',
@@ -1532,8 +1549,8 @@ class InfoExtractor(object):
             'ie_pref': {'priority': True, 'type': 'extractor'},
             'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'lang': {'convert': 'ignore', 'field': 'language_preference'},
-            'quality': {'convert': 'float_none', 'default': -1},
+            'lang': {'convert': 'float', 'field': 'language_preference', 'default': -1},
+            'quality': {'convert': 'float', 'default': -1},
             'filesize': {'convert': 'bytes'},
             'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
             'id': {'convert': 'string', 'field': 'format_id'},
@@ -1544,7 +1561,7 @@ class InfoExtractor(object):
             'vbr': {'convert': 'float_none'},
             'abr': {'convert': 'float_none'},
             'asr': {'convert': 'float_none'},
-            'source': {'convert': 'ignore', 'field': 'source_preference'},
+            'source': {'convert': 'float', 'field': 'source_preference', 'default': -1},
 
             'codec': {'type': 'combined', 'field': ('vcodec', 'acodec')},
             'br': {'type': 'combined', 'field': ('tbr', 'vbr', 'abr'), 'same_limit': True},
@@ -2645,6 +2662,8 @@ class InfoExtractor(object):
                             content_type = mime_type
                         elif codecs.split('.')[0] == 'stpp':
                             content_type = 'text'
+                        elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
+                            content_type = 'text'
                         else:
                             self.report_warning('Unknown MIME type %s in DASH manifest' % mime_type)
                             continue
@@ -3501,6 +3520,32 @@ class InfoExtractor(object):
     def _get_subtitles(self, *args, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
 
+    def extract_comments(self, *args, **kwargs):
+        if not self.get_param('getcomments'):
+            return None
+        generator = self._get_comments(*args, **kwargs)
+
+        def extractor():
+            comments = []
+            try:
+                while True:
+                    comments.append(next(generator))
+            except KeyboardInterrupt:
+                interrupted = True
+                self.to_screen('Interrupted by user')
+            except StopIteration:
+                interrupted = False
+            comment_count = len(comments)
+            self.to_screen(f'Extracted {comment_count} comments')
+            return {
+                'comments': comments,
+                'comment_count': None if interrupted else comment_count
+            }
+        return extractor
+
+    def _get_comments(self, *args, **kwargs):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
     @staticmethod
     def _merge_subtitle_items(subtitle_list1, subtitle_list2):
         """ Merge subtitle items for one language. Items with duplicated URLs
@@ -3585,8 +3630,10 @@ class SearchInfoExtractor(InfoExtractor):
     """
     Base class for paged search queries extractors.
     They accept URLs in the format _SEARCH_KEY(|all|[0-9]):{query}
-    Instances should define _SEARCH_KEY and _MAX_RESULTS.
+    Instances should define _SEARCH_KEY and optionally _MAX_RESULTS
     """
+
+    _MAX_RESULTS = float('inf')
 
     @classmethod
     def _make_valid_url(cls):
@@ -3617,7 +3664,14 @@ class SearchInfoExtractor(InfoExtractor):
             return self._get_n_results(query, n)
 
     def _get_n_results(self, query, n):
-        """Get a specified number of results for a query"""
+        """Get a specified number of results for a query.
+        Either this function or _search_results must be overridden by subclasses """
+        return self.playlist_result(
+            itertools.islice(self._search_results(query), 0, None if n == float('inf') else n),
+            query, query)
+
+    def _search_results(self, query):
+        """Returns an iterator of search results"""
         raise NotImplementedError('This method must be implemented by subclasses')
 
     @property

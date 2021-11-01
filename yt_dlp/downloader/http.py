@@ -191,11 +191,13 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-            except socket.error as err:
-                if err.errno != errno.ECONNRESET:
-                    # Connection reset is no problem, just retry
-                    raise
+            except socket.timeout as err:
                 raise RetryDownload(err)
+            except socket.error as err:
+                if err.errno in (errno.ECONNRESET, errno.ETIMEDOUT):
+                    # Connection reset is no problem, just retry
+                    raise RetryDownload(err)
+                raise
 
         def download():
             nonlocal throttle_start
@@ -373,6 +375,8 @@ class HttpFD(FileDownloader):
                 count += 1
                 if count <= retries:
                     self.report_retry(e.source_error, count, retries)
+                else:
+                    self.to_screen(f'[download] Got server HTTP error: {e.source_error}')
                 continue
             except NextFragment:
                 continue

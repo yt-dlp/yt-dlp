@@ -16,7 +16,7 @@ from distutils.spawn import spawn
 exec(compile(open('yt_dlp/version.py').read(), 'yt_dlp/version.py', 'exec'))
 
 
-DESCRIPTION = 'Command-line program to download videos from YouTube.com and many other other video platforms.'
+DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
 LONG_DESCRIPTION = '\n\n'.join((
     'Official repository: <https://github.com/yt-dlp/yt-dlp>',
@@ -29,7 +29,7 @@ REQUIREMENTS = ['mutagen', 'pycryptodomex', 'websockets']
 if sys.argv[1:2] == ['py2exe']:
     import py2exe
     warnings.warn(
-        'Building with py2exe is not officially supported. '
+        'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'The recommended way is to use "pyinst.py" to build using pyinstaller')
     params = {
         'console': [{
