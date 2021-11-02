@@ -6,15 +6,16 @@ from operator import itemgetter
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_urllib_parse_unquote_plus,
     compat_parse_qs,
+    compat_urllib_parse_unquote_plus,
+    compat_urllib_parse_urlparse,
 )
 from ..utils import (
     get_element_by_id,
     parse_iso8601,
     traverse_obj,
     ExtractorError,
+    GeoRestrictedError,
     OnDemandPagedList,
 )
 
@@ -27,7 +28,8 @@ class ServusTVIE(InfoExtractor):
                         /[\w-]+/(?:v|[bp]/[\w-]+)
                         /(?P<id>[A-Za-z0-9-]+)
                     '''
-    _GEO_COUNTRIES = ['AT', 'DE']
+    _GEO_COUNTRIES = ['AT', 'DE', 'CH', 'LI', 'LU', 'IT']
+    _GEO_BYPASS = False
     _API_URL = 'https://api-player.redbull.com/stv/servus-tv'
     _QUERY_API_URL = 'https://backend.servustv.com/wp-json/rbmh/v2/query-filters/query/'
     _LIVE_URLS = {
@@ -49,7 +51,11 @@ class ServusTVIE(InfoExtractor):
             'timestamp': 1635538304,
             'upload_date': '20211029',
         },
-        'params': {'skip_download': True, 'format': 'bestvideo', 'geo_bypass': False},
+        'params': {
+            'skip_download': True,
+            'format': 'bestvideo',
+            'geo_bypass_country': 'AT',
+        },
     }, {
         # playlist
         'url': 'https://www.servustv.com/volkskultur/b/ich-bauer/aa-1qcy94h3s1w11/',
@@ -58,6 +64,7 @@ class ServusTVIE(InfoExtractor):
             'title': 'Ich, Bauer',
             'description': 'md5:04cd98226e5c07ca50d0dc90f4a27ea1',
         },
+        'params': {'geo_bypass_country': 'AT'},
         'playlist_mincount': 10,
     }, {
         'url': 'https://www.servustv.com/allgemein/v/aagevnv3syv5kuu8cpfq/',
@@ -69,8 +76,12 @@ class ServusTVIE(InfoExtractor):
 
     def __init__(self, downloader=None):
         super().__init__(downloader=downloader)
-        self.country_code = self._GEO_COUNTRIES[0]
+        self.country_override = None
         self.timezone = 'Europe/Vienna'
+
+    @property
+    def country_code(self):
+        return self.country_override or self._GEO_COUNTRIES[0]
 
     def _entry_by_id(self, video_id, video_url=None, is_live=False):
         info = self._download_json(
@@ -83,9 +94,13 @@ class ServusTVIE(InfoExtractor):
 
         info.setdefault('videoUrl', video_url)
         errors = ", ".join(info.get('playabilityErrors', ()))
+        errormsg = f'{info.get("title", "Unknown")} - {errors}'
+        if 'GEO_BLOCKED' in errors:
+            countries = set(self._GEO_COUNTRIES) - set(info.get('blockedCountries', ()))
+            raise GeoRestrictedError(errormsg, countries=countries)
         if errors and info.get('videoUrl') is None:
             raise ExtractorError(
-                f'{info.get("title", "Unknown")} - {errors}', video_id=video_id, expected=True)
+                errormsg, video_id=video_id, expected=True)
 
         try:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
@@ -173,7 +188,7 @@ class ServusTVIE(InfoExtractor):
 
         geo_bypass_country = self.get_param('geo_bypass_country')
         if geo_bypass_country:
-            self.country_code = geo_bypass_country.upper()
+            self.country_override = geo_bypass_country.upper()
             self.to_screen(f'Set countrycode to {self.country_code!r}')
 
         # server accepts tz database names
@@ -188,6 +203,9 @@ class ServusTVIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id=video_id)
         json_obj = self._json_extract(webpage, video_id=video_id)
+        if self.country_override is None:
+            self.country_override = traverse_obj(
+                json_obj, ('geolocation', 'countryCode'), default=None)
 
         # find livestreams
         live_schedule = traverse_obj(
