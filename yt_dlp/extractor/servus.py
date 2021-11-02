@@ -107,6 +107,10 @@ class ServusTVIE(InfoExtractor):
             'duration': None if is_live else info.get('duration'),
             'timestamp': parse_iso8601(info.get('currentSunrise')),
             'is_live': is_live,
+            'categories': [info['label']] if info.get('label') else [],
+            'age_limit': int(
+                self._search_regex(r'(?:^|\s)(\d\d?)(?:\s|$)', info.get('maturityRating', '0'),
+                'age_limit', default='0')),
             'formats': formats,
             'subtitles': subtitles,
         }
