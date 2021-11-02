@@ -50,7 +50,7 @@ class AmazonIE(InfoExtractor):
                 entries.append({
                     'id': video['marketPlaceID'],
                     'title': video.get('title'),
-                    'thumbnail': video.get('thumb') or video.get('thumbUrl'),
+                    'thumbnail': video.get('thumbUrl') or video.get('thumb'),
                     'duration': video.get('durationSeconds'),
                     'height': int_or_none(video.get('videoHeight')),
                     'width': int_or_none(video.get('videoWidth')),
