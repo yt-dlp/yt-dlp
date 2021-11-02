@@ -2006,6 +2006,23 @@ class HTMLAttributeParser(compat_HTMLParser):
         self.attrs = dict(attrs)
 
 
+class HTMLListAttrsParser(compat_HTMLParser):
+    """HTML parser to gather the attributes for the elements of a list"""
+
+    def __init__(self):
+        compat_HTMLParser.__init__(self)
+        self.items = []
+        self._level = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'li' and self._level == 0:
+            self.items.append(dict(attrs))
+        self._level += 1
+
+    def handle_endtag(self, tag):
+        self._level -= 1
+
+
 def extract_attributes(html_element):
     """Given a string for an HTML element such as
     <el

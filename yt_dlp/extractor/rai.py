@@ -5,7 +5,6 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTMLParser,
     compat_str,
     compat_urlparse,
 )
@@ -17,6 +16,7 @@ from ..utils import (
     GeoRestrictedError,
     get_element_by_class,
     HEADRequest,
+    HTMLListAttrsParser,
     int_or_none,
     parse_duration,
     remove_start,
@@ -588,21 +588,6 @@ class RaiIE(RaiBaseIE):
         info.update(relinker_info)
 
         return info
-
-
-class HTMLListAttrsParser(compat_HTMLParser):
-    def __init__(self):
-        compat_HTMLParser.__init__(self)
-        self.items = []
-        self._level = 0
-
-    def handle_starttag(self, tag, attrs):
-        if tag == 'li' and self._level == 0:
-            self.items.append(dict(attrs))
-        self._level += 1
-
-    def handle_endtag(self, tag):
-        self._level -= 1
 
 
 class RaiPlayRadioBaseIE(InfoExtractor):
