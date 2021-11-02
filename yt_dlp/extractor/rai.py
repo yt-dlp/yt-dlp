@@ -667,4 +667,5 @@ class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
             })
 
         return self.playlist_result(
-            entries, playlist_id, playlist_title, playlist_description)
+            entries, playlist_id, playlist_title, playlist_description,
+            creator=playlist_creator)
