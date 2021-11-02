@@ -2049,6 +2049,15 @@ def extract_attributes(html_element):
     return parser.attrs
 
 
+def parse_list(webpage):
+    """Given a string for an series of HTML <li> elements,
+    return a dictionary of their attributes"""
+    parser = HTMLListAttrsParser()
+    parser.feed(webpage)
+    parser.close()
+    return parser.items
+
+
 def clean_html(html):
     """Clean an HTML snippet into a readable string"""
 

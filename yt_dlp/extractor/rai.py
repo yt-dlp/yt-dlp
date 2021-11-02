@@ -16,9 +16,9 @@ from ..utils import (
     GeoRestrictedError,
     get_element_by_class,
     HEADRequest,
-    HTMLListAttrsParser,
     int_or_none,
     parse_duration,
+    parse_list,
     remove_start,
     strip_or_none,
     try_get,
@@ -593,15 +593,9 @@ class RaiIE(RaiBaseIE):
 class RaiPlayRadioBaseIE(InfoExtractor):
     _BASE = 'https://www.raiplayradio.it'
 
-    def parse_list(self, webpage):
-        parser = HTMLListAttrsParser()
-        parser.feed(webpage)
-        parser.close()
-        return parser.items
-
     def get_playlist_iter(self, url, uid):
         webpage = self._download_webpage(url, uid)
-        for attrs in self.parse_list(webpage):
+        for attrs in parse_list(webpage):
             title = attrs['data-title'].strip()
             audio_url = urljoin(url, attrs['data-mediapolis'])
             entry = {
