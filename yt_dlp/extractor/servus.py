@@ -7,6 +7,7 @@ from operator import itemgetter
 from .common import InfoExtractor
 from ..compat import (
     compat_urllib_parse_urlparse,
+    compat_urllib_parse_unquote_plus,
     compat_parse_qs,
 )
 from ..utils import (
@@ -110,7 +111,7 @@ class ServusTVIE(InfoExtractor):
             'categories': [info['label']] if info.get('label') else [],
             'age_limit': int(
                 self._search_regex(r'(?:^|\s)(\d\d?)(?:\s|$)', info.get('maturityRating', '0'),
-                'age_limit', default='0')),
+                                   'age_limit', default='0')),
             'formats': formats,
             'subtitles': subtitles,
         }
@@ -122,11 +123,11 @@ class ServusTVIE(InfoExtractor):
             video_url = self._LIVE_URLS.get(self.country_code, live_url) if is_live else None
             return self._entry_by_id(item['aa_id'].lower(), video_url=video_url, is_live=is_live)
 
-    def _paged_playlist_entries(self, query_id, query_type, page_size=20):
-        query = {query_type: query_id}
-        query.update(dict(
-            geo_override=self.country_code, post_type='media_asset', per_page=page_size,
-            filter_playability='true', order='desc', orderby='rbmh_playability'))
+    def _paged_playlist_by_query(self, query_type, query_id, extra_query=(), page_size=20, ie=None):
+        query = {query_type: query_id, 'geo_override': self.country_code,
+                 'post_type': 'media_asset', 'filter_playability': 'true', 'per_page': page_size}
+        assert 'per_page' not in extra_query
+        query.update(extra_query)
 
         def fetch_page(page_number):
             query.update({'page': page_number + 1})
@@ -142,11 +143,7 @@ class ServusTVIE(InfoExtractor):
                     continue
                 video_id, title, url = itemgetter('slug', 'stv_short_title', 'link')(item)
                 yield self.url_result(
-                    url,
-                    ie=self.ie_key(),
-                    video_id=video_id,
-                    video_title=title
-                )
+                    url, ie=ie or self.ie_key(), video_id=video_id, video_title=title)
 
         return OnDemandPagedList(fetch_page, page_size)
 
@@ -224,10 +221,49 @@ class ServusTVIE(InfoExtractor):
         playlist_description = self._og_search_description(webpage, default=None)
 
         return self.playlist_result(
-            self._paged_playlist_entries(query_id=query_id, query_type=query_type),
+            self._paged_playlist_by_query(
+                query_type=query_type, query_id=query_id,
+                extra_query={'order': 'desc', 'orderby': 'rbmh_playability'}),
             playlist_id=str(page_id),
             playlist_title=playlist_title,
             playlist_description=playlist_description
+        )
+
+
+class ServusSearchIE(ServusTVIE):
+    IE_NAME = 'servustv:search'
+    _VALID_URL = r'''(?x)
+                    https?://
+                        (?:www\.)?servustv.com
+                        /search
+                        /(?P<id>[^/?#]+)
+                        (?:/all-videos/\d+)?/?$
+                    '''
+
+    _TESTS = [{
+        # search playlist
+        'url': 'https://www.servustv.com/search/hubert+staller/',
+        'info_dict': {
+            'id': 'hubert+staller',
+            'title': 'search: \'hubert staller\'',
+            'description': None,
+        },
+        'params': {'skip_download': True, 'geo_bypass': False},
+        'playlist_mincount': 1,
+        'playlist_maxcount': 10,
+    }]
+
+    def _real_extract(self, url):
+        search_id = self._match_id(url)
+        search_term = compat_urllib_parse_unquote_plus(search_id)
+
+        return self.playlist_result(
+            self._paged_playlist_by_query(
+                query_type='search', query_id=search_term,
+                extra_query={'f[primary_type_group]': 'all-videos', 'orderby': 'rbmh_score_search'},
+                ie=ServusTVIE.ie_key()),
+            playlist_id=search_id,
+            playlist_title=f'search: \'{search_term}\'',
         )
 
 

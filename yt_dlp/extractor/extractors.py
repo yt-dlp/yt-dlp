@@ -1251,6 +1251,7 @@ from .senateisvp import SenateISVPIE
 from .sendtonews import SendtoNewsIE
 from .servus import (
     ServusTVIE,
+    ServusSearchIE,
     PmWissenIE,
 )
 from .sevenplus import SevenPlusIE
