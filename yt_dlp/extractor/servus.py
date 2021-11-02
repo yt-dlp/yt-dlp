@@ -26,7 +26,7 @@ class ServusTVIE(InfoExtractor):
                         /[\w-]+/(?:v|[bp]/[\w-]+)
                         /(?P<id>[A-Za-z0-9-]+)
                     '''
-    _GEO_COUNTRIES = ['AT', 'DE', 'CH', 'LI', 'IT']
+    _GEO_COUNTRIES = ['AT', 'DE']
     _API_URL = 'https://api-player.redbull.com/stv/servus-tv'
     _QUERY_API_URL = 'https://backend.servustv.com/wp-json/rbmh/v2/query-filters/query/'
     _LIVE_URLS = {
@@ -68,7 +68,7 @@ class ServusTVIE(InfoExtractor):
 
     def __init__(self, downloader=None):
         super().__init__(downloader=downloader)
-        self.country_code = 'AT'
+        self.country_code = self._GEO_COUNTRIES[0]
         self.timezone = 'Europe/Vienna'
 
     def _entry_by_id(self, video_id, video_url=None, is_live=False):
