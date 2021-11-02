@@ -78,7 +78,7 @@ class GabIE(InfoExtractor):
         'info_dict': {
             'id': '107163961867310434-0',
             'ext': 'mp4',
-            'title': "L on Gab: ''",
+            'title': 'L on Gab',
             'uploader_id': '946600',
             'uploader': 'SomeBitchIKnow',
             'description': 'md5:204055fafd5e1a519f5d6db953567ca3',
@@ -91,7 +91,7 @@ class GabIE(InfoExtractor):
         'info_dict': {
             'id': '107045884469287653-0',
             'ext': 'mp4',
-            'title': "Jody Sadowski on Gab: ''",
+            'title': 'Jody Sadowski on Gab',
             'uploader_id': '1390705',
             'timestamp': 1633390571,
             'upload_date': '20211004',
@@ -101,16 +101,10 @@ class GabIE(InfoExtractor):
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
-        webpage = self._download_webpage(url, post_id, note='Downloading guest tokens',
-                                         errnote='Failed to download guest tokens')
 
-        title = self._html_search_meta(('og:title', 'title'), webpage)
+        json_data = self._download_json(f'https://gab.com/api/v1/statuses/{post_id}', post_id)
 
-        csfr_token = self._html_search_meta('csrf-token', webpage)
-
-        json_data = self._download_json(f'https://gab.com/api/v1/statuses/{post_id}', post_id,
-                                        headers={'X-CSRF-Token': csfr_token})
-
+        title = f'{json_data["account"]["display_name"]} on Gab'
         timestamp = unified_timestamp(json_data.get('created_at'))
         description = clean_html(json_data.get('content'))
         like_count = json_data.get('favourites_count')
