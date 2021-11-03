@@ -99,7 +99,10 @@ class FFmpegPostProcessor(PostProcessor):
             if prog != 'ffmpeg' or not out:
                 return
 
-            self._features['fdk'] = '--enable-libfdk-aac' in out
+            self._features = {
+                'fdk': '--enable-libfdk-aac' in out,
+                'setts': 'setts' in out.splitlines(),
+            }
 
         self.basename = None
         self.probe_basename = None
@@ -827,11 +830,10 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        required_version = '4.4'
-        if is_outdated_version(self._versions[self.basename], required_version):
+        if not self._features.get('setts'):
             self.report_warning(
                 'A re-encode is needed to fix timestamps in older versions of ffmpeg. '
-                f'Please install ffmpeg {required_version} or later to fixup without re-encoding')
+                'Please install ffmpeg 4.4 or later to fixup without re-encoding')
             opts = ['-vf', 'setpts=PTS-STARTPTS']
         else:
             opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']
