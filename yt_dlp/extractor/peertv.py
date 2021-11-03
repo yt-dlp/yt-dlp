@@ -31,10 +31,7 @@ class PeerTVIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title').replace('\xa0', ' ')
-        description = self._html_search_meta(('og:description', 'description'), webpage)
-
-        video_key = self._html_search_regex(r'player\.peer\.tv/js/([\d\w]+)', webpage, 'video key')
+        video_key = self._html_search_regex(r'player\.peer\.tv/js/([a-zA-Z0-9]+)', webpage, 'video key')
 
         js = self._download_webpage(f'https://player.peer.tv/js/{video_key}/', video_id,
                                     headers={'Referer': 'https://www.peer.tv/'})
@@ -54,8 +51,8 @@ class PeerTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title').replace('\xa0', ' '),
             'formats': formats,
-            'description': description,
+            'description': self._html_search_meta(('og:description', 'description'), webpage),
             'thumbnail': self._html_search_meta(('og:image', 'image'), webpage)
         }
