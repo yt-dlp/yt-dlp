@@ -3350,7 +3350,11 @@ class YoutubeDL(object):
             platform.architecture()[0],
             platform_name()))
 
-        exe_versions = FFmpegPostProcessor.get_versions(self)
+        exe_versions, ffmpeg_features = FFmpegPostProcessor.get_versions_and_features(self)
+        ffmpeg_features = {key for key, val in ffmpeg_features.items() if val}
+        if ffmpeg_features:
+            exe_versions['ffmpeg'] += f' (%s)' % ','.join(ffmpeg_features)
+
         exe_versions['rtmpdump'] = rtmpdump_version()
         exe_versions['phantomjs'] = PhantomJSwrapper._version()
         exe_str = ', '.join(

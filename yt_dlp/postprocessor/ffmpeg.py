@@ -76,8 +76,13 @@ class FFmpegPostProcessor(PostProcessor):
             self.report_warning(warning)
 
     @staticmethod
+    def get_versions_and_features(downloader=None):
+        pp = FFmpegPostProcessor(downloader)
+        return pp._versions, pp._features
+
+    @staticmethod
     def get_versions(downloader=None):
-        return FFmpegPostProcessor(downloader)._versions
+        return FFmpegPostProcessor.get_version_and_features(downloader)[0]
 
     def _determine_executables(self):
         programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
@@ -99,9 +104,12 @@ class FFmpegPostProcessor(PostProcessor):
             if prog != 'ffmpeg' or not out:
                 return
 
+            mobj = re.search(r'(?m)^\s+libavformat\s+(?:[0-9. ]+)\s+/\s+(?P<runtime>[0-9. ]+)', out)
+            lavf_runtime_version = mobj.group('runtime').replace(' ', '') if mobj else None
             self._features = {
                 'fdk': '--enable-libfdk-aac' in out,
                 'setts': 'setts' in out.splitlines(),
+                'needs_adtstoasc': is_outdated_version(lavf_runtime_version, '57.56.100', False),
             }
 
         self.basename = None
