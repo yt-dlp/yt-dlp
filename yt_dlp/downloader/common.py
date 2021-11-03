@@ -319,6 +319,8 @@ class FileDownloader(object):
                     msg_template = '%(_downloaded_bytes_str)s at %(_speed_str)s'
             else:
                 msg_template = '%(_percent_str)s % at %(_speed_str)s ETA %(_eta_str)s'
+        if s.get('fragment_index'):
+            msg_template += ' (frag %(fragment_index)s)'
         s['_default_template'] = msg_template % s
         self._report_progress_status(s)
 
