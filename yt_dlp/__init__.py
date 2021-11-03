@@ -232,7 +232,8 @@ def _real_main(argv=None):
             parser.error('invalid audio format specified')
     if opts.audioquality:
         opts.audioquality = opts.audioquality.strip('k').strip('K')
-        if int_or_none(float_or_none(opts.audioquality)) is None:  # int_or_none prevents inf, nan
+        audioquality = int_or_none(float_or_none(opts.audioquality))  # int_or_none prevents inf, nan
+        if audioquality is None or audioquality < 0:
             parser.error('invalid audio quality specified')
     if opts.recodevideo is not None:
         opts.recodevideo = opts.recodevideo.replace(' ', '')

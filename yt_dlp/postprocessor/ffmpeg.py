@@ -16,7 +16,8 @@ from ..utils import (
     encodeArgument,
     encodeFilename,
     float_or_none,
-    get_exe_version,
+    _get_exe_version_output,
+    detect_exe_version,
     is_outdated_version,
     ISO639Utils,
     orderedSet,
@@ -80,10 +81,10 @@ class FFmpegPostProcessor(PostProcessor):
 
     def _determine_executables(self):
         programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
-        prefer_ffmpeg = True
 
-        def get_ffmpeg_version(path):
-            ver = get_exe_version(path, args=['-version'])
+        def get_ffmpeg_version(path, prog):
+            out = _get_exe_version_output(path, ['-bsfs'])
+            ver = detect_exe_version(out) if out else False
             if ver:
                 regexs = [
                     r'(?:\d+:)?([0-9.]+)-[0-9]+ubuntu[0-9.]+$',  # Ubuntu, see [1]
@@ -94,42 +95,46 @@ class FFmpegPostProcessor(PostProcessor):
                     mobj = re.match(regex, ver)
                     if mobj:
                         ver = mobj.group(1)
-            return ver
+            self._versions[prog] = ver
+            if prog != 'ffmpeg' or not out:
+                return
+
+            # TODO: Feature detection
 
         self.basename = None
         self.probe_basename = None
-
         self._paths = None
         self._versions = None
-        if self._downloader:
-            prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
-            location = self.get_param('ffmpeg_location')
-            if location is not None:
-                if not os.path.exists(location):
-                    self.report_warning(
-                        'ffmpeg-location %s does not exist! '
-                        'Continuing without ffmpeg.' % (location))
-                    self._versions = {}
-                    return
-                elif os.path.isdir(location):
-                    dirname, basename = location, None
-                else:
-                    basename = os.path.splitext(os.path.basename(location))[0]
-                    basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
-                    dirname = os.path.dirname(os.path.abspath(location))
-                    if basename in ('ffmpeg', 'ffprobe'):
-                        prefer_ffmpeg = True
+        self._features = {}
 
-                self._paths = dict(
-                    (p, os.path.join(dirname, p)) for p in programs)
-                if basename:
-                    self._paths[basename] = location
-                self._versions = dict(
-                    (p, get_ffmpeg_version(self._paths[p])) for p in programs)
-        if self._versions is None:
-            self._versions = dict(
-                (p, get_ffmpeg_version(p)) for p in programs)
-            self._paths = dict((p, p) for p in programs)
+        prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
+        location = self.get_param('ffmpeg_location')
+        if location is None:
+            self._paths = {p: p for p in programs}
+        else:
+            if not os.path.exists(location):
+                self.report_warning(
+                    'ffmpeg-location %s does not exist! '
+                    'Continuing without ffmpeg.' % (location))
+                self._versions = {}
+                return
+            elif os.path.isdir(location):
+                dirname, basename = location, None
+            else:
+                basename = os.path.splitext(os.path.basename(location))[0]
+                basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
+                dirname = os.path.dirname(os.path.abspath(location))
+                if basename in ('ffmpeg', 'ffprobe'):
+                    prefer_ffmpeg = True
+
+            self._paths = dict(
+                (p, os.path.join(dirname, p)) for p in programs)
+            if basename:
+                self._paths[basename] = location
+
+        self._versions = {}
+        for p in programs:
+            get_ffmpeg_version(self._paths[p], p)
 
         if prefer_ffmpeg is False:
             prefs = ('avconv', 'ffmpeg')
@@ -382,7 +387,9 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
         limits = {
             'libmp3lame': (10, 0),
-            'aac': (0.1, 11),
+            # FFmpeg's AAC encoder does not have an upper limit for the value of -q:a.
+            # Experimentally, with values over 4, bitrate changes were minimal or non-existent
+            'aac': (0.1, 4),
             'vorbis': (0, 10),
             'opus': None,  # doesn't support -q:a
             'wav': None,
