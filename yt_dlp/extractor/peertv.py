@@ -9,13 +9,13 @@ class PeerTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?peer\.tv/(?:de|it|en)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.peer.tv/de/841',
-        # md5 hash changes
         'info_dict': {
             'id': '841',
             'ext': 'mp4',
             'title': 'Die Brunnenburg',
             'description': 'md5:4395f6142b090338340ab88a3aae24ed',
-        }
+        },
+        'params': {'skip_download': 'm3u8'}
     }, {
         'url': 'https://www.peer.tv/it/404',
         'info_dict': {
@@ -23,7 +23,8 @@ class PeerTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Cascate di ghiaccio in Val Gardena',
             'description': 'md5:e8e5907f236171842674e8090e3577b8',
-        }
+        },
+        'params': {'skip_download': 'm3u8'}
     }]
 
     def _real_extract(self, url):
