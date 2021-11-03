@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 
 import re
 
-from .youtube import YoutubeIE
-from .reddit import RedditRIE
 from .common import InfoExtractor
 from ..utils import (
     unified_timestamp,
@@ -12,7 +10,7 @@ from ..utils import (
 )
 
 
-class N1InfoAssetIE(InfoExtractor):
+class VideoAssetIE(InfoExtractor):
     _VALID_URL = r'https?://best-vod\.umn\.cdn\.united\.cloud/stream\?asset=(?P<id>[^&]+)'
     _TESTS = [{
         'url': 'https://best-vod.umn.cdn.united.cloud/stream?asset=ljsottomazilirija3060921-n1info-si-worldwide&stream=hp1400&t=0&player=m3u8v&sp=n1info&u=n1info&p=n1Sh4redSecre7iNf0',
@@ -40,7 +38,7 @@ class N1InfoAssetIE(InfoExtractor):
 
 class N1InfoIIE(InfoExtractor):
     IE_NAME = 'N1Info:article'
-    _VALID_URL = r'https?://(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?P<host>(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)|nova\.rs)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
     _TESTS = [{
         # Youtube embedded
         'url': 'https://rs.n1info.com/sport-klub/tenis/kako-je-djokovic-propustio-istorijsku-priliku-video/',
@@ -94,12 +92,23 @@ class N1InfoIIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
+        'url': 'https://nova.rs/vesti/politika/zaklina-tatalovic-ani-brnabic-pricate-lazi-video/',
+        'info_dict': {
+            'id': 'tnjganabrnabicizaklinatatalovic100danavladegp-novas-worldwide',
+            'ext': 'mp4',
+            'title': 'Žaklina Tatalović Ani Brnabić: Pričate laži (VIDEO)',
+            'upload_date': '20211102',
+            'timestamp': 1635861677,
+        },
+    }, {
         'url': 'https://hr.n1info.com/vijesti/pravobraniteljica-o-ubojstvu-u-zagrebu-radi-se-o-doista-nezapamcenoj-situaciji/',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        host, video_id = self._match_valid_url(url).groups()
+        if host == 'nova.rs':
+            self.IE_NAME = 'novars:article'
         webpage = self._download_webpage(url, video_id)
 
         title = self._html_search_regex(r'<h1[^>]+>(.+?)</h1>', webpage, 'title')
@@ -116,16 +125,16 @@ class N1InfoIIE(InfoExtractor):
                 'title': title,
                 'thumbnail': video_data.get('data-thumbnail'),
                 'timestamp': timestamp,
-                'ie_key': N1InfoAssetIE.ie_key()})
+                'ie_key': 'VideoAsset'})
 
         embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for embedded_video in embedded_videos:
             video_data = extract_attributes(embedded_video)
             url = video_data.get('src')
             if url.startswith('https://www.youtube.com'):
-                entries.append(self.url_result(url, ie=YoutubeIE.ie_key()))
+                entries.append(self.url_result(url, ie='Youtube'))
             elif url.startswith('https://www.redditmedia.com'):
-                entries.append(self.url_result(url, ie=RedditRIE.ie_key()))
+                entries.append(self.url_result(url, ie='RedditR'))
 
         return {
             '_type': 'playlist',
