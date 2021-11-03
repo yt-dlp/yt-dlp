@@ -1,6 +1,7 @@
 # coding: utf-8
-import json
+from contextlib import suppress
 from operator import itemgetter
+from sys import maxsize
 
 from .common import InfoExtractor
 from ..compat import (
@@ -25,7 +26,7 @@ class BrighteonIE(InfoExtractor):
                     https?://
                         (?:www\.)?
                         (?:brighteon\.com/)
-                        (?:channels/|categories/|watch/)?
+                        (?:(?P<taxonomy>browse|channels|categories|watch)/)?
                         (?P<id>[a-zA-z0-9-]+)
                     '''
     _BASE_URL = 'https://www.brighteon.com'
@@ -104,16 +105,12 @@ class BrighteonIE(InfoExtractor):
             path.extend(suffix.split("."))
         return path
 
-    @staticmethod
-    def _json_extract(webpage, video_id):
-        json_string = get_element_by_id('__NEXT_DATA__', webpage)
-        if not json_string:
-            raise ExtractorError('Missing HTML metadata', video_id=video_id, expected=True)
-
+    def _json_extract(self, url, video_id, note=None):
+        webpage = self._download_webpage(url, video_id=video_id, note=note)
         try:
-            return json.loads(json_string or '{}')
-        except json.JSONDecodeError:
-            raise ExtractorError('Bad JSON metadata', video_id=video_id, expected=False)
+            return self._parse_json(get_element_by_id('__NEXT_DATA__', webpage), video_id=video_id)
+        except TypeError:
+            raise ExtractorError('Could not extract JSON metadata', video_id=video_id)
 
     @staticmethod
     def _rename_formats(formats, prefix):
@@ -125,16 +122,16 @@ class BrighteonIE(InfoExtractor):
                 suffix = f'{item["height"]}p' if item.get('height') else item['format_id']
             item['format_id'] = f'{prefix}-{suffix}'
 
-    def _entry_from_info(self, video_info, channel_info):
-        video_id = video_info['id']
-
+    def _download_formats(self, sources, video_id):
         formats = []
-        for source in video_info.get('source', ()):
+        if not sources:
+            return formats
+
+        for source in sources:
             try:
                 url, typ = itemgetter('src', 'type')(source)
             except KeyError:
                 continue
-            media_formats = ()
             if url.endswith('.m3u8'):
                 media_formats = self._extract_m3u8_formats(url, video_id=video_id, fatal=False)
                 self._rename_formats(media_formats, 'hls')
@@ -142,21 +139,41 @@ class BrighteonIE(InfoExtractor):
                 media_formats = self._extract_mpd_formats(url, video_id=video_id, fatal=False)
                 self._rename_formats(media_formats, 'dash')
             else:
-                self.report_warning(f'unknown video format {typ}')
+                media_formats = ()
+                self.report_warning(f'unknown video format {typ!r}')
             formats.extend(media_formats)
+        return formats
 
-        self._sort_formats(formats)
-        channel_short_url = video_info.get('channelShortUrl', channel_info.get('shortUrl'))
+    def _entry_from_info(self, video_info, channel_info, from_playlist=False):
+        video_id = video_info['id']
+        url = f'{self._BASE_URL}/{video_id}'
+
+        if from_playlist:
+            _type = 'url'
+            formats = None
+        else:
+            _type = 'video'
+            formats = self._download_formats(video_info.get('source'), video_id=video_id)
+            self._sort_formats(formats)
+
+        # merge channel_info items into video_info
+        for item in ('name', 'id', 'shortUrl'):
+            channel_item = channel_info.get(item)
+            if channel_item:
+                ci_name = f'channel{item[0].upper()}{item[1:]}'
+                video_info[ci_name] = channel_item
 
         return {
+            '_type': _type,
+            'url': url,
             'id': video_id,
             'title': video_info.get('name'),
             'description': video_info.get('description'),
             'timestamp': parse_iso8601(video_info.get('createdAt')),
             'duration': parse_duration(video_info.get('duration')),
-            'channel': video_info.get('channelName', channel_info.get('name')),
-            'channel_id': video_info.get('channelId', channel_info.get('id')),
-            'channel_url': channel_short_url and f'{self._BASE_URL}/channels/{channel_short_url}',
+            'channel': video_info.get('channelName'),
+            'channel_id': video_info.get('channelId'),
+            'channel_url': video_info.get('channelShortUrl') and f'{self._BASE_URL}/channels/{video_info["channelShortUrl"]}',
             'tags': video_info.get('tags', []),
             'thumbnail': video_info.get('thumbnail'),
             'view_count': traverse_obj(video_info, ('analytics', 'videoView'), default=None),
@@ -165,39 +182,37 @@ class BrighteonIE(InfoExtractor):
         }
 
     def _paged_url_entries(self, page_id, url, start_page=None):
-        page_cache = {}
 
         def load_page(page_number):
             page_url = update_url_query(url, {'page': page_number})
-            try:
-                webpage = self._download_webpage(
-                    page_url, video_id=page_id, note=f'Downloading page {page_number}')
-                json_obj = self._json_extract(webpage, video_id=page_id)
-                return traverse_obj(json_obj, self.page_props_path('data'), default={})
-            except ExtractorError:
-                return {}
+            json_obj = self._json_extract(
+                page_url, video_id=page_id, note=f'Downloading page {page_number}')
+            page_props = traverse_obj(json_obj, self.page_props_path(), default={})
+            return page_props.get('data') or page_props
 
-        data = load_page(start_page or 1)
+        data = load_page(start_page or "1")
         channel_info = data.get('channel', {})
-        initial_video_list = data.get('videos', None)
+        initial_video_list = data.get('videos')
         if initial_video_list is None:
-            raise ExtractorError("This page contains no playlist videos",
+            raise ExtractorError("This page contains no supported playlists",
                                  video_id=page_id, expected=True)
-        page_cache[1] = initial_video_list
+        page_cache = {1: initial_video_list}
         page_size = len(initial_video_list)
-        if not page_size:
-            return None
+        max_pages = traverse_obj(data, ('pagination', 'pages'), expected_type=int, default=maxsize)
 
         def fetch_entry(index):
             page_idx, offset = divmod(index, page_size)
             page_number = page_idx + 1
-            if page_number not in page_cache and start_page is None:
-                video_list = load_page(page_number).get('videos', ())
-                page_cache[page_number] = video_list
 
-            video_list = page_cache.get(page_number, ())
-            if len(video_list) > offset:
-                yield self._entry_from_info(video_list[offset], channel_info)
+            if start_page is None and page_number not in page_cache and page_number <= max_pages:
+                video_list = load_page(page_number).get('videos', ())
+                page_cache.clear()  # since we only need one entry
+                page_cache[page_number] = video_list
+            else:
+                video_list = page_cache.get(page_number, ())
+
+            with suppress(IndexError):
+                yield self._entry_from_info(video_list[offset], channel_info, from_playlist=True)
 
         playlist_info = channel_info or data
         return self.playlist_result(
@@ -207,8 +222,14 @@ class BrighteonIE(InfoExtractor):
         )
 
     def _playlist_entries(self, playlist_info, url):
-        entries = (self.url_result(update_url_query(url, {'index': idx}))
-                   for idx, video in enumerate(playlist_info.get('videosInPlaylist', ()), 1))
+        entries = []
+        for idx, video in enumerate(playlist_info.get('videosInPlaylist', ()), 1):
+            entries.append({
+                '_type': 'url',
+                'url': update_url_query(url, {'index': idx}),
+                'title': video.get('videoName'),
+                'duration': parse_duration(video.get('duration')),
+            })
         return self.playlist_result(
             entries=entries,
             playlist_id=playlist_info.get('playlistId'),
@@ -216,28 +237,29 @@ class BrighteonIE(InfoExtractor):
         )
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        match = self._match_valid_url(url)
+        taxonomy, video_id = match.groups()
         parsed_url = compat_urllib_parse_urlparse(url)
         url_query = {
             key.lower(): value[0] for key, value in compat_parse_qs(parsed_url.query).items()}
+        self._set_cookie('brighteon.com', 'adBlockClosed', '1')
 
-        if parsed_url.path.startswith("/channels/") or parsed_url.path.startswith("/categories/"):
+        if taxonomy in {'channels', 'categories', 'browse'}:
             return self._paged_url_entries(video_id, url, start_page=url_query.get('page'))
 
-        webpage = self._download_webpage(url, video_id=video_id)
-        json_obj = self._json_extract(webpage, video_id=video_id)
-
+        json_obj = self._json_extract(url, video_id=video_id)
         page_props = traverse_obj(json_obj, self.page_props_path(), default={})
-        playlist = page_props.get('playlist', {})
-        channel_info = page_props.get('channel', {})
+
+        playlist_info = page_props.get('playlist', {})
+        if playlist_info and 'index' not in url_query:
+            return self._playlist_entries(playlist_info, url)
+
         video_info = page_props.get('video', {})
-
-        if video_info and (not playlist or 'index' in url_query):
+        channel_info = page_props.get('channel', {})
+        if video_info:
             return self._entry_from_info(video_info, channel_info)
-        if playlist:
-            return self._playlist_entries(playlist, url)
 
-        raise ExtractorError("This page contains no playlist videos",
+        raise ExtractorError("This page contains no supported playlists",
                              video_id=video_id, expected=True)
 
 
@@ -277,8 +299,7 @@ class BrighteontvIE(BrighteonIE):
         tags = self._html_search_meta('keywords', webpage, default='')
         stream_url = self._search_regex(
             r'<iframe[^>]+src="(https?://[\w./-]+)"', webpage, 'stream_url')
-        webpage = self._download_webpage(stream_url, video_id=video_id)
-        json_obj = self._json_extract(webpage, video_id=video_id)
+        json_obj = self._json_extract(stream_url, video_id=video_id)
         stream_info = traverse_obj(json_obj, self.page_props_path('stream'))
         video_info = self._entry_from_info(stream_info, {})
         video_info.update(dict(description=description, tags=tags.split(', '), is_live=True))
