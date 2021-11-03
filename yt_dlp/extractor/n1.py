@@ -130,7 +130,7 @@ class N1InfoIIE(InfoExtractor):
         embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for embedded_video in embedded_videos:
             video_data = extract_attributes(embedded_video)
-            url = video_data.get('src')
+            url = video_data.get('src') or ''
             if url.startswith('https://www.youtube.com'):
                 entries.append(self.url_result(url, ie='Youtube'))
             elif url.startswith('https://www.redditmedia.com'):
