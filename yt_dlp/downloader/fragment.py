@@ -391,14 +391,18 @@ class FragmentFD(FileDownloader):
             job = tpe.submit(thread_func, idx, ctx, fragments, info_dict, tpe)
             spins.append((tpe, job))
 
-        result = True
+        result, kint = True, None
         for tpe, job in spins:
             try:
                 result = result and job.result()
-            except KeyboardInterrupt:
+            except KeyboardInterrupt as ex:
                 interrupt_trigger[0] = False
+                kint = ex
             finally:
                 tpe.shutdown(wait=True)
+        if not interrupt_trigger[0] and not any(args[0].get('live') for arg in args):
+            # rethrow if it's not live
+            raise kint or KeyboardInterrupt()
         return result
 
     def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, tpe=None, ignore_lethal_error=False, interrupt_trigger=None):
