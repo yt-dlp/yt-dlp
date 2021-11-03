@@ -99,7 +99,7 @@ class FFmpegPostProcessor(PostProcessor):
             if prog != 'ffmpeg' or not out:
                 return
 
-            # TODO: Feature detection
+            self._features['fdk'] = '--enable-libfdk-aac' in out
 
         self.basename = None
         self.probe_basename = None
@@ -391,6 +391,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             # Experimentally, with values over 4, bitrate changes were minimal or non-existent
             'aac': (0.1, 4),
             'vorbis': (0, 10),
+            'libfdk_aac': (1, 5),
             'opus': None,  # doesn't support -q:a
             'wav': None,
             'flac': None,
@@ -399,6 +400,8 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             return []
 
         q = limits[1] + (limits[0] - limits[1]) * (self._preferredquality / 10)
+        if codec == 'libfdk_aac':
+            return ['-vbr', f'{int(q)}']
         return ['-q:a', f'{q}']
 
     def run_ffmpeg(self, path, out_path, codec, more_opts):
@@ -448,6 +451,8 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         else:
             # We convert the audio (lossy if codec is lossy)
             acodec = ACODECS[self._preferredcodec]
+            if acodec == 'aac' and self._features.get('fdk'):
+                acodec = 'libfdk_aac'
             extension = self._preferredcodec
             more_opts = self._quality_args(acodec)
             if self._preferredcodec == 'aac':
