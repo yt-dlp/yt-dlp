@@ -2623,49 +2623,48 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or search_meta(['og:title', 'twitter:title', 'title']))
         video_description = get_first(video_details, 'shortDescription')
 
-        if not smuggled_data.get('force_singlefeed', False):
-            if not self.get_param('noplaylist'):
-                multifeed_metadata_list = get_first(
-                    player_responses,
-                    ('multicamera', 'playerLegacyMulticameraRenderer', 'metadataList'),
-                    expected_type=str)
-                if multifeed_metadata_list:
-                    entries = []
-                    feed_ids = []
-                    for feed in multifeed_metadata_list.split(','):
-                        # Unquote should take place before split on comma (,) since textual
-                        # fields may contain comma as well (see
-                        # https://github.com/ytdl-org/youtube-dl/issues/8536)
-                        feed_data = compat_parse_qs(
-                            compat_urllib_parse_unquote_plus(feed))
-
-                        def feed_entry(name):
-                            return try_get(
-                                feed_data, lambda x: x[name][0], compat_str)
-
-                        feed_id = feed_entry('id')
-                        if not feed_id:
-                            continue
-                        feed_title = feed_entry('title')
-                        title = video_title
-                        if feed_title:
-                            title += ' (%s)' % feed_title
-                        entries.append({
-                            '_type': 'url_transparent',
-                            'ie_key': 'Youtube',
-                            'url': smuggle_url(
-                                '%swatch?v=%s' % (base_url, feed_data['id'][0]),
-                                {'force_singlefeed': True}),
-                            'title': title,
-                        })
-                        feed_ids.append(feed_id)
-                    self.to_screen(
-                        'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
-                        % (', '.join(feed_ids), video_id))
-                    return self.playlist_result(
-                        entries, video_id, video_title, video_description)
-            else:
+        multifeed_metadata_list = get_first(
+            player_responses,
+            ('multicamera', 'playerLegacyMulticameraRenderer', 'metadataList'),
+            expected_type=str)
+        if multifeed_metadata_list and not smuggled_data.get('force_singlefeed'):
+            if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+            else:
+                entries = []
+                feed_ids = []
+                for feed in multifeed_metadata_list.split(','):
+                    # Unquote should take place before split on comma (,) since textual
+                    # fields may contain comma as well (see
+                    # https://github.com/ytdl-org/youtube-dl/issues/8536)
+                    feed_data = compat_parse_qs(
+                        compat_urllib_parse_unquote_plus(feed))
+
+                    def feed_entry(name):
+                        return try_get(
+                            feed_data, lambda x: x[name][0], compat_str)
+
+                    feed_id = feed_entry('id')
+                    if not feed_id:
+                        continue
+                    feed_title = feed_entry('title')
+                    title = video_title
+                    if feed_title:
+                        title += ' (%s)' % feed_title
+                    entries.append({
+                        '_type': 'url_transparent',
+                        'ie_key': 'Youtube',
+                        'url': smuggle_url(
+                            '%swatch?v=%s' % (base_url, feed_data['id'][0]),
+                            {'force_singlefeed': True}),
+                        'title': title,
+                    })
+                    feed_ids.append(feed_id)
+                self.to_screen(
+                    'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
+                    % (', '.join(feed_ids), video_id))
+                return self.playlist_result(
+                    entries, video_id, video_title, video_description)
 
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
         is_live = get_first(video_details, 'isLive')
