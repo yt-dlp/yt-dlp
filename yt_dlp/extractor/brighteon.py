@@ -239,3 +239,48 @@ class BrighteonIE(InfoExtractor):
 
         raise ExtractorError("This page contains no playlist videos",
                              video_id=video_id, expected=True)
+
+
+class BrighteontvIE(BrighteonIE):
+    IE_NAME = 'brighteontv'
+    _VALID_URL = r'''(?x)
+                    https?://
+                        (?:www\.)?
+                        brighteon\.tv/?
+                    '''
+
+    _TESTS = [{
+        'url': 'https://www.brighteon.tv/',
+        'info_dict': {
+            'id': 'brighteontv-daily-show',
+            'ext': 'mp4',
+            'title': 'Brighteon.TV Daily Show',
+            'description': 'Live Daily Broadcast.',
+            'channel_id': '8c536b2f-e9a1-4e4c-a422-3867d0e472e4',
+            'tags': [
+                'Brighteon',
+                'TV',
+                'News',
+                'Video',
+                'Stream'
+            ],
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = 'live'
+        webpage = self._download_webpage(url, video_id=video_id)
+        description = self._og_search_description(webpage)
+        tags = self._html_search_meta('keywords', webpage, default='')
+        stream_url = self._search_regex(
+            r'<iframe[^>]+src="(https?://[\w./-]+)"', webpage, 'stream_url')
+        webpage = self._download_webpage(stream_url, video_id=video_id)
+        json_obj = self._json_extract(webpage, video_id=video_id)
+        stream_info = traverse_obj(json_obj, self.page_props_path('stream'))
+        video_info = self._entry_from_info(stream_info, {})
+        video_info.update(dict(description=description, tags=tags.split(', '), is_live=True))
+
+        return video_info
