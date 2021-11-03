@@ -181,6 +181,7 @@ from .brightcove import (
     BrightcoveLegacyIE,
     BrightcoveNewIE,
 )
+from .brighteon import BrighteonIE
 from .businessinsider import BusinessInsiderIE
 from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
