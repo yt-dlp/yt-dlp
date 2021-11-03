@@ -400,7 +400,7 @@ class FragmentFD(FileDownloader):
                 kint = ex
             finally:
                 tpe.shutdown(wait=True)
-        if not interrupt_trigger[0] and not any(args[0].get('live') for arg in args):
+        if not interrupt_trigger[0] and not any(arg[0].get('live') for arg in args):
             # rethrow if it's not live
             raise kint or KeyboardInterrupt()
         return result
