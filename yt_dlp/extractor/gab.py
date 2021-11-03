@@ -5,12 +5,12 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    unified_timestamp,
-    parse_duration,
-    parse_codecs,
-    int_or_none,
-    str_to_int,
     clean_html,
+    int_or_none,
+    parse_codecs,
+    parse_duration,
+    str_to_int,
+    unified_timestamp
 )
 
 
