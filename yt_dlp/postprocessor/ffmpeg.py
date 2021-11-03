@@ -462,7 +462,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         else:
             # We convert the audio (lossy if codec is lossy)
             acodec = ACODECS[self._preferredcodec]
-            if acodec == 'aac' and self._features.get('fdk'):
+            if acodec in ('aac', 'm4a') and self._features.get('fdk'):
                 acodec = 'libfdk_aac'
             extension = self._preferredcodec
             more_opts = self._quality_args(acodec)
