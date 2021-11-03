@@ -37,8 +37,8 @@ body:
     attributes:
       label: Verbose log
       description: |
-        Provide the complete verbose output of yt-dlp that clearly demonstrates the problem.
-        Add the `-Uv` flag to your command line you run yt-dlp with (`yt-dlp -Uv <your command line>`), copy the WHOLE output and insert it below.
+        Provide the complete verbose output of yt-dlp **that clearly demonstrates the problem**.
+        Add the `-Uv` flag to **your** command line you run yt-dlp with (`yt-dlp -Uv <your command line>`), copy the WHOLE output and insert it below.
         It should look similar to this:
       placeholder: |
         [debug] Command-line config: ['-Uv', 'http://www.youtube.com/watch?v=BaW_jenozKc']

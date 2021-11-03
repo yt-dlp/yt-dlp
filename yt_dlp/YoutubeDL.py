@@ -3209,7 +3209,7 @@ class YoutubeDL(object):
                     self._format_screen(format_field(f, 'format_id'), self.Styles.ID),
                     format_field(f, 'ext'),
                     self.format_resolution(f),
-                    format_field(f, 'fps', '%d'),
+                    format_field(f, 'fps', '%3d'),
                     format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                     delim,
                     format_field(f, 'filesize', ' %s', func=format_bytes) + format_field(f, 'filesize_approx', '~%s', func=format_bytes),
@@ -3353,7 +3353,7 @@ class YoutubeDL(object):
         exe_versions, ffmpeg_features = FFmpegPostProcessor.get_versions_and_features(self)
         ffmpeg_features = {key for key, val in ffmpeg_features.items() if val}
         if ffmpeg_features:
-            exe_versions['ffmpeg'] += f' (%s)' % ','.join(ffmpeg_features)
+            exe_versions['ffmpeg'] += ' (%s)' % ','.join(ffmpeg_features)
 
         exe_versions['rtmpdump'] = rtmpdump_version()
         exe_versions['phantomjs'] = PhantomJSwrapper._version()

@@ -634,7 +634,7 @@ def parseOpts(overrideArguments=None):
         action='callback', dest='subtitleslangs', metavar='LANGS', type='str',
         default=[], callback=_list_from_options_callback,
         help=(
-            'Languages of the subtitles to download (can be regex) or "all" separated by commas. (Eg: --sub-langs en.*,ja) '
+            'Languages of the subtitles to download (can be regex) or "all" separated by commas. (Eg: --sub-langs "en.*,ja") '
             'You can prefix the language code with a "-" to exempt it from the requested languages. (Eg: --sub-langs all,-live_chat) '
             'Use --list-subs for a list of available language tags'))
 

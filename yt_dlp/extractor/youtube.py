@@ -2513,7 +2513,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
                     throttled and 'THROTTLED'))),
                 'source_preference': -10 if not throttled else -1,
-                'fps': int_or_none(fmt.get('fps')),
+                'fps': int_or_none(fmt.get('fps')) or None,
                 'height': height,
                 'quality': q(quality),
                 'tbr': tbr,
