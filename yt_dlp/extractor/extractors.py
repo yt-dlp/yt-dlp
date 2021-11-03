@@ -1321,6 +1321,12 @@ from .rice import RICEIE
 from .rmcdecouverte import RMCDecouverteIE
 from .ro220 import Ro220IE
 from .rockstargames import RockstarGamesIE
+from .rokfin import (
+    RokfinPostIE,
+    RokfinStreamIE,
+    RokfinStackIE,
+    RokfinChannelIE,
+)
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
 from .roxwel import RoxwelIE
