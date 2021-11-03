@@ -371,8 +371,28 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
     def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._preferredcodec = preferredcodec or 'best'
-        self._preferredquality = preferredquality
+        self._preferredquality = float_or_none(preferredquality)
         self._nopostoverwrites = nopostoverwrites
+
+    def _quality_args(self, codec):
+        if self._preferredquality is None:
+            return []
+        elif self._preferredquality > 10:
+            return ['-b:a', f'{self._preferredquality}k']
+
+        limits = {
+            'libmp3lame': (10, 0),
+            'aac': (0.1, 11),
+            'vorbis': (0, 10),
+            'opus': None,  # doesn't support -q:a
+            'wav': None,
+            'flac': None,
+        }[codec]
+        if not limits:
+            return []
+
+        q = limits[1] + (limits[0] - limits[1]) * (self._preferredquality / 10)
+        return ['-q:a', f'{q}']
 
     def run_ffmpeg(self, path, out_path, codec, more_opts):
         if codec is None:
@@ -417,23 +437,12 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
                 # MP3 otherwise.
                 acodec = 'libmp3lame'
                 extension = 'mp3'
-                more_opts = []
-                if self._preferredquality is not None:
-                    if int(self._preferredquality) < 10:
-                        more_opts += ['-q:a', self._preferredquality]
-                    else:
-                        more_opts += ['-b:a', self._preferredquality + 'k']
+                more_opts = self._quality_args(acodec)
         else:
             # We convert the audio (lossy if codec is lossy)
             acodec = ACODECS[self._preferredcodec]
             extension = self._preferredcodec
-            more_opts = []
-            if self._preferredquality is not None:
-                # The opus codec doesn't support the -aq option
-                if int(self._preferredquality) < 10 and extension != 'opus':
-                    more_opts += ['-q:a', self._preferredquality]
-                else:
-                    more_opts += ['-b:a', self._preferredquality + 'k']
+            more_opts = self._quality_args(acodec)
             if self._preferredcodec == 'aac':
                 more_opts += ['-f', 'adts']
             if self._preferredcodec == 'm4a':

@@ -29,6 +29,8 @@ from .utils import (
     error_to_compat_str,
     ExistingVideoReached,
     expand_path,
+    float_or_none,
+    int_or_none,
     match_filter_func,
     MaxDownloadsReached,
     parse_duration,
@@ -230,7 +232,7 @@ def _real_main(argv=None):
             parser.error('invalid audio format specified')
     if opts.audioquality:
         opts.audioquality = opts.audioquality.strip('k').strip('K')
-        if not opts.audioquality.isdigit():
+        if int_or_none(float_or_none(opts.audioquality)) is None:  # int_or_none prevents inf, nan
             parser.error('invalid audio quality specified')
     if opts.recodevideo is not None:
         opts.recodevideo = opts.recodevideo.replace(' ', '')
