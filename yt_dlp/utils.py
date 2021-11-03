@@ -4656,19 +4656,18 @@ def parse_codecs(codecs_str):
         str.strip, codecs_str.strip().strip(',').split(','))))
     vcodec, acodec, hdr = None, None, None
     for full_codec in split_codecs:
-        codec = full_codec.split('.')[0]
-        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av01', 'theora', 'dvh1', 'dvhe'):
+        parts = full_codec.split('.')
+        codec = parts[0].replace('0', '')
+        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
+                     'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
             if not vcodec:
-                vcodec = full_codec
+                vcodec = '.'.join(parts[:4]) if codec in ('vp9', 'av1') else full_codec
                 if codec in ('dvh1', 'dvhe'):
                     hdr = 'DV'
-                elif codec == 'vp9' and vcodec.startswith('vp9.2'):
+                elif codec == 'av1' and len(parts) > 3 and parts[3] == '10':
                     hdr = 'HDR10'
-                elif codec == 'av01':
-                    parts = full_codec.split('.')
-                    if len(parts) > 3 and parts[3] == '10':
-                        hdr = 'HDR10'
-                        vcodec = '.'.join(parts[:4])
+                elif full_codec.replace('0', '').startswith('vp9.2'):
+                    hdr = 'HDR10'
         elif codec in ('mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
