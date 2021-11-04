@@ -7,6 +7,7 @@ from ..utils import (
     parse_filesize,
     extract_attributes,
     int_or_none,
+    js_to_json
 )
 
 
@@ -28,7 +29,7 @@ class VuploadIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
-        video_json = self._parse_json(self._html_search_regex(r'sources:\s*(.+?]),', webpage, 'video').replace('src:', '"src":').replace('type:', '"type":'), video_id)
+        video_json = self._parse_json(self._html_search_regex(r'sources:\s*(.+?]),', webpage, 'video'), video_id, transform_source=js_to_json)
         formats = []
         for source in video_json:
             if source['src'].endswith('.m3u8'):
