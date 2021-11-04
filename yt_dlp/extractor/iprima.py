@@ -8,7 +8,127 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     js_to_json,
+    urlencode_postdata,
+    ExtractorError
 )
+
+
+class IPrimaIE(InfoExtractor):
+    _VALID_URL = r'https?://(?!cnn)(?:[^/]+)\.iprima\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
+    _GEO_BYPASS = False
+    _NETRC_MACHINE = 'iprima'
+    _LOGIN_URL = 'https://auth.iprima.cz/oauth2/login'
+    _TOKEN_URL = 'https://auth.iprima.cz/oauth2/token'
+    _LOGIN_REQUIRED = True
+    access_token = ''
+
+    def _login(self):
+        username, password = self._get_login_info()
+
+        if (username is None or password is None) and self._LOGIN_REQUIRED:
+            self.raise_login_required('Login is required to access any iPrima content')
+
+        login_page = self._download_webpage(
+            self._LOGIN_URL, None, note='Downloading login page',
+            errnote='Downloading login page failed')
+
+        login_form = self._hidden_inputs(login_page)
+
+        login_form.update({
+            '_email': username,
+            '_password': password})
+
+        _, login_handle = self._download_webpage_handle(
+            self._LOGIN_URL, None, data=urlencode_postdata(login_form),
+            note='Logging in')
+
+        try:
+            params = dict(map(lambda x: x.split('='), (str(login_handle.geturl())).split('?')[1].split('&')))
+            code = params['code']
+        except (IndexError):
+            raise ExtractorError('Login failed (invalid credentials?)', expected=True)
+
+        token_request_data = {
+            'scope': 'openid+email+profile+phone+address+offline_access',
+            'client_id': 'prima_sso',
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': 'https://auth.iprima.cz/sso/auth_check.html'}
+
+        token_data = self._download_json(
+            self._TOKEN_URL, None,
+            note='Downloading token', errnote='Downloading token failed',
+            data=urlencode_postdata(token_request_data))
+
+        self.access_token = token_data.get('access_token')
+        if self.access_token is None:
+            raise ExtractorError('Getting token failed', expected=True)
+        self.to_screen('Got access token')
+
+    def _raise_access_error(self, error_code):
+        if error_code == 'PLAY_GEOIP_DENIED':
+            self.raise_geo_restricted(countries=['CZ'])
+        elif error_code is not None:
+            raise ExtractorError('Access to stream infos forbidden', expected=True)
+
+    def _real_initialize(self):
+        self._login()
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, video_id)
+
+        title = self._html_search_meta(
+            ['og:title', 'twitter:title'],
+            webpage, 'title', default=None)
+
+        video_id = self._search_regex((
+            r'productId\s*=\s*([\'"])(?P<id>p\d+)\1',
+            r'pproduct_id\s*=\s*([\'"])(?P<id>p\d+)\1'),
+            webpage, 'real id', group='id')
+
+        metadata, metadata_handle = self._download_json_handle(
+            'https://api.play-backend.iprima.cz/api/v1//products/id-' + video_id + '/play',
+            video_id, note='Getting manifest URLs', errnote='Getting manifest URLs failed',
+            headers={'X-OTT-Access-Token': self.access_token},
+            expected_status=403)
+
+        self._raise_access_error(metadata.get('errorCode'))
+
+        stream_infos = metadata.get('streamInfos')
+        if stream_infos is None:
+            raise ExtractorError('Reading stream infos failed', expected=True)
+
+        formats = []
+        for manifest in stream_infos:
+            manifest_type = manifest.get('type')
+            manifest_url = manifest.get('url')
+            ext = determine_ext(manifest_url)
+            if manifest_type == 'HLS' or ext == 'm3u8':
+                formats += self._extract_m3u8_formats(
+                    manifest_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                    m3u8_id='hls', fatal=False)
+            elif manifest_type == 'DASH' or ext == 'mpd':
+                formats += self._extract_mpd_formats(
+                    manifest_url, video_id, mpd_id='dash', fatal=False)
+
+        self._sort_formats(formats)
+
+        final_result = self._search_json_ld(webpage, video_id) or {}
+        final_result.update({
+            'id': video_id,
+            'title': title,
+            'thumbnail': self._html_search_meta(
+                ['thumbnail', 'og:image', 'twitter:image'],
+                webpage, 'thumbnail', default=None),
+            'formats': formats,
+            'description': self._html_search_meta(
+                ['description', 'og:description', 'twitter:description'],
+                webpage, 'description', default=None)})
+
+        return final_result
+
 
 class IPrimaCNNIE(InfoExtractor):
     _VALID_URL = r'https?://cnn\.iprima\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
