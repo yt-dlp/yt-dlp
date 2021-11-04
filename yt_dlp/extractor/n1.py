@@ -106,7 +106,7 @@ class N1InfoIIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        host, video_id = self._match_valid_url(url).groups()
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         title = self._html_search_regex(r'<h1[^>]+>(.+?)</h1>', webpage, 'title')
