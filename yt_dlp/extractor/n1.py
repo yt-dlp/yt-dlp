@@ -10,7 +10,7 @@ from ..utils import (
 )
 
 
-class VideoAssetIE(InfoExtractor):
+class N1InfoAssetIE(InfoExtractor):
     _VALID_URL = r'https?://best-vod\.umn\.cdn\.united\.cloud/stream\?asset=(?P<id>[^&]+)'
     _TESTS = [{
         'url': 'https://best-vod.umn.cdn.united.cloud/stream?asset=ljsottomazilirija3060921-n1info-si-worldwide&stream=hp1400&t=0&player=m3u8v&sp=n1info&u=n1info&p=n1Sh4redSecre7iNf0',
@@ -38,7 +38,7 @@ class VideoAssetIE(InfoExtractor):
 
 class N1InfoIIE(InfoExtractor):
     IE_NAME = 'N1Info:article'
-    _VALID_URL = r'https?://(?P<host>(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)|nova\.rs)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)|nova\.rs)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
     _TESTS = [{
         # Youtube embedded
         'url': 'https://rs.n1info.com/sport-klub/tenis/kako-je-djokovic-propustio-istorijsku-priliku-video/',
@@ -107,8 +107,6 @@ class N1InfoIIE(InfoExtractor):
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).groups()
-        if host == 'nova.rs':
-            self.IE_NAME = 'novars:article'
         webpage = self._download_webpage(url, video_id)
 
         title = self._html_search_regex(r'<h1[^>]+>(.+?)</h1>', webpage, 'title')
@@ -125,7 +123,7 @@ class N1InfoIIE(InfoExtractor):
                 'title': title,
                 'thumbnail': video_data.get('data-thumbnail'),
                 'timestamp': timestamp,
-                'ie_key': 'VideoAsset'})
+                'ie_key': 'N1InfoAsset'})
 
         embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for embedded_video in embedded_videos:
