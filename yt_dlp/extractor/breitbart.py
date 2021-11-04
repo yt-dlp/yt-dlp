@@ -28,6 +28,6 @@ class BreitBartIE(InfoExtractor):
             'description': self._og_search_description(webpage),
             'thumbnail': self._og_search_thumbnail(webpage),
             'age_limit': self._rta_search(webpage),
-            'thumbnail': video_thumbnail,
+            'thumbnail': self._og_search_thumbnail(webpage),
             'formats': formats
         }
