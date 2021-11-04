@@ -91,7 +91,7 @@ class IPrimaCNNIE(InfoExtractor):
                 extract_formats(src)
 
         if not formats and '>GEO_IP_NOT_ALLOWED<' in playerpage:
-            self.raise_geo_restricted(countries=['CZ'], metadata_available=True)
+            self.raise_geo_restricted(countries=['CZ'])
 
         self._sort_formats(formats)
 
