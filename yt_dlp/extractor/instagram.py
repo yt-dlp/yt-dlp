@@ -234,7 +234,9 @@ class InstagramIE(InstagramBaseIE):
                 media, lambda x: x['edge_media_to_caption']['edges'][0]['node']['text'],
                 compat_str) or media.get('caption')
             title = media.get('title')
-            thumbnail = media.get('display_src') or media.get('display_url')
+            display_resources = media.get('display_resources')
+            if not display_resources:
+                display_resources = [{'src': media.get('display_src')}, {'src': media.get('display_url')}]
             duration = float_or_none(media.get('video_duration'))
             timestamp = int_or_none(media.get('taken_at_timestamp') or media.get('date'))
             uploader = try_get(media, lambda x: x['owner']['full_name'])
@@ -251,6 +253,12 @@ class InstagramIE(InstagramBaseIE):
             like_count = get_count('preview_like', 'like')
             comment_count = get_count(
                 ('preview_comment', 'to_comment', 'to_parent_comment'), 'comment')
+
+            thumbnails = [{
+                'url': thumbnail['src'],
+                'width': thumbnail.get('config_width'),
+                'height': thumbnail.get('config_height'),
+            } for thumbnail in display_resources if thumbnail.get('src')]
 
             comments = []
             for comment in try_get(media, lambda x: x['edge_media_to_parent_comment']['edges']):
@@ -326,7 +334,7 @@ class InstagramIE(InstagramBaseIE):
             'title': title or 'Video by %s' % uploader_id,
             'description': description,
             'duration': duration,
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
             'timestamp': timestamp,
             'uploader_id': uploader_id,
             'uploader': uploader,
