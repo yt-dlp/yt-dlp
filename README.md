@@ -1559,6 +1559,10 @@ The following extractors use this feature:
 * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
 * `version`: The video version to extract - `uncut` or `simulcast`
 
+#### crunchyroll
+* `language`: Languages to extract. Eg: `crunchyroll:language=jaJp`
+* `hardsub`: Which hard-sub versions to extract. Eg: `crunchyroll:hardsub=None,enUS`
+
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
 
