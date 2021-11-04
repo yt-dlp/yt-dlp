@@ -595,7 +595,7 @@ from .instagram import (
 )
 from .internazionale import InternazionaleIE
 from .internetvideoarchive import InternetVideoArchiveIE
-from .iprima import IPrimaIE
+from .iprima import IPrimaCNNIE
 from .iqiyi import IqiyiIE
 from .ir90tv import Ir90TvIE
 from .itv import (

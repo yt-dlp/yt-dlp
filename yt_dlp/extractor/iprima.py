@@ -10,65 +10,20 @@ from ..utils import (
     js_to_json,
 )
 
-
-class IPrimaIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+)\.iprima\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
+class IPrimaCNNIE(InfoExtractor):
+    _VALID_URL = r'https?://cnn\.iprima\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _GEO_BYPASS = False
 
     _TESTS = [{
-        'url': 'https://prima.iprima.cz/particka/92-epizoda',
+        'url': 'https://cnn.iprima.cz/porady/strunc/24072020-koronaviru-mam-plne-zuby-strasit-druhou-vlnou-je-absurdni-rika-senatorka-dernerova',
         'info_dict': {
-            'id': 'p51388',
+            'id': 'p716177',
             'ext': 'mp4',
-            'title': 'Partička (92)',
-            'description': 'md5:859d53beae4609e6dd7796413f1b6cac',
+            'title': 'Štrunc 2020 (14) - Koronaviru mám plné zuby, strašit druhou vlnou je absurdní, říká senátorka Dernerová',
         },
         'params': {
             'skip_download': True,  # m3u8 download
-        },
-    }, {
-        'url': 'https://cnn.iprima.cz/videa/70-epizoda',
-        'info_dict': {
-            'id': 'p681554',
-            'ext': 'mp4',
-            'title': 'HLAVNÍ ZPRÁVY 3.5.2020',
-        },
-        'params': {
-            'skip_download': True,  # m3u8 download
-        },
-    }, {
-        'url': 'http://play.iprima.cz/particka/particka-92',
-        'only_matching': True,
-    }, {
-        # geo restricted
-        'url': 'http://play.iprima.cz/closer-nove-pripady/closer-nove-pripady-iv-1',
-        'only_matching': True,
-    }, {
-        # iframe api.play-backend.iprima.cz
-        'url': 'https://prima.iprima.cz/my-little-pony/mapa-znameni-2-2',
-        'only_matching': True,
-    }, {
-        # iframe prima.iprima.cz
-        'url': 'https://prima.iprima.cz/porady/jak-se-stavi-sen/rodina-rathousova-praha',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.iprima.cz/filmy/desne-rande',
-        'only_matching': True,
-    }, {
-        'url': 'https://zoom.iprima.cz/10-nejvetsich-tajemstvi-zahad/posvatna-mista-a-stavby',
-        'only_matching': True,
-    }, {
-        'url': 'https://krimi.iprima.cz/mraz-0/sebevrazdy',
-        'only_matching': True,
-    }, {
-        'url': 'https://cool.iprima.cz/derava-silnice-nevadi',
-        'only_matching': True,
-    }, {
-        'url': 'https://love.iprima.cz/laska-az-za-hrob/slib-dany-bratrovi',
-        'only_matching': True,
-    }, {
-        'url': 'https://autosalon.iprima.cz/motorsport/7-epizoda-1',
-        'only_matching': True,
+        }
     }]
 
     def _real_extract(self, url):
