@@ -251,39 +251,33 @@ class TwitchVodIE(TwitchBaseIE):
         'url': 'https://player.twitch.tv/?video=480452374',
         'only_matching': True,
     }, {
-        'url': 'https://www.twitch.tv/videos/1151099246',
+        'url': 'https://www.twitch.tv/videos/635475444',
         'info_dict': {
-            "id": "v1151099246",
+            'id': 'v635475444',
             'ext': 'mp4',
-            "title": "Sz\u00f3val lesz Tarkov! - Subtember -20% a subok \u00e1r\u00e1b\u00f3l! - !VPN !sz\u00e9k !program",
-            "duration": 4661,
-            "uploader": "pingvin_harcos",
-            "uploader_id": "pingvin_harcos",
-            "timestamp": 1631862496,
-            "view_count": 2520,
-            "upload_date": "20210917",
-            "chapters": [
+            'title': 'Riot Games',
+            'duration': 11643,
+            'uploader': 'Riot Games',
+            'uploader_id': 'riotgames',
+            'timestamp': 1590770569,
+            'upload_date': '20200529',
+            'chapters': [
                 {
-                    "start_time": 0.0,
-                    "end_time": 2484.0,
-                    "title": "Escape from Tarkov"
+                    'start_time': 0,
+                    'end_time': 573,
+                    'title': 'League of Legends'
                 },
                 {
-                    "start_time": 2484.0,
-                    "end_time": 2876.0,
-                    "title": "Anno 1800"
+                    'start_time': 573,
+                    'end_time': 3922,
+                    'title': 'Legends of Runeterra'
                 },
                 {
-                    "start_time": 2876.0,
-                    "end_time": 4400.0,
-                    "title": "Just Chatting"
-                },
-                {
-                    "start_time": 4400.0,
-                    "end_time": 4661.0,
-                    "title": "Escape from Tarkov"
+                    'start_time': 3922,
+                    'end_time': 11643,
+                    'title': 'Art'
                 }
-            ]
+            ],
         },
         'params': {
             'skip_download': True
@@ -307,9 +301,8 @@ class TwitchVodIE(TwitchBaseIE):
             }],
             'Downloading stream metadata GraphQL')
 
-        # video = data[0].get('data').get('video')
         video = traverse_obj(data[0], ('data', 'video'))
-        video["moments"] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges'))
+        video['moments'] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges'))
 
         if video is None:
             raise ExtractorError(
@@ -355,6 +348,26 @@ class TwitchVodIE(TwitchBaseIE):
 
     @staticmethod
     def _extract_info_gql(info, item_id):
+        def moment_to_chapter(moment):
+            moment = moment.get('node')
+            if moment.get('type') != 'GAME_CHANGE':
+                # TODO: warning or debug log if found unknown moment type
+                return None  # TODO: or empty dict?
+
+            momentPosition = int_or_none(moment.get('positionMilliseconds'), 1000)
+            momentDuration = int_or_none(moment.get('durationMilliseconds'), 1000)
+
+            if momentPosition is None or momentDuration is None:
+                # TODO: warning or debug log about missing important data
+                chapters.clear()
+                return None  # TODO: or empty dict?
+
+            return {
+                'start_time': momentPosition,
+                'end_time': momentPosition + momentDuration,
+                'title': str_or_none(moment.get('description'))
+            }
+
         vod_id = info.get('id') or item_id
         # id backward compatibility for download archives
         if vod_id[0] != 'v':
@@ -364,31 +377,7 @@ class TwitchVodIE(TwitchBaseIE):
             for p in ('width', 'height'):
                 thumbnail = thumbnail.replace('{%s}' % p, '0')
 
-        chapters = list()
-        for moment in info.get('moments'):
-            moment = moment.get('node')
-            if moment.get('type') != 'GAME_CHANGE':
-                # TODO: warning or debug log if found unknown moment type
-                continue
-
-            momentPosition = int_or_none(moment.get('positionMilliseconds'))
-            momentDuration = int_or_none(moment.get('durationMilliseconds'))
-
-            if momentPosition is None or momentDuration is None:
-                # TODO: warning or debug log about missing important data
-                chapters.clear()
-                break
-
-            momentPosition /= 1000
-            momentDuration /= 1000
-
-            chapter = {
-                'start_time': momentPosition,
-                'end_time': momentPosition + momentDuration,
-                'title': str_or_none(moment.get('description'))
-            }
-
-            chapters.append(chapter)
+        chapters = [moment_to_chapter(moment) for moment in info.get('moments') or []]
 
         return {
             'id': vod_id,
