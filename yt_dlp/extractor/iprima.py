@@ -22,6 +22,49 @@ class IPrimaIE(InfoExtractor):
     _LOGIN_REQUIRED = True
     access_token = ''
 
+    _TESTS = [{
+        'url': 'https://prima.iprima.cz/particka/92-epizoda',
+        'info_dict': {
+            'id': 'p51388',
+            'ext': 'mp4',
+            'title': 'Partička (92)',
+            'description': 'md5:859d53beae4609e6dd7796413f1b6cac',
+            'upload_date': '20201103',
+            'timestamp': 1604437480,
+        },
+        'params': {
+            'skip_download': True,  # m3u8 download
+        },
+    }, {
+        'url': 'http://play.iprima.cz/particka/particka-92',
+        'only_matching': True,
+    }, {
+        # geo restricted
+        'url': 'http://play.iprima.cz/closer-nove-pripady/closer-nove-pripady-iv-1',
+        'only_matching': True,
+    }, {
+        'url': 'https://prima.iprima.cz/my-little-pony/mapa-znameni-2-2',
+        'only_matching': True,
+    }, {
+        'url': 'https://prima.iprima.cz/porady/jak-se-stavi-sen/rodina-rathousova-praha',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.iprima.cz/filmy/desne-rande',
+        'only_matching': True,
+    }, {
+        'url': 'https://zoom.iprima.cz/10-nejvetsich-tajemstvi-zahad/posvatna-mista-a-stavby',
+        'only_matching': True,
+    }, {
+        'url': 'https://krimi.iprima.cz/mraz-0/sebevrazdy',
+        'only_matching': True,
+    }, {
+        'url': 'https://cool.iprima.cz/derava-silnice-nevadi',
+        'only_matching': True,
+    }, {
+        'url': 'https://love.iprima.cz/laska-az-za-hrob/slib-dany-bratrovi',
+        'only_matching': True,
+    }]
+
     def _login(self):
         username, password = self._get_login_info()
 
