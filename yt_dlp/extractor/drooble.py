@@ -15,7 +15,7 @@ class DroobleIE(InfoExtractor):
     _VALID_URL = r'https?://drooble\.com/(?:(?P<user>[^/]+)?/?(?P<kind>song|videos|music/albums)/(?P<id>\d+)|(?P<id_2>[^/]+)/(?P<kind_2>videos|music))'
     _TESTS = [{
         'url': 'https://drooble.com/song/2858030',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'md5': '5ffda90f61c7c318dc0c3df4179eb064',
         'info_dict': {
             'id': '2858030',
             'ext': 'unknown_video',
