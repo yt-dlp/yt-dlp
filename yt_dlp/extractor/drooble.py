@@ -48,6 +48,12 @@ class DroobleIE(InfoExtractor):
             'id': 'karl340758',
         },
         'playlist_mincount': 8,
+    }, {
+        'url': 'https://drooble.com/karl340758/videos',
+        'info_dict': {
+            'id': 'karl340758',
+        },
+        'playlist_mincount': 8,
     }]
     _API_BASE = 'https://drooble.com/api/dt/'
 
