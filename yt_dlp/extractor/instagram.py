@@ -74,7 +74,11 @@ class InstagramBaseIE(InfoExtractor):
 
 
 class InstagramIE(InstagramBaseIE):
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com/(?:p|tv|reel)/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'''(?x)
+                    (?P<url>
+                        https?://(?:www\.)?instagram\.com/(?:p|tv|reel)/|
+                        instagram://media\?id=
+                    )(?P<id>[^/?#&]+)'''
     _TESTS = [{
         'url': 'https://instagram.com/p/aye83DjauH/?foo=bar#abc',
         'md5': '0d2da106a9d2631273e192b372806516',
@@ -170,6 +174,9 @@ class InstagramIE(InstagramBaseIE):
     }, {
         'url': 'https://www.instagram.com/reel/CDUMkliABpa/',
         'only_matching': True,
+    }, {
+        'url': 'instagram://media?id=2365570995034528346',
+        'only_matching': True,
     }]
 
     @staticmethod
@@ -190,12 +197,27 @@ class InstagramIE(InstagramBaseIE):
         if mobj:
             return mobj.group('link')
 
+    def _get_id(self, id):
+        """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
+        chrs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+        media_id = int(id.split('_')[0])
+        shortened_id = ''
+        while media_id > 0:
+            r = media_id % 64
+            media_id = (media_id - r) // 64
+            shortened_id = chrs[r] + shortened_id
+        return shortened_id
+
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
+        webpage_url = None
+        if url.startswith('instagram://'):
+            webpage_url = f'http://instagram.com/tv/{self._get_id(self._match_id(url))}/'
+        webpage_url = webpage_url or url
+        mobj = self._match_valid_url(webpage_url)
         video_id = mobj.group('id')
         url = mobj.group('url')
 
-        webpage, urlh = self._download_webpage_handle(url, video_id)
+        webpage, urlh = self._download_webpage_handle(webpage_url, video_id)
         if 'www.instagram.com/accounts/login' in urlh.geturl().rstrip('/'):
             self.raise_login_required('You need to log in to access this content')
 
