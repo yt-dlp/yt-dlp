@@ -73,12 +73,50 @@ class InstagramBaseIE(InfoExtractor):
         self._login()
 
 
+class InstagramIOSIE(InfoExtractor):
+    _VALID_URL = r'instagram://media\?id=(?P<id>[\d_]+)'
+    _TESTS = [{
+        'url': 'instagram://media?id=482584233761418119',
+        'md5': '0d2da106a9d2631273e192b372806516',
+        'info_dict': {
+            'id': 'aye83DjauH',
+            'ext': 'mp4',
+            'title': 'Video by naomipq',
+            'description': 'md5:1f17f0ab29bd6fe2bfad705f58de3cb8',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 0,
+            'timestamp': 1371748545,
+            'upload_date': '20130620',
+            'uploader_id': 'naomipq',
+            'uploader': 'B E A U T Y  F O R  A S H E S',
+            'like_count': int,
+            'comment_count': int,
+            'comments': list,
+        },
+        'add_ie': ['Instagram']
+    }]
+
+    def _get_id(self, id):
+        """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
+        chrs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+        media_id = int(id.split('_')[0])
+        shortened_id = ''
+        while media_id > 0:
+            r = media_id % 64
+            media_id = (media_id - r) // 64
+            shortened_id = chrs[r] + shortened_id
+        return shortened_id
+
+    def _real_extract(self, url):
+        return {
+            '_type': 'url_transparent',
+            'url': f'http://instagram.com/tv/{self._get_id(self._match_id(url))}/',
+            'ie_key': 'Instagram',
+        }
+
+
 class InstagramIE(InstagramBaseIE):
-    _VALID_URL = r'''(?x)
-                    (?P<url>
-                        https?://(?:www\.)?instagram\.com/(?:p|tv|reel)/|
-                        instagram://media\?id=
-                    )(?P<id>[^/?#&]+)'''
+    _VALID_URL = r'''(?P<url>https?://(?:www\.)?instagram\.com/(?:p|tv|reel)/(?P<id>[^/?#&]+))'''
     _TESTS = [{
         'url': 'https://instagram.com/p/aye83DjauH/?foo=bar#abc',
         'md5': '0d2da106a9d2631273e192b372806516',
@@ -174,9 +212,6 @@ class InstagramIE(InstagramBaseIE):
     }, {
         'url': 'https://www.instagram.com/reel/CDUMkliABpa/',
         'only_matching': True,
-    }, {
-        'url': 'instagram://media?id=2365570995034528346',
-        'only_matching': True,
     }]
 
     @staticmethod
@@ -197,27 +232,12 @@ class InstagramIE(InstagramBaseIE):
         if mobj:
             return mobj.group('link')
 
-    def _get_id(self, id):
-        """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
-        chrs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
-        media_id = int(id.split('_')[0])
-        shortened_id = ''
-        while media_id > 0:
-            r = media_id % 64
-            media_id = (media_id - r) // 64
-            shortened_id = chrs[r] + shortened_id
-        return shortened_id
-
     def _real_extract(self, url):
-        webpage_url = None
-        if url.startswith('instagram://'):
-            webpage_url = f'http://instagram.com/tv/{self._get_id(self._match_id(url))}/'
-        webpage_url = webpage_url or url
-        mobj = self._match_valid_url(webpage_url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         url = mobj.group('url')
 
-        webpage, urlh = self._download_webpage_handle(webpage_url, video_id)
+        webpage, urlh = self._download_webpage_handle(url, video_id)
         if 'www.instagram.com/accounts/login' in urlh.geturl().rstrip('/'):
             self.raise_login_required('You need to log in to access this content')
 
@@ -370,7 +390,6 @@ class InstagramIE(InstagramBaseIE):
 
 
 class InstagramPlaylistBaseIE(InstagramBaseIE):
-
     _gis_tmpl = None  # used to cache GIS request type
 
     def _parse_graphql(self, webpage, item_id):
