@@ -24,11 +24,13 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     qualities,
+    str_or_none,
+    traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
     url_or_none,
-    urljoin, traverse_obj, str_or_none,
+    urljoin,
 )
 
 
@@ -301,7 +303,7 @@ class TwitchVodIE(TwitchBaseIE):
             }],
             'Downloading stream metadata GraphQL')
 
-        video = traverse_obj(data[0], ('data', 'video'))
+        video = traverse_obj(data, (0, 'data', 'video'))
         video['moments'] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges'))
 
         if video is None:
@@ -350,17 +352,13 @@ class TwitchVodIE(TwitchBaseIE):
     def _extract_info_gql(info, item_id):
         def moment_to_chapter(moment):
             moment = moment.get('node')
-            if moment.get('type') != 'GAME_CHANGE':
-                # TODO: warning or debug log if found unknown moment type
-                return None  # TODO: or empty dict?
 
             momentPosition = int_or_none(moment.get('positionMilliseconds'), 1000)
             momentDuration = int_or_none(moment.get('durationMilliseconds'), 1000)
 
             if momentPosition is None or momentDuration is None:
                 # TODO: warning or debug log about missing important data
-                chapters.clear()
-                return None  # TODO: or empty dict?
+                return None
 
             return {
                 'start_time': momentPosition,
@@ -378,6 +376,8 @@ class TwitchVodIE(TwitchBaseIE):
                 thumbnail = thumbnail.replace('{%s}' % p, '0')
 
         chapters = [moment_to_chapter(moment) for moment in info.get('moments') or []]
+        if chapters.count(None) > 0:
+            chapters = None
 
         return {
             'id': vod_id,
@@ -389,7 +389,7 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
-            'chapters': chapters,
+            'chapters': chapters if len(chapters) == 0 else None,
         }
 
     def _real_extract(self, url):
