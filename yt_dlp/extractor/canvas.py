@@ -8,7 +8,6 @@ from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
-    escape_url,
     extract_attributes,
     float_or_none,
     get_element_by_class,
@@ -42,7 +41,6 @@ class CanvasIE(InfoExtractor):
     }]
     _GEO_BYPASS = False
     _HLS_ENTRY_PROTOCOLS_MAP = {
-     #   'HLS': 'm3u8_native',
         'HLS_AES': 'm3u8',
     }
     _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v1'
@@ -62,8 +60,9 @@ class CanvasIE(InfoExtractor):
 
         # New API endpoint
         if not data:
-            vrtnutoken = self._download_json('https://token.vrt.be/refreshtoken', 
-                video_id, note='refreshtoken: Retrieve vrtnutoken ', errnote='refreshtoken failed')['vrtnutoken']
+            vrtnutoken = self._download_json('https://token.vrt.be/refreshtoken',
+                                             video_id, note='refreshtoken: Retrieve vrtnutoken',
+                                             errnote='refreshtoken failed')['vrtnutoken']
             headers = self.geo_verification_headers()
             headers.update({'Content-Type': 'application/json; charset=utf-8'})
             vrtPlayerToken = self._download_json(
@@ -74,7 +73,7 @@ class CanvasIE(InfoExtractor):
             data = self._download_json(
                 '%s/videos/%s' % (self._REST_API_BASE, video_id),
                 video_id, 'Downloading video JSON', query={
-                    'vrtPlayerToken': vrtPlayerToken, 
+                    'vrtPlayerToken': vrtPlayerToken,
                     'client': 'null',
                 }, expected_status=400)
             if not data.get('title'):
