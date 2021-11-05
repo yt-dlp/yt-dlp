@@ -50,6 +50,7 @@ from .animelab import (
     AnimeLabIE,
     AnimeLabShowsIE,
 )
+from .amazon import AmazonStoreIE
 from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
