@@ -43,7 +43,6 @@ class CanvasIE(InfoExtractor):
     _HLS_ENTRY_PROTOCOLS_MAP = {
         'HLS_AES': 'm3u8',
     }
-    _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v1'
     _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2'
 
     def _real_extract(self, url):
