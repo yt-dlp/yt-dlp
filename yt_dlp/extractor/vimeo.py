@@ -291,7 +291,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                         )?
                         vimeo(?:pro)?\.com/
                         (?!(?:channels|album|showcase)/[^/?#]+/?(?:$|[?#])|[^/]+/review/|ondemand/)
-                        (?:.*?/)?
+                        (?:[^/]+/)*?
                         (?:
                             (?:
                                 play_redirect_hls|
@@ -572,8 +572,17 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'only_matching': True,
         },
         {
+            'note': 'Direct URL with hash',
             'url': 'https://vimeo.com/160743502/abd0e13fb4',
-            'only_matching': True,
+            'info_dict': {
+                'id': '160743502',
+                'ext': 'mp4',
+                'uploader': 'Julian Tryba',
+                'uploader_id': 'aliniamedia',
+                'title': 'Harrisville New Hampshire',
+                'timestamp': 1459259666,
+                'upload_date': '20160329',
+            },
         },
         {
             # requires passing unlisted_hash(a52724358e) to load_download_config request
@@ -708,7 +717,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
             headers['Referer'] = url
 
         # Extract ID from URL
-        video_id, unlisted_hash = self._match_valid_url(url).groups()
+        mobj = self._match_valid_url(url).groupdict()
+        video_id, unlisted_hash = mobj['id'], mobj.get('unlisted_hash')
         if unlisted_hash:
             return self._extract_from_api(video_id, unlisted_hash)
 
