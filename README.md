@@ -184,7 +184,11 @@ You can install the [PyPI package](https://pypi.org/project/yt-dlp) with:
 python3 -m pip install -U yt-dlp
 ```
 
-On some systems (like Termux), it is not possible to install pycryptodomex. In that case, install without dependancies: 
+If you install on Termux, you need to run `pkg update` to be able to install pycryptodomex.
+
+Install Termux from F-Droid to not have problems with `pkg update` and sources.
+
+If you still have problem, install without dependencies: 
 ```
 python3 -m pip install --no-deps -U yt-dlp
 ```
