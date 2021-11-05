@@ -1188,6 +1188,21 @@ class GenericIE(InfoExtractor):
             },
             'skip': 'Only has video a few mornings per month, see http://www.suffolk.edu/sjc/',
         },
+        # jwplayer with only the json URL
+        {
+            'url': 'https://www.hollywoodreporter.com/news/general-news/dunkirk-team-reveals-what-christopher-nolan-said-oscar-win-meet-your-oscar-winner-1092454',
+            'info_dict': {
+                'id': 'TljWkvWH',
+                'ext': 'mp4',
+                'upload_date': '20180306',
+                'title': 'md5:91eb1862f6526415214f62c00b453936',
+                'description': 'md5:73048ae50ae953da10549d1d2fe9b3aa',
+                'timestamp': 1520367225,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
         # Complex jwplayer
         {
             'url': 'http://www.indiedb.com/games/king-machine/videos',
@@ -3503,6 +3518,13 @@ class GenericIE(InfoExtractor):
         jwplayer_data = self._find_jwplayer_data(
             webpage, video_id, transform_source=js_to_json)
         if jwplayer_data:
+            if isinstance(jwplayer_data.get('playlist'), str):
+                return {
+                    **info_dict,
+                    '_type': 'url',
+                    'ie_key': JWPlatformIE.ie_key(),
+                    'url': jwplayer_data['playlist'],
+                }
             try:
                 info = self._parse_jwplayer_data(
                     jwplayer_data, video_id, require_title=False, base_url=url)
@@ -3561,8 +3583,7 @@ class GenericIE(InfoExtractor):
                 return info_dict
 
         # Looking for http://schema.org/VideoObject
-        json_ld = self._search_json_ld(
-            webpage, video_id, default={}, expected_type='VideoObject')
+        json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url'):
             return merge_dicts(json_ld, info_dict)
 

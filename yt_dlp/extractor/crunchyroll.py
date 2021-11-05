@@ -27,6 +27,7 @@ from ..utils import (
     int_or_none,
     lowercase_escape,
     merge_dicts,
+    qualities,
     remove_end,
     sanitized_Request,
     try_get,
@@ -478,19 +479,24 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             [r'<a[^>]+href="/publisher/[^"]+"[^>]*>([^<]+)</a>', r'<div>\s*Publisher:\s*<span>\s*(.+?)\s*</span>\s*</div>'],
             webpage, 'video_uploader', default=False)
 
+        requested_languages = self._configuration_arg('language')
+        requested_hardsubs = [('' if val == 'none' else val) for val in self._configuration_arg('hardsub')]
+        language_preference = qualities((requested_languages or [language or ''])[::-1])
+        hardsub_preference = qualities((requested_hardsubs or ['', language or ''])[::-1])
+
         formats = []
         for stream in media.get('streams', []):
-            audio_lang = stream.get('audio_lang')
-            hardsub_lang = stream.get('hardsub_lang')
+            audio_lang = stream.get('audio_lang') or ''
+            hardsub_lang = stream.get('hardsub_lang') or ''
+            if (requested_languages and audio_lang.lower() not in requested_languages
+                    or requested_hardsubs and hardsub_lang.lower() not in requested_hardsubs):
+                continue
             vrv_formats = self._extract_vrv_formats(
                 stream.get('url'), video_id, stream.get('format'),
                 audio_lang, hardsub_lang)
             for f in vrv_formats:
-                f['language_preference'] = 1 if audio_lang == language else 0
-                f['quality'] = (
-                    1 if not hardsub_lang
-                    else 0 if hardsub_lang == language
-                    else -1)
+                f['language_preference'] = language_preference(audio_lang)
+                f['quality'] = hardsub_preference(hardsub_lang)
             formats.extend(vrv_formats)
         if not formats:
             available_fmts = []

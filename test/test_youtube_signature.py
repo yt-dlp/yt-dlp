@@ -14,9 +14,10 @@ import string
 
 from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import YoutubeIE
+from yt_dlp.jsinterp import JSInterpreter
 from yt_dlp.compat import compat_str, compat_urlretrieve
 
-_TESTS = [
+_SIG_TESTS = [
     (
         'https://s.ytimg.com/yts/jsbin/html5player-vflHOr_nV.js',
         86,
@@ -64,6 +65,17 @@ _TESTS = [
     )
 ]
 
+_NSIG_TESTS = [
+    (
+        'https://www.youtube.com/s/player/9216d1f7/player_ias.vflset/en_US/base.js',
+        'SLp9F5bwjAdhE9F-', 'gWnb9IK2DJ8Q1w',
+    ),
+    (
+        'https://www.youtube.com/s/player/f8cb7a3b/player_ias.vflset/en_US/base.js',
+        'oBo2h5euWy6osrUt', 'ivXHpm7qJjJN',
+    ),
+]
+
 
 @is_download_test
 class TestPlayerInfo(unittest.TestCase):
@@ -97,35 +109,49 @@ class TestSignature(unittest.TestCase):
             os.mkdir(self.TESTDATA_DIR)
 
 
-def make_tfunc(url, sig_input, expected_sig):
-    m = re.match(r'.*-([a-zA-Z0-9_-]+)(?:/watch_as3|/html5player)?\.[a-z]+$', url)
-    assert m, '%r should follow URL format' % url
-    test_id = m.group(1)
+def t_factory(name, sig_func, url_pattern):
+    def make_tfunc(url, sig_input, expected_sig):
+        m = url_pattern.match(url)
+        assert m, '%r should follow URL format' % url
+        test_id = m.group('id')
 
-    def test_func(self):
-        basename = 'player-%s.js' % test_id
-        fn = os.path.join(self.TESTDATA_DIR, basename)
+        def test_func(self):
+            basename = f'player-{name}-{test_id}.js'
+            fn = os.path.join(self.TESTDATA_DIR, basename)
 
-        if not os.path.exists(fn):
-            compat_urlretrieve(url, fn)
+            if not os.path.exists(fn):
+                compat_urlretrieve(url, fn)
+            with io.open(fn, encoding='utf-8') as testf:
+                jscode = testf.read()
+            self.assertEqual(sig_func(jscode, sig_input), expected_sig)
 
-        ydl = FakeYDL()
-        ie = YoutubeIE(ydl)
-        with io.open(fn, encoding='utf-8') as testf:
-            jscode = testf.read()
-        func = ie._parse_sig_js(jscode)
-        src_sig = (
-            compat_str(string.printable[:sig_input])
-            if isinstance(sig_input, int) else sig_input)
-        got_sig = func(src_sig)
-        self.assertEqual(got_sig, expected_sig)
-
-    test_func.__name__ = str('test_signature_js_' + test_id)
-    setattr(TestSignature, test_func.__name__, test_func)
+        test_func.__name__ = f'test_{name}_js_{test_id}'
+        setattr(TestSignature, test_func.__name__, test_func)
+    return make_tfunc
 
 
-for test_spec in _TESTS:
-    make_tfunc(*test_spec)
+def signature(jscode, sig_input):
+    func = YoutubeIE(FakeYDL())._parse_sig_js(jscode)
+    src_sig = (
+        compat_str(string.printable[:sig_input])
+        if isinstance(sig_input, int) else sig_input)
+    return func(src_sig)
+
+
+def n_sig(jscode, sig_input):
+    funcname = YoutubeIE(FakeYDL())._extract_n_function_name(jscode)
+    return JSInterpreter(jscode).call_function(funcname, sig_input)
+
+
+make_sig_test = t_factory(
+    'signature', signature, re.compile(r'.*-(?P<id>[a-zA-Z0-9_-]+)(?:/watch_as3|/html5player)?\.[a-z]+$'))
+for test_spec in _SIG_TESTS:
+    make_sig_test(*test_spec)
+
+make_nsig_test = t_factory(
+    'nsig', n_sig, re.compile(r'.+/player/(?P<id>[a-zA-Z0-9_-]+)/.+.js$'))
+for test_spec in _NSIG_TESTS:
+    make_nsig_test(*test_spec)
 
 
 if __name__ == '__main__':

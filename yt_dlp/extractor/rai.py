@@ -14,12 +14,15 @@ from ..utils import (
     find_xpath_attr,
     fix_xml_ampersands,
     GeoRestrictedError,
+    get_element_by_class,
     HEADRequest,
     int_or_none,
     parse_duration,
+    parse_list,
     remove_start,
     strip_or_none,
     try_get,
+    unescapeHTML,
     unified_strdate,
     unified_timestamp,
     update_url_query,
@@ -585,3 +588,84 @@ class RaiIE(RaiBaseIE):
         info.update(relinker_info)
 
         return info
+
+
+class RaiPlayRadioBaseIE(InfoExtractor):
+    _BASE = 'https://www.raiplayradio.it'
+
+    def get_playlist_iter(self, url, uid):
+        webpage = self._download_webpage(url, uid)
+        for attrs in parse_list(webpage):
+            title = attrs['data-title'].strip()
+            audio_url = urljoin(url, attrs['data-mediapolis'])
+            entry = {
+                'url': audio_url,
+                'id': attrs['data-uniquename'].lstrip('ContentItem-'),
+                'title': title,
+                'ext': 'mp3',
+                'language': 'it',
+            }
+            if 'data-image' in attrs:
+                entry['thumbnail'] = urljoin(url, attrs['data-image'])
+            yield entry
+
+
+class RaiPlayRadioIE(RaiPlayRadioBaseIE):
+    _VALID_URL = r'%s/audio/.+?-(?P<id>%s)\.html' % (
+        RaiPlayRadioBaseIE._BASE, RaiBaseIE._UUID_RE)
+    _TEST = {
+        'url': 'https://www.raiplayradio.it/audio/2019/07/RADIO3---LEZIONI-DI-MUSICA-36b099ff-4123-4443-9bf9-38e43ef5e025.html',
+        'info_dict': {
+            'id': '36b099ff-4123-4443-9bf9-38e43ef5e025',
+            'ext': 'mp3',
+            'title': 'Dal "Chiaro di luna" al  "Clair de lune", prima parte con Giovanni Bietti',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'language': 'it',
+        }
+    }
+
+    def _real_extract(self, url):
+        audio_id = self._match_id(url)
+        list_url = url.replace('.html', '-list.html')
+        return next(entry for entry in self.get_playlist_iter(list_url, audio_id) if entry['id'] == audio_id)
+
+
+class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
+    _VALID_URL = r'%s/playlist/.+?-(?P<id>%s)\.html' % (
+        RaiPlayRadioBaseIE._BASE, RaiBaseIE._UUID_RE)
+    _TEST = {
+        'url': 'https://www.raiplayradio.it/playlist/2017/12/Alice-nel-paese-delle-meraviglie-72371d3c-d998-49f3-8860-d168cfdf4966.html',
+        'info_dict': {
+            'id': '72371d3c-d998-49f3-8860-d168cfdf4966',
+            'title': "Alice nel paese delle meraviglie",
+            'description': "di Lewis Carrol letto da Aldo Busi",
+        },
+        'playlist_count': 11,
+    }
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        playlist_webpage = self._download_webpage(url, playlist_id)
+        playlist_title = unescapeHTML(self._html_search_regex(
+            r'data-playlist-title="(.+?)"', playlist_webpage, 'title'))
+        playlist_creator = self._html_search_meta(
+            'nomeProgramma', playlist_webpage)
+        playlist_description = get_element_by_class(
+            'textDescriptionProgramma', playlist_webpage)
+
+        player_href = self._html_search_regex(
+            r'data-player-href="(.+?)"', playlist_webpage, 'href')
+        list_url = urljoin(url, player_href)
+
+        entries = list(self.get_playlist_iter(list_url, playlist_id))
+        for index, entry in enumerate(entries, start=1):
+            entry.update({
+                'track': entry['title'],
+                'track_number': index,
+                'artist': playlist_creator,
+                'album': playlist_title
+            })
+
+        return self.playlist_result(
+            entries, playlist_id, playlist_title, playlist_description,
+            creator=playlist_creator)

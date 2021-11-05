@@ -86,6 +86,12 @@ class VLiveIE(VLiveBaseIE):
             'creator': "Girl's Day",
             'view_count': int,
             'uploader_id': 'muploader_a',
+            'upload_date': '20150817',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'timestamp': 1439816449,
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         'url': 'http://www.vlive.tv/video/16937',
@@ -97,6 +103,9 @@ class VLiveIE(VLiveBaseIE):
             'view_count': int,
             'subtitles': 'mincount:12',
             'uploader_id': 'muploader_j',
+            'upload_date': '20161112',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'timestamp': 1478923074,
         },
         'params': {
             'skip_download': True,
@@ -173,6 +182,8 @@ class VLiveIE(VLiveBaseIE):
                 'view_count': int_or_none(video.get('playCount')),
                 'like_count': int_or_none(video.get('likeCount')),
                 'comment_count': int_or_none(video.get('commentCount')),
+                'timestamp': int_or_none(video.get('createdAt'), scale=1000),
+                'thumbnail': video.get('thumb'),
             }
 
         video_type = video.get('type')
