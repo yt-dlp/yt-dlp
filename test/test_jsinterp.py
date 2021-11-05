@@ -132,6 +132,21 @@ class TestJSInterpreter(unittest.TestCase):
         self.assertEqual(jsi.call_function('x', 3), 6)
         self.assertEqual(jsi.call_function('x', 5), 0)
 
+    def test_switch_default(self):
+        jsi = JSInterpreter('''
+        function x(f) { switch(f){
+            case 2: f+=2;
+            default: f-=1;
+            case 5:
+            case 6: f+=6;
+            case 0: break;
+            case 1: f+=1;
+        } return f }
+        ''')
+        self.assertEqual(jsi.call_function('x', 1), 2)
+        self.assertEqual(jsi.call_function('x', 5), 11)
+        self.assertEqual(jsi.call_function('x', 9), 14)
+
     def test_try(self):
         jsi = JSInterpreter('''
         function x() { try{return 10} catch(e){return 5} }

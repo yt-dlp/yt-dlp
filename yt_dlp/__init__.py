@@ -29,6 +29,8 @@ from .utils import (
     error_to_compat_str,
     ExistingVideoReached,
     expand_path,
+    float_or_none,
+    int_or_none,
     match_filter_func,
     MaxDownloadsReached,
     parse_duration,
@@ -225,11 +227,13 @@ def _real_main(argv=None):
     if opts.playlistend not in (-1, None) and opts.playlistend < opts.playliststart:
         raise ValueError('Playlist end must be greater than playlist start')
     if opts.extractaudio:
+        opts.audioformat = opts.audioformat.lower()
         if opts.audioformat not in ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS):
             parser.error('invalid audio format specified')
     if opts.audioquality:
         opts.audioquality = opts.audioquality.strip('k').strip('K')
-        if not opts.audioquality.isdigit():
+        audioquality = int_or_none(float_or_none(opts.audioquality))  # int_or_none prevents inf, nan
+        if audioquality is None or audioquality < 0:
             parser.error('invalid audio quality specified')
     if opts.recodevideo is not None:
         opts.recodevideo = opts.recodevideo.replace(' ', '')

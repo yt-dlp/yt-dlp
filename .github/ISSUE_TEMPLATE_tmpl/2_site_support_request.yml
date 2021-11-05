@@ -54,7 +54,7 @@ body:
     attributes:
       label: Verbose log
       description: |
-        Provide the complete verbose output using one of the example URLs provided above.
+        Provide the complete verbose output **using one of the example URLs provided above**.
         Add the `-Uv` flag to your command line you run yt-dlp with (`yt-dlp -Uv <your command line>`), copy the WHOLE output and insert it below.
         It should look similar to this:
       placeholder: |

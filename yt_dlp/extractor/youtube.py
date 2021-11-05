@@ -2434,7 +2434,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return prs, player_url
 
     def _extract_formats(self, streaming_data, video_id, player_url, is_live):
-        itags, stream_ids = [], []
+        itags, stream_ids = {}, []
         itag_qualities, res_qualities = {}, {}
         q = qualities([
             # Normally tiny is the smallest video-only formats. But
@@ -2498,7 +2498,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     throttled = True
 
             if itag:
-                itags.append(itag)
+                itags[itag] = 'https'
                 stream_ids.append(stream_id)
 
             tbr = float_or_none(
@@ -2512,8 +2512,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                               ' (default)' if audio_track.get('audioIsDefault') else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
                     throttled and 'THROTTLED'))),
-                'source_preference': -10 if not throttled else -1,
-                'fps': int_or_none(fmt.get('fps')),
+                'source_preference': -10 if throttled else -1,
+                'fps': int_or_none(fmt.get('fps')) or None,
                 'height': height,
                 'quality': q(quality),
                 'tbr': tbr,
@@ -2548,46 +2548,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             and 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True))
         get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
 
-        def guess_quality(f):
-            for val, qdict in ((f.get('format_id'), itag_qualities), (f.get('height'), res_qualities)):
-                if val in qdict:
-                    return q(qdict[val])
-            return -1
+        def process_manifest_format(f, proto, itag):
+            if itag in itags:
+                if itags[itag] == proto or f'{itag}-{proto}' in itags:
+                    return False
+                itag = f'{itag}-{proto}'
+            if itag:
+                f['format_id'] = itag
+                itags[itag] = proto
+
+            f['quality'] = next((
+                q(qdict[val])
+                for val, qdict in ((f.get('format_id'), itag_qualities), (f.get('height'), res_qualities))
+                if val in qdict), -1)
+            return True
 
         for sd in streaming_data:
             hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 for f in self._extract_m3u8_formats(hls_manifest_url, video_id, 'mp4', fatal=False):
-                    itag = self._search_regex(
-                        r'/itag/(\d+)', f['url'], 'itag', default=None)
-                    if itag in itags:
-                        itag += '-hls'
-                        if itag in itags:
-                            continue
-                    if itag:
-                        f['format_id'] = itag
-                        itags.append(itag)
-                    f['quality'] = guess_quality(f)
-                    yield f
+                    if process_manifest_format(f, 'hls', self._search_regex(
+                            r'/itag/(\d+)', f['url'], 'itag', default=None)):
+                        yield f
 
             dash_manifest_url = get_dash and sd.get('dashManifestUrl')
             if dash_manifest_url:
                 for f in self._extract_mpd_formats(dash_manifest_url, video_id, fatal=False):
-                    itag = f['format_id']
-                    if itag in itags:
-                        itag += '-dash'
-                        if itag in itags:
-                            continue
-                    if itag:
-                        f['format_id'] = itag
-                        itags.append(itag)
-                    f['quality'] = guess_quality(f)
-                    filesize = int_or_none(self._search_regex(
-                        r'/clen/(\d+)', f.get('fragment_base_url')
-                        or f['url'], 'file size', default=None))
-                    if filesize:
-                        f['filesize'] = filesize
-                    yield f
+                    if process_manifest_format(f, 'dash', f['format_id']):
+                        f['filesize'] = int_or_none(self._search_regex(
+                            r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
+                        yield f
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -2633,49 +2623,48 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or search_meta(['og:title', 'twitter:title', 'title']))
         video_description = get_first(video_details, 'shortDescription')
 
-        if not smuggled_data.get('force_singlefeed', False):
-            if not self.get_param('noplaylist'):
-                multifeed_metadata_list = get_first(
-                    player_responses,
-                    ('multicamera', 'playerLegacyMulticameraRenderer', 'metadataList'),
-                    expected_type=str)
-                if multifeed_metadata_list:
-                    entries = []
-                    feed_ids = []
-                    for feed in multifeed_metadata_list.split(','):
-                        # Unquote should take place before split on comma (,) since textual
-                        # fields may contain comma as well (see
-                        # https://github.com/ytdl-org/youtube-dl/issues/8536)
-                        feed_data = compat_parse_qs(
-                            compat_urllib_parse_unquote_plus(feed))
-
-                        def feed_entry(name):
-                            return try_get(
-                                feed_data, lambda x: x[name][0], compat_str)
-
-                        feed_id = feed_entry('id')
-                        if not feed_id:
-                            continue
-                        feed_title = feed_entry('title')
-                        title = video_title
-                        if feed_title:
-                            title += ' (%s)' % feed_title
-                        entries.append({
-                            '_type': 'url_transparent',
-                            'ie_key': 'Youtube',
-                            'url': smuggle_url(
-                                '%swatch?v=%s' % (base_url, feed_data['id'][0]),
-                                {'force_singlefeed': True}),
-                            'title': title,
-                        })
-                        feed_ids.append(feed_id)
-                    self.to_screen(
-                        'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
-                        % (', '.join(feed_ids), video_id))
-                    return self.playlist_result(
-                        entries, video_id, video_title, video_description)
-            else:
+        multifeed_metadata_list = get_first(
+            player_responses,
+            ('multicamera', 'playerLegacyMulticameraRenderer', 'metadataList'),
+            expected_type=str)
+        if multifeed_metadata_list and not smuggled_data.get('force_singlefeed'):
+            if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+            else:
+                entries = []
+                feed_ids = []
+                for feed in multifeed_metadata_list.split(','):
+                    # Unquote should take place before split on comma (,) since textual
+                    # fields may contain comma as well (see
+                    # https://github.com/ytdl-org/youtube-dl/issues/8536)
+                    feed_data = compat_parse_qs(
+                        compat_urllib_parse_unquote_plus(feed))
+
+                    def feed_entry(name):
+                        return try_get(
+                            feed_data, lambda x: x[name][0], compat_str)
+
+                    feed_id = feed_entry('id')
+                    if not feed_id:
+                        continue
+                    feed_title = feed_entry('title')
+                    title = video_title
+                    if feed_title:
+                        title += ' (%s)' % feed_title
+                    entries.append({
+                        '_type': 'url_transparent',
+                        'ie_key': 'Youtube',
+                        'url': smuggle_url(
+                            '%swatch?v=%s' % (base_url, feed_data['id'][0]),
+                            {'force_singlefeed': True}),
+                        'title': title,
+                    })
+                    feed_ids.append(feed_id)
+                self.to_screen(
+                    'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
+                    % (', '.join(feed_ids), video_id))
+                return self.playlist_result(
+                    entries, video_id, video_title, video_description)
 
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
         is_live = get_first(video_details, 'isLive')
@@ -2706,7 +2695,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Source is given priority since formats that throttle are given lower source_preference
         # When throttling issue is fully fixed, remove this
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang'))
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang', 'proto'))
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:

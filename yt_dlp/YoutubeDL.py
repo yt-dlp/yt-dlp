@@ -214,8 +214,8 @@ class YoutubeDL(object):
     ignore_no_formats_error: Ignore "No video formats" error. Usefull for
                        extracting metadata even if the video is not actually
                        available for download (experimental)
-    format_sort:       How to sort the video formats. see "Sorting Formats"
-                       for more details.
+    format_sort:       A list of fields by which to sort the video formats.
+                       See "Sorting Formats" for more details.
     format_sort_force: Force the given format_sort. see "Sorting Formats"
                        for more details.
     allow_multiple_video_streams:   Allow multiple video streams to be merged
@@ -3209,7 +3209,7 @@ class YoutubeDL(object):
                     self._format_screen(format_field(f, 'format_id'), self.Styles.ID),
                     format_field(f, 'ext'),
                     self.format_resolution(f),
-                    format_field(f, 'fps', '%d'),
+                    format_field(f, 'fps', '%3d'),
                     format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                     delim,
                     format_field(f, 'filesize', ' %s', func=format_bytes) + format_field(f, 'filesize_approx', '~%s', func=format_bytes),
@@ -3350,7 +3350,11 @@ class YoutubeDL(object):
             platform.architecture()[0],
             platform_name()))
 
-        exe_versions = FFmpegPostProcessor.get_versions(self)
+        exe_versions, ffmpeg_features = FFmpegPostProcessor.get_versions_and_features(self)
+        ffmpeg_features = {key for key, val in ffmpeg_features.items() if val}
+        if ffmpeg_features:
+            exe_versions['ffmpeg'] += ' (%s)' % ','.join(ffmpeg_features)
+
         exe_versions['rtmpdump'] = rtmpdump_version()
         exe_versions['phantomjs'] = PhantomJSwrapper._version()
         exe_str = ', '.join(

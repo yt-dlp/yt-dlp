@@ -69,7 +69,11 @@ _NSIG_TESTS = [
     (
         'https://www.youtube.com/s/player/9216d1f7/player_ias.vflset/en_US/base.js',
         'SLp9F5bwjAdhE9F-', 'gWnb9IK2DJ8Q1w',
-    ),  # TODO: Add more tests
+    ),
+    (
+        'https://www.youtube.com/s/player/f8cb7a3b/player_ias.vflset/en_US/base.js',
+        'oBo2h5euWy6osrUt', 'ivXHpm7qJjJN',
+    ),
 ]
 
 

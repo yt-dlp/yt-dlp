@@ -19,6 +19,7 @@ from ..utils import (
 class LinkedInLearningBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'linkedin'
     _LOGIN_URL = 'https://www.linkedin.com/uas/login?trk=learning'
+    _logged_in = False
 
     def _call_api(self, course_slug, fields, video_slug=None, resolution=None):
         query = {
@@ -34,6 +35,8 @@ class LinkedInLearningBaseIE(InfoExtractor):
             })
             sub = ' %dp' % resolution
         api_url = 'https://www.linkedin.com/learning-api/detailedCourses'
+        if not self._get_cookies(api_url).get('JSESSIONID'):
+            self.raise_login_required()
         return self._download_json(
             api_url, video_slug, 'Downloading%s JSON metadata' % sub, headers={
                 'Csrf-Token': self._get_cookies(api_url)['JSESSIONID'].value,
@@ -50,6 +53,8 @@ class LinkedInLearningBaseIE(InfoExtractor):
         return self._get_urn_id(video_data) or '%s/%s' % (course_slug, video_slug)
 
     def _real_initialize(self):
+        if self._logged_in:
+            return
         email, password = self._get_login_info()
         if email is None:
             return
@@ -72,6 +77,7 @@ class LinkedInLearningBaseIE(InfoExtractor):
             login_submit_page, 'error', default=None)
         if error:
             raise ExtractorError(error, expected=True)
+        LinkedInLearningBaseIE._logged_in = True
 
 
 class LinkedInLearningIE(LinkedInLearningBaseIE):

@@ -235,10 +235,7 @@ from .ccc import (
 from .ccma import CCMAIE
 from .cctv import CCTVIE
 from .cda import CDAIE
-from .ceskatelevize import (
-    CeskaTelevizeIE,
-    CeskaTelevizePoradyIE,
-)
+from .ceskatelevize import CeskaTelevizeIE
 from .cgtn import CGTNIE
 from .channel9 import Channel9IE
 from .charlierose import CharlieRoseIE
@@ -839,7 +836,10 @@ from .myvi import (
 )
 from .myvideoge import MyVideoGeIE
 from .myvidster import MyVidsterIE
-from .n1 import N1InfoIIE, N1InfoAssetIE
+from .n1 import (
+    N1InfoAssetIE,
+    N1InfoIIE,
+)
 from .nationalgeographic import (
     NationalGeographicVideoIE,
     NationalGeographicTVIE,
@@ -1075,6 +1075,7 @@ from .pinterest import (
     PinterestCollectionIE,
 )
 from .pladform import PladformIE
+from .planetmarathi import PlanetMarathiIE
 from .platzi import (
     PlatziIE,
     PlatziCourseIE,
