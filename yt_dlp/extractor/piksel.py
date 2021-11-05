@@ -167,7 +167,7 @@ class PikselIE(InfoExtractor):
                 re.sub(r'/od/[^/]+/', '/od/http/', smil_url), video_id,
                 transform_source=transform_source, fatal=False))
 
-        self._sort_formats(formats)
+        self._sort_formats(formats, ('tbr', ))  # Incomplete resolution information
 
         subtitles = {}
         for caption in video_data.get('captions', []):
