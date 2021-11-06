@@ -4688,7 +4688,7 @@ def parse_codecs(codecs_str):
     vcodec, acodec, hdr = None, None, None
     for full_codec in split_codecs:
         parts = full_codec.split('.')
-        codec = parts[0].replace('0', '')
+        codec = parts[0].replace('0', '').lower()
         if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
                      'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
             if not vcodec:
