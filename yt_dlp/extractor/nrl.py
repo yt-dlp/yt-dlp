@@ -16,7 +16,6 @@ class NRLTVIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-            'format': 'bestvideo',
         },
     }
 

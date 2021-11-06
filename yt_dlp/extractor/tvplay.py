@@ -369,7 +369,6 @@ class ViafreeIE(InfoExtractor):
             'upload_date': '20201217'
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True
         }
     }, {

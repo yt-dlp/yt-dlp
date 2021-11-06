@@ -60,7 +60,6 @@ class ParamountPlusIE(CBSBaseIE):
         },
         'params': {
             'skip_download': 'm3u8',
-            'format': 'bestvideo',
         },
         'expected_warnings': ['Ignoring subtitle tracks'],  # TODO: Investigate this
     }, {
@@ -76,7 +75,6 @@ class ParamountPlusIE(CBSBaseIE):
         },
         'params': {
             'skip_download': 'm3u8',
-            'format': 'bestvideo',
         },
         'expected_warnings': ['Ignoring subtitle tracks'],
     }, {

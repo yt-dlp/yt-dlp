@@ -88,7 +88,6 @@ class N1InfoIIE(InfoExtractor):
             'uploader': 'YouLotWhatDontStop',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {

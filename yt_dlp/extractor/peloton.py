@@ -203,7 +203,6 @@ class PelotonLiveIE(InfoExtractor):
             'chapters': 'count:3'
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': 'm3u8',
         },
         '_skip': 'Account needed'

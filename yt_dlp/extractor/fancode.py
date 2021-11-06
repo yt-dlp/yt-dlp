@@ -21,7 +21,6 @@ class FancodeVodIE(InfoExtractor):
         'url': 'https://fancode.com/video/15043/match-preview-pbks-vs-mi',
         'params': {
             'skip_download': True,
-            'format': 'bestvideo'
         },
         'info_dict': {
             'id': '6249806281001',
