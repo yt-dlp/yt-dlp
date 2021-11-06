@@ -278,7 +278,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
     @staticmethod
     def _extract_child_with_type(parent, t):
         for c in parent['children']:
-            if c.get('type') == t:
+            if c.get('type') and c.get('type') == t:
                 return c
 
     def _extract_mgid(self, webpage):
@@ -320,7 +320,12 @@ class MTVServicesInfoExtractor(InfoExtractor):
             main_container = self._extract_child_with_type(data, 'MainContainer')
             ab_testing = self._extract_child_with_type(main_container, 'ABTesting')
             video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
-            mgid = video_player['props']['media']['video']['config']['uri']
+            if video_player:
+                mgid = video_player['props']['media']['video']['config']['uri']
+        
+        if not mgid:
+            mgid = self._search_regex(
+                r'"videoId":"(mgid:.*?)"', webpage, 'mgid', default=None)
 
         return mgid
 
