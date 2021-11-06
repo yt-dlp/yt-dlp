@@ -92,7 +92,7 @@ class CanvasIE(InfoExtractor):
             format_type = format_type.upper()
             if format_type == 'HLS_AES':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    format_url, video_id, 'mp4', 'm3u8',
+                    format_url, video_id, 'mp4', 'm3u8_native',
                     m3u8_id=format_type, fatal=False)
                 formats.extend(fmts)
                 subtitles = self._merge_subtitles(subtitles, subs)
