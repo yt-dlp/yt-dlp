@@ -178,7 +178,7 @@ class IPrimaCNNIE(InfoExtractor):
         'info_dict': {
             'id': 'p716177',
             'ext': 'mp4',
-            'title': 'Štrunc 2020 (14) - Koronaviru mám plné zuby, strašit druhou vlnou je absurdní, říká senátorka Dernerová',
+            'title': 'md5:277c6b1ed0577e51b40ddd35602ff43e',
         },
         'params': {
             'skip_download': 'm3u8'
