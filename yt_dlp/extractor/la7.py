@@ -7,6 +7,8 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     float_or_none,
+    HEADRequest,
+    int_or_none,
     parse_duration,
     unified_strdate,
 )
@@ -40,12 +42,22 @@ class LA7IE(InfoExtractor):
     def _generate_mp4_url(self, quality, m3u8_formats):
         for f in m3u8_formats:
             if f['vcodec'] != 'none' and quality in f['url']:
+                http_url = '%s/content/%s.mp4' % (self._HOST, quality)
+
+                try:
+                    content_length = self._request_webpage(
+                        HEADRequest(http_url), quality,
+                        note='Check filesize').headers.get('Content-Length')
+                except:
+                    return None
+
                 http_f = f.copy()
                 del http_f['manifest_url']
                 http_f.update({
                     'format_id': http_f['format_id'].replace('hls-', 'https-'),
-                    'url': '%s/content/%s.mp4' % (self._HOST, quality),
+                    'url': http_url,
                     'protocol': 'https',
+                    'filesize_approx': int_or_none(content_length),
                 })
                 return http_f
 
