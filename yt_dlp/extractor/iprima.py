@@ -69,7 +69,7 @@ class IPrimaIE(InfoExtractor):
         username, password = self._get_login_info()
 
         if (username is None or password is None) and self._LOGIN_REQUIRED:
-            self.raise_login_required('Login is required to access any iPrima content')
+            self.raise_login_required('Login is required to access any iPrima content', method='password')
 
         login_page = self._download_webpage(
             self._LOGIN_URL, None, note='Downloading login page',
@@ -85,11 +85,9 @@ class IPrimaIE(InfoExtractor):
             self._LOGIN_URL, None, data=urlencode_postdata(login_form),
             note='Logging in')
 
-        try:
-            params = dict(map(lambda x: x.split('='), (str(login_handle.geturl())).split('?')[1].split('&')))
-            code = params['code']
-        except (IndexError):
-            raise ExtractorError('Login failed (invalid credentials?)', expected=True)
+        code = parse_qs(login_handle.geturl()).get('code')
+        if not code:
+            raise ExtractorError('Login failed', expected=True)
 
         token_request_data = {
             'scope': 'openid+email+profile+phone+address+offline_access',
@@ -106,7 +104,6 @@ class IPrimaIE(InfoExtractor):
         self.access_token = token_data.get('access_token')
         if self.access_token is None:
             raise ExtractorError('Getting token failed', expected=True)
-        self.to_screen('Got access token')
 
     def _raise_access_error(self, error_code):
         if error_code == 'PLAY_GEOIP_DENIED':
@@ -131,9 +128,9 @@ class IPrimaIE(InfoExtractor):
             r'pproduct_id\s*=\s*([\'"])(?P<id>p\d+)\1'),
             webpage, 'real id', group='id')
 
-        metadata, metadata_handle = self._download_json_handle(
-            'https://api.play-backend.iprima.cz/api/v1//products/id-' + video_id + '/play',
-            video_id, note='Getting manifest URLs', errnote='Getting manifest URLs failed',
+        metadata = self._download_json(
+            f'https://api.play-backend.iprima.cz/api/v1//products/id-{video_id}/play',
+            video_id, note='Getting manifest URLs', errnote='Failed to get manifest URLs',
             headers={'X-OTT-Access-Token': self.access_token},
             expected_status=403)
 
@@ -185,7 +182,7 @@ class IPrimaCNNIE(InfoExtractor):
             'title': 'Štrunc 2020 (14) - Koronaviru mám plné zuby, strašit druhou vlnou je absurdní, říká senátorka Dernerová',
         },
         'params': {
-            'skip_download': True,  # m3u8 download
+            'skip_download': 'm3u8'
         }
     }]
 
