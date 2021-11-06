@@ -199,8 +199,8 @@ class ZenYandexIE(InfoExtractor):
         webpage = self._download_webpage(url, id)
         data_json = self._parse_json(
             self._search_regex(r'data\s*=\s*({["\']_*serverState_*video.+?});', webpage, 'metadata'), id)
-        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)', webpage, 'server state').replace(
-            'State', 'Settings')
+        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
+                                         webpage, 'server state').replace('State', 'Settings')
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
                                       webpage, 'uploader', default='<a>')
         uploader_name = extract_attributes(uploader).get('aria-label')
