@@ -112,7 +112,8 @@ class IPrimaIE(InfoExtractor):
             self.raise_no_formats('Access to stream infos forbidden', expected=True)
 
     def _real_initialize(self):
-        self._login()
+        if not self.access_token:
+            self._login()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
