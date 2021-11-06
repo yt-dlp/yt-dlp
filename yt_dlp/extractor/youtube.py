@@ -3063,7 +3063,7 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                         (?:\w+\.)?
                         (?:
                             youtube(?:kids)?\.com|
-                            invidio\.us
+                            %(invidious)s
                         )/
                         (?:
                             (?P<channel_type>channel|c|user|browse)/|
@@ -3071,10 +3071,13 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                                 feed/|hashtag/|
                                 (?:playlist|watch)\?.*?\blist=
                             )|
-                            (?!(?:%s)\b)  # Direct URLs
+                            (?!(?:%(direct)s)\b)  # Direct URLs
                         )
                         (?P<id>[^/?\#&]+)
-                    ''' % YoutubeBaseInfoExtractor._RESERVED_NAMES
+                    ''' % {
+        'direct': YoutubeBaseInfoExtractor._RESERVED_NAMES,
+        'invidious': '|'.join(YoutubeIE._INVIDIOUS_SITES),
+    }
     IE_NAME = 'youtube:tab'
 
     _TESTS = [{
@@ -4292,12 +4295,15 @@ class YoutubePlaylistIE(InfoExtractor):
                         (?:
                             (?:
                                 youtube(?:kids)?\.com|
-                                invidio\.us
+                                %(invidious)s
                             )
                             /.*?\?.*?\blist=
                         )?
                         (?P<id>%(playlist_id)s)
-                     )''' % {'playlist_id': YoutubeBaseInfoExtractor._PLAYLIST_ID_RE}
+                     )''' % {
+        'playlist_id': YoutubeBaseInfoExtractor._PLAYLIST_ID_RE,
+        'invidious': '|'.join(YoutubeIE._INVIDIOUS_SITES),
+    }
     IE_NAME = 'youtube:playlist'
     _TESTS = [{
         'note': 'issue #673',
