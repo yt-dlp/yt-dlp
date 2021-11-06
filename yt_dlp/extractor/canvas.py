@@ -40,9 +40,6 @@ class CanvasIE(InfoExtractor):
         'only_matching': True,
     }]
     _GEO_BYPASS = False
-    _HLS_ENTRY_PROTOCOLS_MAP = {
-        'HLS_AES': 'm3u8',
-    }
     _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2'
 
     def _real_extract(self, url):
@@ -93,9 +90,9 @@ class CanvasIE(InfoExtractor):
             if not format_url or not format_type:
                 continue
             format_type = format_type.upper()
-            if format_type in self._HLS_ENTRY_PROTOCOLS_MAP:
+            if format_type == 'HLS_AES':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    format_url, video_id, 'mp4', self._HLS_ENTRY_PROTOCOLS_MAP[format_type],
+                    format_url, video_id, 'mp4', 'm3u8',
                     m3u8_id=format_type, fatal=False)
                 formats.extend(fmts)
                 subtitles = self._merge_subtitles(subtitles, subs)
