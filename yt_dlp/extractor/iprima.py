@@ -9,7 +9,8 @@ from ..utils import (
     determine_ext,
     js_to_json,
     urlencode_postdata,
-    ExtractorError
+    ExtractorError,
+    parse_qs
 )
 
 
@@ -85,7 +86,7 @@ class IPrimaIE(InfoExtractor):
             self._LOGIN_URL, None, data=urlencode_postdata(login_form),
             note='Logging in')
 
-        code = parse_qs(login_handle.geturl()).get('code')
+        code = parse_qs(login_handle.geturl()).get('code')[0]
         if not code:
             raise ExtractorError('Login failed', expected=True)
 
