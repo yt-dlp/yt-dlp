@@ -43,7 +43,7 @@ body:
     attributes:
       label: Verbose log
       description: |
-        Provide the complete verbose output of yt-dlp that clearly demonstrates the problem.
+        Provide the complete verbose output of yt-dlp **that clearly demonstrates the problem**.
         Add the `-Uv` flag to your command line you run yt-dlp with (`yt-dlp -Uv <your command line>`), copy the WHOLE output and insert it below.
         It should look similar to this:
       placeholder: |

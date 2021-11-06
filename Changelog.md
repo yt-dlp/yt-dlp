@@ -14,6 +14,91 @@
 -->
 
 
+### 2021.11.10
+
+* [youtube] **Fix throttling by decrypting n-sig**
+* Merging extractors from [haruhi-dl](https://git.sakamoto.pl/laudom/haruhi-dl) by [selfisekai](https://github.com/selfisekai)
+    * [extractor] Add `_search_nextjs_data`
+    * [tvp] Fix extractors
+    * [tvp] Add TVPStreamIE
+    * [wppilot] Add extractors
+    * [polskieradio] Add extractors
+    * [radiokapital] Add extractors
+    * [polsatgo] Add extractor by [selfisekai](https://github.com/selfisekai), [sdomi](https://github.com/sdomi)
+* Separate `--check-all-formats` from `--check-formats`
+* Approximate filesize from bitrate
+* Don't create console in `windows_enable_vt_mode`
+* Fix bug in `--load-infojson` of playlists
+* [minicurses] Add colors to `-F` and standardize color-printing code
+* [outtmpl] Add type `link` for internet shortcut files
+* [outtmpl] Add alternate forms for `q` and `j`
+* [outtmpl] Do not traverse `None`
+* [fragment] Fix progress display in fragmented downloads
+* [downloader/ffmpeg] Fix vtt download with ffmpeg
+* [ffmpeg] Detect presence of setts and libavformat version
+* [ExtractAudio] Rescale --audio-quality correctly by [CrypticSignal](https://github.com/CrypticSignal), [pukkandan](https://github.com/pukkandan)
+* [ExtractAudio] Use `libfdk_aac` if available by [CrypticSignal](https://github.com/CrypticSignal)
+* [FormatSort] `eac3` is better than `ac3`
+* [FormatSort] Fix some fields' defaults
+* [generic] Detect more json_ld
+* [generic] parse jwplayer with only the json URL
+* [extractor] Add keyword automatically to SearchIE descriptions
+* [extractor] Fix some errors being converted to `ExtractorError`
+* [utils] Add `join_nonempty`
+* [utils] Add `jwt_decode_hs256` by [Ashish0804](https://github.com/Ashish0804)
+* [utils] Create `DownloadCancelled` exception
+* [utils] Parse `vp09` as vp9
+* [utils] Sanitize URL when determining protocol
+* [test/download] Fallback test to `bv`
+* [docs] Minor documentation improvements
+* [cleanup] Improvements to error and debug messages
+* [cleanup] Minor fixes and cleanup
+* [3speak] Add extractors by [Ashish0804](https://github.com/Ashish0804)
+* [AmazonStore] Add extractor by [Ashish0804](https://github.com/Ashish0804)
+* [Gab] Add extractor by [u-spec-png](https://github.com/u-spec-png)
+* [mediaset] Add playlist support by [nixxo](https://github.com/nixxo)
+* [MLSScoccer] Add extractor by [Ashish0804](https://github.com/Ashish0804)
+* [N1] Add support for nova.rs by [u-spec-png](https://github.com/u-spec-png)
+* [PlanetMarathi] Add extractor by [Ashish0804](https://github.com/Ashish0804)
+* [RaiplayRadio] Add extractors by [frafra](https://github.com/frafra)
+* [roosterteeth] Add series extractor
+* [sky] Add `SkyNewsStoryIE` by [ajj8](https://github.com/ajj8)
+* [youtube] Fix sorting for some videos
+* [youtube] Populate `thumbnail` with the best "known" thumbnail
+* [youtube] Refactor itag processing
+* [youtube] Remove unnecessary no-playlist warning
+* [youtube:tab] Add Invidious list for playlists/channels by [rhendric](https://github.com/rhendric)
+* [Bilibili:comments] Fix infinite loop by [u-spec-png](https://github.com/u-spec-png)
+* [ceskatelevize] Fix extractor by [flashdagger](https://github.com/flashdagger)
+* [Coub] Fix media format identification by [wlritchi](https://github.com/wlritchi)
+* [crunchyroll] Add extractor-args `language` and `hardsub`
+* [DiscoveryPlus] Allow language codes in URL
+* [imdb] Fix thumbnail by [ozburo](https://github.com/ozburo)
+* [instagram] Add IOS URL support by [u-spec-png](https://github.com/u-spec-png)
+* [instagram] Improve login code by [u-spec-png](https://github.com/u-spec-png)
+* [Instagram] Improve metadata extraction by [u-spec-png](https://github.com/u-spec-png)
+* [iPrima] Fix extractor by [stanoarn](https://github.com/stanoarn)
+* [itv] Add support for ITV News by [ajj8](https://github.com/ajj8)
+* [la7] Fix extractor by [nixxo](https://github.com/nixxo)
+* [linkedin] Don't login multiple times
+* [mtv] Fix some videos by [Sipherdrakon](https://github.com/Sipherdrakon)
+* [Newgrounds] Fix description by [u-spec-png](https://github.com/u-spec-png)
+* [Nrk] Minor fixes by [fractalf](https://github.com/fractalf)
+* [Olympics] Fix extractor by [u-spec-png](https://github.com/u-spec-png)
+* [piksel] Fix sorting
+* [twitter] Do not sort by codec
+* [viewlift] Add cookie-based login and series support by [Ashish0804](https://github.com/Ashish0804), [pukkandan](https://github.com/pukkandan)
+* [vimeo] Detect source extension and misc cleanup by [flashdagger](https://github.com/flashdagger)
+* [vimeo] Fix ondemand videos and direct URLs with hash
+* [vk] Fix login and add subtitles by [kaz-us](https://github.com/kaz-us)
+* [VLive] Add upload_date and thumbnail by [Ashish0804](https://github.com/Ashish0804)
+* [VRT] Fix login by [pgaig](https://github.com/pgaig)
+* [Vupload] Fix extractor by [u-spec-png](https://github.com/u-spec-png)
+* [wakanim] Add support for MPD manifests by [nyuszika7h](https://github.com/nyuszika7h)
+* [wakanim] Detect geo-restriction by [nyuszika7h](https://github.com/nyuszika7h)
+* [ZenYandex] Fix extractor by [u-spec-png](https://github.com/u-spec-png)
+
+
 ### 2021.10.22
 
 * [build] Improvements

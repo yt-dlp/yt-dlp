@@ -78,7 +78,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
     * All Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) and private playlists supports downloading multiple pages of content
     * Search (`ytsearch:`, `ytsearchdate:`), search URLs and in-channel search works
     * Mixes supports downloading multiple pages of content
-    * Most (but not all) age-gated content can be downloaded without cookies
+    * Some (but not all) age-gated content can be downloaded without cookies
     * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326)
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
     * `255kbps` audio is extracted (if available) from youtube music when premium cookies are given
@@ -92,9 +92,13 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, RCN MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ, BannedVideo, bilibili categories, Epicon, filmmodu, GabTV, HungamaAlbum, ManotoTV, Niconico search, Patreon User, peloton, ProjectVeritas, radiko, StarTV, tiktok user, Tokentube, voicy, TV2HuSeries, biliintl, 17live, NewgroundsUser, peertube channel/playlist, ZenYandex, CAM4, CGTN, damtomo, gotostage, Koo, Mediaite, Mediaklikk, MuseScore, nzherald, Olympics replay, radlive, SovietsCloset, Streamanity, Theta, Chingari, ciscowebex, Gettr, GoPro, N1, Theta, Veo, Vupload, NovaPlay, SkyNewsAU, EUScreen, Gronkh, microsoftstream, on24, trovo channels
+* **New extractors**: 17live, 3speak, amazonstore, animelab, audius, bandcampmusic, bannedvideo, biliintl, bitwave.tv, blackboardcollaborate, cam4, cgtn, chingari, ciscowebex, damtomo, discoveryplus.in, douyin, epicon, euscreen, fancode, filmmodu, gab, gedi, gettr, gopro, gotostage, gronkh, koo, manototv, mediaite, mediaklikk, mediasetshow, mediathek, microsoftstream, mildom, mirrativ, mlsscoccer, mtv.it, musescore, mxplayershow, n1, nebula, nfhsnetwork, novaplay, nzherald, olympics replay, on24, openrec, parlview-AU, peloton, planetmarathi, pluto.tv, polsatgo, polskieradio, pornflip, projectveritas, radiko, radiokapital, radlive, raiplayradio, rcs, rctiplus, saitosan, sciencechannel, shemaroome, skynews-AU, skynews-story, sovietscloset, startv, streamanity, telemundo, theta, theta, tokentube, tv2huseries, ukcolumn, utreon, veo, vidiolive, vidiopremier, voicy, vupload, whowatch, wim.tv, wppilot, youtube webarchive, zee5, zen.yandex
 
-* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds, SAML Verizon login, Hungama, afreecatv, aljazeera, ATV, bitchute, camtube, CDA, eroprofile, facebook, HearThisAtIE, iwara, kakao, Motherless, Nova, peertube, pornhub, reddit, tiktok, TV2, TV2Hu, tv5mondeplus, VH1, Viafree, XHamster, 9Now, AnimalPlanet, Arte, CBC, Chingari, comedycentral, DIYNetwork, niconico, dw, funimation, globo, HiDive, NDR, Nuvid, Oreilly, pbs, plutotv, reddit, redtube, soundcloud, SpankBang, VrtNU, bbc, Bilibili, LinkedInLearning, parliamentlive, PolskieRadio, Streamable, vidme, francetv, 7plus, tagesschau
+* **New playlist extractors**: bilibili categories, eroprofile albums, hotstar series, hungama albums, newgrounds user, niconico search/users, paramountplus series, patreon user, peertube playlist/channels, roosterteeth series, sonyliv series, tiktok user, trovo channels, voot series
+
+* **Fixed/improved extractors**: 7plus, 9now, afreecatv, akamai, aljazeera, amcnetworks, animalplanet, archive.org, arte, atv, bbc, bilibili, bitchute, bravotv, camtube, cbc, cda, ceskatelevize, chingari, comedycentral, coub, crackle, crunchyroll, curiositystream, diynetwork, dw, eroprofile, facebook, francetv, funimation, globo, hearthisatie, hidive, hotstar, hungama, imdb, ina, instagram, iprima, itv, iwara, kakao, la7, linkedinlearning, linuxacadamy, mediaset, mediasite, motherless, mxplayer, nbcolympics, ndr, newgrounds, niconico, nitter, nova, nrk, nuvid, oreilly, paramountplus, parliamentlive, patreon, pbs, peertube, plutotv, polskieradio, pornhub, reddit, reddit, redtube, rmcdecouverte, roosterteeth, rtp, rumble, saml verizon login, skyit, sonyliv, soundcloud, southparkde, spankbang, spreaker, streamable, tagesschau, tbs, tennistv, tenplay, tiktok, tubi, tv2, tv2hu, tv5mondeplus, tvp, twitcasting, vh1, viafree, videa, vidio, vidme, viewlift, viki, vimeo, viu, vk, vlive, vrt, wakanim, xhamster, yahoo
+
+* **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -108,7 +112,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection) etc
 
-* **Plugin extractors**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
+* **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
 * **Self-updater**: The releases can be updated using `yt-dlp -U`
 
@@ -184,12 +188,12 @@ You can install the [PyPI package](https://pypi.org/project/yt-dlp) with:
 python3 -m pip install -U yt-dlp
 ```
 
-You can also install without any dependencies using: 
+You can install without any of the optional dependencies using:
 ```
 python3 -m pip install --no-deps -U yt-dlp
 ```
 
-You can also install the master branch with:
+If you want to be on the cutting edge, you can also install the master branch with:
 ```
 python3 -m pip3 install --force-reinstall https://github.com/yt-dlp/yt-dlp/archive/master.zip
 ```
@@ -790,7 +794,7 @@ You can also fork the project on github and push it to a release branch in your 
                                      formats are: best (default) or one of
                                      best|aac|flac|mp3|m4a|opus|vorbis|wav
     --audio-quality QUALITY          Specify ffmpeg audio quality, insert a
-                                     value between 0 (better) and 9 (worse) for
+                                     value between 0 (best) and 10 (worst) for
                                      VBR or a specific bitrate like 128K
                                      (default 5)
     --remux-video FORMAT             Remux the video into another container if
