@@ -201,8 +201,8 @@ class ZenYandexIE(InfoExtractor):
             self._search_regex(r'data\s*=\s*({["\']_*serverState_*video.+?});', webpage, 'metadata'), id)
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)', webpage, 'server state').replace(
             'State', 'Settings')
-        uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)', webpage, 'uploader',
-                                      default='<a>')
+        uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
+                                      webpage, 'uploader', default='<a>')
         uploader_name = extract_attributes(uploader).get('aria-label')
         video_json = try_get(data_json, lambda x: x[serverstate]['exportData']['video'], dict)
         stream_urls = try_get(video_json, lambda x: x['video']['streams'])
