@@ -8,7 +8,6 @@ from ..utils import (
     determine_ext,
     float_or_none,
     parse_duration,
-    smuggle_url,
     unified_strdate,
 )
 
@@ -25,19 +24,30 @@ class LA7IE(InfoExtractor):
         'url': 'http://www.la7.it/crozza/video/inccool8-02-10-2015-163722',
         'md5': '8b613ffc0c4bf9b9e377169fc19c214c',
         'info_dict': {
-            'id': '0_42j6wd36',
+            'id': 'inccool8-02-10-2015-163722',
             'ext': 'mp4',
             'title': 'Inc.Cool8',
             'description': 'Benvenuti nell\'incredibile mondo della INC. COOL. 8. dove “INC.” sta per “Incorporated” “COOL” sta per “fashion” ed Eight sta per il gesto atletico',
             'thumbnail': 're:^https?://.*',
-            'uploader_id': 'kdla7pillole@iltrovatore.it',
-            'timestamp': 1443814869,
             'upload_date': '20151002',
         },
     }, {
         'url': 'http://www.la7.it/omnibus/rivedila7/omnibus-news-02-07-2016-189077',
         'only_matching': True,
     }]
+    _HOST = 'https://awsvodpkg.iltrovatore.it'
+
+    def _generate_mp4_url(self, quality, m3u8_formats):
+        for f in m3u8_formats:
+            if f['vcodec'] != 'none' and quality in f['url']:
+                http_f = f.copy()
+                del http_f['manifest_url']
+                http_f.update({
+                    'format_id': http_f['format_id'].replace('hls-', 'https-'),
+                    'url': '%s/content/%s.mp4' % (self._HOST, quality),
+                    'protocol': 'https',
+                })
+                return http_f
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -47,21 +57,37 @@ class LA7IE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        player_data = self._search_regex(
-            [r'(?s)videoParams\s*=\s*({.+?});', r'videoLa7\(({[^;]+})\);'],
-            webpage, 'player data')
-        vid = self._search_regex(r'vid\s*:\s*"(.+?)",', player_data, 'vid')
+        upload_date = self._search_regex(r'datetime="(.+?)"', webpage, 'upload_date', fatal=False)
+        video_path = self._search_regex(r'/content/(.*?).mp4', webpage, 'video_path')
+
+        formats = []
+
+        m3u8_url = '%s/local/hls/,/content/%s.mp4.urlset/master.m3u8' % (
+            self._HOST, video_path)
+        m3u8_formats = self._extract_m3u8_formats(
+            m3u8_url, video_id, m3u8_id='hls')
+        formats.extend(m3u8_formats)
+
+        mpd_url = '%s/local/dash//,/content/%s.mp4.urlset/manifest.mpd' % (
+            self._HOST, video_path)
+        formats.extend(self._extract_mpd_formats(
+            mpd_url, video_id, mpd_id='dash'))
+
+        for q in [x for x in video_path.split(',') if x]:
+            http_f = self._generate_mp4_url(
+                q.replace('/content/', ''), m3u8_formats)
+            if http_f:
+                formats.append(http_f)
+
+        self._sort_formats(formats)
 
         return {
-            '_type': 'url_transparent',
-            'url': smuggle_url('kaltura:103:%s' % vid, {
-                'service_url': 'http://nkdam.iltrovatore.it',
-            }),
             'id': video_id,
             'title': self._og_search_title(webpage, default=None),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
-            'ie_key': 'Kaltura',
+            'formats': formats,
+            'upload_date': unified_strdate(upload_date)
         }
 
 
