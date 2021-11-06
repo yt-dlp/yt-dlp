@@ -94,7 +94,7 @@ class TokentubeIE(InfoExtractor):
 
         description = clean_html(get_element_by_class('p-d-txt', webpage)) or self._html_search_meta(('og:description', 'description', 'twitter:description'), webpage)
 
-        if description.endswith('Category'):
+        if description and description.endswith('Category'):
             description = description[:-8]
 
         self._sort_formats(formats)
