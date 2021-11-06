@@ -1200,7 +1200,7 @@ from .rice import RICEIE
 from .rmcdecouverte import RMCDecouverteIE
 from .ro220 import Ro220IE
 from .rockstargames import RockstarGamesIE
-from .roosterteeth import RoosterTeethIE
+from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
 from .roxwel import RoxwelIE
 from .rozhlas import RozhlasIE
