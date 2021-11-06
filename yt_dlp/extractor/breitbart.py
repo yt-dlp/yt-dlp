@@ -4,15 +4,22 @@ from .common import InfoExtractor
 
 
 class BreitBartIE(InfoExtractor):
-    _VALID_URL = r"https?:\/\/(?:www\.)breitbart.com/videos/v/(?P<id>[^/]+)"
-    _TESTS = [
-        {
-            'url': 'https://www.breitbart.com/videos/v/eaiZjVOn/'
-        },
-        {
-            'url': 'https://www.breitbart.com/videos/v/5cOz1yup/?pl=Ij6NDOji'
+    _VALID_URL = r'https?:\/\/(?:www\.)breitbart.com/videos/v/(?P<id>[^/]+)'
+    _TESTS = [{
+        'url': 'https://www.breitbart.com/videos/v/5cOz1yup/?pl=Ij6NDOji',
+        'md5': '0aa6d1d6e183ac5ca09207fe49f17ade',
+        'info_dict': {
+            'id': '5cOz1yup',
+            'ext': 'mp4',
+            'title': 'Watch \u2013 Clyburn: Statues in Congress Have to Go Because they Are Honoring Slavery',
+            'description': 'House Majority Whip James Clyburn (D-SC) said\u00a0Tuesday on MSNBC\'s \"Ayman Mohyeldin Reports\" that a statue sent by South Carolina of the seventh vice president of the United States\u00a0John C. Calhoun needs to be removed from\u00a0Capitol\'s National Statuary Hall because it is honoring slavery.',
+            'thumbnail': 'https://cdn.jwplayer.com/thumbs/5cOz1yup-1920.jpg',
+            'age_limit': 0,
         }
-    ]
+    }, {
+        'url': 'https://www.breitbart.com/videos/v/eaiZjVOn/',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
