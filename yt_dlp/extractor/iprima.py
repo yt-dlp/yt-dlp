@@ -20,7 +20,6 @@ class IPrimaIE(InfoExtractor):
     _NETRC_MACHINE = 'iprima'
     _LOGIN_URL = 'https://auth.iprima.cz/oauth2/login'
     _TOKEN_URL = 'https://auth.iprima.cz/oauth2/token'
-    _LOGIN_REQUIRED = True
     access_token = ''
 
     _TESTS = [{
@@ -69,7 +68,7 @@ class IPrimaIE(InfoExtractor):
     def _login(self):
         username, password = self._get_login_info()
 
-        if (username is None or password is None) and self._LOGIN_REQUIRED:
+        if username is None or password is None:
             self.raise_login_required('Login is required to access any iPrima content', method='password')
 
         login_page = self._download_webpage(
