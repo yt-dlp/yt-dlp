@@ -208,10 +208,11 @@ class ZenYandexIE(InfoExtractor):
         stream_urls = try_get(video_json, lambda x: x['video']['streams'])
         formats = []
         for s_url in stream_urls:
-            if 'manifest.mpd' in s_url:
+            ext = determine_ext(s_url)
+            if ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(s_url, id, mpd_id='dash'))
-            elif 'master.m3u8' in s_url:
-                formats.extend(self._extract_m3u8_formats(s_url, id))
+            elif ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(s_url, id, 'mp4'))
         self._sort_formats(formats)
         return {
             'id': id,
