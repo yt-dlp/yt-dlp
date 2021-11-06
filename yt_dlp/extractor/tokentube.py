@@ -92,7 +92,7 @@ class TokentubeIE(InfoExtractor):
             r'<a\s*class="place-left"[^>]+>(.+?)</a>',
             webpage, 'uploader', fatal=False)
 
-        description = clean_html(get_element_by_class('p-d-txt', webpage)) or self._html_search_meta(('og:description', 'description', 'tweeter:description'), webpage)
+        description = clean_html(get_element_by_class('p-d-txt', webpage)) or self._html_search_meta(('og:description', 'description', 'twitter:description'), webpage)
 
         if description.endswith('Category'):
             description = description[:-8]
