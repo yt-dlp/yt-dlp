@@ -228,8 +228,8 @@ class InstagramIE(InstagramBaseIE):
                     dict)
         if media:
             video_url = media.get('video_url')
-            height = int_or_none(self._html_search_meta(('og:video:height', 'video:height'), webpage), default=None) or try_get(media, lambda x: x['dimensions']['height'])
-            width = int_or_none(self._html_search_meta(('og:video:width', 'video:width'), webpage), default=None) or try_get(media, lambda x: x['dimensions']['width'])
+            height = int_or_none(self._html_search_meta(('og:video:height', 'video:height'), webpage, default=None)) or try_get(media, lambda x: x['dimensions']['height'])
+            width = int_or_none(self._html_search_meta(('og:video:width', 'video:width'), webpage, default=None)) or try_get(media, lambda x: x['dimensions']['width'])
             description = try_get(
                 media, lambda x: x['edge_media_to_caption']['edges'][0]['node']['text'],
                 compat_str) or media.get('caption')
@@ -291,8 +291,8 @@ class InstagramIE(InstagramBaseIE):
                             'url': node_video_url,
                             'thumbnail': node.get('display_url'),
                             'duration': float_or_none(node.get('video_duration')),
-                            'width': int_or_none(self._html_search_meta(('og:video:width', 'video:width'), webpage), default=None) or int_or_none(try_get(node, lambda x: x['dimensions']['width'])),
-                            'height': int_or_none(self._html_search_meta(('og:video:height', 'video:height'), webpage), default=None) or int_or_none(try_get(node, lambda x: x['dimensions']['height'])),
+                            'width': int_or_none(self._html_search_meta(('og:video:width', 'video:width'), webpage, default=None)) or int_or_none(try_get(node, lambda x: x['dimensions']['width'])),
+                            'height': int_or_none(self._html_search_meta(('og:video:height', 'video:height'), webpage, default=None)) or int_or_none(try_get(node, lambda x: x['dimensions']['height'])),
                             'view_count': int_or_none(node.get('video_view_count')),
                         })
                     return self.playlist_result(
