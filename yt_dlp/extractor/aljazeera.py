@@ -5,17 +5,7 @@ from .common import InfoExtractor
 
 
 class AlJazeeraIE(InfoExtractor):
-    _BASE_URLS = r'''
-                    (?:
-                        www\.aljazeera\.com|
-                        www\.aljazeera\.net|
-                        chinese\.aljazeera\.net|
-                        aljazeera\.com\.tr|
-                        balkans\.aljazeera\.com|
-                        balkans\.aljazeera\.net|
-                        mubasher\.aljazeera\.net|
-                    )'''
-    _VALID_URL = r'(?x)https?://%s/(?:programs?/[^/]+|(?:feature|video|new)s)?/\d{4}/\d{1,2}/\d{1,2}/(?P<id>[^/?&#]+)' % _BASE_URLS
+    _VALID_URL = r'(?x)https?://\w+\.aljazeera\.\w+/(?:programs?/[^/]+|(?:feature|video|new)s)?/\d{4}/\d{1,2}/\d{1,2}/(?P<id>[^/?&#]+)' % _BASE_URLS
 
     _TESTS = [{
         'url': 'https://balkans.aljazeera.net/videos/2021/11/6/pojedini-domovi-u-sarajevu-jos-pod-vodom-mjestanima-se-dostavlja-hrana',
