@@ -44,10 +44,6 @@ class AlJazeeraIE(InfoExtractor):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
 
-        print(get_elements_by_class('video-js', webpage))
-
-        json_ld = self._search_json_ld(webpage, id)
-
         account, player_id, embed, video_id = self._search_regex(self.BRIGHTCOVE_URL_RE, webpage, 'video id',
                                                                  group=(1, 2, 3, 4), default=(None, None, None, None))
         if None in (account, player_id, embed, id):
