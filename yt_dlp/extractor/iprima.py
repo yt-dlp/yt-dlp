@@ -20,7 +20,7 @@ class IPrimaIE(InfoExtractor):
     _NETRC_MACHINE = 'iprima'
     _LOGIN_URL = 'https://auth.iprima.cz/oauth2/login'
     _TOKEN_URL = 'https://auth.iprima.cz/oauth2/token'
-    access_token = ''
+    access_token = None
 
     _TESTS = [{
         'url': 'https://prima.iprima.cz/particka/92-epizoda',
