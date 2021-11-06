@@ -6,6 +6,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    join_nonempty,
     xpath_text,
 )
 
@@ -34,12 +35,9 @@ class WebcasterIE(InfoExtractor):
 
         title = xpath_text(video, './/event_name', 'event name', fatal=True)
 
-        def make_id(parts, separator):
-            return separator.join(filter(None, parts))
-
         formats = []
         for format_id in (None, 'noise'):
-            track_tag = make_id(('track', format_id), '_')
+            track_tag = join_nonempty('track', format_id, delim='_')
             for track in video.findall('.//iphone/%s' % track_tag):
                 track_url = track.text
                 if not track_url:
@@ -48,7 +46,7 @@ class WebcasterIE(InfoExtractor):
                     m3u8_formats = self._extract_m3u8_formats(
                         track_url, video_id, 'mp4',
                         entry_protocol='m3u8_native',
-                        m3u8_id=make_id(('hls', format_id), '-'), fatal=False)
+                        m3u8_id=join_nonempty('hls', format_id, delim='-'), fatal=False)
                     for f in m3u8_formats:
                         f.update({
                             'source_preference': 0 if format_id == 'noise' else 1,

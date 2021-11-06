@@ -9,6 +9,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     ISO639Utils,
+    join_nonempty,
     OnDemandPagedList,
     parse_duration,
     str_or_none,
@@ -263,7 +264,7 @@ class AdobeTVVideoIE(AdobeTVBaseIE):
                 continue
             formats.append({
                 'filesize': int_or_none(source.get('kilobytes') or None, invscale=1000),
-                'format_id': '-'.join(filter(None, [source.get('format'), source.get('label')])),
+                'format_id': join_nonempty(source.get('format'), source.get('label')),
                 'height': int_or_none(source.get('height') or None),
                 'tbr': int_or_none(source.get('bitrate') or None),
                 'width': int_or_none(source.get('width') or None),

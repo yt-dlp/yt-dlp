@@ -74,6 +74,7 @@ from .utils import (
     int_or_none,
     iri_to_uri,
     ISO3166Utils,
+    join_nonempty,
     LazyList,
     LINK_TEMPLATES,
     locked_file,
@@ -1169,7 +1170,7 @@ class YoutubeDL(object):
                 sub_ext = ''
                 if len(fn_groups) > 2:
                     sub_ext = fn_groups[-2]
-                filename = '.'.join(filter(None, [fn_groups[0][:trim_file_name], sub_ext, ext]))
+                filename = join_nonempty(fn_groups[0][:trim_file_name], sub_ext, ext, delim='.')
 
             return filename
         except ValueError as err:
@@ -3221,12 +3222,12 @@ class YoutubeDL(object):
                     format_field(f, 'acodec', default='unknown').replace('none', ''),
                     format_field(f, 'abr', f'%{abr_digits}dk'),
                     format_field(f, 'asr', '%5dHz'),
-                    ', '.join(filter(None, (
-                        self._format_screen('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else '',
+                    join_nonempty(
+                        self._format_screen('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
                         format_field(f, 'language', '[%s]'),
                         format_field(f, 'format_note'),
                         format_field(f, 'container', ignore=(None, f.get('ext'))),
-                    ))),
+                        delim=', '),
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
             header_line = self._list_format_headers(
                 'ID', 'EXT', 'RESOLUTION', 'FPS', 'HDR', delim, ' FILESIZE', '  TBR', 'PROTO',

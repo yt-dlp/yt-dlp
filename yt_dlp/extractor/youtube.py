@@ -39,6 +39,7 @@ from ..utils import (
     int_or_none,
     intlist_to_bytes,
     is_html,
+    join_nonempty,
     mimetype2ext,
     network_exceptions,
     orderedSet,
@@ -2507,11 +2508,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': itag,
-                'format_note': ', '.join(filter(None, (
+                'format_note': join_nonempty(
                     '%s%s' % (audio_track.get('displayName') or '',
                               ' (default)' if audio_track.get('audioIsDefault') else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
-                    throttled and 'THROTTLED'))),
+                    throttled and 'THROTTLED', delim=', '),
                 'source_preference': -10 if throttled else -1,
                 'fps': int_or_none(fmt.get('fps')) or None,
                 'height': height,

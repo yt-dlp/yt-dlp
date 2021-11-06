@@ -4,11 +4,11 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     dict_get,
     ExtractorError,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     try_get,
     unescapeHTML,
@@ -116,12 +116,8 @@ class PikselIE(InfoExtractor):
             elif asset_type == 'audio':
                 tbr = abr
 
-            format_id = ['http']
-            if tbr:
-                format_id.append(compat_str(tbr))
-
             formats.append({
-                'format_id': '-'.join(format_id),
+                'format_id': join_nonempty('http', tbr),
                 'url': unescapeHTML(http_url),
                 'vbr': vbr,
                 'abr': abr,
