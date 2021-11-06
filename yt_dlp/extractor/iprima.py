@@ -107,9 +107,9 @@ class IPrimaIE(InfoExtractor):
 
     def _raise_access_error(self, error_code):
         if error_code == 'PLAY_GEOIP_DENIED':
-            self.raise_geo_restricted(countries=['CZ'])
+            self.raise_geo_restricted(countries=['CZ'], metadata_available=True)
         elif error_code is not None:
-            raise ExtractorError('Access to stream infos forbidden', expected=True)
+            self.raise_no_formats('Access to stream infos forbidden', expected=True)
 
     def _real_initialize(self):
         self._login()
@@ -137,23 +137,22 @@ class IPrimaIE(InfoExtractor):
         self._raise_access_error(metadata.get('errorCode'))
 
         stream_infos = metadata.get('streamInfos')
-        if stream_infos is None:
-            raise ExtractorError('Reading stream infos failed', expected=True)
-
         formats = []
-        for manifest in stream_infos:
-            manifest_type = manifest.get('type')
-            manifest_url = manifest.get('url')
-            ext = determine_ext(manifest_url)
-            if manifest_type == 'HLS' or ext == 'm3u8':
-                formats += self._extract_m3u8_formats(
-                    manifest_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False)
-            elif manifest_type == 'DASH' or ext == 'mpd':
-                formats += self._extract_mpd_formats(
-                    manifest_url, video_id, mpd_id='dash', fatal=False)
-
-        self._sort_formats(formats)
+        if stream_infos is None:
+            self.raise_no_formats('Reading stream infos failed', expected=True)
+        else:
+            for manifest in stream_infos:
+                manifest_type = manifest.get('type')
+                manifest_url = manifest.get('url')
+                ext = determine_ext(manifest_url)
+                if manifest_type == 'HLS' or ext == 'm3u8':
+                    formats += self._extract_m3u8_formats(
+                        manifest_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                        m3u8_id='hls', fatal=False)
+                elif manifest_type == 'DASH' or ext == 'mpd':
+                    formats += self._extract_mpd_formats(
+                        manifest_url, video_id, mpd_id='dash', fatal=False)
+            self._sort_formats(formats)
 
         final_result = self._search_json_ld(webpage, video_id) or {}
         final_result.update({
@@ -251,7 +250,7 @@ class IPrimaCNNIE(InfoExtractor):
                 extract_formats(src)
 
         if not formats and '>GEO_IP_NOT_ALLOWED<' in playerpage:
-            self.raise_geo_restricted(countries=['CZ'])
+            self.raise_geo_restricted(countries=['CZ'], metadata_available=True)
 
         self._sort_formats(formats)
 
