@@ -322,7 +322,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
             video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
             if video_player:
                 mgid = video_player['props']['media']['video']['config']['uri']
-        
+
         if not mgid:
             mgid = self._search_regex(
                 r'"videoId":"(mgid:.*?)"', webpage, 'mgid', default=None)
