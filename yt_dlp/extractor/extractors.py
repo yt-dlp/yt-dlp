@@ -50,6 +50,7 @@ from .animelab import (
     AnimeLabIE,
     AnimeLabShowsIE,
 )
+from .amazon import AmazonStoreIE
 from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
@@ -588,12 +589,16 @@ from .indavideo import IndavideoEmbedIE
 from .infoq import InfoQIE
 from .instagram import (
     InstagramIE,
+    InstagramIOSIE,
     InstagramUserIE,
     InstagramTagIE,
 )
 from .internazionale import InternazionaleIE
 from .internetvideoarchive import InternetVideoArchiveIE
-from .iprima import IPrimaIE
+from .iprima import (
+    IPrimaIE,
+    IPrimaCNNIE
+)
 from .iqiyi import IqiyiIE
 from .ir90tv import Ir90TvIE
 from .itv import (
@@ -836,7 +841,10 @@ from .myvi import (
 )
 from .myvideoge import MyVideoGeIE
 from .myvidster import MyVidsterIE
-from .n1 import N1InfoIIE, N1InfoAssetIE
+from .n1 import (
+    N1InfoAssetIE,
+    N1InfoIIE,
+)
 from .nationalgeographic import (
     NationalGeographicVideoIE,
     NationalGeographicTVIE,
@@ -1153,6 +1161,8 @@ from .rai import (
     RaiPlayLiveIE,
     RaiPlayPlaylistIE,
     RaiIE,
+    RaiPlayRadioIE,
+    RaiPlayRadioPlaylistIE,
 )
 from .raywenderlich import (
     RayWenderlichIE,
@@ -1193,7 +1203,7 @@ from .rice import RICEIE
 from .rmcdecouverte import RMCDecouverteIE
 from .ro220 import Ro220IE
 from .rockstargames import RockstarGamesIE
-from .roosterteeth import RoosterTeethIE
+from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
 from .roxwel import RoxwelIE
 from .rozhlas import RozhlasIE

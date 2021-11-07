@@ -32,6 +32,10 @@ class HttpQuietDownloader(HttpFD):
     def to_screen(self, *args, **kargs):
         pass
 
+    def report_retry(self, err, count, retries):
+        super().to_screen(
+            f'[download] Got server HTTP error: {err}. Retrying (attempt {count} of {self.format_retries(retries)}) ...')
+
 
 class FragmentFD(FileDownloader):
     """
@@ -168,7 +172,7 @@ class FragmentFD(FileDownloader):
             self.ydl,
             {
                 'continuedl': True,
-                'quiet': True,
+                'quiet': self.params.get('quiet'),
                 'noprogress': True,
                 'ratelimit': self.params.get('ratelimit'),
                 'retries': self.params.get('retries', 0),
@@ -238,6 +242,7 @@ class FragmentFD(FileDownloader):
         start = time.time()
         ctx.update({
             'started': start,
+            'fragment_started': start,
             # Amount of fragment's bytes downloaded by the time of the previous
             # frag progress hook invocation
             'prev_frag_downloaded_bytes': 0,
@@ -268,6 +273,9 @@ class FragmentFD(FileDownloader):
                 ctx['fragment_index'] = state['fragment_index']
                 state['downloaded_bytes'] += frag_total_bytes - ctx['prev_frag_downloaded_bytes']
                 ctx['complete_frags_downloaded_bytes'] = state['downloaded_bytes']
+                ctx['speed'] = state['speed'] = self.calc_speed(
+                    ctx['fragment_started'], time_now, frag_total_bytes)
+                ctx['fragment_started'] = time.time()
                 ctx['prev_frag_downloaded_bytes'] = 0
             else:
                 frag_downloaded_bytes = s['downloaded_bytes']
@@ -276,8 +284,8 @@ class FragmentFD(FileDownloader):
                     state['eta'] = self.calc_eta(
                         start, time_now, estimated_size - resume_len,
                         state['downloaded_bytes'] - resume_len)
-                state['speed'] = s.get('speed') or ctx.get('speed')
-                ctx['speed'] = state['speed']
+                ctx['speed'] = state['speed'] = self.calc_speed(
+                    ctx['fragment_started'], time_now, frag_downloaded_bytes)
                 ctx['prev_frag_downloaded_bytes'] = frag_downloaded_bytes
             self._hook_progress(state, info_dict)
 

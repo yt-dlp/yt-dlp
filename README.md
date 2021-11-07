@@ -79,7 +79,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
     * Search (`ytsearch:`, `ytsearchdate:`), search URLs and in-channel search works
     * Mixes supports downloading multiple pages of content
     * Most (but not all) age-gated content can be downloaded without cookies
-    * Partial workaround for throttling issue
+    * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326)
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
     * `255kbps` audio is extracted (if available) from youtube music when premium cookies are given
     * Youtube music Albums, channels etc can be downloaded ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723))
@@ -154,7 +154,7 @@ For ease of use, a few more compat options are available:
 
 You can install yt-dlp using one of the following methods:
 
-#### Using the release binary
+### Using the release binary
 
 You can simply download the [correct binary file](#release-files) for your OS: **[[Windows](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)] [[UNIX-like](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)]**
 
@@ -177,7 +177,7 @@ sudo chmod a+rx /usr/local/bin/yt-dlp
 
 PS: The manpages, shell completion files etc. are available in [yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
-#### With [PIP](https://pypi.org/project/pip)
+### With [PIP](https://pypi.org/project/pip)
 
 You can install the [PyPI package](https://pypi.org/project/yt-dlp) with:
 ```
@@ -196,7 +196,7 @@ python3 -m pip3 install -U https://github.com/yt-dlp/yt-dlp/archive/master.zip
 
 Note that on some systems, you may need to use `py` or `python` instead of `python3`
 
-#### With [Homebrew](https://brew.sh)
+### With [Homebrew](https://brew.sh)
 
 macOS or Linux users that are using Homebrew can also install it by:
 
@@ -204,14 +204,14 @@ macOS or Linux users that are using Homebrew can also install it by:
 brew install yt-dlp/taps/yt-dlp
 ```
 
-### UPDATE
+## UPDATE
 You can use `yt-dlp -U` to update if you are [using the provided release](#using-the-release-binary)
 
 If you [installed with pip](#with-pip), simply re-run the same command that was used to install the program
 
 If you [installed using Homebrew](#with-homebrew), run `brew upgrade yt-dlp/taps/yt-dlp`
 
-### RELEASE FILES
+## RELEASE FILES
 
 #### Recommended
 
@@ -238,7 +238,7 @@ File|Description
 [SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
 [SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
 
-### DEPENDENCIES
+## DEPENDENCIES
 Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
 <!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
@@ -266,7 +266,7 @@ The Windows and MacOS standalone release binaries are already built with the pyt
 **Note**: There are some regressions in newer ffmpeg versions that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependancy, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds/wiki/Latest#latest-autobuilds) with patches for these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specifc issues solved by these builds
 
 
-### COMPILE
+## COMPILE
 
 **For Windows**:
 To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodomex, websockets). Once you have all the necessary dependencies installed, (optionally) build lazy extractors using `devscripts/make_lazy_extractors.py`, and then just run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
@@ -754,7 +754,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      "ass/srt/best"
     --sub-langs LANGS                Languages of the subtitles to download (can
                                      be regex) or "all" separated by commas.
-                                     (Eg: --sub-langs en.*,ja) You can prefix
+                                     (Eg: --sub-langs "en.*,ja") You can prefix
                                      the language code with a "-" to exempt it
                                      from the requested languages. (Eg: --sub-
                                      langs all,-live_chat) Use --list-subs for a
@@ -989,7 +989,7 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
 
-    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `~` points to %HOME% if present, `%USERPROFILE%` (generally `C:\Users\<user name>`) or `%HOMEDRIVE%%HOMEPATH%`.
+    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `%APPDATA%` generally points to (`C:\Users\<user name>\AppData\Roaming`) and `~` points to `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`), or `%HOMEDRIVE%%HOMEPATH%`
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
 For example, with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
@@ -1011,7 +1011,7 @@ For example, with the following configuration file yt-dlp will always extract th
 
 Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
 
-You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of user and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
+You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of home, user, and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
 ### Authentication with `.netrc` file
 
@@ -1321,7 +1321,7 @@ The available fields are:
  - `source`: Preference of the source as given by the extractor
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
- - `acodec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac3` > `dts` > other > unknown)
+ - `acodec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `eac3` > `ac3` > `dts` > other > unknown)
  - `codec`: Equivalent to `vcodec,acodec`
  - `vext`: Video Extension (`mp4` > `webm` > `flv` > other > unknown). If `--prefer-free-formats` is used, `webm` is prefered.
  - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other > unknown). If `--prefer-free-formats` is used, the order changes to `opus` > `ogg` > `webm` > `m4a` > `mp3` > `aac`.
@@ -1478,7 +1478,7 @@ $ yt-dlp -S '+res:480,codec,br'
 
 # MODIFYING METADATA
 
-The metadata obtained the the extractors can be modified by using `--parse-metadata` and `--replace-in-metadata`
+The metadata obtained by the extractors can be modified by using `--parse-metadata` and `--replace-in-metadata`
 
 `--replace-in-metadata FIELDS REGEX REPLACE` is used to replace text in any metadata field using [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax). [Backreferences](https://docs.python.org/3/library/re.html?highlight=backreferences#re.sub) can be used in the replace string for advanced use.
 
@@ -1559,6 +1559,10 @@ The following extractors use this feature:
 #### funimation
 * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
 * `version`: The video version to extract - `uncut` or `simulcast`
+
+#### crunchyroll
+* `language`: Languages to extract. Eg: `crunchyroll:language=jaJp`
+* `hardsub`: Which hard-sub versions to extract. Eg: `crunchyroll:hardsub=None,enUS`
 
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
