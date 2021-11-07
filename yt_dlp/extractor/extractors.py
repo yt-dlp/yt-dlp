@@ -789,6 +789,7 @@ from .mirrativ import (
 )
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
+from .mixch import MixchIE
 from .mixcloud import (
     MixcloudIE,
     MixcloudUserIE,
