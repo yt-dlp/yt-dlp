@@ -12,7 +12,6 @@ from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
-    parse_duration,
     parse_iso8601,
     qualities,
     try_get,
@@ -30,162 +29,12 @@ class TVPlayIE(InfoExtractor):
                         mtg:|
                         https?://
                             (?:www\.)?
-                            (?:
-                                tvplay(?:\.skaties)?\.lv(?:/parraides)?|
-                                (?:tv3play|play\.tv3)\.lt(?:/programos)?|
-                                tv3play(?:\.tv3)?\.ee/sisu|
-                                (?:tv(?:3|6|8|10)play)\.se/program|
-                                (?:(?:tv3play|viasat4play|tv6play)\.no|(?:tv3play)\.dk)/programmer|
-                                play\.nova(?:tv)?\.bg/programi
-                            )
+                            (?:play\.nova(?:tv)?\.bg/programi)
                             /(?:[^/]+/)+
                         )
                         (?P<id>\d+)
                     '''
     _TESTS = [
-        {
-            'url': 'http://www.tvplay.lv/parraides/vinas-melo-labak/418113?autostart=true',
-            'md5': 'a1612fe0849455423ad8718fe049be21',
-            'info_dict': {
-                'id': '418113',
-                'ext': 'mp4',
-                'title': 'Kādi ir īri? - Viņas melo labāk',
-                'description': 'Baiba apsmej īrus, kādi tie ir un ko viņi dara.',
-                'series': 'Viņas melo labāk',
-                'season': '2.sezona',
-                'season_number': 2,
-                'duration': 25,
-                'timestamp': 1406097056,
-                'upload_date': '20140723',
-            },
-        },
-        {
-            'url': 'http://play.tv3.lt/programos/moterys-meluoja-geriau/409229?autostart=true',
-            'info_dict': {
-                'id': '409229',
-                'ext': 'flv',
-                'title': 'Moterys meluoja geriau',
-                'description': 'md5:9aec0fc68e2cbc992d2a140bd41fa89e',
-                'series': 'Moterys meluoja geriau',
-                'episode_number': 47,
-                'season': '1 sezonas',
-                'season_number': 1,
-                'duration': 1330,
-                'timestamp': 1403769181,
-                'upload_date': '20140626',
-            },
-            'params': {
-                # rtmp download
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv3play.ee/sisu/kodu-keset-linna/238551?autostart=true',
-            'info_dict': {
-                'id': '238551',
-                'ext': 'flv',
-                'title': 'Kodu keset linna 398537',
-                'description': 'md5:7df175e3c94db9e47c0d81ffa5d68701',
-                'duration': 1257,
-                'timestamp': 1292449761,
-                'upload_date': '20101215',
-            },
-            'params': {
-                # rtmp download
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv3play.se/program/husraddarna/395385?autostart=true',
-            'info_dict': {
-                'id': '395385',
-                'ext': 'mp4',
-                'title': 'Husräddarna S02E07',
-                'description': 'md5:f210c6c89f42d4fc39faa551be813777',
-                'duration': 2574,
-                'timestamp': 1400596321,
-                'upload_date': '20140520',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv6play.se/program/den-sista-dokusapan/266636?autostart=true',
-            'info_dict': {
-                'id': '266636',
-                'ext': 'mp4',
-                'title': 'Den sista dokusåpan S01E08',
-                'description': 'md5:295be39c872520221b933830f660b110',
-                'duration': 1492,
-                'timestamp': 1330522854,
-                'upload_date': '20120229',
-                'age_limit': 18,
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv8play.se/program/antikjakten/282756?autostart=true',
-            'info_dict': {
-                'id': '282756',
-                'ext': 'mp4',
-                'title': 'Antikjakten S01E10',
-                'description': 'md5:1b201169beabd97e20c5ad0ad67b13b8',
-                'duration': 2646,
-                'timestamp': 1348575868,
-                'upload_date': '20120925',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv3play.no/programmer/anna-anka-soker-assistent/230898?autostart=true',
-            'info_dict': {
-                'id': '230898',
-                'ext': 'mp4',
-                'title': 'Anna Anka søker assistent - Ep. 8',
-                'description': 'md5:f80916bf5bbe1c5f760d127f8dd71474',
-                'duration': 2656,
-                'timestamp': 1277720005,
-                'upload_date': '20100628',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.viasat4play.no/programmer/budbringerne/21873?autostart=true',
-            'info_dict': {
-                'id': '21873',
-                'ext': 'mp4',
-                'title': 'Budbringerne program 10',
-                'description': 'md5:4db78dc4ec8a85bb04fd322a3ee5092d',
-                'duration': 1297,
-                'timestamp': 1254205102,
-                'upload_date': '20090929',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv6play.no/programmer/hotelinspektor-alex-polizzi/361883?autostart=true',
-            'info_dict': {
-                'id': '361883',
-                'ext': 'mp4',
-                'title': 'Hotelinspektør Alex Polizzi - Ep. 10',
-                'description': 'md5:3ecf808db9ec96c862c8ecb3a7fdaf81',
-                'duration': 2594,
-                'timestamp': 1393236292,
-                'upload_date': '20140224',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
         {
             'url': 'http://play.novatv.bg/programi/zdravei-bulgariya/624952?autostart=true',
             'info_dict': {
@@ -204,23 +53,6 @@ class TVPlayIE(InfoExtractor):
         },
         {
             'url': 'https://play.nova.bg/programi/zdravei-bulgariya/764300?autostart=true',
-            'only_matching': True,
-        },
-        {
-            'url': 'http://tvplay.skaties.lv/parraides/vinas-melo-labak/418113?autostart=true',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://tvplay.skaties.lv/vinas-melo-labak/418113/?autostart=true',
-            'only_matching': True,
-        },
-        {
-            # views is null
-            'url': 'http://tvplay.skaties.lv/parraides/tv3-zinas/760183',
-            'only_matching': True,
-        },
-        {
-            'url': 'http://tv3play.tv3.ee/sisu/kodu-keset-linna/238551?autostart=true',
             'only_matching': True,
         },
         {
@@ -432,77 +264,96 @@ class ViafreeIE(InfoExtractor):
 
 
 class TVPlayHomeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:tv3?)?play\.(?:tv3\.lt|skaties\.lv|tv3\.ee)/(?:[^/]+/)*[^/?#&]+-(?P<id>\d+)'
+    _VALID_URL = r'''(?x)
+            https?://
+            (?:tv3?)?
+            play\.(?:tv3|skaties).(?P<country>lv|lt|ee)/
+            (?P<live>lives/)?
+            (?:[^/]+/)*[^/?#&]+(?:episode|programme|clip)-(?P<id>\d+)
+    '''
     _TESTS = [{
-        'url': 'https://tvplay.tv3.lt/aferistai-n-7/aferistai-10047125/',
+        'url': 'https://play.tv3.lt/series/moterys-meluoja-geriau-n-7,serial-2574652/serija-25,episode-3284937',
         'info_dict': {
-            'id': '366367',
+            'id': '3284937',
             'ext': 'mp4',
-            'title': 'Aferistai',
-            'description': 'Aferistai. Kalėdinė pasaka.',
-            'series': 'Aferistai [N-7]',
-            'season': '1 sezonas',
-            'season_number': 1,
-            'duration': 464,
-            'timestamp': 1394209658,
-            'upload_date': '20140307',
-            'age_limit': 18,
+            'season': 'Moterys meluoja geriau [N-7]',
+            'season_number': 14,
+            'release_year': 2021,
+            'episode': 'Serija 25',
+            'episode_number': 25,
+            'title': 'Moterys meluoja geriau [N-7] (2021) | S14|E25: Serija 25',
+            'description': 'md5:c6926e9710f1a126f028fbe121eddb79',
+            'duration': 2440,
         },
         'params': {
+            'format': 'bestvideo',
+            # m3u8 download
             'skip_download': True,
         },
     }, {
-        'url': 'https://tvplay.skaties.lv/vinas-melo-labak/vinas-melo-labak-10280317/',
+        'url': 'https://play.tv3.lt/lives/tv6-lt,live-2838694/optibet-a-lygos-rungtynes-marijampoles-suduva--vilniaus-riteriai,programme-3422014',
         'only_matching': True,
     }, {
-        'url': 'https://tvplay.tv3.ee/cool-d-ga-mehhikosse/cool-d-ga-mehhikosse-10044354/',
+        'url': 'https://tv3play.skaties.lv/series/women-lie-better-lv,serial-1024464/women-lie-better-lv,episode-1038762',
         'only_matching': True,
     }, {
-        'url': 'https://play.tv3.lt/aferistai-10047125',
+        'url': 'https://play.tv3.ee/series/_,serial-2654462/_,episode-2654474',
         'only_matching': True,
     }, {
-        'url': 'https://tv3play.skaties.lv/vinas-melo-labak-10280317',
-        'only_matching': True,
-    }, {
-        'url': 'https://play.tv3.ee/cool-d-ga-mehhikosse-10044354',
+        'url': 'https://tv3play.skaties.lv/clips/tv3-zinas-valsti-lidz-15novembrim-bus-majsede,clip-3464509',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        country, is_live, video_id = self._match_valid_url(url).groups()
+        video_type = 'MOVIE'
+        asset = {
+            'id': video_id
+        }
 
-        asset = self._download_json(
-            urljoin(url, '/sb/public/asset/' + video_id), video_id)
+        if is_live is None:
+            json = self._download_json(
+                urljoin(url,
+                        f'/api/products/vods/{video_id}?platform=BROWSER&lang={country.upper()}'),
+                video_id)
 
-        m3u8_url = asset['movie']['contentUrl']
-        video_id = asset['assetId']
-        asset_title = asset['title']
-        title = asset_title['title']
+            asset['season'] = try_get(json, lambda x: x['season']['serial']['title'])
+            asset['season_number'] = int_or_none(try_get(json, lambda x: x['season']['number']))
+            asset['release_year'] = int_or_none(try_get(json, lambda x: x["season"]["serial"]["year"]))
+            asset['episode'] = json.get('title')
+            asset['episode_number'] = int_or_none(json.get('episode'))
+        else:
+            json = self._download_json(
+                urljoin(url, f'/api/products/lives/programmes/{video_id}?platform=BROWSER&lang={country.upper()}'),
+                video_id)
+            video_type = 'CATCHUP'
+            video_id = json['programRecordingId']
 
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
+        asset['title'] = self.resolve_title(json)
+        asset['description'] = json.get('description') or json.get('lead')
+        asset['duration'] = int_or_none(json.get('duration'))
 
-        thumbnails = None
-        image_url = asset.get('imageUrl')
-        if image_url:
-            thumbnails = [{
-                'url': urljoin(url, image_url),
+        images = json.get('gallery') or json.get('images')
+        if images is not None:
+            pc_ = images['pc'][0]
+            asset['thumbnails'] = [{
+                'url': pc_.get('mainUrl') or pc_.get('miniUrl'),
                 'ext': 'jpg',
             }]
 
-        metadata = asset.get('metadata') or {}
+        stream = self._download_json(
+            urljoin(url, f'/api/products/{video_id}/videos/playlist?videoType={video_type}&platform=BROWSER'), video_id)
 
-        return {
-            'id': video_id,
-            'title': title,
-            'description': asset_title.get('summaryLong') or asset_title.get('summaryShort'),
-            'thumbnails': thumbnails,
-            'duration': parse_duration(asset_title.get('runTime')),
-            'series': asset.get('tvSeriesTitle'),
-            'season': asset.get('tvSeasonTitle'),
-            'season_number': int_or_none(metadata.get('seasonNumber')),
-            'episode': asset_title.get('titleBrief'),
-            'episode_number': int_or_none(metadata.get('episodeNumber')),
-            'formats': formats,
-        }
+        m3u8_url = stream['sources']['HLS'][0]['src']
+
+        asset['formats'] = self._extract_m3u8_formats(
+            m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
+        self._sort_formats(asset['formats'])
+
+        return asset
+
+    def resolve_title(self, json):
+        try:
+            return f'{json["season"]["serial"]["title"]} ({json["season"]["serial"]["year"]}) | S{json["season"]["number"]:02d}|E{json["episode"]:02d}: {json["title"]}'
+        except KeyError:
+            return json.get("title")
