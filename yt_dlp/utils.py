@@ -6442,10 +6442,10 @@ def traverse_obj(
 
     def _traverse_obj(obj, path, _current_depth=0):
         nonlocal depth
-        if obj is None:
-            return None
         path = tuple(variadic(path))
         for i, key in enumerate(path):
+            if obj is None:
+                return None
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...
