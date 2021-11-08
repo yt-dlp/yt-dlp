@@ -1104,22 +1104,23 @@ class YoutubeDL(object):
 
             value = default if value is None else value
 
+            flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
             if fmt[-1] == 'l':  # list
-                delim = '\n' if '#' in (outer_mobj.group('conversion') or '') else ', '
+                delim = '\n' if '#' in flags else ', '
                 value, fmt = delim.join(variadic(value)), str_fmt
             elif fmt[-1] == 'j':  # json
-                value, fmt = json.dumps(value, default=_dumpjson_default), str_fmt
+                value, fmt = json.dumps(value, default=_dumpjson_default, indent=4 if '#' in flags else None), str_fmt
             elif fmt[-1] == 'q':  # quoted
-                value, fmt = compat_shlex_quote(str(value)), str_fmt
+                value = map(str, variadic(value) if '#' in flags else [value])
+                value, fmt = ' '.join(map(compat_shlex_quote, value)), str_fmt
             elif fmt[-1] == 'B':  # bytes
                 value = f'%{str_fmt}'.encode('utf-8') % str(value).encode('utf-8')
                 value, fmt = value.decode('utf-8', 'ignore'), 's'
             elif fmt[-1] == 'U':  # unicode normalized
-                opts = outer_mobj.group('conversion') or ''
                 value, fmt = unicodedata.normalize(
                     # "+" = compatibility equivalence, "#" = NFD
-                    'NF%s%s' % ('K' if '+' in opts else '', 'D' if '#' in opts else 'C'),
+                    'NF%s%s' % ('K' if '+' in flags else '', 'D' if '#' in flags else 'C'),
                     value), str_fmt
             elif fmt[-1] == 'c':
                 if value:
