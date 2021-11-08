@@ -42,7 +42,7 @@ class LA7IE(InfoExtractor):
     def _generate_mp4_url(self, quality, m3u8_formats):
         for f in m3u8_formats:
             if f['vcodec'] != 'none' and quality in f['url']:
-                http_url = '%s/content/%s.mp4' % (self._HOST, quality)
+                http_url = '%s%s.mp4' % (self._HOST, quality)
 
                 urlh = self._request_webpage(
                     HEADRequest(http_url), quality,
@@ -68,24 +68,23 @@ class LA7IE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         upload_date = self._search_regex(r'datetime="(.+?)"', webpage, 'upload_date', fatal=False)
-        video_path = self._search_regex(r'/content/(.*?).mp4', webpage, 'video_path')
+        video_path = self._search_regex(r'(/content/.*?).mp4', webpage, 'video_path')
 
         formats = []
 
-        m3u8_url = '%s/local/hls/,/content/%s.mp4.urlset/master.m3u8' % (
+        m3u8_url = '%s/local/hls/,%s.mp4.urlset/master.m3u8' % (
             self._HOST, video_path)
         m3u8_formats = self._extract_m3u8_formats(
             m3u8_url, video_id, m3u8_id='hls')
         formats.extend(m3u8_formats)
 
-        mpd_url = '%s/local/dash//,/content/%s.mp4.urlset/manifest.mpd' % (
+        mpd_url = '%s/local/dash//,%s.mp4.urlset/manifest.mpd' % (
             self._HOST, video_path)
         formats.extend(self._extract_mpd_formats(
-            mpd_url, video_id, mpd_id='dash'))
+            mpd_url, video_id, mpd_id='dash', fatal=False))
 
         for q in filter(None, video_path.split(',')):
-            http_f = self._generate_mp4_url(
-                q.replace('/content/', ''), m3u8_formats)
+            http_f = self._generate_mp4_url(q, m3u8_formats)
             if http_f:
                 formats.append(http_f)
 
