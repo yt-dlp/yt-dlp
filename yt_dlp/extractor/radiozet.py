@@ -13,6 +13,7 @@ class RadioZetPodcastIE(InfoExtractor):
         'md5': 'e03665c316b4fbc5f6a8f232948bbba3',
         'info_dict': {
             'id': '42154',
+            'display_id': 'O-przedmiotach-szkolnych-ktore-przydaja-sie-w-zyciu',
             'title': 'O przedmiotach szkolnych, które przydają się w życiu',
             'description': 'Katarzyna Pakosińska w roli coacherki z bezcennymi radami dla słuchaczy dotyczącymi pracy i życia w wyjątkowym stylu. Rozwiąż swoje codzienne problemy z Radiem ZET!',
             'release_timestamp': 1592985480,
