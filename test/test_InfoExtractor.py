@@ -736,8 +736,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 263.851,
-                    'abr': 0,
                 }, {
                     'format_id': '577',
                     'format_index': None,
@@ -755,8 +753,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 577.61,
-                    'abr': 0,
                 }, {
                     'format_id': '915',
                     'format_index': None,
@@ -774,8 +770,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 915.905,
-                    'abr': 0,
                 }, {
                     'format_id': '1030',
                     'format_index': None,
@@ -793,8 +787,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 1030.138,
-                    'abr': 0,
                 }, {
                     'format_id': '1924',
                     'format_index': None,
@@ -812,8 +804,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 1924.009,
-                    'abr': 0,
                 }],
                 {
                     'en': [{
