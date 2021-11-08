@@ -46,5 +46,5 @@ class RadioZetPodcastIE(InfoExtractor):
             'thumbnail': traverse_obj(data, ('program', 'image', 'original')),
             'duration': traverse_obj(data, ('player', 'duration')),
             'series': strip_or_none(traverse_obj(data, ('program', 'title'))),
-            'creator': strip_or_none(data.get('presenter')[0].get('title')),
+            'creator': strip_or_none(traverse_obj(data, ('presenter', 0, 'title'))),
         }
