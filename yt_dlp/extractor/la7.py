@@ -83,7 +83,7 @@ class LA7IE(InfoExtractor):
         formats.extend(self._extract_mpd_formats(
             mpd_url, video_id, mpd_id='dash'))
 
-        for q in [x for x in video_path.split(',') if x]:
+        for q in filter(None, video_path.split(',')):
             http_f = self._generate_mp4_url(
                 q.replace('/content/', ''), m3u8_formats)
             if http_f:
