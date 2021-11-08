@@ -24,21 +24,21 @@ class RadioZetPodcastIE(InfoExtractor):
         }
     }
 
-    def _call_api(self, podcast_id):
-        api_url = ('https://player.radiozet.pl/api/podcasts/getPodcast/(node)/'
-                   + podcast_id
-                   + '/(station)/radiozet')
-        return self._download_json(api_url, podcast_id)
+    def _call_api(self, podcast_id, display_id):
+        return self._download_json(
+            f'https://player.radiozet.pl/api/podcasts/getPodcast/(node)/{podcast_id}/(station)/radiozet',
+            display_id)
 
     def _real_extract(self, url):
-        podcast_id = self._match_id(url)
-        webpage = self._download_webpage(url, podcast_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
         podcast_id = self._html_search_regex(r'<div id="player".*? data-id="(.+?)".*?>',
                                              webpage, 'podcast id')
-        data = self._call_api(podcast_id).get('data')[0]
+        data = self._call_api(podcast_id, display_id).get('data')[0]
 
         return {
             'id': podcast_id,
+            'display_id': display_id,
             'title': strip_or_none(data.get('title')),
             'description': strip_or_none(traverse_obj(data, ('program', 'desc'))),
             'release_timestamp': data.get('published_date'),
