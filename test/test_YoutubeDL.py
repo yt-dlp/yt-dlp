@@ -737,6 +737,7 @@ class TestYoutubeDL(unittest.TestCase):
         test(NA_TEST_OUTTMPL, 'NA-NA-def-1234.mp4')
         test(NA_TEST_OUTTMPL, 'none-none-def-1234.mp4', outtmpl_na_placeholder='none')
         test(NA_TEST_OUTTMPL, '--def-1234.mp4', outtmpl_na_placeholder='')
+        test('%(non_existent.0)s', 'NA')
 
         # String formatting
         FMT_TEST_OUTTMPL = '%%(height)%s.%%(ext)s'

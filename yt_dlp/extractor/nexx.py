@@ -427,7 +427,6 @@ class NexxEmbedIE(InfoExtractor):
             'upload_date': '20140305',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {

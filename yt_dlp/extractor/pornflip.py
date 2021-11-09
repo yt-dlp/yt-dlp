@@ -29,7 +29,6 @@ class PornFlipIE(InfoExtractor):
                 'age_limit': 18,
             },
             'params': {
-                'format': 'bestvideo',
                 'skip_download': True,
             },
         },

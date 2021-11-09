@@ -21,7 +21,6 @@ class OlympicsReplayIE(InfoExtractor):
             'description': 'md5:c66af4a5bc7429dbcc43d15845ff03b3',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {
