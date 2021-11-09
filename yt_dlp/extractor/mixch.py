@@ -39,11 +39,6 @@ class MixchIE(InfoExtractor):
         if not initial_js_state.get('liveInfo'):
             raise ExtractorError('Live has ended.', expected=True)
 
-        # the service does not provide alternative resolutions
-        hls_url = traverse_obj(initial_js_state, ('liveInfo', 'hls')) or 'https://d1hd0ww6piyb43.cloudfront.net/hls/torte_%s.m3u8' % video_id
-        formats = self._extract_m3u8_formats(
-            hls_url, video_id, ext='mp4', m3u8_id='hls')
-
         return {
             'id': video_id,
             'title': traverse_obj(initial_js_state, ('liveInfo', 'title')),
@@ -52,7 +47,12 @@ class MixchIE(InfoExtractor):
             'timestamp': traverse_obj(initial_js_state, ('liveInfo', 'created')),
             'uploader': traverse_obj(initial_js_state, ('broadcasterInfo', 'name')),
             'uploader_id': video_id,
-            'formats': formats,
+            'formats': [{
+            'format_id': 'hls',
+                'url': traverse_obj(initial_js_state, ('liveInfo', 'hls')) or 'https://d1hd0ww6piyb43.cloudfront.net/hls/torte_%s.m3u8' % video_id,
+                'ext': 'mp4',
+                'protocol': 'm3u8',
+            }],
             'is_live': True,
             'webpage_url': url,
         }
