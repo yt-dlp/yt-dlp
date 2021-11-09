@@ -1539,7 +1539,7 @@ class YoutubeDL(object):
             def get_entry(i):
                 return ie_entries[i - 1]
         else:
-            if not isinstance(ie_entries, PagedList):
+            if not isinstance(ie_entries, (PagedList, LazyList)):
                 ie_entries = LazyList(ie_entries)
 
             def get_entry(i):
@@ -3374,13 +3374,13 @@ class YoutubeDL(object):
         from .postprocessor.embedthumbnail import has_mutagen
         from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
 
-        lib_str = ', '.join(sorted(filter(None, (
+        lib_str = join_nonempty(
             compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
-            has_websockets and 'websockets',
+            KEYRING_AVAILABLE and 'keyring',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',
-            KEYRING_AVAILABLE and 'keyring',
-        )))) or 'none'
+            has_websockets and 'websockets',
+            delim=', ') or 'none'
         write_debug('Optional libraries: %s' % lib_str)
 
         proxy_map = {}

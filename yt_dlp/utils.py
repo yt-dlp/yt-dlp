@@ -6586,5 +6586,5 @@ def number_of_digits(number):
 
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
-        values = operator.itemgetter(values)(from_dict)
+        values = map(from_dict.get, values)
     return delim.join(map(str, filter(None, values)))
