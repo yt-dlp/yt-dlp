@@ -715,7 +715,6 @@ def _real_main(argv=None):
         'extractor_args': opts.extractor_args,
         'youtube_include_dash_manifest': opts.youtube_include_dash_manifest,
         'youtube_include_hls_manifest': opts.youtube_include_hls_manifest,
-        'generate_filesize': opts.generate_filesize,
         'encoding': opts.encoding,
         'extract_flat': opts.extract_flat,
         'mark_watched': opts.mark_watched,
