@@ -1546,6 +1546,10 @@ def parseOpts(overrideArguments=None):
         '--youtube-skip-hls-manifest', '--no-youtube-include-hls-manifest',
         action='store_false', dest='youtube_include_hls_manifest',
         help=optparse.SUPPRESS_HELP)
+    extractor.add_option(
+        '--generate-filesize',
+        action='store_true', dest='generate_filesize', default=False,
+        help='Generates filesize_approx from Content-Length header for some video formats.')
 
     parser.add_option_group(general)
     parser.add_option_group(network)

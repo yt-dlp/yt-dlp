@@ -53,6 +53,7 @@ from ..utils import (
     format_field,
     GeoRestrictedError,
     GeoUtils,
+    HEADRequest,
     int_or_none,
     js_to_json,
     JSON_LD_RE,
@@ -3597,6 +3598,17 @@ class InfoExtractor(object):
 
     def _generic_title(self, url):
         return compat_urllib_parse_unquote(os.path.splitext(url_basename(url))[0])
+
+    def _generate_filesize(self, url, url_id):
+        if self.get_param('generate_filesize', False):
+            urlh = self._request_webpage(
+                HEADRequest(url), url_id,
+                note='Check filesize', fatal=False)
+            if urlh:
+                return int_or_none(urlh.headers.get('Content-Length', None))
+        else:
+            self.to_screen('With --generate-filesize you can enable filesize calculation for some video formats.')
+        return None
 
     @staticmethod
     def _availability(is_private=None, needs_premium=None, needs_subscription=None, needs_auth=None, is_unlisted=None):
