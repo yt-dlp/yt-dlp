@@ -1318,9 +1318,9 @@ class YoutubeDL(object):
                 self.report_error(msg)
             except ExtractorError as e:  # An error we somewhat expected
                 self.report_error(compat_str(e), e.format_traceback())
-            except ThrottledDownload:
+            except ThrottledDownload as e:
                 self.to_stderr('\r')
-                self.report_warning('The download speed is below throttle limit. Re-extracting data')
+                self.report_warning(f'{e}; Re-extracting data')
                 return wrapper(self, *args, **kwargs)
             except (DownloadCancelled, LazyList.IndexError):
                 raise
@@ -1499,7 +1499,7 @@ class YoutubeDL(object):
         self.to_screen('[download] Downloading playlist: %s' % playlist)
 
         if 'entries' not in ie_result:
-            raise EntryNotInPlaylist()
+            raise EntryNotInPlaylist('There are no entries')
         incomplete_entries = bool(ie_result.get('requested_entries'))
         if incomplete_entries:
             def fill_missing_entries(entries, indexes):
@@ -1561,7 +1561,7 @@ class YoutubeDL(object):
                     raise EntryNotInPlaylist()
             except (IndexError, EntryNotInPlaylist):
                 if incomplete_entries:
-                    raise EntryNotInPlaylist()
+                    raise EntryNotInPlaylist(f'Entry {i} cannot be found')
                 elif not playlistitems:
                     break
             entries.append(entry)
@@ -2935,8 +2935,25 @@ class YoutubeDL(object):
         if max_downloads is not None and self._num_downloads >= int(max_downloads):
             raise MaxDownloadsReached()
 
+    def __download_wrapper(self, func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                res = func(*args, **kwargs)
+            except UnavailableVideoError as e:
+                self.report_error(e)
+            except DownloadCancelled as e:
+                self.to_screen(f'[info] {e}')
+                raise
+            else:
+                if self.params.get('dump_single_json', False):
+                    self.post_extract(res)
+                    self.to_stdout(json.dumps(self.sanitize_info(res)))
+        return wrapper
+
     def download(self, url_list):
         """Download a given list of URLs."""
+        url_list = variadic(url_list)  # Passing a single URL is a common mistake
         outtmpl = self.outtmpl_dict['default']
         if (len(url_list) > 1
                 and outtmpl != '-'
@@ -2945,19 +2962,8 @@ class YoutubeDL(object):
             raise SameFileError(outtmpl)
 
         for url in url_list:
-            try:
-                # It also downloads the videos
-                res = self.extract_info(
-                    url, force_generic_extractor=self.params.get('force_generic_extractor', False))
-            except UnavailableVideoError:
-                self.report_error('unable to download video')
-            except DownloadCancelled as e:
-                self.to_screen(f'[info] {e.msg}')
-                raise
-            else:
-                if self.params.get('dump_single_json', False):
-                    self.post_extract(res)
-                    self.to_stdout(json.dumps(self.sanitize_info(res)))
+            self.__download_wrapper(self.extract_info)(
+                url, force_generic_extractor=self.params.get('force_generic_extractor', False))
 
         return self._download_retcode
 
@@ -2968,11 +2974,12 @@ class YoutubeDL(object):
             # FileInput doesn't have a read method, we can't call json.load
             info = self.sanitize_info(json.loads('\n'.join(f)), self.params.get('clean_infojson', True))
         try:
-            self.process_ie_result(info, download=True)
-        except (DownloadError, EntryNotInPlaylist, ThrottledDownload):
+            self.__download_wrapper(self.process_ie_result)(info, download=True)
+        except (DownloadError, EntryNotInPlaylist, ThrottledDownload) as e:
+            self.to_stderr('\r')
             webpage_url = info.get('webpage_url')
             if webpage_url is not None:
-                self.report_warning('The info failed to download, trying with "%s"' % webpage_url)
+                self.report_warning(f'The info failed to download: {e}; trying with URL {webpage_url}')
                 return self.download([webpage_url])
             else:
                 raise
@@ -3566,14 +3573,15 @@ class YoutubeDL(object):
 
         for t in thumbnails[::-1]:
             thumb_ext = (f'{t["id"]}.' if multiple else '') + determine_ext(t['url'], 'jpg')
-            thumb_display_id = f'{label} thumbnail' + (f' {t["id"]}' if multiple else '')
+            thumb_display_id = f'{label} thumbnail {t["id"]}'
             thumb_filename = replace_extension(filename, thumb_ext, info_dict.get('ext'))
             thumb_filename_final = replace_extension(thumb_filename_base, thumb_ext, info_dict.get('ext'))
 
             if not self.params.get('overwrites', True) and os.path.exists(thumb_filename):
                 ret.append((thumb_filename, thumb_filename_final))
                 t['filepath'] = thumb_filename
-                self.to_screen(f'[info] {thumb_display_id.title()} is already present')
+                self.to_screen('[info] %s is already present' % (
+                    thumb_display_id if multiple else f'{label} thumbnail').capitalize())
             else:
                 self.to_screen(f'[info] Downloading {thumb_display_id} ...')
                 try:
