@@ -184,14 +184,14 @@ You can install the [PyPI package](https://pypi.org/project/yt-dlp) with:
 python3 -m pip install -U yt-dlp
 ```
 
-On some systems (like Termux), it is not possible to install pycryptodomex. In that case, install without dependancies: 
+You can also install without any dependencies using: 
 ```
 python3 -m pip install --no-deps -U yt-dlp
 ```
 
 You can also install the master branch with:
 ```
-python3 -m pip3 install -U https://github.com/yt-dlp/yt-dlp/archive/master.zip
+python3 -m pip3 install --force-reinstall https://github.com/yt-dlp/yt-dlp/archive/master.zip
 ```
 
 Note that on some systems, you may need to use `py` or `python` instead of `python3`
@@ -282,6 +282,8 @@ You will need the required build tools: `python`, `make` (GNU), `pandoc`, `zip`,
 Then simply run `make`. You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files
 
 **Note**: In either platform, `devscripts/update-version.py` can be used to automatically update the version number
+
+You can also fork the project on github and push it to a release branch in your fork for the [build workflow](https://github.com/yt-dlp/yt-dlp/blob/master/.github/workflows/build.yml) to automatically make a release for you
 
 # USAGE AND OPTIONS
 
@@ -1245,19 +1247,19 @@ You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, 
 
 You can also use special names to select particular edge case formats:
 
- - `all`: Select all formats
- - `mergeall`: Select and merge all formats (Must be used with `--audio-multistreams`, `--video-multistreams` or both)
- - `b*`, `best*`: Select the best quality format irrespective of whether it contains video or audio
- - `w*`, `worst*`: Select the worst quality format irrespective of whether it contains video or audio
- - `b`, `best`: Select the best quality format that contains both video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
+ - `all`: Select **all formats** separately
+ - `mergeall`: Select and **merge all formats** (Must be used with `--audio-multistreams`, `--video-multistreams` or both)
+ - `b*`, `best*`: Select the best quality format that **contains either** a video or an audio
+ - `b`, `best`: Select the best quality format that **contains both** video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
+ - `bv`, `bestvideo`: Select the best quality **video-only** format. Equivalent to `best*[acodec=none]`
+ - `bv*`, `bestvideo*`: Select the best quality format that **contains video**. It may also contain audio. Equivalent to `best*[vcodec!=none]`
+ - `ba`, `bestaudio`: Select the best quality **audio-only** format. Equivalent to `best*[vcodec=none]`
+ - `ba*`, `bestaudio*`: Select the best quality format that **contains audio**. It may also contain video. Equivalent to `best*[acodec!=none]`
+ - `w*`, `worst*`: Select the worst quality format that contains either a video or an audio
  - `w`, `worst`: Select the worst quality format that contains both video and audio. Equivalent to `worst*[vcodec!=none][acodec!=none]`
- - `bv`, `bestvideo`: Select the best quality video-only format. Equivalent to `best*[acodec=none]`
  - `wv`, `worstvideo`: Select the worst quality video-only format. Equivalent to `worst*[acodec=none]`
- - `bv*`, `bestvideo*`: Select the best quality format that contains video. It may also contain audio. Equivalent to `best*[vcodec!=none]`
  - `wv*`, `worstvideo*`: Select the worst quality format that contains video. It may also contain audio. Equivalent to `worst*[vcodec!=none]`
- - `ba`, `bestaudio`: Select the best quality audio-only format. Equivalent to `best*[vcodec=none]`
  - `wa`, `worstaudio`: Select the worst quality audio-only format. Equivalent to `worst*[vcodec=none]`
- - `ba*`, `bestaudio*`: Select the best quality format that contains audio. It may also contain video. Equivalent to `best*[acodec!=none]`
  - `wa*`, `worstaudio*`: Select the worst quality format that contains audio. It may also contain video. Equivalent to `worst*[acodec!=none]`
 
 For example, to download the worst quality video-only format you can use `-f worstvideo`. It is however recommended not to use `worst` and related options. When your format selector is `worst`, the format which is worst in all respects is selected. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps` instead of `-f worst`. See [sorting formats](#sorting-formats) for more details.
@@ -1539,7 +1541,7 @@ $ yt-dlp --replace-in-metadata 'title,uploader' '[ _]' '-'
 
 # EXTRACTOR ARGUMENTS
 
-Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player_client=android_agegate,web;include_live_dash" --extractor-args "funimation:version=uncut"`
+Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player-client=android_agegate,web;include_live_dash" --extractor-args "funimation:version=uncut"`
 
 The following extractors use this feature:
 
@@ -1592,10 +1594,10 @@ Your program should avoid parsing the normal stdout since they may change in fut
 From a Python program, you can embed yt-dlp in a more powerful fashion, like this:
 
 ```python
-import yt_dlp
+from yt_dlp import YoutubeDL
 
 ydl_opts = {}
-with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+with YoutubeDL(ydl_opts) as ydl:
     ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
 ```
 
@@ -1605,9 +1607,7 @@ Here's a more complete example of a program that outputs only errors (and a shor
 
 ```python
 import json
-
 import yt_dlp
-from yt_dlp.postprocessor.common import PostProcessor
 
 
 class MyLogger:
@@ -1629,7 +1629,7 @@ class MyLogger:
         print(msg)
 
 
-class MyCustomPP(PostProcessor):
+class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
     def run(self, info):
         self.to_screen('Doing stuff')
         return [], info
@@ -1650,6 +1650,10 @@ ydl_opts = {
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
 }
+
+
+# Add custom headers
+yt_dlp.utils.std_headers.update({'Referer': 'https://www.google.com'})
 
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     ydl.add_post_processor(MyCustomPP())

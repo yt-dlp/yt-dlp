@@ -374,8 +374,7 @@ class YoutubeDL(object):
                        (with status "started" and "finished") if the processing is successful.
     merge_output_format: Extension to use when merging formats.
     final_ext:         Expected final extension; used to detect when the file was
-                       already downloaded and converted. "merge_output_format" is
-                       replaced by this extension when given
+                       already downloaded and converted
     fixup:             Automatically correct known faults of the file.
                        One of:
                        - "never": do nothing
@@ -441,7 +440,7 @@ class YoutubeDL(object):
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
     max_filesize, test, noresizebuffer, retries, fragment_retries, continuedl,
     noprogress, xattr_set_filesize, hls_use_mpegts, http_chunk_size,
-    external_downloader_args.
+    external_downloader_args, concurrent_fragment_downloads.
 
     The following options are used by the post processors:
     prefer_ffmpeg:     If False, use avconv instead of ffmpeg if both are available,
