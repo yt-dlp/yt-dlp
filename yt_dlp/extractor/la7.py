@@ -66,22 +66,15 @@ class LA7IE(InfoExtractor):
             url = '%s//%s' % (self.http_scheme(), url)
 
         webpage = self._download_webpage(url, video_id)
-
-        upload_date = self._search_regex(r'datetime="(.+?)"', webpage, 'upload_date', fatal=False)
         video_path = self._search_regex(r'(/content/.*?).mp4', webpage, 'video_path')
 
-        formats = []
-
-        m3u8_url = '%s/local/hls/,%s.mp4.urlset/master.m3u8' % (
-            self._HOST, video_path)
+        formats = self._extract_mpd_formats(
+            f'{self._HOST}/local/dash/,{video_path}.mp4.urlset/manifest.mpd',
+            video_id, mpd_id='dash', fatal=False)
         m3u8_formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, m3u8_id='hls')
+            f'{self._HOST}/local/hls/,{video_path}.mp4.urlset/master.m3u8',
+            video_id, 'mp4', m3u8_id='hls', fatal=False)
         formats.extend(m3u8_formats)
-
-        mpd_url = '%s/local/dash//,%s.mp4.urlset/manifest.mpd' % (
-            self._HOST, video_path)
-        formats.extend(self._extract_mpd_formats(
-            mpd_url, video_id, mpd_id='dash', fatal=False))
 
         for q in filter(None, video_path.split(',')):
             http_f = self._generate_mp4_url(q, m3u8_formats)
@@ -96,7 +89,7 @@ class LA7IE(InfoExtractor):
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'formats': formats,
-            'upload_date': unified_strdate(upload_date)
+            'upload_date': unified_strdate(self._search_regex(r'datetime="(.+?)"', webpage, 'upload_date', fatal=False))
         }
 
 
