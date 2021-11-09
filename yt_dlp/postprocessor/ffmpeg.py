@@ -16,7 +16,8 @@ from ..utils import (
     encodeArgument,
     encodeFilename,
     float_or_none,
-    get_exe_version,
+    _get_exe_version_output,
+    detect_exe_version,
     is_outdated_version,
     ISO639Utils,
     orderedSet,
@@ -75,15 +76,20 @@ class FFmpegPostProcessor(PostProcessor):
             self.report_warning(warning)
 
     @staticmethod
+    def get_versions_and_features(downloader=None):
+        pp = FFmpegPostProcessor(downloader)
+        return pp._versions, pp._features
+
+    @staticmethod
     def get_versions(downloader=None):
-        return FFmpegPostProcessor(downloader)._versions
+        return FFmpegPostProcessor.get_version_and_features(downloader)[0]
 
     def _determine_executables(self):
         programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
-        prefer_ffmpeg = True
 
-        def get_ffmpeg_version(path):
-            ver = get_exe_version(path, args=['-version'])
+        def get_ffmpeg_version(path, prog):
+            out = _get_exe_version_output(path, ['-bsfs'])
+            ver = detect_exe_version(out) if out else False
             if ver:
                 regexs = [
                     r'(?:\d+:)?([0-9.]+)-[0-9]+ubuntu[0-9.]+$',  # Ubuntu, see [1]
@@ -94,42 +100,52 @@ class FFmpegPostProcessor(PostProcessor):
                     mobj = re.match(regex, ver)
                     if mobj:
                         ver = mobj.group(1)
-            return ver
+            self._versions[prog] = ver
+            if prog != 'ffmpeg' or not out:
+                return
+
+            mobj = re.search(r'(?m)^\s+libavformat\s+(?:[0-9. ]+)\s+/\s+(?P<runtime>[0-9. ]+)', out)
+            lavf_runtime_version = mobj.group('runtime').replace(' ', '') if mobj else None
+            self._features = {
+                'fdk': '--enable-libfdk-aac' in out,
+                'setts': 'setts' in out.splitlines(),
+                'needs_adtstoasc': is_outdated_version(lavf_runtime_version, '57.56.100', False),
+            }
 
         self.basename = None
         self.probe_basename = None
-
         self._paths = None
         self._versions = None
-        if self._downloader:
-            prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
-            location = self.get_param('ffmpeg_location')
-            if location is not None:
-                if not os.path.exists(location):
-                    self.report_warning(
-                        'ffmpeg-location %s does not exist! '
-                        'Continuing without ffmpeg.' % (location))
-                    self._versions = {}
-                    return
-                elif os.path.isdir(location):
-                    dirname, basename = location, None
-                else:
-                    basename = os.path.splitext(os.path.basename(location))[0]
-                    basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
-                    dirname = os.path.dirname(os.path.abspath(location))
-                    if basename in ('ffmpeg', 'ffprobe'):
-                        prefer_ffmpeg = True
+        self._features = {}
 
-                self._paths = dict(
-                    (p, os.path.join(dirname, p)) for p in programs)
-                if basename:
-                    self._paths[basename] = location
-                self._versions = dict(
-                    (p, get_ffmpeg_version(self._paths[p])) for p in programs)
-        if self._versions is None:
-            self._versions = dict(
-                (p, get_ffmpeg_version(p)) for p in programs)
-            self._paths = dict((p, p) for p in programs)
+        prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
+        location = self.get_param('ffmpeg_location')
+        if location is None:
+            self._paths = {p: p for p in programs}
+        else:
+            if not os.path.exists(location):
+                self.report_warning(
+                    'ffmpeg-location %s does not exist! '
+                    'Continuing without ffmpeg.' % (location))
+                self._versions = {}
+                return
+            elif os.path.isdir(location):
+                dirname, basename = location, None
+            else:
+                basename = os.path.splitext(os.path.basename(location))[0]
+                basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
+                dirname = os.path.dirname(os.path.abspath(location))
+                if basename in ('ffmpeg', 'ffprobe'):
+                    prefer_ffmpeg = True
+
+            self._paths = dict(
+                (p, os.path.join(dirname, p)) for p in programs)
+            if basename:
+                self._paths[basename] = location
+
+        self._versions = {}
+        for p in programs:
+            get_ffmpeg_version(self._paths[p], p)
 
         if prefer_ffmpeg is False:
             prefs = ('avconv', 'ffmpeg')
@@ -371,8 +387,33 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
     def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._preferredcodec = preferredcodec or 'best'
-        self._preferredquality = preferredquality
+        self._preferredquality = float_or_none(preferredquality)
         self._nopostoverwrites = nopostoverwrites
+
+    def _quality_args(self, codec):
+        if self._preferredquality is None:
+            return []
+        elif self._preferredquality > 10:
+            return ['-b:a', f'{self._preferredquality}k']
+
+        limits = {
+            'libmp3lame': (10, 0),
+            # FFmpeg's AAC encoder does not have an upper limit for the value of -q:a.
+            # Experimentally, with values over 4, bitrate changes were minimal or non-existent
+            'aac': (0.1, 4),
+            'vorbis': (0, 10),
+            'libfdk_aac': (1, 5),
+            'opus': None,  # doesn't support -q:a
+            'wav': None,
+            'flac': None,
+        }[codec]
+        if not limits:
+            return []
+
+        q = limits[1] + (limits[0] - limits[1]) * (self._preferredquality / 10)
+        if codec == 'libfdk_aac':
+            return ['-vbr', f'{int(q)}']
+        return ['-q:a', f'{q}']
 
     def run_ffmpeg(self, path, out_path, codec, more_opts):
         if codec is None:
@@ -417,23 +458,14 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
                 # MP3 otherwise.
                 acodec = 'libmp3lame'
                 extension = 'mp3'
-                more_opts = []
-                if self._preferredquality is not None:
-                    if int(self._preferredquality) < 10:
-                        more_opts += ['-q:a', self._preferredquality]
-                    else:
-                        more_opts += ['-b:a', self._preferredquality + 'k']
+                more_opts = self._quality_args(acodec)
         else:
             # We convert the audio (lossy if codec is lossy)
             acodec = ACODECS[self._preferredcodec]
+            if acodec == 'aac' and self._features.get('fdk'):
+                acodec = 'libfdk_aac'
             extension = self._preferredcodec
-            more_opts = []
-            if self._preferredquality is not None:
-                # The opus codec doesn't support the -aq option
-                if int(self._preferredquality) < 10 and extension != 'opus':
-                    more_opts += ['-q:a', self._preferredquality]
-                else:
-                    more_opts += ['-b:a', self._preferredquality + 'k']
+            more_opts = self._quality_args(acodec)
             if self._preferredcodec == 'aac':
                 more_opts += ['-f', 'adts']
             if self._preferredcodec == 'm4a':
@@ -806,11 +838,10 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        required_version = '4.4'
-        if is_outdated_version(self._versions[self.basename], required_version):
+        if not self._features.get('setts'):
             self.report_warning(
                 'A re-encode is needed to fix timestamps in older versions of ffmpeg. '
-                f'Please install ffmpeg {required_version} or later to fixup without re-encoding')
+                'Please install ffmpeg 4.4 or later to fixup without re-encoding')
             opts = ['-vf', 'setpts=PTS-STARTPTS']
         else:
             opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']

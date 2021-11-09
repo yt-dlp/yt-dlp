@@ -73,6 +73,7 @@ class NhkBaseIE(InfoExtractor):
                     m3u8_id='hls', fatal=False)
                 for f in info['formats']:
                     f['language'] = lang
+                self._sort_formats(info['formats'])
             else:
                 info.update({
                     '_type': 'url_transparent',

@@ -15,6 +15,7 @@ from ..utils import (
     float_or_none,
     HEADRequest,
     int_or_none,
+    join_nonempty,
     RegexNotFoundError,
     sanitized_Request,
     strip_or_none,
@@ -99,9 +100,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
                     formats.extend([{
                         'ext': 'flv' if rtmp_video_url.startswith('rtmp') else ext,
                         'url': rtmp_video_url,
-                        'format_id': '-'.join(filter(None, [
+                        'format_id': join_nonempty(
                             'rtmp' if rtmp_video_url.startswith('rtmp') else None,
-                            rendition.get('bitrate')])),
+                            rendition.get('bitrate')),
                         'width': int(rendition.get('width')),
                         'height': int(rendition.get('height')),
                     }])

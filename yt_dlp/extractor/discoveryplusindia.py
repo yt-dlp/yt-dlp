@@ -28,7 +28,6 @@ class DiscoveryPlusIndiaIE(DPlayIE):
             'creator': 'Discovery Channel',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'skip': 'Cookies (not necessarily logged in) are needed'

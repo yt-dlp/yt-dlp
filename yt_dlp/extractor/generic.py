@@ -359,9 +359,6 @@ class GenericIE(InfoExtractor):
                 'formats': 'mincount:9',
                 'upload_date': '20130904',
             },
-            'params': {
-                'format': 'bestvideo',
-            },
         },
         # m3u8 served with Content-Type: audio/x-mpegURL; charset=utf-8
         {
