@@ -9,7 +9,6 @@ from ..utils import (
 
 class MixchIE(InfoExtractor):
     IE_NAME = 'mixch'
-    # allow omitting last /live in the URL, though it's likely uncommon
     _VALID_URL = r'https?://(?:www\.)?mixch\.tv/u/(?P<id>\d+)'
 
     TESTS = [{
