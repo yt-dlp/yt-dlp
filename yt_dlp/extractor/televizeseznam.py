@@ -22,7 +22,7 @@ class TelevizeSeznamIE(InfoExtractor):
         }
 '''
 
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.televizeseznam.cz/video/lajna/buh-57953890',
         'md5': '40c41ade1464a390a0b447e333df4239',
         'info_dict': {
@@ -32,7 +32,17 @@ class TelevizeSeznamIE(InfoExtractor):
             'description': 'Trenér Hrouzek je plný rozporů. Na pomoc si povolá i toho nejvyššího. Kdo to ale je? Pomůže mu vyřešit několik dilemat, která se mu v poslední době v životě nahromadila?',
             'ext': 'mp4',
         }
-    }
+    }, {
+        'url': 'https://www.stream.cz/tajemno/znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili-64147267',
+        'md5': '3ee4d0be040e8f4a543e67e509d55e3f',
+        'info_dict': {
+            'id': '64147267',
+            'display_id': 'znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili',
+            'title': 'Zničehonic jim skrz střechu prolítnul záhadný předmět. Badatelé vše objasnili',
+            'description': "18. listopadu 2010 spadl na jeden z domů v Ohrazenicích na Třebíčsku kus ledu. Badatelé si potom marně lámali hlavu nad tím, kde se mohl vzít. Kus ledu napáchal v domě nemalou škodu, naštěstí jen materiální, nikoho neporanil.\r\n",
+            'ext': 'mp4',
+        }
+    }]
 
     def extract_subtitles(self, spl_url, play_list):
 
