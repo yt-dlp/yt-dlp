@@ -391,7 +391,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         self._nopostoverwrites = nopostoverwrites
 
     def _quality_args(self, codec):
-        if self._preferredquality is None:
+        if self._preferredquality is None or codec is None:
             return []
         elif self._preferredquality > 10:
             return ['-b:a', f'{self._preferredquality}k']
