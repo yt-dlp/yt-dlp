@@ -12,9 +12,6 @@ class MixchIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mixch\.tv/u/(?P<id>\d+)'
 
     TESTS = [{
-        'url': 'https://mixch.tv/u/16137876/live',
-        'skip': 'live has ended',
-    }, {
         'url': 'https://mixch.tv/u/16236849/live',
         'skip': 'don\'t know if this live persists',
         'info_dict': {
@@ -26,6 +23,9 @@ class MixchIE(InfoExtractor):
             'uploader': '🦥伊咲👶🏻#フレアワ',
             'uploader_id': '16236849',
         }
+    }, {
+        'url': 'https://mixch.tv/u/16137876/live',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
