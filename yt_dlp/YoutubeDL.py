@@ -211,6 +211,9 @@ class YoutubeDL(object):
     simulate:          Do not download the video files. If unset (or None),
                        simulate only if listsubtitles, listformats or list_thumbnails is used
     format:            Video format code. see "FORMAT SELECTION" for more details.
+                       You can also pass a function. The function takes 'ctx' as
+                       argument and returns the formats to download.
+                       See "build_format_selector" for an implementation
     allow_unplayable_formats:   Allow unplayable formats to be extracted and downloaded.
     ignore_no_formats_error: Ignore "No video formats" error. Usefull for
                        extracting metadata even if the video is not actually
@@ -613,6 +616,7 @@ class YoutubeDL(object):
         # Creating format selector here allows us to catch syntax errors before the extraction
         self.format_selector = (
             None if self.params.get('format') is None
+            else self.params['format'] if callable(self.params['format'])
             else self.build_format_selector(self.params['format']))
 
         self._setup_opener()
@@ -1927,9 +1931,9 @@ class YoutubeDL(object):
                 'format_id': '+'.join(filtered('format_id')),
                 'ext': output_ext,
                 'protocol': '+'.join(map(determine_protocol, formats_info)),
-                'language': '+'.join(orderedSet(filtered('language'))),
-                'format_note': '+'.join(orderedSet(filtered('format_note'))),
-                'filesize_approx': sum(filtered('filesize', 'filesize_approx')),
+                'language': '+'.join(orderedSet(filtered('language'))) or None,
+                'format_note': '+'.join(orderedSet(filtered('format_note'))) or None,
+                'filesize_approx': sum(filtered('filesize', 'filesize_approx')) or None,
                 'tbr': sum(filtered('tbr', 'vbr', 'abr')),
             }
 
@@ -2356,6 +2360,9 @@ class YoutubeDL(object):
             info_dict['formats'] = formats
 
         info_dict, _ = self.pre_process(info_dict)
+
+        # The pre-processors may have modified the formats
+        formats = info_dict.get('formats', [info_dict])
 
         if self.params.get('list_thumbnails'):
             self.list_thumbnails(info_dict)
