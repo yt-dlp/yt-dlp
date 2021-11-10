@@ -111,7 +111,7 @@ class ImdbIE(InfoExtractor):
             'formats': formats,
             'description': info.get('videoDescription'),
             'thumbnail': url_or_none(try_get(
-                video_metadata, lambda x: x['videoSlate']['source'])),
+                info, lambda x: x['videoSlate']['source'])),
             'duration': parse_duration(info.get('videoRuntime')),
         }
 

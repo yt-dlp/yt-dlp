@@ -22,9 +22,6 @@ class RedditIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'zv89llsvexdz',
         },
-        'params': {
-            'format': 'bestvideo',
-        },
     }
 
     def _real_extract(self, url):
@@ -67,7 +64,6 @@ class RedditRIE(InfoExtractor):
             'age_limit': 0,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {

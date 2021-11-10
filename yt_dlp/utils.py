@@ -2006,6 +2006,23 @@ class HTMLAttributeParser(compat_HTMLParser):
         self.attrs = dict(attrs)
 
 
+class HTMLListAttrsParser(compat_HTMLParser):
+    """HTML parser to gather the attributes for the elements of a list"""
+
+    def __init__(self):
+        compat_HTMLParser.__init__(self)
+        self.items = []
+        self._level = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'li' and self._level == 0:
+            self.items.append(dict(attrs))
+        self._level += 1
+
+    def handle_endtag(self, tag):
+        self._level -= 1
+
+
 def extract_attributes(html_element):
     """Given a string for an HTML element such as
     <el
@@ -2030,6 +2047,15 @@ def extract_attributes(html_element):
     except compat_HTMLParseError:
         pass
     return parser.attrs
+
+
+def parse_list(webpage):
+    """Given a string for an series of HTML <li> elements,
+    return a dictionary of their attributes"""
+    parser = HTMLListAttrsParser()
+    parser.feed(webpage)
+    parser.close()
+    return parser.items
 
 
 def clean_html(html):
@@ -2433,7 +2459,14 @@ def bug_reports_message(before=';'):
 
 class YoutubeDLError(Exception):
     """Base exception for YoutubeDL errors."""
-    pass
+    msg = None
+
+    def __init__(self, msg=None):
+        if msg is not None:
+            self.msg = msg
+        elif self.msg is None:
+            self.msg = type(self).__name__
+        super().__init__(self.msg)
 
 
 network_exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error]
@@ -2518,7 +2551,7 @@ class EntryNotInPlaylist(YoutubeDLError):
     This exception will be thrown by YoutubeDL when a requested entry
     is not found in the playlist info_dict
     """
-    pass
+    msg = 'Entry not found in info'
 
 
 class SameFileError(YoutubeDLError):
@@ -2527,7 +2560,12 @@ class SameFileError(YoutubeDLError):
     This exception will be thrown by FileDownloader objects if they detect
     multiple files would have to be downloaded to the same file on disk.
     """
-    pass
+    msg = 'Fixed output name but more than one file to download'
+
+    def __init__(self, filename=None):
+        if filename is not None:
+            self.msg += f': {filename}'
+        super().__init__(self.msg)
 
 
 class PostProcessingError(YoutubeDLError):
@@ -2545,11 +2583,6 @@ class PostProcessingError(YoutubeDLError):
 class DownloadCancelled(YoutubeDLError):
     """ Exception raised when the download queue should be interrupted """
     msg = 'The download was cancelled'
-
-    def __init__(self, msg=None):
-        if msg is not None:
-            self.msg = msg
-        YoutubeDLError.__init__(self, self.msg)
 
 
 class ExistingVideoReached(DownloadCancelled):
@@ -2569,7 +2602,7 @@ class MaxDownloadsReached(DownloadCancelled):
 
 class ThrottledDownload(YoutubeDLError):
     """ Download speed below --throttled-rate. """
-    pass
+    msg = 'The download speed is below throttle limit'
 
 
 class UnavailableVideoError(YoutubeDLError):
@@ -2578,7 +2611,12 @@ class UnavailableVideoError(YoutubeDLError):
     This exception will be thrown when a video is requested
     in a format that is not available for that video.
     """
-    pass
+    msg = 'Unable to download video'
+
+    def __init__(self, err=None):
+        if err is not None:
+            self.msg += f': {err}'
+        super().__init__(self.msg)
 
 
 class ContentTooShortError(YoutubeDLError):
@@ -3871,7 +3909,7 @@ def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1):
         return default
     try:
         return int(v) * invscale // scale
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
 
 
@@ -4007,10 +4045,7 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def get_exe_version(exe, args=['--version'],
-                    version_re=None, unrecognized='present'):
-    """ Returns the version of the specified executable,
-    or False if the executable is not present """
+def _get_exe_version_output(exe, args):
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
@@ -4022,7 +4057,7 @@ def get_exe_version(exe, args=['--version'],
         return False
     if isinstance(out, bytes):  # Python 2.x
         out = out.decode('ascii', 'ignore')
-    return detect_exe_version(out, version_re, unrecognized)
+    return out
 
 
 def detect_exe_version(output, version_re=None, unrecognized='present'):
@@ -4034,6 +4069,14 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
         return m.group(1)
     else:
         return unrecognized
+
+
+def get_exe_version(exe, args=['--version'],
+                    version_re=None, unrecognized='present'):
+    """ Returns the version of the specified executable,
+    or False if the executable is not present """
+    out = _get_exe_version_output(exe, args)
+    return detect_exe_version(out, version_re, unrecognized) if out else False
 
 
 class LazyList(collections.abc.Sequence):
@@ -4656,19 +4699,18 @@ def parse_codecs(codecs_str):
         str.strip, codecs_str.strip().strip(',').split(','))))
     vcodec, acodec, hdr = None, None, None
     for full_codec in split_codecs:
-        codec = full_codec.split('.')[0]
-        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av01', 'theora', 'dvh1', 'dvhe'):
+        parts = full_codec.split('.')
+        codec = parts[0].replace('0', '')
+        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
+                     'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
             if not vcodec:
-                vcodec = full_codec
+                vcodec = '.'.join(parts[:4]) if codec in ('vp9', 'av1') else full_codec
                 if codec in ('dvh1', 'dvhe'):
                     hdr = 'DV'
-                elif codec == 'vp9' and vcodec.startswith('vp9.2'):
+                elif codec == 'av1' and len(parts) > 3 and parts[3] == '10':
                     hdr = 'HDR10'
-                elif codec == 'av01':
-                    parts = full_codec.split('.')
-                    if len(parts) > 3 and parts[3] == '10':
-                        hdr = 'HDR10'
-                        vcodec = '.'.join(parts[:4])
+                elif full_codec.replace('0', '').startswith('vp9.2'):
+                    hdr = 'HDR10'
         elif codec in ('mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
@@ -6412,10 +6454,10 @@ def traverse_obj(
 
     def _traverse_obj(obj, path, _current_depth=0):
         nonlocal depth
-        if obj is None:
-            return None
         path = tuple(variadic(path))
         for i, key in enumerate(path):
+            if obj is None:
+                return None
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...
@@ -6540,3 +6582,9 @@ def remove_terminal_sequences(string):
 
 def number_of_digits(number):
     return len('%d' % number)
+
+
+def join_nonempty(*values, delim='-', from_dict=None):
+    if from_dict is not None:
+        values = map(from_dict.get, values)
+    return delim.join(map(str, filter(None, values)))

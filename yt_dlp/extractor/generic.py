@@ -135,6 +135,7 @@ from .arcpublishing import ArcPublishingIE
 from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
+from .tvp import TVPEmbedIE
 
 
 class GenericIE(InfoExtractor):
@@ -358,9 +359,6 @@ class GenericIE(InfoExtractor):
                 'title': 'car-20120827-manifest',
                 'formats': 'mincount:9',
                 'upload_date': '20130904',
-            },
-            'params': {
-                'format': 'bestvideo',
             },
         },
         # m3u8 served with Content-Type: audio/x-mpegURL; charset=utf-8
@@ -2340,6 +2338,9 @@ class GenericIE(InfoExtractor):
         """Report information extraction."""
         self._downloader.to_screen('[redirect] Following redirect to %s' % new_url)
 
+    def report_detected(self, name):
+        self._downloader.write_debug(f'Identified a {name}')
+
     def _extract_rss(self, url, video_id, doc):
         playlist_title = doc.find('./channel/title').text
         playlist_desc_el = doc.find('./channel/description')
@@ -2555,6 +2556,7 @@ class GenericIE(InfoExtractor):
         content_type = head_response.headers.get('Content-Type', '').lower()
         m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
+            self.report_detected('direct video link')
             format_id = compat_str(m.group('format_id'))
             subtitles = {}
             if format_id.endswith('mpegurl'):
@@ -2595,6 +2597,7 @@ class GenericIE(InfoExtractor):
 
         # Is it an M3U playlist?
         if first_bytes.startswith(b'#EXTM3U'):
+            self.report_detected('M3U playlist')
             info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
             self._sort_formats(info_dict['formats'])
             return info_dict
@@ -2625,16 +2628,20 @@ class GenericIE(InfoExtractor):
             except compat_xml_parse_error:
                 doc = compat_etree_fromstring(webpage.encode('utf-8'))
             if doc.tag == 'rss':
+                self.report_detected('RSS feed')
                 return self._extract_rss(url, video_id, doc)
             elif doc.tag == 'SmoothStreamingMedia':
                 info_dict['formats'], info_dict['subtitles'] = self._parse_ism_formats_and_subtitles(doc, url)
+                self.report_detected('ISM manifest')
                 self._sort_formats(info_dict['formats'])
                 return info_dict
             elif re.match(r'^(?:{[^}]+})?smil$', doc.tag):
                 smil = self._parse_smil(doc, url, video_id)
+                self.report_detected('SMIL file')
                 self._sort_formats(smil['formats'])
                 return smil
             elif doc.tag == '{http://xspf.org/ns/0/}playlist':
+                self.report_detected('XSPF playlist')
                 return self.playlist_result(
                     self._parse_xspf(
                         doc, video_id, xspf_url=url,
@@ -2645,10 +2652,12 @@ class GenericIE(InfoExtractor):
                     doc,
                     mpd_base_url=full_response.geturl().rpartition('/')[0],
                     mpd_url=url)
+                self.report_detected('DASH manifest')
                 self._sort_formats(info_dict['formats'])
                 return info_dict
             elif re.match(r'^{http://ns\.adobe\.com/f4m/[12]\.0}manifest$', doc.tag):
                 info_dict['formats'] = self._parse_f4m_formats(doc, url, video_id)
+                self.report_detected('F4M manifest')
                 self._sort_formats(info_dict['formats'])
                 return info_dict
         except compat_xml_parse_error:
@@ -2657,6 +2666,7 @@ class GenericIE(InfoExtractor):
         # Is it a Camtasia project?
         camtasia_res = self._extract_camtasia(url, video_id, webpage)
         if camtasia_res is not None:
+            self.report_detected('Camtasia video')
             return camtasia_res
 
         # Sometimes embedded video player is hidden behind percent encoding
@@ -2706,6 +2716,8 @@ class GenericIE(InfoExtractor):
             'thumbnail': video_thumbnail,
             'age_limit': age_limit,
         })
+
+        self._downloader.write_debug('Looking for video embeds')
 
         # Look for Brightcove Legacy Studio embeds
         bc_urls = BrightcoveLegacyIE._extract_brightcove_urls(webpage)
@@ -3497,9 +3509,14 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(
                 rumble_urls, video_id, video_title, ie=RumbleEmbedIE.ie_key())
 
+        tvp_urls = TVPEmbedIE._extract_urls(webpage)
+        if tvp_urls:
+            return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
+
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
         if entries:
+            self.report_detected('HTML5 media')
             if len(entries) == 1:
                 entries[0].update({
                     'id': video_id,
@@ -3519,6 +3536,7 @@ class GenericIE(InfoExtractor):
             webpage, video_id, transform_source=js_to_json)
         if jwplayer_data:
             if isinstance(jwplayer_data.get('playlist'), str):
+                self.report_detected('JW Player playlist')
                 return {
                     **info_dict,
                     '_type': 'url',
@@ -3528,6 +3546,7 @@ class GenericIE(InfoExtractor):
             try:
                 info = self._parse_jwplayer_data(
                     jwplayer_data, video_id, require_title=False, base_url=url)
+                self.report_detected('JW Player data')
                 return merge_dicts(info, info_dict)
             except ExtractorError:
                 # See https://github.com/ytdl-org/youtube-dl/pull/16735
@@ -3577,6 +3596,7 @@ class GenericIE(InfoExtractor):
                         },
                     })
             if formats or subtitles:
+                self.report_detected('video.js embed')
                 self._sort_formats(formats)
                 info_dict['formats'] = formats
                 info_dict['subtitles'] = subtitles
@@ -3585,6 +3605,7 @@ class GenericIE(InfoExtractor):
         # Looking for http://schema.org/VideoObject
         json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url'):
+            self.report_detected('JSON LD')
             return merge_dicts(json_ld, info_dict)
 
         def check_video(vurl):
@@ -3601,7 +3622,9 @@ class GenericIE(InfoExtractor):
 
         # Start with something easy: JW Player in SWFObject
         found = filter_video(re.findall(r'flashvars: [\'"](?:.*&)?file=(http[^\'"&]*)', webpage))
-        if not found:
+        if found:
+            self.report_detected('JW Player in SFWObject')
+        else:
             # Look for gorilla-vid style embedding
             found = filter_video(re.findall(r'''(?sx)
                 (?:
@@ -3611,10 +3634,13 @@ class GenericIE(InfoExtractor):
                 )
                 .*?
                 ['"]?file['"]?\s*:\s*["\'](.*?)["\']''', webpage))
+            if found:
+                self.report_detected('JW Player embed')
         if not found:
             # Look for generic KVS player
             found = re.search(r'<script [^>]*?src="https://.+?/kt_player\.js\?v=(?P<ver>(?P<maj_ver>\d+)(\.\d+)+)".*?>', webpage)
             if found:
+                self.report_detected('KWS Player')
                 if found.group('maj_ver') not in ['4', '5']:
                     self.report_warning('Untested major version (%s) in player engine--Download may fail.' % found.group('ver'))
                 flashvars = re.search(r'(?ms)<script.*?>.*?var\s+flashvars\s*=\s*(\{.*?\});.*?</script>', webpage)
@@ -3660,10 +3686,14 @@ class GenericIE(InfoExtractor):
         if not found:
             # Broaden the search a little bit
             found = filter_video(re.findall(r'[^A-Za-z0-9]?(?:file|source)=(http[^\'"&]*)', webpage))
+            if found:
+                self.report_detected('video file')
         if not found:
             # Broaden the findall a little bit: JWPlayer JS loader
             found = filter_video(re.findall(
                 r'[^A-Za-z0-9]?(?:file|video_url)["\']?:\s*["\'](http(?![^\'"]+\.[0-9]+[\'"])[^\'"]+)["\']', webpage))
+            if found:
+                self.report_detected('JW Player JS loader')
         if not found:
             # Flow player
             found = filter_video(re.findall(r'''(?xs)
@@ -3672,10 +3702,14 @@ class GenericIE(InfoExtractor):
                     \s*\{[^}]+? ["']?clip["']?\s*:\s*\{\s*
                         ["']?url["']?\s*:\s*["']([^"']+)["']
             ''', webpage))
+            if found:
+                self.report_detected('Flow Player')
         if not found:
             # Cinerama player
             found = re.findall(
                 r"cinerama\.embedPlayer\(\s*\'[^']+\',\s*'([^']+)'", webpage)
+            if found:
+                self.report_detected('Cinerama player')
         if not found:
             # Try to find twitter cards info
             # twitter:player:stream should be checked before twitter:player since
@@ -3683,6 +3717,8 @@ class GenericIE(InfoExtractor):
             # https://dev.twitter.com/cards/types/player#On_twitter.com_via_desktop_browser)
             found = filter_video(re.findall(
                 r'<meta (?:property|name)="twitter:player:stream" (?:content|value)="(.+?)"', webpage))
+            if found:
+                self.report_detected('Twitter card')
         if not found:
             # We look for Open Graph info:
             # We have to match any number spaces between elements, some sites try to align them (eg.: statigr.am)
@@ -3690,6 +3726,8 @@ class GenericIE(InfoExtractor):
             # We only look in og:video if the MIME type is a video, don't try if it's a Flash player:
             if m_video_type is not None:
                 found = filter_video(re.findall(r'<meta.*?property="og:(?:video|audio)".*?content="(.*?)"', webpage))
+                if found:
+                    self.report_detected('Open Graph video info')
         if not found:
             REDIRECT_REGEX = r'[0-9]{,2};\s*(?:URL|url)=\'?([^\'"]+)'
             found = re.search(
@@ -3721,6 +3759,7 @@ class GenericIE(InfoExtractor):
             # https://dev.twitter.com/cards/types/player#On_twitter.com_via_desktop_browser)
             embed_url = self._html_search_meta('twitter:player', webpage, default=None)
             if embed_url and embed_url != url:
+                self.report_detected('twitter:player iframe')
                 return self.url_result(embed_url)
 
         if not found:

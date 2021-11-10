@@ -228,21 +228,25 @@ class JSInterpreter(object):
             switch_val, remaining = self._seperate_at_paren(expr[m.end() - 1:], ')')
             switch_val = self.interpret_expression(switch_val, local_vars, allow_recursion)
             body, expr = self._seperate_at_paren(remaining, '}')
-            body, default = body.split('default:') if 'default:' in body else (body, None)
-            items = body.split('case ')[1:]
-            if default:
-                items.append(f'default:{default}')
-            matched = False
-            for item in items:
-                case, stmt = [i.strip() for i in self._seperate(item, ':', 1)]
-                matched = matched or case == 'default' or switch_val == self.interpret_expression(case, local_vars, allow_recursion)
-                if matched:
+            items = body.replace('default:', 'case default:').split('case ')[1:]
+            for default in (False, True):
+                matched = False
+                for item in items:
+                    case, stmt = [i.strip() for i in self._seperate(item, ':', 1)]
+                    if default:
+                        matched = matched or case == 'default'
+                    elif not matched:
+                        matched = case != 'default' and switch_val == self.interpret_expression(case, local_vars, allow_recursion)
+                    if not matched:
+                        continue
                     try:
                         ret, should_abort = self.interpret_statement(stmt, local_vars, allow_recursion - 1)
                         if should_abort:
                             return ret
                     except JS_Break:
                         break
+                if matched:
+                    break
             return self.interpret_statement(expr, local_vars, allow_recursion - 1)[0]
 
         # Comma seperated statements

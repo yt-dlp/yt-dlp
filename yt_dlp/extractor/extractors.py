@@ -50,6 +50,7 @@ from .animelab import (
     AnimeLabIE,
     AnimeLabShowsIE,
 )
+from .amazon import AmazonStoreIE
 from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
@@ -492,7 +493,10 @@ from .funimation import (
 )
 from .funk import FunkIE
 from .fusion import FusionIE
-from .gab import GabTVIE
+from .gab import (
+    GabTVIE,
+    GabIE,
+)
 from .gaia import GaiaIE
 from .gameinformer import GameInformerIE
 from .gamespot import GameSpotIE
@@ -588,12 +592,16 @@ from .indavideo import IndavideoEmbedIE
 from .infoq import InfoQIE
 from .instagram import (
     InstagramIE,
+    InstagramIOSIE,
     InstagramUserIE,
     InstagramTagIE,
 )
 from .internazionale import InternazionaleIE
 from .internetvideoarchive import InternetVideoArchiveIE
-from .iprima import IPrimaIE
+from .iprima import (
+    IPrimaIE,
+    IPrimaCNNIE
+)
 from .iqiyi import IqiyiIE
 from .ir90tv import Ir90TvIE
 from .itv import (
@@ -836,7 +844,10 @@ from .myvi import (
 )
 from .myvideoge import MyVideoGeIE
 from .myvidster import MyVidsterIE
-from .n1 import N1InfoIIE, N1InfoAssetIE
+from .n1 import (
+    N1InfoAssetIE,
+    N1InfoIIE,
+)
 from .nationalgeographic import (
     NationalGeographicVideoIE,
     NationalGeographicTVIE,
@@ -1095,9 +1106,14 @@ from .pokemon import (
     PokemonIE,
     PokemonWatchIE,
 )
+from .polsatgo import PolsatGoIE
 from .polskieradio import (
     PolskieRadioIE,
     PolskieRadioCategoryIE,
+    PolskieRadioPlayerIE,
+    PolskieRadioPodcastIE,
+    PolskieRadioPodcastListIE,
+    PolskieRadioRadioKierowcowIE,
 )
 from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
@@ -1144,6 +1160,10 @@ from .radiode import RadioDeIE
 from .radiojavan import RadioJavanIE
 from .radiobremen import RadioBremenIE
 from .radiofrance import RadioFranceIE
+from .radiokapital import (
+    RadioKapitalIE,
+    RadioKapitalShowIE,
+)
 from .radlive import (
     RadLiveIE,
     RadLiveChannelIE,
@@ -1154,6 +1174,8 @@ from .rai import (
     RaiPlayLiveIE,
     RaiPlayPlaylistIE,
     RaiIE,
+    RaiPlayRadioIE,
+    RaiPlayRadioPlaylistIE,
 )
 from .raywenderlich import (
     RayWenderlichIE,
@@ -1194,7 +1216,7 @@ from .rice import RICEIE
 from .rmcdecouverte import RMCDecouverteIE
 from .ro220 import Ro220IE
 from .rockstargames import RockstarGamesIE
-from .roosterteeth import RoosterTeethIE
+from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
 from .roxwel import RoxwelIE
 from .rozhlas import RozhlasIE
@@ -1550,6 +1572,7 @@ from .tvnow import (
 from .tvp import (
     TVPEmbedIE,
     TVPIE,
+    TVPStreamIE,
     TVPWebsiteIE,
 )
 from .tvplay import (
@@ -1767,6 +1790,10 @@ from .wistia import (
     WistiaPlaylistIE,
 )
 from .worldstarhiphop import WorldStarHipHopIE
+from .wppilot import (
+    WPPilotIE,
+    WPPilotChannelsIE,
+)
 from .wsj import (
     WSJIE,
     WSJArticleIE,

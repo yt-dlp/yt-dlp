@@ -12,6 +12,7 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     try_get,
     url_or_none,
     urlencode_postdata,
@@ -156,15 +157,9 @@ class ZattooPlatformBaseIE(InfoExtractor):
                 watch_url = url_or_none(watch.get('url'))
                 if not watch_url:
                     continue
-                format_id_list = [stream_type]
-                maxrate = watch.get('maxrate')
-                if maxrate:
-                    format_id_list.append(compat_str(maxrate))
                 audio_channel = watch.get('audio_channel')
-                if audio_channel:
-                    format_id_list.append(compat_str(audio_channel))
                 preference = 1 if audio_channel == 'A' else None
-                format_id = '-'.join(format_id_list)
+                format_id = join_nonempty(stream_type, watch.get('maxrate'), audio_channel)
                 if stream_type in ('dash', 'dash_widevine', 'dash_playready'):
                     this_formats = self._extract_mpd_formats(
                         watch_url, video_id, mpd_id=format_id, fatal=False)

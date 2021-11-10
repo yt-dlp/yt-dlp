@@ -25,7 +25,6 @@ class WakanimIE(InfoExtractor):
             'episode_number': 2,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {

@@ -290,7 +290,6 @@ class ViceArticleIE(ViceBaseIE):
         },
         'params': {
             'skip_download': True,
-            'format': 'bestvideo',
         },
         'add_ie': [ViceIE.ie_key()],
     }, {

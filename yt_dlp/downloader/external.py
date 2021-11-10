@@ -21,7 +21,6 @@ from ..utils import (
     encodeArgument,
     handle_youtubedl_headers,
     check_executable,
-    is_outdated_version,
     Popen,
     sanitize_open,
 )
@@ -459,7 +458,7 @@ class FFmpegFD(ExternalFD):
                 args += ['-f', 'mpegts']
             else:
                 args += ['-f', 'mp4']
-                if (ffpp.basename == 'ffmpeg' and is_outdated_version(ffpp._versions['ffmpeg'], '3.2', False)) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
+                if (ffpp.basename == 'ffmpeg' and ffpp._features.get('needs_adtstoasc')) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
                     args += ['-bsf:a', 'aac_adtstoasc']
         elif protocol == 'rtmp':
             args += ['-f', 'flv']

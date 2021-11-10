@@ -19,7 +19,6 @@ class DiscoveryNetworksDeIE(DPlayIE):
             'upload_date': '20190331',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {

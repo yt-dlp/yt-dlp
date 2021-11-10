@@ -78,8 +78,8 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
     * All Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) and private playlists supports downloading multiple pages of content
     * Search (`ytsearch:`, `ytsearchdate:`), search URLs and in-channel search works
     * Mixes supports downloading multiple pages of content
-    * Most (but not all) age-gated content can be downloaded without cookies
-    * Partial workaround for throttling issue
+    * Some (but not all) age-gated content can be downloaded without cookies
+    * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326)
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
     * `255kbps` audio is extracted (if available) from youtube music when premium cookies are given
     * Youtube music Albums, channels etc can be downloaded ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723))
@@ -92,9 +92,13 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: AnimeLab, Philo MSO, Spectrum MSO, SlingTV MSO, Cablevision MSO, RCN MSO, Rcs, Gedi, bitwave.tv, mildom, audius, zee5, mtv.it, wimtv, pluto.tv, niconico users, discoveryplus.in, mediathek, NFHSNetwork, nebula, ukcolumn, whowatch, MxplayerShow, parlview (au), YoutubeWebArchive, fancode, Saitosan, ShemarooMe, telemundo, VootSeries, SonyLIVSeries, HotstarSeries, VidioPremier, VidioLive, RCTIPlus, TBS Live, douyin, pornflip, ParamountPlusSeries, ScienceChannel, Utreon, OpenRec, BandcampMusic, blackboardcollaborate, eroprofile albums, mirrativ, BannedVideo, bilibili categories, Epicon, filmmodu, GabTV, HungamaAlbum, ManotoTV, Niconico search, Patreon User, peloton, ProjectVeritas, radiko, StarTV, tiktok user, Tokentube, voicy, TV2HuSeries, biliintl, 17live, NewgroundsUser, peertube channel/playlist, ZenYandex, CAM4, CGTN, damtomo, gotostage, Koo, Mediaite, Mediaklikk, MuseScore, nzherald, Olympics replay, radlive, SovietsCloset, Streamanity, Theta, Chingari, ciscowebex, Gettr, GoPro, N1, Theta, Veo, Vupload, NovaPlay, SkyNewsAU, EUScreen, Gronkh, microsoftstream, on24, trovo channels
+* **New extractors**: 17live, 3speak, amazonstore, animelab, audius, bandcampmusic, bannedvideo, biliintl, bitwave.tv, blackboardcollaborate, cam4, cgtn, chingari, ciscowebex, damtomo, discoveryplus.in, douyin, epicon, euscreen, fancode, filmmodu, gab, gedi, gettr, gopro, gotostage, gronkh, koo, manototv, mediaite, mediaklikk, mediasetshow, mediathek, microsoftstream, mildom, mirrativ, mlsscoccer, mtv.it, musescore, mxplayershow, n1, nebula, nfhsnetwork, novaplay, nzherald, olympics replay, on24, openrec, parlview-AU, peloton, planetmarathi, pluto.tv, polsatgo, polskieradio, pornflip, projectveritas, radiko, radiokapital, radlive, raiplayradio, rcs, rctiplus, saitosan, sciencechannel, shemaroome, skynews-AU, skynews-story, sovietscloset, startv, streamanity, telemundo, theta, theta, tokentube, tv2huseries, ukcolumn, utreon, veo, vidiolive, vidiopremier, voicy, vupload, whowatch, wim.tv, wppilot, youtube webarchive, zee5, zen.yandex
 
-* **Fixed/improved extractors**: archive.org, roosterteeth.com, skyit, instagram, itv, SouthparkDe, spreaker, Vlive, akamai, ina, rumble, tennistv, amcnetworks, la7 podcasts, linuxacadamy, nitter, twitcasting, viu, crackle, curiositystream, mediasite, rmcdecouverte, sonyliv, tubi, tenplay, patreon, videa, yahoo, BravoTV, crunchyroll, RTP, viki, Hotstar, vidio, vimeo, mediaset, Mxplayer, nbcolympics, ParamountPlus, Newgrounds, SAML Verizon login, Hungama, afreecatv, aljazeera, ATV, bitchute, camtube, CDA, eroprofile, facebook, HearThisAtIE, iwara, kakao, Motherless, Nova, peertube, pornhub, reddit, tiktok, TV2, TV2Hu, tv5mondeplus, VH1, Viafree, XHamster, 9Now, AnimalPlanet, Arte, CBC, Chingari, comedycentral, DIYNetwork, niconico, dw, funimation, globo, HiDive, NDR, Nuvid, Oreilly, pbs, plutotv, reddit, redtube, soundcloud, SpankBang, VrtNU, bbc, Bilibili, LinkedInLearning, parliamentlive, PolskieRadio, Streamable, vidme, francetv, 7plus, tagesschau
+* **New playlist extractors**: bilibili categories, eroprofile albums, hotstar series, hungama albums, newgrounds user, niconico search/users, paramountplus series, patreon user, peertube playlist/channels, roosterteeth series, sonyliv series, tiktok user, trovo channels, voot series
+
+* **Fixed/improved extractors**: 7plus, 9now, afreecatv, akamai, aljazeera, amcnetworks, animalplanet, archive.org, arte, atv, bbc, bilibili, bitchute, bravotv, camtube, cbc, cda, ceskatelevize, chingari, comedycentral, coub, crackle, crunchyroll, curiositystream, diynetwork, dw, eroprofile, facebook, francetv, funimation, globo, hearthisatie, hidive, hotstar, hungama, imdb, ina, instagram, iprima, itv, iwara, kakao, la7, linkedinlearning, linuxacadamy, mediaset, mediasite, motherless, mxplayer, nbcolympics, ndr, newgrounds, niconico, nitter, nova, nrk, nuvid, oreilly, paramountplus, parliamentlive, patreon, pbs, peertube, plutotv, polskieradio, pornhub, reddit, reddit, redtube, rmcdecouverte, roosterteeth, rtp, rumble, saml verizon login, skyit, sonyliv, soundcloud, southparkde, spankbang, spreaker, streamable, tagesschau, tbs, tennistv, tenplay, tiktok, tubi, tv2, tv2hu, tv5mondeplus, tvp, twitcasting, vh1, viafree, videa, vidio, vidme, viewlift, viki, vimeo, viu, vk, vlive, vrt, wakanim, xhamster, yahoo
+
+* **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -108,7 +112,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection) etc
 
-* **Plugin extractors**: Extractors can be loaded from an external file. See [plugins](#plugins) for details
+* **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
 * **Self-updater**: The releases can be updated using `yt-dlp -U`
 
@@ -154,7 +158,7 @@ For ease of use, a few more compat options are available:
 
 You can install yt-dlp using one of the following methods:
 
-#### Using the release binary
+### Using the release binary
 
 You can simply download the [correct binary file](#release-files) for your OS: **[[Windows](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)] [[UNIX-like](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)]**
 
@@ -177,26 +181,26 @@ sudo chmod a+rx /usr/local/bin/yt-dlp
 
 PS: The manpages, shell completion files etc. are available in [yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
-#### With [PIP](https://pypi.org/project/pip)
+### With [PIP](https://pypi.org/project/pip)
 
 You can install the [PyPI package](https://pypi.org/project/yt-dlp) with:
 ```
 python3 -m pip install -U yt-dlp
 ```
 
-On some systems (like Termux), it is not possible to install pycryptodomex. In that case, install without dependancies: 
+You can install without any of the optional dependencies using:
 ```
 python3 -m pip install --no-deps -U yt-dlp
 ```
 
-You can also install the master branch with:
+If you want to be on the cutting edge, you can also install the master branch with:
 ```
-python3 -m pip3 install -U https://github.com/yt-dlp/yt-dlp/archive/master.zip
+python3 -m pip3 install --force-reinstall https://github.com/yt-dlp/yt-dlp/archive/master.zip
 ```
 
 Note that on some systems, you may need to use `py` or `python` instead of `python3`
 
-#### With [Homebrew](https://brew.sh)
+### With [Homebrew](https://brew.sh)
 
 macOS or Linux users that are using Homebrew can also install it by:
 
@@ -204,14 +208,14 @@ macOS or Linux users that are using Homebrew can also install it by:
 brew install yt-dlp/taps/yt-dlp
 ```
 
-### UPDATE
+## UPDATE
 You can use `yt-dlp -U` to update if you are [using the provided release](#using-the-release-binary)
 
 If you [installed with pip](#with-pip), simply re-run the same command that was used to install the program
 
 If you [installed using Homebrew](#with-homebrew), run `brew upgrade yt-dlp/taps/yt-dlp`
 
-### RELEASE FILES
+## RELEASE FILES
 
 #### Recommended
 
@@ -238,7 +242,7 @@ File|Description
 [SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
 [SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
 
-### DEPENDENCIES
+## DEPENDENCIES
 Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
 <!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
@@ -266,7 +270,7 @@ The Windows and MacOS standalone release binaries are already built with the pyt
 **Note**: There are some regressions in newer ffmpeg versions that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependancy, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds/wiki/Latest#latest-autobuilds) with patches for these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specifc issues solved by these builds
 
 
-### COMPILE
+## COMPILE
 
 **For Windows**:
 To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodomex, websockets). Once you have all the necessary dependencies installed, (optionally) build lazy extractors using `devscripts/make_lazy_extractors.py`, and then just run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
@@ -282,6 +286,8 @@ You will need the required build tools: `python`, `make` (GNU), `pandoc`, `zip`,
 Then simply run `make`. You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files
 
 **Note**: In either platform, `devscripts/update-version.py` can be used to automatically update the version number
+
+You can also fork the project on github and push it to a release branch in your fork for the [build workflow](https://github.com/yt-dlp/yt-dlp/blob/master/.github/workflows/build.yml) to automatically make a release for you
 
 # USAGE AND OPTIONS
 
@@ -754,7 +760,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      "ass/srt/best"
     --sub-langs LANGS                Languages of the subtitles to download (can
                                      be regex) or "all" separated by commas.
-                                     (Eg: --sub-langs en.*,ja) You can prefix
+                                     (Eg: --sub-langs "en.*,ja") You can prefix
                                      the language code with a "-" to exempt it
                                      from the requested languages. (Eg: --sub-
                                      langs all,-live_chat) Use --list-subs for a
@@ -788,7 +794,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
                                      formats are: best (default) or one of
                                      best|aac|flac|mp3|m4a|opus|vorbis|wav
     --audio-quality QUALITY          Specify ffmpeg audio quality, insert a
-                                     value between 0 (better) and 9 (worse) for
+                                     value between 0 (best) and 10 (worst) for
                                      VBR or a specific bitrate like 128K
                                      (default 5)
     --remux-video FORMAT             Remux the video into another container if
@@ -989,7 +995,7 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
 
-    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `~` points to %HOME% if present, `%USERPROFILE%` (generally `C:\Users\<user name>`) or `%HOMEDRIVE%%HOMEPATH%`.
+    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `%APPDATA%` generally points to (`C:\Users\<user name>\AppData\Roaming`) and `~` points to `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`), or `%HOMEDRIVE%%HOMEPATH%`
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
 For example, with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
@@ -1011,7 +1017,7 @@ For example, with the following configuration file yt-dlp will always extract th
 
 Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
 
-You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of user and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
+You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of home, user, and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
 ### Authentication with `.netrc` file
 
@@ -1049,7 +1055,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
 1. **Alternatives**: Alternate fields can be specified seperated with a `,`. Eg: `%(release_date>%Y,upload_date>%Y|Unknown)s`
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` seperator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q` can be used for converting to **B**ytes, **j**son, a comma seperated **l**ist (alternate form flag `#` makes it new line `\n` seperated) and a string **q**uoted for the terminal, respectively
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q` can be used for converting to **B**ytes, **j**son (flag `#` for pretty-printing), a comma seperated **l**ist (flag `#` for `\n` newline-seperated) and a string **q**uoted for the terminal (flag `#` to split a list into different arguments), respectively
 1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. Eg: `%(title)+.100U` is NFKC
 
 To summarize, the general syntax for a field is:
@@ -1245,19 +1251,19 @@ You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, 
 
 You can also use special names to select particular edge case formats:
 
- - `all`: Select all formats
- - `mergeall`: Select and merge all formats (Must be used with `--audio-multistreams`, `--video-multistreams` or both)
- - `b*`, `best*`: Select the best quality format irrespective of whether it contains video or audio
- - `w*`, `worst*`: Select the worst quality format irrespective of whether it contains video or audio
- - `b`, `best`: Select the best quality format that contains both video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
+ - `all`: Select **all formats** separately
+ - `mergeall`: Select and **merge all formats** (Must be used with `--audio-multistreams`, `--video-multistreams` or both)
+ - `b*`, `best*`: Select the best quality format that **contains either** a video or an audio
+ - `b`, `best`: Select the best quality format that **contains both** video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
+ - `bv`, `bestvideo`: Select the best quality **video-only** format. Equivalent to `best*[acodec=none]`
+ - `bv*`, `bestvideo*`: Select the best quality format that **contains video**. It may also contain audio. Equivalent to `best*[vcodec!=none]`
+ - `ba`, `bestaudio`: Select the best quality **audio-only** format. Equivalent to `best*[vcodec=none]`
+ - `ba*`, `bestaudio*`: Select the best quality format that **contains audio**. It may also contain video. Equivalent to `best*[acodec!=none]`
+ - `w*`, `worst*`: Select the worst quality format that contains either a video or an audio
  - `w`, `worst`: Select the worst quality format that contains both video and audio. Equivalent to `worst*[vcodec!=none][acodec!=none]`
- - `bv`, `bestvideo`: Select the best quality video-only format. Equivalent to `best*[acodec=none]`
  - `wv`, `worstvideo`: Select the worst quality video-only format. Equivalent to `worst*[acodec=none]`
- - `bv*`, `bestvideo*`: Select the best quality format that contains video. It may also contain audio. Equivalent to `best*[vcodec!=none]`
  - `wv*`, `worstvideo*`: Select the worst quality format that contains video. It may also contain audio. Equivalent to `worst*[vcodec!=none]`
- - `ba`, `bestaudio`: Select the best quality audio-only format. Equivalent to `best*[vcodec=none]`
  - `wa`, `worstaudio`: Select the worst quality audio-only format. Equivalent to `worst*[vcodec=none]`
- - `ba*`, `bestaudio*`: Select the best quality format that contains audio. It may also contain video. Equivalent to `best*[acodec!=none]`
  - `wa*`, `worstaudio*`: Select the worst quality format that contains audio. It may also contain video. Equivalent to `worst*[acodec!=none]`
 
 For example, to download the worst quality video-only format you can use `-f worstvideo`. It is however recommended not to use `worst` and related options. When your format selector is `worst`, the format which is worst in all respects is selected. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-f best -S +size,+br,+res,+fps` instead of `-f worst`. See [sorting formats](#sorting-formats) for more details.
@@ -1321,7 +1327,7 @@ The available fields are:
  - `source`: Preference of the source as given by the extractor
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > other > `mms`/`rtsp` > unknown > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other > unknown)
- - `acodec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac3` > `dts` > other > unknown)
+ - `acodec`: Audio Codec (`opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `eac3` > `ac3` > `dts` > other > unknown)
  - `codec`: Equivalent to `vcodec,acodec`
  - `vext`: Video Extension (`mp4` > `webm` > `flv` > other > unknown). If `--prefer-free-formats` is used, `webm` is prefered.
  - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other > unknown). If `--prefer-free-formats` is used, the order changes to `opus` > `ogg` > `webm` > `m4a` > `mp3` > `aac`.
@@ -1478,7 +1484,7 @@ $ yt-dlp -S '+res:480,codec,br'
 
 # MODIFYING METADATA
 
-The metadata obtained the the extractors can be modified by using `--parse-metadata` and `--replace-in-metadata`
+The metadata obtained by the extractors can be modified by using `--parse-metadata` and `--replace-in-metadata`
 
 `--replace-in-metadata FIELDS REGEX REPLACE` is used to replace text in any metadata field using [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax). [Backreferences](https://docs.python.org/3/library/re.html?highlight=backreferences#re.sub) can be used in the replace string for advanced use.
 
@@ -1539,7 +1545,7 @@ $ yt-dlp --replace-in-metadata 'title,uploader' '[ _]' '-'
 
 # EXTRACTOR ARGUMENTS
 
-Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player_client=android_agegate,web;include_live_dash" --extractor-args "funimation:version=uncut"`
+Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player-client=android_agegate,web;include_live_dash" --extractor-args "funimation:version=uncut"`
 
 The following extractors use this feature:
 
@@ -1558,6 +1564,10 @@ The following extractors use this feature:
 #### funimation
 * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
 * `version`: The video version to extract - `uncut` or `simulcast`
+
+#### crunchyroll
+* `language`: Languages to extract. Eg: `crunchyroll:language=jaJp`
+* `hardsub`: Which hard-sub versions to extract. Eg: `crunchyroll:hardsub=None,enUS`
 
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
@@ -1588,10 +1598,10 @@ Your program should avoid parsing the normal stdout since they may change in fut
 From a Python program, you can embed yt-dlp in a more powerful fashion, like this:
 
 ```python
-import yt_dlp
+from yt_dlp import YoutubeDL
 
 ydl_opts = {}
-with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+with YoutubeDL(ydl_opts) as ydl:
     ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
 ```
 
@@ -1601,9 +1611,7 @@ Here's a more complete example of a program that outputs only errors (and a shor
 
 ```python
 import json
-
 import yt_dlp
-from yt_dlp.postprocessor.common import PostProcessor
 
 
 class MyLogger:
@@ -1625,7 +1633,7 @@ class MyLogger:
         print(msg)
 
 
-class MyCustomPP(PostProcessor):
+class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
     def run(self, info):
         self.to_screen('Doing stuff')
         return [], info
@@ -1646,6 +1654,10 @@ ydl_opts = {
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
 }
+
+
+# Add custom headers
+yt_dlp.utils.std_headers.update({'Referer': 'https://www.google.com'})
 
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     ydl.add_post_processor(MyCustomPP())
