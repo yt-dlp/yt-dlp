@@ -1,11 +1,16 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import json
+
 from .common import InfoExtractor
+from ..utils import (
+    try_get,
+)
 
 
 class AlJazeeraIE(InfoExtractor):
-    _VALID_URL = r'(?x)https?://\w+\.aljazeera\.\w+/(?:programs?/[^/]+|(?:feature|video|new)s)?/\d{4}/\d{1,2}/\d{1,2}/(?P<id>[^/?&#]+)'
+    _VALID_URL = r'https?://(?P<base>\w+\.aljazeera\.\w+)/(?P<type>programs?/[^/]+|(?:feature|video|new)s)?/\d{4}/\d{1,2}/\d{1,2}/(?P<id>[^/?&#]+)'
 
     _TESTS = [{
         'url': 'https://balkans.aljazeera.net/videos/2021/11/6/pojedini-domovi-u-sarajevu-jos-pod-vodom-mjestanima-se-dostavlja-hrana',
@@ -31,20 +36,51 @@ class AlJazeeraIE(InfoExtractor):
     BRIGHTCOVE_URL_RE = r'https?://players.brightcove.net/(?P<account>\d+)/(?P<player_id>[a-zA-Z0-9]+)_(?P<embed>[^/]+)/index.html\?videoId=(?P<id>\d+)'
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        base, post_type, id = self._match_valid_url(url).groups()
+        wp = {
+            'balkans.aljazeera.net': 'ajb',
+            'chinese.aljazeera.net': 'chinese',
+            'mubasher.aljazeera.net': 'ajm',
+        }.get(base) or 'aje'
+        post_type = {
+            'features': 'post',
+            'program': 'episode',
+            'programs': 'episode',
+            'videos': 'video',
+            'news': 'news',
+        }[post_type.split('/')[0]]
+        video = self._download_json(
+            f'https://{base}/graphql', id, query={
+                'wp-site': wp,
+                'operationName': 'ArchipelagoSingleArticleQuery',
+                'variables': json.dumps({
+                    'name': id,
+                    'postType': post_type,
+                }),
+            }, headers={
+                'wp-site': wp,
+            })
+        video = try_get(video, lambda x: x['data']['article']['video'])
+        video_id = video.get('id')
+        account = video.get('accountId')
+        player_id = video.get('playerId')
+        embed = 'default'
 
-        account, player_id, embed, video_id = self._search_regex(self.BRIGHTCOVE_URL_RE, webpage, 'video id',
-                                                                 group=(1, 2, 3, 4), default=(None, None, None, None))
-        if None in (account, player_id, embed, id):
-            return {
-                '_type': 'url_transparent',
-                'url': url,
-                'ie_key': 'Generic'
-            }
+        if None in (video_id, account, player_id):
+            webpage = self._download_webpage(url, id)
+
+            account, player_id, embed, video_id = self._search_regex(self.BRIGHTCOVE_URL_RE, webpage, 'video id',
+                                                                     group=(1, 2, 3, 4), default=(None, None, None, None))
+
+            if video_id is None:
+                return {
+                    '_type': 'url_transparent',
+                    'url': url,
+                    'ie_key': 'Generic'
+                }
 
         return {
             '_type': 'url_transparent',
-            'url': f'https://players.brightcove.net/{account}/{player_id}_{embed}/index.html?videoId={player_id}',
+            'url': f'https://players.brightcove.net/{account}/{player_id}_{embed}/index.html?videoId={video_id}',
             'ie_key': 'BrightcoveNew'
         }
