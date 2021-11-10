@@ -1864,7 +1864,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.write_debug(f'Decrypted nsig {s} => {self._player_cache[sig_id]}')
             return self._player_cache[sig_id]
         except Exception as e:
-            raise ExtractorError(traceback.format_exc(), cause=e)
+            raise ExtractorError(traceback.format_exc(), cause=e, video_id=video_id)
 
     def _extract_n_function_name(self, jscode):
         return self._search_regex(
@@ -2496,7 +2496,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmt_url = update_url_query(fmt_url, {
                         'n': self._decrypt_nsig(query['n'][0], video_id, player_url)})
                 except ExtractorError as e:
-                    self.report_warning(f'nsig extraction failed: You may experience throttling for some formats\n{e}', only_once=True)
+                    self.report_warning(
+                        f'nsig extraction failed: You may experience throttling for some formats\n'
+                        f'n = {query["n"][0]} ; player = {player_url}\n{e}', only_once=True)
                     throttled = True
 
             if itag:
@@ -4427,7 +4429,7 @@ class YoutubeYtUserIE(InfoExtractor):
     def _real_extract(self, url):
         user_id = self._match_id(url)
         return self.url_result(
-            'https://www.youtube.com/user/%s' % user_id,
+            'https://www.youtube.com/user/%s/videos' % user_id,
             ie=YoutubeTabIE.ie_key(), video_id=user_id)
 
 
