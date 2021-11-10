@@ -390,7 +390,13 @@ class CBCGemPlaylistIE(InfoExtractor):
         show = match.group('show')
         show_info = self._download_json(self._API_BASE + show, season_id)
         season = int(match.group('season'))
-        season_info = try_get(show_info, lambda x: x['seasons'][season - 1])
+
+        # Search for the season with the right number
+        season_info = None
+        for show_season in show_info["seasons"]:
+            if show_season.get("season") == season:
+                season_info = show_season
+                break
 
         if season_info is None:
             raise ExtractorError(f'Couldn\'t find season {season} of {show}')
