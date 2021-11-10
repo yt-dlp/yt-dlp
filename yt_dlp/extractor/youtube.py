@@ -2162,11 +2162,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             comment_counts = [0, 0, 0]
 
         continuation = self._extract_continuation(root_continuation_data)
-        if continuation and len(continuation['continuation']) < 27:
-            self.write_debug('Detected old API continuation token. Generating new API compatible token.')
-            continuation_token = self._generate_comment_continuation(video_id)
-            continuation = self._build_api_continuation_query(continuation_token, None)
-
         message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
         if message and not parent:
             self.report_warning(message, video_id=video_id)
@@ -2193,7 +2188,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             response = self._extract_response(
                 item_id=None, query=continuation,
                 ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                check_get_keys=('onResponseReceivedEndpoints', 'continuationContents'))
+                check_get_keys='onResponseReceivedEndpoints')
             if not response:
                 break
             visitor_data = try_get(
@@ -2231,44 +2226,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                 self.report_warning('No comments received - assuming end of comments')
                             continuation = None
                         break
-
-            # Deprecated response structure
-            elif isinstance(continuation_contents, dict):
-                known_continuation_renderers = ('itemSectionContinuation', 'commentRepliesContinuation')
-                for key, continuation_renderer in continuation_contents.items():
-                    if key not in known_continuation_renderers:
-                        continue
-                    if not isinstance(continuation_renderer, dict):
-                        continue
-                    if is_first_continuation:
-                        header_continuation_items = [continuation_renderer.get('header') or {}]
-                        continuation = extract_header(header_continuation_items)
-                        is_first_continuation = False
-                        if continuation:
-                            break
-
-                    # Sometimes YouTube provides a continuation without any comments
-                    # In most cases we end up just downloading these with very little comments to come.
-                    count = 0
-                    for count, entry in enumerate(extract_thread(continuation_renderer.get('contents') or {})):
-                        yield entry
-                    continuation = self._extract_continuation(continuation_renderer)
-                    if count == 0:
-                        if not parent:
-                            self.report_warning('No comments received - assuming end of comments')
-                        continuation = None
-                    break
-
-    @staticmethod
-    def _generate_comment_continuation(video_id):
-        """
-        Generates initial comment section continuation token from given video id
-        """
-        b64_vid_id = base64.b64encode(bytes(video_id.encode('utf-8')))
-        parts = ('Eg0SCw==', b64_vid_id, 'GAYyJyIRIgs=', b64_vid_id, 'MAB4AjAAQhBjb21tZW50cy1zZWN0aW9u')
-        new_continuation_intlist = list(itertools.chain.from_iterable(
-            [bytes_to_intlist(base64.b64decode(part)) for part in parts]))
-        return base64.b64encode(intlist_to_bytes(new_continuation_intlist)).decode('utf-8')
 
     def _get_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
