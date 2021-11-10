@@ -47,7 +47,7 @@ class MixchIE(InfoExtractor):
             'uploader': traverse_obj(initial_js_state, ('broadcasterInfo', 'name')),
             'uploader_id': video_id,
             'formats': [{
-            'format_id': 'hls',
+                'format_id': 'hls',
                 'url': traverse_obj(initial_js_state, ('liveInfo', 'hls')) or 'https://d1hd0ww6piyb43.cloudfront.net/hls/torte_%s.m3u8' % video_id,
                 'ext': 'mp4',
                 'protocol': 'm3u8',
