@@ -999,6 +999,7 @@ from .oktoberfesttv import OktoberfestTVIE
 from .olympics import OlympicsReplayIE
 from .on24 import On24IE
 from .ondemandkorea import OnDemandKoreaIE
+from .onefootball import OneFootballIE
 from .onet import (
     OnetIE,
     OnetChannelIE,
