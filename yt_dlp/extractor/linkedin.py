@@ -21,7 +21,7 @@ from ..utils import (
 )
 
 
-class LinkedInBase(InfoExtractor):
+class LinkedInBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'linkedin'
     _logged_in = False
 
@@ -50,10 +50,10 @@ class LinkedInBase(InfoExtractor):
             login_submit_page, 'error', default=None)
         if error:
             raise ExtractorError(error, expected=True)
-        LinkedInBase._logged_in = True
+        LinkedInBaseIE._logged_in = True
 
 
-class LinkedInLearningBaseIE(LinkedInBase):
+class LinkedInLearningBaseIE(LinkedInBaseIE):
     _LOGIN_URL = 'https://www.linkedin.com/uas/login?trk=learning'
 
     def _call_api(self, course_slug, fields, video_slug=None, resolution=None):
@@ -88,7 +88,7 @@ class LinkedInLearningBaseIE(LinkedInBase):
         return self._get_urn_id(video_data) or '%s/%s' % (course_slug, video_slug)
 
 
-class LinkedInIE(LinkedInBase):
+class LinkedInIE(LinkedInBaseIE):
     _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/.+?(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.linkedin.com/posts/mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
@@ -106,21 +106,16 @@ class LinkedInIE(LinkedInBase):
         webpage = self._download_webpage(url, video_id)
 
         title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
-
         description = clean_html(get_element_by_class('share-update-card__update-text', webpage))
-
         sources = self._parse_json(extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))['data-sources'], video_id)
-
         like_count = int_or_none(get_element_by_class('social-counts-reactions__social-counts-numRections', webpage))
-
         creator = strip_or_none(clean_html(get_element_by_class('comment__actor-name', webpage)))
-        formats = []
-        for source in sources:
-            formats.append({
-                'url': source['src'],
-                'ext': mimetype2ext(source.get('type')),
-                'tbr': float_or_none(source.get('data-bitrate'), scale=1000),
-            })
+
+        formats = [{
+            'url': source['src'],
+            'ext': mimetype2ext(source.get('type')),
+            'tbr': float_or_none(source.get('data-bitrate'), scale=1000),
+        } for source in sources]
 
         self._sort_formats(formats)
 
