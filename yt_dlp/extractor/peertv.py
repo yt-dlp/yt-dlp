@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
+from ..utils import js_to_json
 
 
 class PeerTVIE(InfoExtractor):
@@ -15,7 +16,6 @@ class PeerTVIE(InfoExtractor):
             'title': 'Die Brunnenburg',
             'description': 'md5:4395f6142b090338340ab88a3aae24ed',
         },
-        'params': {'skip_download': 'm3u8'}
     }, {
         'url': 'https://www.peer.tv/it/404',
         'info_dict': {
@@ -24,7 +24,6 @@ class PeerTVIE(InfoExtractor):
             'title': 'Cascate di ghiaccio in Val Gardena',
             'description': 'md5:e8e5907f236171842674e8090e3577b8',
         },
-        'params': {'skip_download': 'm3u8'}
     }]
 
     def _real_extract(self, url):
@@ -34,16 +33,16 @@ class PeerTVIE(InfoExtractor):
         video_key = self._html_search_regex(r'player\.peer\.tv/js/([a-zA-Z0-9]+)', webpage, 'video key')
 
         js = self._download_webpage(f'https://player.peer.tv/js/{video_key}/', video_id,
-                                    headers={'Referer': 'https://www.peer.tv/'})
+                                    headers={'Referer': 'https://www.peer.tv/'}, note='Downloading session id')
 
-        session_id = self._search_regex(r'["\']session_id["\']:\s*["\']([\w\d]+)["\']', js, 'session id')
+        session_id = self._search_regex(r'["\']session_id["\']:\s*["\']([a-zA-Z0-9]+)["\']', js, 'session id')
 
         player_webpage = self._download_webpage(
             f'https://player.peer.tv/jsc/{video_key}/{session_id}?jsr=aHR0cHM6Ly93d3cucGVlci50di9kZS84NDE=&cs=UTF-8&mq=2&ua=0&webm=p&mp4=p&hls=1',
             video_id, note='Downloading player webpage')
 
-        m3u8_url = self._search_regex(r'["\']playlist_url["\']:\s*["\']([^"\']+)["\']', player_webpage,
-                                      'm3u8 url').replace('\\', '')
+        m3u8_url = self._search_regex(r'["\']playlist_url["\']:\s*(["\'][^"\']+["\'])', player_webpage, 'm3u8 url')
+        m3u8_url = self._parse_json(m3u8_url, video_id, transform_source=js_to_json)
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
 
