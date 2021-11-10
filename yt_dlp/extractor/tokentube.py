@@ -9,6 +9,7 @@ from ..utils import (
     clean_html,
     get_element_by_class,
     parse_count,
+    remove_end,
     unified_strdate,
     js_to_json,
     OnDemandPagedList,
@@ -95,8 +96,7 @@ class TokentubeIE(InfoExtractor):
         description = (clean_html(get_element_by_class('p-d-txt', webpage))
                        or self._html_search_meta(('og:description', 'description', 'twitter:description'), webpage))
 
-        if description and description.endswith('Category'):
-            description = description[:-8]
+        description = remove_end(description, 'Category')
 
         self._sort_formats(formats)
 
