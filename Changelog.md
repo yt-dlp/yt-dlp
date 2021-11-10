@@ -14,6 +14,10 @@
 -->
 
 
+### 2021.11.10.1
+
+* Temporarily disable MacOS Build
+
 ### 2021.11.10
 
 * [youtube] **Fix throttling by decrypting n-sig**
