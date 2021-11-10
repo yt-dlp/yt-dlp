@@ -5,7 +5,10 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import urljoin
+from ..utils import (
+    urljoin,
+    parse_codecs,
+)
 
 
 class TelevizeSeznamIE(InfoExtractor):
@@ -68,6 +71,12 @@ class TelevizeSeznamIE(InfoExtractor):
                 'protocol': 'https',
                 'ext': ext
             }
+            if v.get('bandwidth'):
+                format.update({'tbr': v['bandwidth'] / 1000})
+                if v.get('duration'):
+                    format.update({'filesize_approx': v['bandwidth'] * v['duration'] / 8000})
+            if v.get('codec'):
+                format.update(parse_codecs(v['codec']))
             if v.get('resolution'):
                 format.update({'width': v['resolution'][0], 'height': v['resolution'][1]})
 
