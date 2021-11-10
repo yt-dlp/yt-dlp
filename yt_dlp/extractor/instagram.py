@@ -368,7 +368,8 @@ class InstagramIE(InstagramBaseIE):
                 description = lowercase_escape(description)
 
         if not thumbnails:
-            thumbnails = [{'url': self._og_search_thumbnail(webpage)}]
+            thumb_url = self._og_search_thumbnail(webpage)
+            thumbnails = [{'url': thumb_url}] if thumb_url else None
 
         return {
             'id': video_id,
