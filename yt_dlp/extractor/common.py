@@ -1452,8 +1452,16 @@ class InfoExtractor(object):
             })
             extract_interaction_statistic(e)
 
-        for e in json_ld:
-            if '@context' in e:
+        def traverse_json_ld(json_ld, info, at_top_level=True):
+            for e in json_ld:
+                if at_top_level and '@context' not in e:
+                    continue
+                if at_top_level and all(k in ('@context', '@graph') for k in e):
+                    graph = e['@graph']
+                    if isinstance(graph, dict):
+                        graph = [graph]
+                    traverse_json_ld(graph, info, at_top_level=False)
+                    break
                 item_type = e.get('@type')
                 if expected_type is not None and expected_type != item_type:
                     continue
@@ -1504,6 +1512,8 @@ class InfoExtractor(object):
                     continue
                 else:
                     break
+        traverse_json_ld(json_ld, info)
+
         return dict((k, v) for k, v in info.items() if v is not None)
 
     def _search_nextjs_data(self, webpage, video_id, **kw):
