@@ -62,11 +62,11 @@ class AlJazeeraIE(InfoExtractor):
             })
         video = try_get(video, lambda x: x['data']['article']['video'])
         video_id = video.get('id')
-        account = video.get('accountId')
-        player_id = video.get('playerId')
+        account = video.get('accountId') or '911432371001'
+        player_id = video.get('playerId') or 'csvTfAlKW'
         embed = 'default'
 
-        if None in (video_id, account, player_id):
+        if video_id is None:
             webpage = self._download_webpage(url, id)
 
             account, player_id, embed, video_id = self._search_regex(self.BRIGHTCOVE_URL_RE, webpage, 'video id',
