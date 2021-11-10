@@ -35,7 +35,6 @@ class SevenPlusIE(BrightcoveNewIE):
             'episode': 'Wind Surf',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         }
     }, {

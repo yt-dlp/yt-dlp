@@ -46,7 +46,6 @@ class DPlayIE(InfoExtractor):
             'episode_number': 1,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {
@@ -67,7 +66,6 @@ class DPlayIE(InfoExtractor):
             'episode_number': 1,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {
@@ -87,7 +85,6 @@ class DPlayIE(InfoExtractor):
             'episode_number': 7,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'skip': 'Available for Premium users',
@@ -312,9 +309,6 @@ class HGTVDeIE(DPlayIE):
             'series': 'Tiny House - klein, aber oho',
             'season_number': 3,
             'episode_number': 3,
-        },
-        'params': {
-            'format': 'bestvideo',
         },
     }]
 

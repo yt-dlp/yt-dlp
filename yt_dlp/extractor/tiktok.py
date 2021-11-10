@@ -12,6 +12,7 @@ from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     str_or_none,
     traverse_obj,
     try_get,
@@ -107,8 +108,8 @@ class TikTokBaseIE(InfoExtractor):
                 'acodec': 'aac',
                 'source_preference': -2 if 'aweme/v1' in url else -1,  # Downloads from API might get blocked
                 **add_meta, **parsed_meta,
-                'format_note': ' '.join(filter(None, (
-                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else '')))
+                'format_note': join_nonempty(
+                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' ')
             } for url in addr.get('url_list') or []]
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats

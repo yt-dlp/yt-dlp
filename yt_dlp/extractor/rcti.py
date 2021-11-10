@@ -85,9 +85,6 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             'series': 'iNews Malam',
             'channel': 'INews',
         },
-        'params': {
-            'format': 'bestvideo',
-        },
     }, {  # Missed event/replay
         'url': 'https://www.rctiplus.com/missed-event/2507/mou-signing-ceremony-27-juli-2021-1400-wib',
         'md5': '649c5f27250faed1452ca8b91e06922d',
@@ -132,7 +129,6 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         },
         'params': {
             'skip_download': True,
-            'format': 'bestvideo',
         },
     }]
     _CONVIVA_JSON_TEMPLATE = {
@@ -329,7 +325,6 @@ class RCTIPlusTVIE(RCTIPlusBaseIE):
         },
         'params': {
             'skip_download': True,
-            'format': 'bestvideo',
         }
     }, {
         # Returned video will always change

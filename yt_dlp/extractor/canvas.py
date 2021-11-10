@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import json
 
 
 from .common import InfoExtractor
@@ -41,9 +42,9 @@ class CanvasIE(InfoExtractor):
     _GEO_BYPASS = False
     _HLS_ENTRY_PROTOCOLS_MAP = {
         'HLS': 'm3u8_native',
-        'HLS_AES': 'm3u8',
+        'HLS_AES': 'm3u8_native',
     }
-    _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v1'
+    _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2'
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -59,16 +60,21 @@ class CanvasIE(InfoExtractor):
 
         # New API endpoint
         if not data:
+            vrtnutoken = self._download_json('https://token.vrt.be/refreshtoken',
+                                             video_id, note='refreshtoken: Retrieve vrtnutoken',
+                                             errnote='refreshtoken failed')['vrtnutoken']
             headers = self.geo_verification_headers()
-            headers.update({'Content-Type': 'application/json'})
-            token = self._download_json(
+            headers.update({'Content-Type': 'application/json; charset=utf-8'})
+            vrtPlayerToken = self._download_json(
                 '%s/tokens' % self._REST_API_BASE, video_id,
-                'Downloading token', data=b'', headers=headers)['vrtPlayerToken']
+                'Downloading token', headers=headers, data=json.dumps({
+                    'identityToken': vrtnutoken
+                }).encode('utf-8'))['vrtPlayerToken']
             data = self._download_json(
                 '%s/videos/%s' % (self._REST_API_BASE, video_id),
                 video_id, 'Downloading video JSON', query={
-                    'vrtPlayerToken': token,
-                    'client': '%s@PROD' % site_id,
+                    'vrtPlayerToken': vrtPlayerToken,
+                    'client': 'null',
                 }, expected_status=400)
             if not data.get('title'):
                 code = data.get('code')
@@ -264,7 +270,7 @@ class VrtNUIE(GigyaBaseIE):
         'expected_warnings': ['Unable to download asset JSON', 'is not a supported codec', 'Unknown MIME type'],
     }]
     _NETRC_MACHINE = 'vrtnu'
-    _APIKEY = '3_qhEcPa5JGFROVwu5SWKqJ4mVOIkwlFNMSKwzPDAh8QZOtHqu6L4nD5Q7lk0eXOOG'
+    _APIKEY = '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy'
     _CONTEXT_ID = 'R3595707040'
 
     def _real_initialize(self):
@@ -275,16 +281,13 @@ class VrtNUIE(GigyaBaseIE):
         if username is None:
             return
 
-        auth_info = self._download_json(
-            'https://accounts.vrt.be/accounts.login', None,
-            note='Login data', errnote='Could not get Login data',
-            headers={}, data=urlencode_postdata({
-                'loginID': username,
-                'password': password,
-                'sessionExpiration': '-2',
-                'APIKey': self._APIKEY,
-                'targetEnv': 'jssdk',
-            }))
+        auth_info = self._gigya_login({
+            'APIKey': self._APIKEY,
+            'targetEnv': 'jssdk',
+            'loginID': username,
+            'password': password,
+            'authMode': 'cookie',
+        })
 
         if auth_info.get('errorDetails'):
             raise ExtractorError('Unable to login: VrtNU said: ' + auth_info.get('errorDetails'), expected=True)
@@ -301,14 +304,15 @@ class VrtNUIE(GigyaBaseIE):
                     'UID': auth_info['UID'],
                     'UIDSignature': auth_info['UIDSignature'],
                     'signatureTimestamp': auth_info['signatureTimestamp'],
-                    'client_id': 'vrtnu-site',
                     '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
                 }
 
                 self._request_webpage(
                     'https://login.vrt.be/perform_login',
-                    None, note='Requesting a token', errnote='Could not get a token',
-                    headers={}, data=urlencode_postdata(post_data))
+                    None, note='Performing login', errnote='perform login failed',
+                    headers={}, query={
+                        'client_id': 'vrtnu-site'
+                    }, data=urlencode_postdata(post_data))
 
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
