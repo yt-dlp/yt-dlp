@@ -2093,6 +2093,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, comment_counts=None):
 
+        get_single_config_arg = lambda c: self._configuration_arg(c, [''])[0]
+
         def extract_header(contents):
             _continuation = None
             for content in contents:
@@ -2103,7 +2105,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if expected_comment_count:
                     comment_counts[1] = expected_comment_count
                     self.to_screen('Downloading ~%d comments' % expected_comment_count)
-                sort_mode_str = self._configuration_arg('comment_sort', [''])[0]
+                sort_mode_str = get_single_config_arg('comment_sort')
                 comment_sort_index = int(sort_mode_str != 'top')  # 1 = new, 0 = top
 
                 sort_menu_item = try_get(
@@ -2149,12 +2151,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
                         parent=comment.get('id'), comment_counts=comment_counts)
-
-                    for reply_comment in comment_entries_iter:
+                    max_replies = int_or_none(get_single_config_arg('max_comment_thread_replies'))
+                    for reply_comment in itertools.islice(comment_entries_iter, max_replies):
                         yield reply_comment
 
         # YouTube comments have a max depth of 2
-        max_depth = int_or_none(self._configuration_arg('max_comment_depth', [''])[0]) or float('inf')
+        max_depth = int_or_none(get_single_config_arg('max_comment_depth')) or 2
         if max_depth == 1 and parent:
             return
         if not comment_counts:
