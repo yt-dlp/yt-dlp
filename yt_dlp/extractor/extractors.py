@@ -1395,6 +1395,7 @@ from .storyfire import (
 from .streamable import StreamableIE
 from .streamanity import StreamanityIE
 from .streamcloud import StreamcloudIE
+from .streamcz import StreamCZIE
 from .streetvoice import StreetVoiceIE
 from .stretchinternet import StretchInternetIE
 from .stv import STVPlayerIE
@@ -1444,7 +1445,6 @@ from .telequebec import (
     TeleQuebecVideoIE,
 )
 from .teletask import TeleTaskIE
-from .televizeseznam import TelevizeSeznamIE
 from .telewebion import TelewebionIE
 from .tennistv import TennisTVIE
 from .tenplay import TenPlayIE

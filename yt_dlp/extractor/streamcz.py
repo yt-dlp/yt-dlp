@@ -11,7 +11,7 @@ from ..utils import (
 )
 
 
-class TelevizeSeznamIE(InfoExtractor):
+class StreamCZIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:stream|televizeseznam)\.cz/.+/(?P<display_id>.+)-(?P<id>[0-9]+)'
 
     _GRAPHQL_URL = 'https://www.televizeseznam.cz/api/graphql'
