@@ -1583,10 +1583,11 @@ class YoutubeDL(object):
             if entry is not None]
         n_entries = len(entries)
 
-        if not playlistitems and (playliststart or playlistend):
+        if not playlistitems and (playliststart != 1 or playlistend):
             playlistitems = list(range(playliststart, playliststart + n_entries))
         ie_result['requested_entries'] = playlistitems
 
+        _infojson_written = False
         if not self.params.get('simulate') and self.params.get('allow_playlist_files', True):
             ie_copy = {
                 'playlist': playlist,
@@ -1599,8 +1600,9 @@ class YoutubeDL(object):
             }
             ie_copy.update(dict(ie_result))
 
-            if self._write_info_json('playlist', ie_result,
-                                     self.prepare_filename(ie_copy, 'pl_infojson')) is None:
+            _infojson_written = self._write_info_json(
+                'playlist', ie_result, self.prepare_filename(ie_copy, 'pl_infojson'))
+            if _infojson_written is None:
                 return
             if self._write_description('playlist', ie_result,
                                        self.prepare_filename(ie_copy, 'pl_description')) is None:
@@ -1656,6 +1658,12 @@ class YoutubeDL(object):
             # TODO: skip failed (empty) entries?
             playlist_results.append(entry_result)
         ie_result['entries'] = playlist_results
+
+        # Write the updated info to json
+        if _infojson_written and self._write_info_json(
+                'updated playlist', ie_result,
+                self.prepare_filename(ie_copy, 'pl_infojson'), overwrite=True) is None:
+            return
         self.to_screen('[download] Finished downloading playlist: %s' % playlist)
         return ie_result
 
@@ -3472,8 +3480,10 @@ class YoutubeDL(object):
             encoding = preferredencoding()
         return encoding
 
-    def _write_info_json(self, label, ie_result, infofn):
+    def _write_info_json(self, label, ie_result, infofn, overwrite=None):
         ''' Write infojson and returns True = written, False = skip, None = error '''
+        if overwrite is None:
+            overwrite = self.params.get('overwrites', True)
         if not self.params.get('writeinfojson'):
             return False
         elif not infofn:
@@ -3481,7 +3491,7 @@ class YoutubeDL(object):
             return False
         elif not self._ensure_dir_exists(infofn):
             return None
-        elif not self.params.get('overwrites', True) and os.path.exists(infofn):
+        elif not overwrite and os.path.exists(infofn):
             self.to_screen(f'[info] {label.title()} metadata is already present')
         else:
             self.to_screen(f'[info] Writing {label} metadata as JSON to: {infofn}')
