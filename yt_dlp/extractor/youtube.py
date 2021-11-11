@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import base64
 import calendar
 import copy
+import dataclasses
 import datetime
 import hashlib
 import itertools
@@ -2091,7 +2092,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'parent': parent or 'root'
         }
 
-    def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, comment_counts=None):
+    @dataclasses.dataclass
+    class _CommentTracker:
+        running_total: int = 0
+        est_total: int = 0
+        current_page_thread: int = 0
+        total_parent_comments: int = 0
+        total_reply_comments: int = 0
+
+    def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, comment_tracker=None):
 
         get_single_config_arg = lambda c: self._configuration_arg(c, [''])[0]
 
@@ -2103,7 +2112,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comments_header_renderer, 'countText', 'commentsCount', max_runs=1))
 
                 if expected_comment_count:
-                    comment_counts[1] = expected_comment_count
+                    comment_tracker.est_total = expected_comment_count
                     self.to_screen('Downloading ~%d comments' % expected_comment_count)
                 sort_mode_str = get_single_config_arg('comment_sort')
                 comment_sort_index = int(sort_mode_str != 'top')  # 1 = new, 0 = top
@@ -2128,7 +2137,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         def extract_thread(contents):
             if not parent:
-                comment_counts[2] = 0
+                comment_tracker.current_page_thread = 0
             for content in contents:
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
                 comment_renderer = try_get(
@@ -2140,17 +2149,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
-                comment_counts[0] += 1
+                comment_tracker.running_total += 1
                 yield comment
                 # Attempt to get the replies
                 comment_replies_renderer = try_get(
                     comment_thread_renderer, lambda x: x['replies']['commentRepliesRenderer'], dict)
 
                 if comment_replies_renderer:
-                    comment_counts[2] += 1
+                    comment_tracker.current_page_thread += 1
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
-                        parent=comment.get('id'), comment_counts=comment_counts)
+                        parent=comment.get('id'), comment_tracker=comment_tracker)
                     max_replies = int_or_none(get_single_config_arg('max_comment_thread_replies'))
                     for reply_comment in itertools.islice(comment_entries_iter, max_replies):
                         yield reply_comment
@@ -2159,9 +2168,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         max_depth = int_or_none(get_single_config_arg('max_comment_depth')) or 2
         if max_depth == 1 and parent:
             return
-        if not comment_counts:
-            # comment so far, est. total comments, current comment thread #
-            comment_counts = [0, 0, 0]
+        comment_tracker = comment_tracker or self._CommentTracker()
 
         continuation = self._extract_continuation(root_continuation_data)
         message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
@@ -2175,13 +2182,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not continuation:
                 break
             headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=visitor_data)
-            comment_prog_str = '(%d/%d)' % (comment_counts[0], comment_counts[1])
+            comment_prog_str = f'({comment_tracker.running_total}/{comment_tracker.est_total})'
             if page_num == 0:
                 if is_first_continuation:
                     note_prefix = 'Downloading comment section API JSON'
                 else:
                     note_prefix = '    Downloading comment API JSON reply thread %d %s' % (
-                        comment_counts[2], comment_prog_str)
+                        comment_tracker.current_page_thread, comment_prog_str)
             else:
                 note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
                     '       ' if parent else '', ' replies' if parent else '',
