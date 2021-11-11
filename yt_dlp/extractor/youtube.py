@@ -2235,11 +2235,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         yield entry
                     continuation = self._extract_continuation({'contents': continuation_items})
                     if continuation:
-                        # Sometimes YouTube provides a continuation without any comments
-                        # In most cases we end up just downloading these with very little comments to come.
-                        if count == 0:
-                            self.report_warning('No comments received - assuming end of comments')
-                            continuation = None
                         break
 
     def _get_comments(self, ytcfg, video_id, contents, webpage):
