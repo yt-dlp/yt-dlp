@@ -2129,12 +2129,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         def extract_thread(contents):
             max_parent_comments, max_reply_comments = map(
-                lambda x: int_or_none(get_single_config_arg(x)) or float('inf'), ('max_parent_comments', 'max_reply_comments'))
+                lambda x: int_or_none(get_single_config_arg(x)) or float('inf'),
+                ('max_parent_comments', 'max_reply_comments'))
             if not parent:
                 comment_tracker[2] = 0
             for content in contents:
                 if not parent and comment_tracker[3] >= max_parent_comments:
-                    return
+                    yield
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
                 comment_renderer = try_get(
                     comment_thread_renderer, (lambda x: x['comment']['commentRenderer'], dict)) or try_get(
@@ -2230,8 +2231,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if continuation:
                             break
                         continue
-                    count = 0
-                    for count, entry in enumerate(extract_thread(continuation_items)):
+
+                    for entry in extract_thread(continuation_items):
+                        if not entry:
+                            return
                         yield entry
                     continuation = self._extract_continuation({'contents': continuation_items})
                     if continuation:
