@@ -1202,6 +1202,7 @@ from .reddit import (
     RedditIE,
     RedditRIE,
 )
+from .redgifs import RedGifsIE
 from .redtube import RedTubeIE
 from .regiotv import RegioTVIE
 from .rentv import (
