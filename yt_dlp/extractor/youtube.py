@@ -28,7 +28,6 @@ from ..compat import (
 )
 from ..jsinterp import JSInterpreter
 from ..utils import (
-    bytes_to_intlist,
     clean_html,
     datetime_from_str,
     dict_get,
@@ -37,7 +36,6 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
-    intlist_to_bytes,
     is_html,
     join_nonempty,
     mimetype2ext,
@@ -2094,6 +2092,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, comment_tracker=None):
 
         get_single_config_arg = lambda c: self._configuration_arg(c, [''])[0]
+
         def extract_header(contents):
             _continuation = None
             for content in contents:
