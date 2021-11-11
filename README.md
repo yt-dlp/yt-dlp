@@ -1557,6 +1557,8 @@ The following extractors use this feature:
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Maximum amount of comments to download (default all)
 * `max_comment_thread_replies`: Maximum amount of reply comments per thread (default all)
+* `max_parent_comments`: Maximum parent comments overall (default all)
+* `max_reply_comments`: Maximum reply comments overall (default all)
 * `max_comment_depth`: Maximum depth for nested comments. YouTube supports depths 1 or 2 (default)
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)

@@ -2103,7 +2103,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, comment_tracker=None):
 
         get_single_config_arg = lambda c: self._configuration_arg(c, [''])[0]
-
         def extract_header(contents):
             _continuation = None
             for content in contents:
@@ -2150,6 +2149,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if not comment:
                     continue
                 comment_tracker.running_total += 1
+                if parent:
+                    comment_tracker.total_reply_comments += 1
+                else:
+                    comment_tracker.total_parent_comments += 1
                 yield comment
                 # Attempt to get the replies
                 comment_replies_renderer = try_get(
@@ -2164,11 +2167,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     for reply_comment in itertools.islice(comment_entries_iter, max_replies):
                         yield reply_comment
 
+        comment_tracker = comment_tracker or self._CommentTracker()
+
         # YouTube comments have a max depth of 2
         max_depth = int_or_none(get_single_config_arg('max_comment_depth')) or 2
         if max_depth == 1 and parent:
             return
-        comment_tracker = comment_tracker or self._CommentTracker()
 
         continuation = self._extract_continuation(root_continuation_data)
         message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
@@ -2224,7 +2228,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             break
                         continue
                     count = 0
+                    max_parent_comments = int_or_none(get_single_config_arg('max_parent_comments')) or float('inf')
+                    max_reply_comments = int_or_none(get_single_config_arg('max_reply_comments')) or float('inf')
                     for count, entry in enumerate(extract_thread(continuation_items)):
+                        if comment_tracker.total_parent_comments >= max_parent_comments or comment_tracker.total_reply_comments >= max_reply_comments:
+                            return
                         yield entry
                     continuation = self._extract_continuation({'contents': continuation_items})
                     if continuation:
