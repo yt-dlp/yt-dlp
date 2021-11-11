@@ -1506,9 +1506,9 @@ class YoutubeDL(object):
             raise EntryNotInPlaylist('There are no entries')
         incomplete_entries = bool(ie_result.get('requested_entries'))
         if incomplete_entries:
-            def fill_missing_entries(entries, indexes):
-                ret = [None] * max(*indexes)
-                for i, entry in zip(indexes, entries):
+            def fill_missing_entries(entries, indices):
+                ret = [None] * max(indices)
+                for i, entry in zip(indices, entries):
                     ret[i - 1] = entry
                 return ret
             ie_result['entries'] = fill_missing_entries(ie_result['entries'], ie_result['requested_entries'])
@@ -2991,7 +2991,8 @@ class YoutubeDL(object):
         try:
             self.__download_wrapper(self.process_ie_result)(info, download=True)
         except (DownloadError, EntryNotInPlaylist, ThrottledDownload) as e:
-            self.to_stderr('\r')
+            if not isinstance(e, EntryNotInPlaylist):
+                self.to_stderr('\r')
             webpage_url = info.get('webpage_url')
             if webpage_url is not None:
                 self.report_warning(f'The info failed to download: {e}; trying with URL {webpage_url}')
