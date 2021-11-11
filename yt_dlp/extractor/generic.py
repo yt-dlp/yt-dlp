@@ -136,6 +136,7 @@ from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
 from .tvp import TVPEmbedIE
+from .blogger import BloggerIE
 
 
 class GenericIE(InfoExtractor):
@@ -2173,6 +2174,17 @@ class GenericIE(InfoExtractor):
                 'skip_download': True,
             },
         },
+        {
+            # blogger embed
+            'url': 'https://blog.tomeuvizoso.net/2019/01/a-panfrost-milestone.html',
+            'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
+            'info_dict': {
+                'id': 'BLOGGER-video-3c740e3a49197e16-796',
+                'ext': 'mp4',
+                'title': 'Blogger',
+                'thumbnail': r're:^https?://.*',
+            },
+        },
         # {
         #     # TODO: find another test
         #     # http://schema.org/VideoObject
@@ -3215,6 +3227,11 @@ class GenericIE(InfoExtractor):
         onionstudios_url = OnionStudiosIE._extract_url(webpage)
         if onionstudios_url:
             return self.url_result(onionstudios_url)
+
+        # Look for Blogger embeds
+        blogger_urls = BloggerIE._extract_urls(webpage)
+        if blogger_urls:
+            return self.playlist_from_matches(blogger_urls, video_id, video_title, ie=BloggerIE.ie_key())
 
         # Look for ViewLift embeds
         viewlift_url = ViewLiftEmbedIE._extract_url(webpage)

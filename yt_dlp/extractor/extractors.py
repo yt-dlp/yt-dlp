@@ -166,6 +166,7 @@ from .bleacherreport import (
     BleacherReportIE,
     BleacherReportCMSIE,
 )
+from .blogger import BloggerIE
 from .bloomberg import BloombergIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
