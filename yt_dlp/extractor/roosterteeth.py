@@ -12,6 +12,7 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
+    update_url_query,
 )
 
 
@@ -192,7 +193,7 @@ class RoosterTeethSeriesIE(RoosterTeethBaseIE):
             idx = traverse_obj(data, ('attributes', 'number'))
             if season_number and idx != season_number:
                 continue
-            season_url = urljoin(self._API_BASE, data['links']['episodes'])
+            season_url = update_url_query(urljoin(self._API_BASE, data['links']['episodes']), {'per_page': 1000})
             season = self._download_json(season_url, display_id, f'Downloading season {idx} JSON metadata')['data']
             for episode in season:
                 yield self.url_result(
