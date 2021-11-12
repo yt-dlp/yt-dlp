@@ -183,6 +183,13 @@ class RoosterTeethSeriesIE(RoosterTeethBaseIE):
             'id': 'role-initiative',
             'title': 'Role Initiative',
         }
+    }, {
+        'url': 'https://roosterteeth.com/series/let-s-play-minecraft?season=9',
+        'playlist_mincount': 50,
+        'info_dict': {
+            'id': 'let-s-play-minecraft-9',
+            'title': 'Let\'s Play Minecraft - Season 9',
+        }
     }]
 
     def _entries(self, series_id, season_number):
