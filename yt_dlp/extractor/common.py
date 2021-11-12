@@ -1497,7 +1497,7 @@ class InfoExtractor(object):
                     info.update({
                         'timestamp': parse_iso8601(e.get('datePublished')),
                         'title': unescapeHTML(e.get('headline')),
-                        'description': unescapeHTML(e.get('articleBody')),
+                        'description': unescapeHTML(e.get('articleBody') or e.get('description')),
                     })
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
