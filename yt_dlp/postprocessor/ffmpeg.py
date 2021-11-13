@@ -403,10 +403,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             'aac': (0.1, 4),
             'vorbis': (0, 10),
             'libfdk_aac': (1, 5),
-            'opus': None,  # doesn't support -q:a
-            'wav': None,
-            'flac': None,
-        }[codec]
+        }.get(codec)
         if not limits:
             return []
 
