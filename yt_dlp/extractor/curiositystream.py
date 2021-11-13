@@ -50,19 +50,23 @@ class CuriosityStreamBaseIE(InfoExtractor):
 class CuriosityStreamIE(CuriosityStreamBaseIE):
     IE_NAME = 'curiositystream'
     _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/video/(?P<id>\d+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://app.curiositystream.com/video/2',
         'info_dict': {
             'id': '2',
             'ext': 'mp4',
             'title': 'How Did You Develop The Internet?',
             'description': 'Vint Cerf, Google\'s Chief Internet Evangelist, describes how he and Bob Kahn created the internet.',
+            'channel': 'Curiosity Stream',
+            'categories': ['Technology', 'Interview'],
+            'average_rating': 96.79,
+            'series_id': '2',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
         },
-    }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -139,6 +143,10 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
             'duration': int_or_none(media.get('duration')),
             'tags': media.get('tags'),
             'subtitles': subtitles,
+            'channel': media.get('producer'),
+            'categories': [media.get('primary_category'), media.get('type')],
+            'average_rating': media.get('rating_percentage'),
+            'series_id': str(media.get('collection_id') or '') or None,
         }
 
 

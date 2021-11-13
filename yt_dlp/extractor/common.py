@@ -342,6 +342,7 @@ class InfoExtractor(object):
     series, programme or podcast:
 
     series:         Title of the series or programme the video episode belongs to.
+    series_id:      Id of the series or programme the video episode belongs to, as a unicode string.
     season:         Title of the season the video episode belongs to.
     season_number:  Number of the season the video episode belongs to, as an integer.
     season_id:      Id of the season the video episode belongs to, as a unicode string.
