@@ -105,7 +105,7 @@ Only post features that you (or an incapacitated friend you can personally talk 
 
 ###  Is your question about yt-dlp?
 
-Some bug reports are completely unrelated to yt-dlp and relate to a different, or even the reporter's own, application. Please make sure that you are actually using yt-dlp. If you are using a UI for yt-dlp, report the bug to the maintainer of the actual application providing the UI. On the other hand, if your UI for yt-dlp fails in some way you believe is related to yt-dlp, by all means, go ahead and report the bug.
+Some bug reports are completely unrelated to yt-dlp and relate to a different, or even the reporter's own, application. Please make sure that you are actually using yt-dlp. If you are using a UI for yt-dlp, report the bug to the maintainer of the actual application providing the UI. In general, if you are unable to provide the verbose log, you should not be opening the issue here.
 
 If the issue is with `youtube-dl` (the upstream fork of yt-dlp) and not with yt-dlp, the issue should be raised in the youtube-dl project.
 
@@ -117,7 +117,7 @@ By sharing an account with anyone, you agree to bear all risks associated with i
 
 While these steps won't necessarily ensure that no misuse of the account takes place, these are still some good practices to follow.
 
-- Look for people with `Member` or `Contributor` tag on their messages.
+- Look for people with `Member` (maintainers of the project) or `Contributor` (people who have previously contributed code) tag on their messages.
 - Change the password before sharing the account to something random (use [this](https://passwordsgenerator.net/) if you don't have a random password generator).
 - Change the password after receiving the account back.
 

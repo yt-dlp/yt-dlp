@@ -151,25 +151,25 @@ def parseOpts(overrideArguments=None):
 
     def _dict_from_options_callback(
             option, opt_str, value, parser,
-            allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True):
+            allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True,
+            process_key=str.lower):
 
         out_dict = getattr(parser.values, option.dest)
         if multiple_keys:
             allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
         mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
         if mobj is not None:
-            keys = [k.strip() for k in mobj.group('keys').lower().split(',')]
-            val = mobj.group('val')
+            keys, val = mobj.group('keys').split(','), mobj.group('val')
         elif default_key is not None:
             keys, val = [default_key], value
         else:
             raise optparse.OptionValueError(
                 'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
         try:
+            keys = map(process_key, keys) if process_key else keys
             val = process(val) if process else val
         except Exception as err:
-            raise optparse.OptionValueError(
-                'wrong %s formatting; %s' % (opt_str, err))
+            raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
         for key in keys:
             out_dict[key] = val
 
@@ -792,7 +792,7 @@ def parseOpts(overrideArguments=None):
         '--add-header',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={'multiple_keys': False},
+        callback_kwargs={'multiple_keys': False, 'process_key': None},
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(

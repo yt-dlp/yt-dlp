@@ -2459,7 +2459,14 @@ def bug_reports_message(before=';'):
 
 class YoutubeDLError(Exception):
     """Base exception for YoutubeDL errors."""
-    pass
+    msg = None
+
+    def __init__(self, msg=None):
+        if msg is not None:
+            self.msg = msg
+        elif self.msg is None:
+            self.msg = type(self).__name__
+        super().__init__(self.msg)
 
 
 network_exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error]
@@ -2544,7 +2551,7 @@ class EntryNotInPlaylist(YoutubeDLError):
     This exception will be thrown by YoutubeDL when a requested entry
     is not found in the playlist info_dict
     """
-    pass
+    msg = 'Entry not found in info'
 
 
 class SameFileError(YoutubeDLError):
@@ -2553,7 +2560,12 @@ class SameFileError(YoutubeDLError):
     This exception will be thrown by FileDownloader objects if they detect
     multiple files would have to be downloaded to the same file on disk.
     """
-    pass
+    msg = 'Fixed output name but more than one file to download'
+
+    def __init__(self, filename=None):
+        if filename is not None:
+            self.msg += f': {filename}'
+        super().__init__(self.msg)
 
 
 class PostProcessingError(YoutubeDLError):
@@ -2571,11 +2583,6 @@ class PostProcessingError(YoutubeDLError):
 class DownloadCancelled(YoutubeDLError):
     """ Exception raised when the download queue should be interrupted """
     msg = 'The download was cancelled'
-
-    def __init__(self, msg=None):
-        if msg is not None:
-            self.msg = msg
-        YoutubeDLError.__init__(self, self.msg)
 
 
 class ExistingVideoReached(DownloadCancelled):
@@ -2595,7 +2602,7 @@ class MaxDownloadsReached(DownloadCancelled):
 
 class ThrottledDownload(YoutubeDLError):
     """ Download speed below --throttled-rate. """
-    pass
+    msg = 'The download speed is below throttle limit'
 
 
 class UnavailableVideoError(YoutubeDLError):
@@ -2604,7 +2611,12 @@ class UnavailableVideoError(YoutubeDLError):
     This exception will be thrown when a video is requested
     in a format that is not available for that video.
     """
-    pass
+    msg = 'Unable to download video'
+
+    def __init__(self, err=None):
+        if err is not None:
+            self.msg += f': {err}'
+        super().__init__(self.msg)
 
 
 class ContentTooShortError(YoutubeDLError):
@@ -6442,10 +6454,10 @@ def traverse_obj(
 
     def _traverse_obj(obj, path, _current_depth=0):
         nonlocal depth
-        if obj is None:
-            return None
         path = tuple(variadic(path))
         for i, key in enumerate(path):
+            if obj is None:
+                return None
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...
@@ -6574,5 +6586,5 @@ def number_of_digits(number):
 
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
-        values = operator.itemgetter(values)(from_dict)
+        values = map(from_dict.get, values)
     return delim.join(map(str, filter(None, values)))
