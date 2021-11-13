@@ -203,7 +203,43 @@ class RTVEAudioIE(RTVEALaCartaIE):
             'thumbnail': r're:https?://.+/1613243011863.jpg',
             'duration': 3559.559,
         },
+    }, {
+        'url': 'https://www.rtve.es/play/audios/frankenstein-o-el-moderno-prometeo/capitulo-26-ultimo-muerte-victor-juan-jose-plans-mary-shelley/6082623/',
+        'md5': '0eadab248cc8dd193fa5765712e84d5c',
+        'info_dict': {
+            'id': '6082623',
+            'ext': 'mp3',
+            'title': 'Capítulo 26 y último: La muerte de Victor',
+            'thumbnail': r're:https?://.+/1632147445707.jpg',
+            'duration': 3174.086,
+        },
     }]
+
+    def _extract_png_formats(self, audio_id):
+        png = self._download_webpage(
+            'http://www.rtve.es/ztnr/movil/thumbnail/%s/audios/%s.png' %
+            (self._manager, audio_id),
+            audio_id, 'Downloading url information', query={'q': 'v2'})
+        q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
+        formats = []
+        for quality, audio_url in self._decrypt_url(png):
+            ext = determine_ext(audio_url)
+            print(quality, audio_url, ext)
+            if ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(
+                    audio_url, audio_id, 'mp4', 'm3u8_native',
+                    m3u8_id='hls', fatal=False))
+            elif ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(
+                    audio_url, audio_id, 'dash', fatal=False))
+            else:
+                formats.append({
+                    'format_id': quality,
+                    'quality': q(quality),
+                    'url': audio_url,
+                })
+        self._sort_formats(formats)
+        return formats
 
     def _real_extract(self, url):
         audio_id = self._match_id(url)
@@ -211,6 +247,7 @@ class RTVEAudioIE(RTVEALaCartaIE):
             'https://www.rtve.es/api/audios/%s.json' % audio_id,
             audio_id)['page']['items'][0]
         title = info['title'].strip()
+        formats = self._extract_png_formats(audio_id)
 
         return {
             'id': audio_id,
@@ -218,7 +255,7 @@ class RTVEAudioIE(RTVEALaCartaIE):
             'thumbnail': info.get('thumbnail'),
             'duration': float_or_none(info.get('duration'), 1000),
             'series': info.get('programInfo').get('title'),
-            'url': info.get('qualities')[0].get('filePath'),
+            'formats': formats,
         }
 
 
