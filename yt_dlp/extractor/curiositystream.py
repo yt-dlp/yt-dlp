@@ -44,7 +44,7 @@ class CuriosityStreamBaseIE(InfoExtractor):
                 'password': password,
             }))
         self._handle_errors(result)
-        self._auth_token = result['message']['auth_token']
+        CuriosityStreamBaseIE._auth_token = result['message']['auth_token']
 
 
 class CuriosityStreamIE(CuriosityStreamBaseIE):
@@ -142,9 +142,26 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
         }
 
 
-class CuriosityStreamCollectionIE(CuriosityStreamBaseIE):
-    IE_NAME = 'curiositystream:collection'
-    _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/(?:collections?|series)/(?P<id>\d+)'
+class CuriosityStreamCollectionBaseIE(CuriosityStreamBaseIE):
+
+    def _real_extract(self, url):
+        collection_id = self._match_id(url)
+        collection = self._call_api(collection_id, collection_id)
+        entries = []
+        for media in collection.get('media', []):
+            media_id = compat_str(media.get('id'))
+            media_type, ie = ('series', CuriosityStreamSeriesIE) if media.get('is_collection') else ('video', CuriosityStreamIE)
+            entries.append(self.url_result(
+                'https://curiositystream.com/%s/%s' % (media_type, media_id),
+                ie=ie.ie_key(), video_id=media_id))
+        return self.playlist_result(
+            entries, collection_id,
+            collection.get('title'), collection.get('description'))
+
+
+class CuriosityStreamCollectionsIE(CuriosityStreamCollectionBaseIE):
+    IE_NAME = 'curiositystream:collections'
+    _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/collections/(?P<id>\d+)'
     _API_BASE_URL = 'https://api.curiositystream.com/v2/collections/'
     _TESTS = [{
         'url': 'https://curiositystream.com/collections/86',
@@ -155,7 +172,17 @@ class CuriosityStreamCollectionIE(CuriosityStreamBaseIE):
         },
         'playlist_mincount': 7,
     }, {
-        'url': 'https://app.curiositystream.com/collection/2',
+        'url': 'https://curiositystream.com/collections/36',
+        'only_matching': True,
+    }]
+
+
+class CuriosityStreamSeriesIE(CuriosityStreamCollectionBaseIE):
+    IE_NAME = 'curiositystream:series'
+    _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/(?:series|collection)/(?P<id>\d+)'
+    _API_BASE_URL = 'https://api.curiositystream.com/v2/series/'
+    _TESTS = [{
+        'url': 'https://curiositystream.com/series/2',
         'info_dict': {
             'id': '2',
             'title': 'Curious Minds: The Internet',
@@ -163,23 +190,6 @@ class CuriosityStreamCollectionIE(CuriosityStreamBaseIE):
         },
         'playlist_mincount': 16,
     }, {
-        'url': 'https://curiositystream.com/series/2',
-        'only_matching': True,
-    }, {
-        'url': 'https://curiositystream.com/collections/36',
+        'url': 'https://curiositystream.com/collection/2',
         'only_matching': True,
     }]
-
-    def _real_extract(self, url):
-        collection_id = self._match_id(url)
-        collection = self._call_api(collection_id, collection_id)
-        entries = []
-        for media in collection.get('media', []):
-            media_id = compat_str(media.get('id'))
-            media_type, ie = ('series', CuriosityStreamCollectionIE) if media.get('is_collection') else ('video', CuriosityStreamIE)
-            entries.append(self.url_result(
-                'https://curiositystream.com/%s/%s' % (media_type, media_id),
-                ie=ie.ie_key(), video_id=media_id))
-        return self.playlist_result(
-            entries, collection_id,
-            collection.get('title'), collection.get('description'))
