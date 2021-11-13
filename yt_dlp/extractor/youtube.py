@@ -2563,7 +2563,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             f['quality'] = next((
                 q(qdict[val])
-                for val, qdict in ((f.get('format_id'), itag_qualities), (f.get('height'), res_qualities))
+                for val, qdict in ((f.get('format_id', '').split('-')[0], itag_qualities), (f.get('height'), res_qualities))
                 if val in qdict), -1)
             return True
 
