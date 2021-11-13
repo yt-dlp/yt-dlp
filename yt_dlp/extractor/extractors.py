@@ -193,6 +193,7 @@ from .camdemy import (
 )
 from .cammodels import CamModelsIE
 from .camwithher import CamWithHerIE
+from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
 from .canalc2 import Canalc2IE
 from .canvas import (
