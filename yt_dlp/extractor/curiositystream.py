@@ -15,7 +15,6 @@ from ..utils import (
 class CuriosityStreamBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'curiositystream'
     _auth_token = None
-    _API_BASE_URL = 'https://api.curiositystream.com/v1/'
 
     def _handle_errors(self, result):
         error = result.get('error', {}).get('message')
@@ -39,7 +38,8 @@ class CuriosityStreamBaseIE(InfoExtractor):
         if email is None:
             return
         result = self._download_json(
-            self._API_BASE_URL + 'login', None, data=urlencode_postdata({
+            'https://api.curiositystream.com/v1/login', None,
+            note='Logging in', data=urlencode_postdata({
                 'email': email,
                 'password': password,
             }))
@@ -68,12 +68,14 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
         },
     }]
 
+    _API_BASE_URL = 'https://api.curiositystream.com/v1/media/'
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         formats = []
         for encoding_format in ('m3u8', 'mpd'):
-            media = self._call_api('media/' + video_id, video_id, query={
+            media = self._call_api(video_id, video_id, query={
                 'encodingsNew': 'true',
                 'encodingsFormat': encoding_format,
             })
