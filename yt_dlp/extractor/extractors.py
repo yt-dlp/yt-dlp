@@ -341,6 +341,7 @@ from .discoveryplusindia import (
     DiscoveryPlusIndiaIE,
     DiscoveryPlusIndiaShowIE,
 )
+from .documaniatv import DocumaniaTVIE
 from .dotsub import DotsubIE
 from .douyutv import (
     DouyuShowIE,
