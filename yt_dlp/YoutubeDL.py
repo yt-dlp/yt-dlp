@@ -633,11 +633,14 @@ class YoutubeDL(object):
             pp = pp_class(self, **compat_kwargs(pp_def))
             self.add_post_processor(pp, when=when)
 
-        for ph in self.params.get('post_hooks', []):
-            self.add_post_hook(ph)
-
-        for ph in self.params.get('progress_hooks', []):
-            self.add_progress_hook(ph)
+        hooks = {
+            'post_hooks': self.add_post_hook,
+            'progress_hooks': self.add_progress_hook,
+            'postprocessor_hooks': self.add_postprocessor_hook,
+        }
+        for opt, fn in hooks.items():
+            for ph in self.params.get(opt, []):
+                fn(ph)
 
         register_socks_protocols()
 
