@@ -1287,7 +1287,9 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--embed-metadata', '--add-metadata',
         action='store_true', dest='addmetadata', default=False,
-        help='Embed metadata to the video file. Also adds chapters to file unless --no-add-chapters is used (Alias: --add-metadata)')
+        help=(
+            'Embed metadata to the video file. Also embeds chapters/infojson if present '
+            'unless --no-embed-chapters/--no-embed-info-json are used (Alias: --add-metadata)'))
     postproc.add_option(
         '--no-embed-metadata', '--no-add-metadata',
         action='store_false', dest='addmetadata',
@@ -1300,6 +1302,14 @@ def parseOpts(overrideArguments=None):
         '--no-embed-chapters', '--no-add-chapters',
         action='store_false', dest='addchapters',
         help='Do not add chapter markers (default) (Alias: --no-add-chapters)')
+    postproc.add_option(
+        '--embed-info-json',
+        action='store_true', dest='embed_infojson', default=None,
+        help='Embed the infojson as an attachment to mkv/mka video files')
+    postproc.add_option(
+        '--no-embed-info-json',
+        action='store_false', dest='embed_infojson',
+        help='Do not embed the infojson as an attachment to the video file')
     postproc.add_option(
         '--metadata-from-title',
         metavar='FORMAT', dest='metafromtitle',

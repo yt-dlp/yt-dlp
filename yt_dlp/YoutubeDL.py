@@ -431,7 +431,7 @@ class YoutubeDL(object):
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
                        filename, abort-on-error, multistreams, no-live-chat, format-sort
-                       no-clean-infojson, no-playlist-metafiles, no-keep-subs.
+                       no-clean-infojson, no-playlist-metafiles, no-keep-subs, no-attach-info-json.
                        Refer __init__.py for their implementation
     progress_template: Dictionary of templates for progress outputs.
                        Allowed keys are 'download', 'postprocess',
@@ -2654,6 +2654,8 @@ class YoutubeDL(object):
         infofn = self.prepare_filename(info_dict, 'infojson')
         _infojson_written = self._write_info_json('video', info_dict, infofn)
         if _infojson_written:
+            info_dict['infojson_filename'] = infofn
+            # For backward compatability, even though it was a private field
             info_dict['__infojson_filename'] = infofn
         elif _infojson_written is None:
             return
@@ -3012,8 +3014,8 @@ class YoutubeDL(object):
         keep_keys = ['_type']  # Always keep this to facilitate load-info-json
         if remove_private_keys:
             remove_keys |= {
-                'requested_formats', 'requested_subtitles', 'requested_entries',
-                'filepath', 'entries', 'original_url', 'playlist_autonumber',
+                'requested_formats', 'requested_subtitles', 'requested_entries', 'entries',
+                'filepath', 'infojson_filename', 'original_url', 'playlist_autonumber',
             }
             empty_values = (None, {}, [], set(), tuple())
             reject = lambda k, v: k not in keep_keys and (

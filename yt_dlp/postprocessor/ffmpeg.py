@@ -28,6 +28,7 @@ from ..utils import (
     shell_quote,
     traverse_obj,
     variadic,
+    write_json_file,
 )
 
 
@@ -636,10 +637,11 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
 
-    def __init__(self, downloader, add_metadata=True, add_chapters=True):
+    def __init__(self, downloader, add_metadata=True, add_chapters=True, add_infojson='if_exists'):
         FFmpegPostProcessor.__init__(self, downloader)
         self._add_metadata = add_metadata
         self._add_chapters = add_chapters
+        self._add_infojson = add_infojson
 
     @staticmethod
     def _options(target_ext):
@@ -652,12 +654,22 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename, metadata_filename = info['filepath'], None
-        options = []
+        files_to_delete, options = [], []
         if self._add_chapters and info.get('chapters'):
             metadata_filename = replace_extension(filename, 'meta')
             options.extend(self._get_chapter_opts(info['chapters'], metadata_filename))
+            files_to_delete.append(metadata_filename)
         if self._add_metadata:
             options.extend(self._get_metadata_opts(info))
+
+        if self._add_infojson:
+            if info['ext'] in ('mkv', 'mka'):
+                infojson_filename = info.get('infojson_filename')
+                options.extend(self._get_infojson_opts(info, infojson_filename))
+                if not infojson_filename:
+                    files_to_delete.append(info.get('infojson_filename'))
+            elif self._add_infojson is True:
+                self.to_screen('The info-json can only be attached to mkv/mka files')
 
         if not options:
             self.to_screen('There isn\'t any metadata to add')
@@ -668,8 +680,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         self.run_ffmpeg_multiple_files(
             (filename, metadata_filename), temp_filename,
             itertools.chain(self._options(info['ext']), *options))
-        if metadata_filename:
-            os.remove(metadata_filename)
+        for file in filter(None, files_to_delete):
+            os.remove(file)  # Don't obey --keep-files
         os.replace(temp_filename, filename)
         return [], info
 
@@ -741,15 +753,26 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                     yield ('-metadata:s:%d' % (stream_idx + i), 'language=%s' % lang)
             stream_idx += stream_count
 
-        if ('no-attach-info-json' not in self.get_param('compat_opts', [])
-                and '__infojson_filename' in info and info['ext'] in ('mkv', 'mka')):
-            old_stream, new_stream = self.get_stream_number(info['filepath'], ('tags', 'mimetype'), 'application/json')
-            if old_stream is not None:
-                yield ('-map', '-0:%d' % old_stream)
-                new_stream -= 1
+    def _get_infojson_opts(self, info, infofn):
+        if not infofn or not os.path.exists(infofn):
+            if self._add_infojson is not True:
+                return
+            infofn = infofn or '%s.temp' % (
+                self._downloader.prepare_filename(info, 'infojson')
+                or replace_extension(self._downloader.prepare_filename(info), 'info.json', info['ext']))
+            if not self._downloader._ensure_dir_exists(infofn):
+                return
+            self.write_debug(f'Writing info-json to: {infofn}')
+            write_json_file(self._downloader.sanitize_info(info, self.get_param('clean_infojson', True)), infofn)
+            info['infojson_filename'] = infofn
 
-            yield ('-attach', info['__infojson_filename'],
-                   '-metadata:s:%d' % new_stream, 'mimetype=application/json')
+        old_stream, new_stream = self.get_stream_number(info['filepath'], ('tags', 'mimetype'), 'application/json')
+        if old_stream is not None:
+            yield ('-map', '-0:%d' % old_stream)
+            new_stream -= 1
+
+        yield ('-attach', infofn,
+               '-metadata:s:%d' % new_stream, 'mimetype=application/json')
 
 
 class FFmpegMergerPP(FFmpegPostProcessor):

@@ -290,6 +290,11 @@ def _real_main(argv=None):
     set_default_compat('abort-on-error', 'ignoreerrors', 'only_download')
     set_default_compat('no-playlist-metafiles', 'allow_playlist_files')
     set_default_compat('no-clean-infojson', 'clean_infojson')
+    if 'no-attach-info-json' in compat_opts:
+        if opts.embed_infojson:
+            _unused_compat_opt('no-attach-info-json')
+        else:
+            opts.embed_infojson = False
     if 'format-sort' in compat_opts:
         opts.format_sort.extend(InfoExtractor.FormatSort.ytdl_default)
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
@@ -526,11 +531,14 @@ def _real_main(argv=None):
     # By default ffmpeg preserves metadata applicable for both
     # source and target containers. From this point the container won't change,
     # so metadata can be added here.
-    if opts.addmetadata or opts.addchapters:
+    if opts.addmetadata or opts.addchapters or opts.embed_infojson:
+        if opts.embed_infojson is None:
+            opts.embed_infojson = 'if_exists'
         postprocessors.append({
             'key': 'FFmpegMetadata',
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
+            'add_infojson': opts.embed_infojson,
         })
     # Note: Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
