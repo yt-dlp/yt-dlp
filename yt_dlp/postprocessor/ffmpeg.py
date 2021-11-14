@@ -721,6 +721,9 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add('season_number')
         add('episode_id', ('episode', 'episode_id'))
         add('episode_sort', 'episode_number')
+        if 'embed-metadata' in self.get_param('compat_opts', []):
+            add('comment', 'description')
+            metadata.pop('synopsis', None)
 
         for key, value in info.items():
             if value is not None and key != meta_prefix and key.startswith(meta_prefix):
