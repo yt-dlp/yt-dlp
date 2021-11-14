@@ -1439,7 +1439,7 @@ def parseOpts(overrideArguments=None):
             'SponsorBlock categories to create chapters for, separated by commas. '
             'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
             'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories for description of the categories. '
-            'Eg: --sponsorblock-mark all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
+            'Eg: --sponsorblock-mark all,-filler' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
     sponsorblock.add_option(
         '--sponsorblock-remove', metavar='CATS',
         dest='sponsorblock_remove', default=set(), action='callback', type='str',
