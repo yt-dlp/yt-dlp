@@ -4016,7 +4016,7 @@ def parse_duration(s):
     if days:
         duration += float(days) * 24 * 60 * 60
     if ms:
-        duration += float(ms)
+        duration += float(ms) / 1000.0
     return duration
 
 
