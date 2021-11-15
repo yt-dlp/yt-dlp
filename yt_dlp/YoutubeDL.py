@@ -211,6 +211,9 @@ class YoutubeDL(object):
     simulate:          Do not download the video files. If unset (or None),
                        simulate only if listsubtitles, listformats or list_thumbnails is used
     format:            Video format code. see "FORMAT SELECTION" for more details.
+                       You can also pass a function. The function takes 'ctx' as
+                       argument and returns the formats to download.
+                       See "build_format_selector" for an implementation
     allow_unplayable_formats:   Allow unplayable formats to be extracted and downloaded.
     ignore_no_formats_error: Ignore "No video formats" error. Usefull for
                        extracting metadata even if the video is not actually
@@ -428,7 +431,7 @@ class YoutubeDL(object):
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
                        filename, abort-on-error, multistreams, no-live-chat, format-sort
-                       no-clean-infojson, no-playlist-metafiles, no-keep-subs.
+                       no-clean-infojson, no-playlist-metafiles, no-keep-subs, no-attach-info-json.
                        Refer __init__.py for their implementation
     progress_template: Dictionary of templates for progress outputs.
                        Allowed keys are 'download', 'postprocess',
@@ -613,6 +616,7 @@ class YoutubeDL(object):
         # Creating format selector here allows us to catch syntax errors before the extraction
         self.format_selector = (
             None if self.params.get('format') is None
+            else self.params['format'] if callable(self.params['format'])
             else self.build_format_selector(self.params['format']))
 
         self._setup_opener()
@@ -629,11 +633,14 @@ class YoutubeDL(object):
             pp = pp_class(self, **compat_kwargs(pp_def))
             self.add_post_processor(pp, when=when)
 
-        for ph in self.params.get('post_hooks', []):
-            self.add_post_hook(ph)
-
-        for ph in self.params.get('progress_hooks', []):
-            self.add_progress_hook(ph)
+        hooks = {
+            'post_hooks': self.add_post_hook,
+            'progress_hooks': self.add_progress_hook,
+            'postprocessor_hooks': self.add_postprocessor_hook,
+        }
+        for opt, fn in hooks.items():
+            for ph in self.params.get(opt, []):
+                fn(ph)
 
         register_socks_protocols()
 
@@ -1500,11 +1507,13 @@ class YoutubeDL(object):
 
         if 'entries' not in ie_result:
             raise EntryNotInPlaylist('There are no entries')
+
+        MissingEntry = object()
         incomplete_entries = bool(ie_result.get('requested_entries'))
         if incomplete_entries:
-            def fill_missing_entries(entries, indexes):
-                ret = [None] * max(*indexes)
-                for i, entry in zip(indexes, entries):
+            def fill_missing_entries(entries, indices):
+                ret = [MissingEntry] * max(indices)
+                for i, entry in zip(indices, entries):
                     ret[i - 1] = entry
                 return ret
             ie_result['entries'] = fill_missing_entries(ie_result['entries'], ie_result['requested_entries'])
@@ -1557,7 +1566,7 @@ class YoutubeDL(object):
             entry = None
             try:
                 entry = get_entry(i)
-                if entry is None:
+                if entry is MissingEntry:
                     raise EntryNotInPlaylist()
             except (IndexError, EntryNotInPlaylist):
                 if incomplete_entries:
@@ -1579,10 +1588,11 @@ class YoutubeDL(object):
             if entry is not None]
         n_entries = len(entries)
 
-        if not playlistitems and (playliststart or playlistend):
+        if not playlistitems and (playliststart != 1 or playlistend):
             playlistitems = list(range(playliststart, playliststart + n_entries))
         ie_result['requested_entries'] = playlistitems
 
+        _infojson_written = False
         if not self.params.get('simulate') and self.params.get('allow_playlist_files', True):
             ie_copy = {
                 'playlist': playlist,
@@ -1595,8 +1605,9 @@ class YoutubeDL(object):
             }
             ie_copy.update(dict(ie_result))
 
-            if self._write_info_json('playlist', ie_result,
-                                     self.prepare_filename(ie_copy, 'pl_infojson')) is None:
+            _infojson_written = self._write_info_json(
+                'playlist', ie_result, self.prepare_filename(ie_copy, 'pl_infojson'))
+            if _infojson_written is None:
                 return
             if self._write_description('playlist', ie_result,
                                        self.prepare_filename(ie_copy, 'pl_description')) is None:
@@ -1649,9 +1660,14 @@ class YoutubeDL(object):
                 self.report_error(
                     'Skipping the remaining entries in playlist "%s" since %d items failed extraction' % (playlist, failures))
                 break
-            # TODO: skip failed (empty) entries?
             playlist_results.append(entry_result)
         ie_result['entries'] = playlist_results
+
+        # Write the updated info to json
+        if _infojson_written and self._write_info_json(
+                'updated playlist', ie_result,
+                self.prepare_filename(ie_copy, 'pl_infojson'), overwrite=True) is None:
+            return
         self.to_screen('[download] Finished downloading playlist: %s' % playlist)
         return ie_result
 
@@ -1927,9 +1943,9 @@ class YoutubeDL(object):
                 'format_id': '+'.join(filtered('format_id')),
                 'ext': output_ext,
                 'protocol': '+'.join(map(determine_protocol, formats_info)),
-                'language': '+'.join(orderedSet(filtered('language'))),
-                'format_note': '+'.join(orderedSet(filtered('format_note'))),
-                'filesize_approx': sum(filtered('filesize', 'filesize_approx')),
+                'language': '+'.join(orderedSet(filtered('language'))) or None,
+                'format_note': '+'.join(orderedSet(filtered('format_note'))) or None,
+                'filesize_approx': sum(filtered('filesize', 'filesize_approx')) or None,
                 'tbr': sum(filtered('tbr', 'vbr', 'abr')),
             }
 
@@ -2357,6 +2373,9 @@ class YoutubeDL(object):
 
         info_dict, _ = self.pre_process(info_dict)
 
+        # The pre-processors may have modified the formats
+        formats = info_dict.get('formats', [info_dict])
+
         if self.params.get('list_thumbnails'):
             self.list_thumbnails(info_dict)
         if self.params.get('listformats'):
@@ -2638,6 +2657,8 @@ class YoutubeDL(object):
         infofn = self.prepare_filename(info_dict, 'infojson')
         _infojson_written = self._write_info_json('video', info_dict, infofn)
         if _infojson_written:
+            info_dict['infojson_filename'] = infofn
+            # For backward compatability, even though it was a private field
             info_dict['__infojson_filename'] = infofn
         elif _infojson_written is None:
             return
@@ -2976,7 +2997,8 @@ class YoutubeDL(object):
         try:
             self.__download_wrapper(self.process_ie_result)(info, download=True)
         except (DownloadError, EntryNotInPlaylist, ThrottledDownload) as e:
-            self.to_stderr('\r')
+            if not isinstance(e, EntryNotInPlaylist):
+                self.to_stderr('\r')
             webpage_url = info.get('webpage_url')
             if webpage_url is not None:
                 self.report_warning(f'The info failed to download: {e}; trying with URL {webpage_url}')
@@ -2995,8 +3017,8 @@ class YoutubeDL(object):
         keep_keys = ['_type']  # Always keep this to facilitate load-info-json
         if remove_private_keys:
             remove_keys |= {
-                'requested_formats', 'requested_subtitles', 'requested_entries',
-                'filepath', 'entries', 'original_url', 'playlist_autonumber',
+                'requested_formats', 'requested_subtitles', 'requested_entries', 'entries',
+                'filepath', 'infojson_filename', 'original_url', 'playlist_autonumber',
             }
             empty_values = (None, {}, [], set(), tuple())
             reject = lambda k, v: k not in keep_keys and (
@@ -3465,8 +3487,10 @@ class YoutubeDL(object):
             encoding = preferredencoding()
         return encoding
 
-    def _write_info_json(self, label, ie_result, infofn):
+    def _write_info_json(self, label, ie_result, infofn, overwrite=None):
         ''' Write infojson and returns True = written, False = skip, None = error '''
+        if overwrite is None:
+            overwrite = self.params.get('overwrites', True)
         if not self.params.get('writeinfojson'):
             return False
         elif not infofn:
@@ -3474,7 +3498,7 @@ class YoutubeDL(object):
             return False
         elif not self._ensure_dir_exists(infofn):
             return None
-        elif not self.params.get('overwrites', True) and os.path.exists(infofn):
+        elif not overwrite and os.path.exists(infofn):
             self.to_screen(f'[info] {label.title()} metadata is already present')
         else:
             self.to_screen(f'[info] Writing {label} metadata as JSON to: {infofn}')

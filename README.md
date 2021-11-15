@@ -137,6 +137,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * `--ignore-errors` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
 * When writing metadata files such as thumbnails, description or infojson, the same information (if available) is also written for playlists. Use `--no-write-playlist-metafiles` or `--compat-options no-playlist-metafiles` to not write these files
 * `--add-metadata` attaches the `infojson` to `mkv` files in addition to writing the metadata when used with `--write-infojson`. Use `--compat-options no-attach-info-json` to revert this
+* Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](https://github.com/yt-dlp/yt-dlp#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
 * `playlist_index` behaves differently when used with options like `--playlist-reverse` and `--playlist-items`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details. You can use `--compat-options playlist-index` if you want to keep the earlier behavior
 * The output of `-F` is listed in a new format. Use `--compat-options list-formats` to revert this
 * All *experiences* of a funimation episode are considered as a single video. This behavior breaks existing archives. Use `--compat-options seperate-video-versions` to extract information from only the default player
@@ -1600,14 +1601,14 @@ From a Python program, you can embed yt-dlp in a more powerful fashion, like thi
 ```python
 from yt_dlp import YoutubeDL
 
-ydl_opts = {}
+ydl_opts = {'format': 'bestaudio'}
 with YoutubeDL(ydl_opts) as ydl:
     ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
 ```
 
 Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L154-L452).
 
-Here's a more complete example of a program that outputs only errors (and a short message after the download is finished), converts the video to an mp3 file, implements a custom postprocessor and prints the final info_dict as json:
+Here's a more complete example demonstrating various functionality:
 
 ```python
 import json
@@ -1633,23 +1634,56 @@ class MyLogger:
         print(msg)
 
 
+# ℹ️ See the docstring of yt_dlp.postprocessor.common.PostProcessor
 class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
+    # ℹ️ See docstring of yt_dlp.postprocessor.common.PostProcessor.run
     def run(self, info):
         self.to_screen('Doing stuff')
         return [], info
 
 
+# ℹ️ See "progress_hooks" in the docstring of yt_dlp.YoutubeDL
 def my_hook(d):
     if d['status'] == 'finished':
         print('Done downloading, now converting ...')
 
 
+def format_selector(ctx):
+    """ Select the best video and the best audio that won't result in an mkv.
+    This is just an example and does not handle all cases """
+
+    # formats are already sorted worst to best
+    formats = ctx.get('formats')[::-1]
+
+    # acodec='none' means there is no audio
+    best_video = next(f for f in formats
+                      if f['vcodec'] != 'none' and f['acodec'] == 'none')
+
+    # find compatible audio extension
+    audio_ext = {'mp4': 'm4a', 'webm': 'webm'}[best_video['ext']]
+    # vcodec='none' means there is no video
+    best_audio = next(f for f in formats if (
+        f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
+
+    yield {
+        # These are the minimum required fields for a merged format
+        'format_id': f'{best_video["format_id"]}+{best_audio["format_id"]}',
+        'ext': best_video['ext'],
+        'requested_formats': [best_video, best_audio],
+        # Must be + seperated list of protocols
+        'protocol': f'{best_video["protocol"]}+{best_audio["protocol"]}'
+    }
+
+
+# ℹ️ See docstring of yt_dlp.YoutubeDL for a description of the options
 ydl_opts = {
-    'format': 'bestaudio/best',
+    'format': format_selector,
     'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',
+        # Embed metadata in video using ffmpeg.
+        # ℹ️ See yt_dlp.postprocessor.FFmpegMetadataPP for the arguments it accepts
+        'key': 'FFmpegMetadata',
+        'add_chapters': True,
+        'add_metadata': True,
     }],
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
@@ -1659,13 +1693,15 @@ ydl_opts = {
 # Add custom headers
 yt_dlp.utils.std_headers.update({'Referer': 'https://www.google.com'})
 
+# ℹ️ See the public functions in yt_dlp.YoutubeDL for for other available functions.
+# Eg: "ydl.download", "ydl.download_with_info_file"
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     ydl.add_post_processor(MyCustomPP())
     info = ydl.extract_info('https://www.youtube.com/watch?v=BaW_jenozKc')
+
+    # ℹ️ ydl.sanitize_info makes the info json-serializable
     print(json.dumps(ydl.sanitize_info(info)))
 ```
-
-See the public functions in [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py) for other available functions. Eg: `ydl.download`, `ydl.download_with_info_file`
 
 **Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the example above
 
