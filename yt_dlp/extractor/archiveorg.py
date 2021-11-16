@@ -410,6 +410,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'width': int_or_none(thumbnail.get('width')),
             })
         # TODO: generate thumbnail urls?
+        # TODO: fix thumbnails
         channel_id = str_or_none(
             video_details.get('channelId')
             or microformats.get('externalChannelId')
