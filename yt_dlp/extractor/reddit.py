@@ -3,6 +3,7 @@ import random
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    HEADRequest,
     int_or_none,
     float_or_none,
     try_get,
@@ -27,13 +28,42 @@ class RedditIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
+        # Default hls and dash playlist urls
+        hls_playlist_url = f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
+        dash_playlist_url = f'https://v.redd.it/{video_id}/DASHPlaylist.mpd'
+
+        # Since reddit does not return the 1080p qualities with the above links,
+        # we try to request the playlists with these qualities.
+        head_req = HEADRequest(url)
+        head_response = self._request_webpage(
+            head_req, video_id,
+            note=False, errnote='Could not send HEAD request to %s' % url,
+            fatal=False)
+
+        if head_response:
+            new_url = head_response.geturl()
+            data = self._download_json(f'{new_url}.json', video_id, fatal=False)
+            data = try_get(data, lambda x: x[0]['data']['children'][0]['data'])
+
+            if data:
+                new_dash_playlist_url, new_hls_playlist_url = [try_get(data, (
+                    lambda x: unescapeHTML(x['media']['reddit_video'][y]),
+                    lambda x: unescapeHTML(x['secure_media']['reddit_video'][y])))
+                    for y in ('dash_url', 'hls_url')]
+
+                # Update if found
+                if new_dash_playlist_url:
+                    dash_playlist_url = new_dash_playlist_url
+
+                if new_hls_playlist_url:
+                    hls_playlist_url = new_hls_playlist_url
+
         formats = self._extract_m3u8_formats(
-            'https://v.redd.it/%s/HLSPlaylist.m3u8' % video_id, video_id,
-            'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+            hls_playlist_url, video_id, 'mp4',
+            entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
 
         formats.extend(self._extract_mpd_formats(
-            'https://v.redd.it/%s/DASHPlaylist.mpd' % video_id, video_id,
-            mpd_id='dash', fatal=False))
+            dash_playlist_url, video_id, mpd_id='dash', fatal=False))
 
         self._sort_formats(formats)
 
