@@ -3488,7 +3488,7 @@ class YoutubeDL(object):
         # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
         opener = self._opener
         assert isinstance(self._opener, compat_urllib_request.OpenerDirector)
-        if isinstance(handler, type):
+        if isinstance(handler, (type, tuple)):
             find_cp = lambda x: isinstance(x, handler)
         else:
             find_cp = lambda x: x is handler
