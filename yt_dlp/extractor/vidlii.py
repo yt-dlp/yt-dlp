@@ -12,9 +12,6 @@ from ..utils import (
     unified_strdate,
     urljoin,
 )
-from ..compat import (
-    compat_urllib_request,
-)
 
 
 class VidLiiIE(InfoExtractor):
