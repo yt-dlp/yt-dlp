@@ -473,10 +473,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
         except ExtractorError as e:
             # HTTP Error 404 is expected if the video is not saved.
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
-                raise ExtractorError(
+                self.raise_no_formats(
                     'HTTP Error %s. Most likely the video is not saved or there is an issue with web.archive.org' % e.cause.code,
                     expected=True)
-            self.raise_no_formats(str(e.cause or e.msg), expected=True)
+            else:
+                raise
 
         if video_file_url:
             video_file_url_qs = parse_qs(video_file_url)
