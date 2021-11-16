@@ -14,7 +14,7 @@ from ..utils import (
 
 class RedditIE(InfoExtractor):
     _VALID_URL = r'https?://v\.redd\.it/(?P<id>[^/?#&]+)'
-    _TEST = {
+    _TESTS = [{
         # from https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/
         'url': 'https://v.redd.it/zv89llsvexdz',
         'md5': '87f5f02f6c1582654146f830f21f8662',
@@ -22,8 +22,8 @@ class RedditIE(InfoExtractor):
             'id': 'zv89llsvexdz',
             'ext': 'mp4',
             'title': 'zv89llsvexdz',
-        },
-
+        }
+    }, {
         # 1080p video
         'url': 'https://v.redd.it/33hgok7dfbz71/',
         'md5': '7a1d587940242c9bb3bd6eb320b39258',
@@ -31,8 +31,8 @@ class RedditIE(InfoExtractor):
             'id': '33hgok7dfbz71',
             'ext': 'mp4',
             'title': '33hgok7dfbz71',
-        },
-    }
+        }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -133,7 +133,7 @@ class RedditRIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
+    @ staticmethod
     def _gen_session_id():
         id_length = 16
         rand_max = 1 << (id_length * 4)
