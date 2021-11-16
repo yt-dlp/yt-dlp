@@ -3950,6 +3950,13 @@ def url_or_none(url):
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
+def request_to_url(req):
+    if isinstance(req, compat_urllib_request.Request):
+        return req.get_full_url()
+    else:
+        return req
+
+
 def strftime_or_none(timestamp, date_format, default=None):
     datetime_object = None
     try:
@@ -6533,6 +6540,11 @@ def traverse_dict(dictn, keys, casesense=True):
 
 def variadic(x, allowed_types=(str, bytes)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
+
+
+def time_seconds(**kwargs):
+    t = datetime.datetime.now(datetime.timezone(datetime.timedelta(**kwargs)))
+    return t.timestamp()
 
 
 # create a JSON Web Signature (jws) with HS256 algorithm
