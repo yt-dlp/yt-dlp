@@ -22,6 +22,7 @@ class StripchatIE(InfoExtractor):
             'title': 're:^feel_me [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'description': str,
             'is_live': True,
+            'age_limit': 18,
         },
         'skip': 'Room is offline',
     }
@@ -60,4 +61,6 @@ class StripchatIE(InfoExtractor):
             'description': self._og_search_description(webpage),
             'is_live': True,
             'formats': formats,
+            # Stripchat declares the RTA meta-tag, but in an non-standard format so _rta_search() can't be used
+            'age_limit': 18,
         }
