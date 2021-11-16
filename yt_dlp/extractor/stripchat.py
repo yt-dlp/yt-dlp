@@ -26,9 +26,6 @@ class StripchatIE(InfoExtractor):
         'skip': 'Room is offline',
     }
 
-    _ROOM_OFFLINE = 'Model is offline.'
-    _ROOM_PRIVATE = 'Model is in private show.'
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
