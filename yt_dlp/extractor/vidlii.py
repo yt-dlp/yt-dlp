@@ -77,12 +77,13 @@ class VidLiiIE(InfoExtractor):
             r'src\s*:\s*(["\'])(?P<url>(?:https?://)?(?:(?!\1).)+)\1',
             webpage) or []]
         for source in sources:
-            try:
-                height = int(self._search_regex(r'(\d+).mp4', source, 'height', default=360))
-                self._request_webpage(source, video_id, "Checking %sp url" % height)
-                add_format(source, height)
-            except Exception:
-                pass
+            height = int(self._search_regex(r'(\d+).mp4', source, 'height', default=360))
+            if self._request_webpage(HeadRequest(source), video_id, f'Checking {height}p url', errnote=False):
+                formats.append({
+                    'url': source,
+                    'format_id': f'{height}p',
+                    'height': height,
+                })
         self._sort_formats(formats)
 
         title = self._search_regex(
