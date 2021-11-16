@@ -61,7 +61,7 @@ class RedditIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @ staticmethod
+    @staticmethod
     def _gen_session_id():
         id_length = 16
         rand_max = 1 << (id_length * 4)
@@ -116,7 +116,6 @@ class RedditIE(InfoExtractor):
 
         info = {
             'id': video_id,
-            'url': video_url,
             'title': data.get('title'),
             'thumbnails': thumbnails,
             'timestamp': float_or_none(data.get('created_utc')),
@@ -128,10 +127,14 @@ class RedditIE(InfoExtractor):
         }
 
         # Check if media is hosted on reddit:
-        reddit_video = try_get(data, lambda x: x['media']['reddit_video'])
+        reddit_video = try_get(data, (
+            lambda x: x[y]['reddit_video']
+            for y in ('media', 'secure_media')
+        ))
         if reddit_video:
             playlist_urls = [
-                try_get(reddit_video, lambda x: unescapeHTML(x[y])) for y in ('dash_url', 'hls_url')
+                try_get(reddit_video, lambda x: unescapeHTML(x[y]))
+                for y in ('dash_url', 'hls_url')
             ]
 
             dash_playlist_url = playlist_urls[0] or f'https://v.redd.it/{video_id}/DASHPlaylist.mpd'
@@ -144,12 +147,15 @@ class RedditIE(InfoExtractor):
                 dash_playlist_url, video_id, mpd_id='dash', fatal=False))
             self._sort_formats(formats)
 
-            info.update({
+            return {
+                **info,
                 'formats': formats,
                 'duration': int_or_none(reddit_video.get('duration')),
-            })
+            }
 
-        else:  # Not hosted on reddit, must continue extraction
-            info['_type'] = 'url_transparent'
-
-        return info
+        # Not hosted on reddit, must continue extraction
+        return {
+            **info,
+            '_type': 'url_transparent',
+            'url': video_url,
+        }
