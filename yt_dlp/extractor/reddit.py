@@ -8,6 +8,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     url_or_none,
+    traverse_obj
 )
 
 
@@ -126,10 +127,7 @@ class RedditIE(InfoExtractor):
         }
 
         # Check if media is hosted on reddit:
-        reddit_video = try_get(data, (
-            lambda x: x[y]['reddit_video']
-            for y in ('media', 'secure_media')
-        ))
+        reddit_video = traverse_obj(data, (('media', 'secure_media'), 'reddit_video'), get_all=False)
         if reddit_video:
             playlist_urls = [
                 try_get(reddit_video, lambda x: unescapeHTML(x[y]))
