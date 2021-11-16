@@ -144,10 +144,10 @@ class RedditIE(InfoExtractor):
             hls_playlist_url = playlist_urls[1] or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
 
             formats = self._extract_m3u8_formats(
-                hls_playlist_url, video_id, 'mp4',
+                hls_playlist_url, display_id, 'mp4',
                 entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
             formats.extend(self._extract_mpd_formats(
-                dash_playlist_url, video_id, mpd_id='dash', fatal=False))
+                dash_playlist_url, display_id, mpd_id='dash', fatal=False))
             self._sort_formats(formats)
 
             return {
@@ -161,7 +161,7 @@ class RedditIE(InfoExtractor):
         # Not hosted on reddit, must continue extraction
         return {
             **info,
-            'id': video_id,
+            'display_id': video_id,
             '_type': 'url_transparent',
             'url': video_url,
         }
