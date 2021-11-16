@@ -16,7 +16,7 @@ class RedditIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
-            'id': '6rrwyj',
+            'id': 'zv89llsvexdz',
             'ext': 'mp4',
             'title': 'That small heart attack.',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
@@ -115,7 +115,6 @@ class RedditIE(InfoExtractor):
                     add_thumbnail(resolution)
 
         info = {
-            'id': video_id,
             'title': data.get('title'),
             'thumbnails': thumbnails,
             'timestamp': float_or_none(data.get('created_utc')),
@@ -137,6 +136,11 @@ class RedditIE(InfoExtractor):
                 for y in ('dash_url', 'hls_url')
             ]
 
+            # Update video_id
+            video_id = self._search_regex(
+                r'https?://v\.redd\.it/(?P<id>[^/?#&]+)', reddit_video['fallback_url'],
+                'video_id', default=video_id)
+
             dash_playlist_url = playlist_urls[0] or f'https://v.redd.it/{video_id}/DASHPlaylist.mpd'
             hls_playlist_url = playlist_urls[1] or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
 
@@ -149,6 +153,7 @@ class RedditIE(InfoExtractor):
 
             return {
                 **info,
+                'id': video_id,
                 'formats': formats,
                 'duration': int_or_none(reddit_video.get('duration')),
             }
@@ -156,6 +161,7 @@ class RedditIE(InfoExtractor):
         # Not hosted on reddit, must continue extraction
         return {
             **info,
+            'id': video_id,
             '_type': 'url_transparent',
             'url': video_url,
         }

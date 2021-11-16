@@ -2338,7 +2338,7 @@ class GenericIE(InfoExtractor):
             'url': 'https://v.redd.it/zv89llsvexdz',
             'md5': '87f5f02f6c1582654146f830f21f8662',
             'info_dict': {
-                'id': '6rrwyj',
+                'id': 'zv89llsvexdz',
                 'ext': 'mp4',
                 'timestamp': 1501941939.0,
                 'title': 'That small heart attack.',
@@ -2351,7 +2351,7 @@ class GenericIE(InfoExtractor):
             'url': 'https://v.redd.it/33hgok7dfbz71/',
             'md5': '7a1d587940242c9bb3bd6eb320b39258',
             'info_dict': {
-                'id': 'qsw48i',
+                'id': '33hgok7dfbz71',
                 'ext': 'mp4',
                 'title': "The game Didn't want me to Knife that Guy I guess",
                 'uploader': 'paraf1ve',
