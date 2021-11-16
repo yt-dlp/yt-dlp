@@ -29,7 +29,7 @@ from ..utils import (
     str_or_none,
     try_get,
     unified_strdate,
-    unified_timestamp,
+    unified_timestamp, traverse_obj, float_or_none,
 )
 
 
@@ -355,64 +355,143 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'only_matching': True,
         }
     ]
+    # 2018 response context https://web.archive.org/web/20180803221945/https://www.youtube.com/watch?v=NGgpLa9zYpM&gl=US&hl=en
+
+    _YT_INITIAL_DATA_RE = r'(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s' % YoutubeIE._YT_INITIAL_DATA_RE
+    _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
+    _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeIE._YT_INITIAL_BOUNDARY_RE
+
+    def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
+        return self._parse_json(self._search_regex(
+            (r'%s\s*%s' % (regex, self._YT_INITIAL_BOUNDARY_RE),
+             regex), webpage, name, default='{}'), video_id, fatal=False)
+
+    def _extract_metadata(self, video_id, webpage):
+
+        search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
+                       if webpage else (lambda x: None))
+        player_response = self._extract_yt_initial_variable(
+                webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
+                video_id, 'initial player response') or {}
+        initial_data = self._extract_yt_initial_variable(
+            webpage, self._YT_INITIAL_DATA_RE,
+            video_id, 'initial player response') or {}
+
+        initial_data_video = traverse_obj(
+            initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'videoPrimaryInfoRenderer'),
+            expected_type=dict, default={}, get_all=False)
+
+        video_details = traverse_obj(
+            player_response, 'videoDetails', expected_type=dict, default={})
+
+        microformats = traverse_obj(
+            player_response, ('microformat', 'playerMicroformatRenderer'), expected_type=dict, get_all=False, default={})
+
+        video_title = (
+                video_details.get('title')
+                or YoutubeIE._get_text(microformats, 'title')
+                or YoutubeIE._get_text(initial_data_video, 'title')
+                or self._extract_webpage_title(webpage)
+                or search_meta(['og:title', 'twitter:title', 'title'])
+                or video_id)
+
+        thumbnails = []
+        thumbnail_dicts = traverse_obj(
+            (video_details, microformats), (..., 'thumbnail', 'thumbnails', ...),
+            expected_type=dict, default=[])
+
+        for thumbnail in thumbnail_dicts:
+            thumbnail_url = thumbnail.get('url')
+            if not thumbnail_url:
+                continue
+            thumbnails.append({
+                'url': thumbnail_url,
+                'height': int_or_none(thumbnail.get('height')),
+                'width': int_or_none(thumbnail.get('width')),
+            })
+        # TODO: generate thumbnail urls?
+        channel_id = str_or_none(
+            video_details.get('channelId')
+            or microformats.get('externalChannelId')
+            or search_meta('channelId'))
+        duration = int_or_none(
+            video_details.get('lengthSeconds')
+            or microformats.get('lengthSeconds')
+            or parse_duration(search_meta('duration'))) or None
+        description = (
+                video_details.get('shortDescription')
+                or YoutubeIE._get_text(microformats, 'description')
+                or search_meta(['description', 'og:description', 'twitter:description']))
+
+        upload_date = unified_strdate(
+            dict_get(microformats, ('uploadDate', 'publishDate'))
+            or search_meta(['uploadDate', 'datePublished'])
+            or self._search_regex(
+            [r'(?s)id="eow-date.*?>(.*?)</span>',
+             r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],
+            webpage, 'upload date', default=None)
+        )
+
+        info = {
+            'id': video_id,
+            'title': video_title,
+            'thumbnails': thumbnails,
+            'description': description,
+            'upload_date': upload_date,
+            'uploader': video_details.get('author'),
+            'channel_id': channel_id,
+            'duration': duration
+        }
+        return info
+
+    def _extract_webpage_title(self, webpage):
+        page_title = self._html_search_regex(
+            r'<title>([^<]*)</title>', webpage, 'title', default='')
+        # YouTube video pages appear to always have either 'YouTube -' as suffix or '- YouTube' as prefix.
+        return self._html_search_regex(
+            r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
+            page_title, 'title', default='')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        title = video_id  # if we are not able get a title
-
-        def _extract_title(webpage):
-            page_title = self._html_search_regex(
-                r'<title>([^<]*)</title>', webpage, 'title', fatal=False) or ''
-            # YouTube video pages appear to always have either 'YouTube -' as suffix or '- YouTube' as prefix.
-            try:
-                page_title = self._html_search_regex(
-                    r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
-                    page_title, 'title', default='')
-            except RegexNotFoundError:
-                page_title = None
-
-            if not page_title:
-                self.report_warning('unable to extract title', video_id=video_id)
-                return
-            return page_title
 
         # If the video is no longer available, the oldest capture may be one before it was removed.
         # Setting the capture date in url to early date seems to redirect to earliest capture.
         webpage = self._download_webpage(
             'https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=%s' % video_id,
             video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived).')
-        if webpage:
-            title = _extract_title(webpage) or title
+
+        info = self._extract_metadata(video_id, webpage) if webpage else {}
 
         # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
         internal_fake_url = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id
+        video_file_url = None
         try:
-            video_file_webpage = self._request_webpage(
-                HEADRequest(internal_fake_url), video_id,
-                note='Fetching video file url', expected_status=True)
+            video_file_url = compat_urllib_parse_unquote(
+                self._request_webpage(HEADRequest(internal_fake_url), video_id,
+                note='Fetching video file url', expected_status=True).url)
         except ExtractorError as e:
             # HTTP Error 404 is expected if the video is not saved.
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
                 raise ExtractorError(
-                    'HTTP Error %s. Most likely the video is not archived or issue with web.archive.org.' % e.cause.code,
+                    'HTTP Error %s. Most likely the video is not saved or there is an issue with web.archive.org' % e.cause.code,
                     expected=True)
-            raise
-        video_file_url = compat_urllib_parse_unquote(video_file_webpage.url)
-        video_file_url_qs = parse_qs(video_file_url)
+            self.raise_no_formats(str(e.cause or e.msg), expected=True)
 
-        # Attempt to recover any ext & format info from playback url
-        format = {'url': video_file_url}
-        itag = try_get(video_file_url_qs, lambda x: x['itag'][0])
-        if itag and itag in YoutubeIE._formats:  # Naughty access but it works
-            format.update(YoutubeIE._formats[itag])
-            format.update({'format_id': itag})
-        else:
-            mime = try_get(video_file_url_qs, lambda x: x['mime'][0])
-            ext = mimetype2ext(mime) or determine_ext(video_file_url)
-            format.update({'ext': ext})
-        return {
-            'id': video_id,
-            'title': title,
-            'formats': [format],
-            'duration': str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
-        }
+        if video_file_url:
+            video_file_url_qs = parse_qs(video_file_url)
+            # Attempt to recover any ext & format info from playback url
+            format = {'url': video_file_url}
+            itag = try_get(video_file_url_qs, lambda x: x['itag'][0])
+            if itag and itag in YoutubeIE._formats:  # Naughty access but it works
+                format.update(YoutubeIE._formats[itag])
+                format.update({'format_id': itag})
+            else:
+                mime = try_get(video_file_url_qs, lambda x: x['mime'][0])
+                ext = mimetype2ext(mime) or determine_ext(video_file_url)
+                format.update({'ext': ext})
+            info['formats'] = [format]
+            if not info.get('duration'):
+                info['duration'] = str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
+
+        return info
