@@ -14,7 +14,7 @@ from ..utils import (
 
 class StripchatIE(InfoExtractor):
     _VALID_URL = r'https?://stripchat\.com/(?P<id>[0-9A-Za-z-_]+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://stripchat.com/feel_me',
         'info_dict': {
             'id': 'feel_me',
@@ -25,7 +25,7 @@ class StripchatIE(InfoExtractor):
             'age_limit': 18,
         },
         'skip': 'Room is offline',
-    }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
