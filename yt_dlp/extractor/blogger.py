@@ -3,7 +3,13 @@ from __future__ import unicode_literals
 
 import re
 
-from ..utils import mimetype2ext, parse_duration, parse_qs, str_or_none, traverse_obj
+from ..utils import (
+    mimetype2ext,
+    parse_duration,
+    parse_qs,
+    str_or_none,
+    traverse_obj,
+)
 from .common import InfoExtractor
 
 
@@ -30,8 +36,7 @@ class BloggerIE(InfoExtractor):
         token_id = self._match_id(url)
         webpage = self._download_webpage(url, token_id)
         data_json = self._search_regex(r'var\s+VIDEO_CONFIG\s*=\s*(\{.*)', webpage, 'JSON data')
-        data_json = data_json.encode('utf-8').decode('unicode_escape')
-        data = self._parse_json(data_json, token_id)
+        data = self._parse_json(data_json.encode('utf-8').decode('unicode_escape'), token_id)
         streams = data['streams']
         formats = [{
             'ext': mimetype2ext(traverse_obj(parse_qs(stream['play_url']), ('mime', 0))),
