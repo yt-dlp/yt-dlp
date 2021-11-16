@@ -70,20 +70,20 @@ class VidLiiIE(InfoExtractor):
         formats = []
 
         def add_format(format_url, height=None):
-            height = int(self._search_regex(r'(\d+).mp4', format_url, 'height', default=360))
             formats.append({
                 'url': format_url,
                 'format_id': f'{height}p',
                 'height': height,
             })
 
-        sources = re.findall(
+        sources = [source[1] for source in re.findall(
             r'src\s*:\s*(["\'])(?P<url>(?:https?://)?(?:(?!\1).)+)\1',
-            webpage, 'video url', group='url')
+            webpage) or []]
         for source in sources:
             try:
-                self._request_webpage(HEADRequest(source), video_id)
-                add_format(source)
+                height = int(self._search_regex(r'(\d+).mp4', source, 'height', default=360))
+                self._request_webpage(source, video_id, "Checking %sp url" % height)
+                add_format(source, height)
             except Exception:
                 pass
         self._sort_formats(formats)
@@ -123,7 +123,7 @@ class VidLiiIE(InfoExtractor):
         view_count = int_or_none(self._search_regex(
             (r'<strong>(\d+)</strong> views',
              r'Views\s*:\s*<strong>(\d+)</strong>'),
-            webpage, 'view count', fatal=False))
+            webpage.replace(",", ""), 'view count', fatal=False))
 
         comment_count = int_or_none(self._search_regex(
             (r'<span[^>]+id=["\']cmt_num[^>]+>(\d+)',
