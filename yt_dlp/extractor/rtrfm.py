@@ -5,22 +5,18 @@ from .common import InfoExtractor
 
 class RTRFMIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rtrfm\.com\.au/(?:shows|show-episode)/(?P<id>[^/?\#&]+)'
-    _PLAY_SHOW = r"\.playShow\('(?P<show>[^']+)', *'(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2})', *'(?P<title>[^']+)'\)"
-    _PLAY_SHOW_FROM = r"\.playShowFrom\('(?P<show>[^']+)', *'(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2})', *'?P<title>([^']+)', \d+\)"
-    _RESTREAMS_URL = 'https://restreams.rtrfm.com.au/rzz'
     _TESTS = [
         {
             'url': 'https://rtrfm.com.au/shows/breakfast/',
-            # the downloaded file changes daily so the md5 is not checkable
+            'md5': '46168394d3a5ce237cf47e85d0745413',
             'info_dict': {
-                'id': r're:^breakfast-\d{4}-\d{2}-\d{2}$',
+                'id': 'breakfast-2021-11-16',
                 'ext': 'mp3',
                 'series': 'Breakfast with Taylah',
                 'title': r're:^Breakfast with Taylah \d{4}-\d{2}-\d{2}$',
                 'description': 'md5:0979c3ab1febfbec3f1ccb743633c611',
             },
-            'skip': 'tests with re in the id expect the re in the filename '
-                    'instead of the id, but the id depends on the date.',
+            'skip': 'ID and md5 changes daily',
         },
         {
             'url': 'https://rtrfm.com.au/show-episode/breakfast-2021-11-11/',
@@ -44,8 +40,7 @@ class RTRFMIE(InfoExtractor):
                 'description': r're:^Breakfast with Taylah ',
             },
             'params': {
-                # This audio has expired
-                'skip_download': True,
+                'skip_download': 'This audio has expired',
             },
         },
     ]
@@ -54,10 +49,11 @@ class RTRFMIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         show, date, title = self._search_regex(
-            [self._PLAY_SHOW, self._PLAY_SHOW_FROM],
+            r"\.playShow(?:From)?\('(?P<show>[^']+)', *'(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2})', *'(?P<title>[^']+)'(?:, \d+)?\)",
             webpage, 'details', group=('show', 'date', 'title'))
         url = self._download_json(
-            self._RESTREAMS_URL, show, 'Downloading MP3 URL', query={'n': show, 'd': date})['u']
+            'https://restreams.rtrfm.com.au/rzz',
+            show, 'Downloading MP3 URL', query={'n': show, 'd': date})['u']
         return {
             'id': '%s-%s' % (show, date),
             'title': '%s %s' % (title, date),
