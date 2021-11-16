@@ -226,7 +226,7 @@ class NebulaIE(NebulaBaseIE):
 
 class NebulaCollectionIE(NebulaBaseIE):
     IE_NAME = 'nebula:collection'
-    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?P<id>[-\w]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?!videos/)(?P<id>[-\w]+)'
     _TESTS = [
         {
             'url': 'https://nebula.app/tom-scott-presents-money',
