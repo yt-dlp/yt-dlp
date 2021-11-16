@@ -3471,6 +3471,71 @@ class YoutubeDL(object):
         opener.addheaders = []
         self._opener = opener
 
+    def add_opener(self, handler):
+        ''' Add a handler for opening URLs, like _download_webpage '''
+        # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
+        # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
+        assert isinstance(self._opener, compat_urllib_request.OpenerDirector)
+        self._opener.add_handler(handler)
+
+    def remove_opener(self, handler):
+        '''
+        Remove handler(s) for opening URLs
+        @param handler Either handler object itself or handler type.
+        Specifying handler type will remove all handler which isinstance returns True.
+        '''
+        # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
+        # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
+        opener = self._opener
+        assert isinstance(self._opener, compat_urllib_request.OpenerDirector)
+        if isinstance(handler, type):
+            find_cp = lambda x: isinstance(x, handler)
+        else:
+            find_cp = lambda x: x is handler
+
+        removed = []
+        for meth in dir(handler):
+            if meth in ["redirect_request", "do_open", "proxy_open"]:
+                # oops, coincidental match
+                continue
+
+            i = meth.find("_")
+            protocol = meth[:i]
+            condition = meth[i + 1:]
+
+            if condition.startswith("error"):
+                j = condition.find("_") + i + 1
+                kind = meth[j + 1:]
+                try:
+                    kind = int(kind)
+                except ValueError:
+                    pass
+                lookup = opener.handle_error.get(protocol, {})
+                opener.handle_error[protocol] = lookup
+            elif condition == "open":
+                kind = protocol
+                lookup = opener.handle_open
+            elif condition == "response":
+                kind = protocol
+                lookup = opener.process_response
+            elif condition == "request":
+                kind = protocol
+                lookup = opener.process_request
+            else:
+                continue
+
+            handlers = lookup.setdefault(kind, [])
+            if handlers:
+                handlers[:] = [x for x in handlers if not find_cp(x)]
+
+            removed.append(x for x in handlers if find_cp(x))
+
+        if removed:
+            for x in opener.handlers:
+                if find_cp(x):
+                    x.add_parent(None)
+            opener.handlers[:] = [x for x in opener.handlers if not find_cp(x)]
+
     def encode(self, s):
         if isinstance(s, bytes):
             return s  # Already encoded
