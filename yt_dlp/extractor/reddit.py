@@ -135,9 +135,10 @@ class RedditIE(InfoExtractor):
             ]
 
             # Update video_id
+            display_id = video_id
             video_id = self._search_regex(
                 r'https?://v\.redd\.it/(?P<id>[^/?#&]+)', reddit_video['fallback_url'],
-                'video_id', default=video_id)
+                'video_id', default=display_id)
 
             dash_playlist_url = playlist_urls[0] or f'https://v.redd.it/{video_id}/DASHPlaylist.mpd'
             hls_playlist_url = playlist_urls[1] or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
@@ -152,6 +153,7 @@ class RedditIE(InfoExtractor):
             return {
                 **info,
                 'id': video_id,
+                'display_id': display_id,
                 'formats': formats,
                 'duration': int_or_none(reddit_video.get('duration')),
             }
