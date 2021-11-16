@@ -2339,18 +2339,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
+        default = ['android', 'web']
         allowed_clients = sorted(
             [client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'],
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
             if client in allowed_clients:
                 requested_clients.append(client)
+            elif client == 'default':
+                requested_clients.extend(default)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
             else:
                 self.report_warning(f'Skipping unsupported client {client}')
         if not requested_clients:
-            requested_clients = ['android', 'web']
+            requested_clients = default
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             requested_clients.extend(
