@@ -25,6 +25,7 @@ class BloggerIE(InfoExtractor):
             'title': 'BLOGGER-video-3c740e3a49197e16-796',
             'ext': 'mp4',
             'thumbnail': r're:^https?://.*',
+            'duration': 76.068,
         }
     }]
 
@@ -42,7 +43,6 @@ class BloggerIE(InfoExtractor):
             'ext': mimetype2ext(traverse_obj(parse_qs(stream['play_url']), ('mime', 0))),
             'url': stream['play_url'],
             'format_id': str_or_none(stream.get('format_id')),
-            'duration': parse_duration(traverse_obj(parse_qs(stream['play_url']), ('dur', 0))),
         } for stream in streams]
 
         return {
@@ -50,5 +50,5 @@ class BloggerIE(InfoExtractor):
             'title': data.get('iframe_id', token_id),
             'formats': formats,
             'thumbnail': data.get('thumbnail'),
-            'duration': streams[0].get('duration'),
+            'duration': parse_duration(traverse_obj(parse_qs(streams[0]['play_url']), ('dur', 0))),
         }
