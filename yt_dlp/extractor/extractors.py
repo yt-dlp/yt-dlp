@@ -1199,10 +1199,7 @@ from .redbulltv import (
     RedBullTVRrnContentIE,
     RedBullIE,
 )
-from .reddit import (
-    RedditIE,
-    RedditRIE,
-)
+from .reddit import RedditIE
 from .redtube import RedTubeIE
 from .regiotv import RegioTVIE
 from .rentv import (
