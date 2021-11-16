@@ -17,11 +17,20 @@ class RedditIE(InfoExtractor):
     _TEST = {
         # from https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/
         'url': 'https://v.redd.it/zv89llsvexdz',
-        'md5': '0a070c53eba7ec4534d95a5a1259e253',
+        'md5': '87f5f02f6c1582654146f830f21f8662',
         'info_dict': {
             'id': 'zv89llsvexdz',
             'ext': 'mp4',
             'title': 'zv89llsvexdz',
+        },
+
+        # 1080p video
+        'url': 'https://v.redd.it/33hgok7dfbz71/',
+        'md5': '7a1d587940242c9bb3bd6eb320b39258',
+        'info_dict': {
+            'id': '33hgok7dfbz71',
+            'ext': 'mp4',
+            'title': '33hgok7dfbz71',
         },
     }
 
