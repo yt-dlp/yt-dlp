@@ -57,9 +57,9 @@ class NebulaBaseIE(InfoExtractor):
     def _call_nebula_api(self, url, video_id=None, method='GET', auth_type='api', note=''):
         assert method in ('GET', 'POST',)
         assert auth_type in ('api', 'bearer',)
-        authorization = 'Token {api_token}'.format(api_token=self._nebula_api_token) \
+        authorization = f'Token {self._nebula_api_token}' \
             if auth_type == 'api' \
-            else 'Bearer {bearer_token}'.format(bearer_token=self._nebula_bearer_token)
+            else f'Bearer {self._nebula_bearer_token}'
         url_or_request = url \
             if method == 'GET' \
             else compat_urllib_request.Request(url, method='POST', data={})
@@ -95,7 +95,9 @@ class NebulaBaseIE(InfoExtractor):
         return response['token']
 
     def _build_video_info(self, episode):
-        zype_video_url = 'https://player.zype.com/embed/%s.html?access_token=%s' % (episode['zype_id'], self._zype_access_token)
+        zype_id = episode['zype_id']
+        zype_video_url = f'https://player.zype.com/embed/{zype_id}.html?access_token={self._zype_access_token}'
+        channel_slug = episode['channel_slug']
         return {
             'id': episode['zype_id'],
             'display_id': episode['slug'],
@@ -112,11 +114,11 @@ class NebulaBaseIE(InfoExtractor):
             } for key, tn in episode['assets']['thumbnail'].items()],
             'duration': episode['duration'],
             'channel': episode['channel_title'],
-            'channel_id': episode['channel_slug'],
-            'channel_url': 'https://nebula.app/{channel_slug}'.format(channel_slug=episode['channel_slug']),
+            'channel_id': channel_slug,
+            'channel_url': f'https://nebula.app/{channel_slug}',
             'uploader': episode['channel_title'],
-            'uploader_id': episode['channel_slug'],
-            'uploader_url': 'https://nebula.app/{channel_slug}'.format(channel_slug=episode['channel_slug']),
+            'uploader_id': channel_slug,
+            'uploader_url': f'https://nebula.app/{channel_slug}',
             'series': episode['channel_title'],
             'creator': episode['channel_title'],
         }
@@ -211,7 +213,7 @@ class NebulaIE(NebulaBaseIE):
     ]
 
     def _fetch_video_metadata(self, slug):
-        return self._call_nebula_api('https://content.watchnebula.com/video/{slug}/'.format(slug=slug),
+        return self._call_nebula_api(f'https://content.watchnebula.com/video/{slug}/',
                                      video_id=slug,
                                      auth_type='bearer',
                                      note='Fetching video meta data')
@@ -255,12 +257,12 @@ class NebulaCollectionIE(NebulaBaseIE):
 
     def _fetch_collection(self, collection_id):
         page_nr = 1
-        next_url = 'https://content.watchnebula.com/video/channels/{collection_id}/'.format(collection_id=collection_id)
+        next_url = f'https://content.watchnebula.com/video/channels/{collection_id}/'
         episodes = []
         channel_details = None
         while next_url:
             channel = self._call_nebula_api(next_url, collection_id, auth_type='bearer',
-                                            note='Retrieving channel page {page_nr}'.format(page_nr=page_nr))
+                                            note=f'Retrieving channel page {page_nr}')
             if not channel_details:
                 channel_details = channel['details']
             episodes.extend(channel['episodes']['results'])
