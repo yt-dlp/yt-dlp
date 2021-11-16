@@ -3,15 +3,14 @@ from __future__ import unicode_literals
 
 import json
 import time
+import urllib
 
-from urllib.error import HTTPError
-from .common import InfoExtractor
-from ..compat import compat_str, compat_urllib_parse_unquote, compat_urllib_parse_quote, compat_urllib_request
 from ..utils import (
     ExtractorError,
     parse_iso8601,
     try_get,
 )
+from .common import InfoExtractor
 
 
 class NebulaBaseIE(InfoExtractor):
@@ -21,7 +20,7 @@ class NebulaBaseIE(InfoExtractor):
     _nebula_bearer_token = None
     _zype_access_token = None
 
-    def _retrieve_nebula_auth(self):
+    def _perform_nebula_auth(self):
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required()
@@ -43,7 +42,7 @@ class NebulaBaseIE(InfoExtractor):
         # save nebula token as cookie
         self._set_cookie(
             'nebula.app', 'nebula-auth',
-            compat_urllib_parse_quote(
+            urllib.parse.quote(
                 json.dumps({
                     "apiToken": response["key"],
                     "isLoggingIn": False,
@@ -54,29 +53,55 @@ class NebulaBaseIE(InfoExtractor):
 
         return response['key']
 
+    def _retrieve_nebula_api_token(self):
+        """
+        Check cookie jar for valid token. Try to authenticate using credentials if no valid token
+        can be found in the cookie jar.
+        """
+        nebula_cookies = self._get_cookies('https://nebula.app')
+        nebula_cookie = nebula_cookies.get('nebula-auth')
+        if nebula_cookie:
+            self.to_screen('Authenticating to Nebula with token from cookie jar')
+            nebula_cookie_value = urllib.parse.unquote(nebula_cookie.value)
+            nebula_api_token = self._parse_json(nebula_cookie_value, None).get('apiToken')
+            if nebula_api_token:
+                return nebula_api_token
+
+        return self._perform_nebula_auth()
+
     def _call_nebula_api(self, url, video_id=None, method='GET', auth_type='api', note=''):
         assert method in ('GET', 'POST',)
         assert auth_type in ('api', 'bearer',)
-        authorization = f'Token {self._nebula_api_token}' \
-            if auth_type == 'api' \
-            else f'Bearer {self._nebula_bearer_token}'
-        url_or_request = url \
-            if method == 'GET' \
-            else compat_urllib_request.Request(url, method='POST', data={})
-        return self._download_json(url_or_request, video_id, headers={'Authorization': authorization}, note=note)
+        authorization = f'Token {self._nebula_api_token}' if auth_type == 'api' else f'Bearer {self._nebula_bearer_token}'
+        return self._download_json(
+            url, video_id, note=note, headers={'Authorization': authorization},
+            data=b'' if method == 'POST' else None)
+
+    def _fetch_nebula_bearer_token(self):
+        """
+        Get a Bearer token for the Nebula API. This will be required to fetch video meta data.
+        """
+        response = self._call_nebula_api('https://api.watchnebula.com/api/v1/authorization/',
+                                         method='POST',
+                                         note='Authorizing to Nebula')
+        return response['token']
 
     def _fetch_zype_access_token(self):
+        """
+        Get a Zype access token, which is required to access video streams -- in our case: to
+        generate video URLs.
+        """
         try:
             user_object = self._call_nebula_api('https://api.watchnebula.com/api/v1/auth/user/', note='Retrieving Zype access token')
         except ExtractorError as exc:
             # if 401, attempt credential auth and retry
-            if exc.cause and isinstance(exc.cause, HTTPError) and exc.cause.code == 401:
+            if exc.cause and isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code == 401:
                 self._nebula_api_token = self._retrieve_nebula_auth()
                 user_object = self._call_nebula_api('https://api.watchnebula.com/api/v1/auth/user/', note='Retrieving Zype access token')
             else:
                 raise
 
-        access_token = try_get(user_object, lambda x: x['zype_auth_info']['access_token'], compat_str)
+        access_token = try_get(user_object, lambda x: x['zype_auth_info']['access_token'], str)
         if not access_token:
             if try_get(user_object, lambda x: x['is_subscribed'], bool):
                 # TODO: Reimplement the same Zype token polling the Nebula frontend implements
@@ -87,12 +112,6 @@ class NebulaBaseIE(InfoExtractor):
                     expected=True)
             raise ExtractorError('Unable to extract Zype access token from Nebula API authentication endpoint')
         return access_token
-
-    def _fetch_nebula_bearer_token(self):
-        response = self._call_nebula_api('https://api.watchnebula.com/api/v1/authorization/',
-                                         method='POST',
-                                         note='Authorizing to Nebula')
-        return response['token']
 
     def _build_video_info(self, episode):
         zype_id = episode['zype_id']
@@ -124,22 +143,8 @@ class NebulaBaseIE(InfoExtractor):
         }
 
     def _real_initialize(self):
-        # check cookie jar for valid token
-        nebula_cookies = self._get_cookies('https://nebula.app')
-        nebula_cookie = nebula_cookies.get('nebula-auth')
-        if nebula_cookie:
-            self.to_screen('Authenticating to Nebula with token from cookie jar')
-            nebula_cookie_value = compat_urllib_parse_unquote(nebula_cookie.value)
-            self._nebula_api_token = self._parse_json(nebula_cookie_value, None).get('apiToken')
-
-        # try to authenticate using credentials if no valid token has been found
-        if not self._nebula_api_token:
-            self._nebula_api_token = self._retrieve_nebula_auth()
-
-        # get a Bearer token for the Nebula API, that we need to fetch meta data
+        self._nebula_api_token = self._retrieve_nebula_api_token()
         self._nebula_bearer_token = self._fetch_nebula_bearer_token()
-
-        # get a Zype access token which is required to access video streams (for us: to generate video URLs)
         self._zype_access_token = self._fetch_zype_access_token()
 
 
@@ -164,7 +169,6 @@ class NebulaIE(NebulaBaseIE):
             'params': {
                 'usenetrc': True,
             },
-            'skip': 'All Nebula content requires authentication',
         },
         {
             'url': 'https://nebula.app/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
@@ -184,7 +188,6 @@ class NebulaIE(NebulaBaseIE):
             'params': {
                 'usenetrc': True,
             },
-            'skip': 'All Nebula content requires authentication',
         },
         {
             'url': 'https://nebula.app/videos/money-episode-1-the-draw',
@@ -204,7 +207,6 @@ class NebulaIE(NebulaBaseIE):
             'params': {
                 'usenetrc': True,
             },
-            'skip': 'All Nebula content requires authentication',
         },
         {
             'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
@@ -239,7 +241,6 @@ class NebulaCollectionIE(NebulaBaseIE):
             'params': {
                 'usenetrc': True,
             },
-            'skip': 'All Nebula content requires authentication',
         }, {
             'url': 'https://nebula.app/lindsayellis',
             'info_dict': {
@@ -251,7 +252,6 @@ class NebulaCollectionIE(NebulaBaseIE):
             'params': {
                 'usenetrc': True,
             },
-            'skip': 'All Nebula content requires authentication',
         },
     ]
 
