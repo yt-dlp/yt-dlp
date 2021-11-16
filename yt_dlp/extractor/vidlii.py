@@ -20,7 +20,7 @@ from ..compat import (
 class VidLiiIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?vidlii\.com/(?:watch|embed)\?.*?\bv=(?P<id>[0-9A-Za-z_-]{11})'
     _TESTS = [{
-        'url': 'https://www.vidlii.com/watch?v=tJluaH4BJ3v&a=0',
+        'url': 'https://www.vidlii.com/watch?v=tJluaH4BJ3v',
         'md5': '9bf7d1e005dfa909b6efb0a1ff5175e2',
         'info_dict': {
             'id': 'tJluaH4BJ3v',
@@ -70,29 +70,22 @@ class VidLiiIE(InfoExtractor):
         formats = []
 
         def add_format(format_url, height=None):
-            try:
-                height = int(self._search_regex(r"(?P<h>\d\d\d).mp4",
-                                                format_url, "height",
-                                                group="h"))
-            except Exception:
-                height = 360
+            height = int(self._search_regex(r'(\d+).mp4', format_url, 'height', default=360))
             formats.append({
                 'url': format_url,
-                'format_id': '%dp' % height if height else None,
+                'format_id': f'{height}p',
                 'height': height,
             })
 
-        hdsrc = self._search_regex(
-            r'hdsrc\s*:\s*(["\'])(?P<url>(?:https?://)?(?:(?!\1).)+)\1',
-            webpage, 'video url', group='url')
-        try:
-            compat_urllib_request.urlopen(hdsrc)
-            add_format(hdsrc)
-        except Exception:
-            pass
-        add_format(self._search_regex(
+        sources = re.findall(
             r'src\s*:\s*(["\'])(?P<url>(?:https?://)?(?:(?!\1).)+)\1',
-            webpage, 'video url', group='url'))
+            webpage, 'video url', group='url')
+        for source in sources:
+            try:
+                self._request_webpage(HEADRequest(source), video_id)
+                add_format(source)
+            except Exception:
+                pass
         self._sort_formats(formats)
 
         title = self._search_regex(
