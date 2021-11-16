@@ -61,36 +61,6 @@ class RedditIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    # Reddit-hosted videos
-    _TESTS += [
-        {
-            # from https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/
-            'url': 'https://v.redd.it/zv89llsvexdz',
-            'md5': '87f5f02f6c1582654146f830f21f8662',
-            'info_dict': {
-                'id': '6rrwyj',
-                'ext': 'mp4',
-                'timestamp': 1501941939.0,
-                'title': 'That small heart attack.',
-                'upload_date': '20170805',
-                'uploader': 'Antw87'
-            }
-        },
-        {
-            # 1080p video
-            'url': 'https://v.redd.it/33hgok7dfbz71/',
-            'md5': '7a1d587940242c9bb3bd6eb320b39258',
-            'info_dict': {
-                'id': 'qsw48i',
-                'ext': 'mp4',
-                'title': "The game Didn't want me to Knife that Guy I guess",
-                'uploader': 'paraf1ve',
-                'timestamp': 1636788683.0,
-                'upload_date': '20211113'
-            }
-        }
-    ]
-
     @ staticmethod
     def _gen_session_id():
         id_length = 16
