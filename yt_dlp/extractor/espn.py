@@ -7,6 +7,7 @@ from .once import OnceIE
 from ..compat import compat_str
 from ..utils import (
     determine_ext,
+    dict_get,
     int_or_none,
     unified_strdate,
     unified_timestamp,
@@ -273,7 +274,7 @@ class ESPNCricInfoIE(InfoExtractor):
             'id': id,
             'title': data_json.get('title'),
             'description': data_json.get('summary'),
-            'upload_date': unified_strdate(data_json.get('publishedAt') or data_json.get('recordedAt')),
+            'upload_date': unified_strdate(dict_get(data_json, ('publishedAt', 'recordedAt'))),
             'duration': data_json.get('duration'),
             'formats': formats,
             'subtitles': subtitles,
