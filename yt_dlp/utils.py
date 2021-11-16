@@ -6588,3 +6588,8 @@ def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = map(from_dict.get, values)
     return delim.join(map(str, filter(None, values)))
+
+
+class YoutubeDLExtractorHandler(compat_urllib_request.BaseHandler):
+    # Have a common class for ease of removal of handlers
+    handler_order = 499
