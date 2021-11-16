@@ -118,10 +118,10 @@ class VidLiiIE(InfoExtractor):
             default=None) or self._search_regex(
             r'duration\s*:\s*(\d+)', webpage, 'duration', fatal=False))
 
-        view_count = int_or_none(self._search_regex(
-            (r'<strong>(\d+)</strong> views',
-             r'Views\s*:\s*<strong>(\d+)</strong>'),
-            webpage.replace(",", ""), 'view count', fatal=False))
+        view_count = str_to_int(self._search_regex(
+            (r'<strong>([,0-9]+)</strong> views',
+             r'Views\s*:\s*<strong>([,0-9]+)</strong>'),
+            webpage, 'view count', fatal=False))
 
         comment_count = int_or_none(self._search_regex(
             (r'<span[^>]+id=["\']cmt_num[^>]+>(\d+)',
