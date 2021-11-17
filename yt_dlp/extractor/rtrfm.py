@@ -39,9 +39,7 @@ class RTRFMIE(InfoExtractor):
                 'title': 'Breakfast with Taylah 2020-06-01',
                 'description': r're:^Breakfast with Taylah ',
             },
-            'params': {
-                'skip_download': 'This audio has expired',
-            },
+            'skip': 'This audio has expired',
         },
     ]
 
