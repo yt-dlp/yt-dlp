@@ -50,7 +50,7 @@ class RTRFMIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         show, date, title = self._search_regex(
-            r"\.playShow(?:From)?\('(?P<show>[^']+)', *'(?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2})', *'(?P<title>[^']+)'(?:, \d+)?\)",
+            r'''\.playShow(?:From)?\(['"](?P<show>[^'"]+)['"],\s*['"](?P<date>[0-9]{4}-[0-9]{2}-[0-9]{2})['"],\s*['"](?P<title>[^'"]+)['"]''',
             webpage, 'details', group=('show', 'date', 'title'))
         url = self._download_json(
             'https://restreams.rtrfm.com.au/rzz',
