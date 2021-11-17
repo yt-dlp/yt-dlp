@@ -54,6 +54,8 @@ class RTRFMIE(InfoExtractor):
         url = self._download_json(
             'https://restreams.rtrfm.com.au/rzz',
             show, 'Downloading MP3 URL', query={'n': show, 'd': date})['u']
+        # This is the only indicator of an error until trying to download the URL and
+        # downloads of mp4 URLs always fail (403 for current episodes, 404 for missing).
         if '.mp4' in url:
             url = None
             self.raise_no_formats('Expired or no episode on this date', expected=True)
