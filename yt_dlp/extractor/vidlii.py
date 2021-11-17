@@ -5,9 +5,11 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    HEADRequest,
     float_or_none,
     get_element_by_id,
     int_or_none,
+    str_to_int,
     strip_or_none,
     unified_strdate,
     urljoin,
@@ -78,7 +80,7 @@ class VidLiiIE(InfoExtractor):
             webpage) or []]
         for source in sources:
             height = int(self._search_regex(r'(\d+).mp4', source, 'height', default=360))
-            if self._request_webpage(HeadRequest(source), video_id, f'Checking {height}p url', errnote=False):
+            if self._request_webpage(HEADRequest(source), video_id, f'Checking {height}p url', errnote=False):
                 formats.append({
                     'url': source,
                     'format_id': f'{height}p',
