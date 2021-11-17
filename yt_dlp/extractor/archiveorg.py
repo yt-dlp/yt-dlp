@@ -486,6 +486,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 if count < len(thumbnail_base_urls) - 1:
                     self.report_warning(
                         f'Did not find any thumbnails. Trying {ext} format from {server}.')
+        # TODO: deduplicate by ignoring host too
         self._remove_duplicate_formats(thumbnails)
         return thumbnails
 
