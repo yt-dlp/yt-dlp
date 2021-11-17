@@ -30,7 +30,7 @@ from ..utils import (
     try_get,
     unified_strdate,
     unified_timestamp, traverse_obj, float_or_none,
-    urljoin, orderedSet
+    urljoin, orderedSet, get_domain
 )
 
 
@@ -448,15 +448,16 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     def _extract_thumbnails(self, video_id):
         SERVERS = ['i.ytimg.com', 'i1.ytimg.com', 'img.youtube.com',  's.ytimg.com', 'i2.ytimg.com', 'i3.ytimg.com', 'i4.ytimg.com']
-        thumbnail_base_urls = ['http://{server}/vi{webp}/{video_id}'.format(
-            webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server)
+        thumbnail_base_urls = [(ext, server, 'http://{server}/vi{webp}/{video_id}'.format(
+            webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server))
             for server in SERVERS for ext in ('jpg', 'webp')]
         thumbnails = []
-        for base in thumbnail_base_urls:
+        for count, base in enumerate(thumbnail_base_urls):
+            ext, server, url = base
             res = try_get(self._download_json(
                 'https://web.archive.org/cdx/search/cdx',
                 query={
-                    'url': base,
+                    'url': url,
                     'matchType': 'prefix',
                     'collapse': 'urlkey',
                     'output': 'json',
@@ -467,7 +468,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     'fastLatest': True
                 },
                 video_id=video_id,
-                note='Downloading thumbnails CDX JSON'
+                note=f'Downloading thumbnails CDX JSON ({server}:{ext})'
             ), lambda x: x[1:])
             if res:
                 # TODO fix sorting
@@ -481,7 +482,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     } for sect in res[1:] if len(sect) == 4
                 )
                 break  # TODO: how to we decide to break early, and how many archived eps do we check?
-
+            else:
+                if count < len(thumbnail_base_urls) - 1:
+                    self.report_warning(
+                        f'Did not find any thumbnails. Trying {ext} format from {server}.')
         self._remove_duplicate_formats(thumbnails)
         return thumbnails
 
@@ -499,7 +503,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         # If the video is no longer available, the oldest capture may be one before it was removed.
         # Setting the capture date in url to early date seems to redirect to earliest capture.
         webpage = self._download_webpage(
-            'https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=%s' % video_id,
+            'https://web.archive.org/web/20050214000000if_/http://www.youtube.com/watch?v=%s' % video_id,
             video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived).')
 
         info = self._extract_metadata(video_id, webpage or '')
