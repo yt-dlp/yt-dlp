@@ -488,20 +488,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 )
                 if 'nobreakonfind' not in self._configuration_arg('thumbnails'):
                     break  # TODO: how to we decide to break early, and how many archived eps do we check?
-        self._remove_duplicate_thumbs(thumbnails)
-        return thumbnails
 
-    @staticmethod
-    def _remove_duplicate_thumbs(formats):
-        # we need to deduplicate by checking only the file & parameters, not the whole url
-        format_urls = set()
-        unique_formats = []
-        for f in formats:
-            # TODO
-            if f['url'].split('/')[-1] not in format_urls:
-                format_urls.add(f['url'])
-                unique_formats.append(f)
-        formats[:] = unique_formats
+        # TODO: deal with duplicate files from different servers?
+        self._remove_duplicate_formats(thumbnails)
+        return thumbnails
 
     def _extract_webpage_title(self, webpage):
         page_title = self._html_search_regex(
