@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import ExtractorError
 
 
 class RTRFMIE(InfoExtractor):
@@ -56,7 +55,8 @@ class RTRFMIE(InfoExtractor):
             'https://restreams.rtrfm.com.au/rzz',
             show, 'Downloading MP3 URL', query={'n': show, 'd': date})['u']
         if '.mp4?' in url:
-            raise ExtractorError('Expired or no show on this date', expected=True)
+            url = None
+            self.raise_no_formats('Expired or no episode on this date', expected=True)
         return {
             'id': '%s-%s' % (show, date),
             'title': '%s %s' % (title, date),
