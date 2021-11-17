@@ -9,7 +9,7 @@ from .youtube import YoutubeIE
 from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_unquote_plus,
-    compat_HTTPError
+    compat_HTTPError, compat_urlparse
 )
 from ..utils import (
     clean_html,
@@ -30,7 +30,7 @@ from ..utils import (
     try_get,
     unified_strdate,
     unified_timestamp, traverse_obj, float_or_none,
-    urljoin, orderedSet, get_domain
+    urljoin, orderedSet, get_domain, url_basename, base_url
 )
 
 
@@ -362,6 +362,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
     _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeIE._YT_INITIAL_BOUNDARY_RE
 
+    _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']
+    _YT_ALL_THUMB_SERVERS = orderedSet(
+        _YT_DEFAULT_THUMB_SERVERS + ['img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in range(0, 5)]])
+
+    _BASE_WAYBACK_URL = 'https://web.archive.org/web/20050214000000if_/'
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
             (r'%s\s*%s' % (regex, self._YT_INITIAL_BOUNDARY_RE),
@@ -447,10 +452,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
         return info
 
     def _extract_thumbnails(self, video_id):
-        SERVERS = ['i.ytimg.com', 'i1.ytimg.com', 'img.youtube.com',  's.ytimg.com', 'i2.ytimg.com', 'i3.ytimg.com', 'i4.ytimg.com']
+        try_all = 'searchmore' in self._configuration_arg('thumbnails')
         thumbnail_base_urls = [(ext, server, 'http://{server}/vi{webp}/{video_id}'.format(
             webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server))
-            for server in SERVERS for ext in ('jpg', 'webp')]
+            for server in (self._YT_ALL_THUMB_SERVERS if try_all else self._YT_DEFAULT_THUMB_SERVERS) for ext in (('jpg', 'webp') if try_all else ('jpg',))]
+
         thumbnails = []
         for count, base in enumerate(thumbnail_base_urls):
             ext, server, url = base
@@ -475,20 +481,31 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 # TODO: different thumbnails overtime, sort by date?
                 thumbnails.extend(
                     {
-                        'url': 'https://web.archive.org/web/20050214000000if_/' + sect[0],
+                        'url': self._BASE_WAYBACK_URL + sect[0],
                         'filesize': int_or_none(sect[2]),
                         'height': int_or_none(sect[2]),  # filesize
                         'id': int_or_none(sect[3])  # timestamp
                     } for sect in res[1:] if len(sect) == 4
                 )
-                break  # TODO: how to we decide to break early, and how many archived eps do we check?
-            else:
-                if count < len(thumbnail_base_urls) - 1:
-                    self.report_warning(
-                        f'Did not find any thumbnails. Trying {ext} format from {server}.')
+                if 'nobreakonfind' not in self._configuration_arg('thumbnails'):
+                    break  # TODO: how to we decide to break early, and how many archived eps do we check?
+        self._remove_duplicate_thumbs(thumbnails)
+       # print(base_url('https://web.archive.org/web/20050214000000if_/https://i.ytimg.com/vi/5UHzQFSRVwk/hqdefault.jpg?sqp=-oaymwEiCKgBEF5IWvKriqkDFQgBFQAAAAAYASUAAMhCPQCAokN4AQ%3D%3D&rs=AOn4CLBSQ-2oBZu6ia0EeOGIVMUuFVHOgg'))
         # TODO: deduplicate by ignoring host too
-        self._remove_duplicate_formats(thumbnails)
+
         return thumbnails
+
+    def _remove_duplicate_thumbs(self, formats):
+        format_urls = set()
+        format_files = set()
+        unique_formats = []
+        for f in formats:
+            format_file = f['url'].split('/')[-1]
+            if f['url'] not in format_urls and format_file not in format_files:
+                format_urls.add(f['url'])
+                format_files.add(format_file)
+                unique_formats.append(f)
+        formats[:] = unique_formats
 
     def _extract_webpage_title(self, webpage):
         page_title = self._html_search_regex(
@@ -504,7 +521,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         # If the video is no longer available, the oldest capture may be one before it was removed.
         # Setting the capture date in url to early date seems to redirect to earliest capture.
         webpage = self._download_webpage(
-            'https://web.archive.org/web/20050214000000if_/http://www.youtube.com/watch?v=%s' % video_id,
+            self._BASE_WAYBACK_URL + 'http://www.youtube.com/watch?v=%s' % video_id,
             video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived).')
 
         info = self._extract_metadata(video_id, webpage or '')
