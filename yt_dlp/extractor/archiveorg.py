@@ -458,8 +458,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             for server in (self._YT_ALL_THUMB_SERVERS if try_all else self._YT_DEFAULT_THUMB_SERVERS) for ext in (('jpg', 'webp') if try_all else ('jpg',))]
 
         thumbnails = []
-        for count, base in enumerate(thumbnail_base_urls):
-            ext, server, url = base
+        for ext, server, url in thumbnail_base_urls:
             res = try_get(self._download_json(
                 'https://web.archive.org/cdx/search/cdx',
                 query={
@@ -474,7 +473,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     'fastLatest': True
                 },
                 video_id=video_id,
-                note=f'Downloading thumbnails CDX JSON ({server}:{ext})'
+                note=f'Downloading thumbnails CDX JSON%s' % (f' ({server}:{ext})' if len(thumbnail_base_urls) > 1 else '')
             ), lambda x: x[1:])
             if res:
                 # TODO fix sorting
@@ -490,20 +489,17 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 if 'nobreakonfind' not in self._configuration_arg('thumbnails'):
                     break  # TODO: how to we decide to break early, and how many archived eps do we check?
         self._remove_duplicate_thumbs(thumbnails)
-       # print(base_url('https://web.archive.org/web/20050214000000if_/https://i.ytimg.com/vi/5UHzQFSRVwk/hqdefault.jpg?sqp=-oaymwEiCKgBEF5IWvKriqkDFQgBFQAAAAAYASUAAMhCPQCAokN4AQ%3D%3D&rs=AOn4CLBSQ-2oBZu6ia0EeOGIVMUuFVHOgg'))
-        # TODO: deduplicate by ignoring host too
-
         return thumbnails
 
-    def _remove_duplicate_thumbs(self, formats):
+    @staticmethod
+    def _remove_duplicate_thumbs(formats):
+        # we need to deduplicate by checking only the file & parameters, not the whole url
         format_urls = set()
-        format_files = set()
         unique_formats = []
         for f in formats:
-            format_file = f['url'].split('/')[-1]
-            if f['url'] not in format_urls and format_file not in format_files:
+            # TODO
+            if f['url'].split('/')[-1] not in format_urls:
                 format_urls.add(f['url'])
-                format_files.add(format_file)
                 unique_formats.append(f)
         formats[:] = unique_formats
 
