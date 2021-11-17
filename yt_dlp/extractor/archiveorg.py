@@ -30,6 +30,7 @@ from ..utils import (
     try_get,
     unified_strdate,
     unified_timestamp, traverse_obj, float_or_none,
+    urljoin, orderedSet
 )
 
 
@@ -445,6 +446,45 @@ class YoutubeWebArchiveIE(InfoExtractor):
         }
         return info
 
+    def _extract_thumbnails(self, video_id):
+        SERVERS = ['i.ytimg.com', 'i1.ytimg.com', 'img.youtube.com',  's.ytimg.com', 'i2.ytimg.com', 'i3.ytimg.com', 'i4.ytimg.com']
+        thumbnail_base_urls = ['http://{server}/vi{webp}/{video_id}'.format(
+            webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server)
+            for server in SERVERS for ext in ('jpg', 'webp')]
+        thumbnails = []
+        for base in thumbnail_base_urls:
+            res = try_get(self._download_json(
+                'https://web.archive.org/cdx/search/cdx',
+                query={
+                    'url': base,
+                    'matchType': 'prefix',
+                    'collapse': 'urlkey',
+                    'output': 'json',
+                    'fl': 'original,mimetype,length,timestamp',
+                    'limit': 10000,
+                    'filter': 'mimetype:image\/(?:webp|jpeg)',
+                    'filter': 'statuscode:200',
+                    'fastLatest': True
+                },
+                video_id=video_id,
+                note='Downloading thumbnails CDX JSON'
+            ), lambda x: x[1:])
+            if res:
+                # TODO fix sorting
+                # TODO: different thumbnails overtime, sort by date?
+                thumbnails.extend(
+                    {
+                        'url': 'https://web.archive.org/web/20050214000000if_/' + sect[0],
+                        'filesize': int_or_none(sect[2]),
+                        'height': int_or_none(sect[2]),  # filesize
+                        'id': int_or_none(sect[3])  # timestamp
+                    } for sect in res[1:] if len(sect) == 4
+                )
+                break  # TODO: how to we decide to break early, and how many archived eps do we check?
+
+        self._remove_duplicate_formats(thumbnails)
+        return thumbnails
+
     def _extract_webpage_title(self, webpage):
         page_title = self._html_search_regex(
             r'<title>([^<]*)</title>', webpage, 'title', default='')
@@ -462,8 +502,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=%s' % video_id,
             video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived).')
 
-        info = self._extract_metadata(video_id, webpage) if webpage else {}
-
+        info = self._extract_metadata(video_id, webpage or '')
+        info['thumbnails'] = self._extract_thumbnails(video_id)
         # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
         internal_fake_url = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id
         video_file_url = None
