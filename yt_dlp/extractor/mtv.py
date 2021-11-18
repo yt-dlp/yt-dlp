@@ -320,8 +320,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
             main_container = self._extract_child_with_type(data, 'MainContainer')
             ab_testing = self._extract_child_with_type(main_container, 'ABTesting')
             video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
-            if video_player:
-                mgid = video_player['props']['media']['video']['config']['uri']
+            mgid = try_get(video_player, lambda x: x['props']['media']['video']['config']['uri'])
 
         if not mgid:
             mgid = self._search_regex(
