@@ -2035,11 +2035,10 @@ class InfoExtractor(object):
             video_id=None):
         formats, subtitles = [], {}
 
-        # NOTE: '#' needs to be escaped since it's a comment character in multiline regex ('\#' doesn't work)
-        has_drm = re.search(r'''(?x)(?:
-                            [#]EXT-X-FAXS-CM:|                        # Adobe Flash Access
-                            [#]EXT-X-(?:SESSION-)?KEY:.*?URI="skd://  # Apple FairPlay
-                            )''', m3u8_doc)
+        has_drm = re.search('|'.join([
+            r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
+            r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
+        ], m3u8_doc)
 
         def format_url(url):
             return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)

@@ -83,7 +83,9 @@ class HlsFD(FragmentFD):
                                 [#]EXT-X-(?:SESSION-)?KEY:.*?URI="skd://  # Apple FairPlay
                                 )''', s)
             if has_drm and not self.params.get('allow_unplayable_formats'):
-                self.report_error('This video is DRM protected')
+                self.report_error(
+                    'This video is DRM protected; Try selecting another format with --format or '
+                    'add --check-formats to automatically fallback to the next best format')
                 return False
             else:
                 message = message or 'Unsupported features have been detected'
