@@ -30,8 +30,7 @@ class MixchIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        url = 'https://mixch.tv/u/%s/live' % video_id
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(f'https://mixch.tv/u/{video_id}/live', video_id)
 
         initial_js_state = self._parse_json(self._search_regex(
             r'(?m)^\s*window\.__INITIAL_JS_STATE__\s*=\s*(\{.+?\});\s*$', webpage, 'initial JS state'), video_id)
@@ -53,5 +52,4 @@ class MixchIE(InfoExtractor):
                 'protocol': 'm3u8',
             }],
             'is_live': True,
-            'webpage_url': url,
         }
