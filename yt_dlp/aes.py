@@ -43,8 +43,6 @@ def aes_ecb_encrypt(data, key, iv=None):
     encrypted_data = []
     for i in range(block_count):
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
-        block += [0] * (BLOCK_SIZE_BYTES - len(block))
-
         encrypted_data += aes_encrypt(block, expanded_key)
     encrypted_data = encrypted_data[:len(data)]
 
@@ -66,8 +64,6 @@ def aes_ecb_decrypt(data, key, iv=None):
     encrypted_data = []
     for i in range(block_count):
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
-        block += [0] * (BLOCK_SIZE_BYTES - len(block))
-
         encrypted_data += aes_decrypt(block, expanded_key)
     encrypted_data = encrypted_data[:len(data)]
 
