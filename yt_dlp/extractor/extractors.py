@@ -704,6 +704,7 @@ from .line import (
     LineLiveChannelIE,
 )
 from .linkedin import (
+    LinkedInIE,
     LinkedInLearningIE,
     LinkedInLearningCourseIE,
 )
