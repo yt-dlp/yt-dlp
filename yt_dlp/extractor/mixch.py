@@ -36,7 +36,7 @@ class MixchIE(InfoExtractor):
         initial_js_state = self._parse_json(self._search_regex(
             r'(?m)^\s*window\.__INITIAL_JS_STATE__\s*=\s*(\{.+?\});\s*$', webpage, 'initial JS state'), video_id)
         if not initial_js_state.get('liveInfo'):
-            raise ExtractorError('Live has ended.', expected=True)
+            raise ExtractorError('Livestream has ended.', expected=True)
 
         return {
             'id': video_id,
