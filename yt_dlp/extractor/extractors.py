@@ -418,6 +418,7 @@ from .espn import (
     ESPNIE,
     ESPNArticleIE,
     FiveThirtyEightIE,
+    ESPNCricInfoIE,
 )
 from .esri import EsriVideoIE
 from .europa import EuropaIE
