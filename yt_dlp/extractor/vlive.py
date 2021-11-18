@@ -12,6 +12,7 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     int_or_none,
+    LazyList,
     merge_dicts,
     str_or_none,
     strip_or_none,
@@ -363,11 +364,10 @@ class VLiveChannelIE(VLiveBaseIE):
             if board.get('boardType') not in ('STAR', 'VLIVE_PLUS'):
                 raise ExtractorError(f'Board {board_name!r} is not supported', expected=True)
 
-        entries = self._entries(posts_id or channel_id, board_name)
-        first_video = next(entries)
-        channel_name = first_video['channel']
+        entries = LazyList(self._entries(posts_id or channel_id, board_name))
+        channel_name = entries[0]['channel']
 
         return self.playlist_result(
-            itertools.chain([first_video], entries),
+            entries,
             f'{channel_id}-{posts_id}' if posts_id else channel_id,
             f'{channel_name} - {board_name}' if channel_name and board_name else channel_name)

@@ -2,6 +2,7 @@
 
 from ..utils import load_plugins
 
+from .common import PostProcessor
 from .embedthumbnail import EmbedThumbnailPP
 from .exec import ExecPP, ExecAfterDownloadPP
 from .ffmpeg import (
@@ -39,5 +40,5 @@ def get_postprocessor(key):
     return globals()[key + 'PP']
 
 
-__all__ = [name for name in globals().keys() if name.endswith('IE')]
-__all__.append('FFmpegPostProcessor')
+__all__ = [name for name in globals().keys() if name.endswith('PP')]
+__all__.extend(('PostProcessor', 'FFmpegPostProcessor'))

@@ -74,6 +74,7 @@ class InstagramBaseIE(InfoExtractor):
 
 
 class InstagramIOSIE(InfoExtractor):
+    IE_DESC = 'IOS instagram:// URL'
     _VALID_URL = r'instagram://media\?id=(?P<id>[\d_]+)'
     _TESTS = [{
         'url': 'instagram://media?id=482584233761418119',
@@ -241,7 +242,7 @@ class InstagramIE(InstagramBaseIE):
         if 'www.instagram.com/accounts/login' in urlh.geturl().rstrip('/'):
             self.raise_login_required('You need to log in to access this content')
 
-        (media, video_url, description, thumbnail, timestamp, uploader,
+        (media, video_url, description, thumbnails, timestamp, uploader,
          uploader_id, like_count, comment_count, comments, height,
          width) = [None] * 12
 
@@ -366,8 +367,8 @@ class InstagramIE(InstagramBaseIE):
             if description is not None:
                 description = lowercase_escape(description)
 
-        if not thumbnail:
-            thumbnail = self._og_search_thumbnail(webpage)
+        if not thumbnails:
+            thumbnails = self._og_search_thumbnail(webpage)
 
         return {
             'id': video_id,

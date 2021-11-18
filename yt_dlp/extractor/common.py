@@ -342,6 +342,7 @@ class InfoExtractor(object):
     series, programme or podcast:
 
     series:         Title of the series or programme the video episode belongs to.
+    series_id:      Id of the series or programme the video episode belongs to, as a unicode string.
     season:         Title of the season the video episode belongs to.
     season_number:  Number of the season the video episode belongs to, as an integer.
     season_id:      Id of the season the video episode belongs to, as a unicode string.
@@ -1495,6 +1496,13 @@ class InfoExtractor(object):
                 else:
                     break
         return dict((k, v) for k, v in info.items() if v is not None)
+
+    def _search_nextjs_data(self, webpage, video_id, **kw):
+        return self._parse_json(
+            self._search_regex(
+                r'(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
+                webpage, 'next.js data', **kw),
+            video_id, **kw)
 
     @staticmethod
     def _hidden_inputs(html):

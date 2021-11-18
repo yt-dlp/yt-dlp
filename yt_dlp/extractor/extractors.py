@@ -193,6 +193,7 @@ from .camdemy import (
 )
 from .cammodels import CamModelsIE
 from .camwithher import CamWithHerIE
+from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
 from .canalc2 import Canalc2IE
 from .canvas import (
@@ -307,7 +308,8 @@ from .ctvnews import CTVNewsIE
 from .cultureunplugged import CultureUnpluggedIE
 from .curiositystream import (
     CuriosityStreamIE,
-    CuriosityStreamCollectionIE,
+    CuriosityStreamCollectionsIE,
+    CuriosityStreamSeriesIE,
 )
 from .cwtv import CWTVIE
 from .dailymail import DailyMailIE
@@ -417,6 +419,7 @@ from .espn import (
     ESPNIE,
     ESPNArticleIE,
     FiveThirtyEightIE,
+    ESPNCricInfoIE,
 )
 from .esri import EsriVideoIE
 from .europa import EuropaIE
@@ -493,7 +496,10 @@ from .funimation import (
 )
 from .funk import FunkIE
 from .fusion import FusionIE
-from .gab import GabTVIE
+from .gab import (
+    GabTVIE,
+    GabIE,
+)
 from .gaia import GaiaIE
 from .gameinformer import GameInformerIE
 from .gamespot import GameSpotIE
@@ -789,6 +795,7 @@ from .mirrativ import (
 )
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
+from .mixch import MixchIE
 from .mixcloud import (
     MixcloudIE,
     MixcloudUserIE,
@@ -996,6 +1003,7 @@ from .oktoberfesttv import OktoberfestTVIE
 from .olympics import OlympicsReplayIE
 from .on24 import On24IE
 from .ondemandkorea import OnDemandKoreaIE
+from .onefootball import OneFootballIE
 from .onet import (
     OnetIE,
     OnetChannelIE,
@@ -1056,6 +1064,7 @@ from .peertube import (
     PeerTubeIE,
     PeerTubePlaylistIE,
 )
+from .peertv import PeerTVIE
 from .peloton import (
     PelotonIE,
     PelotonLiveIE
@@ -1102,9 +1111,14 @@ from .pokemon import (
     PokemonIE,
     PokemonWatchIE,
 )
+from .polsatgo import PolsatGoIE
 from .polskieradio import (
     PolskieRadioIE,
     PolskieRadioCategoryIE,
+    PolskieRadioPlayerIE,
+    PolskieRadioPodcastIE,
+    PolskieRadioPodcastListIE,
+    PolskieRadioRadioKierowcowIE,
 )
 from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
@@ -1152,6 +1166,10 @@ from .radiojavan import RadioJavanIE
 from .radiobremen import RadioBremenIE
 from .radiofrance import RadioFranceIE
 from .radiozet import RadioZetPodcastIE
+from .radiokapital import (
+    RadioKapitalIE,
+    RadioKapitalShowIE,
+)
 from .radlive import (
     RadLiveIE,
     RadLiveChannelIE,
@@ -1560,6 +1578,7 @@ from .tvnow import (
 from .tvp import (
     TVPEmbedIE,
     TVPIE,
+    TVPStreamIE,
     TVPWebsiteIE,
 )
 from .tvplay import (
@@ -1777,6 +1796,10 @@ from .wistia import (
     WistiaPlaylistIE,
 )
 from .worldstarhiphop import WorldStarHipHopIE
+from .wppilot import (
+    WPPilotIE,
+    WPPilotChannelsIE,
+)
 from .wsj import (
     WSJIE,
     WSJArticleIE,

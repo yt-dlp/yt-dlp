@@ -10,6 +10,7 @@ from ..utils import (
     int_or_none,
     js_to_json,
     qualities,
+    traverse_obj,
     unified_strdate,
     url_or_none,
 )
@@ -17,36 +18,54 @@ from ..utils import (
 
 class NovaEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://media\.cms\.nova\.cz/embed/(?P<id>[^/?#&]+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://media.cms.nova.cz/embed/8o0n0r?autoplay=1',
-        'md5': 'ee009bafcc794541570edd44b71cbea3',
         'info_dict': {
             'id': '8o0n0r',
-            'ext': 'mp4',
             'title': '2180. díl',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 2578,
         },
-    }
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': ['DRM protected', 'Requested format is not available'],
+    }, {
+        'url': 'https://media.cms.nova.cz/embed/KybpWYvcgOa',
+        'info_dict': {
+            'id': 'KybpWYvcgOa',
+            'ext': 'mp4',
+            'title': 'Borhyová oslavila 60? Soutěžící z pořadu odboural moderátora Ondřeje Sokola',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 114,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
 
+        has_drm = False
         duration = None
         formats = []
 
         player = self._parse_json(
             self._search_regex(
-                r'Player\.init\s*\([^,]+,\s*(?:\w+\s*\?\s*{.+?}\s*:\s*)?({.+})\s*,\s*{.+?}\s*\)\s*;',
-                webpage, 'player', default='{}'), video_id, fatal=False)
+                r'Player\.init\s*\([^,]+,(?P<cndn>\s*\w+\s*\?)?\s*(?P<json>{(?(cndn).+?|.+)})\s*(?(cndn):|,\s*{.+?}\s*\)\s*;)',
+                webpage, 'player', default='{}', group='json'), video_id, fatal=False)
         if player:
             for format_id, format_list in player['tracks'].items():
                 if not isinstance(format_list, list):
                     format_list = [format_list]
                 for format_dict in format_list:
                     if not isinstance(format_dict, dict):
+                        continue
+                    if (not self.get_param('allow_unplayable_formats')
+                            and traverse_obj(format_dict, ('drm', 'keySystem'))):
+                        has_drm = True
                         continue
                     format_url = url_or_none(format_dict.get('src'))
                     format_type = format_dict.get('type')
@@ -104,6 +123,8 @@ class NovaEmbedIE(InfoExtractor):
                     f['format_id'] = f_id
                     formats.append(f)
 
+        if not formats and has_drm:
+            self.report_drm(video_id)
         self._sort_formats(formats)
 
         title = self._og_search_title(

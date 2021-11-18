@@ -9,6 +9,7 @@ import datetime
 import hashlib
 import itertools
 import json
+import math
 import os.path
 import random
 import re
@@ -28,6 +29,7 @@ from ..compat import (
 )
 from ..jsinterp import JSInterpreter
 from ..utils import (
+    bug_reports_message,
     bytes_to_intlist,
     clean_html,
     datetime_from_str,
@@ -64,6 +66,10 @@ from ..utils import (
     urljoin,
     variadic,
 )
+
+
+def get_first(obj, keys, **kwargs):
+    return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
 
 # any clients starting with _ cannot be explicity requested by the user
@@ -1864,7 +1870,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.write_debug(f'Decrypted nsig {s} => {self._player_cache[sig_id]}')
             return self._player_cache[sig_id]
         except Exception as e:
-            raise ExtractorError(traceback.format_exc(), cause=e)
+            raise ExtractorError(traceback.format_exc(), cause=e, video_id=video_id)
 
     def _extract_n_function_name(self, jscode):
         return self._search_regex(
@@ -2339,18 +2345,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
+        default = ['android', 'web']
         allowed_clients = sorted(
             [client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'],
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
             if client in allowed_clients:
                 requested_clients.append(client)
+            elif client == 'default':
+                requested_clients.extend(default)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
             else:
                 self.report_warning(f'Skipping unsupported client {client}')
         if not requested_clients:
-            requested_clients = ['android', 'web']
+            requested_clients = default
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             requested_clients.extend(
@@ -2496,7 +2505,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmt_url = update_url_query(fmt_url, {
                         'n': self._decrypt_nsig(query['n'][0], video_id, player_url)})
                 except ExtractorError as e:
-                    self.report_warning(f'nsig extraction failed: You may experience throttling for some formats\n{e}', only_once=True)
+                    self.report_warning(
+                        f'nsig extraction failed: You may experience throttling for some formats\n'
+                        f'n = {query["n"][0]} ; player = {player_url}\n{e}', only_once=True)
                     throttled = True
 
             if itag:
@@ -2561,7 +2572,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             f['quality'] = next((
                 q(qdict[val])
-                for val, qdict in ((f.get('format_id'), itag_qualities), (f.get('height'), res_qualities))
+                for val, qdict in ((f.get('format_id', '').split('-')[0], itag_qualities), (f.get('height'), res_qualities))
                 if val in qdict), -1)
             return True
 
@@ -2581,6 +2592,41 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                         yield f
 
+    def _extract_storyboard(self, player_responses, duration):
+        spec = get_first(
+            player_responses, ('storyboards', 'playerStoryboardSpecRenderer', 'spec'), default='').split('|')[::-1]
+        if not spec:
+            return
+        base_url = spec.pop()
+        L = len(spec) - 1
+        for i, args in enumerate(spec):
+            args = args.split('#')
+            counts = list(map(int_or_none, args[:5]))
+            if len(args) != 8 or not all(counts):
+                self.report_warning(f'Malformed storyboard {i}: {"#".join(args)}{bug_reports_message()}')
+                continue
+            width, height, frame_count, cols, rows = counts
+            N, sigh = args[6:]
+
+            url = base_url.replace('$L', str(L - i)).replace('$N', N) + f'&sigh={sigh}'
+            fragment_count = frame_count / (cols * rows)
+            fragment_duration = duration / fragment_count
+            yield {
+                'format_id': f'sb{i}',
+                'format_note': 'storyboard',
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'url': url,
+                'width': width,
+                'height': height,
+                'fragments': [{
+                    'path': url.replace('$M', str(j)),
+                    'duration': min(fragment_duration, duration - (j * fragment_duration)),
+                } for j in range(math.ceil(fragment_count))],
+            }
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
@@ -2597,8 +2643,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
             video_id, webpage, master_ytcfg)
-
-        get_first = lambda obj, keys, **kwargs: traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict, default=[])
@@ -2695,10 +2739,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if reason:
                 self.raise_no_formats(reason, expected=True)
 
-        # Source is given priority since formats that throttle are given lower source_preference
-        # When throttling issue is fully fixed, remove this
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang', 'proto'))
-
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:
             keywords = [
@@ -2785,6 +2825,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         live_endtime = parse_iso8601(get_first(live_broadcast_details, 'endTimestamp'))
         if not duration and live_endtime and live_starttime:
             duration = live_endtime - live_starttime
+
+        formats.extend(self._extract_storyboard(player_responses, duration))
+
+        # Source is given priority since formats that throttle are given lower source_preference
+        # When throttling issue is fully fixed, remove this
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang', 'proto'))
 
         info = {
             'id': video_id,
@@ -4427,7 +4473,7 @@ class YoutubeYtUserIE(InfoExtractor):
     def _real_extract(self, url):
         user_id = self._match_id(url)
         return self.url_result(
-            'https://www.youtube.com/user/%s' % user_id,
+            'https://www.youtube.com/user/%s/videos' % user_id,
             ie=YoutubeTabIE.ie_key(), video_id=user_id)
 
 
