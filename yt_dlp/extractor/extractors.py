@@ -1407,6 +1407,7 @@ from .streamcloud import StreamcloudIE
 from .streamcz import StreamCZIE
 from .streetvoice import StreetVoiceIE
 from .stretchinternet import StretchInternetIE
+from .stripchat import StripchatIE
 from .stv import STVPlayerIE
 from .sunporno import SunPornoIE
 from .sverigesradio import (
