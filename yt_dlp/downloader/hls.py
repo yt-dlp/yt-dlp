@@ -87,11 +87,10 @@ class HlsFD(FragmentFD):
                     'This video is DRM protected; Try selecting another format with --format or '
                     'add --check-formats to automatically fallback to the next best format')
                 return False
-            else:
-                message = message or 'Unsupported features have been detected'
-                fd = FFmpegFD(self.ydl, self.params)
-                self.report_warning(f'{message}; extraction will be delegated to {fd.get_basename()}')
-                return fd.real_download(filename, info_dict)
+            message = message or 'Unsupported features have been detected'
+            fd = FFmpegFD(self.ydl, self.params)
+            self.report_warning(f'{message}; extraction will be delegated to {fd.get_basename()}')
+            return fd.real_download(filename, info_dict)
         elif message:
             self.report_warning(message)
 
