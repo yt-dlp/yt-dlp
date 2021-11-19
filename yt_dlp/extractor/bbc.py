@@ -5,7 +5,6 @@ import functools
 import itertools
 import json
 import re
-from collections import defaultdict
 
 from .common import InfoExtractor
 from ..compat import (
@@ -453,7 +452,7 @@ class BBCCoUkIE(InfoExtractor):
                 'http://www.bbc.co.uk/programmes/%s/playlist.json' % playlist_id,
                 playlist_id, 'Downloading playlist JSON')
             formats = []
-            subtitles = defaultdict(list)
+            subtitles = {}
 
             for version in playlist.get('allAvailableVersions', []):
                 smp_config = version['smpConfig']
@@ -470,9 +469,10 @@ class BBCCoUkIE(InfoExtractor):
                     for f in version_formats:
                         f['format_note'] = ', '.join(types)
                         if any('AudioDescribed' in x for x in types):
-                            f['preference'] = -10
+                            f['language_preference'] = -10
                     formats += version_formats
                     for tag, subformats in (version_subtitles or {}).items():
+                        subtitles.setdefault(tag, [])
                         subtitles[tag] += subformats
 
             return programme_id, title, description, duration, formats, subtitles
