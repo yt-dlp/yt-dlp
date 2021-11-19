@@ -73,7 +73,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'http://bangumi.bilibili.com/anime/5802/play#100643',
         'md5': '3f721ad1e75030cc06faf73587cfec57',
         'info_dict': {
-            'id': '8903802',
+            'id': '100643',
             'ext': 'mp4',
             'title': 'CHAOS;CHILD',
             'description': '如果你是神明，并且能够让妄想成为现实。那你会进行怎么样的妄想？是淫靡的世界？独裁社会？毁灭性的制裁？还是……2015年，涩谷。从6年前发生的大灾害“涩谷地震”之后复兴了的这个街区里新设立的私立高中...',
