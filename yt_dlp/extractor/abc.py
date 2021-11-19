@@ -257,15 +257,25 @@ class ABCIViewIE(InfoExtractor):
         }
 
 
-class ABCIViewShowLatestEpisodeIE(InfoExtractor):
-    IE_NAME = 'abc.net.au:iview:show:latest-episode'
-    _VALID_URL = r'https?://iview\.abc\.net\.au/show/(?P<id>[^/]+)$'
-    _DATA = r'window\.__INITIAL_STATE__\s*=\s*"(.+)"\s*;'
+class ABCIViewShowSeriesIE(InfoExtractor):
+    IE_NAME = 'abc.net.au:iview:showseries'
+    _VALID_URL = r'https?://iview\.abc\.net\.au/show/(?P<id>[^/]+)(?:/series/\d+)?$'
     _GEO_COUNTRIES = ['AU']
 
     _TESTS = [{
         'url': 'https://iview.abc.net.au/show/upper-middle-bogan',
-        'md5': '764e4d496957407d36fd442f3207dafc',
+        'info_dict': {
+            'id': '124870-1',
+            'title': "Series 1",
+            'description': 'md5:93119346c24a7c322d446d8eece430ff',
+            'series': 'Upper Middle Bogan',
+            'season': "Series 1",
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$'
+        },
+        'playlist_count': 8,
+    }, {
+        'url': 'https://iview.abc.net.au/show/upper-middle-bogan',
+        # The md5 changes for every download
         'info_dict': {
             'id': 'CO1108V001S00',
             'ext': 'mp4',
@@ -277,15 +287,31 @@ class ABCIViewShowLatestEpisodeIE(InfoExtractor):
             'timestamp': 1625036400,
         },
         'params': {
-            'skip_download': True,
+            'noplaylist': True,
         },
     }]
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
         webpage = self._download_webpage(url, show_id)
-        webpage_data = self._search_regex(self._DATA, webpage, 'initial state')
-        json_data = unescapeHTML(webpage_data).encode('utf-8').decode('unicode_escape')
-        video_data = self._parse_json(json_data, show_id)
-        url = video_data['route']['pageData']['_embedded']['highlightVideo']['shareUrl']
-        return self.url_result(url)
+        webpage_data = self._search_regex(
+            r'window\.__INITIAL_STATE__\s*=\s*"(.+)"\s*;',
+            webpage, 'initial state')
+        video_data = self._parse_json(
+            unescapeHTML(webpage_data).encode('utf-8').decode('unicode_escape'), show_id)
+        if self.get_param('noplaylist'):
+            url = video_data['route']['pageData']['_embedded']['highlightVideo']['shareUrl']
+            return self.url_result(url)
+        else:
+            series = video_data['route']['pageData']['_embedded']['selectedSeries']
+            episodes = series['_embedded']['videoEpisodes']
+            entries = [self.url_result(episode['shareUrl']) for episode in episodes]
+            return self.playlist_result(
+                entries,
+                series.get('id'),
+                series.get('title', series.get('displaySubtitle')),
+                series.get('description'),
+                series = series.get('showTitle', series.get('displayTitle')),
+                season = series.get('title', series.get('displaySubtitle')),
+                thumbnail = series.get('thumbnail'),
+            )
