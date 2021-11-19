@@ -1782,6 +1782,7 @@ from .weibo import (
     WeiboMobileIE
 )
 from .weiqitv import WeiqiTVIE
+from .willow import WillowIE
 from .wimtv import WimTVIE
 from .whowatch import WhoWatchIE
 from .wistia import (
