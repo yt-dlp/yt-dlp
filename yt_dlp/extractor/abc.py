@@ -275,7 +275,6 @@ class ABCIViewShowSeriesIE(InfoExtractor):
         'playlist_count': 8,
     }, {
         'url': 'https://iview.abc.net.au/show/upper-middle-bogan',
-        # The md5 changes for every download
         'info_dict': {
             'id': 'CO1108V001S00',
             'ext': 'mp4',
@@ -288,6 +287,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
         },
         'params': {
             'noplaylist': True,
+            'skip_download': 'md5 changes for every download'
         },
     }]
 
