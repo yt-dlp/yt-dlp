@@ -137,7 +137,7 @@ class TestFormatSelection(unittest.TestCase):
         test('webm/mp4', '47')
         test('3gp/40/mp4', '35')
         test('example-with-dashes', 'example-with-dashes')
-        test('all', '35', 'example-with-dashes', '45', '47', '2')  # Order doesn't actually matter for this
+        test('all', '2', '47', '45', 'example-with-dashes', '35')
         test('mergeall', '2+47+45+example-with-dashes+35', multi=True)
 
     def test_format_selection_audio(self):
@@ -520,7 +520,7 @@ class TestFormatSelection(unittest.TestCase):
         ydl = YDL({'format': 'all[width>=400][width<=600]'})
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['B', 'C', 'D'])
+        self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
 
         ydl = YDL({'format': 'best[height<40]'})
         try:
