@@ -311,7 +311,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
                 series.get('id'),
                 series.get('title', series.get('displaySubtitle')),
                 series.get('description'),
-                series = series.get('showTitle', series.get('displayTitle')),
-                season = series.get('title', series.get('displaySubtitle')),
-                thumbnail = series.get('thumbnail'),
+                series=series.get('showTitle', series.get('displayTitle')),
+                season=series.get('title', series.get('displaySubtitle')),
+                thumbnail=series.get('thumbnail'),
             )
