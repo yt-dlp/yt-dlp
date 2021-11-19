@@ -311,6 +311,10 @@ class TwitchVodIE(TwitchBaseIE):
         if vod_id[0] != 'v':
             vod_id = 'v%s' % vod_id
         thumbnail = url_or_none(info.get('previewThumbnailURL'))
+        if '404_processing_{width}x{height}.png' in thumbnail:
+           is_live = True
+        else:
+           is_live = False
         if thumbnail:
             for p in ('width', 'height'):
                 thumbnail = thumbnail.replace('{%s}' % p, '0')
@@ -324,6 +328,7 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
+            'is_live': is_live,
         }
 
     def _real_extract(self, url):
