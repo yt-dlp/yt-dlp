@@ -312,9 +312,9 @@ class TwitchVodIE(TwitchBaseIE):
             vod_id = 'v%s' % vod_id
         thumbnail = url_or_none(info.get('previewThumbnailURL'))
         if '404_processing_{width}x{height}.png' in thumbnail:
-           is_live = True
+            is_live = True
         else:
-           is_live = False
+            is_live = False
         if thumbnail:
             for p in ('width', 'height'):
                 thumbnail = thumbnail.replace('{%s}' % p, '0')
