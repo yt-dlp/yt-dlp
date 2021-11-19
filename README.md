@@ -96,7 +96,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **New playlist extractors**: bilibili categories, eroprofile albums, hotstar series, hungama albums, newgrounds user, niconico search/users, paramountplus series, patreon user, peertube playlist/channels, roosterteeth series, sonyliv series, tiktok user, trovo channels, voot series
 
-* **Fixed/improved extractors**: 7plus, 9now, afreecatv, akamai, aljazeera, amcnetworks, animalplanet, archive.org, arte, atv, bbc, bilibili, bitchute, bravotv, camtube, cbc, cda, ceskatelevize, chingari, comedycentral, coub, crackle, crunchyroll, curiositystream, diynetwork, dw, eroprofile, facebook, francetv, funimation, globo, hearthisatie, hidive, hotstar, hungama, imdb, ina, instagram, iprima, itv, iwara, kakao, la7, linkedinlearning, linuxacadamy, mediaset, mediasite, motherless, mxplayer, nbcolympics, ndr, newgrounds, niconico, nitter, nova, nrk, nuvid, oreilly, paramountplus, parliamentlive, patreon, pbs, peertube, plutotv, polskieradio, pornhub, reddit, reddit, redtube, rmcdecouverte, roosterteeth, rtp, rumble, saml verizon login, skyit, sonyliv, soundcloud, southparkde, spankbang, spreaker, streamable, tagesschau, tbs, tennistv, tenplay, tiktok, tubi, tv2, tv2hu, tv5mondeplus, tvp, twitcasting, vh1, viafree, videa, vidio, vidme, viewlift, viki, vimeo, viu, vk, vlive, vrt, wakanim, xhamster, yahoo
+* **Fixed/improved extractors**: 7plus, 9now, afreecatv, akamai, aljazeera, amcnetworks, animalplanet, archive.org, arte, atv, bbc, bilibili, bitchute, bravotv, camtube, cbc, cda, ceskatelevize, chingari, comedycentral, coub, crackle, crunchyroll, curiositystream, diynetwork, dw, eroprofile, facebook, francetv, funimation, globo, hearthisatie, hidive, hotstar, hungama, imdb, ina, instagram, iprima, itv, iwara, kakao, la7, linkedinlearning, linuxacadamy, mediaset, mediasite, motherless, mxplayer, nbcolympics, ndr, newgrounds, niconico, nitter, nova, nrk, nuvid, oreilly, paramountplus, parliamentlive, patreon, pbs, peertube, plutotv, polskieradio, pornhub, reddit, redtube, rmcdecouverte, roosterteeth, rtp, rumble, saml verizon login, skyit, sonyliv, soundcloud, southparkde, spankbang, spreaker, streamable, tagesschau, tbs, tennistv, tenplay, tiktok, tubi, tv2, tv2hu, tv5mondeplus, tvp, twitcasting, vh1, viafree, videa, vidio, vidme, viewlift, viki, vimeo, viu, vk, vlive, vrt, wakanim, xhamster, yahoo
 
 * **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN
 
@@ -136,7 +136,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Unlike youtube-dlc, yt-dlp does not allow merging multiple audio/video streams into one file by default (since this conflicts with the use of `-f bv*+ba`). If needed, this feature must be enabled using `--audio-multistreams` and `--video-multistreams`. You can also use `--compat-options multistreams` to enable both
 * `--ignore-errors` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
 * When writing metadata files such as thumbnails, description or infojson, the same information (if available) is also written for playlists. Use `--no-write-playlist-metafiles` or `--compat-options no-playlist-metafiles` to not write these files
-* `--add-metadata` attaches the `infojson` to `mkv` files in addition to writing the metadata when used with `--write-infojson`. Use `--compat-options no-attach-info-json` to revert this
+* `--add-metadata` attaches the `infojson` to `mkv` files in addition to writing the metadata when used with `--write-info-json`. Use `--no-embed-info-json` or `--compat-options no-attach-info-json` to revert this
 * Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](https://github.com/yt-dlp/yt-dlp#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
 * `playlist_index` behaves differently when used with options like `--playlist-reverse` and `--playlist-items`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details. You can use `--compat-options playlist-index` if you want to keep the earlier behavior
 * The output of `-F` is listed in a new format. Use `--compat-options list-formats` to revert this
@@ -196,7 +196,7 @@ python3 -m pip install --no-deps -U yt-dlp
 
 If you want to be on the cutting edge, you can also install the master branch with:
 ```
-python3 -m pip3 install --force-reinstall https://github.com/yt-dlp/yt-dlp/archive/master.zip
+python3 -m pip install --force-reinstall https://github.com/yt-dlp/yt-dlp/archive/master.zip
 ```
 
 Note that on some systems, you may need to use `py` or `python` instead of `python3`
@@ -793,7 +793,7 @@ You can also fork the project on github and push it to a release branch in your 
     --audio-format FORMAT            Specify audio format to convert the audio
                                      to when -x is used. Currently supported
                                      formats are: best (default) or one of
-                                     best|aac|flac|mp3|m4a|opus|vorbis|wav
+                                     best|aac|flac|mp3|m4a|opus|vorbis|wav|alac
     --audio-quality QUALITY          Specify ffmpeg audio quality, insert a
                                      value between 0 (best) and 10 (worst) for
                                      VBR or a specific bitrate like 128K
@@ -844,15 +844,20 @@ You can also fork the project on github and push it to a release branch in your 
     --no-embed-subs                  Do not embed subtitles (default)
     --embed-thumbnail                Embed thumbnail in the video as cover art
     --no-embed-thumbnail             Do not embed thumbnail (default)
-    --embed-metadata                 Embed metadata to the video file. Also adds
-                                     chapters to file unless --no-add-chapters
-                                     is used (Alias: --add-metadata)
+    --embed-metadata                 Embed metadata to the video file. Also
+                                     embeds chapters/infojson if present unless
+                                     --no-embed-chapters/--no-embed-info-json
+                                     are used (Alias: --add-metadata)
     --no-embed-metadata              Do not add metadata to file (default)
                                      (Alias: --no-add-metadata)
     --embed-chapters                 Add chapter markers to the video file
                                      (Alias: --add-chapters)
     --no-embed-chapters              Do not add chapter markers (default)
                                      (Alias: --no-add-chapters)
+    --embed-info-json                Embed the infojson as an attachment to
+                                     mkv/mka video files
+    --no-embed-info-json             Do not embed the infojson as an attachment
+                                     to the video file
     --parse-metadata FROM:TO         Parse additional metadata like title/artist
                                      from other fields; see "MODIFYING METADATA"
                                      for details
@@ -1210,11 +1215,14 @@ If you are using an output template inside a Windows batch file then you must es
 Note that on Windows you need to use double quotes instead of single.
 
 ```bash
+$ yt-dlp --get-filename -o 'test video.%(ext)s' BaW_jenozKc
+test video.webm    # Literal name with correct extension
+
 $ yt-dlp --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc
-youtube-dl test video ''_ä↭𝕐.mp4    # All kinds of weird characters
+youtube-dl test video ''_ä↭𝕐.webm    # All kinds of weird characters
 
 $ yt-dlp --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc --restrict-filenames
-youtube-dl_test_video_.mp4          # A simple file name
+youtube-dl_test_video_.webm    # Restricted file name
 
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
 $ yt-dlp -o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re

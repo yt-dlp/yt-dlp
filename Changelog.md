@@ -40,7 +40,7 @@
 * [fragment] Fix progress display in fragmented downloads
 * [downloader/ffmpeg] Fix vtt download with ffmpeg
 * [ffmpeg] Detect presence of setts and libavformat version
-* [ExtractAudio] Rescale --audio-quality correctly by [CrypticSignal](https://github.com/CrypticSignal), [pukkandan](https://github.com/pukkandan)
+* [ExtractAudio] Rescale `--audio-quality` correctly by [CrypticSignal](https://github.com/CrypticSignal), [pukkandan](https://github.com/pukkandan)
 * [ExtractAudio] Use `libfdk_aac` if available by [CrypticSignal](https://github.com/CrypticSignal)
 * [FormatSort] `eac3` is better than `ac3`
 * [FormatSort] Fix some fields' defaults

@@ -508,9 +508,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         Extracts visitorData from an API response or ytcfg
         Appears to be used to track session state
         """
-        return traverse_obj(
-            args, (..., ('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))),
-            expected_type=compat_str, get_all=False)
+        return get_first(
+            args, (('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))),
+            expected_type=str)
 
     @property
     def is_authenticated(self):
@@ -1674,7 +1674,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # shorts
             'url': 'https://www.youtube.com/shorts/BGQWPY4IigY',
             'only_matching': True,
-        },
+        }, {
+            'note': 'Storyboards',
+            'url': 'https://www.youtube.com/watch?v=5KLPxDtMqe8',
+            'info_dict': {
+                'id': '5KLPxDtMqe8',
+                'ext': 'mhtml',
+                'format_id': 'sb0',
+                'title': 'Your Brain is Plastic',
+                'uploader_id': 'scishow',
+                'description': 'md5:89cd86034bdb5466cd87c6ba206cd2bc',
+                'upload_date': '20140324',
+                'uploader': 'SciShow',
+            }, 'params': {'format': 'mhtml', 'skip_download': True}
+        }
     ]
 
     @classmethod
@@ -1920,9 +1933,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return sts
 
     def _mark_watched(self, video_id, player_responses):
-        playback_url = traverse_obj(
-            player_responses, (..., 'playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
-            expected_type=url_or_none, get_all=False)
+        playback_url = get_first(
+            player_responses, ('playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
+            expected_type=url_or_none)
         if not playback_url:
             self.report_warning('Unable to mark watched')
             return

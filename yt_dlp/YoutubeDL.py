@@ -528,7 +528,6 @@ class YoutubeDL(object):
         self.cache = Cache(self)
 
         windows_enable_vt_mode()
-        # FIXME: This will break if we ever print color to stdout
         self._allow_colors = {
             'screen': not self.params.get('no_color') and supports_terminal_sequences(self._screen_file),
             'err': not self.params.get('no_color') and supports_terminal_sequences(self._err_file),
@@ -2012,10 +2011,10 @@ class YoutubeDL(object):
                 # TODO: Add allvideo, allaudio etc by generalizing the code with best/worst selector
                 if format_spec == 'all':
                     def selector_function(ctx):
-                        yield from _check_formats(ctx['formats'])
+                        yield from _check_formats(ctx['formats'][::-1])
                 elif format_spec == 'mergeall':
                     def selector_function(ctx):
-                        formats = list(_check_formats(ctx['formats']))
+                        formats = list(_check_formats(ctx['formats'][::-1]))
                         if not formats:
                             return
                         merged_format = formats[-1]
@@ -3163,7 +3162,7 @@ class YoutubeDL(object):
             return 'images'
         else:
             return default
-        return f'{res} images' if is_images else res
+        return f'img {res}' if is_images else res
 
     def _format_note(self, fdict):
         res = ''

@@ -109,7 +109,7 @@ class LinkedInIE(LinkedInBaseIE):
         description = clean_html(get_element_by_class('share-update-card__update-text', webpage))
         like_count = int_or_none(get_element_by_class('social-counts-reactions__social-counts-numRections', webpage))
         creator = strip_or_none(clean_html(get_element_by_class('comment__actor-name', webpage)))
-        
+
         sources = self._parse_json(extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))['data-sources'], video_id)
         formats = [{
             'url': source['src'],
