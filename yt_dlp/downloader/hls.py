@@ -77,11 +77,10 @@ class HlsFD(FragmentFD):
                 message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
                            'Decryption will be performed natively, but will be extremely slow')
         if not can_download:
-            # NOTE: '#' needs to be escaped since it's a comment character in multiline regex ('\#' doesn't work)
-            has_drm = re.search(r'''(?x)(?:
-                                [#]EXT-X-FAXS-CM:|                        # Adobe Flash Access
-                                [#]EXT-X-(?:SESSION-)?KEY:.*?URI="skd://  # Apple FairPlay
-                                )''', s)
+            has_drm = re.search('|'.join([
+                r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
+                r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
+            ], s)
             if has_drm and not self.params.get('allow_unplayable_formats'):
                 self.report_error(
                     'This video is DRM protected; Try selecting another format with --format or '
