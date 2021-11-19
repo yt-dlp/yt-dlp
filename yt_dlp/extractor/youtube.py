@@ -3468,9 +3468,6 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
         'url': 'https://www.youtube.com/watch?v=UC6u0Tct-Fo&list=PL36D642111D65BE7C',
         'only_matching': True,
     }, {
-        'url': 'https://www.youtube.com/course?list=ECUl4u3cNGP61MdtwGTqZA0MreSaDybji8',
-        'only_matching': True,
-    }, {
         'url': 'https://www.youtube.com/course',
         'only_matching': True,
     }, {
