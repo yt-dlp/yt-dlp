@@ -304,7 +304,7 @@ class AbemaTVIE(AbemaTVBaseIE):
                 headers=headers)
             ondemand_types = traverse_obj(api_response, ('terms', ..., 'onDemandType'), default=[])
             if 3 not in ondemand_types:
-                # --allow-unplayable-formats is a devil; we don't care about it
+                # cannot acquire decryption key for these streams
                 raise ExtractorError("Premium stream is not supported", expected=True)
 
             m3u8_url = f'https://vod-abematv.akamaized.net/program/{video_id}/playlist.m3u8'
