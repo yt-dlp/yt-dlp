@@ -60,7 +60,7 @@ class AlJazeeraIE(InfoExtractor):
             }, headers={
                 'wp-site': wp,
             })
-        video = try_get(video, lambda x: x['data']['article']['video'])
+        video = try_get(video, lambda x: x['data']['article']['video']) or {}
         video_id = video.get('id')
         account = video.get('accountId') or '911432371001'
         player_id = video.get('playerId') or 'csvTfAlKW'
