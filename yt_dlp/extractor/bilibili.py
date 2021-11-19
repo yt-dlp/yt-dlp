@@ -50,7 +50,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'http://www.bilibili.com/video/av1074402/',
         'md5': '5f7d29e1a2872f3df0cf76b1f87d3788',
         'info_dict': {
-            'id': '1074402',
+            'id': '1074402_part1',
             'ext': 'flv',
             'title': '【金坷垃】金泡沫',
             'description': 'md5:ce18c2a2d2193f0df2917d270f2e5923',
@@ -73,7 +73,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'http://bangumi.bilibili.com/anime/5802/play#100643',
         'md5': '3f721ad1e75030cc06faf73587cfec57',
         'info_dict': {
-            'id': '100643',
+            'id': 'BV13x41117TL',
             'ext': 'mp4',
             'title': 'CHAOS;CHILD',
             'description': '如果你是神明，并且能够让妄想成为现实。那你会进行怎么样的妄想？是淫靡的世界？独裁社会？毁灭性的制裁？还是……2015年，涩谷。从6年前发生的大灾害“涩谷地震”之后复兴了的这个街区里新设立的私立高中...',
@@ -83,7 +83,7 @@ class BiliBiliIE(InfoExtractor):
         # Title with double quotes
         'url': 'http://www.bilibili.com/video/av8903802/',
         'info_dict': {
-            'id': '8903802',
+            'id': 'BV13x41117TL',
             'title': '阿滴英文｜英文歌分享#6 "Closer',
             'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
         },
@@ -346,7 +346,8 @@ class BiliBiliIE(InfoExtractor):
     def _extract_anthology_entries(self, bv_id, video_id, webpage):
         title = self._html_search_regex(
             (r'<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
-             r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
+             r'(?s)<h1[^>]*>(?P<title>.+?)</h1>',
+             r'<title>(?P<title>.+?)</title>'), webpage, 'title',
             group='title')
         json_data = self._download_json(
             f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',
