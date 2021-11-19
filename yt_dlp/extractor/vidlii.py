@@ -68,13 +68,6 @@ class VidLiiIE(InfoExtractor):
             'https://www.vidlii.com/watch?v=%s' % video_id, video_id)
         formats = []
 
-        def add_format(format_url, height=None):
-            formats.append({
-                'url': format_url,
-                'format_id': f'{height}p',
-                'height': height,
-            })
-
         sources = [source[1] for source in re.findall(
             r'src\s*:\s*(["\'])(?P<url>(?:https?://)?(?:(?!\1).)+)\1',
             webpage) or []]
