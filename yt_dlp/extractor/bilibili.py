@@ -73,7 +73,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'http://bangumi.bilibili.com/anime/5802/play#100643',
         'md5': '3f721ad1e75030cc06faf73587cfec57',
         'info_dict': {
-            'id': 'BV13x41117TL',
+            'id': '8903802',
             'ext': 'mp4',
             'title': 'CHAOS;CHILD',
             'description': '如果你是神明，并且能够让妄想成为现实。那你会进行怎么样的妄想？是淫靡的世界？独裁社会？毁灭性的制裁？还是……2015年，涩谷。从6年前发生的大灾害“涩谷地震”之后复兴了的这个街区里新设立的私立高中...',
@@ -83,7 +83,7 @@ class BiliBiliIE(InfoExtractor):
         # Title with double quotes
         'url': 'http://www.bilibili.com/video/av8903802/',
         'info_dict': {
-            'id': 'BV13x41117TL',
+            'id': '8903802',
             'title': '阿滴英文｜英文歌分享#6 "Closer',
             'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
         },
