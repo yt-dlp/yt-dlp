@@ -193,7 +193,7 @@ class PBSIE(InfoExtractor):
            # Article with embedded player (or direct video)
            (?:www\.)?pbs\.org/(?:[^/]+/){1,5}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
            # Player
-           (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)/
+           (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
         )
     ''' % '|'.join(list(zip(*_STATIONS))[0])
 
