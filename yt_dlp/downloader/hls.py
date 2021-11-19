@@ -80,7 +80,7 @@ class HlsFD(FragmentFD):
             has_drm = re.search('|'.join([
                 r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
                 r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
-            ], s)
+            ]), s)
             if has_drm and not self.params.get('allow_unplayable_formats'):
                 self.report_error(
                     'This video is DRM protected; Try selecting another format with --format or '
