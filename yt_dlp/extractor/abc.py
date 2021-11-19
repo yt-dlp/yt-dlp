@@ -295,7 +295,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
         show_id = self._match_id(url)
         webpage = self._download_webpage(url, show_id)
         webpage_data = self._search_regex(
-            r'window\.__INITIAL_STATE__\s*=\s*"(.+)"\s*;',
+            r'''window\.__INITIAL_STATE__\s*=\s*['"](.+)['"]\s*;''',
             webpage, 'initial state')
         video_data = self._parse_json(
             unescapeHTML(webpage_data).encode('utf-8').decode('unicode_escape'), show_id)
