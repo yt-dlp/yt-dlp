@@ -4168,6 +4168,10 @@ class LazyList(collections.abc.Sequence):
 
 
 class PagedList:
+
+    class IndexError(IndexError):
+        pass
+
     def __len__(self):
         # This is only useful for tests
         return len(self.getslice())
@@ -4198,7 +4202,7 @@ class PagedList:
             raise TypeError('indices must be non-negative integers')
         entries = self.getslice(idx, idx + 1)
         if not entries:
-            raise IndexError()
+            raise self.IndexError()
         return entries[0]
 
 

@@ -1328,7 +1328,7 @@ class YoutubeDL(object):
                 self.to_stderr('\r')
                 self.report_warning(f'{e}; Re-extracting data')
                 return wrapper(self, *args, **kwargs)
-            except (DownloadCancelled, LazyList.IndexError):
+            except (DownloadCancelled, LazyList.IndexError, PagedList.IndexError):
                 raise
             except Exception as e:
                 if self.params.get('ignoreerrors'):
