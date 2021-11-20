@@ -1222,11 +1222,48 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
     def test_render_table(self):
         self.assertEqual(
             render_table(
-                ['a', 'bcd'],
-                [[123, 4], [9999, 51]]),
+                ['a', 'empty', 'bcd'],
+                [[123, '', 4], [9999, '', 51]]),
+            'a    empty bcd\n'
+            '123        4\n'
+            '9999       51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'empty', 'bcd'],
+                [[123, '', 4], [9999, '', 51]],
+                hide_empty=True),
             'a    bcd\n'
             '123  4\n'
             '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['\ta', 'bcd'],
+                [['1\t23', 4], ['\t9999', 51]]),
+            '   a bcd\n'
+            '1 23 4\n'
+            '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'bcd'],
+                [[123, 4], [9999, 51]],
+                delim='-'),
+            'a    bcd\n'
+            '--------\n'
+            '123  4\n'
+            '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'bcd'],
+                [[123, 4], [9999, 51]],
+                delim='-', extra_gap=2),
+            'a      bcd\n'
+            '----------\n'
+            '123    4\n'
+            '9999   51')
 
     def test_match_str(self):
         # Unary

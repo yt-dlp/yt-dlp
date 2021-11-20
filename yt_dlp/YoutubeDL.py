@@ -3229,37 +3229,36 @@ class YoutubeDL(object):
         formats = info_dict.get('formats', [info_dict])
         new_format = self.params.get('listformats_table', True) is not False
         if new_format:
-            tbr_digits = number_of_digits(max(f.get('tbr') or 0 for f in formats))
-            vbr_digits = number_of_digits(max(f.get('vbr') or 0 for f in formats))
-            abr_digits = number_of_digits(max(f.get('abr') or 0 for f in formats))
             delim = self._format_screen('\u2502', self.Styles.DELIM, '|', test_encoding=True)
             table = [
                 [
                     self._format_screen(format_field(f, 'format_id'), self.Styles.ID),
                     format_field(f, 'ext'),
                     self.format_resolution(f),
-                    format_field(f, 'fps', '%3d'),
+                    format_field(f, 'fps', '\t%d'),
                     format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                     delim,
-                    format_field(f, 'filesize', ' %s', func=format_bytes) + format_field(f, 'filesize_approx', '~%s', func=format_bytes),
-                    format_field(f, 'tbr', f'%{tbr_digits}dk'),
-                    shorten_protocol_name(f.get('protocol', '').replace("native", "n")),
+                    format_field(f, 'filesize', ' \t%s', func=format_bytes) + format_field(f, 'filesize_approx', '~\t%s', func=format_bytes),
+                    format_field(f, 'tbr', '\t%dk'),
+                    shorten_protocol_name(f.get('protocol', '').replace('native', 'n')),
                     delim,
                     format_field(f, 'vcodec', default='unknown').replace('none', ''),
-                    format_field(f, 'vbr', f'%{vbr_digits}dk'),
+                    format_field(f, 'vbr', '\t%dk'),
                     format_field(f, 'acodec', default='unknown').replace('none', ''),
-                    format_field(f, 'abr', f'%{abr_digits}dk'),
-                    format_field(f, 'asr', '%5dHz'),
+                    format_field(f, 'abr', '\t%dk'),
+                    format_field(f, 'asr', '\t%dHz'),
                     join_nonempty(
                         self._format_screen('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
                         format_field(f, 'language', '[%s]'),
-                        format_field(f, 'format_note'),
-                        format_field(f, 'container', ignore=(None, f.get('ext'))),
-                        delim=', '),
+                        join_nonempty(
+                            format_field(f, 'format_note'),
+                            format_field(f, 'container', ignore=(None, f.get('ext'))),
+                            delim=', '),
+                        delim=' '),
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
             header_line = self._list_format_headers(
-                'ID', 'EXT', 'RESOLUTION', 'FPS', 'HDR', delim, ' FILESIZE', '  TBR', 'PROTO',
-                delim, 'VCODEC', '  VBR', 'ACODEC', ' ABR', ' ASR', 'MORE INFO')
+                'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', delim, '\tFILESIZE', '\tTBR', 'PROTO',
+                delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO')
         else:
             table = [
                 [
@@ -3275,8 +3274,8 @@ class YoutubeDL(object):
             '[info] Available formats for %s:' % info_dict['id'])
         self.to_stdout(render_table(
             header_line, table,
-            extraGap=(0 if new_format else 1),
-            hideEmpty=new_format,
+            extra_gap=(0 if new_format else 1),
+            hide_empty=new_format,
             delim=new_format and self._format_screen('\u2500', self.Styles.DELIM, '-', test_encoding=True)))
 
     def list_thumbnails(self, info_dict):
@@ -3307,7 +3306,7 @@ class YoutubeDL(object):
         self.to_stdout(render_table(
             self._list_format_headers('Language', 'Name', 'Formats'),
             [_row(lang, formats) for lang, formats in subtitles.items()],
-            hideEmpty=True))
+            hide_empty=True))
 
     def urlopen(self, req):
         """ Start an HTTP download """
