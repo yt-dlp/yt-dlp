@@ -1,7 +1,4 @@
 # coding: utf-8
-from __future__ import unicode_literals
-
-from ..compat import compat_str
 from ..utils import ExtractorError
 from .common import InfoExtractor
 
@@ -38,27 +35,24 @@ class WillowIE(InfoExtractor):
         video_data = self._parse_json(self._html_search_regex(
             r'var\s+data_js\s*=\s*JSON\.parse\(\'(.+)\'\)', webpage,
             'data_js'), video_id)
-        videos = video_data.get('trending_videos') or []
 
-        for v in videos:
-            m3u8_url = v.get('secureurl')
+        video = next((v for v in video_data.get('trending_videos') or []
+                      if v.get('secureurl')), None)
+        if not video:
+            raise ExtractorError('No videos found')
 
-            if m3u8_url:
-                formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
-                self._sort_formats(formats)
+        formats = self._extract_m3u8_formats(video['secureurl'], video_id, 'mp4')
+        self._sort_formats(formats)
 
-                return {
-                    'formats': formats,
-                    'id': compat_str(v.get('content_id')),
-                    'display_id': v.get('video_slug'),
-                    'title': v.get('video_name') or self._html_search_meta(
-                        'twitter:title', webpage, default=None),
-                    'thumbnail': v.get('yt_thumb_url') or self._html_search_meta(
-                        'twitter:image', webpage, default=None),
-                    'duration': v.get('duration_seconds'),
-                    'timestamp': v.get('created_date'),
-                    'location': v.get('venue'),
-                    'series': v.get('series_name'),
-                }
-
-        raise ExtractorError('No videos found')
+        return {
+            'id': str(video.get('content_id')),
+            'display_id': video.get('video_slug'),
+            'title': video.get('video_name') or self._html_search_meta('twitter:title', webpage),
+            'formats': formats,
+            'thumbnail': video.get('yt_thumb_url') or self._html_search_meta(
+                'twitter:image', webpage, default=None),
+            'duration': video.get('duration_seconds'),
+            'timestamp': video.get('created_date'),
+            'location': video.get('venue'),
+            'series': video.get('series_name'),
+        }
