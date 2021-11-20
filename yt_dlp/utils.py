@@ -4086,10 +4086,10 @@ class LazyList(collections.abc.Sequence):
     class IndexError(IndexError):
         pass
 
-    def __init__(self, iterable):
+    def __init__(self, iterable, *, reverse=False, _cache=None):
         self.__iterable = iter(iterable)
-        self.__cache = []
-        self.__reversed = False
+        self.__cache = [] if _cache is None else _cache
+        self.__reversed = reverse
 
     def __iter__(self):
         if self.__reversed:
@@ -4155,9 +4155,17 @@ class LazyList(collections.abc.Sequence):
         self.__exhaust()
         return len(self.__cache)
 
-    def reverse(self):
-        self.__reversed = not self.__reversed
-        return self
+    def __reversed__(self):
+        return type(self)(self.__iterable, reverse=not self.__reversed, _cache=self.__cache)
+
+    def __copy__(self):
+        return type(self)(self.__iterable, reverse=self.__reversed, _cache=self.__cache)
+
+    def __deepcopy__(self, memo):
+        # FIXME: This is actually just a shallow copy
+        id_ = id(self)
+        memo[id_] = self.__copy__()
+        return memo[id_]
 
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable

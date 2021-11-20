@@ -2166,7 +2166,7 @@ class YoutubeDL(object):
             t['url'] = sanitize_url(t['url'])
 
         if self.params.get('check_formats') is True:
-            info_dict['thumbnails'] = LazyList(check_thumbnails(thumbnails[::-1])).reverse()
+            info_dict['thumbnails'] = LazyList(check_thumbnails(thumbnails[::-1]), reverse=True)
         else:
             info_dict['thumbnails'] = thumbnails
 
@@ -2361,7 +2361,7 @@ class YoutubeDL(object):
         # TODO Central sorting goes here
 
         if self.params.get('check_formats') is True:
-            formats = LazyList(self._check_formats(formats[::-1])).reverse()
+            formats = LazyList(self._check_formats(formats[::-1]), reverse=True)
 
         if not formats or formats[0] is not info_dict:
             # only set the 'formats' fields if the original info_dict list them
