@@ -293,6 +293,7 @@ from .commonprotocols import (
 from .condenast import CondeNastIE
 from .contv import CONtvIE
 from .corus import CorusIE
+from .cozytv import CozyTVIE
 from .cracked import CrackedIE
 from .crackle import CrackleIE
 from .crooksandliars import CrooksAndLiarsIE
