@@ -19,7 +19,7 @@ class XVideosIE(InfoExtractor):
                         (?:
                             (?:[^/]+\.)?xvideos2?\.com/video|
                             (?:www\.)?xvideos\.es/video|
-                            flashservice\.xvideos\.com/embedframe/|
+                            (?:www|flashservice)\.xvideos\.com/embedframe/|
                             static-hw\.xvideos\.com/swf/xv-player\.swf\?.*?\bid_video=
                         )
                         (?P<id>[0-9]+)
@@ -36,6 +36,9 @@ class XVideosIE(InfoExtractor):
         }
     }, {
         'url': 'https://flashservice.xvideos.com/embedframe/4588838',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.xvideos.com/embedframe/4588838',
         'only_matching': True,
     }, {
         'url': 'http://static-hw.xvideos.com/swf/xv-player.swf?id_video=4588838',
